@@ -25,6 +25,11 @@ export default function PaymentsPage() {
   const [sendingId, setSendingId] = useState(null);
   const [actionMsg, setActionMsg] = useState('');
 
+  // Products & Services state
+  const [posServices, setPosServices] = useState([]);
+  const [posServicesLoading, setPosServicesLoading] = useState(false);
+  const [posServicesLoaded, setPosServicesLoaded] = useState(false);
+
   // POS state
   const [showChargeModal, setShowChargeModal] = useState(false);
   const [chargePatient, setChargePatient] = useState(null);
@@ -40,6 +45,27 @@ export default function PaymentsPage() {
     fetchInvoices();
     loadRecentPurchases();
   }, []);
+
+  // Fetch POS services when Products tab is first selected
+  useEffect(() => {
+    if (tab === 'products' && !posServicesLoaded) {
+      fetchPosServices();
+    }
+  }, [tab]);
+
+  const fetchPosServices = async () => {
+    setPosServicesLoading(true);
+    try {
+      const res = await fetch('/api/pos/services?active=true');
+      const data = await res.json();
+      setPosServices(data.services || []);
+      setPosServicesLoaded(true);
+    } catch (err) {
+      console.error('Error fetching POS services:', err);
+    } finally {
+      setPosServicesLoading(false);
+    }
+  };
 
   // Patient search with debounce
   useEffect(() => {
@@ -204,7 +230,7 @@ export default function PaymentsPage() {
       {/* Tab bar + Create button */}
       <div style={styles.topBar}>
         <div style={styles.tabBar}>
-          {['invoices', 'pos'].map(t => (
+          {['invoices', 'pos', 'products'].map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -213,7 +239,7 @@ export default function PaymentsPage() {
                 ...(tab === t ? styles.tabActive : {})
               }}
             >
-              {t === 'invoices' ? 'Invoices' : 'POS Checkout'}
+              {t === 'invoices' ? 'Invoices' : t === 'pos' ? 'POS Checkout' : 'Products & Services'}
             </button>
           ))}
         </div>
@@ -224,7 +250,7 @@ export default function PaymentsPage() {
         )}
       </div>
 
-      {tab === 'invoices' ? (
+      {tab === 'invoices' && (
         <>
           {/* Summary stats */}
           <div style={styles.statsRow}>
@@ -446,7 +472,9 @@ export default function PaymentsPage() {
             )}
           </div>
         </>
-      ) : (
+      )}
+
+      {tab === 'pos' && (
         <>
           {/* Patient Search + Quick Charge */}
           <div style={styles.posSection}>
@@ -561,6 +589,91 @@ export default function PaymentsPage() {
             }}
           />
         </>
+      )}
+
+      {/* === PRODUCTS & SERVICES TAB === */}
+      {tab === 'products' && (
+        <div>
+          {posServicesLoading ? (
+            <div style={styles.loading}>Loading products & services...</div>
+          ) : posServices.length === 0 ? (
+            <div style={styles.empty}>No services found</div>
+          ) : (
+            (() => {
+              const CATEGORY_ORDER = [
+                'programs', 'combo_membership', 'hbot', 'red_light', 'hrt', 'weight_loss',
+                'iv_therapy', 'specialty_iv', 'injection_standard', 'injection_premium',
+                'injection_pack', 'nad_injection', 'peptide', 'labs', 'assessment', 'custom',
+              ];
+              const CATEGORY_LABELS = {
+                programs: 'Programs',
+                combo_membership: 'Combo Memberships',
+                hbot: 'HBOT',
+                red_light: 'Red Light Therapy',
+                hrt: 'HRT',
+                weight_loss: 'Weight Loss',
+                iv_therapy: 'IV Therapy',
+                specialty_iv: 'Specialty IVs',
+                injection_standard: 'Standard Injections',
+                injection_premium: 'Premium Injections',
+                injection_pack: 'Injection Packs',
+                nad_injection: 'NAD+ Injections',
+                peptide: 'Peptides',
+                labs: 'Lab Panels',
+                assessment: 'Assessment',
+                custom: 'Custom',
+              };
+
+              // Group services by category
+              const grouped = {};
+              for (const s of posServices) {
+                if (!grouped[s.category]) grouped[s.category] = [];
+                grouped[s.category].push(s);
+              }
+
+              // Sort categories by defined order
+              const sortedCategories = Object.keys(grouped).sort((a, b) => {
+                const ai = CATEGORY_ORDER.indexOf(a);
+                const bi = CATEGORY_ORDER.indexOf(b);
+                return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+              });
+
+              return (
+                <div style={styles.productsGrid}>
+                  {sortedCategories.map(cat => (
+                    <div key={cat} style={styles.productCategory}>
+                      <div style={styles.productCategoryHeader}>
+                        <span style={styles.productCategoryName}>
+                          {CATEGORY_LABELS[cat] || cat.replace(/_/g, ' ')}
+                        </span>
+                        <span style={styles.productCategoryCount}>
+                          {grouped[cat].length} {grouped[cat].length === 1 ? 'item' : 'items'}
+                        </span>
+                      </div>
+                      <div style={styles.productList}>
+                        {grouped[cat]
+                          .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+                          .map(service => (
+                            <div key={service.id} style={styles.productRow}>
+                              <span style={styles.productName}>{service.name}</span>
+                              <div style={styles.productPriceWrap}>
+                                <span style={styles.productPrice}>
+                                  ${(service.price / 100).toLocaleString('en-US', { minimumFractionDigits: 0 })}
+                                </span>
+                                {service.recurring && (
+                                  <span style={styles.productRecurring}>/mo</span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()
+          )}
+        </div>
       )}
 
       {/* Create Invoice Modal */}
@@ -860,5 +973,64 @@ const styles = {
     fontSize: '14px',
     fontWeight: '500',
     cursor: 'pointer',
+  },
+  // Products & Services styles
+  productsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+    gap: '16px',
+  },
+  productCategory: {
+    background: '#fff',
+    borderRadius: '12px',
+    border: '1px solid #e5e5e5',
+    overflow: 'hidden',
+  },
+  productCategoryHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '14px 18px',
+    background: '#fafafa',
+    borderBottom: '1px solid #e5e5e5',
+  },
+  productCategoryName: {
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#111',
+  },
+  productCategoryCount: {
+    fontSize: '12px',
+    color: '#999',
+  },
+  productList: {
+    padding: '4px 0',
+  },
+  productRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '10px 18px',
+    borderBottom: '1px solid #f5f5f5',
+  },
+  productName: {
+    fontSize: '14px',
+    color: '#333',
+  },
+  productPriceWrap: {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: '2px',
+    flexShrink: 0,
+  },
+  productPrice: {
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#111',
+  },
+  productRecurring: {
+    fontSize: '12px',
+    color: '#999',
+    fontWeight: '400',
   },
 };

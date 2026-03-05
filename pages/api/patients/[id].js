@@ -333,13 +333,22 @@ export default async function handler(req, res) {
         .order('session_date', { ascending: false })
         .limit(50);
 
-      // ===== NEW: Get symptoms questionnaires =====
+      // ===== NEW: Get symptoms questionnaires (legacy) =====
       const { data: symptomResponses } = await supabase
         .from('symptoms')
         .select('*')
         .eq('patient_id', id)
         .order('symptom_date', { ascending: false })
         .limit(10);
+
+      // ===== Get questionnaire responses (19-question symptom questionnaire) =====
+      const { data: questionnaireResponses } = await supabase
+        .from('symptom_responses')
+        .select('*')
+        .eq('patient_id', id)
+        .eq('response_type', 'baseline')
+        .order('submitted_at', { ascending: false })
+        .limit(20);
 
       // ===== NEW: Get consent forms =====
       let consents = [];
@@ -562,6 +571,7 @@ export default async function handler(req, res) {
         medicalDocuments: medicalDocuments || [],
         sessions: sessions || [],
         symptomResponses: symptomResponses || [],
+        questionnaireResponses: questionnaireResponses || [],
         appointments: appointments || [],
         notes: patientNotes || [],
         weightLossLogs: weightLossLogs || [],

@@ -261,7 +261,18 @@ export default function ConversationView({ patientId, patientName, patientPhone,
             </button>
           )}
           <div>
-            <div style={styles.headerName}>{patientName || 'Unknown'}</div>
+            {onBack && patientId ? (
+              <a
+                href={`/patients/${patientId}`}
+                style={{ ...styles.headerName, color: '#2563eb', textDecoration: 'none' }}
+                onMouseEnter={e => e.target.style.textDecoration = 'underline'}
+                onMouseLeave={e => e.target.style.textDecoration = 'none'}
+              >
+                {patientName || 'Unknown'}
+              </a>
+            ) : (
+              <div style={styles.headerName}>{patientName || 'Unknown'}</div>
+            )}
             <div style={styles.headerPhone}>{patientPhone || 'No phone on file'}</div>
           </div>
         </div>

@@ -67,6 +67,57 @@ function getGuideUrl(programType, programName, medicationName, patientGender) {
   return null;
 }
 
+// Generate branded email HTML for protocol guide links
+function generateGuideEmailHtml({ firstName, guideName, guideUrl }) {
+  return `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Guide — Range Medical</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f5f5f5;">
+        <tr>
+            <td align="center" style="padding: 40px 20px;">
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; max-width: 600px;">
+                    <tr>
+                        <td style="background-color: #000000; padding: 30px; text-align: center;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700; letter-spacing: 0.1em;">RANGE MEDICAL</h1>
+                            <p style="margin: 10px 0 0; color: #a3a3a3; font-size: 14px;">Your Protocol Guide</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <p style="margin: 0 0 24px; color: #404040; font-size: 15px; line-height: 1.7;">Hi ${firstName},</p>
+                            <p style="margin: 0 0 24px; color: #404040; font-size: 15px; line-height: 1.7;">Here's your guide for your ${guideName} protocol. It covers everything you need to know — dosing, schedule, and what to expect.</p>
+                            <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 0 24px;">
+                                <tr>
+                                    <td style="padding: 8px 0;">
+                                        <a href="${guideUrl}" style="display: inline-block; padding: 14px 32px; background-color: #000000; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 15px; font-weight: 500;">
+                                            View Your Guide
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                            <p style="margin: 0 0 8px; color: #666; font-size: 13px; line-height: 1.6;">If you have any questions about your protocol, don't hesitate to reach out to us.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 24px 30px; border-top: 1px solid #e5e5e5; background-color: #fafafa;">
+                            <p style="margin: 0 0 4px; color: #999; font-size: 12px;">Range Medical</p>
+                            <p style="margin: 0 0 4px; color: #999; font-size: 12px;">Questions? Call us at (949) 997-3988</p>
+                            <p style="margin: 0; color: #999; font-size: 12px;">www.range-medical.com</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>`;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -781,6 +832,57 @@ export default async function handler(req, res) {
     }
 
     // ============================================
+    // SEND PEPTIDE GUIDE EMAIL (recovery peptides — email fallback)
+    // ============================================
+    if (programType === 'peptide' && isRecoveryPeptide(medicationName)) {
+      try {
+        const { data: existingEmailGuide } = await supabase
+          .from('protocol_logs')
+          .select('id')
+          .eq('patient_id', finalPatientId)
+          .eq('log_type', 'peptide_guide_email_sent')
+          .limit(1);
+
+        if (!existingEmailGuide || existingEmailGuide.length === 0) {
+          const { data: pepEmailPatient } = await supabase
+            .from('patients')
+            .select('email, first_name, name')
+            .eq('id', finalPatientId)
+            .single();
+
+          if (pepEmailPatient?.email) {
+            const pepFirstName = pepEmailPatient.first_name || (pepEmailPatient.name ? pepEmailPatient.name.split(' ')[0] : 'there');
+            const pepGuideUrl = 'https://www.range-medical.com/bpc-tb4-guide';
+            const pepEmailHtml = generateGuideEmailHtml({ firstName: pepFirstName, guideName: 'Recovery Peptide', guideUrl: pepGuideUrl });
+
+            const resend = new Resend(process.env.RESEND_API_KEY);
+            const { error: pepEmailError } = await resend.emails.send({
+              from: 'Range Medical <noreply@range-medical.com>',
+              to: pepEmailPatient.email,
+              subject: 'Your Recovery Peptide Guide — Range Medical',
+              html: pepEmailHtml,
+            });
+
+            if (!pepEmailError) {
+              await supabase.from('protocol_logs').insert({
+                protocol_id: protocol.id, patient_id: finalPatientId,
+                log_type: 'peptide_guide_email_sent',
+                log_date: new Date().toISOString().split('T')[0],
+                notes: 'Peptide guide sent via email'
+              });
+              await logComm({ channel: 'email', messageType: 'peptide_guide_email_sent', message: pepEmailHtml, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, patientName, recipient: pepEmailPatient.email, subject: 'Your Recovery Peptide Guide — Range Medical' });
+              console.log('Peptide guide email sent to', pepEmailPatient.email);
+            } else {
+              console.error('Peptide guide email error:', pepEmailError);
+            }
+          }
+        }
+      } catch (pepEmailErr) {
+        console.error('Peptide guide email error (non-fatal):', pepEmailErr);
+      }
+    }
+
+    // ============================================
     // SEND SKIN PEPTIDE GUIDE SMS (GLOW protocols only, not KLOW)
     // Skip if patient has already received the skin guide before
     // ============================================
@@ -857,6 +959,57 @@ export default async function handler(req, res) {
         } // end else (skin guide not previously sent)
       } catch (skinGuideError) {
         console.error('Skin peptide guide SMS error (non-fatal):', skinGuideError);
+      }
+    }
+
+    // ============================================
+    // SEND SKIN PEPTIDE GUIDE EMAIL (GLOW — email fallback)
+    // ============================================
+    if (programType === 'peptide' && isSkinPeptide(medicationName)) {
+      try {
+        const { data: existingSkinEmailGuide } = await supabase
+          .from('protocol_logs')
+          .select('id')
+          .eq('patient_id', finalPatientId)
+          .eq('log_type', 'skin_guide_email_sent')
+          .limit(1);
+
+        if (!existingSkinEmailGuide || existingSkinEmailGuide.length === 0) {
+          const { data: skinEmailPatient } = await supabase
+            .from('patients')
+            .select('email, first_name, name')
+            .eq('id', finalPatientId)
+            .single();
+
+          if (skinEmailPatient?.email) {
+            const skinEmailFirstName = skinEmailPatient.first_name || (skinEmailPatient.name ? skinEmailPatient.name.split(' ')[0] : 'there');
+            const skinGuideUrl = 'https://www.range-medical.com/glow-guide';
+            const skinEmailHtml = generateGuideEmailHtml({ firstName: skinEmailFirstName, guideName: 'GLOW Peptide', guideUrl: skinGuideUrl });
+
+            const resend = new Resend(process.env.RESEND_API_KEY);
+            const { error: skinEmailError } = await resend.emails.send({
+              from: 'Range Medical <noreply@range-medical.com>',
+              to: skinEmailPatient.email,
+              subject: 'Your GLOW Peptide Guide — Range Medical',
+              html: skinEmailHtml,
+            });
+
+            if (!skinEmailError) {
+              await supabase.from('protocol_logs').insert({
+                protocol_id: protocol.id, patient_id: finalPatientId,
+                log_type: 'skin_guide_email_sent',
+                log_date: new Date().toISOString().split('T')[0],
+                notes: 'GLOW peptide guide sent via email'
+              });
+              await logComm({ channel: 'email', messageType: 'skin_guide_email_sent', message: skinEmailHtml, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, patientName, recipient: skinEmailPatient.email, subject: 'Your GLOW Peptide Guide — Range Medical' });
+              console.log('Skin peptide guide email sent to', skinEmailPatient.email);
+            } else {
+              console.error('Skin peptide guide email error:', skinEmailError);
+            }
+          }
+        }
+      } catch (skinEmailErr) {
+        console.error('Skin peptide guide email error (non-fatal):', skinEmailErr);
       }
     }
 
@@ -947,6 +1100,90 @@ export default async function handler(req, res) {
       }
     }
 
+    // ============================================
+    // SEND GUIDE EMAIL (all protocol types — email fallback)
+    // Same dedup logic as SMS but with email-specific log type
+    // ============================================
+    let guideEmailSent = false;
+
+    try {
+      // Look up patient gender for lab guides
+      let emailPatientGender = null;
+      if (programType === 'labs') {
+        const { data: genderData } = await supabase
+          .from('patients')
+          .select('gender')
+          .eq('id', finalPatientId)
+          .single();
+        emailPatientGender = genderData?.gender || null;
+      }
+
+      const emailGuideSlug = getGuideUrl(programType, programName, medicationName, emailPatientGender);
+
+      if (emailGuideSlug) {
+        const emailGuideLogType = `guide_email_sent_${emailGuideSlug.replace(/^\//, '')}`;
+
+        // Check if this patient has already received this specific guide via email
+        const { data: existingEmailGuide } = await supabase
+          .from('protocol_logs')
+          .select('id')
+          .eq('patient_id', finalPatientId)
+          .eq('log_type', emailGuideLogType)
+          .limit(1);
+
+        if (!existingEmailGuide || existingEmailGuide.length === 0) {
+          const { data: emailGuidePatient } = await supabase
+            .from('patients')
+            .select('email, first_name, name')
+            .eq('id', finalPatientId)
+            .single();
+
+          if (emailGuidePatient?.email) {
+            const emailGuideFirstName = emailGuidePatient.first_name || (emailGuidePatient.name ? emailGuidePatient.name.split(' ')[0] : 'there');
+            const emailGuideUrl = `https://www.range-medical.com${emailGuideSlug}`;
+
+            // Derive a friendly guide name from the slug
+            const guideDisplayName = emailGuideSlug
+              .replace(/^\//, '')
+              .replace(/-guide$/, '')
+              .replace(/-/g, ' ')
+              .replace(/\b\w/g, c => c.toUpperCase());
+
+            const guideEmailHtml = generateGuideEmailHtml({ firstName: emailGuideFirstName, guideName: guideDisplayName, guideUrl: emailGuideUrl });
+            const guideEmailSubject = `Your ${guideDisplayName} Guide — Range Medical`;
+
+            const resend = new Resend(process.env.RESEND_API_KEY);
+            const { error: guideEmailError } = await resend.emails.send({
+              from: 'Range Medical <noreply@range-medical.com>',
+              to: emailGuidePatient.email,
+              subject: guideEmailSubject,
+              html: guideEmailHtml,
+            });
+
+            if (!guideEmailError) {
+              await supabase.from('protocol_logs').insert({
+                protocol_id: protocol.id, patient_id: finalPatientId,
+                log_type: emailGuideLogType,
+                log_date: new Date().toISOString().split('T')[0],
+                notes: `Guide email sent: ${emailGuideSlug}`
+              });
+              await logComm({ channel: 'email', messageType: emailGuideLogType, message: guideEmailHtml, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, patientName, recipient: emailGuidePatient.email, subject: guideEmailSubject });
+              guideEmailSent = true;
+              console.log(`Guide email (${emailGuideSlug}) sent to`, emailGuidePatient.email);
+            } else {
+              console.error('Guide email error:', guideEmailError);
+            }
+          } else {
+            console.log('No patient email — skipping guide email');
+          }
+        } else {
+          console.log(`Guide email ${emailGuideSlug} already sent to patient ${finalPatientId} — skipping`);
+        }
+      }
+    } catch (guideEmailErr) {
+      console.error('Guide email error (non-fatal):', guideEmailErr);
+    }
+
     res.status(200).json({
       success: true,
       protocol,
@@ -956,6 +1193,7 @@ export default async function handler(req, res) {
       peptideGuideSent,
       skinGuideSent,
       guideSent,
+      guideEmailSent,
       message: `Protocol created: ${programName}`
     });
 

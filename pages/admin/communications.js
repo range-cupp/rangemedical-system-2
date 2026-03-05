@@ -557,7 +557,19 @@ export default function CommunicationsPage() {
                     >
                       <td style={styles.td}>{formatDate(comm.created_at)}</td>
                       <td style={styles.td}>
-                        <span style={{ fontWeight: '500' }}>{comm.patient_name || '-'}</span>
+                        {comm.patient_id ? (
+                          <a
+                            href={`/patients/${comm.patient_id}`}
+                            onClick={e => e.stopPropagation()}
+                            style={{ fontWeight: '500', color: '#2563eb', textDecoration: 'none' }}
+                            onMouseEnter={e => e.target.style.textDecoration = 'underline'}
+                            onMouseLeave={e => e.target.style.textDecoration = 'none'}
+                          >
+                            {comm.patient_name || '-'}
+                          </a>
+                        ) : (
+                          <span style={{ fontWeight: '500' }}>{comm.patient_name || '-'}</span>
+                        )}
                       </td>
                       <td style={styles.td}>
                         <span style={{
@@ -614,7 +626,18 @@ export default function CommunicationsPage() {
                 <div style={styles.modalMeta}>
                   <div style={styles.modalMetaRow}>
                     <span style={styles.modalMetaLabel}>Patient:</span>
-                    <span style={{ fontWeight: '500' }}>{selectedComm.patient_name || '—'}</span>
+                    {selectedComm.patient_id ? (
+                      <a
+                        href={`/patients/${selectedComm.patient_id}`}
+                        style={{ fontWeight: '500', color: '#2563eb', textDecoration: 'none' }}
+                        onMouseEnter={e => e.target.style.textDecoration = 'underline'}
+                        onMouseLeave={e => e.target.style.textDecoration = 'none'}
+                      >
+                        {selectedComm.patient_name || '—'}
+                      </a>
+                    ) : (
+                      <span style={{ fontWeight: '500' }}>{selectedComm.patient_name || '—'}</span>
+                    )}
                   </div>
                   <div style={styles.modalMetaRow}>
                     <span style={styles.modalMetaLabel}>

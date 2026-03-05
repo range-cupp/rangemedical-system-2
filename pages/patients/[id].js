@@ -58,6 +58,8 @@ export default function PatientProfile() {
   const [medicalDocuments, setMedicalDocuments] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [symptomResponses, setSymptomResponses] = useState([]);
+  const [questionnaireResponses, setQuestionnaireResponses] = useState([]);
+  const [selectedQuestionnaireIdx, setSelectedQuestionnaireIdx] = useState(0);
   const [labDocuments, setLabDocuments] = useState([]);
   const [appointments, setAppointments] = useState([]);
   const [notes, setNotes] = useState([]);
@@ -219,6 +221,7 @@ export default function PatientProfile() {
         setMedicalDocuments(data.medicalDocuments || []);
         setSessions(data.sessions || []);
         setSymptomResponses(data.symptomResponses || []);
+        setQuestionnaireResponses(data.questionnaireResponses || []);
         setAppointments(data.appointments || []);
         setNotes(data.notes || []);
         setWeightLossLogs(data.weightLossLogs || []);
@@ -1129,6 +1132,7 @@ export default function PatientProfile() {
           <button className={activeTab === 'appointments' ? 'active' : ''} onClick={() => setActiveTab('appointments')}>Visits ({appointments.length + serviceLogs.length})</button>
           <button className={activeTab === 'intakes' ? 'active' : ''} onClick={() => setActiveTab('intakes')}>Documents ({intakes.length + consents.length + medicalDocuments.length})</button>
           <button className={activeTab === 'notes' ? 'active' : ''} onClick={() => setActiveTab('notes')}>Notes ({notes.length})</button>
+          <button className={activeTab === 'symptoms' ? 'active' : ''} onClick={() => setActiveTab('symptoms')}>Symptoms{questionnaireResponses.length > 0 ? ` (${questionnaireResponses.length})` : ''}</button>
           <button className={activeTab === 'payments' ? 'active' : ''} onClick={() => setActiveTab('payments')}>Payments</button>
           <button className={activeTab === 'communications' ? 'active' : ''} onClick={() => setActiveTab('communications')}>Communications</button>
         </nav>
@@ -1990,6 +1994,182 @@ export default function PatientProfile() {
                   </div>
                 )}
               </section>
+            </>
+          )}
+
+          {/* Symptoms Tab */}
+          {activeTab === 'symptoms' && (
+            <>
+              {questionnaireResponses.length === 0 ? (
+                <section className="card">
+                  <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>📊</div>
+                    <h3 style={{ margin: '0 0 8px', fontSize: '16px', fontWeight: '600' }}>No Symptoms Questionnaires</h3>
+                    <p style={{ color: '#888', fontSize: '14px', margin: '0 0 20px' }}>
+                      This patient hasn&apos;t completed a symptoms questionnaire yet.
+                    </p>
+                    <a href="/admin/send-forms" style={{ display: 'inline-block', padding: '10px 20px', background: '#000', color: '#fff', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
+                      Send Questionnaire
+                    </a>
+                  </div>
+                </section>
+              ) : (() => {
+                const selected = questionnaireResponses[selectedQuestionnaireIdx] || questionnaireResponses[0];
+                const responses = selected?.responses || {};
+                const overallScore = selected?.overall_score;
+                const submittedDate = selected?.submitted_at ? new Date(selected.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Unknown';
+
+                const SYMPTOM_SECTIONS = [
+                  { title: 'Energy & Brain', keys: ['energy', 'fatigue', 'focus', 'memory'] },
+                  { title: 'Sleep', keys: ['sleep_onset', 'sleep_quality'] },
+                  { title: 'Mood & Stress', keys: ['mood', 'stress', 'anxiety'] },
+                  { title: 'Weight & Metabolism', keys: ['weight_satisfaction', 'weight_loss_ease', 'cravings'] },
+                  { title: 'Recovery & Pain', keys: ['recovery', 'pain', 'strength'] },
+                  { title: 'Hormones', keys: ['libido', 'sexual_performance'] },
+                ];
+
+                const QUESTION_LABELS = {
+                  overall_health: 'Overall Health',
+                  energy: 'Daytime Energy',
+                  fatigue: 'Fatigue',
+                  focus: 'Focus & Clarity',
+                  memory: 'Memory',
+                  sleep_onset: 'Falling Asleep',
+                  sleep_quality: 'Sleep Quality',
+                  mood: 'Mood',
+                  stress: 'Stress Level',
+                  anxiety: 'Anxiety',
+                  weight_satisfaction: 'Weight Satisfaction',
+                  weight_loss_ease: 'Weight Loss Ease',
+                  cravings: 'Cravings',
+                  recovery: 'Recovery Speed',
+                  pain: 'Pain & Soreness',
+                  strength: 'Strength',
+                  libido: 'Sex Drive',
+                  sexual_performance: 'Sexual Performance',
+                };
+
+                // Questions where higher = worse (invert color logic)
+                const INVERTED_KEYS = ['fatigue', 'stress', 'anxiety', 'pain', 'cravings'];
+
+                const getScoreColor = (score, key) => {
+                  const isInverted = INVERTED_KEYS.includes(key);
+                  const effectiveScore = isInverted ? (11 - score) : score;
+                  if (effectiveScore >= 7) return { bar: '#22c55e', bg: '#f0fdf4' };
+                  if (effectiveScore >= 4) return { bar: '#eab308', bg: '#fefce8' };
+                  return { bar: '#ef4444', bg: '#fef2f2' };
+                };
+
+                return (
+                  <>
+                    {/* History selector */}
+                    {questionnaireResponses.length > 1 && (
+                      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                        {questionnaireResponses.map((qr, idx) => {
+                          const d = qr.submitted_at ? new Date(qr.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : `#${idx + 1}`;
+                          return (
+                            <button
+                              key={qr.id || idx}
+                              onClick={() => setSelectedQuestionnaireIdx(idx)}
+                              style={{
+                                padding: '6px 14px',
+                                borderRadius: '20px',
+                                border: '1px solid',
+                                borderColor: idx === selectedQuestionnaireIdx ? '#000' : '#ddd',
+                                background: idx === selectedQuestionnaireIdx ? '#000' : '#fff',
+                                color: idx === selectedQuestionnaireIdx ? '#fff' : '#666',
+                                fontSize: '13px',
+                                fontWeight: '500',
+                                cursor: 'pointer',
+                                fontFamily: 'inherit',
+                              }}
+                            >
+                              {d}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Summary header */}
+                    <section className="card">
+                      <div style={{ padding: '24px', display: 'flex', alignItems: 'flex-start', gap: '24px' }}>
+                        <div style={{
+                          width: '80px', height: '80px', borderRadius: '50%',
+                          background: overallScore >= 7 ? '#f0fdf4' : overallScore >= 4 ? '#fefce8' : '#fef2f2',
+                          border: `3px solid ${overallScore >= 7 ? '#22c55e' : overallScore >= 4 ? '#eab308' : '#ef4444'}`,
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                        }}>
+                          <span style={{ fontSize: '24px', fontWeight: '700', lineHeight: 1 }}>{overallScore ? overallScore.toFixed(1) : '—'}</span>
+                          <span style={{ fontSize: '11px', color: '#888' }}>/10</span>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '11px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Overall Score</div>
+                          <div style={{ fontSize: '15px', fontWeight: '600', marginBottom: '4px' }}>Submitted {submittedDate}</div>
+                          {responses.goals && (
+                            <div style={{ marginTop: '8px' }}>
+                              <div style={{ fontSize: '12px', color: '#888', fontWeight: '600', marginBottom: '4px' }}>GOALS</div>
+                              <div style={{ fontSize: '14px', color: '#444', lineHeight: '1.5', background: '#f9fafb', padding: '10px 14px', borderRadius: '8px', border: '1px solid #f0f0f0' }}>
+                                {responses.goals}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* Overall Health */}
+                    {responses.overall_health && (
+                      <section className="card" style={{ marginTop: '12px' }}>
+                        <div style={{ padding: '16px 20px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <span style={{ fontSize: '14px', fontWeight: '500' }}>Overall Health</span>
+                            <span style={{ fontSize: '15px', fontWeight: '700' }}>{responses.overall_health}/10</span>
+                          </div>
+                          <div style={{ height: '8px', background: '#f0f0f0', borderRadius: '4px', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${responses.overall_health * 10}%`, background: getScoreColor(responses.overall_health, 'overall_health').bar, borderRadius: '4px', transition: 'width 0.3s' }} />
+                          </div>
+                        </div>
+                      </section>
+                    )}
+
+                    {/* Section cards */}
+                    {SYMPTOM_SECTIONS.map(section => {
+                      const sectionScores = section.keys.filter(k => responses[k] != null);
+                      if (sectionScores.length === 0) return null;
+
+                      return (
+                        <section key={section.title} className="card" style={{ marginTop: '12px' }}>
+                          <div className="card-header">
+                            <h3>{section.title}</h3>
+                          </div>
+                          <div style={{ padding: '4px 20px 16px' }}>
+                            {section.keys.map(key => {
+                              const score = responses[key];
+                              if (score == null) return null;
+                              const colors = getScoreColor(score, key);
+                              return (
+                                <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f5f5f5' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                    <span style={{ fontSize: '13px', fontWeight: '500', color: '#333' }}>
+                                      {QUESTION_LABELS[key] || key}
+                                      {INVERTED_KEYS.includes(key) && <span style={{ fontSize: '10px', color: '#aaa', marginLeft: '6px' }}>▼</span>}
+                                    </span>
+                                    <span style={{ fontSize: '14px', fontWeight: '700', color: colors.bar }}>{score}/10</span>
+                                  </div>
+                                  <div style={{ height: '6px', background: '#f0f0f0', borderRadius: '3px', overflow: 'hidden' }}>
+                                    <div style={{ height: '100%', width: `${score * 10}%`, background: colors.bar, borderRadius: '3px', transition: 'width 0.3s' }} />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </section>
+                      );
+                    })}
+                  </>
+                );
+              })()}
             </>
           )}
 

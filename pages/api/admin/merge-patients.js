@@ -1,6 +1,7 @@
 // /pages/api/admin/merge-patients.js
-// Manual patient merge - select primary and duplicate to merge
-// Range Medical - 2026-02-09
+// Comprehensive patient merge — reassigns ALL related records, updates denormalized fields,
+// handles unique constraints, then deletes the duplicate patient.
+// Range Medical
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -8,6 +9,88 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// Group A: Simple patient_id reassignment (no denormalized fields)
+const SIMPLE_FK_TABLES = [
+  'protocols',
+  'service_logs',
+  'labs',
+  'symptoms',
+  'measurements',
+  'alerts',
+  'sessions',
+  'medical_documents',
+  'lab_orders',
+  'symptom_responses',
+  'protocol_logs',
+  'injection_logs',
+  'weight_logs',
+  'protocol_follow_up_labs',
+  'appointment_logs',
+  'hrt_memberships',
+  'hrt_monthly_periods',
+  'lab_documents',
+  'questionnaire_responses',
+  'daily_logs',
+  'check_ins',
+  'calcom_bookings',
+  'cellular_energy_checkins',
+  'challenges',
+  'patient_labs',
+  'session_packages',
+  'weight_loss_programs',
+  'refill_requests',
+  'journey_events',
+  'notification_queue',
+  'purchase_notifications',
+];
+
+// Group B: Tables with denormalized patient fields that need updating
+// Maps table name -> { column: value } to set (beyond patient_id)
+function getDenormalizedTables(displayName, finalEmail, finalPhone, finalGhlContactId) {
+  return {
+    invoices: { patient_name: displayName, patient_email: finalEmail },
+    purchases: { ghl_contact_id: finalGhlContactId },
+    clinic_appointments: { patient_name: displayName, ghl_contact_id: finalGhlContactId },
+    comms_log: { ghl_contact_id: finalGhlContactId },
+    lab_journeys: {
+      patient_name: displayName,
+      patient_phone: finalPhone,
+      patient_email: finalEmail,
+      ghl_contact_id: finalGhlContactId,
+    },
+  };
+}
+
+// Helper: safely update a table, skip if it doesn't exist
+async function safeUpdate(table, updateObj, filterCol, filterVal) {
+  try {
+    const { data, error, count } = await supabase
+      .from(table)
+      .update(updateObj, { count: 'exact' })
+      .eq(filterCol, filterVal);
+    if (error && !error.message.includes('does not exist')) {
+      return { error: error.message };
+    }
+    return { count: count || 0 };
+  } catch {
+    return { count: 0 };
+  }
+}
+
+// Helper: safely count records
+async function safeCount(table, filterCol, filterVal) {
+  try {
+    const { count, error } = await supabase
+      .from(table)
+      .select('*', { count: 'exact', head: true })
+      .eq(filterCol, filterVal);
+    if (error) return 0;
+    return count || 0;
+  } catch {
+    return 0;
+  }
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -25,7 +108,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Fetch both patients
+    // ===== Fetch both patients =====
     const { data: patients, error: fetchError } = await supabase
       .from('patients')
       .select('*')
@@ -36,59 +119,66 @@ export default async function handler(req, res) {
     const primary = patients.find(p => p.id === primaryId);
     const duplicate = patients.find(p => p.id === duplicateId);
 
-    if (!primary) {
-      return res.status(404).json({ error: 'Primary patient not found' });
-    }
-    if (!duplicate) {
-      return res.status(404).json({ error: 'Duplicate patient not found' });
-    }
+    if (!primary) return res.status(404).json({ error: 'Primary patient not found' });
+    if (!duplicate) return res.status(404).json({ error: 'Duplicate patient not found' });
 
-    // Tables that reference patient_id
-    const tablesToUpdate = [
-      'protocols',
-      'purchases',
-      'labs',
-      'symptoms',
-      'measurements',
-      'alerts',
-      'sessions',
+    // ===== Compute final merged values =====
+    const finalFirstName = primary.first_name || duplicate.first_name || '';
+    const finalLastName = primary.last_name || duplicate.last_name || '';
+    const displayName = primary.name || (finalFirstName + ' ' + finalLastName).trim() || duplicate.name || 'Unknown';
+    const finalEmail = primary.email || duplicate.email || null;
+    const finalPhone = primary.phone || duplicate.phone || null;
+    const finalGhlContactId = primary.ghl_contact_id || duplicate.ghl_contact_id || null;
+
+    // ===== Build complete table list for counting =====
+    const denormTables = getDenormalizedTables(displayName, finalEmail, finalPhone, finalGhlContactId);
+    const allTables = [
+      ...SIMPLE_FK_TABLES,
+      ...Object.keys(denormTables),
+      'patient_notes',
+      'consent_forms',
       'intakes',
       'consents',
-      'medical_documents',
-      'clinic_appointments',
-      'lab_orders',
-      'symptom_responses',
-      'lab_documents',
-      'questionnaire_responses',
-      'injection_logs',
-      'service_logs',
-      'weight_logs',
-      'protocol_follow_up_labs',
-      'appointment_logs',
-      'hrt_memberships',
-      'protocol_logs',
-      'lab_journeys',
-      'hrt_monthly_periods'
     ];
+    // Deduplicate
+    const uniqueTables = [...new Set(allTables)];
 
-    // Count records that will be moved
+    // ===== Count records to move =====
     const recordCounts = {};
-    for (const table of tablesToUpdate) {
-      try {
-        const { count, error } = await supabase
-          .from(table)
-          .select('*', { count: 'exact', head: true })
-          .eq('patient_id', duplicateId);
+    for (const table of uniqueTables) {
+      const count = await safeCount(table, 'patient_id', duplicateId);
+      if (count > 0) recordCounts[table] = count;
+    }
 
-        if (!error && count > 0) {
-          recordCounts[table] = count;
-        }
-      } catch (e) {
-        // Table might not exist, skip it
+    // Also count fallback-linked records (ghl_contact_id/email with null patient_id)
+    if (duplicate.ghl_contact_id) {
+      for (const table of ['intakes', 'consents', 'consent_forms']) {
+        try {
+          const { count } = await supabase
+            .from(table)
+            .select('*', { count: 'exact', head: true })
+            .eq('ghl_contact_id', duplicate.ghl_contact_id)
+            .is('patient_id', null);
+          if (count > 0) recordCounts[table] = (recordCounts[table] || 0) + count;
+        } catch { /* skip */ }
+      }
+    }
+    if (duplicate.email) {
+      for (const table of ['intakes', 'consents']) {
+        try {
+          const { count } = await supabase
+            .from(table)
+            .select('*', { count: 'exact', head: true })
+            .eq('email', duplicate.email)
+            .is('patient_id', null);
+          if (count > 0) recordCounts[table] = (recordCounts[table] || 0) + count;
+        } catch { /* skip */ }
       }
     }
 
-    // If preview mode, return what would be merged
+    const totalRecords = Object.values(recordCounts).reduce((a, b) => a + b, 0);
+
+    // ===== Preview mode =====
     if (preview) {
       return res.status(200).json({
         success: true,
@@ -99,7 +189,7 @@ export default async function handler(req, res) {
           email: primary.email,
           phone: primary.phone,
           ghl_contact_id: primary.ghl_contact_id,
-          created_at: primary.created_at
+          created_at: primary.created_at,
         },
         duplicate: {
           id: duplicate.id,
@@ -107,58 +197,165 @@ export default async function handler(req, res) {
           email: duplicate.email,
           phone: duplicate.phone,
           ghl_contact_id: duplicate.ghl_contact_id,
-          created_at: duplicate.created_at
+          created_at: duplicate.created_at,
         },
         recordsToMove: recordCounts,
-        totalRecords: Object.values(recordCounts).reduce((a, b) => a + b, 0)
+        totalRecords,
       });
     }
 
-    // Perform the merge
+    // ===== Execute merge =====
     const errors = [];
+    const moved = {};
 
-    // 1. Update all related tables to point to primary patient
-    for (const table of tablesToUpdate) {
-      try {
-        const { error: updateError } = await supabase
-          .from(table)
-          .update({ patient_id: primaryId })
-          .eq('patient_id', duplicateId);
+    // --- Phase 1: Handle patient_notes (ghl_note_id collision check) ---
+    try {
+      // Find duplicate's notes with ghl_note_id
+      const { data: dupNotes } = await supabase
+        .from('patient_notes')
+        .select('id, ghl_note_id')
+        .eq('patient_id', duplicateId)
+        .not('ghl_note_id', 'is', null);
 
-        if (updateError && !updateError.message.includes('does not exist')) {
-          errors.push({ table, error: updateError.message });
+      if (dupNotes && dupNotes.length > 0) {
+        // Find primary's existing ghl_note_ids
+        const { data: primaryNotes } = await supabase
+          .from('patient_notes')
+          .select('ghl_note_id')
+          .eq('patient_id', primaryId)
+          .not('ghl_note_id', 'is', null);
+
+        const primaryNoteIds = new Set((primaryNotes || []).map(n => n.ghl_note_id));
+
+        // Null out ghl_note_id on duplicate notes that would collide
+        for (const note of dupNotes) {
+          if (primaryNoteIds.has(note.ghl_note_id)) {
+            await supabase
+              .from('patient_notes')
+              .update({ ghl_note_id: null })
+              .eq('id', note.id);
+          }
         }
-      } catch (e) {
-        // Ignore tables that don't exist
+      }
+
+      // Now safely reassign all duplicate's notes
+      const { count } = await supabase
+        .from('patient_notes')
+        .update({ patient_id: primaryId }, { count: 'exact' })
+        .eq('patient_id', duplicateId);
+      if (count > 0) moved.patient_notes = count;
+    } catch (e) {
+      errors.push({ table: 'patient_notes', error: e.message });
+    }
+
+    // --- Phase 2: Reassign Group A tables (simple patient_id) ---
+    for (const table of SIMPLE_FK_TABLES) {
+      const result = await safeUpdate(table, { patient_id: primaryId }, 'patient_id', duplicateId);
+      if (result.error) {
+        errors.push({ table, error: result.error });
+      } else if (result.count > 0) {
+        moved[table] = result.count;
       }
     }
 
-    // 2. Merge useful data from duplicate into primary (if primary is missing it)
-    const updateFields = {};
+    // --- Phase 3: Reassign Group B tables (patient_id + denormalized fields) ---
+    for (const [table, extraFields] of Object.entries(denormTables)) {
+      // Filter out null values from extra fields
+      const cleanFields = { patient_id: primaryId };
+      for (const [k, v] of Object.entries(extraFields)) {
+        if (v != null) cleanFields[k] = v;
+      }
 
-    if (!primary.ghl_contact_id && duplicate.ghl_contact_id) {
-      updateFields.ghl_contact_id = duplicate.ghl_contact_id;
+      const result = await safeUpdate(table, cleanFields, 'patient_id', duplicateId);
+      if (result.error) {
+        errors.push({ table, error: result.error });
+      } else if (result.count > 0) {
+        moved[table] = result.count;
+      }
     }
-    if (!primary.first_name && duplicate.first_name) {
-      updateFields.first_name = duplicate.first_name;
+
+    // --- Phase 4: Handle consent_forms (with ghl_contact_id) ---
+    try {
+      const cfUpdate = { patient_id: primaryId };
+      if (finalGhlContactId) cfUpdate.ghl_contact_id = finalGhlContactId;
+
+      const { count } = await supabase
+        .from('consent_forms')
+        .update(cfUpdate, { count: 'exact' })
+        .eq('patient_id', duplicateId);
+      if (count > 0) moved.consent_forms = (moved.consent_forms || 0) + count;
+    } catch { /* skip */ }
+
+    // --- Phase 5: Handle fallback-linked tables (intakes, consents) ---
+    // Reassign by patient_id first
+    for (const table of ['intakes', 'consents']) {
+      try {
+        const updateObj = { patient_id: primaryId };
+        if (finalGhlContactId) updateObj.ghl_contact_id = finalGhlContactId;
+
+        const { count } = await supabase
+          .from(table)
+          .update(updateObj, { count: 'exact' })
+          .eq('patient_id', duplicateId);
+        if (count > 0) moved[table] = (moved[table] || 0) + count;
+      } catch { /* skip */ }
+
+      // Also catch records linked by duplicate's ghl_contact_id with null patient_id
+      if (duplicate.ghl_contact_id) {
+        try {
+          const { count } = await supabase
+            .from(table)
+            .update({ patient_id: primaryId }, { count: 'exact' })
+            .eq('ghl_contact_id', duplicate.ghl_contact_id)
+            .is('patient_id', null);
+          if (count > 0) moved[table] = (moved[table] || 0) + count;
+        } catch { /* skip */ }
+      }
+
+      // Also catch records linked by duplicate's email with null patient_id
+      if (duplicate.email) {
+        try {
+          const { count } = await supabase
+            .from(table)
+            .update({ patient_id: primaryId }, { count: 'exact' })
+            .eq('email', duplicate.email)
+            .is('patient_id', null);
+          if (count > 0) moved[table] = (moved[table] || 0) + count;
+        } catch { /* skip */ }
+      }
     }
-    if (!primary.last_name && duplicate.last_name) {
-      updateFields.last_name = duplicate.last_name;
+
+    // Also catch consent_forms by ghl_contact_id
+    if (duplicate.ghl_contact_id) {
+      try {
+        const { count } = await supabase
+          .from('consent_forms')
+          .update({ patient_id: primaryId, ghl_contact_id: finalGhlContactId }, { count: 'exact' })
+          .eq('ghl_contact_id', duplicate.ghl_contact_id)
+          .is('patient_id', null);
+        if (count > 0) moved.consent_forms = (moved.consent_forms || 0) + count;
+      } catch { /* skip */ }
     }
-    if (!primary.email && duplicate.email) {
+
+    // --- Phase 6: Merge missing fields into primary patient ---
+    const updateFields = {};
+    const fieldsToMerge = [
+      'ghl_contact_id', 'first_name', 'last_name', 'name', 'phone',
+      'date_of_birth', 'gender', 'address', 'stripe_customer_id',
+    ];
+
+    for (const field of fieldsToMerge) {
+      if (!primary[field] && duplicate[field]) {
+        updateFields[field] = duplicate[field];
+      }
+    }
+
+    // Handle email separately due to UNIQUE constraint
+    const takingDuplicateEmail = !primary.email && duplicate.email;
+    if (takingDuplicateEmail) {
+      // Clear duplicate's email first to avoid UNIQUE constraint violation
+      await supabase.from('patients').update({ email: null }).eq('id', duplicateId);
       updateFields.email = duplicate.email;
-    }
-    if (!primary.phone && duplicate.phone) {
-      updateFields.phone = duplicate.phone;
-    }
-    if (!primary.date_of_birth && duplicate.date_of_birth) {
-      updateFields.date_of_birth = duplicate.date_of_birth;
-    }
-    if (!primary.gender && duplicate.gender) {
-      updateFields.gender = duplicate.gender;
-    }
-    if (!primary.address && duplicate.address) {
-      updateFields.address = duplicate.address;
     }
 
     if (Object.keys(updateFields).length > 0) {
@@ -172,7 +369,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // 3. Delete the duplicate patient record
+    // --- Phase 7: Delete the duplicate patient ---
     const { error: deleteError } = await supabase
       .from('patients')
       .delete()
@@ -182,14 +379,16 @@ export default async function handler(req, res) {
       errors.push({ table: 'patients (delete)', error: deleteError.message });
     }
 
+    console.log(`Patient merged: ${displayName} — ${Object.values(moved).reduce((a, b) => a + b, 0)} records transferred, duplicate ${duplicateId} deleted`);
+
     return res.status(200).json({
       success: true,
       merged: true,
       primaryId,
       deletedId: duplicateId,
-      recordsMoved: recordCounts,
+      recordsMoved: moved,
       fieldsUpdated: Object.keys(updateFields),
-      errors: errors.length > 0 ? errors : undefined
+      errors: errors.length > 0 ? errors : undefined,
     });
 
   } catch (error) {

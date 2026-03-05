@@ -4,6 +4,7 @@
 
 export default async function handler(req, res) {
   const dialStatus = req.body?.DialCallStatus || req.query?.DialCallStatus || '';
+  const callerNumber = req.body?.From || req.query?.From || 'Unknown';
 
   res.setHeader('Content-Type', 'text/xml');
 
@@ -14,9 +15,12 @@ export default async function handler(req, res) {
   }
 
   // SIP didn't answer — go straight to voicemail
+  // Pass caller number to the recording callback so we can include it in the email notification
+  const callbackUrl = `https://app.range-medical.com/api/twilio/voicemail-notify?caller=${encodeURIComponent(callerNumber)}`;
+
   return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="Polly.Joanna">Thank you for calling Range Medical. We're sorry we missed your call. Our office hours are Monday through Friday, 9 A.M. to 6 P.M., and Saturday, 9 A.M. to 2 P.M. Please leave your name, number, and a brief message, and we'll return your call as soon as possible. If this is a medical emergency, please call 9 1 1. Thank you.</Say>
-  <Record maxLength="120" transcribe="true" playBeep="true" />
+  <Record maxLength="120" transcribe="true" playBeep="true" recordingStatusCallback="${callbackUrl}" />
 </Response>`);
 }

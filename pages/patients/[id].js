@@ -142,6 +142,16 @@ export default function PatientProfile() {
   const [symptomsSent, setSymptomsSent] = useState(false);
   const fileInputRef = useRef(null);
 
+  // Notes state
+  const [showAddNoteModal, setShowAddNoteModal] = useState(false);
+  const [noteInput, setNoteInput] = useState('');
+  const [noteFormatted, setNoteFormatted] = useState('');
+  const [noteFormatting, setNoteFormatting] = useState(false);
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [expandedNotes, setExpandedNotes] = useState({});
+  const recognitionRef = useRef(null);
+
   // Patient edit mode
   const [editingPatient, setEditingPatient] = useState(false);
   const [patientEditForm, setPatientEditForm] = useState({});
@@ -795,6 +805,113 @@ export default function PatientProfile() {
     }
   };
 
+  // ===== Notes handlers =====
+  const startDictation = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Voice dictation is not supported in this browser. Please use Chrome.');
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    recognition.onresult = (event) => {
+      let finalTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript + ' ';
+        }
+      }
+      if (finalTranscript) {
+        setNoteInput(prev => prev + finalTranscript);
+      }
+    };
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      setIsRecording(false);
+    };
+    recognition.onend = () => setIsRecording(false);
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsRecording(true);
+  };
+
+  const stopDictation = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+    setIsRecording(false);
+  };
+
+  const toggleDictation = () => {
+    if (isRecording) stopDictation();
+    else startDictation();
+  };
+
+  const handleFormatNote = async () => {
+    if (!noteInput.trim()) return;
+    setNoteFormatting(true);
+    try {
+      const res = await fetch('/api/notes/format', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ raw_text: noteInput }),
+      });
+      const data = await res.json();
+      if (data.formatted) {
+        setNoteFormatted(data.formatted);
+      } else if (data.error) {
+        console.error('Format error:', data.error);
+      }
+    } catch (error) {
+      console.error('Format error:', error);
+    } finally {
+      setNoteFormatting(false);
+    }
+  };
+
+  const handleSaveNote = async () => {
+    const bodyToSave = noteFormatted || noteInput;
+    if (!bodyToSave.trim()) return;
+    setNoteSaving(true);
+    try {
+      const res = await fetch('/api/notes/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: id,
+          raw_input: noteInput,
+          body: bodyToSave,
+          created_by: 'Staff',
+        }),
+      });
+      const data = await res.json();
+      if (data.note) {
+        setNotes(prev => [data.note, ...prev]);
+        setShowAddNoteModal(false);
+        setNoteInput('');
+        setNoteFormatted('');
+        stopDictation();
+      }
+    } catch (error) {
+      console.error('Save note error:', error);
+    } finally {
+      setNoteSaving(false);
+    }
+  };
+
+  const handleDeleteNote = async (noteId) => {
+    if (!confirm('Delete this note?')) return;
+    try {
+      await fetch(`/api/notes/${noteId}`, { method: 'DELETE' });
+      setNotes(prev => prev.filter(n => n.id !== noteId));
+    } catch (error) {
+      console.error('Delete note error:', error);
+    }
+  };
+
   // Loading states
   if (!router.isReady) return <div className="loading">Loading...</div>;
   if (loading) return <div className="loading">Loading patient...</div>;
@@ -991,6 +1108,7 @@ export default function PatientProfile() {
           <button className={activeTab === 'labs' ? 'active' : ''} onClick={() => setActiveTab('labs')}>Labs</button>
           <button className={activeTab === 'appointments' ? 'active' : ''} onClick={() => setActiveTab('appointments')}>Visits ({appointments.length + serviceLogs.length})</button>
           <button className={activeTab === 'intakes' ? 'active' : ''} onClick={() => setActiveTab('intakes')}>Documents ({intakes.length + consents.length + medicalDocuments.length})</button>
+          <button className={activeTab === 'notes' ? 'active' : ''} onClick={() => setActiveTab('notes')}>Notes ({notes.length})</button>
           <button className={activeTab === 'payments' ? 'active' : ''} onClick={() => setActiveTab('payments')}>Payments</button>
           <button className={activeTab === 'communications' ? 'active' : ''} onClick={() => setActiveTab('communications')}>Communications</button>
         </nav>
@@ -1828,6 +1946,71 @@ export default function PatientProfile() {
             </>
           )}
 
+          {/* Notes Tab */}
+          {activeTab === 'notes' && (
+            <>
+              <section className="card">
+                <div className="card-header">
+                  <h3>Clinical Notes ({notes.length})</h3>
+                  <button className="btn-primary-sm" onClick={() => setShowAddNoteModal(true)}>+ Add Note</button>
+                </div>
+                {notes.length === 0 ? (
+                  <div className="empty">No clinical notes yet</div>
+                ) : (
+                  <div className="notes-list">
+                    {notes.map(note => (
+                      <div key={note.id} className="note-row">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div className="note-date">
+                            {formatDate(note.note_date || note.created_at)}
+                            {note.created_by && <span style={{ fontWeight: 400, marginLeft: 8 }}>by {note.created_by}</span>}
+                            <span style={{
+                              marginLeft: 8, fontSize: 11, padding: '2px 8px', borderRadius: 4, fontWeight: 500,
+                              background: note.source === 'manual' ? '#dbeafe' : '#f3f4f6',
+                              color: note.source === 'manual' ? '#1e40af' : '#6b7280',
+                            }}>
+                              {note.source === 'manual' ? 'Staff Note' : 'GHL Import'}
+                            </span>
+                          </div>
+                          {note.source === 'manual' && (
+                            <button
+                              onClick={() => handleDeleteNote(note.id)}
+                              style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 18, padding: '0 4px', lineHeight: 1 }}
+                              title="Delete note"
+                            >×</button>
+                          )}
+                        </div>
+                        <div
+                          className="note-body"
+                          style={{
+                            maxHeight: expandedNotes[note.id] ? 'none' : '120px',
+                            overflow: 'hidden',
+                            cursor: note.body && note.body.length > 200 ? 'pointer' : 'default',
+                          }}
+                          onClick={() => {
+                            if (note.body && note.body.length > 200) {
+                              setExpandedNotes(prev => ({ ...prev, [note.id]: !prev[note.id] }));
+                            }
+                          }}
+                        >
+                          {note.body}
+                        </div>
+                        {note.body && note.body.length > 200 && !expandedNotes[note.id] && (
+                          <button
+                            onClick={() => setExpandedNotes(prev => ({ ...prev, [note.id]: true }))}
+                            style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: 13, padding: '4px 0' }}
+                          >
+                            Show more ↓
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </>
+          )}
+
           {/* Payments Tab */}
           {activeTab === 'payments' && (
             <>
@@ -1908,6 +2091,88 @@ export default function PatientProfile() {
         </div>
 
         {/* ========== MODALS ========== */}
+
+        {/* Add Note Modal */}
+        {showAddNoteModal && (
+          <div className="modal-overlay" onClick={() => { setShowAddNoteModal(false); stopDictation(); }}>
+            <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 640 }}>
+              <div className="modal-header">
+                <h3>Add Clinical Note</h3>
+                <button onClick={() => { setShowAddNoteModal(false); stopDictation(); setNoteInput(''); setNoteFormatted(''); }} className="close-btn">×</button>
+              </div>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Note (type or dictate)</label>
+                  <div style={{ position: 'relative' }}>
+                    <textarea
+                      value={noteInput}
+                      onChange={e => { setNoteInput(e.target.value); setNoteFormatted(''); }}
+                      rows={6}
+                      placeholder="Type your clinical note here, or click the microphone to dictate..."
+                      style={{ width: '100%', resize: 'vertical', paddingRight: 50, fontFamily: 'inherit', fontSize: 14, lineHeight: 1.6 }}
+                    />
+                    <button
+                      onClick={toggleDictation}
+                      type="button"
+                      style={{
+                        position: 'absolute', right: 10, top: 10,
+                        background: isRecording ? '#dc2626' : '#f3f4f6',
+                        color: isRecording ? '#fff' : '#374151',
+                        border: 'none', borderRadius: '50%',
+                        width: 36, height: 36, fontSize: 18,
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        animation: isRecording ? 'pulse 1.5s infinite' : 'none',
+                        transition: 'background 0.2s',
+                      }}
+                      title={isRecording ? 'Stop dictation' : 'Start dictation'}
+                    >
+                      🎤
+                    </button>
+                  </div>
+                  {isRecording && (
+                    <div style={{ fontSize: 13, color: '#dc2626', marginTop: 4, fontWeight: 500 }}>
+                      ● Recording... Click microphone to stop
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                  <button
+                    onClick={handleFormatNote}
+                    disabled={!noteInput.trim() || noteFormatting}
+                    className="btn-secondary"
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: (!noteInput.trim() || noteFormatting) ? 0.5 : 1 }}
+                  >
+                    {noteFormatting ? 'Formatting...' : '✨ Format with AI'}
+                  </button>
+                </div>
+
+                {noteFormatted && (
+                  <div className="form-group">
+                    <label>AI-Formatted Preview <span style={{ fontWeight: 400, color: '#6b7280' }}>(editable)</span></label>
+                    <textarea
+                      value={noteFormatted}
+                      onChange={e => setNoteFormatted(e.target.value)}
+                      rows={10}
+                      style={{ width: '100%', resize: 'vertical', fontFamily: 'inherit', fontSize: 14, lineHeight: 1.6, background: '#f0fdf4', border: '1px solid #86efac' }}
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button onClick={() => { setShowAddNoteModal(false); setNoteInput(''); setNoteFormatted(''); stopDictation(); }} className="btn-secondary">Cancel</button>
+                <button
+                  onClick={handleSaveNote}
+                  disabled={(!noteInput.trim() && !noteFormatted.trim()) || noteSaving}
+                  className="btn-primary"
+                  style={{ opacity: ((!noteInput.trim() && !noteFormatted.trim()) || noteSaving) ? 0.5 : 1 }}
+                >
+                  {noteSaving ? 'Saving...' : 'Save Note'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Assign Protocol Modal */}
         {showAssignModal && (
@@ -3394,6 +3659,10 @@ export default function PatientProfile() {
           color: #374151;
           line-height: 1.5;
           white-space: pre-wrap;
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.6; transform: scale(1.05); }
         }
 
         /* Buttons */

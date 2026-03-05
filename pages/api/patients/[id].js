@@ -467,12 +467,24 @@ export default async function handler(req, res) {
         .eq('patient_id', id)
         .order('created_at', { ascending: false });
 
-      // ===== NEW: Get patient notes (GHL backup) =====
-      const { data: patientNotes } = await supabase
+      // ===== Get patient notes =====
+      let patientNotes = null;
+      const { data: notesData, error: notesErr } = await supabase
         .from('patient_notes')
-        .select('id, body, note_date, source')
+        .select('id, body, raw_input, note_date, source, created_by, created_at')
         .eq('patient_id', id)
         .order('note_date', { ascending: false });
+      if (notesErr) {
+        // Fallback if new columns don't exist yet (migration not run)
+        const { data: notesFallback } = await supabase
+          .from('patient_notes')
+          .select('id, body, note_date, source, created_at')
+          .eq('patient_id', id)
+          .order('note_date', { ascending: false });
+        patientNotes = notesFallback;
+      } else {
+        patientNotes = notesData;
+      }
 
       // ===== NEW: Get clinic appointments =====
       let appointments = [];

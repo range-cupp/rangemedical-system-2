@@ -1138,44 +1138,6 @@ export default function PatientProfile() {
           {/* Overview Tab */}
           {activeTab === 'overview' && (
             <>
-              {/* Range Assessment Card */}
-              <section className="card">
-                <div className="card-header">
-                  <h3>Range Assessment</h3>
-                </div>
-                <div className="assessment-grid">
-                  <div className="assessment-item">
-                    <div className="assessment-label">
-                      <span>Baseline Labs</span>
-                      <div className="btn-group">
-                        <button onClick={() => setShowLabsModal(true)} className="btn-text">+ Add</button>
-                      </div>
-                    </div>
-                    {hasBaselineLabs ? (
-                      <span className="status-complete">
-                        ✓ {latestLabs?.lab_panel || latestLabDoc?.panel_type || 'Complete'} ({formatShortDate(latestLabs?.completed_date || latestLabs?.collection_date || latestLabDoc?.collection_date)})
-                      </span>
-                    ) : (
-                      <span className="status-pending">Not completed</span>
-                    )}
-                  </div>
-                  <div className="assessment-item">
-                    <div className="assessment-label">
-                      <span>Symptoms Questionnaire</span>
-                      <div className="btn-group">
-                        <button onClick={() => setShowSymptomsModal(true)} className="btn-text">Send</button>
-                        <button onClick={copySymptomLink} className="btn-text">Copy Link</button>
-                      </div>
-                    </div>
-                    {baselineSymptoms ? (
-                      <span className="status-complete">✓ Complete ({formatShortDate(baselineSymptoms.symptom_date)})</span>
-                    ) : (
-                      <span className="status-pending">Not completed</span>
-                    )}
-                  </div>
-                </div>
-              </section>
-
               {/* Active Protocols Summary */}
               <section className="card">
                 <div className="card-header">

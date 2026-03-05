@@ -72,8 +72,8 @@ const GUIDE_CATEGORIES = [
 ];
 
 export default function SendFormsPage() {
-  // Page mode: forms or guides
-  const [pageMode, setPageMode] = useState('forms'); // 'forms' | 'guides'
+  // Page mode: forms, guides, or questionnaire
+  const [pageMode, setPageMode] = useState('forms'); // 'forms' | 'guides' | 'questionnaire'
 
   // Patient selection
   const [mode, setMode] = useState('search'); // 'search' | 'manual'
@@ -188,10 +188,18 @@ export default function SendFormsPage() {
   };
 
   const getSelectedCount = () => {
+    if (pageMode === 'questionnaire') return selectedPatient ? 1 : 0;
     return pageMode === 'forms' ? selectedForms.length : selectedGuides.length;
   };
 
   const canSend = () => {
+    if (pageMode === 'questionnaire') {
+      if (!selectedPatient) return false;
+      const recipient = getRecipient();
+      if (!recipient) return false;
+      if (deliveryMethod === 'sms') return recipient.replace(/\D/g, '').length >= 10;
+      return recipient.includes('@');
+    }
     if (getSelectedCount() === 0) return false;
     const recipient = getRecipient();
     if (!recipient) return false;
@@ -210,7 +218,9 @@ export default function SendFormsPage() {
     const patient = mode === 'search' ? selectedPatient : null;
 
     try {
-      if (pageMode === 'forms') {
+      if (pageMode === 'questionnaire') {
+        await sendQuestionnaire(patient);
+      } else if (pageMode === 'forms') {
         await sendForms(firstName, patient);
       } else {
         await sendGuides(firstName, patient);
@@ -314,6 +324,63 @@ export default function SendFormsPage() {
     setSelectedGuides([]);
   };
 
+  const sendQuestionnaire = async (patient) => {
+    if (!patient) throw new Error('Patient must be selected from search');
+
+    if (deliveryMethod === 'email') {
+      const email = patient.email;
+      if (!email) throw new Error('Patient has no email address');
+      const res = await fetch('/api/symptoms/send-link-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientId: patient.id,
+          email,
+          name: patient.name,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send email');
+
+      setResult({ success: true, message: 'Symptoms questionnaire sent via email' });
+      addRecentSend(patient.name, 'email', 1, 'questionnaire');
+    } else {
+      const phone = patient.phone;
+      if (!phone) throw new Error('Patient has no phone number');
+      const res = await fetch('/api/symptoms/send-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientId: patient.id,
+          phone,
+          name: patient.name,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send SMS');
+
+      setResult({ success: true, message: 'Symptoms questionnaire sent via SMS' });
+      addRecentSend(patient.name, 'sms', 1, 'questionnaire');
+    }
+  };
+
+  const copyQuestionnaireLink = () => {
+    if (!selectedPatient) return;
+    const url = `https://app.range-medical.com/symptom-questionnaire?patient=${selectedPatient.id}&name=${encodeURIComponent(selectedPatient.name)}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setResult({ success: true, message: 'Questionnaire link copied to clipboard' });
+    }).catch(() => {
+      // Fallback
+      const textarea = document.createElement('textarea');
+      textarea.value = url;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setResult({ success: true, message: 'Questionnaire link copied to clipboard' });
+    });
+  };
+
   const addRecentSend = (name, method, count, type) => {
     setRecentSends(prev => [
       { name, method, count, type, time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) },
@@ -333,8 +400,8 @@ export default function SendFormsPage() {
     ? AVAILABLE_GUIDES
     : AVAILABLE_GUIDES.filter(g => g.category === guideCategory);
 
-  const itemLabel = pageMode === 'forms' ? 'Form' : 'Guide';
-  const itemLabelPlural = pageMode === 'forms' ? 'Forms' : 'Guides';
+  const itemLabel = pageMode === 'questionnaire' ? 'Questionnaire' : pageMode === 'forms' ? 'Form' : 'Guide';
+  const itemLabelPlural = pageMode === 'questionnaire' ? 'Questionnaire' : pageMode === 'forms' ? 'Forms' : 'Guides';
   const selectedCount = getSelectedCount();
 
   return (
@@ -363,6 +430,15 @@ export default function SendFormsPage() {
             >
               📖 Guides
             </button>
+            <button
+              onClick={() => { setPageMode('questionnaire'); setResult(null); }}
+              style={{
+                ...styles.pageModeBtn,
+                ...(pageMode === 'questionnaire' ? styles.pageModeBtnActive : {}),
+              }}
+            >
+              📊 Questionnaire
+            </button>
           </div>
 
           {/* Step 1: Patient */}
@@ -373,22 +449,28 @@ export default function SendFormsPage() {
             </div>
 
             {/* Mode toggle */}
-            <div style={styles.modeToggle}>
-              <button
-                onClick={() => { setMode('search'); setSelectedPatient(null); }}
-                style={{ ...styles.modeBtn, ...(mode === 'search' ? styles.modeBtnActive : {}) }}
-              >
-                Search Patient
-              </button>
-              <button
-                onClick={() => { setMode('manual'); setSelectedPatient(null); }}
-                style={{ ...styles.modeBtn, ...(mode === 'manual' ? styles.modeBtnActive : {}) }}
-              >
-                Manual Entry
-              </button>
-            </div>
+            {pageMode !== 'questionnaire' ? (
+              <div style={styles.modeToggle}>
+                <button
+                  onClick={() => { setMode('search'); setSelectedPatient(null); }}
+                  style={{ ...styles.modeBtn, ...(mode === 'search' ? styles.modeBtnActive : {}) }}
+                >
+                  Search Patient
+                </button>
+                <button
+                  onClick={() => { setMode('manual'); setSelectedPatient(null); }}
+                  style={{ ...styles.modeBtn, ...(mode === 'manual' ? styles.modeBtnActive : {}) }}
+                >
+                  Manual Entry
+                </button>
+              </div>
+            ) : (
+              <p style={{ margin: '0 0 12px', fontSize: '13px', color: '#666' }}>
+                Search for a patient to send their symptoms questionnaire
+              </p>
+            )}
 
-            {mode === 'search' ? (
+            {(mode === 'search' || pageMode === 'questionnaire') ? (
               <div>
                 {!selectedPatient ? (
                   <div style={{ position: 'relative' }}>
@@ -463,14 +545,30 @@ export default function SendFormsPage() {
             )}
           </div>
 
-          {/* Step 2: Select Forms or Guides */}
+          {/* Step 2: Select Forms, Guides, or Questionnaire info */}
           <div style={styles.section}>
             <div style={styles.sectionHeader}>
               <span style={styles.stepBadge}>2</span>
-              <h3 style={styles.sectionTitle}>Select {itemLabelPlural}</h3>
+              <h3 style={styles.sectionTitle}>{pageMode === 'questionnaire' ? 'Questionnaire' : `Select ${itemLabelPlural}`}</h3>
             </div>
 
-            {pageMode === 'forms' ? (
+            {pageMode === 'questionnaire' ? (
+              <div style={styles.questionnaireCard}>
+                <div style={styles.questionnaireIcon}>📊</div>
+                <div style={styles.questionnaireInfo}>
+                  <div style={styles.questionnaireName}>Symptoms Questionnaire</div>
+                  <div style={styles.questionnaireMeta}>19 questions · ~5 min</div>
+                  <div style={styles.questionnaireDesc}>
+                    Tracks energy, sleep, mood, weight management, physical recovery, and hormonal health. Responses are scored 1–10 and stored for progress tracking.
+                  </div>
+                </div>
+                {selectedPatient && (
+                  <button onClick={copyQuestionnaireLink} style={styles.copyLinkBtn}>
+                    📋 Copy Link
+                  </button>
+                )}
+              </div>
+            ) : pageMode === 'forms' ? (
               <>
                 {/* Quick selections */}
                 <div style={styles.quickRow}>
@@ -670,7 +768,9 @@ export default function SendFormsPage() {
             >
               {sending
                 ? 'Sending...'
-                : `Send ${selectedCount} ${selectedCount !== 1 ? itemLabelPlural : itemLabel} via ${deliveryMethod === 'email' ? 'Email' : 'SMS'}`
+                : pageMode === 'questionnaire'
+                  ? `Send Questionnaire via ${deliveryMethod === 'email' ? 'Email' : 'SMS'}`
+                  : `Send ${selectedCount} ${selectedCount !== 1 ? itemLabelPlural : itemLabel} via ${deliveryMethod === 'email' ? 'Email' : 'SMS'}`
               }
             </button>
 
@@ -697,7 +797,7 @@ export default function SendFormsPage() {
               <div key={i} style={styles.recentItem}>
                 <div style={styles.recentName}>{send.name}</div>
                 <div style={styles.recentMeta}>
-                  {send.method === 'email' ? '📧' : '💬'} {send.count} {send.type === 'guides' ? 'guide' : 'form'}{send.count > 1 ? 's' : ''} · {send.time}
+                  {send.method === 'email' ? '📧' : '💬'} {send.type === 'questionnaire' ? 'questionnaire' : `${send.count} ${send.type === 'guides' ? 'guide' : 'form'}${send.count > 1 ? 's' : ''}`} · {send.time}
                 </div>
               </div>
             ))
@@ -1036,5 +1136,50 @@ const styles = {
   recentMeta: {
     fontSize: '11px',
     color: '#999',
+  },
+  // Questionnaire
+  questionnaireCard: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '16px',
+    padding: '20px',
+    background: '#f9fafb',
+    borderRadius: '10px',
+    border: '1px solid #e5e5e5',
+  },
+  questionnaireIcon: {
+    fontSize: '32px',
+    flexShrink: 0,
+  },
+  questionnaireInfo: {
+    flex: 1,
+  },
+  questionnaireName: {
+    fontSize: '16px',
+    fontWeight: '600',
+    marginBottom: '4px',
+  },
+  questionnaireMeta: {
+    fontSize: '13px',
+    color: '#666',
+    marginBottom: '8px',
+  },
+  questionnaireDesc: {
+    fontSize: '13px',
+    color: '#888',
+    lineHeight: '1.5',
+  },
+  copyLinkBtn: {
+    padding: '8px 14px',
+    border: '1px solid #ddd',
+    borderRadius: '8px',
+    background: '#fff',
+    fontSize: '13px',
+    cursor: 'pointer',
+    color: '#333',
+    fontFamily: 'inherit',
+    fontWeight: '500',
+    whiteSpace: 'nowrap',
+    flexShrink: 0,
   },
 };

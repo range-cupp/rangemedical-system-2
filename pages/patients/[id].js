@@ -861,7 +861,7 @@ export default function PatientProfile() {
       });
       const data = await res.json();
       if (data.formatted) {
-        setNoteFormatted(data.formatted);
+        setNoteInput(data.formatted);
       } else if (data.error) {
         console.error('Format error:', data.error);
       }
@@ -873,8 +873,7 @@ export default function PatientProfile() {
   };
 
   const handleSaveNote = async () => {
-    const bodyToSave = noteFormatted || noteInput;
-    if (!bodyToSave.trim()) return;
+    if (!noteInput.trim()) return;
     setNoteSaving(true);
     try {
       const res = await fetch('/api/notes/create', {
@@ -883,7 +882,7 @@ export default function PatientProfile() {
         body: JSON.stringify({
           patient_id: id,
           raw_input: noteInput,
-          body: bodyToSave,
+          body: noteInput,
           created_by: 'Staff',
         }),
       });
@@ -2106,7 +2105,7 @@ export default function PatientProfile() {
                   <div style={{ position: 'relative' }}>
                     <textarea
                       value={noteInput}
-                      onChange={e => { setNoteInput(e.target.value); setNoteFormatted(''); }}
+                      onChange={e => setNoteInput(e.target.value)}
                       rows={6}
                       placeholder="Type your clinical note here, or click the microphone to dictate..."
                       style={{ width: '100%', resize: 'vertical', paddingRight: 50, fontFamily: 'inherit', fontSize: 14, lineHeight: 1.6 }}
@@ -2147,25 +2146,14 @@ export default function PatientProfile() {
                   </button>
                 </div>
 
-                {noteFormatted && (
-                  <div className="form-group">
-                    <label>AI-Formatted Preview <span style={{ fontWeight: 400, color: '#6b7280' }}>(editable)</span></label>
-                    <textarea
-                      value={noteFormatted}
-                      onChange={e => setNoteFormatted(e.target.value)}
-                      rows={10}
-                      style={{ width: '100%', resize: 'vertical', fontFamily: 'inherit', fontSize: 14, lineHeight: 1.6, background: '#f0fdf4', border: '1px solid #86efac' }}
-                    />
-                  </div>
-                )}
               </div>
               <div className="modal-footer">
                 <button onClick={() => { setShowAddNoteModal(false); setNoteInput(''); setNoteFormatted(''); stopDictation(); }} className="btn-secondary">Cancel</button>
                 <button
                   onClick={handleSaveNote}
-                  disabled={(!noteInput.trim() && !noteFormatted.trim()) || noteSaving}
+                  disabled={!noteInput.trim() || noteSaving}
                   className="btn-primary"
-                  style={{ opacity: ((!noteInput.trim() && !noteFormatted.trim()) || noteSaving) ? 0.5 : 1 }}
+                  style={{ opacity: (!noteInput.trim() || noteSaving) ? 0.5 : 1 }}
                 >
                   {noteSaving ? 'Saving...' : 'Save Note'}
                 </button>

@@ -514,6 +514,26 @@ export default function PatientProfile() {
     }
   };
 
+  // Log a session for a session-based protocol (HBOT, RLT, injection packs, etc.)
+  const handleLogSession = async (protocolId, e) => {
+    if (e) e.stopPropagation();
+    try {
+      const res = await fetch(`/api/protocols/${protocolId}/log-session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          log_type: 'session',
+          log_date: new Date().toISOString().split('T')[0]
+        })
+      });
+      if (res.ok) {
+        fetchPatient();
+      }
+    } catch (err) {
+      console.error('Error logging session:', err);
+    }
+  };
+
   const openEditModal = (protocol) => {
     setSelectedProtocol(protocol);
 
@@ -1305,6 +1325,12 @@ export default function PatientProfile() {
                           </div>
                           <div className="protocol-status">
                             <span className="status-text">{protocol.status_text}</span>
+                            {protocol.total_sessions > 0 && protocol.sessions_remaining > 0 && (
+                              <button
+                                onClick={(e) => handleLogSession(protocol.id, e)}
+                                style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: '6px', padding: '3px 10px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                              >✓ Log</button>
+                            )}
                             <button onClick={(e) => { e.stopPropagation(); openEditModal(protocol); }} className="btn-text">Edit</button>
                           </div>
                         </div>
@@ -1316,6 +1342,48 @@ export default function PatientProfile() {
                   </div>
                 )}
               </section>
+
+              {/* Payment Renewal Alerts */}
+              {(() => {
+                const renewalProtocols = activeProtocols.filter(p => {
+                  if (p.total_sessions > 0) {
+                    const remaining = p.total_sessions - (p.sessions_used || 0);
+                    return remaining <= 2;
+                  }
+                  if (p.days_remaining !== null && p.days_remaining !== undefined) {
+                    return p.days_remaining <= 7;
+                  }
+                  return false;
+                });
+                if (renewalProtocols.length === 0) return null;
+                return (
+                  <div style={{ marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {renewalProtocols.map(p => {
+                      const sessionsUsed = p.sessions_used || 0;
+                      const remaining = p.total_sessions ? (p.total_sessions - sessionsUsed) : p.days_remaining;
+                      const isDue = p.total_sessions ? remaining <= 0 : (p.days_remaining !== null && p.days_remaining <= 0);
+                      return (
+                        <div key={p.id} style={{
+                          padding: '10px 14px', borderRadius: '8px',
+                          background: isDue ? '#fee2e2' : '#fef3c7',
+                          border: `1px solid ${isDue ? '#fecaca' : '#fde68a'}`,
+                          display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px'
+                        }}>
+                          <span style={{ fontSize: '15px' }}>💰</span>
+                          <span style={{ fontWeight: 600, color: isDue ? '#dc2626' : '#92400e' }}>
+                            {isDue ? 'Payment Due' : 'Payment Upcoming'}
+                          </span>
+                          <span style={{ color: '#374151' }}>—</span>
+                          <span style={{ color: '#374151' }}>{p.program_name}:</span>
+                          <span style={{ fontWeight: 500, color: isDue ? '#dc2626' : '#92400e' }}>
+                            {p.total_sessions ? `${sessionsUsed} of ${p.total_sessions} sessions used` : `${p.days_remaining}d left`}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
 
               {/* Lab Pipeline Status — compact banner */}
               {labProtocols.filter(lp => lp.status !== 'consult_complete').length > 0 && (() => {
@@ -1517,6 +1585,12 @@ export default function PatientProfile() {
                           <div className="protocol-footer">
                             <span className="status-badge">{protocol.status_text}</span>
                             <div style={{ display: 'flex', gap: 8 }}>
+                              {protocol.total_sessions > 0 && protocol.sessions_remaining > 0 && (
+                                <button
+                                  onClick={() => handleLogSession(protocol.id)}
+                                  style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                                >✓ Log Session</button>
+                              )}
                               {isWeightLoss && protocolLogs.length > 0 && (
                                 <button
                                   onClick={() => setExpandedProtocols(prev => ({ ...prev, [protocol.id]: !prev[protocol.id] }))}

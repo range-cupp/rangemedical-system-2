@@ -46,7 +46,7 @@ function calculateRemaining(protocol) {
         const sessionsUsed = protocol.sessions_used || 0;
         const sessionsRemaining = protocol.total_sessions - sessionsUsed;
         const statusText = sessionsRemaining <= 0 ? 'All sessions used' :
-                           `${sessionsRemaining}/${protocol.total_sessions} injections`;
+                           `${sessionsUsed} of ${protocol.total_sessions} injections`;
         return { sessions_remaining: sessionsRemaining, total_sessions: protocol.total_sessions, status_text: statusText };
       }
     }
@@ -120,6 +120,16 @@ function calculateRemaining(protocol) {
     }
   }
 
+  // ===== SESSION-BASED (IV, HBOT, RLT, Combos, Injections) =====
+  // Check BEFORE date-based — protocols with total_sessions should always show session progress
+  if (protocol.total_sessions && protocol.total_sessions > 0) {
+    const sessionsUsed = protocol.sessions_used || 0;
+    const sessionsRemaining = protocol.total_sessions - sessionsUsed;
+    const statusText = sessionsRemaining <= 0 ? 'All sessions used' :
+                       `${sessionsUsed} of ${protocol.total_sessions} sessions`;
+    return { sessions_remaining: sessionsRemaining, total_sessions: protocol.total_sessions, status_text: statusText };
+  }
+
   // ===== PEPTIDE / DATE-BASED =====
   if (protocol.end_date) {
     const endDate = new Date(protocol.end_date + 'T23:59:59');
@@ -138,15 +148,6 @@ function calculateRemaining(protocol) {
                        `${daysRemaining} days left`;
 
     return { days_remaining: daysRemaining, total_days: totalDays, status_text: statusText };
-  }
-
-  // ===== SESSION-BASED (IV, HBOT, RLT) =====
-  if (protocol.total_sessions && protocol.total_sessions > 0) {
-    const sessionsUsed = protocol.sessions_used || 0;
-    const sessionsRemaining = protocol.total_sessions - sessionsUsed;
-    const statusText = sessionsRemaining <= 0 ? 'All sessions used' :
-                       `${sessionsRemaining}/${protocol.total_sessions} sessions`;
-    return { sessions_remaining: sessionsRemaining, total_sessions: protocol.total_sessions, status_text: statusText };
   }
 
   return { days_remaining: null, status_text: 'Active' };
@@ -171,7 +172,7 @@ function getProtocolCategory(protocol) {
   if (programType.includes('hbot') || programType.includes('hyperbaric')) {
     return 'hbot';
   }
-  if (programType.includes('rlt') || programType.includes('red light')) {
+  if (programType.includes('rlt') || programType.includes('red_light') || programType.includes('red light')) {
     return 'rlt';
   }
   if (programType.includes('injection')) {

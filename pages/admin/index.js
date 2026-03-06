@@ -12,6 +12,7 @@ export default function Dashboard() {
   const [todayAppointments, setTodayAppointments] = useState([]);
   const [recentComms, setRecentComms] = useState([]);
   const [consentAlerts, setConsentAlerts] = useState([]);
+  const [renewalAlerts, setRenewalAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -74,6 +75,28 @@ export default function Dashboard() {
       // Consent alerts
       const alerts = alertsRes.alerts || [];
       setConsentAlerts(alerts.filter(a => a.alert_type === 'missing_consent'));
+
+      // Renewal alerts — protocols nearing completion
+      const todayDate = new Date();
+      const renewals = activeProtocols.filter(p => {
+        if (p.total_sessions && p.total_sessions > 0) {
+          const remaining = p.total_sessions - (p.sessions_used || 0);
+          return remaining <= 2;
+        }
+        if (p.end_date) {
+          const endDate = new Date(p.end_date + 'T23:59:59');
+          const daysLeft = Math.ceil((endDate - todayDate) / (1000 * 60 * 60 * 24));
+          p._daysLeft = daysLeft;
+          return daysLeft <= 7;
+        }
+        return false;
+      }).map(p => {
+        const sessionsUsed = p.sessions_used || 0;
+        const sessionsRemaining = p.total_sessions ? (p.total_sessions - sessionsUsed) : null;
+        const isDue = sessionsRemaining !== null ? sessionsRemaining <= 0 : (p._daysLeft <= 0);
+        return { ...p, sessionsUsed, sessionsRemaining, isDue, statusLabel: p.total_sessions ? `${sessionsUsed} of ${p.total_sessions} sessions` : `${p._daysLeft}d left` };
+      });
+      setRenewalAlerts(renewals);
 
     } catch (err) {
       console.error('Dashboard error:', err);
@@ -191,6 +214,48 @@ export default function Dashboard() {
                 {consentAlerts.length > 8 && (
                   <span style={{ fontSize: 12, color: '#92400E', marginTop: 4 }}>
                     + {consentAlerts.length - 8} more
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Upcoming Renewals */}
+          {renewalAlerts.length > 0 && (
+            <div style={{
+              background: '#FFF7ED',
+              border: '1px solid #FB923C',
+              borderRadius: 12,
+              padding: '16px 20px',
+              marginBottom: 24,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <span style={{ fontSize: 20 }}>💰</span>
+                <strong style={{ fontSize: 14, color: '#9A3412' }}>
+                  {renewalAlerts.length} Protocol{renewalAlerts.length !== 1 ? 's' : ''} Nearing Renewal
+                </strong>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {renewalAlerts.slice(0, 10).map((alert) => (
+                  <div key={alert.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                    <span style={{
+                      background: alert.isDue ? '#FEE2E2' : '#FEF3C7',
+                      color: alert.isDue ? '#DC2626' : '#92400E',
+                      padding: '1px 8px',
+                      borderRadius: 8, fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
+                    }}>{alert.isDue ? 'RENEWAL DUE' : 'RENEWAL SOON'}</span>
+                    <Link href={`/patients/${alert.patient_id}`} style={{ fontWeight: 500, color: '#111', textDecoration: 'none' }}>
+                      {alert.patient_name || 'Patient'}
+                    </Link>
+                    <span style={{ color: '#6B7280' }}>— {alert.program_name}</span>
+                    <span style={{ color: alert.isDue ? '#DC2626' : '#92400E', fontWeight: 500 }}>
+                      ({alert.statusLabel})
+                    </span>
+                  </div>
+                ))}
+                {renewalAlerts.length > 10 && (
+                  <span style={{ fontSize: 12, color: '#9A3412', marginTop: 4 }}>
+                    + {renewalAlerts.length - 10} more
                   </span>
                 )}
               </div>

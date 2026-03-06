@@ -134,12 +134,12 @@ export default function HBOTConsent() {
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="firstName">First Name <span className="required">*</span></label>
-                  <input type="text" id="firstName" name="firstName" required />
+                  <input type="text" id="firstName" name="firstName" autoComplete="given-name" required />
                   <div className="field-error" id="firstNameError">Please enter your first name</div>
                 </div>
                 <div className="form-group">
                   <label htmlFor="lastName">Last Name <span className="required">*</span></label>
-                  <input type="text" id="lastName" name="lastName" required />
+                  <input type="text" id="lastName" name="lastName" autoComplete="family-name" required />
                   <div className="field-error" id="lastNameError">Please enter your last name</div>
                 </div>
               </div>
@@ -147,12 +147,12 @@ export default function HBOTConsent() {
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="email">Email <span className="required">*</span></label>
-                  <input type="email" id="email" name="email" required />
+                  <input type="email" id="email" name="email" autoComplete="email" required />
                   <div className="field-error" id="emailError">Please enter a valid email</div>
                 </div>
                 <div className="form-group">
                   <label htmlFor="phone">Phone <span className="required">*</span></label>
-                  <input type="tel" id="phone" name="phone" required />
+                  <input type="tel" id="phone" name="phone" autoComplete="tel" required />
                   <p style={{ fontSize: '0.6rem', color: '#a3a3a3', lineHeight: 1.4, marginTop: '0.25rem' }}>By providing my phone number, I agree to receive texts from Range Medical. Msg &amp; data rates may apply. Up to 10 msg/mo. Reply STOP to opt out. <a href="/terms-of-use" target="_blank" rel="noopener noreferrer" style={{ color: '#a3a3a3', textDecoration: 'underline' }}>Terms</a> &amp; <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" style={{ color: '#a3a3a3', textDecoration: 'underline' }}>Privacy</a>.</p>
                   <div className="field-error" id="phoneError">Please enter your phone number</div>
                 </div>
@@ -161,7 +161,7 @@ export default function HBOTConsent() {
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="dateOfBirth">Date of Birth <span className="required">*</span></label>
-                  <input type="text" id="dateOfBirth" name="dateOfBirth" placeholder="MM/DD/YYYY" maxLength="10" required />
+                  <input type="text" id="dateOfBirth" name="dateOfBirth" autoComplete="bday" placeholder="MM/DD/YYYY" maxLength="10" required />
                   <div className="field-error" id="dateOfBirthError">Please enter a valid date (MM/DD/YYYY)</div>
                 </div>
                 <div className="form-group">

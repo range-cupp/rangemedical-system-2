@@ -520,22 +520,22 @@ export default function RedLightConsentForm() {
               <div className="form-row">
                 <div className="form-group">
                   <label>First Name <span className="required">*</span></label>
-                  <input type="text" name="firstName" value={formData.firstName} onChange={handleInputChange} className={errors.firstName ? 'error' : ''} />
+                  <input type="text" name="firstName" autoComplete="given-name" value={formData.firstName} onChange={handleInputChange} className={errors.firstName ? 'error' : ''} />
                 </div>
                 <div className="form-group">
                   <label>Last Name <span className="required">*</span></label>
-                  <input type="text" name="lastName" value={formData.lastName} onChange={handleInputChange} className={errors.lastName ? 'error' : ''} />
+                  <input type="text" name="lastName" autoComplete="family-name" value={formData.lastName} onChange={handleInputChange} className={errors.lastName ? 'error' : ''} />
                 </div>
               </div>
 
               <div className="form-row">
                 <div className="form-group">
                   <label>Email <span className="required">*</span></label>
-                  <input type="email" name="email" value={formData.email} onChange={handleInputChange} className={errors.email ? 'error' : ''} />
+                  <input type="email" name="email" autoComplete="email" value={formData.email} onChange={handleInputChange} className={errors.email ? 'error' : ''} />
                 </div>
                 <div className="form-group">
                   <label>Phone <span className="required">*</span></label>
-                  <input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} className={errors.phone ? 'error' : ''} />
+                  <input type="tel" name="phone" autoComplete="tel" value={formData.phone} onChange={handleInputChange} className={errors.phone ? 'error' : ''} />
                   <p style={{ fontSize: '0.6rem', color: '#a3a3a3', lineHeight: 1.4, marginTop: '0.25rem' }}>By providing my phone number, I agree to receive texts from Range Medical. Msg &amp; data rates may apply. Up to 10 msg/mo. Reply STOP to opt out. <a href="/terms-of-use" target="_blank" rel="noopener noreferrer" style={{ color: '#a3a3a3', textDecoration: 'underline' }}>Terms</a> &amp; <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" style={{ color: '#a3a3a3', textDecoration: 'underline' }}>Privacy</a>.</p>
                 </div>
               </div>
@@ -543,7 +543,7 @@ export default function RedLightConsentForm() {
               <div className="form-row">
                 <div className="form-group">
                   <label>Date of Birth <span className="required">*</span></label>
-                  <input type="text" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleDobChange} placeholder="MM/DD/YYYY" maxLength="10" className={errors.dateOfBirth ? 'error' : ''} />
+                  <input type="text" name="dateOfBirth" autoComplete="bday" value={formData.dateOfBirth} onChange={handleDobChange} placeholder="MM/DD/YYYY" maxLength="10" className={errors.dateOfBirth ? 'error' : ''} />
                 </div>
                 <div className="form-group">
                   <label>Today's Date <span className="required">*</span></label>

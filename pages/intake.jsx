@@ -719,12 +719,12 @@ export default function IntakeForm() {
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="firstName">Legal First Name <span className="required">*</span></label>
-                  <input type="text" id="firstName" name="firstName" placeholder="As shown on government ID" required />
+                  <input type="text" id="firstName" name="firstName" placeholder="As shown on government ID" autoComplete="given-name" required />
                   <span className="field-error" id="firstNameError">Legal first name is required</span>
                 </div>
                 <div className="form-group">
                   <label htmlFor="lastName">Legal Last Name <span className="required">*</span></label>
-                  <input type="text" id="lastName" name="lastName" placeholder="As shown on government ID" required />
+                  <input type="text" id="lastName" name="lastName" placeholder="As shown on government ID" autoComplete="family-name" required />
                   <span className="field-error" id="lastNameError">Legal last name is required</span>
                 </div>
               </div>
@@ -749,12 +749,12 @@ export default function IntakeForm() {
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="dob">Date of Birth <span className="required">*</span></label>
-                  <input type="text" id="dob" name="dob" placeholder="MM/DD/YYYY" required />
+                  <input type="text" id="dob" name="dob" placeholder="MM/DD/YYYY" autoComplete="bday" required />
                   <span className="field-error" id="dobError">Date of birth is required</span>
                 </div>
                 <div className="form-group">
                   <label htmlFor="phone">Phone Number <span className="required">*</span></label>
-                  <input type="tel" id="phone" name="phone" placeholder="(555) 555-5555" required />
+                  <input type="tel" id="phone" name="phone" placeholder="(555) 555-5555" autoComplete="tel" required />
                   <span className="field-error" id="phoneError">Phone number is required</span>
                   <p className="sms-consent">By providing my phone number, I agree to receive text messages from Range Medical regarding my appointments, lab results, and health updates. Message and data rates may apply. Message frequency varies (up to 10 msg/mo). Reply STOP to cancel, HELP for help. View our <a href="/terms-of-use" target="_blank" rel="noopener noreferrer">Terms of Use</a> and <a href="/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.</p>
                 </div>
@@ -805,7 +805,7 @@ export default function IntakeForm() {
               <div className="form-row">
                 <div className="form-group full-width">
                   <label htmlFor="email">Email Address <span className="required">*</span></label>
-                  <input type="email" id="email" name="email" placeholder="your@email.com" required />
+                  <input type="email" id="email" name="email" placeholder="your@email.com" autoComplete="email" required />
                   <span className="field-error" id="emailError">Valid email is required</span>
                 </div>
               </div>
@@ -813,7 +813,7 @@ export default function IntakeForm() {
               <div className="form-row">
                 <div className="form-group full-width">
                   <label htmlFor="streetAddress">Street Address <span className="required">*</span></label>
-                  <input type="text" id="streetAddress" name="streetAddress" required />
+                  <input type="text" id="streetAddress" name="streetAddress" autoComplete="street-address" required />
                   <span className="field-error" id="streetAddressError">Street address is required</span>
                 </div>
               </div>
@@ -821,12 +821,12 @@ export default function IntakeForm() {
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="city">City <span className="required">*</span></label>
-                  <input type="text" id="city" name="city" required />
+                  <input type="text" id="city" name="city" autoComplete="address-level2" required />
                   <span className="field-error" id="cityError">City is required</span>
                 </div>
                 <div className="form-group">
                   <label htmlFor="state">State <span className="required">*</span></label>
-                  <input type="text" id="state" name="state" required />
+                  <input type="text" id="state" name="state" autoComplete="address-level1" required />
                   <span className="field-error" id="stateError">State is required</span>
                 </div>
               </div>
@@ -834,7 +834,7 @@ export default function IntakeForm() {
               <div className="form-row">
                 <div className="form-group">
                   <label htmlFor="postalCode">Postal Code <span className="required">*</span></label>
-                  <input type="text" id="postalCode" name="postalCode" required />
+                  <input type="text" id="postalCode" name="postalCode" autoComplete="postal-code" required />
                   <span className="field-error" id="postalCodeError">Postal code is required</span>
                 </div>
                 <div className="form-group">

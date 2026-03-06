@@ -1592,6 +1592,7 @@ export default function RangeAssessment() {
                       value={formData.firstName}
                       onChange={(e) => handleInputChange('firstName', e.target.value)}
                       placeholder="John"
+                      autoComplete="given-name"
                       autoFocus
                     />
                   </div>
@@ -1603,6 +1604,7 @@ export default function RangeAssessment() {
                       value={formData.lastName}
                       onChange={(e) => handleInputChange('lastName', e.target.value)}
                       placeholder="Smith"
+                      autoComplete="family-name"
                     />
                   </div>
                 </div>
@@ -1615,6 +1617,7 @@ export default function RangeAssessment() {
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
                     placeholder="john@example.com"
+                    autoComplete="email"
                   />
                 </div>
 
@@ -1626,6 +1629,7 @@ export default function RangeAssessment() {
                     value={formData.phone}
                     onChange={(e) => handleInputChange('phone', e.target.value)}
                     placeholder="(949) 555-1234"
+                    autoComplete="tel"
                   />
                   <p className="ra-sms-consent">By providing my phone number, I agree to receive text messages from Range Medical regarding my appointments, lab results, and health updates. Message and data rates may apply. Message frequency varies (up to 10 msg/mo). Reply STOP to cancel, HELP for help. View our <a href="/terms-of-use" target="_blank" rel="noopener noreferrer">Terms of Use</a> and <a href="/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.</p>
                 </div>

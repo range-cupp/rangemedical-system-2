@@ -151,13 +151,16 @@ export default async function handler(req, res) {
       console.error('Patient lookup error:', patientError);
     }
 
+    const amountDollars = amount / 100; // Convert cents to dollars for DB
     const insertData = {
       patient_id,
       patient_name: patient?.name || 'Unknown',
       patient_email: patient?.email || null,
       patient_phone: patient?.phone || null,
       item_name: description || 'Stripe charge',
-      amount: amount / 100, // Convert cents to dollars for DB
+      product_name: description || 'Stripe charge',
+      amount: amountDollars,
+      amount_paid: amountDollars,
       category: service_category || 'Other',
       quantity: quantity || 1,
       stripe_payment_intent_id: stripe_payment_intent_id || null,
@@ -194,7 +197,9 @@ export default async function handler(req, res) {
     }
 
     // Fire-and-forget auto-protocol creation/extension
-    if (service_category && service_name) {
+    // Skip peptides — POS modal handles peptide protocol creation via createProtocolsForPeptides()
+    // to avoid duplicate protocols (record-purchase + POS modal both creating)
+    if (service_category && service_name && service_category !== 'peptide') {
       autoCreateOrExtendProtocol({
         patientId: patient_id,
         serviceCategory: service_category,

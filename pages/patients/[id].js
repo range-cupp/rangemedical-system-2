@@ -106,6 +106,9 @@ export default function PatientProfile() {
   const [bloodDrawModal, setBloodDrawModal] = useState(null);
   const [bloodDrawDate, setBloodDrawDate] = useState('');
   const [bloodDrawSaving, setBloodDrawSaving] = useState(false);
+  const [showEditPurchaseModal, setShowEditPurchaseModal] = useState(false);
+  const [editingPurchase, setEditingPurchase] = useState(null);
+  const [editPurchaseForm, setEditPurchaseForm] = useState({ product_name: '', amount_paid: '', stripe_subscription_id: '', notes: '' });
 
   // Payments sub-tab state
   const [paymentsSubTab, setPaymentsSubTab] = useState('invoices');
@@ -511,6 +514,44 @@ export default function PatientProfile() {
       setPendingNotifications(pendingNotifications.filter(n => n.id !== notificationId));
     } catch (error) {
       console.error('Error dismissing notification:', error);
+    }
+  };
+
+  const openEditPurchase = (purchase) => {
+    setEditingPurchase(purchase);
+    setEditPurchaseForm({
+      product_name: purchase.product_name || purchase.item_name || '',
+      amount_paid: purchase.amount_paid || purchase.amount || '',
+      stripe_subscription_id: purchase.stripe_subscription_id || '',
+      notes: purchase.notes || '',
+    });
+    setShowEditPurchaseModal(true);
+  };
+
+  const handleEditPurchase = async () => {
+    try {
+      const amount = editPurchaseForm.amount_paid ? parseFloat(editPurchaseForm.amount_paid) : 0;
+      const res = await fetch(`/api/purchases/${editingPurchase.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product_name: editPurchaseForm.product_name || null,
+          item_name: editPurchaseForm.product_name || null,
+          amount_paid: amount,
+          amount: amount,
+          stripe_subscription_id: editPurchaseForm.stripe_subscription_id || null,
+          notes: editPurchaseForm.notes || null,
+        }),
+      });
+      if (res.ok) {
+        setShowEditPurchaseModal(false);
+        fetchPatient();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to update purchase');
+      }
+    } catch (error) {
+      console.error('Error updating purchase:', error);
     }
   };
 
@@ -2574,18 +2615,25 @@ export default function PatientProfile() {
                   ) : (
                     <div className="payments-list">
                       {allPurchases.map(purchase => (
-                        <div key={purchase.id} className="payment-row">
+                        <div key={purchase.id} className="payment-row" style={{ cursor: 'pointer' }} onClick={() => openEditPurchase(purchase)}>
                           <div className="payment-info">
-                            <strong>{purchase.product_name || 'Purchase'}</strong>
-                            <span className="payment-date">{formatDate(purchase.purchased_at || purchase.created_at)}</span>
+                            <strong>{purchase.product_name || purchase.item_name || 'Purchase'}</strong>
+                            <span className="payment-date">{formatDate(purchase.purchased_at || purchase.purchase_date || purchase.created_at)}</span>
                           </div>
-                          <div className="payment-amount">${(purchase.amount_paid || 0).toFixed(2)}</div>
-                          <span className="payment-status" style={{
-                            background: purchase.protocol_assigned ? '#dcfce7' : '#fef3c7',
-                            color: purchase.protocol_assigned ? '#166534' : '#92400e'
-                          }}>
-                            {purchase.protocol_assigned ? 'assigned' : 'pending'}
-                          </span>
+                          <div className="payment-amount">${(purchase.amount_paid || purchase.amount || 0).toFixed(2)}</div>
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            {purchase.stripe_subscription_id && (
+                              <span className="payment-status" style={{ background: '#dbeafe', color: '#1e40af' }}>
+                                recurring
+                              </span>
+                            )}
+                            <span className="payment-status" style={{
+                              background: purchase.protocol_assigned ? '#dcfce7' : '#fef3c7',
+                              color: purchase.protocol_assigned ? '#166534' : '#92400e'
+                            }}>
+                              {purchase.protocol_assigned ? 'assigned' : 'pending'}
+                            </span>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -2608,6 +2656,61 @@ export default function PatientProfile() {
         </div>
 
         {/* ========== MODALS ========== */}
+
+        {/* Edit Purchase Modal */}
+        {showEditPurchaseModal && editingPurchase && (
+          <div className="modal-overlay" onClick={() => setShowEditPurchaseModal(false)}>
+            <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
+              <div className="modal-header">
+                <h3>Edit Purchase</h3>
+                <button onClick={() => setShowEditPurchaseModal(false)} className="close-btn">&times;</button>
+              </div>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Product Name</label>
+                  <input
+                    type="text"
+                    value={editPurchaseForm.product_name}
+                    onChange={e => setEditPurchaseForm({ ...editPurchaseForm, product_name: e.target.value })}
+                    placeholder="e.g. HRT Monthly Membership"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Amount Paid ($)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editPurchaseForm.amount_paid}
+                    onChange={e => setEditPurchaseForm({ ...editPurchaseForm, amount_paid: e.target.value })}
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Stripe Subscription ID</label>
+                  <input
+                    type="text"
+                    value={editPurchaseForm.stripe_subscription_id}
+                    onChange={e => setEditPurchaseForm({ ...editPurchaseForm, stripe_subscription_id: e.target.value })}
+                    placeholder="sub_..."
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Notes</label>
+                  <textarea
+                    value={editPurchaseForm.notes}
+                    onChange={e => setEditPurchaseForm({ ...editPurchaseForm, notes: e.target.value })}
+                    rows={2}
+                    placeholder="Optional notes..."
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button onClick={() => setShowEditPurchaseModal(false)} className="btn-secondary">Cancel</button>
+                <button onClick={handleEditPurchase} className="btn-primary">Save</button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Add Note Modal */}
         {showAddNoteModal && (

@@ -8,9 +8,12 @@ import AdminLayout from '../../../components/AdminLayout';
 
 function calculateCurrentDay(startDate) {
   if (!startDate) return 0;
-  const start = new Date(startDate);
-  const today = new Date();
+  // Parse date string without timezone shift (new Date("2026-03-06") creates UTC midnight
+  // which setHours(0,0,0,0) then shifts to previous day in west-of-UTC timezones)
+  const parts = startDate.split('-');
+  const start = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
   start.setHours(0, 0, 0, 0);
+  const today = new Date();
   today.setHours(0, 0, 0, 0);
   const diffTime = today - start;
   return Math.max(1, Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1);

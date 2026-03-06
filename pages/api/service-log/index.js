@@ -620,7 +620,7 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
 
       // Calculate next_expected_date based on supply type
       const pickupDate = new Date(logDate + 'T00:00:00');
-      let daysUntilNext = 14; // default 2 weeks
+      let daysUntilNext = 30; // default monthly
 
       if (isWeightLossType(category) && quantity) {
         // Weight loss pickups: quantity = weeks of supply (1-4)
@@ -629,6 +629,8 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
         daysUntilNext = 28; // 4 weeks
       } else if (supply_type === 'prefilled_2week' || quantity === 4) {
         daysUntilNext = 14; // 2 weeks
+      } else if (supply_type === 'prefilled_1week' || quantity === 2) {
+        daysUntilNext = 7; // 1 week
       } else if (supply_type === 'vial_10ml' || supply_type === 'vial') {
         // Vial typically lasts 8-12 weeks depending on dose
         // Default to 10 weeks for vial
@@ -836,7 +838,7 @@ async function createProtocolFromPickup(patient_id, category, programType, logDa
   try {
     // Calculate next_expected_date based on supply type
     const pickupDate = new Date(logDate + 'T00:00:00');
-    let daysUntilNext = 14; // default 2 weeks
+    let daysUntilNext = 30; // default monthly
 
     if (isWeightLossType(category) && quantity) {
       // Weight loss pickups: quantity = weeks of supply (1-4)
@@ -845,6 +847,8 @@ async function createProtocolFromPickup(patient_id, category, programType, logDa
       daysUntilNext = 28;
     } else if (supply_type === 'prefilled_2week' || quantity === 4) {
       daysUntilNext = 14;
+    } else if (supply_type === 'prefilled_1week' || quantity === 2) {
+      daysUntilNext = 7;
     } else if (supply_type === 'vial_10ml' || supply_type === 'vial') {
       daysUntilNext = 70;
     }

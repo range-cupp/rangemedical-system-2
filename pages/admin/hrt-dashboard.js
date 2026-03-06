@@ -6,7 +6,7 @@
 // =====================================================
 
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
+import AdminLayout from '../../components/AdminLayout';
 
 export default function HRTDashboard() {
   const [loading, setLoading] = useState(true);
@@ -92,12 +92,7 @@ export default function HRTDashboard() {
   }
 
   return (
-    <>
-      <Head>
-        <title>HRT Dashboard | Range Medical</title>
-      </Head>
-
-      <div style={styles.container}>
+    <AdminLayout title="HRT Dashboard">
         {/* Header */}
         <div style={styles.header}>
           <div>
@@ -215,7 +210,6 @@ export default function HRTDashboard() {
             </tbody>
           </table>
         </div>
-      </div>
 
       <style jsx global>{`
         @keyframes spin {
@@ -226,7 +220,7 @@ export default function HRTDashboard() {
           50% { opacity: 0.5; }
         }
       `}</style>
-    </>
+    </AdminLayout>
   );
 }
 

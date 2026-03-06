@@ -3,7 +3,7 @@
 // Range Medical
 
 import { useState } from 'react';
-import Head from 'next/head';
+import AdminLayout from '../../components/AdminLayout';
 
 export default function FixNames() {
   const [loading, setLoading] = useState(false);
@@ -43,12 +43,7 @@ export default function FixNames() {
   };
 
   return (
-    <>
-      <Head>
-        <title>Fix Patient Names | Range Medical</title>
-      </Head>
-
-      <div style={styles.container}>
+    <AdminLayout title="Fix Patient Names">
         <div style={styles.card}>
           <h1 style={styles.title}>🔧 Fix Patient Names</h1>
           <p style={styles.subtitle}>
@@ -168,8 +163,7 @@ export default function FixNames() {
             </div>
           )}
         </div>
-      </div>
-    </>
+    </AdminLayout>
   );
 }
 

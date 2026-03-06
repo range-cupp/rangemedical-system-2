@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { formatPhone } from '../../lib/format-utils';
-import Head from 'next/head';
+import AdminLayout from '../../components/AdminLayout';
 import Link from 'next/link';
 
 const STATUS_COLORS = {
@@ -125,12 +125,7 @@ export default function ClinicSchedule() {
   });
 
   return (
-    <>
-      <Head>
-        <title>Clinic Schedule | Range Medical</title>
-      </Head>
-
-      <div style={styles.container}>
+    <AdminLayout title="Clinic Schedule">
         <div style={styles.header}>
           <div>
             <h1 style={styles.title}>Clinic Schedule</h1>
@@ -266,8 +261,7 @@ export default function ClinicSchedule() {
         <button onClick={syncFromGHL} disabled={syncing} style={styles.refreshBtn}>
           {syncing ? 'Syncing...' : '↻ Sync from GHL'}
         </button>
-      </div>
-    </>
+    </AdminLayout>
   );
 }
 

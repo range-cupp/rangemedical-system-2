@@ -3,9 +3,8 @@
 // Range Medical
 
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
 import Link from 'next/link';
-import AdminNav from '../../../components/AdminNav';
+import AdminLayout from '../../../components/AdminLayout';
 import { PROTOCOL_TYPES, CATEGORY_TO_TYPE, getDBProgramType } from '../../../lib/protocol-types';
 
 // Classify purchase into action type: 'protocol' | 'session' | 'product'
@@ -95,18 +94,10 @@ export default function PurchasesPage() {
   const totalRevenue = purchases.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
 
   return (
-    <>
-      <Head>
-        <title>Purchases | Range Medical</title>
-      </Head>
-
-      <div style={styles.container}>
-        <AdminNav 
-          title="Purchases" 
-          subtitle={`${totalCount} purchases · $${totalRevenue.toLocaleString()}`} 
-        />
-
-        <main style={styles.main}>
+    <AdminLayout title={`Purchases`}>
+      <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '-12px', marginBottom: '20px' }}>
+        {totalCount} purchases · ${totalRevenue.toLocaleString()}
+      </p>
           {/* Toolbar */}
           <div style={styles.toolbar}>
             <input
@@ -229,45 +220,43 @@ export default function PurchasesPage() {
               </table>
             )}
           </div>
-        </main>
 
-        {/* Create Protocol Modal */}
-        {createModal && (
-          <CreateProtocolModal
-            purchase={createModal}
-            onClose={() => setCreateModal(null)}
-            onSuccess={() => {
-              setCreateModal(null);
-              fetchPurchases();
-            }}
-          />
-        )}
+      {/* Create Protocol Modal */}
+      {createModal && (
+        <CreateProtocolModal
+          purchase={createModal}
+          onClose={() => setCreateModal(null)}
+          onSuccess={() => {
+            setCreateModal(null);
+            fetchPurchases();
+          }}
+        />
+      )}
 
-        {/* Add to Existing Protocol Modal */}
-        {addToExistingModal && (
-          <AddToExistingModal
-            purchase={addToExistingModal}
-            onClose={() => setAddToExistingModal(null)}
-            onSuccess={() => {
-              setAddToExistingModal(null);
-              fetchPurchases();
-            }}
-          />
-        )}
+      {/* Add to Existing Protocol Modal */}
+      {addToExistingModal && (
+        <AddToExistingModal
+          purchase={addToExistingModal}
+          onClose={() => setAddToExistingModal(null)}
+          onSuccess={() => {
+            setAddToExistingModal(null);
+            fetchPurchases();
+          }}
+        />
+      )}
 
-        {/* Log Session Modal */}
-        {logSessionModal && (
-          <LogSessionModal
-            purchase={logSessionModal}
-            onClose={() => setLogSessionModal(null)}
-            onSuccess={() => {
-              setLogSessionModal(null);
-              fetchPurchases();
-            }}
-          />
-        )}
-      </div>
-    </>
+      {/* Log Session Modal */}
+      {logSessionModal && (
+        <LogSessionModal
+          purchase={logSessionModal}
+          onClose={() => setLogSessionModal(null)}
+          onSuccess={() => {
+            setLogSessionModal(null);
+            fetchPurchases();
+          }}
+        />
+      )}
+    </AdminLayout>
   );
 }
 
@@ -300,6 +289,14 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
     totalInjections: getInitialInjections(),
     notes: ''
   });
+
+  // Labs pipeline toggle — auto-detect from purchase name
+  const purchaseItemLower = (purchase?.item_name || '').toLowerCase();
+  const autoDetectLab = purchaseItemLower.includes('lab') || purchaseItemLower.includes('panel');
+  const autoDetectPanel = purchaseItemLower.includes('elite') ? 'elite' : 'essential';
+  const [addToLabs, setAddToLabs] = useState(autoDetectLab);
+  const [labPanelType, setLabPanelType] = useState(autoDetectPanel);
+  const [labType, setLabType] = useState('new_patient');
 
   // Look up patient from patients table (single source of truth)
   useEffect(() => {
@@ -498,6 +495,26 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
           errorMsg = data.details || data.error || errorMsg;
         } catch (e) { /* response may be empty */ }
         throw new Error(errorMsg);
+      }
+
+      // Also create lab pipeline entry if toggled on
+      if (addToLabs) {
+        try {
+          await fetch('/api/admin/labs-pipeline', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              patientId: patientId,
+              patientName: patientName,
+              panelType: labPanelType,
+              labType: labType,
+              bloodDrawDate: form.startDate,
+              notes: form.notes || null
+            })
+          });
+        } catch (labErr) {
+          console.error('Lab pipeline creation failed:', labErr);
+        }
       }
 
       onSuccess();
@@ -733,6 +750,54 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Add to Labs Pipeline */}
+          <div style={{
+            margin: '0 0 4px 0',
+            padding: '14px 16px',
+            background: addToLabs ? '#f0fdf4' : '#fafafa',
+            borderRadius: '10px',
+            border: addToLabs ? '1px solid #bbf7d0' : '1px solid #e5e7eb',
+            transition: 'all 0.15s ease'
+          }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={addToLabs}
+                onChange={e => setAddToLabs(e.target.checked)}
+                style={{ width: '18px', height: '18px', accentColor: '#16a34a', cursor: 'pointer' }}
+              />
+              <span style={{ fontSize: '14px', fontWeight: 600, color: addToLabs ? '#15803d' : '#374151' }}>
+                🧪 Add to Lab Pipeline
+              </span>
+            </label>
+            {addToLabs && (
+              <div style={{ display: 'flex', gap: '12px', marginTop: '12px', paddingLeft: '28px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Panel Type</label>
+                  <select
+                    value={labPanelType}
+                    onChange={e => setLabPanelType(e.target.value)}
+                    style={{ ...modalStyles.select, marginTop: '4px' }}
+                  >
+                    <option value="essential">Essential ($350)</option>
+                    <option value="elite">Elite ($750)</option>
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Lab Type</label>
+                  <select
+                    value={labType}
+                    onChange={e => setLabType(e.target.value)}
+                    style={{ ...modalStyles.select, marginTop: '4px' }}
+                  >
+                    <option value="new_patient">New Patient</option>
+                    <option value="follow_up">Follow-up</option>
+                  </select>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1217,16 +1282,6 @@ function LogSessionModal({ purchase, onClose, onSuccess }) {
 }
 
 const styles = {
-  container: {
-    minHeight: '100vh',
-    background: '#f5f5f5',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-  },
-  main: {
-    maxWidth: '1400px',
-    margin: '0 auto',
-    padding: '24px'
-  },
   toolbar: {
     display: 'flex',
     gap: '16px',

@@ -4,6 +4,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
+import AdminLayout from '../../components/AdminLayout';
 import ServiceLogContent from '../../components/ServiceLogContent';
 import LabsPipelineTab from '../../components/LabsPipelineTab';
 import BookingTab from '../../components/BookingTab';
@@ -1960,10 +1961,8 @@ export default function CommandCenter() {
   }
 
   return (
-    <>
+    <AdminLayout title="Command Center" hideHeader>
       <Head>
-        <title>Command Center | Range Medical</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -5053,7 +5052,7 @@ export default function CommandCenter() {
           to { transform: rotate(360deg); }
         }
       `}</style>
-    </>
+    </AdminLayout>
   );
 }
 

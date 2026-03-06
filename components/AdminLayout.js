@@ -226,6 +226,7 @@ const NAV_ITEMS = [
   { href: '/admin/labs', label: 'Labs', icon: 'flask' },
   { href: '/admin/service-log', label: 'Service Log', icon: 'clipboard' },
   { href: '/admin/payments', label: 'Payments', icon: 'credit-card' },
+  { href: '/admin/purchases', label: 'Purchases', icon: 'shopping-bag' },
   { href: '/admin/communications', label: 'Communications', icon: 'message' },
   { href: '/admin/send-forms', label: 'Send Forms', icon: 'file-text' },
   { href: '/admin/settings', label: 'Settings', icon: 'settings' }
@@ -266,6 +267,11 @@ const icons = {
   'credit-card': (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" />
+    </svg>
+  ),
+  'shopping-bag': (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><line x1="3" y1="6" x2="21" y2="6" /><path d="M16 10a4 4 0 0 1-8 0" />
     </svg>
   ),
   map: (

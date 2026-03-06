@@ -2,7 +2,7 @@
 // Lab Import Tool - with duplicate protection and detailed errors
 
 import { useState } from 'react';
-import Head from 'next/head';
+import AdminLayout from '../../components/AdminLayout';
 
 export default function ImportLabs() {
   const [file, setFile] = useState(null);
@@ -72,12 +72,7 @@ export default function ImportLabs() {
   }
 
   return (
-    <>
-      <Head>
-        <title>Import Labs | Range Medical</title>
-      </Head>
-
-      <div style={styles.container}>
+    <AdminLayout title="Import Labs">
         <h1 style={styles.title}>Import Lab Results</h1>
         <p style={styles.subtitle}>Upload CSV files from AccessMedLabs or other providers</p>
 
@@ -246,8 +241,7 @@ export default function ImportLabs() {
           </p>
           <a href="/patients" style={styles.link}>Go to Patients →</a>
         </div>
-      </div>
-    </>
+    </AdminLayout>
   );
 }
 

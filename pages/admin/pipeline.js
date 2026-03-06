@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Head from 'next/head';
+import AdminLayout from '../../components/AdminLayout';
 import LabsPipelineTab from '../../components/LabsPipelineTab';
 
 // ================================================================
@@ -1107,11 +1107,10 @@ export default function UnifiedPipeline() {
   };
 
   if (loading) return <div style={styles.container}><div style={styles.loading}>Loading protocols...</div></div>;
-  if (error) return <div style={styles.container}><div style={styles.error}>Error: {error}</div></div>;
+  if (error) return <AdminLayout title="Pipeline"><div style={styles.error}>Error: {error}</div></AdminLayout>;
 
   return (
-    <>
-      <Head><title>Protocol Pipeline | Range Medical</title></Head>
+    <AdminLayout title="Pipeline" hideHeader>
       <div style={styles.container}>
         <div style={styles.mainViewTabs}>
           <button style={{ ...styles.mainViewTab, ...(mainView === 'protocols' ? styles.mainViewTabActive : {}) }} onClick={() => setMainView('protocols')}>💊 Protocols</button>
@@ -1551,12 +1550,12 @@ export default function UnifiedPipeline() {
 
         {toast && <div style={{ ...styles.toast, background: toast.type === 'error' ? '#dc2626' : '#22c55e' }}>{toast.message}</div>}
       </div>
-    </>
+    </AdminLayout>
   );
 }
 
 const styles = {
-  container: { fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", background: '#f8f9fa', minHeight: '100vh', padding: '20px' },
+  container: { fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", padding: '20px' },
   mainViewTabs: { maxWidth: '1400px', margin: '0 auto 20px', display: 'flex', gap: '0', background: '#e5e7eb', borderRadius: '12px', padding: '4px', width: 'fit-content' },
   mainViewTab: { padding: '12px 32px', border: 'none', background: 'transparent', borderRadius: '10px', cursor: 'pointer', fontSize: '15px', fontWeight: '600', color: '#6b7280', transition: 'all 0.2s' },
   mainViewTabActive: { background: 'white', color: '#111', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },

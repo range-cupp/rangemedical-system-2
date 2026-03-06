@@ -3,7 +3,7 @@
 // Range Medical
 
 import { useState } from 'react';
-import Head from 'next/head';
+import AdminLayout from '../../components/AdminLayout';
 
 export default function BackfillLabs() {
   const [startDate, setStartDate] = useState('2025-01-01');
@@ -39,12 +39,7 @@ export default function BackfillLabs() {
   };
 
   return (
-    <>
-      <Head>
-        <title>Backfill Lab Appointments | Range Medical</title>
-      </Head>
-
-      <div style={styles.container}>
+    <AdminLayout title="Backfill Labs">
         <div style={styles.card}>
           <h1 style={styles.title}>🩸 Backfill Lab Appointments</h1>
           <p style={styles.subtitle}>
@@ -233,8 +228,7 @@ export default function BackfillLabs() {
             </div>
           )}
         </div>
-      </div>
-    </>
+    </AdminLayout>
   );
 }
 

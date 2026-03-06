@@ -3,7 +3,7 @@
 // Range Medical - 2026-01-28
 
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
+import AdminLayout from '../../components/AdminLayout';
 
 export default function ActivityLog() {
   const [logs, setLogs] = useState([]);
@@ -173,13 +173,11 @@ export default function ActivityLog() {
     return true;
   });
 
-  if (loading) return <div style={styles.container}><div style={styles.loading}>Loading activity logs...</div></div>;
-  if (error) return <div style={styles.container}><div style={styles.error}>Error: {error}</div></div>;
+  if (loading) return <AdminLayout title="Activity Log"><div style={styles.loading}>Loading activity logs...</div></AdminLayout>;
+  if (error) return <AdminLayout title="Activity Log"><div style={styles.error}>Error: {error}</div></AdminLayout>;
 
   return (
-    <>
-      <Head><title>Activity Log | Range Medical</title></Head>
-      <div style={styles.container}>
+    <AdminLayout title="Activity Log">
         <div style={styles.header}>
           <div>
             <h1 style={styles.title}>📋 Activity Log</h1>
@@ -393,8 +391,7 @@ export default function ActivityLog() {
             {toast.message}
           </div>
         )}
-      </div>
-    </>
+    </AdminLayout>
   );
 }
 

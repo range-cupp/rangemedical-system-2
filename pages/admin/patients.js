@@ -11,6 +11,7 @@ export default function PatientsList() {
   const [loading, setLoading] = useState(true);
   const [patients, setPatients] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeFilter, setActiveFilter] = useState('all');
   const [filteredPatients, setFilteredPatients] = useState([]);
 
   // Merge modal state
@@ -28,21 +29,36 @@ export default function PatientsList() {
   }, []);
 
   useEffect(() => {
-    if (searchTerm.trim() === '') {
-      setFilteredPatients(patients);
-    } else {
+    let result = patients;
+
+    // Tag/program filter
+    if (activeFilter !== 'all') {
+      result = result.filter(p => {
+        if (activeFilter === 'online') {
+          return getSourceTag(p) === 'Online Assessment';
+        }
+        if (activeFilter === 'walk-in') {
+          return getSourceTag(p) === 'Walk-in';
+        }
+        // Program filter
+        return (p.activePrograms || []).includes(activeFilter);
+      });
+    }
+
+    // Search filter
+    if (searchTerm.trim() !== '') {
       const term = searchTerm.toLowerCase();
-      setFilteredPatients(
-        patients.filter(p =>
-          (p.first_name?.toLowerCase() || '').includes(term) ||
-          (p.last_name?.toLowerCase() || '').includes(term) ||
-          (p.name?.toLowerCase() || '').includes(term) ||
-          (p.email?.toLowerCase() || '').includes(term) ||
-          (p.phone || '').includes(term)
-        )
+      result = result.filter(p =>
+        (p.first_name?.toLowerCase() || '').includes(term) ||
+        (p.last_name?.toLowerCase() || '').includes(term) ||
+        (p.name?.toLowerCase() || '').includes(term) ||
+        (p.email?.toLowerCase() || '').includes(term) ||
+        (p.phone || '').includes(term)
       );
     }
-  }, [searchTerm, patients]);
+
+    setFilteredPatients(result);
+  }, [searchTerm, activeFilter, patients]);
 
   const fetchPatients = async () => {
     try {
@@ -75,6 +91,46 @@ export default function PatientsList() {
       year: 'numeric'
     });
   };
+
+  // Tag helpers
+  const PROGRAM_COLORS = {
+    hrt: { bg: '#f3e8ff', text: '#7c3aed', label: 'HRT' },
+    weight_loss: { bg: '#dbeafe', text: '#1e40af', label: 'Weight Loss' },
+    peptide: { bg: '#dcfce7', text: '#166534', label: 'Peptide' },
+    iv: { bg: '#ffedd5', text: '#c2410c', label: 'IV' },
+    hbot: { bg: '#e0e7ff', text: '#3730a3', label: 'HBOT' },
+    rlt: { bg: '#fee2e2', text: '#dc2626', label: 'RLT' },
+    injection: { bg: '#fef3c7', text: '#92400e', label: 'Injection' },
+  };
+
+  const SOURCE_COLORS = {
+    'Online Assessment': { bg: '#dbeafe', text: '#1e40af' },
+    'Research': { bg: '#f3e8ff', text: '#7c3aed' },
+    'CRM Import': { bg: '#f3f4f6', text: '#6b7280' },
+    'Walk-in': { bg: '#f3f4f6', text: '#6b7280' },
+  };
+
+  const getSourceTag = (patient) => {
+    const tags = patient.tags || [];
+    if (tags.some(t => t && (t.includes('assessment') || t.includes('research-lead')))) {
+      if (tags.some(t => t && t.includes('research-lead') && !t.includes('assessment'))) return 'Research';
+      return 'Online Assessment';
+    }
+    if (patient.ghl_contact_id) return 'CRM Import';
+    return 'Walk-in';
+  };
+
+  const FILTER_OPTIONS = [
+    { key: 'all', label: 'All' },
+    { key: 'hrt', label: 'HRT' },
+    { key: 'weight_loss', label: 'Weight Loss' },
+    { key: 'peptide', label: 'Peptide' },
+    { key: 'iv', label: 'IV' },
+    { key: 'hbot', label: 'HBOT' },
+    { key: 'rlt', label: 'RLT' },
+    { key: 'online', label: 'Online' },
+    { key: 'walk-in', label: 'Walk-in' },
+  ];
 
   // Merge functions
   const openMergeModal = () => {
@@ -188,7 +244,7 @@ export default function PatientsList() {
       }
     >
 
-        {/* Search */}
+        {/* Search + Filters */}
         <div style={styles.searchContainer}>
           <input
             type="text"
@@ -197,38 +253,71 @@ export default function PatientsList() {
             onChange={(e) => setSearchTerm(e.target.value)}
             style={styles.searchInput}
           />
+          <div style={styles.filterBar}>
+            {FILTER_OPTIONS.map(f => (
+              <button
+                key={f.key}
+                onClick={() => setActiveFilter(f.key)}
+                style={{
+                  ...styles.filterBtn,
+                  ...(activeFilter === f.key ? styles.filterBtnActive : {}),
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Patient List */}
         {filteredPatients.length === 0 ? (
           <div style={styles.emptyState}>
-            {searchTerm ? 'No patients match your search' : 'No patients found'}
+            {searchTerm || activeFilter !== 'all' ? 'No patients match your filters' : 'No patients found'}
           </div>
         ) : (
           <div style={styles.list}>
-            {filteredPatients.map(patient => (
-              <Link
-                key={patient.id}
-                href={`/patients/${patient.id}`}
-                style={{ textDecoration: 'none' }}
-              >
-                <div style={styles.card}>
-                  <div style={styles.cardMain}>
-                    <div style={styles.patientName}>{getDisplayName(patient)}</div>
-                    <div style={styles.patientMeta}>
-                      {patient.email && <span>{patient.email}</span>}
-                      {patient.phone && <span> • {formatPhone(patient.phone)}</span>}
-                    </div>
-                    {patient.created_at && (
-                      <div style={styles.patientDate}>
-                        Added {formatDate(patient.created_at)}
+            {filteredPatients.map(patient => {
+              const source = getSourceTag(patient);
+              const sourceColor = SOURCE_COLORS[source] || SOURCE_COLORS['Walk-in'];
+              const programs = patient.activePrograms || [];
+
+              return (
+                <Link
+                  key={patient.id}
+                  href={`/patients/${patient.id}`}
+                  style={{ textDecoration: 'none' }}
+                >
+                  <div style={styles.card}>
+                    <div style={styles.cardMain}>
+                      <div style={styles.patientName}>{getDisplayName(patient)}</div>
+                      <div style={styles.patientMeta}>
+                        {patient.email && <span>{patient.email}</span>}
+                        {patient.phone && <span> • {formatPhone(patient.phone)}</span>}
                       </div>
-                    )}
+                      <div style={styles.tagRow}>
+                        <span style={{ ...styles.tag, background: sourceColor.bg, color: sourceColor.text }}>
+                          {source}
+                        </span>
+                        {programs.map(prog => {
+                          const c = PROGRAM_COLORS[prog];
+                          return c ? (
+                            <span key={prog} style={{ ...styles.tag, background: c.bg, color: c.text }}>
+                              {c.label}
+                            </span>
+                          ) : null;
+                        })}
+                      </div>
+                      {patient.created_at && (
+                        <div style={styles.patientDate}>
+                          Added {formatDate(patient.created_at)}
+                        </div>
+                      )}
+                    </div>
+                    <div style={styles.cardArrow}>→</div>
                   </div>
-                  <div style={styles.cardArrow}>→</div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
         )}
 
@@ -505,6 +594,41 @@ const styles = {
     borderRadius: '8px',
     outline: 'none',
     boxSizing: 'border-box'
+  },
+  filterBar: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '6px',
+    marginTop: '12px',
+  },
+  filterBtn: {
+    padding: '5px 12px',
+    fontSize: '12px',
+    fontWeight: '500',
+    border: '1px solid #e5e7eb',
+    borderRadius: '16px',
+    background: '#fff',
+    color: '#666',
+    cursor: 'pointer',
+  },
+  filterBtnActive: {
+    background: '#111',
+    color: '#fff',
+    borderColor: '#111',
+  },
+  tagRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '4px',
+    marginTop: '6px',
+  },
+  tag: {
+    display: 'inline-block',
+    fontSize: '11px',
+    fontWeight: '500',
+    padding: '2px 8px',
+    borderRadius: '10px',
+    lineHeight: '16px',
   },
   emptyState: {
     textAlign: 'center',

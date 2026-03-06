@@ -1,14 +1,22 @@
 // /pages/api/webhooks/stripe.js
-// Stripe Webhook Handler — sends SMS + email notification to owner on website purchases
-// Listens for checkout.session.completed (from buy.stripe.com Payment Links)
+// Stripe Webhook Handler
+// - checkout.session.completed: sends SMS + email notification to owner (Payment Link purchases)
+// - invoice.paid: HRT membership renewal → credits free Range IV + sends patient email
 // Range Medical
+// UPDATED: 2026-03-06 — Added invoice.paid handler for HRT membership perks
 
 import Stripe from 'stripe';
 import { Resend } from 'resend';
+import { createClient } from '@supabase/supabase-js';
 import { sendTwilioSMS } from '../../../lib/twilio-sms';
+import { logComm } from '../../../lib/comms-log';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const resend = new Resend(process.env.RESEND_API_KEY);
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 const OWNER_PHONE = '+19496900339';
 const OWNER_EMAIL = 'chriscupp8181@gmail.com';
@@ -93,6 +101,262 @@ async function sendNotificationEmail({ customerName, customerEmail, items, amoun
   }
 }
 
+// ================================================================
+// HRT MEMBERSHIP PERK — Free Range IV
+// ================================================================
+
+// Check if a subscription invoice is for an HRT membership
+async function isHRTMembershipInvoice(invoice) {
+  // 1. Check line item descriptions for HRT keywords
+  const lineItems = invoice.lines?.data || [];
+  const descriptions = lineItems.map(li => (li.description || '').toLowerCase()).join(' ');
+  if (descriptions.includes('hrt') || descriptions.includes('testosterone') || descriptions.includes('trt')) {
+    return true;
+  }
+
+  // 2. Check subscription metadata for service_category
+  if (invoice.subscription) {
+    try {
+      const sub = await stripe.subscriptions.retrieve(invoice.subscription);
+      if (sub.metadata?.service_category === 'hrt') return true;
+    } catch (err) {
+      console.error('Error retrieving subscription:', err.message);
+    }
+  }
+
+  return false;
+}
+
+// Credit a free Range IV to a patient's account
+// Resets monthly — any unused perk from previous months is expired first
+async function creditFreeRangeIV(patientId, invoiceId) {
+  const today = new Date().toISOString().split('T')[0];
+  const endDate = new Date();
+  endDate.setDate(endDate.getDate() + 30);
+
+  // Check if already credited this month (prevent duplicates from webhook retries)
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const { data: existingPerk } = await supabase
+    .from('protocols')
+    .select('id')
+    .eq('patient_id', patientId)
+    .eq('program_type', 'iv_therapy')
+    .eq('medication', 'Range IV')
+    .ilike('notes', '%HRT Membership Perk%')
+    .gte('created_at', startOfMonth.toISOString())
+    .limit(1);
+
+  if (existingPerk?.length) {
+    console.log(`Range IV already credited this month for patient ${patientId}, skipping`);
+    return null;
+  }
+
+  // Expire any unused Range IV perks from previous months (reset — doesn't stack)
+  const { data: oldPerks } = await supabase
+    .from('protocols')
+    .select('id')
+    .eq('patient_id', patientId)
+    .eq('program_type', 'iv_therapy')
+    .eq('medication', 'Range IV')
+    .ilike('notes', '%HRT Membership Perk%')
+    .eq('status', 'active')
+    .eq('sessions_used', 0);
+
+  if (oldPerks?.length) {
+    const oldIds = oldPerks.map(p => p.id);
+    await supabase
+      .from('protocols')
+      .update({ status: 'expired', updated_at: new Date().toISOString() })
+      .in('id', oldIds);
+    console.log(`Expired ${oldIds.length} unused Range IV perk(s) for patient ${patientId}`);
+  }
+
+  // Create the IV protocol (1 session)
+  const { data: protocol, error } = await supabase
+    .from('protocols')
+    .insert({
+      patient_id: patientId,
+      program_name: 'Range IV — HRT Membership Perk',
+      program_type: 'iv_therapy',
+      medication: 'Range IV',
+      total_sessions: 1,
+      sessions_used: 0,
+      status: 'active',
+      delivery_method: 'in_clinic',
+      start_date: today,
+      end_date: endDate.toISOString().split('T')[0],
+      notes: `Complimentary Range IV — HRT Membership Perk. Auto-credited on ${today}.`,
+      created_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single();
+
+  if (error) {
+    console.error('Range IV credit error:', error);
+    return null;
+  }
+
+  console.log(`Range IV credited for patient ${patientId} (protocol ${protocol.id})`);
+  return protocol.id;
+}
+
+// Send the patient an email about their free Range IV
+async function sendRangeIVPerkEmail(patientId) {
+  const { data: patient } = await supabase
+    .from('patients')
+    .select('name, first_name, email')
+    .eq('id', patientId)
+    .single();
+
+  if (!patient?.email) {
+    console.log('Range IV perk email skipped — no patient email');
+    return;
+  }
+
+  const firstName = patient.first_name || (patient.name || '').split(' ')[0] || 'there';
+  const monthName = new Date().toLocaleDateString('en-US', { month: 'long' });
+
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto;">
+      <div style="background: #000; color: #fff; padding: 24px 28px; border-radius: 12px 12px 0 0; text-align: center;">
+        <h1 style="margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 2px;">RANGE MEDICAL</h1>
+      </div>
+      <div style="border: 1px solid #e5e7eb; border-top: none; padding: 32px 28px; border-radius: 0 0 12px 12px;">
+        <h2 style="margin: 0 0 16px; font-size: 20px; color: #111;">Your Complimentary Range IV is Ready</h2>
+        <p style="color: #374151; font-size: 15px; line-height: 1.6; margin: 0 0 16px;">
+          Hi ${firstName},
+        </p>
+        <p style="color: #374151; font-size: 15px; line-height: 1.6; margin: 0 0 16px;">
+          Thank you for your continued HRT membership with Range Medical. As a valued member, your complimentary <strong>Range IV</strong> for ${monthName} has been added to your account.
+        </p>
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px 20px; margin: 20px 0;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <span style="font-size: 20px;">💉</span>
+            <strong style="color: #166534; font-size: 16px;">1x Range IV Session</strong>
+          </div>
+          <p style="color: #15803d; font-size: 14px; margin: 0;">
+            Available now — included with your HRT membership
+          </p>
+        </div>
+        <p style="color: #374151; font-size: 15px; line-height: 1.6; margin: 0 0 24px;">
+          Stop by the clinic anytime during business hours, or give us a call to schedule your IV session. This perk is available for the next 30 days.
+        </p>
+        <div style="text-align: center; margin: 24px 0;">
+          <a href="tel:+19496900339" style="display: inline-block; background: #000; color: #fff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 600; font-size: 15px;">
+            Call to Schedule: (949) 690-0339
+          </a>
+        </div>
+        <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #f3f4f6; text-align: center;">
+          <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+            Range Medical · 4011 Westerly Pl, Suite 106, Newport Beach, CA 92660
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  try {
+    await resend.emails.send({
+      from: 'Range Medical <noreply@range-medical.com>',
+      to: patient.email,
+      bcc: 'info@range-medical.com',
+      subject: `Your Complimentary Range IV for ${monthName} is Ready`,
+      html,
+    });
+
+    console.log(`Range IV perk email sent to ${patient.email}`);
+
+    await logComm({
+      channel: 'email',
+      messageType: 'membership_perk',
+      message: `HRT membership perk — complimentary Range IV for ${monthName}`,
+      source: 'stripe-webhook',
+      patientId,
+      patientName: patient.name,
+      recipient: patient.email,
+      subject: `Your Complimentary Range IV for ${monthName} is Ready`,
+    });
+  } catch (err) {
+    console.error('Range IV perk email error:', err);
+    await logComm({
+      channel: 'email',
+      messageType: 'membership_perk',
+      message: `Range IV perk email failed for patient ${patientId}`,
+      source: 'stripe-webhook',
+      patientId,
+      patientName: patient.name,
+      status: 'error',
+      errorMessage: err.message,
+    }).catch(() => {});
+  }
+}
+
+// Process HRT membership payment — credit Range IV + notify patient
+async function processHRTMembershipPerk(invoice) {
+  // Get patient_id from subscription metadata
+  let patientId = null;
+
+  if (invoice.subscription) {
+    try {
+      const sub = await stripe.subscriptions.retrieve(invoice.subscription);
+      patientId = sub.metadata?.patient_id || null;
+    } catch (err) {
+      console.error('Error retrieving subscription for perk:', err.message);
+    }
+  }
+
+  // Fallback: look up patient by Stripe customer ID
+  if (!patientId && invoice.customer) {
+    const { data: patient } = await supabase
+      .from('patients')
+      .select('id')
+      .eq('stripe_customer_id', invoice.customer)
+      .limit(1)
+      .single();
+
+    if (patient) patientId = patient.id;
+  }
+
+  if (!patientId) {
+    console.log('HRT perk: could not resolve patient_id, skipping');
+    return;
+  }
+
+  // Verify patient has an active HRT protocol
+  const { data: hrtProtocols } = await supabase
+    .from('protocols')
+    .select('id')
+    .eq('patient_id', patientId)
+    .in('status', ['active', 'expired'])
+    .or('program_type.ilike.%hrt%,program_type.ilike.%hrt_male%,program_type.ilike.%hrt_female%')
+    .limit(1);
+
+  if (!hrtProtocols?.length) {
+    console.log(`HRT perk: patient ${patientId} has no active HRT protocol, skipping`);
+    return;
+  }
+
+  // Credit the Range IV
+  const protocolId = await creditFreeRangeIV(patientId, invoice.id);
+  if (!protocolId) return; // Already credited or error
+
+  // Send the patient email
+  await sendRangeIVPerkEmail(patientId);
+
+  // Notify owner
+  const { data: patient } = await supabase
+    .from('patients')
+    .select('name')
+    .eq('id', patientId)
+    .single();
+
+  const smsMessage = `💉 HRT Perk: Free Range IV credited for ${patient?.name || 'Unknown'}`;
+  await sendTwilioSMS({ to: OWNER_PHONE, message: smsMessage }).catch(() => {});
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -141,6 +405,24 @@ export default async function handler(req, res) {
     } catch (err) {
       // Don't fail the webhook response — Stripe would retry
       console.error('Error processing checkout notification:', err.message);
+    }
+  }
+
+  // Handle invoice.paid (subscription renewals — HRT membership perks)
+  if (event.type === 'invoice.paid') {
+    const invoice = event.data.object;
+
+    // Only process subscription invoices
+    if (invoice.subscription) {
+      try {
+        const isHRT = await isHRTMembershipInvoice(invoice);
+        if (isHRT) {
+          console.log(`HRT membership invoice paid: ${invoice.id} — processing Range IV perk`);
+          await processHRTMembershipPerk(invoice);
+        }
+      } catch (err) {
+        console.error('Error processing HRT membership perk:', err.message);
+      }
     }
   }
 

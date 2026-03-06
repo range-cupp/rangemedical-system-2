@@ -660,6 +660,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
             price_amount: amount,
             interval: cartItems[0].interval || 'month',
             description,
+            service_category: cartItems[0]?.category || null,
           }),
         });
 

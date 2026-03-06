@@ -13,7 +13,7 @@ const supabase = createClient(
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     try {
-      const { patient_id, price_amount, interval, description } = req.body;
+      const { patient_id, price_amount, interval, description, service_category } = req.body;
 
       if (!patient_id || !price_amount) {
         return res.status(400).json({ error: 'patient_id and price_amount are required' });
@@ -56,7 +56,7 @@ export default async function handler(req, res) {
         customer: patient.stripe_customer_id,
         items: [{ price: price.id }],
         default_payment_method: paymentMethods.data[0].id,
-        metadata: { patient_id },
+        metadata: { patient_id, ...(service_category ? { service_category } : {}) },
       });
 
       return res.status(200).json({

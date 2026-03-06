@@ -135,6 +135,9 @@ export default function ProtocolDetail() {
   const [logModal, setLogModal] = useState(null); // { injectionNum, date, isCompleted }
   const [logForm, setLogForm] = useState({ weight: '', dose: '', notes: '' });
   const [logSaving, setLogSaving] = useState(false);
+  const [editDateModal, setEditDateModal] = useState(null); // { logId, injectionNum, currentDate }
+  const [editDateValue, setEditDateValue] = useState('');
+  const [editDateSaving, setEditDateSaving] = useState(false);
   const [sendingOptin, setSendingOptin] = useState(false);
   const [optinSent, setOptinSent] = useState(false);
   const [bloodDrawModal, setBloodDrawModal] = useState(null); // { label, status, completedDate, protocolId }
@@ -424,6 +427,46 @@ export default function ProtocolDetail() {
     } finally {
       setLogSaving(false);
     }
+  };
+
+  // Edit an existing injection log's date
+  const handleEditLogDate = async () => {
+    if (!editDateModal || !editDateValue) return;
+    setEditDateSaving(true);
+    try {
+      const res = await fetch(`/api/protocols/${id}/log-injection`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          log_id: editDateModal.logId,
+          log_date: editDateValue,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update date');
+      setSuccess(`Injection #${editDateModal.injectionNum} date updated to ${new Date(editDateValue + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`);
+      setEditDateModal(null);
+      fetchProtocol(); // Refresh all data
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setEditDateSaving(false);
+    }
+  };
+
+  // Open edit modal for a completed injection
+  const handleEditInjection = (injectionNum) => {
+    // injectionLogs are sorted descending (most recent first)
+    // Sort ascending to map injection #1 = oldest, #2 = next, etc.
+    const sortedAsc = [...injectionLogs].sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
+    const logEntry = sortedAsc[injectionNum - 1];
+    if (!logEntry) return;
+    setEditDateValue(logEntry.log_date?.split('T')[0] || logEntry.log_date);
+    setEditDateModal({
+      logId: logEntry.id,
+      injectionNum,
+      currentDate: logEntry.log_date,
+    });
   };
 
   // Log a session for session-based protocols (HBOT, RLT, IV, etc.)
@@ -970,14 +1013,14 @@ export default function ProtocolDetail() {
                     return (
                       <div
                         key={num}
-                        onClick={() => !isCompleted && handleCalendarDayClick(wlSessionsUsed + 1, nextInjDate)}
+                        onClick={() => isCompleted ? handleEditInjection(num) : handleCalendarDayClick(wlSessionsUsed + 1, nextInjDate)}
                         style={{
                           ...styles.calendarDay,
                           background: isCompleted ? '#22c55e' : isNext ? '#000' : '#fff',
                           color: isCompleted || isNext ? '#fff' : '#000',
                           borderColor: isCompleted ? '#22c55e' : isNext ? '#000' : '#e5e5e5',
                           opacity: isFuture ? 0.5 : 1,
-                          cursor: !isCompleted ? 'pointer' : 'default',
+                          cursor: isFuture ? 'default' : 'pointer',
                         }}
                       >
                         <div style={styles.dayNumber}>{num}</div>
@@ -2028,6 +2071,49 @@ export default function ProtocolDetail() {
                 background: '#000', color: '#fff', cursor: logSaving ? 'wait' : 'pointer',
                 fontSize: 14, fontWeight: 600, opacity: logSaving ? 0.6 : 1
               }}>{logSaving ? 'Saving...' : 'Log Injection'}</button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Edit Injection Date Modal */}
+      {editDateModal && (
+        <>
+          <div onClick={() => setEditDateModal(null)} style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 10000
+          }} />
+          <div style={{
+            position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+            background: '#fff', borderRadius: 12, padding: 24, zIndex: 10001,
+            width: '90%', maxWidth: 380, boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+          }}>
+            <h3 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 700 }}>
+              Edit Injection #{editDateModal.injectionNum}
+            </h3>
+            <p style={{ margin: '0 0 16px', color: '#6b7280', fontSize: 14 }}>
+              Change the date for this injection
+            </p>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Date</label>
+              <input
+                type="date"
+                value={editDateValue}
+                onChange={e => setEditDateValue(e.target.value)}
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setEditDateModal(null)} style={{
+                padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: 6,
+                background: '#fff', cursor: 'pointer', fontSize: 14
+              }}>Cancel</button>
+              <button onClick={handleEditLogDate} disabled={editDateSaving} style={{
+                padding: '8px 20px', border: 'none', borderRadius: 6,
+                background: '#22c55e', color: '#fff', cursor: editDateSaving ? 'wait' : 'pointer',
+                fontSize: 14, fontWeight: 600, opacity: editDateSaving ? 0.6 : 1
+              }}>{editDateSaving ? 'Saving...' : 'Update Date'}</button>
             </div>
           </div>
         </>

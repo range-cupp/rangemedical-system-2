@@ -13,18 +13,46 @@ const supabase = createClient(
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  if (req.method !== 'POST') {
+  if (req.method !== 'POST' && req.method !== 'PATCH') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const { id } = req.query;
+
+  // PATCH — update an existing log entry's date
+  if (req.method === 'PATCH') {
+    const { log_id, log_date: newDate } = req.body;
+    if (!log_id || !newDate) {
+      return res.status(400).json({ error: 'log_id and log_date required' });
+    }
+    try {
+      const { data: updated, error: updateErr } = await supabase
+        .from('protocol_logs')
+        .update({ log_date: newDate })
+        .eq('id', log_id)
+        .eq('protocol_id', id)
+        .select()
+        .single();
+
+      if (updateErr) {
+        console.error('Update log date error:', updateErr);
+        return res.status(500).json({ error: 'Failed to update log date' });
+      }
+
+      return res.status(200).json({ success: true, message: 'Date updated', log: updated });
+    } catch (err) {
+      console.error('PATCH log-injection error:', err);
+      return res.status(500).json({ error: 'Server error' });
+    }
+  }
+
   const { log_date, weight, dose, side_effects, notes, delivery_method } = req.body;
 
   if (!id) {

@@ -1317,7 +1317,7 @@ export default function PatientProfile() {
                     {activeProtocols.slice(0, 5).map(protocol => {
                       const cat = getCategoryStyle(protocol.category);
                       return (
-                        <div key={protocol.id} className="protocol-row" style={{ cursor: 'pointer' }} onClick={() => window.open(`/admin/protocols/${protocol.id}`, '_blank')}>
+                        <div key={protocol.id} className="protocol-row" style={{ cursor: 'pointer' }} onClick={() => router.push(`/admin/protocols/${protocol.id}`)}>
                           <div className="protocol-main">
                             <span className="protocol-badge" style={{ background: cat.bg, color: cat.text }}>{cat.label}</span>
                             <span className="protocol-name" style={{ textDecoration: 'underline', textDecorationColor: '#d1d5db' }}>{protocol.program_name || protocol.medication}</span>
@@ -1566,7 +1566,7 @@ export default function PatientProfile() {
 
                       return (
                         <div key={protocol.id} className="protocol-card">
-                          <div className="protocol-card-header" style={{ cursor: 'pointer' }} onClick={() => window.open(`/admin/protocols/${protocol.id}`, '_blank')}>
+                          <div className="protocol-card-header" style={{ cursor: 'pointer' }} onClick={() => router.push(`/admin/protocols/${protocol.id}`)}>
                             <span className="protocol-badge" style={{ background: cat.bg, color: cat.text }}>{cat.label}</span>
                             <span className="protocol-name" style={{ textDecoration: 'underline', textDecorationColor: '#d1d5db' }}>{protocol.program_name || protocol.medication}</span>
                             {protocol.delivery_method === 'in_clinic' && <span className="clinic-badge">In-Clinic</span>}
@@ -1785,7 +1785,7 @@ export default function PatientProfile() {
                       const cat = getCategoryStyle(protocol.category);
                       return (
                         <div key={protocol.id} className="protocol-card completed">
-                          <div className="protocol-card-header" style={{ cursor: 'pointer' }} onClick={() => window.open(`/admin/protocols/${protocol.id}`, '_blank')}>
+                          <div className="protocol-card-header" style={{ cursor: 'pointer' }} onClick={() => router.push(`/admin/protocols/${protocol.id}`)}>
                             <span className="protocol-badge" style={{ background: cat.bg, color: cat.text }}>{cat.label}</span>
                             <span className="protocol-name" style={{ textDecoration: 'underline', textDecorationColor: '#d1d5db' }}>{protocol.program_name || protocol.medication}</span>
                           </div>

@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import AdminLayout from '../../../components/AdminLayout';
 import { PROTOCOL_TYPES, CATEGORY_TO_TYPE, getDBProgramType } from '../../../lib/protocol-types';
+import { MEMBERSHIP_FREQUENCY_OPTIONS } from '../../../lib/protocol-config';
 
 // Classify purchase into action type: 'protocol' | 'session' | 'product'
 function getPurchaseActionType(purchase) {
@@ -268,11 +269,29 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
   const [patientLoading, setPatientLoading] = useState(true);
   const [cycleInfo, setCycleInfo] = useState(null);
 
-  // Auto-detect lab purchases and set initial type
+  // Auto-detect purchase type
   const purchaseItemLower = (purchase?.item_name || '').toLowerCase();
   const purchaseCat = (purchase?.category || '').toLowerCase();
   const isLabPurchase = purchaseCat === 'labs' || purchaseItemLower.includes('lab panel');
-  const initialType = isLabPurchase ? 'lab_panel' : (CATEGORY_TO_TYPE[purchase?.category] || 'peptide');
+
+  // Auto-detect membership types from purchase name
+  const detectInitialType = () => {
+    if (isLabPurchase) return 'lab_panel';
+    if (purchaseItemLower.includes('cellular reset') || purchaseItemLower.includes('six-week') || purchaseItemLower.includes('six week')) return 'cellular_reset';
+    if (purchaseItemLower.includes('combo') && (purchaseItemLower.includes('membership') || purchaseItemLower.includes('hyperbaric') || purchaseItemLower.includes('red light'))) return 'combo_membership';
+    if ((purchaseItemLower.includes('hyperbaric') || purchaseItemLower.includes('hbot')) && purchaseItemLower.includes('membership')) return 'hbot_membership';
+    if ((purchaseItemLower.includes('red light') || purchaseItemLower.includes('rlt')) && purchaseItemLower.includes('membership')) return 'rlt_membership';
+    if (purchaseCat === 'combo_membership') return 'combo_membership';
+    return CATEGORY_TO_TYPE[purchase?.category] || 'peptide';
+  };
+  const initialType = detectInitialType();
+
+  // Auto-detect membership frequency from purchase name
+  const detectFrequency = () => {
+    if (purchaseItemLower.includes('3x')) return '3x_week';
+    if (purchaseItemLower.includes('2x')) return '2x_week';
+    return '1x_week';
+  };
 
   // Handle both object {value, label} and plain number formats for injections
   const getInitialInjections = () => {
@@ -299,6 +318,17 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
   const [labPanelType, setLabPanelType] = useState(autoDetectPanel);
   const [labType, setLabType] = useState('new_patient');
   const isLabMode = form.protocolType === 'lab_panel';
+
+  // Membership options
+  const [membershipFrequency, setMembershipFrequency] = useState(detectFrequency());
+  const isComboMode = form.protocolType === 'combo_membership';
+  const isCellularReset = form.protocolType === 'cellular_reset';
+  const isHbotMembership = form.protocolType === 'hbot_membership';
+  const isRltMembership = form.protocolType === 'rlt_membership';
+  const isMembershipMode = isComboMode || isCellularReset || isHbotMembership || isRltMembership;
+
+  // Get session counts from frequency
+  const selectedFreq = MEMBERSHIP_FREQUENCY_OPTIONS.find(f => f.value === membershipFrequency) || MEMBERSHIP_FREQUENCY_OPTIONS[0];
 
   // Look up patient from patients table (single source of truth)
   useEffect(() => {
@@ -432,6 +462,66 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.error || 'Failed to add to lab pipeline');
         }
+        onSuccess();
+        return;
+      }
+
+      // Membership modes — create protocol(s) with correct program_type for service log
+      if (isMembershipMode) {
+        const today = form.startDate || new Date().toISOString().split('T')[0];
+        const periodDays = isCellularReset ? 42 : (selectedFreq.period || 30);
+        const endDate = new Date(today + 'T12:00:00');
+        endDate.setDate(endDate.getDate() + periodDays);
+        const endDateStr = endDate.toISOString().split('T')[0];
+
+        // Determine session counts
+        const hbotSessions = isCellularReset ? 18 : selectedFreq.hbotSessions;
+        const rltSessions = isCellularReset ? 18 : selectedFreq.rltSessions;
+
+        const createProtocol = async (programName, programType, totalSessions, linkPurchase) => {
+          const protocolData = {
+            patient_id: patientId,
+            ghl_contact_id: ghlContactId || null,
+            patient_name: patientName,
+            patient_email: patientEmail,
+            patient_phone: patientPhone,
+            purchase_id: linkPurchase ? purchase.id : null,
+            program_name: programName,
+            program_type: programType,
+            total_sessions: totalSessions,
+            delivery_method: 'in_clinic',
+            start_date: today,
+            end_date: endDateStr,
+            frequency: isCellularReset ? '3x_week' : membershipFrequency,
+            notes: form.notes || null,
+            status: 'active'
+          };
+
+          const res = await fetch('/api/admin/protocols', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(protocolData)
+          });
+
+          if (!res.ok) {
+            let errorMsg = 'Failed to create protocol';
+            try { const data = await res.json(); errorMsg = data.details || data.error || errorMsg; } catch (e) {}
+            throw new Error(errorMsg);
+          }
+          return res.json();
+        };
+
+        if (isComboMode || isCellularReset) {
+          // Create TWO protocols: HBOT + RLT
+          const programLabel = isCellularReset ? 'Cellular Reset' : 'Combo Membership';
+          await createProtocol(`${programLabel} — HBOT`, 'hbot', hbotSessions, true);
+          await createProtocol(`${programLabel} — RLT`, 'red_light', rltSessions, false);
+        } else if (isHbotMembership) {
+          await createProtocol(`HBOT Membership (${hbotSessions} sessions)`, 'hbot', hbotSessions, true);
+        } else if (isRltMembership) {
+          await createProtocol(`RLT Membership (${rltSessions} sessions)`, 'red_light', rltSessions, true);
+        }
+
         onSuccess();
         return;
       }
@@ -608,6 +698,25 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
               >
                 🧪 Lab Panel
               </button>
+              {[
+                { key: 'combo_membership', label: '🏥 Combo Membership', color: '#7c3aed' },
+                { key: 'cellular_reset', label: '⚡ Cellular Reset', color: '#0891b2' },
+                { key: 'hbot_membership', label: '🫧 HBOT Membership', color: '#2563eb' },
+                { key: 'rlt_membership', label: '🔴 RLT Membership', color: '#dc2626' },
+              ].map(({ key, label, color }) => (
+                <button
+                  key={key}
+                  onClick={() => setForm(prev => ({ ...prev, protocolType: key }))}
+                  style={{
+                    ...modalStyles.typeBtn,
+                    background: form.protocolType === key ? color : '#f5f5f5',
+                    color: form.protocolType === key ? '#fff' : '#000',
+                    border: form.protocolType === key ? `1px solid ${color}` : '1px solid transparent'
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
               {Object.entries(PROTOCOL_TYPES).map(([key, type]) => (
                 <button
                   key={key}
@@ -671,8 +780,128 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
             </div>
           )}
 
+          {/* Membership Mode */}
+          {isMembershipMode && (
+            <div style={{
+              padding: '20px',
+              background: isComboMode ? '#f5f3ff' : isCellularReset ? '#ecfeff' : isHbotMembership ? '#eff6ff' : '#fef2f2',
+              borderRadius: '10px',
+              border: `1px solid ${isComboMode ? '#ddd6fe' : isCellularReset ? '#a5f3fc' : isHbotMembership ? '#bfdbfe' : '#fecaca'}`
+            }}>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: isComboMode ? '#6d28d9' : isCellularReset ? '#0e7490' : isHbotMembership ? '#1d4ed8' : '#dc2626', marginBottom: '16px' }}>
+                {isComboMode && '🏥 Combo Membership — HBOT + Red Light'}
+                {isCellularReset && '⚡ Six-Week Cellular Reset — 18 HBOT + 18 RLT'}
+                {isHbotMembership && '🫧 HBOT Membership'}
+                {isRltMembership && '🔴 Red Light Membership'}
+              </div>
+
+              {/* Frequency picker (not for cellular reset — it's fixed at 18+18) */}
+              {!isCellularReset && (
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={modalStyles.label}>Frequency</label>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                    {MEMBERSHIP_FREQUENCY_OPTIONS.map(opt => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setMembershipFrequency(opt.value)}
+                        style={{
+                          flex: 1,
+                          padding: '10px 12px',
+                          borderRadius: '8px',
+                          border: membershipFrequency === opt.value ? '2px solid #000' : '1px solid #e5e7eb',
+                          background: membershipFrequency === opt.value ? '#000' : '#fff',
+                          color: membershipFrequency === opt.value ? '#fff' : '#374151',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          fontWeight: 500,
+                          textAlign: 'center'
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Session summary */}
+              <div style={{
+                padding: '12px 16px',
+                background: '#fff',
+                borderRadius: '8px',
+                border: '1px solid #e5e7eb',
+                marginBottom: '16px'
+              }}>
+                <div style={{ fontSize: '12px', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+                  Sessions per month
+                </div>
+                {(isComboMode || isCellularReset) ? (
+                  <div style={{ display: 'flex', gap: '16px' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '24px', fontWeight: 700, color: '#2563eb' }}>
+                        {isCellularReset ? 18 : selectedFreq.hbotSessions}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#6b7280' }}>HBOT Sessions</div>
+                    </div>
+                    <div style={{ width: '1px', background: '#e5e7eb' }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '24px', fontWeight: 700, color: '#dc2626' }}>
+                        {isCellularReset ? 18 : selectedFreq.rltSessions}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#6b7280' }}>Red Light Sessions</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div style={{ fontSize: '24px', fontWeight: 700, color: isHbotMembership ? '#2563eb' : '#dc2626' }}>
+                      {isHbotMembership ? selectedFreq.hbotSessions : selectedFreq.rltSessions}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                      {isHbotMembership ? 'HBOT Sessions' : 'Red Light Sessions'}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {isCellularReset && (
+                <div style={{
+                  padding: '8px 12px',
+                  background: '#fff7ed',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  color: '#92400e',
+                  marginBottom: '16px'
+                }}>
+                  6-week program · 3x per week each · 42 days total
+                </div>
+              )}
+
+              <div style={modalStyles.grid}>
+                <div style={modalStyles.field}>
+                  <label style={modalStyles.label}>Start Date</label>
+                  <input
+                    type="date"
+                    value={form.startDate}
+                    onChange={e => setForm({ ...form, startDate: e.target.value })}
+                    style={modalStyles.input}
+                  />
+                </div>
+                <div style={modalStyles.field}>
+                  <label style={modalStyles.label}>Notes</label>
+                  <input
+                    type="text"
+                    value={form.notes}
+                    onChange={e => setForm({ ...form, notes: e.target.value })}
+                    style={modalStyles.input}
+                    placeholder="Optional notes..."
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Medication (protocols only) */}
-          {!isLabMode && selectedType?.medications && (
+          {!isLabMode && !isMembershipMode && selectedType?.medications && (
             <div style={modalStyles.section}>
               <h3 style={modalStyles.sectionTitle}>Medication</h3>
               <div style={modalStyles.grid}>
@@ -722,8 +951,8 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
             </div>
           )}
 
-          {/* Schedule (protocols only) */}
-          {!isLabMode && (
+          {/* Schedule (protocols only — not lab or membership modes) */}
+          {!isLabMode && !isMembershipMode && (
             <div style={modalStyles.section}>
               <h3 style={modalStyles.sectionTitle}>Schedule</h3>
               <div style={modalStyles.grid}>
@@ -821,9 +1050,10 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
           <button onClick={onClose} style={modalStyles.cancelBtn}>Cancel</button>
           <button onClick={handleSubmit} disabled={saving} style={{
             ...modalStyles.submitBtn,
-            ...(isLabMode ? { background: '#16a34a' } : {})
+            ...(isLabMode ? { background: '#16a34a' } : {}),
+            ...(isMembershipMode ? { background: isComboMode ? '#7c3aed' : isCellularReset ? '#0891b2' : isHbotMembership ? '#2563eb' : '#dc2626' } : {})
           }}>
-            {saving ? 'Adding...' : isLabMode ? '🧪 Add to Lab Pipeline' : 'Create Protocol'}
+            {saving ? 'Creating...' : isLabMode ? '🧪 Add to Lab Pipeline' : (isComboMode || isCellularReset) ? 'Create 2 Protocols (HBOT + RLT)' : isHbotMembership ? 'Create HBOT Protocol' : isRltMembership ? 'Create RLT Protocol' : 'Create Protocol'}
           </button>
         </div>
       </div>

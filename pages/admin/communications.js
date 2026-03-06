@@ -33,15 +33,31 @@ export default function CommunicationsPage() {
     syncRecentGHL().then(() => {
       fetchRecentPatients();
     });
-    fetchComms();
+    // Sync all Twilio calls to comms_log, then fetch activity log
+    fetch('/api/twilio/sync-all-calls', { method: 'POST' })
+      .catch(() => {})
+      .finally(() => fetchComms());
   }, []);
 
-  // Fetch calls when Calls tab is first selected
+  // Sync and fetch calls when Calls tab is first selected
   useEffect(() => {
     if (tab === 'calls' && !callsLoaded) {
-      fetchCalls(0);
+      syncAndFetchCalls();
     }
   }, [tab]);
+
+  // Bulk sync all Twilio calls to comms_log, then fetch for display
+  const syncAndFetchCalls = async () => {
+    setCallsLoading(true);
+    try {
+      // First sync all calls from Twilio into comms_log
+      await fetch('/api/twilio/sync-all-calls', { method: 'POST' });
+    } catch (err) {
+      console.error('Call sync error:', err);
+    }
+    // Then fetch the call list from Twilio for display
+    fetchCalls(0);
+  };
 
   // Sync recent inbound messages from GHL to catch anything the webhook missed
   const syncRecentGHL = async () => {
@@ -265,6 +281,44 @@ export default function CommunicationsPage() {
         return { background: '#fee2e2', color: '#dc2626' };
       default:
         return { background: '#f0f0f0', color: '#666' };
+    }
+  };
+
+  // Status helpers for Activity Log
+  const getCommStatusStyle = (status) => {
+    switch (status) {
+      case 'delivered':
+      case 'completed':
+      case 'sent':
+      case 'received':
+        return { background: '#dcfce7', color: '#166534' };
+      case 'undelivered':
+        return { background: '#fef9c3', color: '#854d0e' };
+      case 'queued':
+      case 'sending':
+        return { background: '#e0e7ff', color: '#4338ca' };
+      case 'error':
+      case 'failed':
+      case 'missed':
+        return { background: '#fee2e2', color: '#dc2626' };
+      default:
+        return { background: '#f0f0f0', color: '#666' };
+    }
+  };
+
+  const getCommStatusLabel = (status) => {
+    switch (status) {
+      case 'delivered': return '✓✓ Delivered';
+      case 'sent': return '✓ Sent';
+      case 'received': return '✓ Received';
+      case 'completed': return '✓ Completed';
+      case 'queued': return '○ Queued';
+      case 'sending': return '○ Sending';
+      case 'undelivered': return '⚠ Not Delivered';
+      case 'error': return '✕ Error';
+      case 'failed': return '✕ Failed';
+      case 'missed': return '✕ Missed';
+      default: return status || 'sent';
     }
   };
 
@@ -517,7 +571,7 @@ export default function CommunicationsPage() {
       {tab === 'activity' && (
         <>
           <div style={styles.filterRow}>
-            {['all', 'sms', 'email'].map(ch => (
+            {['all', 'sms', 'email', 'call'].map(ch => (
               <button
                 key={ch}
                 onClick={() => setChannelFilter(ch)}
@@ -526,7 +580,7 @@ export default function CommunicationsPage() {
                   ...(channelFilter === ch ? styles.filterPillActive : {}),
                 }}
               >
-                {ch === 'all' ? 'All' : ch.toUpperCase()}
+                {ch === 'all' ? 'All' : ch === 'call' ? 'Calls' : ch.toUpperCase()}
               </button>
             ))}
           </div>
@@ -574,10 +628,10 @@ export default function CommunicationsPage() {
                       <td style={styles.td}>
                         <span style={{
                           ...styles.badge,
-                          background: comm.channel === 'sms' ? '#dbeafe' : '#e0e7ff',
-                          color: comm.channel === 'sms' ? '#1e40af' : '#4338ca'
+                          background: comm.channel === 'sms' ? '#dbeafe' : comm.channel === 'call' ? '#fef3c7' : '#e0e7ff',
+                          color: comm.channel === 'sms' ? '#1e40af' : comm.channel === 'call' ? '#92400e' : '#4338ca'
                         }}>
-                          {comm.channel || 'sms'}
+                          {comm.channel === 'call' ? '📞 Call' : (comm.channel || 'sms').toUpperCase()}
                         </span>
                       </td>
                       <td style={styles.td}>
@@ -593,10 +647,9 @@ export default function CommunicationsPage() {
                       <td style={styles.td}>
                         <span style={{
                           ...styles.badge,
-                          background: comm.status === 'sent' || comm.status === 'received' ? '#dcfce7' : comm.status === 'error' ? '#fee2e2' : '#f0f0f0',
-                          color: comm.status === 'sent' || comm.status === 'received' ? '#166534' : comm.status === 'error' ? '#dc2626' : '#666'
+                          ...getCommStatusStyle(comm.status),
                         }}>
-                          {comm.status || 'sent'}
+                          {getCommStatusLabel(comm.status)}
                         </span>
                       </td>
                     </tr>
@@ -613,12 +666,14 @@ export default function CommunicationsPage() {
                 <div style={styles.modalHeader}>
                   <div style={styles.modalHeaderLeft}>
                     <span style={{ fontSize: '16px' }}>
-                      {selectedComm.channel === 'email' ? '📧' : '💬'}
+                      {selectedComm.channel === 'email' ? '📧' : selectedComm.channel === 'call' ? '📞' : '💬'}
                     </span>
                     <span style={styles.modalTitle}>
                       {selectedComm.channel === 'email'
                         ? (selectedComm.subject || 'Email')
-                        : 'SMS Message'}
+                        : selectedComm.channel === 'call'
+                          ? 'Phone Call'
+                          : 'SMS Message'}
                     </span>
                   </div>
                   <button onClick={() => setSelectedComm(null)} style={styles.modalCloseBtn}>✕</button>
@@ -664,16 +719,19 @@ export default function CommunicationsPage() {
                   <div style={styles.modalMetaRow}>
                     <span style={styles.modalMetaLabel}>Status:</span>
                     <span style={{
-                      color: selectedComm.status === 'sent' || selectedComm.status === 'received'
-                        ? '#166534'
-                        : selectedComm.status === 'error' ? '#dc2626' : '#666'
+                      ...getCommStatusStyle(selectedComm.status),
+                      background: 'none',
+                      padding: 0,
                     }}>
-                      {selectedComm.status === 'sent' ? '✓ Sent'
-                        : selectedComm.status === 'received' ? '✓ Received'
-                        : selectedComm.status === 'error' ? '✕ Error'
-                        : selectedComm.status || '—'}
+                      {getCommStatusLabel(selectedComm.status)}
                     </span>
                   </div>
+                  {selectedComm.error_message && (
+                    <div style={styles.modalMetaRow}>
+                      <span style={styles.modalMetaLabel}>Error:</span>
+                      <span style={{ color: '#dc2626' }}>{selectedComm.error_message}</span>
+                    </div>
+                  )}
                   {selectedComm.source && (
                     <div style={styles.modalMetaRow}>
                       <span style={styles.modalMetaLabel}>Source:</span>

@@ -16,6 +16,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const [filter, setFilter] = useState('all'); // 'all' | 'sms' | 'email'
   const [ghlLoading, setGhlLoading] = useState(false);
   const [ghlLoaded, setGhlLoaded] = useState(false);
+  const [callsSynced, setCallsSynced] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState(null);
   const messagesContainerRef = useRef(null);
   const shouldScrollRef = useRef(false);
@@ -71,6 +72,11 @@ export default function ConversationView({ patientId, patientName, patientPhone,
       if (ghlContactId && !ghlLoaded) {
         fetchGHLMessages(sorted);
       }
+
+      // Sync Twilio call history
+      if (patientPhone && !callsSynced) {
+        syncTwilioCalls();
+      }
     } catch (err) {
       console.error('Error fetching messages:', err);
     } finally {
@@ -109,6 +115,35 @@ export default function ConversationView({ patientId, patientName, patientPhone,
       console.error('Error syncing GHL messages:', err);
     } finally {
       setGhlLoading(false);
+    }
+  };
+
+  const syncTwilioCalls = async () => {
+    if (!patientPhone) return;
+    try {
+      const syncRes = await fetch('/api/twilio/sync-calls', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: patientId,
+          patient_phone: patientPhone,
+        }),
+      });
+
+      const syncData = await syncRes.json();
+
+      if (syncData.synced > 0) {
+        const refreshRes = await fetch(`/api/patients/${patientId}/comms?limit=200`);
+        const refreshData = await refreshRes.json();
+        const refreshedLogs = refreshData.comms || [];
+        const sorted = refreshedLogs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        setMessages(sorted);
+      }
+
+      setCallsSynced(true);
+    } catch (err) {
+      console.error('Error syncing Twilio calls:', err);
+      setCallsSynced(true);
     }
   };
 
@@ -213,6 +248,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   // Count by channel
   const smsCount = messages.filter(m => m.channel === 'sms').length;
   const emailCount = messages.filter(m => m.channel === 'email').length;
+  const callCount = messages.filter(m => m.channel === 'call').length;
 
   // Group messages by date
   const groupedMessages = [];
@@ -308,6 +344,17 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                 📧 Email ({emailCount})
               </button>
             )}
+            {callCount > 0 && (
+              <button
+                onClick={() => setFilter('call')}
+                style={{
+                  ...styles.pill,
+                  ...(filter === 'call' ? styles.pillActive : {}),
+                }}
+              >
+                📞 Calls ({callCount})
+              </button>
+            )}
           </div>
           <button
             onClick={() => { fetchMessages(); }}
@@ -352,8 +399,25 @@ export default function ConversationView({ patientId, patientName, patientPhone,
 
             const isOutbound = item.direction !== 'inbound' && item.message_type !== 'inbound_sms';
             const isEmail = item.channel === 'email';
+            const isCall = item.channel === 'call';
             const msgLabel = getMessageLabel(item);
             const isGHL = item.source === 'ghl';
+
+            // Call events — centered timeline card
+            if (isCall) {
+              const isMissed = item.status === 'missed' || item.status === 'no-answer';
+              return (
+                <div key={item.id || idx} style={styles.callEvent} onClick={() => setSelectedMessage(item)}>
+                  <span style={{ ...styles.callIcon, color: isMissed ? '#ef4444' : '#6b7280' }}>
+                    {isMissed ? '📵' : '📞'}
+                  </span>
+                  <span style={{ ...styles.callText, color: isMissed ? '#ef4444' : '#6b7280' }}>
+                    {item.message || 'Call'}
+                  </span>
+                  <span style={styles.callTime}>{formatTime(item.created_at)}</span>
+                </div>
+              );
+            }
 
             // Email messages get a special card style
             if (isEmail) {
@@ -408,8 +472,17 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                     {formatTime(item.created_at)}
                     {isGHL && <span style={styles.ghlBadge}>GHL</span>}
                     {isOutbound && item.status && (
-                      <span style={styles.statusDot}>
-                        {item.status === 'sent' ? ' ✓' : item.status === 'error' ? ' ✕' : ''}
+                      <span style={{
+                        ...styles.statusDot,
+                        ...(item.status === 'undelivered' ? { color: '#fbbf24', opacity: 1 } : {}),
+                        ...(item.status === 'error' ? { color: '#f87171', opacity: 1 } : {}),
+                        ...(item.status === 'delivered' ? { opacity: 1 } : {}),
+                      }}>
+                        {item.status === 'delivered' ? ' ✓✓' :
+                         item.status === 'sent' ? ' ✓' :
+                         item.status === 'queued' || item.status === 'sending' ? ' ○' :
+                         item.status === 'undelivered' ? ' ⚠' :
+                         item.status === 'error' ? ' ✕' : ''}
                       </span>
                     )}
                   </div>
@@ -427,12 +500,14 @@ export default function ConversationView({ patientId, patientName, patientPhone,
             <div style={styles.modalHeader}>
               <div style={styles.modalHeaderLeft}>
                 <span style={{ fontSize: '16px' }}>
-                  {selectedMessage.channel === 'email' ? '📧' : '💬'}
+                  {selectedMessage.channel === 'email' ? '📧' : selectedMessage.channel === 'call' ? '📞' : '💬'}
                 </span>
                 <span style={styles.modalTitle}>
                   {selectedMessage.channel === 'email'
                     ? (selectedMessage.subject || 'Email')
-                    : 'SMS Message'}
+                    : selectedMessage.channel === 'call'
+                      ? 'Phone Call'
+                      : 'SMS Message'}
                 </span>
               </div>
               <button onClick={() => setSelectedMessage(null)} style={styles.modalClose}>✕</button>
@@ -458,8 +533,30 @@ export default function ConversationView({ patientId, patientName, patientPhone,
               </div>
               <div style={styles.modalMetaRow}>
                 <span style={styles.modalMetaLabel}>Status:</span>
-                <span>{selectedMessage.status === 'sent' ? '✓ Sent' : selectedMessage.status === 'error' ? '✕ Error' : selectedMessage.status || '—'}</span>
+                <span style={{
+                  ...(selectedMessage.status === 'delivered' || selectedMessage.status === 'completed' ? { color: '#16a34a' } : {}),
+                  ...(selectedMessage.status === 'undelivered' ? { color: '#d97706' } : {}),
+                  ...(selectedMessage.status === 'error' ? { color: '#dc2626' } : {}),
+                  ...(selectedMessage.status === 'missed' ? { color: '#dc2626' } : {}),
+                }}>
+                  {selectedMessage.status === 'delivered' ? '✓✓ Delivered' :
+                   selectedMessage.status === 'sent' ? '✓ Sent' :
+                   selectedMessage.status === 'queued' ? '○ Queued' :
+                   selectedMessage.status === 'sending' ? '○ Sending' :
+                   selectedMessage.status === 'undelivered' ? '⚠ Not Delivered' :
+                   selectedMessage.status === 'error' ? '✕ Error' :
+                   selectedMessage.status === 'received' ? '✓ Received' :
+                   selectedMessage.status === 'completed' ? '✓ Completed' :
+                   selectedMessage.status === 'missed' ? '✕ Missed' :
+                   selectedMessage.status || '—'}
+                </span>
               </div>
+              {selectedMessage.error_message && (
+                <div style={styles.modalMetaRow}>
+                  <span style={styles.modalMetaLabel}>Error:</span>
+                  <span style={{ color: '#dc2626' }}>{selectedMessage.error_message}</span>
+                </div>
+              )}
               {selectedMessage.source && (
                 <div style={styles.modalMetaRow}>
                   <span style={styles.modalMetaLabel}>Source:</span>
@@ -699,6 +796,27 @@ const styles = {
   },
   statusDot: {
     fontSize: '10px',
+  },
+  // Call event style (centered timeline event)
+  callEvent: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    padding: '8px 16px',
+    marginBottom: '8px',
+    cursor: 'pointer',
+  },
+  callIcon: {
+    fontSize: '14px',
+  },
+  callText: {
+    fontSize: '13px',
+    fontWeight: '500',
+  },
+  callTime: {
+    fontSize: '11px',
+    color: '#9ca3af',
   },
   // Email card style
   emailCard: {

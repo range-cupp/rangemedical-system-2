@@ -51,7 +51,7 @@ export default async function handler(req, res) {
       query = query.eq('patient_id', patient_id);
     }
 
-    if (channel && (channel === 'sms' || channel === 'email')) {
+    if (channel) {
       query = query.eq('channel', channel);
     }
 

@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 const LAB_STAGES = [
+  { id: 'draw_scheduled', label: 'Upcoming', color: '#94a3b8', icon: '📅' },
   { id: 'blood_draw_complete', label: 'Blood Draw', color: '#f59e0b', icon: '🩸' },
   { id: 'results_received', label: 'Results In', color: '#8b5cf6', icon: '📋' },
   { id: 'provider_reviewed', label: 'Reviewed', color: '#10b981', icon: '👨‍⚕️' },

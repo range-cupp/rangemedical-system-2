@@ -12,7 +12,7 @@ const supabase = createClient(
 );
 
 // Lab stages stored in protocols.status for program_type='labs'
-const LAB_STAGES = ['blood_draw_complete', 'results_received', 'provider_reviewed', 'consult_scheduled', 'consult_complete'];
+const LAB_STAGES = ['draw_scheduled', 'blood_draw_complete', 'results_received', 'provider_reviewed', 'consult_scheduled', 'consult_complete'];
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {

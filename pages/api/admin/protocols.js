@@ -2,6 +2,7 @@
 // Protocol creation API - Range Medical
 import { createClient } from '@supabase/supabase-js';
 import { isRecoveryPeptide, isGHPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS } from '../../../lib/protocol-config';
+import { getHRTLabSchedule, isHRTProtocol } from '../../../lib/hrt-lab-schedule';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -238,6 +239,43 @@ export default async function handler(req, res) {
       if (purchaseError) {
         console.error('Failed to link purchase:', purchaseError);
         // Don't fail the whole request, protocol was created successfully
+      }
+    }
+
+    // ===== AUTO-SCHEDULE HRT LABS =====
+    // When an HRT protocol is created, automatically schedule follow-up lab draws:
+    // 8 weeks after start, then every 12 weeks x 3 (at 20, 32, 44 weeks)
+    if (isHRTProtocol(program_type) && resolvedPatientId) {
+      try {
+        const labSchedule = getHRTLabSchedule(protocolData.start_date, 8);
+        // Skip the "Initial Labs" (day 0) — only create the follow-up draws
+        const followUpLabs = labSchedule.filter(draw => draw.label !== 'Initial Labs');
+
+        const labEntries = followUpLabs.map(draw => ({
+          patient_id: resolvedPatientId,
+          program_name: `HRT ${draw.label}`,
+          program_type: 'labs',
+          medication: 'Essential',
+          delivery_method: 'follow_up',
+          status: 'draw_scheduled',
+          start_date: draw.targetDate,
+          notes: `Auto-scheduled from HRT Protocol (started ${protocolData.start_date}). ${draw.weekLabel}.`,
+        }));
+
+        if (labEntries.length > 0) {
+          const { error: labError } = await supabase
+            .from('protocols')
+            .insert(labEntries);
+
+          if (labError) {
+            console.error('Error auto-scheduling HRT labs:', labError.message);
+          } else {
+            console.log(`Auto-scheduled ${labEntries.length} lab draws for HRT protocol ${protocol.id}`);
+          }
+        }
+      } catch (labErr) {
+        console.error('HRT lab scheduling error:', labErr);
+        // Non-fatal — don't fail the protocol creation
       }
     }
 

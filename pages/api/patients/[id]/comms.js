@@ -17,7 +17,7 @@ export default async function handler(req, res) {
 
   const { id } = req.query;
   const limit = Math.min(500, parseInt(req.query.limit) || 200);
-  const channel = req.query.channel; // 'sms' | 'email' | undefined (all)
+  const channel = req.query.channel; // 'sms' | 'email' | 'call' | undefined (all)
 
   if (!id) {
     return res.status(400).json({ error: 'Patient ID required' });
@@ -26,12 +26,12 @@ export default async function handler(req, res) {
   try {
     let query = supabase
       .from('comms_log')
-      .select('id, channel, message_type, message, status, recipient, subject, direction, source, created_at')
+      .select('id, channel, message_type, message, status, error_message, recipient, subject, direction, source, created_at')
       .eq('patient_id', id)
       .order('created_at', { ascending: false })
       .limit(limit);
 
-    if (channel === 'sms' || channel === 'email') {
+    if (channel) {
       query = query.eq('channel', channel);
     }
 

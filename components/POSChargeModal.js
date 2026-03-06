@@ -625,20 +625,33 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
 
     if (!stripe || !elements) return;
 
-    // IMPORTANT: Grab the CardElement reference BEFORE changing step to 'processing',
-    // because switching step unmounts the CardElement from the DOM
-    const cardElement = selectedCard === 'new' ? elements.getElement(CardElement) : null;
-
-    setStep('processing');
-
     try {
+      // For new card: do all Stripe Element interactions BEFORE switching to processing step
+      // CardElement gets unmounted when step changes, so Stripe calls must happen first
+      let savedPaymentMethodId = null;
+
+      if (selectedCard === 'new') {
+        const cardElement = elements.getElement(CardElement);
+
+        if (isRecurring() || saveNewCard) {
+          // Save card first (Stripe needs the mounted CardElement for this)
+          savedPaymentMethodId = await saveCardFirst(cardElement);
+          if (!savedPaymentMethodId) return; // saveCardFirst already set error state
+        } else {
+          // One-time charge with new unsaved card — do NOT switch step yet
+          // CardElement must stay mounted in the DOM for Stripe.js to read it
+          await chargeWithNewCard(cardElement, amount, description);
+          return;
+        }
+      }
+
+      // From here, we're working with a saved card — CardElement is not needed
+      setStep('processing');
+
+      const paymentMethodId = savedPaymentMethodId || selectedCard;
+
       // For recurring items, create a subscription
       if (isRecurring()) {
-        if (selectedCard === 'new') {
-          const saveResult = await saveCardFirst(cardElement);
-          if (!saveResult) return;
-        }
-
         const subRes = await fetch('/api/stripe/subscription', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -664,18 +677,8 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
         return;
       }
 
-      // One-time charge
-      if (selectedCard === 'new') {
-        if (saveNewCard) {
-          const saved = await saveCardFirst(cardElement);
-          if (!saved) return;
-          await chargeWithSavedCard(saved, amount, description);
-        } else {
-          await chargeWithNewCard(cardElement, amount, description);
-        }
-      } else {
-        await chargeWithSavedCard(selectedCard, amount, description);
-      }
+      // One-time charge with saved card
+      await chargeWithSavedCard(paymentMethodId, amount, description);
 
     } catch (error) {
       console.error('Payment error:', error);
@@ -770,8 +773,9 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     }
 
     if (piData.status === 'requires_action' || piData.status === 'requires_confirmation') {
-      const { error, paymentIntent } = await stripe.confirmCardPayment(piData.client_secret, {
-        payment_method: paymentMethodId,
+      // Use handleNextAction for server-confirmed intents — does NOT interact with Elements
+      const { error, paymentIntent } = await stripe.handleNextAction({
+        clientSecret: piData.client_secret,
       });
 
       if (error) {
@@ -788,6 +792,33 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
         setResultStatus('success');
         setResultMessage(getResultMessage(amount));
         setStep('result');
+      } else if (paymentIntent.status === 'requires_confirmation') {
+        // Intent needs another confirmation after 3DS — confirm with payment method
+        const confirmResult = await stripe.confirmPayment({
+          clientSecret: piData.client_secret,
+          confirmParams: {
+            payment_method: paymentMethodId,
+            return_url: `${window.location.origin}/admin/payments`,
+          },
+          redirect: 'if_required',
+        });
+
+        if (confirmResult.error) {
+          setResultStatus('error');
+          setResultMessage(confirmResult.error.message);
+          setStep('result');
+        } else if (confirmResult.paymentIntent?.status === 'succeeded') {
+          await recordPurchases({ stripe_payment_intent_id: confirmResult.paymentIntent.id });
+          await createProtocolsForPeptides();
+
+          setResultStatus('success');
+          setResultMessage(getResultMessage(amount));
+          setStep('result');
+        } else {
+          setResultStatus('error');
+          setResultMessage(`Payment not completed — status: ${confirmResult.paymentIntent?.status}`);
+          setStep('result');
+        }
       } else {
         setResultStatus('error');
         setResultMessage(`Payment not completed — status: ${paymentIntent.status}`);
@@ -796,9 +827,9 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       return;
     }
 
-    // Unexpected status
+    // Unexpected status — show what we got so we can debug
     setResultStatus('error');
-    setResultMessage(`Unexpected payment status: ${piData.status}`);
+    setResultMessage(`Unexpected payment status: ${piData.status}. Contact support.`);
     setStep('result');
   }
 

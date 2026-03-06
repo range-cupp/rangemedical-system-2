@@ -234,6 +234,9 @@ export default async function handler(req, res) {
           (tracking.days_remaining !== null && tracking.days_remaining <= -7) ||
           (tracking.sessions_remaining !== undefined && tracking.sessions_remaining <= 0 && protocol.total_sessions > 0);
 
+        // Skip labs — they live in the Labs pipeline, not in Active Protocols
+        if (protocol.program_type === 'labs') return;
+
         if (isCompleted) {
           completedProtocols.push(formatted);
         } else if (protocol.status !== 'cancelled') {

@@ -998,8 +998,21 @@ export default function ProtocolDetail() {
 
             {/* Injection Calendar for Weight Loss (weekly intervals, sessions_used as truth) */}
             {!isEditing && isWeightLoss && (() => {
-              // Precompute date for each injection number
-              const getInjectionDate = (injNum) => {
+              // Sort logs ascending to map injection #1 = oldest, #2 = next, etc.
+              const sortedLogsAsc = [...injectionLogs].sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
+
+              // Parse a log date safely
+              const parseLogDate = (d) => {
+                if (!d) return null;
+                return d.length === 10 ? new Date(d + 'T12:00:00') : new Date(d);
+              };
+
+              // Get the last actual injection date for computing future dates
+              const lastLog = sortedLogsAsc.length > 0 ? sortedLogsAsc[sortedLogsAsc.length - 1] : null;
+              const lastActualDate = lastLog ? parseLogDate(lastLog.log_date) : null;
+
+              // Fallback: compute from start_date if no logs exist
+              const getStartBasedDate = (injNum) => {
                 if (!protocol?.start_date) return null;
                 const parts = protocol.start_date.split('-');
                 const startD = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
@@ -1020,11 +1033,19 @@ export default function ProtocolDetail() {
                 d.setDate(d.getDate() + (injNum - 1) * 7);
                 return d;
               };
-              // Date for the NEXT injection to log (used when clicking any box)
-              const nextInjDate = getInjectionDate(wlSessionsUsed + 1);
 
-              // Sort logs ascending to map injection #1 = oldest, #2 = next, etc.
-              const sortedLogsAsc = [...injectionLogs].sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
+              // For future/next dates: compute from last actual injection + 7 days per step
+              const getFutureDate = (stepsFromLast) => {
+                if (lastActualDate) {
+                  const d = new Date(lastActualDate);
+                  d.setDate(d.getDate() + stepsFromLast * 7);
+                  return d;
+                }
+                // No logs yet — fall back to start-based
+                return getStartBasedDate(wlSessionsUsed + stepsFromLast);
+              };
+
+              const nextInjDate = getFutureDate(1);
 
               return (
               <div style={styles.card}>
@@ -1035,15 +1056,22 @@ export default function ProtocolDetail() {
                     const isCompleted = num <= wlSessionsUsed;
                     const isNext = num === wlSessionsUsed + 1;
                     const isFuture = num > wlSessionsUsed + 1;
-                    const weeklyDate = getInjectionDate(num);
+
                     // For completed injections, use actual log date and weight
                     const logEntry = isCompleted ? sortedLogsAsc[num - 1] : null;
-                    const actualDate = logEntry?.log_date ? (() => {
-                      const d = logEntry.log_date;
-                      return d.length === 10 ? new Date(d + 'T12:00:00') : new Date(d);
-                    })() : null;
-                    const displayDate = isCompleted && actualDate ? actualDate : weeklyDate;
+                    const actualDate = logEntry ? parseLogDate(logEntry.log_date) : null;
                     const logWeight = logEntry?.weight;
+
+                    // Compute display date
+                    let displayDate;
+                    if (isCompleted && actualDate) {
+                      displayDate = actualDate;
+                    } else if (isNext || isFuture) {
+                      // Steps from last completed injection
+                      displayDate = getFutureDate(num - wlSessionsUsed);
+                    } else {
+                      displayDate = getStartBasedDate(num);
+                    }
 
                     return (
                       <div

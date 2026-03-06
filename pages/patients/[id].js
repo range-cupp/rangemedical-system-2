@@ -61,6 +61,7 @@ export default function PatientProfile() {
   const [symptomResponses, setSymptomResponses] = useState([]);
   const [questionnaireResponses, setQuestionnaireResponses] = useState([]);
   const [selectedQuestionnaireIdx, setSelectedQuestionnaireIdx] = useState(0);
+  const [labProtocols, setLabProtocols] = useState([]);
   const [labDocuments, setLabDocuments] = useState([]);
   const [appointments, setAppointments] = useState([]);
   const [notes, setNotes] = useState([]);
@@ -214,6 +215,7 @@ export default function PatientProfile() {
         setActiveProtocols(data.activeProtocols || []);
         setCompletedProtocols(data.completedProtocols || []);
         setPendingNotifications(data.pendingNotifications || []);
+        setLabProtocols(data.labProtocols || []);
         setLabs(data.labs || []);
         setIntakes(data.intakes || []);
         setConsents(data.consents || []);
@@ -616,6 +618,30 @@ export default function PatientProfile() {
       }
     } catch (error) {
       console.error('Error adding labs:', error);
+    }
+  };
+
+  // Lab pipeline stage advancement
+  const LAB_STAGES = [
+    { id: 'blood_draw_complete', label: 'Blood Draw Complete', color: '#f59e0b', icon: '🩸' },
+    { id: 'results_received', label: 'Results Received', color: '#8b5cf6', icon: '📋' },
+    { id: 'provider_reviewed', label: 'Provider Reviewed', color: '#10b981', icon: '👨‍⚕️' },
+    { id: 'consult_scheduled', label: 'Consult Scheduled', color: '#6366f1', icon: '🗓️' },
+    { id: 'consult_complete', label: 'Consult Complete', color: '#3b82f6', icon: '✅' }
+  ];
+
+  const handleLabStageAdvance = async (protocolId, newStage) => {
+    try {
+      const res = await fetch('/api/admin/labs-pipeline', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: protocolId, newStage })
+      });
+      if (res.ok) {
+        fetchPatient();
+      }
+    } catch (err) {
+      console.error('Error advancing lab stage:', err);
     }
   };
 
@@ -1291,6 +1317,38 @@ export default function PatientProfile() {
                 )}
               </section>
 
+              {/* Lab Pipeline Status — compact banner */}
+              {labProtocols.filter(lp => lp.status !== 'consult_complete').length > 0 && (() => {
+                const activeLab = labProtocols.find(lp => lp.status !== 'consult_complete');
+                const stage = LAB_STAGES.find(s => s.id === activeLab.status) || LAB_STAGES[0];
+                const panelType = activeLab.medication || 'Essential';
+                const drawDate = activeLab.start_date ? new Date(activeLab.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+                return (
+                  <div
+                    onClick={() => setActiveTab('labs')}
+                    style={{
+                      margin: '0 0 12px', padding: '12px 16px', borderRadius: '10px', cursor: 'pointer',
+                      background: `${stage.color}15`, border: `1px solid ${stage.color}40`,
+                      display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap'
+                    }}
+                  >
+                    <span style={{ fontSize: '16px' }}>🧪</span>
+                    <span style={{ fontSize: '12px', fontWeight: '600', color: '#374151' }}>Labs:</span>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '4px',
+                      padding: '2px 8px', borderRadius: '4px',
+                      backgroundColor: stage.color, color: '#fff',
+                      fontSize: '11px', fontWeight: '600'
+                    }}>
+                      {stage.icon} {stage.label}
+                    </span>
+                    <span style={{ fontSize: '12px', color: '#6b7280' }}>{panelType}</span>
+                    {drawDate && <span style={{ fontSize: '12px', color: '#6b7280' }}>• Draw: {drawDate}</span>}
+                    <span style={{ marginLeft: 'auto', fontSize: '12px', color: '#9ca3af' }}>View →</span>
+                  </div>
+                );
+              })()}
+
               {/* HRT Blood Draw Schedule — Overview (show only the most recent active HRT protocol) */}
               {Object.keys(hrtLabSchedules).length > 0 && (() => {
                 // Pick the most recent active HRT protocol (prefer active over completed)
@@ -1674,6 +1732,120 @@ export default function PatientProfile() {
           {/* Labs Tab */}
           {activeTab === 'labs' && (
             <>
+              {/* Lab Pipeline Status */}
+              {labProtocols.length > 0 && (
+                <section className="card">
+                  <div className="card-header">
+                    <h3>Lab Pipeline</h3>
+                  </div>
+                  <div style={{ padding: '12px 16px' }}>
+                    {labProtocols.filter(lp => lp.status !== 'consult_complete').map(lp => {
+                      const stage = LAB_STAGES.find(s => s.id === lp.status) || LAB_STAGES[0];
+                      const stageIdx = LAB_STAGES.findIndex(s => s.id === lp.status);
+                      const nextStage = stageIdx < LAB_STAGES.length - 1 ? LAB_STAGES[stageIdx + 1] : null;
+                      const panelType = lp.medication || 'Essential';
+                      const labType = lp.delivery_method === 'follow_up' ? 'Follow-up' : 'New Patient';
+                      const panelColor = panelType === 'Elite' ? { bg: '#fdf2f8', text: '#9d174d' } : { bg: '#f0f9ff', text: '#0369a1' };
+                      const drawDate = lp.start_date ? new Date(lp.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-';
+                      return (
+                        <div key={lp.id} style={{
+                          padding: '14px 16px',
+                          borderRadius: '10px',
+                          border: '1px solid #e5e7eb',
+                          marginBottom: '10px',
+                          background: '#fff'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                            <span style={{
+                              display: 'inline-flex', alignItems: 'center', gap: '6px',
+                              padding: '4px 10px', borderRadius: '6px',
+                              backgroundColor: stage.color, color: '#fff',
+                              fontSize: '12px', fontWeight: '600'
+                            }}>
+                              {stage.icon} {stage.label}
+                            </span>
+                            <span style={{
+                              fontSize: '11px', padding: '3px 8px', borderRadius: '4px',
+                              backgroundColor: panelColor.bg, color: panelColor.text, fontWeight: '600'
+                            }}>{panelType}</span>
+                            <span style={{
+                              fontSize: '11px', padding: '3px 8px', borderRadius: '4px',
+                              backgroundColor: '#f3f4f6', color: '#374151', fontWeight: '500'
+                            }}>{labType}</span>
+                            <span style={{ fontSize: '12px', color: '#6b7280' }}>Draw: {drawDate}</span>
+                          </div>
+                          {lp.notes && (
+                            <div style={{
+                              padding: '4px 8px', backgroundColor: '#fef3c7', borderRadius: '4px',
+                              fontSize: '11px', color: '#92400e', fontStyle: 'italic', marginBottom: '8px'
+                            }}>{lp.notes}</div>
+                          )}
+                          {/* Stage progress bar */}
+                          <div style={{ display: 'flex', gap: '3px', marginBottom: '10px' }}>
+                            {LAB_STAGES.map((s, i) => (
+                              <div key={s.id} style={{
+                                flex: 1, height: '4px', borderRadius: '2px',
+                                backgroundColor: i <= stageIdx ? stage.color : '#e5e7eb'
+                              }} />
+                            ))}
+                          </div>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            {nextStage && (
+                              <button
+                                onClick={() => handleLabStageAdvance(lp.id, nextStage.id)}
+                                style={{
+                                  flex: 1, padding: '8px', border: 'none', borderRadius: '6px',
+                                  backgroundColor: '#2563eb', color: '#fff', cursor: 'pointer',
+                                  fontWeight: '500', fontSize: '12px'
+                                }}
+                              >
+                                → {nextStage.label}
+                              </button>
+                            )}
+                            <select
+                              onChange={(e) => { if (e.target.value) { handleLabStageAdvance(lp.id, e.target.value); e.target.value = ''; } }}
+                              defaultValue=""
+                              style={{
+                                padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: '6px',
+                                backgroundColor: '#fff', cursor: 'pointer', fontSize: '12px', color: '#6b7280'
+                              }}
+                            >
+                              <option value="" disabled>Move to...</option>
+                              {LAB_STAGES.filter(s => s.id !== lp.status).map(s => (
+                                <option key={s.id} value={s.id}>{s.icon} {s.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {/* Completed labs */}
+                    {labProtocols.filter(lp => lp.status === 'consult_complete').length > 0 && (
+                      <div style={{ marginTop: '8px' }}>
+                        <div style={{ fontSize: '12px', fontWeight: '600', color: '#9ca3af', marginBottom: '6px' }}>
+                          Completed ({labProtocols.filter(lp => lp.status === 'consult_complete').length})
+                        </div>
+                        {labProtocols.filter(lp => lp.status === 'consult_complete').map(lp => {
+                          const panelType = lp.medication || 'Essential';
+                          const labType = lp.delivery_method === 'follow_up' ? 'Follow-up' : 'New Patient';
+                          const drawDate = lp.start_date ? new Date(lp.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-';
+                          return (
+                            <div key={lp.id} style={{
+                              padding: '10px 12px', borderRadius: '8px', border: '1px solid #e5e7eb',
+                              marginBottom: '6px', background: '#f9fafb', opacity: 0.7
+                            }}>
+                              <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                                ✅ {panelType} • {labType} • Draw: {drawDate}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
+
               <section className="card">
                 <div className="card-header">
                   <h3>Lab Documents</h3>

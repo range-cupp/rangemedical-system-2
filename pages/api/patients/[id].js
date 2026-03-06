@@ -241,6 +241,21 @@ export default async function handler(req, res) {
         }
       });
 
+      // Extract lab pipeline protocols (program_type = 'labs', not cancelled)
+      const labProtocols = (allProtocols || [])
+        .filter(p => p.program_type === 'labs' && p.status !== 'cancelled')
+        .map(p => ({
+          id: p.id,
+          program_name: p.program_name,
+          medication: p.medication,
+          status: p.status,
+          start_date: p.start_date,
+          notes: p.notes,
+          delivery_method: p.delivery_method,
+          updated_at: p.updated_at,
+          created_at: p.created_at,
+        }));
+
       // Get pending lab orders
       const { data: pendingLabOrders } = await supabase
         .from('lab_orders')
@@ -564,6 +579,7 @@ export default async function handler(req, res) {
         activeProtocols,
         completedProtocols,
         pendingNotifications: pendingNotifications || [],
+        labProtocols,
         pendingLabOrders: pendingLabOrders || [],
         labs: labs || [],
         intakes: intakes || [],

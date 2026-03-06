@@ -26,21 +26,28 @@ export default async function handler(req, res) {
 
   const { id } = req.query;
 
-  // PATCH — update an existing log entry's date
+  // PATCH — update an existing log entry (date and/or delivery method)
   if (req.method === 'PATCH') {
-    const { log_id, log_date: newDate, source } = req.body;
-    if (!log_id || !newDate) {
-      return res.status(400).json({ error: 'log_id and log_date required' });
+    const { log_id, log_date: newDate, source, log_type: newLogType } = req.body;
+    if (!log_id) {
+      return res.status(400).json({ error: 'log_id required' });
+    }
+    if (!newDate && !newLogType) {
+      return res.status(400).json({ error: 'log_date or log_type required' });
     }
     try {
       let updated = null;
       let updateErr = null;
 
       if (source === 'service_log') {
-        // Entry came from service_logs or injection_logs — try both
+        // Build update fields for service_logs (entry_date, entry_type)
+        const updateFields = {};
+        if (newDate) updateFields.entry_date = newDate;
+        if (newLogType) updateFields.entry_type = newLogType === 'injection' ? 'injection' : 'pickup';
+
         const { data: slData, error: slErr } = await supabase
           .from('service_logs')
-          .update({ entry_date: newDate })
+          .update(updateFields)
           .eq('id', log_id)
           .select()
           .single();
@@ -51,7 +58,7 @@ export default async function handler(req, res) {
           // Try injection_logs table
           const { data: ilData, error: ilErr } = await supabase
             .from('injection_logs')
-            .update({ entry_date: newDate })
+            .update(updateFields)
             .eq('id', log_id)
             .select()
             .single();
@@ -63,10 +70,14 @@ export default async function handler(req, res) {
           }
         }
       } else {
-        // Default: protocol_logs table
+        // Build update fields for protocol_logs (log_date, log_type)
+        const updateFields = {};
+        if (newDate) updateFields.log_date = newDate;
+        if (newLogType) updateFields.log_type = newLogType;
+
         const result = await supabase
           .from('protocol_logs')
-          .update({ log_date: newDate })
+          .update(updateFields)
           .eq('id', log_id)
           .eq('protocol_id', id)
           .select()
@@ -77,11 +88,11 @@ export default async function handler(req, res) {
       }
 
       if (updateErr || !updated) {
-        console.error('Update log date error:', updateErr);
-        return res.status(500).json({ error: 'Failed to update log date' });
+        console.error('Update log entry error:', updateErr);
+        return res.status(500).json({ error: 'Failed to update log entry' });
       }
 
-      return res.status(200).json({ success: true, message: 'Date updated', log: updated });
+      return res.status(200).json({ success: true, message: 'Log updated', log: updated });
     } catch (err) {
       console.error('PATCH log-injection error:', err);
       return res.status(500).json({ error: 'Server error' });

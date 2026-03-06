@@ -472,6 +472,31 @@ export default function ProtocolDetail() {
     });
   };
 
+  // Toggle delivery method (take home <-> in clinic) for a log entry
+  const handleToggleDelivery = async (log) => {
+    const currentType = log.log_type;
+    const newType = currentType === 'injection' ? 'checkin' : 'injection';
+    const newLabel = newType === 'injection' ? 'In Clinic' : 'Take Home';
+    try {
+      const res = await fetch(`/api/protocols/${id}/log-injection`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          log_id: log.id,
+          log_type: newType,
+          source: log.source || 'protocol_logs',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update');
+      // Update local state immediately for responsive UI
+      setInjectionLogs(prev => prev.map(l => l.id === log.id ? { ...l, log_type: newType } : l));
+      setSuccess(`Updated to ${newLabel}`);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   // Log a session for session-based protocols (HBOT, RLT, IV, etc.)
   const handleLogSession = async () => {
     if (!sessionModal) return;
@@ -998,6 +1023,9 @@ export default function ProtocolDetail() {
               // Date for the NEXT injection to log (used when clicking any box)
               const nextInjDate = getInjectionDate(wlSessionsUsed + 1);
 
+              // Sort logs ascending to map injection #1 = oldest, #2 = next, etc.
+              const sortedLogsAsc = [...injectionLogs].sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
+
               return (
               <div style={styles.card}>
                 <h2 style={styles.cardTitle}>Injection Calendar</h2>
@@ -1008,11 +1036,19 @@ export default function ProtocolDetail() {
                     const isNext = num === wlSessionsUsed + 1;
                     const isFuture = num > wlSessionsUsed + 1;
                     const weeklyDate = getInjectionDate(num);
+                    // For completed injections, use actual log date and weight
+                    const logEntry = isCompleted ? sortedLogsAsc[num - 1] : null;
+                    const actualDate = logEntry?.log_date ? (() => {
+                      const d = logEntry.log_date;
+                      return d.length === 10 ? new Date(d + 'T12:00:00') : new Date(d);
+                    })() : null;
+                    const displayDate = isCompleted && actualDate ? actualDate : weeklyDate;
+                    const logWeight = logEntry?.weight;
 
                     return (
                       <div
                         key={num}
-                        onClick={() => isCompleted ? handleEditInjection(num) : handleCalendarDayClick(wlSessionsUsed + 1, nextInjDate)}
+                        onClick={() => isCompleted ? handleEditInjection(num) : (isFuture ? null : handleCalendarDayClick(wlSessionsUsed + 1, nextInjDate))}
                         style={{
                           ...styles.calendarDay,
                           background: isCompleted ? '#22c55e' : isNext ? '#000' : '#fff',
@@ -1030,9 +1066,14 @@ export default function ProtocolDetail() {
                           marginTop: '1px',
                           letterSpacing: '-0.2px'
                         }}>
-                          {weeklyDate ? formatShortDate(weeklyDate) : ''}
+                          {displayDate ? formatShortDate(displayDate) : ''}
                         </div>
-                        {isCompleted && <div style={styles.checkmark}>✓</div>}
+                        {isCompleted && logWeight && (
+                          <div style={{ fontSize: '8px', fontWeight: '600', opacity: 0.9, marginTop: '1px' }}>
+                            {logWeight} lbs
+                          </div>
+                        )}
+                        {isCompleted && !logWeight && <div style={styles.checkmark}>✓</div>}
                         {isNext && <div style={styles.todayLabel}>NEXT</div>}
                       </div>
                     );
@@ -1123,20 +1164,28 @@ export default function ProtocolDetail() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
                             <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{dateStr}</span>
                             {log.log_type === 'injection' && (
-                              <span style={{
-                                fontSize: '10px', fontWeight: '600', padding: '2px 6px',
-                                borderRadius: '10px', background: '#e0e7ff', color: '#3730a3',
-                                textTransform: 'uppercase'
-                              }}>
+                              <span
+                                onClick={() => handleToggleDelivery(log)}
+                                title="Click to change to Take Home"
+                                style={{
+                                  fontSize: '10px', fontWeight: '600', padding: '2px 6px',
+                                  borderRadius: '10px', background: '#e0e7ff', color: '#3730a3',
+                                  textTransform: 'uppercase', cursor: 'pointer',
+                                }}
+                              >
                                 In Clinic
                               </span>
                             )}
                             {log.log_type === 'checkin' && (
-                              <span style={{
-                                fontSize: '10px', fontWeight: '600', padding: '2px 6px',
-                                borderRadius: '10px', background: '#f3f4f6', color: '#6b7280',
-                                textTransform: 'uppercase'
-                              }}>
+                              <span
+                                onClick={() => handleToggleDelivery(log)}
+                                title="Click to change to In Clinic"
+                                style={{
+                                  fontSize: '10px', fontWeight: '600', padding: '2px 6px',
+                                  borderRadius: '10px', background: '#f3f4f6', color: '#6b7280',
+                                  textTransform: 'uppercase', cursor: 'pointer',
+                                }}
+                              >
                                 Take Home
                               </span>
                             )}

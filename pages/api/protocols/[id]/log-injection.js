@@ -28,20 +28,55 @@ export default async function handler(req, res) {
 
   // PATCH — update an existing log entry's date
   if (req.method === 'PATCH') {
-    const { log_id, log_date: newDate } = req.body;
+    const { log_id, log_date: newDate, source } = req.body;
     if (!log_id || !newDate) {
       return res.status(400).json({ error: 'log_id and log_date required' });
     }
     try {
-      const { data: updated, error: updateErr } = await supabase
-        .from('protocol_logs')
-        .update({ log_date: newDate })
-        .eq('id', log_id)
-        .eq('protocol_id', id)
-        .select()
-        .single();
+      let updated = null;
+      let updateErr = null;
 
-      if (updateErr) {
+      if (source === 'service_log') {
+        // Entry came from service_logs or injection_logs — try both
+        const { data: slData, error: slErr } = await supabase
+          .from('service_logs')
+          .update({ entry_date: newDate })
+          .eq('id', log_id)
+          .select()
+          .single();
+
+        if (!slErr && slData) {
+          updated = slData;
+        } else {
+          // Try injection_logs table
+          const { data: ilData, error: ilErr } = await supabase
+            .from('injection_logs')
+            .update({ entry_date: newDate })
+            .eq('id', log_id)
+            .select()
+            .single();
+
+          if (!ilErr && ilData) {
+            updated = ilData;
+          } else {
+            updateErr = slErr || ilErr;
+          }
+        }
+      } else {
+        // Default: protocol_logs table
+        const result = await supabase
+          .from('protocol_logs')
+          .update({ log_date: newDate })
+          .eq('id', log_id)
+          .eq('protocol_id', id)
+          .select()
+          .single();
+
+        updated = result.data;
+        updateErr = result.error;
+      }
+
+      if (updateErr || !updated) {
         console.error('Update log date error:', updateErr);
         return res.status(500).json({ error: 'Failed to update log date' });
       }

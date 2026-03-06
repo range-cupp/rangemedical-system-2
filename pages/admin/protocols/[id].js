@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../../lib/hrt-lab-schedule';
 import { isRecoveryPeptide, isGHPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS } from '../../../lib/protocol-config';
 import { PROTOCOL_TYPES, detectProtocolType, getDBProgramType, getDeliveryLabel } from '../../../lib/protocol-types';
+import AdminLayout from '../../../components/AdminLayout';
 
 // Normalize freetext frequency values to standard codes
 function normalizeFrequencyValue(freq) {
@@ -440,6 +441,7 @@ export default function ProtocolDetail() {
         body: JSON.stringify({
           log_id: editDateModal.logId,
           log_date: editDateValue,
+          source: editDateModal.source || 'protocol_logs',
         }),
       });
       const data = await res.json();
@@ -466,6 +468,7 @@ export default function ProtocolDetail() {
       logId: logEntry.id,
       injectionNum,
       currentDate: logEntry.log_date,
+      source: logEntry.source || 'protocol_logs',
     });
   };
 
@@ -715,12 +718,8 @@ export default function ProtocolDetail() {
   }
 
   return (
-    <>
-      <Head>
-        <title>{protocol?.patient_name} | Range Medical</title>
-      </Head>
-
-      <div style={styles.container}>
+    <AdminLayout title={`${protocol?.patient_name || 'Protocol'} — ${protocol?.program_name || 'Detail'}`} hideHeader>
+      <div style={{ ...styles.container, minHeight: 'auto' }}>
         {/* Header */}
         <header style={styles.header}>
           <div>
@@ -1627,9 +1626,9 @@ export default function ProtocolDetail() {
               <h2 style={styles.cardTitle}>Actions</h2>
               <div style={styles.actionStack}>
                 {protocol?.patient_id && (
-                  <a href={`/admin/patients/${protocol.patient_id}`} target="_blank" style={styles.actionBtn}>
+                  <Link href={`/admin/patients/${protocol.patient_id}`} style={styles.actionBtn}>
                     👁️ View Patient Profile
-                  </a>
+                  </Link>
                 )}
                 {protocol?.patient_phone && (
                   <>
@@ -2173,7 +2172,7 @@ export default function ProtocolDetail() {
           </div>
         </>
       )}
-    </>
+    </AdminLayout>
   );
 }
 

@@ -1623,11 +1623,44 @@ export default function ProtocolDetail() {
                   </div>
                   <div style={styles.detailItem}>
                     <div style={styles.detailLabel}>Delivery</div>
-                    <div style={styles.detailValue}>
-                      {protocol?.delivery_method?.startsWith('prefilled_') ? '💉 ' :
-                       protocol?.delivery_method === 'vial' ? '🧪 ' :
-                       protocol?.delivery_method === 'take_home' ? '🏠 ' : '🏥 '}
-                      {getDeliveryLabel(protocol?.delivery_method, form.protocolType) || '—'}
+                    <div style={{ display: 'flex', gap: '0', borderRadius: '6px', overflow: 'hidden', border: '1px solid #d1d5db' }}>
+                      {[
+                        { value: 'in_clinic', label: '🏥 In Clinic' },
+                        { value: 'take_home', label: '🏠 Take Home' },
+                      ].map(opt => {
+                        const isActive = (protocol?.delivery_method || 'take_home') === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            onClick={async () => {
+                              if (isActive) return;
+                              try {
+                                const res = await fetch(`/api/admin/protocols/${id}`, {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ delivery_method: opt.value }),
+                                });
+                                if (res.ok) {
+                                  setProtocol(prev => ({ ...prev, delivery_method: opt.value }));
+                                  setForm(prev => ({ ...prev, deliveryMethod: opt.value }));
+                                }
+                              } catch (e) { console.error('Failed to update delivery:', e); }
+                            }}
+                            style={{
+                              padding: '6px 12px',
+                              fontSize: '13px',
+                              fontWeight: isActive ? '600' : '400',
+                              background: isActive ? '#000' : '#fff',
+                              color: isActive ? '#fff' : '#666',
+                              border: 'none',
+                              cursor: isActive ? 'default' : 'pointer',
+                              transition: 'all 0.15s',
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                   <div style={styles.detailItem}>

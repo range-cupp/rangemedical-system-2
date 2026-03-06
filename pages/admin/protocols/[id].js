@@ -1327,7 +1327,11 @@ export default function ProtocolDetail() {
                       <div style={styles.field}>
                         <label style={styles.label}>Injections</label>
                         <select value={form.totalSessions} onChange={e => setForm({ ...form, totalSessions: e.target.value })} style={styles.select}>
-                          {selectedType.injections.map(s => <option key={s} value={s}>{s} injection{s > 1 ? 's' : ''}</option>)}
+                          {selectedType.injections.map(s => {
+                            const val = typeof s === 'object' ? s.value : s;
+                            const lbl = typeof s === 'object' ? s.label : `${s} injection${s > 1 ? 's' : ''}`;
+                            return <option key={val} value={val}>{lbl}</option>;
+                          })}
                         </select>
                       </div>
                     ) : selectedType?.sessions ? (

@@ -137,7 +137,7 @@ export default function ProtocolDetail() {
   const [injectionLogs, setInjectionLogs] = useState([]);
   const [weightProgress, setWeightProgress] = useState(null);
   const [logModal, setLogModal] = useState(null); // { injectionNum, date, isCompleted }
-  const [logForm, setLogForm] = useState({ weight: '', dose: '', notes: '', sideEffects: [], deliveryMethod: 'take_home', bloodPressure: '' });
+  const [logForm, setLogForm] = useState({ weight: '', dose: '', notes: '', sideEffects: [], deliveryMethod: 'take_home', bloodPressure: '', missed: false });
   const [logSaving, setLogSaving] = useState(false);
   const [editDateModal, setEditDateModal] = useState(null); // { logId, injectionNum, currentDate, source }
   const [editDateValue, setEditDateValue] = useState('');
@@ -351,7 +351,7 @@ export default function ProtocolDetail() {
       ? (injectionLogs[0].dosage || (injectionLogs[0].notes || '').match(/Dose:\s*([^|]+)/)?.[1]?.trim())
       : null;
     const defaultDose = lastDose || protocol?.selected_dose || protocol?.primary_peptide || '';
-    setLogForm({ weight: '', dose: defaultDose, notes: '', sideEffects: [], deliveryMethod: 'take_home', bloodPressure: '' });
+    setLogForm({ weight: '', dose: defaultDose, notes: '', sideEffects: [], deliveryMethod: 'take_home', bloodPressure: '', missed: false });
     setLogModal({
       injectionNum,
       date: date ? date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
@@ -422,16 +422,17 @@ export default function ProtocolDetail() {
         body: JSON.stringify({
           log_date: logModal.date,
           weight: logForm.weight ? parseFloat(logForm.weight) : null,
-          dose: logForm.dose || null,
+          dose: logForm.missed ? null : (logForm.dose || null),
           notes: logForm.notes || null,
-          delivery_method: logForm.deliveryMethod || 'take_home',
-          side_effects: logForm.sideEffects.length > 0 ? logForm.sideEffects : null,
-          blood_pressure: logForm.deliveryMethod === 'in_clinic' && logForm.bloodPressure ? logForm.bloodPressure : null,
+          delivery_method: logForm.missed ? null : (logForm.deliveryMethod || 'take_home'),
+          side_effects: logForm.missed ? null : (logForm.sideEffects.length > 0 ? logForm.sideEffects : null),
+          blood_pressure: !logForm.missed && logForm.deliveryMethod === 'in_clinic' && logForm.bloodPressure ? logForm.bloodPressure : null,
+          missed: logForm.missed || false,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to log injection');
-      setSuccess(`Injection #${data.injection_number} logged`);
+      setSuccess(logForm.missed ? `Injection #${data.injection_number} — missed week logged` : `Injection #${data.injection_number} logged`);
       setLogModal(null);
       fetchProtocol(); // Refresh all data
     } catch (err) {
@@ -1078,6 +1079,7 @@ export default function ProtocolDetail() {
                     const logEntry = isCompleted ? sortedLogsAsc[num - 1] : null;
                     const actualDate = logEntry ? parseLogDate(logEntry.log_date) : null;
                     const logWeight = logEntry?.weight;
+                    const isMissed = logEntry?.log_type === 'missed' || (logEntry?.notes || '').includes('MISSED WEEK');
                     // Extract dose from log entry — from dosage field (service_logs) or notes (protocol_logs)
                     const logDose = (() => {
                       if (!logEntry) return null;
@@ -1103,9 +1105,9 @@ export default function ProtocolDetail() {
                         onClick={() => isCompleted ? handleEditInjection(num) : (isFuture ? null : handleCalendarDayClick(wlSessionsUsed + 1, nextInjDate))}
                         style={{
                           ...styles.calendarDay,
-                          background: isCompleted ? '#22c55e' : isNext ? '#000' : '#fff',
+                          background: isCompleted ? (isMissed ? '#f59e0b' : '#22c55e') : isNext ? '#000' : '#fff',
                           color: isCompleted || isNext ? '#fff' : '#000',
-                          borderColor: isCompleted ? '#22c55e' : isNext ? '#000' : '#e5e5e5',
+                          borderColor: isCompleted ? (isMissed ? '#f59e0b' : '#22c55e') : isNext ? '#000' : '#e5e5e5',
                           opacity: isFuture ? 0.5 : 1,
                           cursor: isFuture ? 'default' : 'pointer',
                         }}
@@ -1120,13 +1122,16 @@ export default function ProtocolDetail() {
                         }}>
                           {displayDate ? formatShortDate(displayDate) : ''}
                         </div>
-                        {isCompleted && logWeight && (
+                        {isCompleted && isMissed && (
+                          <div style={{ fontSize: '8px', fontWeight: '600', opacity: 0.9, marginTop: '1px' }}>✕ missed</div>
+                        )}
+                        {isCompleted && !isMissed && logWeight && (
                           <div style={{ fontSize: '8px', fontWeight: '600', opacity: 0.9, marginTop: '1px' }}>
                             {logWeight} lbs
                           </div>
                         )}
-                        {isCompleted && !logWeight && <div style={styles.checkmark}>✓</div>}
-                        {isCompleted && logDose && (
+                        {isCompleted && !isMissed && !logWeight && <div style={styles.checkmark}>✓</div>}
+                        {isCompleted && !isMissed && logDose && (
                           <div style={{ fontSize: '7px', fontWeight: '500', opacity: 0.8, marginTop: '1px' }}>
                             {logDose}
                           </div>
@@ -1138,6 +1143,7 @@ export default function ProtocolDetail() {
                 </div>
                 <div style={styles.legend}>
                   <span><span style={styles.legendDot} /> Complete</span>
+                  <span><span style={{ ...styles.legendDot, background: '#f59e0b' }} /> Missed</span>
                   <span><span style={{ ...styles.legendDot, background: '#000' }} /> Next</span>
                   <span><span style={{ ...styles.legendDot, background: '#e5e5e5' }} /> Upcoming</span>
                 </div>
@@ -1183,6 +1189,7 @@ export default function ProtocolDetail() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
                   {injectionLogs.map((log, idx) => {
                     const isLast = idx === injectionLogs.length - 1;
+                    const isMissedLog = log.log_type === 'missed' || (log.notes || '').includes('MISSED WEEK');
                     // Parse date timezone-safe
                     const rawDate = log.log_date;
                     const logDate = rawDate && rawDate.length === 10
@@ -1198,6 +1205,7 @@ export default function ProtocolDetail() {
                     const sideEffects = sideEffectsMatch ? sideEffectsMatch[1].trim() : null;
                     // Remaining notes after structured fields
                     let freeNotes = notes
+                      .replace(/MISSED WEEK\s*\|?\s*/g, '')
                       .replace(/Dose:\s*[^|]+\|?\s*/g, '')
                       .replace(/Side effects:\s*[^|]+\|?\s*/g, '')
                       .replace(/BP:\s*[^|]+\|?\s*/g, '')
@@ -1209,10 +1217,10 @@ export default function ProtocolDetail() {
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '20px', flexShrink: 0 }}>
                           <div style={{
                             width: '12px', height: '12px', borderRadius: '50%',
-                            background: '#22c55e', border: '2px solid #fff',
-                            boxShadow: '0 0 0 2px #22c55e', flexShrink: 0, marginTop: '4px'
+                            background: isMissedLog ? '#f59e0b' : '#22c55e', border: '2px solid #fff',
+                            boxShadow: isMissedLog ? '0 0 0 2px #f59e0b' : '0 0 0 2px #22c55e', flexShrink: 0, marginTop: '4px'
                           }}>
-                            <span style={{ color: '#fff', fontSize: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>✓</span>
+                            <span style={{ color: '#fff', fontSize: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>{isMissedLog ? '✕' : '✓'}</span>
                           </div>
                           {!isLast && (
                             <div style={{ width: '2px', flex: 1, background: '#e5e7eb', minHeight: '40px' }} />
@@ -1221,7 +1229,16 @@ export default function ProtocolDetail() {
                         <div style={{ flex: 1, paddingBottom: isLast ? '0' : '12px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
                             <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{dateStr}</span>
-                            {log.log_type === 'injection' && (
+                            {isMissedLog && (
+                              <span style={{
+                                fontSize: '10px', fontWeight: '600', padding: '2px 6px',
+                                borderRadius: '10px', background: '#fef3c7', color: '#92400e',
+                                textTransform: 'uppercase',
+                              }}>
+                                Missed
+                              </span>
+                            )}
+                            {!isMissedLog && log.log_type === 'injection' && (
                               <span
                                 onClick={() => handleToggleDelivery(log)}
                                 title="Click to change to Take Home"
@@ -1234,7 +1251,7 @@ export default function ProtocolDetail() {
                                 In Clinic
                               </span>
                             )}
-                            {log.log_type === 'checkin' && (
+                            {!isMissedLog && log.log_type === 'checkin' && (
                               <span
                                 onClick={() => handleToggleDelivery(log)}
                                 title="Click to change to In Clinic"
@@ -2171,8 +2188,33 @@ export default function ProtocolDetail() {
               {logModal.date}
             </p>
 
-            {/* Delivery Method Toggle */}
+            {/* Completed / Missed Toggle */}
             <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Status</label>
+              <div style={{ display: 'flex', gap: 0, borderRadius: 6, overflow: 'hidden', border: '1px solid #d1d5db' }}>
+                <button
+                  type="button"
+                  onClick={() => setLogForm({ ...logForm, missed: false })}
+                  style={{
+                    flex: 1, padding: '8px 12px', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                    background: !logForm.missed ? '#000' : '#fff',
+                    color: !logForm.missed ? '#fff' : '#374151',
+                  }}
+                >Completed</button>
+                <button
+                  type="button"
+                  onClick={() => setLogForm({ ...logForm, missed: true })}
+                  style={{
+                    flex: 1, padding: '8px 12px', border: 'none', borderLeft: '1px solid #d1d5db', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                    background: logForm.missed ? '#f59e0b' : '#fff',
+                    color: logForm.missed ? '#fff' : '#374151',
+                  }}
+                >Missed for the Week</button>
+              </div>
+            </div>
+
+            {/* Delivery Method Toggle — hidden when missed */}
+            {!logForm.missed && <div style={{ marginBottom: 12 }}>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Delivery Method</label>
               <div style={{ display: 'flex', gap: 0, borderRadius: 6, overflow: 'hidden', border: '1px solid #d1d5db' }}>
                 <button
@@ -2194,7 +2236,7 @@ export default function ProtocolDetail() {
                   }}
                 >Take Home</button>
               </div>
-            </div>
+            </div>}
 
             {/* Weight */}
             <div style={{ marginBottom: 12 }}>
@@ -2209,61 +2251,64 @@ export default function ProtocolDetail() {
               />
             </div>
 
-            {/* Blood Pressure — In Clinic only */}
-            {logForm.deliveryMethod === 'in_clinic' && (
+            {/* Blood Pressure, Dose, Side Effects — hidden when missed */}
+            {!logForm.missed && <>
+              {/* Blood Pressure — In Clinic only */}
+              {logForm.deliveryMethod === 'in_clinic' && (
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Blood Pressure</label>
+                  <input
+                    type="text"
+                    value={logForm.bloodPressure}
+                    onChange={e => setLogForm({ ...logForm, bloodPressure: e.target.value })}
+                    placeholder="e.g. 120/80"
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+                  />
+                </div>
+              )}
+
+              {/* Dose */}
               <div style={{ marginBottom: 12 }}>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Blood Pressure</label>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Dose</label>
                 <input
                   type="text"
-                  value={logForm.bloodPressure}
-                  onChange={e => setLogForm({ ...logForm, bloodPressure: e.target.value })}
-                  placeholder="e.g. 120/80"
+                  value={logForm.dose}
+                  onChange={e => setLogForm({ ...logForm, dose: e.target.value })}
+                  placeholder="e.g. 2.5mg"
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
                 />
               </div>
-            )}
 
-            {/* Dose */}
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Dose</label>
-              <input
-                type="text"
-                value={logForm.dose}
-                onChange={e => setLogForm({ ...logForm, dose: e.target.value })}
-                placeholder="e.g. 2.5mg"
-                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
-              />
-            </div>
-
-            {/* Side Effects */}
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Side Effects</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {WL_SIDE_EFFECTS.map(effect => {
-                  const isSelected = logForm.sideEffects.includes(effect);
-                  return (
-                    <button
-                      key={effect}
-                      type="button"
-                      onClick={() => {
-                        setLogForm(prev => ({
-                          ...prev,
-                          sideEffects: isSelected
-                            ? prev.sideEffects.filter(e => e !== effect)
-                            : [...prev.sideEffects, effect]
-                        }));
-                      }}
-                      style={{
-                        padding: '5px 10px', borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: 'pointer',
-                        border: isSelected ? '1.5px solid #dc2626' : '1px solid #d1d5db',
-                        background: isSelected ? '#fef2f2' : '#fff',
-                        color: isSelected ? '#dc2626' : '#374151',
-                      }}
-                    >{effect}</button>
-                  );
-                })}
+              {/* Side Effects */}
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Side Effects</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {WL_SIDE_EFFECTS.map(effect => {
+                    const isSelected = logForm.sideEffects.includes(effect);
+                    return (
+                      <button
+                        key={effect}
+                        type="button"
+                        onClick={() => {
+                          setLogForm(prev => ({
+                            ...prev,
+                            sideEffects: isSelected
+                              ? prev.sideEffects.filter(e => e !== effect)
+                              : [...prev.sideEffects, effect]
+                          }));
+                        }}
+                        style={{
+                          padding: '5px 10px', borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                          border: isSelected ? '1.5px solid #dc2626' : '1px solid #d1d5db',
+                          background: isSelected ? '#fef2f2' : '#fff',
+                          color: isSelected ? '#dc2626' : '#374151',
+                        }}
+                      >{effect}</button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            </>}
 
             {/* Notes */}
             <div style={{ marginBottom: 16 }}>
@@ -2286,7 +2331,7 @@ export default function ProtocolDetail() {
                 padding: '8px 20px', border: 'none', borderRadius: 6,
                 background: '#000', color: '#fff', cursor: logSaving ? 'wait' : 'pointer',
                 fontSize: 14, fontWeight: 600, opacity: logSaving ? 0.6 : 1
-              }}>{logSaving ? 'Saving...' : 'Log Injection'}</button>
+              }}>{logSaving ? 'Saving...' : (logForm.missed ? 'Log Missed Week' : 'Log Injection')}</button>
             </div>
           </div>
         </>

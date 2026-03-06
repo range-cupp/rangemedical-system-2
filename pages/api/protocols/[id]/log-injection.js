@@ -100,7 +100,7 @@ export default async function handler(req, res) {
     }
   }
 
-  const { log_date, weight, dose, side_effects, notes, delivery_method, blood_pressure } = req.body;
+  const { log_date, weight, dose, side_effects, notes, delivery_method, blood_pressure, missed } = req.body;
 
   if (!id) {
     return res.status(400).json({ error: 'Protocol ID required' });
@@ -132,7 +132,11 @@ export default async function handler(req, res) {
 
     // Build log notes
     let logNotes = '';
+    if (missed) {
+      logNotes = 'MISSED WEEK';
+    }
     if (dose) {
+      logNotes += logNotes ? ' | ' : '';
       logNotes += `Dose: ${dose}`;
     }
     if (side_effects && side_effects.length > 0 && !side_effects.includes('None')) {
@@ -148,8 +152,8 @@ export default async function handler(req, res) {
       logNotes += notes.trim();
     }
 
-    // Determine log type based on delivery method
-    const logType = delivery_method === 'in_clinic' ? 'injection' : 'checkin';
+    // Determine log type based on delivery method (or missed)
+    const logType = missed ? 'missed' : (delivery_method === 'in_clinic' ? 'injection' : 'checkin');
 
     // Insert log entry FIRST
     const logEntry = {

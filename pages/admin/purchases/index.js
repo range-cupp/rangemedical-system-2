@@ -282,6 +282,11 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
     if ((purchaseItemLower.includes('hyperbaric') || purchaseItemLower.includes('hbot')) && purchaseItemLower.includes('membership')) return 'hbot_membership';
     if ((purchaseItemLower.includes('red light') || purchaseItemLower.includes('rlt')) && purchaseItemLower.includes('membership')) return 'rlt_membership';
     if (purchaseCat === 'combo_membership') return 'combo_membership';
+    // HRT: distinguish male vs female from purchase name
+    if (purchaseCat === 'hrt' || purchaseItemLower.includes('hrt') || purchaseItemLower.includes('testosterone')) {
+      if (purchaseItemLower.includes('female')) return 'hrt_female';
+      return 'hrt_male';
+    }
     return CATEGORY_TO_TYPE[purchase?.category] || 'peptide';
   };
   const initialType = detectInitialType();

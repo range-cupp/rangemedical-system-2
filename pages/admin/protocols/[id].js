@@ -136,8 +136,9 @@ export default function ProtocolDetail() {
   const [logModal, setLogModal] = useState(null); // { injectionNum, date, isCompleted }
   const [logForm, setLogForm] = useState({ weight: '', dose: '', notes: '' });
   const [logSaving, setLogSaving] = useState(false);
-  const [editDateModal, setEditDateModal] = useState(null); // { logId, injectionNum, currentDate }
+  const [editDateModal, setEditDateModal] = useState(null); // { logId, injectionNum, currentDate, source }
   const [editDateValue, setEditDateValue] = useState('');
+  const [editWeightValue, setEditWeightValue] = useState('');
   const [editDateSaving, setEditDateSaving] = useState(false);
   const [sendingOptin, setSendingOptin] = useState(false);
   const [optinSent, setOptinSent] = useState(false);
@@ -430,23 +431,28 @@ export default function ProtocolDetail() {
     }
   };
 
-  // Edit an existing injection log's date
-  const handleEditLogDate = async () => {
+  // Edit an existing injection log (date and/or weight)
+  const handleEditLogEntry = async () => {
     if (!editDateModal || !editDateValue) return;
     setEditDateSaving(true);
     try {
+      // Weight: empty string means clear it, otherwise parse as number
+      const weightVal = editWeightValue.trim() === '' ? null : parseFloat(editWeightValue);
+
       const res = await fetch(`/api/protocols/${id}/log-injection`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           log_id: editDateModal.logId,
           log_date: editDateValue,
+          weight: weightVal,
+          update_weight: true,
           source: editDateModal.source || 'protocol_logs',
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to update date');
-      setSuccess(`Injection #${editDateModal.injectionNum} date updated to ${new Date(editDateValue + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`);
+      if (!res.ok) throw new Error(data.error || 'Failed to update');
+      setSuccess(`Injection #${editDateModal.injectionNum} updated`);
       setEditDateModal(null);
       fetchProtocol(); // Refresh all data
     } catch (err) {
@@ -464,6 +470,7 @@ export default function ProtocolDetail() {
     const logEntry = sortedAsc[injectionNum - 1];
     if (!logEntry) return;
     setEditDateValue(logEntry.log_date?.split('T')[0] || logEntry.log_date);
+    setEditWeightValue(logEntry.weight != null ? String(logEntry.weight) : '');
     setEditDateModal({
       logId: logEntry.id,
       injectionNum,
@@ -2152,7 +2159,7 @@ export default function ProtocolDetail() {
         </>
       )}
 
-      {/* Edit Injection Date Modal */}
+      {/* Edit Injection Modal */}
       {editDateModal && (
         <>
           <div onClick={() => setEditDateModal(null)} style={{
@@ -2167,10 +2174,10 @@ export default function ProtocolDetail() {
               Edit Injection #{editDateModal.injectionNum}
             </h3>
             <p style={{ margin: '0 0 16px', color: '#6b7280', fontSize: 14 }}>
-              Change the date for this injection
+              Update date and weight for this injection
             </p>
 
-            <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 12 }}>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Date</label>
               <input
                 type="date"
@@ -2180,16 +2187,34 @@ export default function ProtocolDetail() {
               />
             </div>
 
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Weight (lbs)</label>
+              <input
+                type="number"
+                step="0.1"
+                value={editWeightValue}
+                onChange={e => setEditWeightValue(e.target.value)}
+                placeholder="Leave empty to clear"
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+              />
+              {editWeightValue && (
+                <button
+                  onClick={() => setEditWeightValue('')}
+                  style={{ marginTop: 4, fontSize: 12, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                >✕ Clear weight</button>
+              )}
+            </div>
+
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button onClick={() => setEditDateModal(null)} style={{
                 padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: 6,
                 background: '#fff', cursor: 'pointer', fontSize: 14
               }}>Cancel</button>
-              <button onClick={handleEditLogDate} disabled={editDateSaving} style={{
+              <button onClick={handleEditLogEntry} disabled={editDateSaving} style={{
                 padding: '8px 20px', border: 'none', borderRadius: 6,
                 background: '#22c55e', color: '#fff', cursor: editDateSaving ? 'wait' : 'pointer',
                 fontSize: 14, fontWeight: 600, opacity: editDateSaving ? 0.6 : 1
-              }}>{editDateSaving ? 'Saving...' : 'Update Date'}</button>
+              }}>{editDateSaving ? 'Saving...' : 'Save Changes'}</button>
             </div>
           </div>
         </>

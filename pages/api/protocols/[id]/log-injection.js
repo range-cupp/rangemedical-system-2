@@ -26,24 +26,25 @@ export default async function handler(req, res) {
 
   const { id } = req.query;
 
-  // PATCH — update an existing log entry (date and/or delivery method)
+  // PATCH — update an existing log entry (date, weight, and/or delivery method)
   if (req.method === 'PATCH') {
-    const { log_id, log_date: newDate, source, log_type: newLogType } = req.body;
+    const { log_id, log_date: newDate, source, log_type: newLogType, weight: newWeight, update_weight } = req.body;
     if (!log_id) {
       return res.status(400).json({ error: 'log_id required' });
     }
-    if (!newDate && !newLogType) {
-      return res.status(400).json({ error: 'log_date or log_type required' });
+    if (!newDate && !newLogType && !update_weight) {
+      return res.status(400).json({ error: 'At least one field to update required' });
     }
     try {
       let updated = null;
       let updateErr = null;
 
       if (source === 'service_log') {
-        // Build update fields for service_logs (entry_date, entry_type)
+        // Build update fields for service_logs (entry_date, entry_type, weight)
         const updateFields = {};
         if (newDate) updateFields.entry_date = newDate;
         if (newLogType) updateFields.entry_type = newLogType === 'injection' ? 'injection' : 'pickup';
+        if (update_weight) updateFields.weight = newWeight;
 
         const { data: slData, error: slErr } = await supabase
           .from('service_logs')
@@ -70,10 +71,11 @@ export default async function handler(req, res) {
           }
         }
       } else {
-        // Build update fields for protocol_logs (log_date, log_type)
+        // Build update fields for protocol_logs (log_date, log_type, weight)
         const updateFields = {};
         if (newDate) updateFields.log_date = newDate;
         if (newLogType) updateFields.log_type = newLogType;
+        if (update_weight) updateFields.weight = newWeight;
 
         const result = await supabase
           .from('protocol_logs')

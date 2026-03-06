@@ -2,17 +2,17 @@
 // Labs Pipeline Tab - Protocol-based lab tracking with 5 stages
 // Range Medical
 // CREATED: 2026-01-26
-// UPDATED: 2026-02-17 - Added pre-consult summary (Prep button)
+// UPDATED: 2026-03-05 - Refined UI to match system design language
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 const LAB_STAGES = [
-  { id: 'blood_draw_complete', label: 'Blood Draw Complete', color: '#f59e0b', icon: '🩸' },
-  { id: 'results_received', label: 'Results Received', color: '#8b5cf6', icon: '📋' },
-  { id: 'provider_reviewed', label: 'Provider Reviewed', color: '#10b981', icon: '👨‍⚕️' },
-  { id: 'consult_scheduled', label: 'Consult Scheduled', color: '#6366f1', icon: '🗓️' },
-  { id: 'consult_complete', label: 'Consult Complete', color: '#3b82f6', icon: '✅' }
+  { id: 'blood_draw_complete', label: 'Blood Draw', color: '#f59e0b', icon: '🩸' },
+  { id: 'results_received', label: 'Results In', color: '#8b5cf6', icon: '📋' },
+  { id: 'provider_reviewed', label: 'Reviewed', color: '#10b981', icon: '👨‍⚕️' },
+  { id: 'consult_scheduled', label: 'Scheduled', color: '#6366f1', icon: '🗓️' },
+  { id: 'consult_complete', label: 'Complete', color: '#3b82f6', icon: '✅' }
 ];
 
 export default function LabsPipelineTab() {
@@ -129,38 +129,48 @@ export default function LabsPipelineTab() {
 
   return (
     <div style={styles.container}>
-      {/* Header */}
+      {/* Header Bar */}
       <div style={styles.headerRow}>
-        <div style={styles.headerInfo}>
+        <div style={styles.headerLeft}>
           <span style={styles.totalBadge}>{data.total} active</span>
         </div>
         <div style={styles.headerActions}>
-          <button style={styles.refreshButton} onClick={fetchData} disabled={loading}>
+          <button style={styles.secondaryBtn} onClick={fetchData} disabled={loading}>
             ↻ Refresh
           </button>
-          <button style={styles.addButton} onClick={() => setShowAddModal(true)}>
-            + Add Lab Manually
+          <button style={styles.primaryBtn} onClick={() => setShowAddModal(true)}>
+            + Add Lab
           </button>
         </div>
       </div>
 
-      {/* 5-Column Stage View */}
-      <div style={styles.stagesContainer}>
+      {/* 5-Column Kanban */}
+      <div style={styles.stagesGrid}>
         {LAB_STAGES.map(stage => {
           const items = data.stages[stage.id] || [];
           return (
             <div key={stage.id} style={styles.stageColumn}>
-              <div style={styles.stageHeader(stage.color)}>
-                <span>{stage.icon}</span>
-                <span>{stage.label}</span>
+              {/* Stage Header */}
+              <div style={styles.stageHeader}>
+                <div style={styles.stageHeaderLeft}>
+                  <span style={{
+                    ...styles.stageDot,
+                    background: stage.color,
+                    boxShadow: `0 0 0 3px ${stage.color}20`
+                  }} />
+                  <span style={styles.stageLabel}>{stage.label}</span>
+                </div>
                 <span style={styles.stageCount}>{items.length}</span>
               </div>
-              <div style={styles.stageContent}>
+
+              {/* Cards */}
+              <div style={styles.stageBody}>
                 {items.map(protocol => (
                   <LabCard
                     key={protocol.id}
                     protocol={protocol}
                     currentStage={stage.id}
+                    stageColor={stage.color}
                     onMoveStage={(newStage) => handleMoveStage(protocol.id, newStage)}
                     onDelete={() => setShowDeleteConfirm({ id: protocol.id, name: protocol.patients?.name || 'Unknown' })}
                     formatDate={formatDate}
@@ -220,7 +230,7 @@ export default function LabsPipelineTab() {
 }
 
 // Lab Card Component
-function LabCard({ protocol, currentStage, onMoveStage, onDelete, formatDate }) {
+function LabCard({ protocol, currentStage, stageColor, onMoveStage, onDelete, formatDate }) {
   const [showMoveMenu, setShowMoveMenu] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const [summaryData, setSummaryData] = useState(null);
@@ -231,7 +241,7 @@ function LabCard({ protocol, currentStage, onMoveStage, onDelete, formatDate }) 
   const patientName = patient?.name || (patient?.first_name ? `${patient.first_name} ${patient.last_name || ''}`.trim() : 'Unknown');
   const panelType = protocol.medication || 'Essential';
   const labType = protocol.delivery_method === 'follow_up' ? 'Follow-up' : 'New Patient';
-  const panelColor = panelType === 'Elite' ? { bg: '#fdf2f8', text: '#9d174d' } : { bg: '#f0f9ff', text: '#0369a1' };
+  const isElite = panelType === 'Elite';
 
   const fetchSummary = async () => {
     if (!patient?.id) return;
@@ -304,41 +314,46 @@ function LabCard({ protocol, currentStage, onMoveStage, onDelete, formatDate }) 
 
   return (
     <div style={styles.card}>
-      <div style={styles.cardHeader}>
+      {/* Patient Name Row */}
+      <div style={styles.cardTop}>
         {patient?.id ? (
-          <Link href={`/admin/patient/${patient.id}`} style={styles.patientName}>
+          <Link href={`/admin/patient/${patient.id}`} style={styles.cardName}>
             {patientName}
           </Link>
         ) : (
-          <span style={styles.patientName}>{patientName}</span>
+          <span style={styles.cardName}>{patientName}</span>
         )}
         {patient?.phone && (
-          <a href={`tel:${patient.phone}`} style={styles.phone}>
+          <a href={`tel:${patient.phone}`} style={styles.cardPhone} title="Call">
             📞
           </a>
         )}
       </div>
 
-      <div style={styles.cardBadges}>
-        <span style={{ ...styles.panelBadge, backgroundColor: panelColor.bg, color: panelColor.text }}>
+      {/* Badges */}
+      <div style={styles.badgeRow}>
+        <span style={{
+          ...styles.panelBadge,
+          background: isElite ? '#fdf2f8' : '#f0f9ff',
+          color: isElite ? '#9d174d' : '#0369a1',
+          borderColor: isElite ? '#fce7f3' : '#e0f2fe'
+        }}>
           {panelType}
         </span>
-        <span style={styles.labTypeBadge}>
-          {labType}
-        </span>
+        <span style={styles.typeBadge}>{labType}</span>
       </div>
 
       {/* Prep Button */}
       {patient?.id && (
         <button
           style={{
-            ...styles.prepButton,
-            ...(showSummary ? styles.prepButtonActive : {})
+            ...styles.prepBtn,
+            ...(showSummary ? { background: '#000', color: '#fff', borderColor: '#000' } : {})
           }}
           onClick={handlePrep}
           disabled={summaryLoading}
         >
-          {summaryLoading ? 'Loading...' : showSummary ? '▾ Prep' : '▸ Prep'}
+          {summaryLoading ? '...' : showSummary ? '▾ Prep' : '▸ Prep'}
         </button>
       )}
 
@@ -346,7 +361,7 @@ function LabCard({ protocol, currentStage, onMoveStage, onDelete, formatDate }) 
       {showSummary && summaryData && (
         <div style={styles.summaryBlock}>
           {summaryData.noIntake ? (
-            <div style={styles.summaryNoIntake}>No intake form found</div>
+            <div style={styles.summaryEmpty}>No intake form found</div>
           ) : (
             <>
               <div style={styles.summaryRow}>
@@ -390,13 +405,13 @@ function LabCard({ protocol, currentStage, onMoveStage, onDelete, formatDate }) 
                 </div>
               )}
               <div style={styles.summaryReminder}>
-                *Reminder: Use Insight Health to scribe the conversation
+                *Use Insight Health to scribe the conversation
               </div>
               <div style={styles.summaryActions}>
-                <button style={styles.copyButton} onClick={handleCopy}>
-                  {copied ? 'Copied!' : 'Copy'}
+                <button style={styles.summaryBtnPrimary} onClick={handleCopy}>
+                  {copied ? '✓ Copied' : 'Copy'}
                 </button>
-                <button style={styles.closeButton} onClick={() => setShowSummary(false)}>
+                <button style={styles.summaryBtnSecondary} onClick={() => setShowSummary(false)}>
                   Close
                 </button>
               </div>
@@ -405,18 +420,23 @@ function LabCard({ protocol, currentStage, onMoveStage, onDelete, formatDate }) 
         </div>
       )}
 
-      <div style={styles.cardDetails}>
-        <div>Draw: {formatDate(protocol.start_date)}</div>
+      {/* Date & Notes */}
+      <div style={styles.cardMeta}>
+        <span style={styles.cardDate}>Draw: {formatDate(protocol.start_date)}</span>
         {protocol.notes && (
-          <div style={styles.notesText}>{protocol.notes}</div>
+          <div style={styles.cardNotes}>{protocol.notes}</div>
         )}
       </div>
 
+      {/* Actions */}
       <div style={styles.cardActions}>
-        {/* Quick advance button */}
         {currentStage !== 'consult_complete' && (
           <button
-            style={styles.advanceButton}
+            style={{
+              ...styles.advanceBtn,
+              background: stageColor,
+              boxShadow: `0 1px 3px ${stageColor}40`
+            }}
             onClick={() => {
               const stageIds = LAB_STAGES.map(s => s.id);
               const currentIndex = stageIds.indexOf(currentStage);
@@ -428,35 +448,36 @@ function LabCard({ protocol, currentStage, onMoveStage, onDelete, formatDate }) 
             → {LAB_STAGES[LAB_STAGES.findIndex(s => s.id === currentStage) + 1]?.label || 'Next'}
           </button>
         )}
-
         <div style={styles.cardControls}>
-          <div style={styles.moveStageWrapper}>
+          <div style={styles.moveWrapper}>
             <button
-              style={styles.moveStageButton}
+              style={styles.moveBtn}
               onClick={() => setShowMoveMenu(!showMoveMenu)}
             >
               Move ▾
             </button>
             {showMoveMenu && (
-              <div style={styles.moveStageMenu}>
+              <div style={styles.moveMenu}>
                 {LAB_STAGES.filter(s => s.id !== currentStage).map(s => (
                   <button
                     key={s.id}
-                    style={styles.moveStageOption}
+                    style={styles.moveOption}
                     onClick={() => {
                       onMoveStage(s.id);
                       setShowMoveMenu(false);
                     }}
                   >
-                    {s.icon} {s.label}
+                    <span style={{
+                      width: '8px', height: '8px', borderRadius: '50%',
+                      background: s.color, display: 'inline-block', flexShrink: 0
+                    }} />
+                    {s.label}
                   </button>
                 ))}
               </div>
             )}
           </div>
-          <button style={styles.deleteButton} onClick={onDelete} title="Remove from pipeline">
-            🗑️
-          </button>
+          <button style={styles.deleteBtn} onClick={onDelete} title="Remove">×</button>
         </div>
       </div>
     </div>
@@ -485,19 +506,22 @@ function AddLabModal({ patientSearch, onPatientSearch, patientResults, onAdd, on
   return (
     <div style={styles.modalOverlay}>
       <div style={styles.modal}>
-        <h3 style={styles.modalTitle}>Add Lab Manually</h3>
+        <div style={styles.modalHeader}>
+          <h3 style={styles.modalTitle}>Add Lab</h3>
+          <button style={styles.modalClose} onClick={onClose}>×</button>
+        </div>
 
         {/* Patient Search */}
         <div style={styles.formGroup}>
-          <label style={styles.formLabel}>Patient *</label>
+          <label style={styles.formLabel}>Patient</label>
           {selectedPatient ? (
             <div style={styles.selectedPatient}>
-              <span>{selectedPatient.name}</span>
+              <span style={{ fontWeight: 500 }}>{selectedPatient.name}</span>
               <button
-                style={styles.clearPatientBtn}
+                style={styles.clearBtn}
                 onClick={() => { setSelectedPatient(null); onPatientSearch(''); }}
               >
-                ✕
+                ×
               </button>
             </div>
           ) : (
@@ -510,32 +534,30 @@ function AddLabModal({ patientSearch, onPatientSearch, patientResults, onAdd, on
                 placeholder="Search patient name..."
               />
               {patientResults.length > 0 && (
-                <div style={styles.searchResults}>
+                <div style={styles.searchDropdown}>
                   {patientResults.map(p => (
                     <button
                       key={p.id}
-                      style={styles.searchResultItem}
+                      style={styles.searchItem}
                       onClick={() => {
                         setSelectedPatient(p);
                         onPatientSearch('');
                       }}
                     >
-                      <span style={{ fontWeight: '500' }}>{p.name}</span>
-                      {p.email && <span style={{ fontSize: '11px', color: '#6b7280' }}>{p.email}</span>}
+                      <span style={{ fontWeight: 500 }}>{p.name}</span>
+                      {p.email && <span style={{ fontSize: '12px', color: '#9ca3af' }}>{p.email}</span>}
                     </button>
                   ))}
                 </div>
               )}
               {patientSearch.length >= 2 && patientResults.length === 0 && (
-                <div style={{ marginTop: '8px' }}>
-                  <input
-                    type="text"
-                    style={styles.input}
-                    value={manualName}
-                    onChange={(e) => setManualName(e.target.value)}
-                    placeholder="Or enter name manually..."
-                  />
-                </div>
+                <input
+                  type="text"
+                  style={{ ...styles.input, marginTop: '8px' }}
+                  value={manualName}
+                  onChange={(e) => setManualName(e.target.value)}
+                  placeholder="Or enter name manually..."
+                />
               )}
             </>
           )}
@@ -544,38 +566,38 @@ function AddLabModal({ patientSearch, onPatientSearch, patientResults, onAdd, on
         {/* Panel Type */}
         <div style={styles.formGroup}>
           <label style={styles.formLabel}>Panel Type</label>
-          <div style={styles.toggleGroup}>
-            <button
-              style={{ ...styles.toggleBtn, ...(panelType === 'essential' ? styles.toggleBtnActive : {}) }}
-              onClick={() => setPanelType('essential')}
-            >
-              Essential
-            </button>
-            <button
-              style={{ ...styles.toggleBtn, ...(panelType === 'elite' ? styles.toggleBtnActive : {}) }}
-              onClick={() => setPanelType('elite')}
-            >
-              Elite
-            </button>
+          <div style={styles.segmentedControl}>
+            {[{ v: 'essential', l: 'Essential' }, { v: 'elite', l: 'Elite' }].map(o => (
+              <button
+                key={o.v}
+                style={{
+                  ...styles.segmentBtn,
+                  ...(panelType === o.v ? styles.segmentBtnActive : {})
+                }}
+                onClick={() => setPanelType(o.v)}
+              >
+                {o.l}
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Lab Type */}
         <div style={styles.formGroup}>
           <label style={styles.formLabel}>Lab Type</label>
-          <div style={styles.toggleGroup}>
-            <button
-              style={{ ...styles.toggleBtn, ...(labType === 'new_patient' ? styles.toggleBtnActive : {}) }}
-              onClick={() => setLabType('new_patient')}
-            >
-              New Patient
-            </button>
-            <button
-              style={{ ...styles.toggleBtn, ...(labType === 'follow_up' ? styles.toggleBtnActive : {}) }}
-              onClick={() => setLabType('follow_up')}
-            >
-              Follow-up
-            </button>
+          <div style={styles.segmentedControl}>
+            {[{ v: 'new_patient', l: 'New Patient' }, { v: 'follow_up', l: 'Follow-up' }].map(o => (
+              <button
+                key={o.v}
+                style={{
+                  ...styles.segmentBtn,
+                  ...(labType === o.v ? styles.segmentBtnActive : {})
+                }}
+                onClick={() => setLabType(o.v)}
+              >
+                {o.l}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -592,19 +614,19 @@ function AddLabModal({ patientSearch, onPatientSearch, patientResults, onAdd, on
 
         {/* Notes */}
         <div style={styles.formGroup}>
-          <label style={styles.formLabel}>Notes (optional)</label>
+          <label style={styles.formLabel}>Notes</label>
           <textarea
             style={styles.textarea}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Any notes about this lab..."
+            placeholder="Optional notes..."
           />
         </div>
 
-        <div style={styles.modalActions}>
-          <button style={styles.cancelButton} onClick={onClose}>Cancel</button>
+        <div style={styles.modalFooter}>
+          <button style={styles.cancelBtn2} onClick={onClose}>Cancel</button>
           <button
-            style={styles.submitButton}
+            style={styles.submitBtn}
             onClick={handleSubmit}
             disabled={!selectedPatient && !manualName}
           >
@@ -620,19 +642,15 @@ function AddLabModal({ patientSearch, onPatientSearch, patientResults, onAdd, on
 function DeleteConfirmModal({ name, onConfirm, onCancel, updating }) {
   return (
     <div style={styles.modalOverlay}>
-      <div style={styles.modal}>
+      <div style={{ ...styles.modal, maxWidth: '400px' }}>
         <h3 style={styles.modalTitle}>Remove from Pipeline?</h3>
-        <p style={styles.modalSubtitle}>
-          Are you sure you want to remove <strong>{name}</strong> from the labs pipeline?
+        <p style={{ margin: '8px 0 0', color: '#374151', fontSize: '14px', lineHeight: 1.5 }}>
+          Remove <strong>{name}</strong> from the labs pipeline? This cancels the lab protocol.
         </p>
-        <p style={{ color: '#6b7280', fontSize: '13px', marginTop: '8px' }}>
-          This will cancel the lab protocol. Patient records will not be affected.
-        </p>
-
-        <div style={styles.modalActions}>
-          <button style={styles.cancelButton} onClick={onCancel}>Cancel</button>
+        <div style={{ ...styles.modalFooter, marginTop: '20px' }}>
+          <button style={styles.cancelBtn2} onClick={onCancel}>Cancel</button>
           <button
-            style={{ ...styles.submitButton, backgroundColor: '#dc2626' }}
+            style={{ ...styles.submitBtn, background: '#dc2626' }}
             onClick={onConfirm}
             disabled={updating}
           >
@@ -644,30 +662,34 @@ function DeleteConfirmModal({ name, onConfirm, onCancel, updating }) {
   );
 }
 
-// Styles
+// ─── Styles ────────────────────────────────────────────────────────────────
 const styles = {
   container: {
-    padding: '0'
+    padding: 0
   },
   loading: {
-    padding: '40px',
+    padding: '60px 20px',
     textAlign: 'center',
-    color: '#6b7280'
+    color: '#9ca3af',
+    fontSize: '14px'
   },
   error: {
-    padding: '40px',
+    padding: '60px 20px',
     textAlign: 'center',
-    color: '#ef4444'
+    color: '#ef4444',
+    fontSize: '14px'
   },
+
+  // ─── Header ─────────────────────────────────────────────────
   headerRow: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '16px',
+    marginBottom: '20px',
     flexWrap: 'wrap',
-    gap: '8px'
+    gap: '12px'
   },
-  headerInfo: {
+  headerLeft: {
     display: 'flex',
     alignItems: 'center',
     gap: '12px'
@@ -679,58 +701,77 @@ const styles = {
   },
   headerActions: {
     display: 'flex',
-    gap: '8px',
-    alignItems: 'center'
+    gap: '8px'
   },
-  refreshButton: {
-    padding: '10px 16px',
-    border: '2px solid #e5e7eb',
+  primaryBtn: {
+    padding: '8px 16px',
+    background: '#000',
+    color: '#fff',
+    border: 'none',
     borderRadius: '8px',
-    backgroundColor: 'white',
+    fontSize: '13px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+  secondaryBtn: {
+    padding: '8px 16px',
+    background: '#fff',
     color: '#374151',
-    cursor: 'pointer',
-    fontWeight: '500'
-  },
-  addButton: {
-    padding: '10px 16px',
-    border: '2px dashed #d1d5db',
+    border: '1px solid #e5e5e5',
     borderRadius: '8px',
-    backgroundColor: 'white',
-    color: '#6b7280',
-    cursor: 'pointer',
-    fontWeight: '500'
+    fontSize: '13px',
+    fontWeight: '500',
+    cursor: 'pointer'
   },
-  stagesContainer: {
+
+  // ─── Kanban Grid ────────────────────────────────────────────
+  stagesGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(5, 1fr)',
     gap: '12px',
     minHeight: '500px'
   },
   stageColumn: {
-    backgroundColor: '#f9fafb',
+    background: '#fafafa',
     borderRadius: '12px',
-    overflow: 'hidden',
+    border: '1px solid #f0f0f0',
     display: 'flex',
-    flexDirection: 'column'
+    flexDirection: 'column',
+    overflow: 'hidden'
   },
-  stageHeader: (color) => ({
-    backgroundColor: color,
-    color: 'white',
-    padding: '12px',
+  stageHeader: {
+    padding: '14px 14px',
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
-    fontWeight: '600',
-    fontSize: '13px'
-  }),
-  stageCount: {
-    marginLeft: 'auto',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    padding: '2px 8px',
-    borderRadius: '12px',
-    fontSize: '12px'
+    justifyContent: 'space-between',
+    borderBottom: '1px solid #f0f0f0',
+    background: '#fff'
   },
-  stageContent: {
+  stageHeaderLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  },
+  stageDot: {
+    width: '10px',
+    height: '10px',
+    borderRadius: '50%',
+    flexShrink: 0
+  },
+  stageLabel: {
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#111'
+  },
+  stageCount: {
+    fontSize: '12px',
+    fontWeight: '600',
+    color: '#9ca3af',
+    background: '#f5f5f5',
+    padding: '2px 8px',
+    borderRadius: '10px'
+  },
+  stageBody: {
     padding: '8px',
     flex: 1,
     overflowY: 'auto',
@@ -740,312 +781,93 @@ const styles = {
   },
   emptyStage: {
     textAlign: 'center',
-    color: '#9ca3af',
-    padding: '20px',
-    fontSize: '14px'
+    color: '#d1d5db',
+    padding: '32px 12px',
+    fontSize: '13px'
   },
+
+  // ─── Card ───────────────────────────────────────────────────
   card: {
-    backgroundColor: 'white',
-    borderRadius: '8px',
-    padding: '12px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-    border: '1px solid #e5e7eb'
+    background: '#fff',
+    borderRadius: '10px',
+    padding: '14px',
+    border: '1px solid #e5e5e5',
+    transition: 'box-shadow 0.15s ease'
   },
-  cardHeader: {
+  cardTop: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: '6px',
-    gap: '8px'
+    gap: '8px',
+    marginBottom: '8px'
   },
-  patientName: {
+  cardName: {
     fontWeight: '600',
-    color: '#111827',
-    textDecoration: 'none',
-    fontSize: '14px'
-  },
-  phone: {
     fontSize: '14px',
-    textDecoration: 'none'
+    color: '#000',
+    textDecoration: 'none',
+    lineHeight: 1.3
   },
-  cardBadges: {
+  cardPhone: {
+    fontSize: '13px',
+    textDecoration: 'none',
+    opacity: 0.6,
+    flexShrink: 0
+  },
+
+  // Badges
+  badgeRow: {
     display: 'flex',
-    gap: '4px',
-    marginBottom: '8px',
+    gap: '5px',
+    marginBottom: '10px',
     flexWrap: 'wrap'
   },
   panelBadge: {
     fontSize: '11px',
-    padding: '2px 6px',
-    borderRadius: '4px',
-    fontWeight: '600'
-  },
-  labTypeBadge: {
-    fontSize: '11px',
-    padding: '2px 6px',
-    borderRadius: '4px',
-    backgroundColor: '#f3f4f6',
-    color: '#374151',
-    fontWeight: '500'
-  },
-  cardDetails: {
-    fontSize: '12px',
-    color: '#6b7280',
-    lineHeight: '1.5'
-  },
-  notesText: {
-    marginTop: '4px',
-    padding: '4px 6px',
-    backgroundColor: '#fef3c7',
-    borderRadius: '4px',
-    fontSize: '11px',
-    color: '#92400e',
-    fontStyle: 'italic'
-  },
-  cardActions: {
-    marginTop: '8px',
-    paddingTop: '8px',
-    borderTop: '1px solid #f3f4f6'
-  },
-  advanceButton: {
-    width: '100%',
-    padding: '8px',
-    border: 'none',
+    fontWeight: '600',
+    padding: '2px 8px',
     borderRadius: '6px',
-    backgroundColor: '#2563eb',
-    color: 'white',
+    border: '1px solid transparent',
+    letterSpacing: '0.2px'
+  },
+  typeBadge: {
+    fontSize: '11px',
+    fontWeight: '500',
+    padding: '2px 8px',
+    borderRadius: '6px',
+    background: '#f5f5f5',
+    color: '#666',
+    border: '1px solid #ebebeb'
+  },
+
+  // Prep
+  prepBtn: {
+    width: '100%',
+    padding: '6px 10px',
+    border: '1px solid #e5e5e5',
+    borderRadius: '6px',
+    background: '#fafafa',
+    color: '#374151',
     cursor: 'pointer',
     fontWeight: '500',
     fontSize: '12px',
-    marginBottom: '8px'
-  },
-  cardControls: {
-    display: 'flex',
-    gap: '8px',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  moveStageWrapper: {
-    position: 'relative',
-    flex: 1
-  },
-  moveStageButton: {
-    width: '100%',
-    padding: '6px 10px',
-    border: '1px solid #d1d5db',
-    borderRadius: '4px',
-    backgroundColor: 'white',
-    cursor: 'pointer',
-    fontSize: '11px',
-    color: '#6b7280'
-  },
-  moveStageMenu: {
-    position: 'absolute',
-    top: '100%',
-    left: 0,
-    right: 0,
-    backgroundColor: 'white',
-    border: '1px solid #e5e7eb',
-    borderRadius: '8px',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-    zIndex: 100,
-    marginTop: '4px',
-    overflow: 'hidden'
-  },
-  moveStageOption: {
-    width: '100%',
-    padding: '8px 12px',
-    border: 'none',
-    backgroundColor: 'white',
-    cursor: 'pointer',
-    fontSize: '12px',
+    marginBottom: '10px',
     textAlign: 'left',
-    display: 'flex',
-    gap: '6px',
-    alignItems: 'center'
+    transition: 'all 0.12s ease'
   },
-  deleteButton: {
-    padding: '6px 10px',
-    border: '1px solid #fecaca',
-    borderRadius: '4px',
-    backgroundColor: '#fef2f2',
-    cursor: 'pointer',
-    fontSize: '12px'
-  },
-  // Modal styles
-  modalOverlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000
-  },
-  modal: {
-    backgroundColor: 'white',
-    borderRadius: '12px',
-    padding: '24px',
-    width: '90%',
-    maxWidth: '440px',
-    maxHeight: '90vh',
-    overflowY: 'auto',
-    boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
-  },
-  modalTitle: {
-    margin: '0 0 16px 0',
-    fontSize: '18px',
-    fontWeight: '600'
-  },
-  modalSubtitle: {
-    margin: '0 0 8px 0',
-    color: '#374151',
-    fontSize: '14px'
-  },
-  formGroup: {
-    marginBottom: '16px'
-  },
-  formLabel: {
-    display: 'block',
-    fontSize: '13px',
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: '6px'
-  },
-  input: {
-    width: '100%',
-    padding: '10px',
-    border: '1px solid #d1d5db',
-    borderRadius: '8px',
-    fontFamily: 'inherit',
-    fontSize: '14px',
-    boxSizing: 'border-box'
-  },
-  textarea: {
-    width: '100%',
-    padding: '10px',
-    border: '1px solid #d1d5db',
-    borderRadius: '8px',
-    minHeight: '60px',
-    resize: 'vertical',
-    fontFamily: 'inherit',
-    fontSize: '14px',
-    boxSizing: 'border-box'
-  },
-  toggleGroup: {
-    display: 'flex',
-    gap: '8px'
-  },
-  toggleBtn: {
-    flex: 1,
-    padding: '10px',
-    background: '#fff',
-    border: '2px solid #e5e7eb',
-    borderRadius: '8px',
-    fontSize: '13px',
-    fontWeight: '500',
-    cursor: 'pointer'
-  },
-  toggleBtnActive: {
-    background: '#111',
-    color: '#fff',
-    borderColor: '#111'
-  },
-  selectedPatient: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '10px 12px',
-    backgroundColor: '#f0fdf4',
-    border: '1px solid #bbf7d0',
-    borderRadius: '8px',
-    fontWeight: '500'
-  },
-  clearPatientBtn: {
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    fontSize: '16px',
-    color: '#6b7280',
-    padding: '0 4px'
-  },
-  searchResults: {
-    marginTop: '4px',
-    border: '1px solid #e5e7eb',
-    borderRadius: '8px',
-    overflow: 'hidden',
-    backgroundColor: 'white',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-  },
-  searchResultItem: {
-    width: '100%',
-    padding: '10px 12px',
-    border: 'none',
-    borderBottom: '1px solid #f3f4f6',
-    backgroundColor: 'white',
-    cursor: 'pointer',
-    textAlign: 'left',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px'
-  },
-  modalActions: {
-    display: 'flex',
-    gap: '12px',
-    marginTop: '24px'
-  },
-  cancelButton: {
-    flex: 1,
-    padding: '12px',
-    border: '1px solid #d1d5db',
-    borderRadius: '8px',
-    backgroundColor: 'white',
-    cursor: 'pointer',
-    fontWeight: '500'
-  },
-  submitButton: {
-    flex: 1,
-    padding: '12px',
-    border: 'none',
-    borderRadius: '8px',
-    backgroundColor: '#2563eb',
-    color: 'white',
-    cursor: 'pointer',
-    fontWeight: '500'
-  },
-  // Prep / Summary styles
-  prepButton: {
-    width: '100%',
-    padding: '6px 10px',
-    border: '1px solid #e0e7ff',
-    borderRadius: '6px',
-    backgroundColor: '#eef2ff',
-    color: '#4338ca',
-    cursor: 'pointer',
-    fontWeight: '600',
-    fontSize: '12px',
-    marginBottom: '8px',
-    textAlign: 'left'
-  },
-  prepButtonActive: {
-    backgroundColor: '#4338ca',
-    color: 'white',
-    borderColor: '#4338ca'
-  },
+
+  // Summary (Prep expanded)
   summaryBlock: {
-    backgroundColor: '#f8fafc',
-    border: '1px solid #e2e8f0',
-    borderRadius: '6px',
-    padding: '10px',
-    marginBottom: '8px',
+    background: '#fafafa',
+    border: '1px solid #e5e5e5',
+    borderRadius: '8px',
+    padding: '12px',
+    marginBottom: '10px',
     fontSize: '12px',
-    lineHeight: '1.6'
+    lineHeight: 1.6
   },
-  summaryNoIntake: {
-    color: '#94a3b8',
+  summaryEmpty: {
+    color: '#9ca3af',
     fontStyle: 'italic',
     textAlign: 'center',
     padding: '8px 0'
@@ -1060,7 +882,7 @@ const styles = {
   },
   summaryLabel: {
     fontWeight: '600',
-    color: '#475569',
+    color: '#6b7280',
     minWidth: '60px',
     flexShrink: 0
   },
@@ -1070,16 +892,17 @@ const styles = {
     listStyle: 'disc'
   },
   summaryNone: {
-    color: '#94a3b8',
+    color: '#d1d5db',
     fontStyle: 'italic'
   },
   summaryReminder: {
     marginTop: '8px',
     padding: '6px 8px',
-    backgroundColor: '#fefce8',
-    borderRadius: '4px',
+    background: '#fffbeb',
+    border: '1px solid #fef3c7',
+    borderRadius: '6px',
     fontSize: '11px',
-    color: '#854d0e',
+    color: '#92400e',
     fontStyle: 'italic'
   },
   summaryActions: {
@@ -1087,26 +910,307 @@ const styles = {
     gap: '6px',
     marginTop: '8px'
   },
-  copyButton: {
+  summaryBtnPrimary: {
     flex: 1,
     padding: '6px',
     border: 'none',
-    borderRadius: '4px',
-    backgroundColor: '#2563eb',
-    color: 'white',
+    borderRadius: '6px',
+    background: '#000',
+    color: '#fff',
     cursor: 'pointer',
     fontWeight: '500',
     fontSize: '11px'
   },
-  closeButton: {
+  summaryBtnSecondary: {
     flex: 1,
     padding: '6px',
-    border: '1px solid #d1d5db',
-    borderRadius: '4px',
-    backgroundColor: 'white',
-    color: '#6b7280',
+    border: '1px solid #e5e5e5',
+    borderRadius: '6px',
+    background: '#fff',
+    color: '#666',
     cursor: 'pointer',
     fontWeight: '500',
     fontSize: '11px'
+  },
+
+  // Meta (date, notes)
+  cardMeta: {
+    fontSize: '12px',
+    color: '#9ca3af',
+    marginBottom: '10px'
+  },
+  cardDate: {
+    fontSize: '12px',
+    color: '#9ca3af'
+  },
+  cardNotes: {
+    marginTop: '4px',
+    padding: '5px 8px',
+    background: '#fffbeb',
+    border: '1px solid #fef3c7',
+    borderRadius: '6px',
+    fontSize: '11px',
+    color: '#92400e',
+    fontStyle: 'italic',
+    lineHeight: 1.4
+  },
+
+  // Actions
+  cardActions: {
+    paddingTop: '10px',
+    borderTop: '1px solid #f5f5f5'
+  },
+  advanceBtn: {
+    width: '100%',
+    padding: '7px 10px',
+    border: 'none',
+    borderRadius: '8px',
+    color: '#fff',
+    cursor: 'pointer',
+    fontWeight: '600',
+    fontSize: '12px',
+    marginBottom: '8px',
+    letterSpacing: '0.2px'
+  },
+  cardControls: {
+    display: 'flex',
+    gap: '6px',
+    alignItems: 'center'
+  },
+  moveWrapper: {
+    position: 'relative',
+    flex: 1
+  },
+  moveBtn: {
+    width: '100%',
+    padding: '5px 10px',
+    border: '1px solid #e5e5e5',
+    borderRadius: '6px',
+    background: '#fff',
+    cursor: 'pointer',
+    fontSize: '11px',
+    fontWeight: '500',
+    color: '#9ca3af'
+  },
+  moveMenu: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    background: '#fff',
+    border: '1px solid #e5e5e5',
+    borderRadius: '10px',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+    zIndex: 100,
+    marginTop: '4px',
+    overflow: 'hidden',
+    padding: '4px'
+  },
+  moveOption: {
+    width: '100%',
+    padding: '8px 10px',
+    border: 'none',
+    borderRadius: '6px',
+    background: 'transparent',
+    cursor: 'pointer',
+    fontSize: '12px',
+    fontWeight: '500',
+    textAlign: 'left',
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center',
+    color: '#374151'
+  },
+  deleteBtn: {
+    padding: '5px 10px',
+    border: '1px solid #fecaca',
+    borderRadius: '6px',
+    background: '#fff',
+    cursor: 'pointer',
+    fontSize: '14px',
+    color: '#ef4444',
+    fontWeight: '600',
+    lineHeight: 1
+  },
+
+  // ─── Modal ──────────────────────────────────────────────────
+  modalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0,0,0,0.4)',
+    backdropFilter: 'blur(4px)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000
+  },
+  modal: {
+    background: '#fff',
+    borderRadius: '16px',
+    padding: '28px',
+    width: '90%',
+    maxWidth: '440px',
+    maxHeight: '90vh',
+    overflowY: 'auto',
+    boxShadow: '0 24px 48px rgba(0,0,0,0.16)'
+  },
+  modalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '20px'
+  },
+  modalTitle: {
+    margin: 0,
+    fontSize: '18px',
+    fontWeight: '700',
+    color: '#000'
+  },
+  modalClose: {
+    background: 'none',
+    border: 'none',
+    fontSize: '22px',
+    color: '#9ca3af',
+    cursor: 'pointer',
+    padding: '0 4px',
+    lineHeight: 1
+  },
+  modalFooter: {
+    display: 'flex',
+    gap: '10px',
+    marginTop: '24px'
+  },
+
+  // ─── Form Elements ──────────────────────────────────────────
+  formGroup: {
+    marginBottom: '18px'
+  },
+  formLabel: {
+    display: 'block',
+    fontSize: '12px',
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: '6px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.4px'
+  },
+  input: {
+    width: '100%',
+    padding: '10px 14px',
+    border: '1px solid #ddd',
+    borderRadius: '8px',
+    fontFamily: 'inherit',
+    fontSize: '14px',
+    boxSizing: 'border-box',
+    outline: 'none',
+    transition: 'border-color 0.15s ease'
+  },
+  textarea: {
+    width: '100%',
+    padding: '10px 14px',
+    border: '1px solid #ddd',
+    borderRadius: '8px',
+    minHeight: '60px',
+    resize: 'vertical',
+    fontFamily: 'inherit',
+    fontSize: '14px',
+    boxSizing: 'border-box',
+    outline: 'none'
+  },
+
+  // Segmented control (replaces toggle buttons)
+  segmentedControl: {
+    display: 'flex',
+    background: '#f5f5f5',
+    borderRadius: '8px',
+    padding: '3px',
+    gap: '3px'
+  },
+  segmentBtn: {
+    flex: 1,
+    padding: '8px 12px',
+    background: 'transparent',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '13px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    color: '#6b7280',
+    transition: 'all 0.12s ease'
+  },
+  segmentBtnActive: {
+    background: '#000',
+    color: '#fff',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+  },
+
+  // Selected patient
+  selectedPatient: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '10px 14px',
+    background: '#f0fdf4',
+    border: '1px solid #bbf7d0',
+    borderRadius: '8px'
+  },
+  clearBtn: {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: '18px',
+    color: '#9ca3af',
+    padding: '0 4px',
+    lineHeight: 1
+  },
+
+  // Search dropdown
+  searchDropdown: {
+    marginTop: '4px',
+    border: '1px solid #e5e5e5',
+    borderRadius: '10px',
+    overflow: 'hidden',
+    background: '#fff',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+  },
+  searchItem: {
+    width: '100%',
+    padding: '10px 14px',
+    border: 'none',
+    borderBottom: '1px solid #f5f5f5',
+    background: '#fff',
+    cursor: 'pointer',
+    textAlign: 'left',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px',
+    fontSize: '14px'
+  },
+
+  // Modal buttons
+  cancelBtn2: {
+    flex: 1,
+    padding: '10px',
+    border: '1px solid #e5e5e5',
+    borderRadius: '8px',
+    background: '#fff',
+    cursor: 'pointer',
+    fontWeight: '500',
+    fontSize: '14px',
+    color: '#374151'
+  },
+  submitBtn: {
+    flex: 1,
+    padding: '10px',
+    border: 'none',
+    borderRadius: '8px',
+    background: '#000',
+    color: '#fff',
+    cursor: 'pointer',
+    fontWeight: '600',
+    fontSize: '14px'
   }
 };

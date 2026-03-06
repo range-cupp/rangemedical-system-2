@@ -7,11 +7,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 
-// Notification sound using Web Audio API
+// SMS notification sound — two-tone "ding-ding" (880Hz + 1100Hz)
 function playNotificationSound() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    // Play two quick tones (pleasant "ding-ding")
     [0, 0.15].forEach((delay) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -24,8 +23,30 @@ function playNotificationSound() {
       osc.start(ctx.currentTime + delay);
       osc.stop(ctx.currentTime + delay + 0.3);
     });
-    // Close context after sounds finish
     setTimeout(() => ctx.close(), 1000);
+  } catch (e) {
+    // Audio not available — silent fail
+  }
+}
+
+// New patient notification sound — three-tone ascending chime (distinct from SMS)
+function playNewPatientSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // Three ascending tones: C6 → E6 → G6 (major triad, welcoming feel)
+    [0, 0.18, 0.36].forEach((delay, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = [1047, 1319, 1568][i]; // C6, E6, G6
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.25, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.35);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + 0.35);
+    });
+    setTimeout(() => ctx.close(), 1500);
   } catch (e) {
     // Audio not available — silent fail
   }
@@ -121,6 +142,81 @@ function useUnreadNotifications(router) {
   return unreadCount;
 }
 
+// Hook for new external patient notifications
+function useNewPatientNotifications(router) {
+  const latestTimestampRef = useRef(null);
+  const hasInteractedRef = useRef(false);
+  const initializedRef = useRef(false);
+
+  useEffect(() => {
+    const handleInteraction = () => { hasInteractedRef.current = true; };
+    window.addEventListener('click', handleInteraction, { once: true });
+    window.addEventListener('keydown', handleInteraction, { once: true });
+    return () => {
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('keydown', handleInteraction);
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const checkNewPatients = async () => {
+      try {
+        const since = latestTimestampRef.current;
+        const url = since
+          ? `/api/admin/new-patients-check?since=${encodeURIComponent(since)}`
+          : '/api/admin/new-patients-check';
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!mounted) return;
+
+        // Update timestamp
+        if (data.latestTimestamp) {
+          latestTimestampRef.current = data.latestTimestamp;
+        }
+
+        // Only notify after initial load (skip first poll)
+        if (!initializedRef.current) {
+          initializedRef.current = true;
+          return;
+        }
+
+        // New external patient arrived
+        if (data.newPatients && data.newPatients.length > 0 && hasInteractedRef.current) {
+          const patient = data.newPatients[0];
+          playNewPatientSound();
+
+          if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            const notif = new Notification('New Patient — Range Medical', {
+              body: `${patient.name} just entered the system`,
+              icon: '/favicon.ico',
+              tag: 'range-new-patient',
+            });
+            notif.onclick = () => {
+              window.focus();
+              router.push(`/patients/${patient.id}`);
+              notif.close();
+            };
+            setTimeout(() => notif.close(), 8000);
+          }
+        }
+      } catch (e) {
+        // Silent fail
+      }
+    };
+
+    checkNewPatients();
+    const interval = setInterval(checkNewPatients, 15000);
+
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, [router]);
+}
+
 const NAV_ITEMS = [
   { href: '/admin', label: 'Dashboard', icon: 'grid' },
   { href: '/admin/patients', label: 'Patients', icon: 'users' },
@@ -209,6 +305,7 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
   const currentPath = router.pathname;
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const unreadCount = useUnreadNotifications(router);
+  useNewPatientNotifications(router);
 
   return (
     <>

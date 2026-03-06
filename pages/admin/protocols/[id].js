@@ -147,6 +147,9 @@ export default function ProtocolDetail() {
   const [startingDrip, setStartingDrip] = useState(false);
   const [hrtReminderSchedule, setHrtReminderSchedule] = useState('mon_thu');
   const [enablingHrtReminders, setEnablingHrtReminders] = useState(false);
+  const [sessionModal, setSessionModal] = useState(null); // { sessionNum }
+  const [sessionDate, setSessionDate] = useState(new Date().toISOString().split('T')[0]);
+  const [sessionSaving, setSessionSaving] = useState(false);
 
   useEffect(() => {
     if (id) fetchProtocol();
@@ -423,6 +426,32 @@ export default function ProtocolDetail() {
     }
   };
 
+  // Log a session for session-based protocols (HBOT, RLT, IV, etc.)
+  const handleLogSession = async () => {
+    if (!sessionModal) return;
+    setSessionSaving(true);
+    try {
+      const res = await fetch(`/api/protocols/${id}/log-session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          log_type: 'session',
+          log_date: sessionDate,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to log session');
+      setSuccess(`Session #${sessionModal.sessionNum} logged for ${new Date(sessionDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`);
+      setSessionModal(null);
+      setSessionDate(new Date().toISOString().split('T')[0]);
+      fetchProtocol();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSessionSaving(false);
+    }
+  };
+
   const buildCheckinSchedule = async (p, duration, protocolId) => {
     if (!p.start_date) return;
     const parts = p.start_date.split('-');
@@ -587,7 +616,7 @@ export default function ProtocolDetail() {
 
   // For session-based: track sessions_completed vs total_sessions
   const totalSessions = protocol?.total_sessions || 0;
-  const sessionsCompleted = protocol?.sessions_completed || 0;
+  const sessionsCompleted = protocol?.sessions_completed || protocol?.sessions_used || 0;
   const sessionsRemaining = totalSessions - sessionsCompleted;
 
   // Weight loss: sessions_used is the source of truth (actual logged injections)
@@ -820,17 +849,23 @@ export default function ProtocolDetail() {
                     const num = i + 1;
                     const isUsed = num <= sessionsCompleted;
                     const isNext = num === sessionsCompleted + 1;
-                    
+                    const isClickable = !isUsed && sessionsCompleted < totalSessions;
+
                     return (
                       <div
                         key={num}
+                        onClick={isClickable ? () => { setSessionModal({ sessionNum: sessionsCompleted + 1 }); setSessionDate(new Date().toISOString().split('T')[0]); } : undefined}
                         style={{
                           ...styles.calendarDay,
                           background: isUsed ? '#22c55e' : isNext ? '#000' : '#fff',
                           color: isUsed || isNext ? '#fff' : '#000',
                           borderColor: isUsed ? '#22c55e' : isNext ? '#000' : '#e5e5e5',
-                          opacity: !isUsed && !isNext ? 0.5 : 1
+                          opacity: !isUsed && !isNext ? 0.5 : 1,
+                          cursor: isClickable ? 'pointer' : 'default',
+                          transition: 'transform 0.1s',
                         }}
+                        onMouseEnter={isClickable ? (e) => { e.currentTarget.style.transform = 'scale(1.08)'; } : undefined}
+                        onMouseLeave={isClickable ? (e) => { e.currentTarget.style.transform = 'scale(1)'; } : undefined}
                       >
                         <div style={styles.dayNumber}>{num}</div>
                         {isUsed && <div style={styles.checkmark}>✓</div>}
@@ -843,6 +878,53 @@ export default function ProtocolDetail() {
                   <span><span style={styles.legendDot} /> Used</span>
                   <span><span style={{ ...styles.legendDot, background: '#000' }} /> Next</span>
                   <span><span style={{ ...styles.legendDot, background: '#e5e5e5' }} /> Available</span>
+                </div>
+                <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '8px', textAlign: 'center' }}>Click a session to log it</p>
+              </div>
+            )}
+
+            {/* Log Session Modal */}
+            {sessionModal && (
+              <div style={{
+                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+              }} onClick={() => setSessionModal(null)}>
+                <div style={{
+                  background: '#fff', borderRadius: '14px', padding: '28px', width: '360px',
+                  boxShadow: '0 20px 60px rgba(0,0,0,0.2)'
+                }} onClick={e => e.stopPropagation()}>
+                  <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '4px' }}>Log Session #{sessionModal.sessionNum}</h3>
+                  <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '20px' }}>{protocol?.program_name}</p>
+
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '6px' }}>Session Date</label>
+                  <input
+                    type="date"
+                    value={sessionDate}
+                    onChange={e => setSessionDate(e.target.value)}
+                    style={{
+                      width: '100%', padding: '10px 12px', borderRadius: '8px',
+                      border: '1px solid #d1d5db', fontSize: '14px', marginBottom: '20px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      onClick={() => setSessionModal(null)}
+                      style={{
+                        flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db',
+                        background: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: 500
+                      }}
+                    >Cancel</button>
+                    <button
+                      onClick={handleLogSession}
+                      disabled={sessionSaving}
+                      style={{
+                        flex: 1, padding: '10px', borderRadius: '8px', border: 'none',
+                        background: '#16a34a', color: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: 600
+                      }}
+                    >{sessionSaving ? 'Logging...' : '✓ Log Session'}</button>
+                  </div>
                 </div>
               </div>
             )}

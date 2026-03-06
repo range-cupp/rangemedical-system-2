@@ -45,7 +45,7 @@ function calculateRemaining(protocol) {
       if (protocol.total_sessions && protocol.total_sessions > 0) {
         const sessionsUsed = protocol.sessions_used || 0;
         const sessionsRemaining = protocol.total_sessions - sessionsUsed;
-        const statusText = sessionsRemaining <= 0 ? 'All sessions used' :
+        const statusText = sessionsRemaining <= 0 ? `${sessionsUsed} of ${protocol.total_sessions} — add more` :
                            `${sessionsUsed} of ${protocol.total_sessions} injections`;
         return { sessions_remaining: sessionsRemaining, total_sessions: protocol.total_sessions, status_text: statusText };
       }
@@ -230,10 +230,12 @@ export default async function handler(req, res) {
           category
         };
 
+        // Weight loss protocols are ongoing — never auto-complete based on sessions/dates
+        const isWeightLoss = (protocol.program_type || '').toLowerCase().includes('weight');
         const isCompleted =
           protocol.status === 'completed' ||
-          (tracking.days_remaining !== null && tracking.days_remaining <= -7) ||
-          (tracking.sessions_remaining !== undefined && tracking.sessions_remaining <= 0 && protocol.total_sessions > 0);
+          (!isWeightLoss && tracking.days_remaining !== null && tracking.days_remaining <= -7) ||
+          (!isWeightLoss && tracking.sessions_remaining !== undefined && tracking.sessions_remaining <= 0 && protocol.total_sessions > 0);
 
         // Skip labs — they live in the Labs pipeline, not in Active Protocols
         if (protocol.program_type === 'labs') return;

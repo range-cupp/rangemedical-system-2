@@ -123,8 +123,9 @@ export default async function handler(req, res) {
         updated_at: new Date().toISOString()
       };
 
-      // Auto-complete if all sessions used
-      if (newSessionsUsed >= protocol.total_sessions) {
+      // Auto-complete if all sessions used — but NOT weight loss (ongoing programs)
+      const isWeightLoss = (protocol.program_type || '').toLowerCase().includes('weight');
+      if (!isWeightLoss && newSessionsUsed >= protocol.total_sessions) {
         updates.status = 'completed';
         protocolCompleted = true;
       }

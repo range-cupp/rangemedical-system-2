@@ -101,7 +101,7 @@ export default async function handler(req, res) {
     }
   }
 
-  const { log_date, weight, dose, side_effects, notes, delivery_method } = req.body;
+  const { log_date, weight, dose, side_effects, notes, delivery_method, blood_pressure } = req.body;
 
   if (!id) {
     return res.status(400).json({ error: 'Protocol ID required' });
@@ -140,6 +140,10 @@ export default async function handler(req, res) {
     if (side_effects && side_effects.length > 0 && !side_effects.includes('None')) {
       logNotes += logNotes ? ' | ' : '';
       logNotes += `Side effects: ${side_effects.join(', ')}`;
+    }
+    if (blood_pressure) {
+      logNotes += logNotes ? ' | ' : '';
+      logNotes += `BP: ${blood_pressure}`;
     }
     if (notes && notes.trim()) {
       logNotes += logNotes ? ' | ' : '';
@@ -244,7 +248,11 @@ export default async function handler(req, res) {
       if (dose) {
         ghlNote += `\nDose: ${dose}`;
       }
-      
+
+      if (blood_pressure) {
+        ghlNote += `\nBlood Pressure: ${blood_pressure}`;
+      }
+
       if (side_effects && side_effects.length > 0 && !side_effects.includes('None')) {
         ghlNote += `\n\n⚠️ Side Effects: ${side_effects.join(', ')}`;
       }

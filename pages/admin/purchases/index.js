@@ -268,7 +268,11 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
   const [patientLoading, setPatientLoading] = useState(true);
   const [cycleInfo, setCycleInfo] = useState(null);
 
-  const initialType = CATEGORY_TO_TYPE[purchase?.category] || 'peptide';
+  // Auto-detect lab purchases and set initial type
+  const purchaseItemLower = (purchase?.item_name || '').toLowerCase();
+  const purchaseCat = (purchase?.category || '').toLowerCase();
+  const isLabPurchase = purchaseCat === 'labs' || purchaseItemLower.includes('lab panel');
+  const initialType = isLabPurchase ? 'lab_panel' : (CATEGORY_TO_TYPE[purchase?.category] || 'peptide');
 
   // Handle both object {value, label} and plain number formats for injections
   const getInitialInjections = () => {
@@ -290,13 +294,11 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
     notes: ''
   });
 
-  // Labs pipeline toggle — auto-detect from purchase name
-  const purchaseItemLower = (purchase?.item_name || '').toLowerCase();
-  const autoDetectLab = purchaseItemLower.includes('lab') || purchaseItemLower.includes('panel');
+  // Lab pipeline options
   const autoDetectPanel = purchaseItemLower.includes('elite') ? 'elite' : 'essential';
-  const [addToLabs, setAddToLabs] = useState(autoDetectLab);
   const [labPanelType, setLabPanelType] = useState(autoDetectPanel);
   const [labType, setLabType] = useState('new_patient');
+  const isLabMode = form.protocolType === 'lab_panel';
 
   // Look up patient from patients table (single source of truth)
   useEffect(() => {
@@ -412,6 +414,28 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
     setError(null);
 
     try {
+      // Lab Panel mode — only create lab pipeline entry, no protocol
+      if (isLabMode) {
+        const res = await fetch('/api/admin/labs-pipeline', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            patientId: patientId,
+            patientName: patientName,
+            panelType: labPanelType,
+            labType: labType,
+            bloodDrawDate: form.startDate,
+            notes: form.notes || null
+          })
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || 'Failed to add to lab pipeline');
+        }
+        onSuccess();
+        return;
+      }
+
       const dbProgramType = getDBProgramType(form.protocolType, form.duration);
 
       const buildProtocolName = () => {
@@ -424,8 +448,8 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
         if (type === 'injection_pack') return `Injection Pack (${form.totalInjections} injections) - ${form.medication}`;
         if (type === 'red_light') return `Red Light Therapy (${form.totalSessions} sessions)`;
         if (type === 'hbot') return `HBOT (${form.totalSessions} sessions)`;
-        if (type === 'iv_therapy') return form.medication 
-          ? `${form.medication} (${form.totalSessions} sessions)` 
+        if (type === 'iv_therapy') return form.medication
+          ? `${form.medication} (${form.totalSessions} sessions)`
           : `IV Therapy (${form.totalSessions} sessions)`;
         return 'Protocol';
       };
@@ -495,26 +519,6 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
           errorMsg = data.details || data.error || errorMsg;
         } catch (e) { /* response may be empty */ }
         throw new Error(errorMsg);
-      }
-
-      // Also create lab pipeline entry if toggled on
-      if (addToLabs) {
-        try {
-          await fetch('/api/admin/labs-pipeline', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              patientId: patientId,
-              patientName: patientName,
-              panelType: labPanelType,
-              labType: labType,
-              bloodDrawDate: form.startDate,
-              notes: form.notes || null
-            })
-          });
-        } catch (labErr) {
-          console.error('Lab pipeline creation failed:', labErr);
-        }
       }
 
       onSuccess();
@@ -589,10 +593,21 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
             </div>
           )}
 
-          {/* Protocol Type */}
+          {/* Type Selection */}
           <div style={modalStyles.section}>
-            <h3 style={modalStyles.sectionTitle}>Protocol Type</h3>
+            <h3 style={modalStyles.sectionTitle}>Type</h3>
             <div style={modalStyles.typeGrid}>
+              <button
+                onClick={() => setForm(prev => ({ ...prev, protocolType: 'lab_panel' }))}
+                style={{
+                  ...modalStyles.typeBtn,
+                  background: isLabMode ? '#16a34a' : '#f5f5f5',
+                  color: isLabMode ? '#fff' : '#000',
+                  border: isLabMode ? '1px solid #16a34a' : '1px solid transparent'
+                }}
+              >
+                🧪 Lab Panel
+              </button>
               {Object.entries(PROTOCOL_TYPES).map(([key, type]) => (
                 <button
                   key={key}
@@ -609,8 +624,55 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
             </div>
           </div>
 
-          {/* Medication */}
-          {selectedType?.medications && (
+          {/* Lab Panel Mode */}
+          {isLabMode && (
+            <div style={{
+              padding: '20px',
+              background: '#f0fdf4',
+              borderRadius: '10px',
+              border: '1px solid #bbf7d0'
+            }}>
+              <div style={{ fontSize: '14px', fontWeight: 600, color: '#15803d', marginBottom: '16px' }}>
+                🧪 Add to Lab Pipeline
+              </div>
+              <div style={modalStyles.grid}>
+                <div style={modalStyles.field}>
+                  <label style={modalStyles.label}>Panel Type</label>
+                  <select
+                    value={labPanelType}
+                    onChange={e => setLabPanelType(e.target.value)}
+                    style={modalStyles.select}
+                  >
+                    <option value="essential">Essential ($350)</option>
+                    <option value="elite">Elite ($750)</option>
+                  </select>
+                </div>
+                <div style={modalStyles.field}>
+                  <label style={modalStyles.label}>Lab Type</label>
+                  <select
+                    value={labType}
+                    onChange={e => setLabType(e.target.value)}
+                    style={modalStyles.select}
+                  >
+                    <option value="new_patient">New Patient</option>
+                    <option value="follow_up">Follow-up</option>
+                  </select>
+                </div>
+                <div style={modalStyles.field}>
+                  <label style={modalStyles.label}>Blood Draw Date</label>
+                  <input
+                    type="date"
+                    value={form.startDate}
+                    onChange={e => setForm({ ...form, startDate: e.target.value })}
+                    style={modalStyles.input}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Medication (protocols only) */}
+          {!isLabMode && selectedType?.medications && (
             <div style={modalStyles.section}>
               <h3 style={modalStyles.sectionTitle}>Medication</h3>
               <div style={modalStyles.grid}>
@@ -660,151 +722,108 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
             </div>
           )}
 
-          {/* Schedule */}
-          <div style={modalStyles.section}>
-            <h3 style={modalStyles.sectionTitle}>Schedule</h3>
-            <div style={modalStyles.grid}>
-              <div style={modalStyles.field}>
-                <label style={modalStyles.label}>Frequency</label>
-                <select
-                  value={form.frequency}
-                  onChange={e => setForm({ ...form, frequency: e.target.value })}
-                  style={modalStyles.select}
-                >
-                  {selectedType?.frequencies?.map(f => (
-                    <option key={f.value} value={f.value}>{f.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div style={modalStyles.field}>
-                <label style={modalStyles.label}>Delivery</label>
-                <select
-                  value={form.deliveryMethod}
-                  onChange={e => setForm({ ...form, deliveryMethod: e.target.value })}
-                  style={modalStyles.select}
-                >
-                  {selectedType?.deliveryMethods ? (
-                    selectedType.deliveryMethods.map(d => (
-                      <option key={d.value} value={d.value}>{d.label}</option>
-                    ))
-                  ) : (
-                    <>
-                      <option value="take_home">Take Home</option>
-                      <option value="in_clinic">In Clinic</option>
-                    </>
-                  )}
-                </select>
-              </div>
-              <div style={modalStyles.field}>
-                <label style={modalStyles.label}>Start Date</label>
-                <input
-                  type="date"
-                  value={form.startDate}
-                  onChange={e => setForm({ ...form, startDate: e.target.value })}
-                  style={modalStyles.input}
-                />
-              </div>
-              {selectedType?.durations && (
+          {/* Schedule (protocols only) */}
+          {!isLabMode && (
+            <div style={modalStyles.section}>
+              <h3 style={modalStyles.sectionTitle}>Schedule</h3>
+              <div style={modalStyles.grid}>
                 <div style={modalStyles.field}>
-                  <label style={modalStyles.label}>Duration</label>
+                  <label style={modalStyles.label}>Frequency</label>
                   <select
-                    value={form.duration}
-                    onChange={e => setForm({ ...form, duration: e.target.value })}
+                    value={form.frequency}
+                    onChange={e => setForm({ ...form, frequency: e.target.value })}
                     style={modalStyles.select}
                   >
-                    {selectedType.durations.map(d => (
-                      <option key={d.value} value={d.value}>{d.label}</option>
+                    {selectedType?.frequencies?.map(f => (
+                      <option key={f.value} value={f.value}>{f.label}</option>
                     ))}
                   </select>
                 </div>
-              )}
-              {selectedType?.sessions && (
                 <div style={modalStyles.field}>
-                  <label style={modalStyles.label}>Sessions</label>
+                  <label style={modalStyles.label}>Delivery</label>
                   <select
-                    value={form.totalSessions}
-                    onChange={e => setForm({ ...form, totalSessions: e.target.value })}
+                    value={form.deliveryMethod}
+                    onChange={e => setForm({ ...form, deliveryMethod: e.target.value })}
                     style={modalStyles.select}
                   >
-                    {selectedType.sessions.map(s => (
-                      <option key={s} value={s}>{s} session{s > 1 ? 's' : ''}</option>
-                    ))}
+                    {selectedType?.deliveryMethods ? (
+                      selectedType.deliveryMethods.map(d => (
+                        <option key={d.value} value={d.value}>{d.label}</option>
+                      ))
+                    ) : (
+                      <>
+                        <option value="take_home">Take Home</option>
+                        <option value="in_clinic">In Clinic</option>
+                      </>
+                    )}
                   </select>
                 </div>
-              )}
-              {selectedType?.injections && (
                 <div style={modalStyles.field}>
-                  <label style={modalStyles.label}>Injections</label>
-                  <select
-                    value={form.totalInjections}
-                    onChange={e => setForm({ ...form, totalInjections: e.target.value })}
-                    style={modalStyles.select}
-                  >
-                    {selectedType.injections.map(i => {
-                      // Handle both object format {value, label} and plain number format
-                      const val = typeof i === 'object' ? i.value : i;
-                      const label = typeof i === 'object' ? i.label : `${i} injection${i > 1 ? 's' : ''}`;
-                      return <option key={val} value={val}>{label}</option>;
-                    })}
-                  </select>
+                  <label style={modalStyles.label}>Start Date</label>
+                  <input
+                    type="date"
+                    value={form.startDate}
+                    onChange={e => setForm({ ...form, startDate: e.target.value })}
+                    style={modalStyles.input}
+                  />
                 </div>
-              )}
+                {selectedType?.durations && (
+                  <div style={modalStyles.field}>
+                    <label style={modalStyles.label}>Duration</label>
+                    <select
+                      value={form.duration}
+                      onChange={e => setForm({ ...form, duration: e.target.value })}
+                      style={modalStyles.select}
+                    >
+                      {selectedType.durations.map(d => (
+                        <option key={d.value} value={d.value}>{d.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {selectedType?.sessions && (
+                  <div style={modalStyles.field}>
+                    <label style={modalStyles.label}>Sessions</label>
+                    <select
+                      value={form.totalSessions}
+                      onChange={e => setForm({ ...form, totalSessions: e.target.value })}
+                      style={modalStyles.select}
+                    >
+                      {selectedType.sessions.map(s => (
+                        <option key={s} value={s}>{s} session{s > 1 ? 's' : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {selectedType?.injections && (
+                  <div style={modalStyles.field}>
+                    <label style={modalStyles.label}>Injections</label>
+                    <select
+                      value={form.totalInjections}
+                      onChange={e => setForm({ ...form, totalInjections: e.target.value })}
+                      style={modalStyles.select}
+                    >
+                      {selectedType.injections.map(i => {
+                        // Handle both object format {value, label} and plain number format
+                        const val = typeof i === 'object' ? i.value : i;
+                        const label = typeof i === 'object' ? i.label : `${i} injection${i > 1 ? 's' : ''}`;
+                        return <option key={val} value={val}>{label}</option>;
+                      })}
+                    </select>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-
-          {/* Add to Labs Pipeline */}
-          <div style={{
-            margin: '0 0 4px 0',
-            padding: '14px 16px',
-            background: addToLabs ? '#f0fdf4' : '#fafafa',
-            borderRadius: '10px',
-            border: addToLabs ? '1px solid #bbf7d0' : '1px solid #e5e7eb',
-            transition: 'all 0.15s ease'
-          }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={addToLabs}
-                onChange={e => setAddToLabs(e.target.checked)}
-                style={{ width: '18px', height: '18px', accentColor: '#16a34a', cursor: 'pointer' }}
-              />
-              <span style={{ fontSize: '14px', fontWeight: 600, color: addToLabs ? '#15803d' : '#374151' }}>
-                🧪 Add to Lab Pipeline
-              </span>
-            </label>
-            {addToLabs && (
-              <div style={{ display: 'flex', gap: '12px', marginTop: '12px', paddingLeft: '28px' }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Panel Type</label>
-                  <select
-                    value={labPanelType}
-                    onChange={e => setLabPanelType(e.target.value)}
-                    style={{ ...modalStyles.select, marginTop: '4px' }}
-                  >
-                    <option value="essential">Essential ($350)</option>
-                    <option value="elite">Elite ($750)</option>
-                  </select>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Lab Type</label>
-                  <select
-                    value={labType}
-                    onChange={e => setLabType(e.target.value)}
-                    style={{ ...modalStyles.select, marginTop: '4px' }}
-                  >
-                    <option value="new_patient">New Patient</option>
-                    <option value="follow_up">Follow-up</option>
-                  </select>
-                </div>
-              </div>
-            )}
-          </div>
+          )}
         </div>
 
         <div style={modalStyles.footer}>
           <button onClick={onClose} style={modalStyles.cancelBtn}>Cancel</button>
-          <button onClick={handleSubmit} disabled={saving} style={modalStyles.submitBtn}>
-            {saving ? 'Creating...' : 'Create Protocol'}
+          <button onClick={handleSubmit} disabled={saving} style={{
+            ...modalStyles.submitBtn,
+            ...(isLabMode ? { background: '#16a34a' } : {})
+          }}>
+            {saving ? 'Adding...' : isLabMode ? '🧪 Add to Lab Pipeline' : 'Create Protocol'}
           </button>
         </div>
       </div>

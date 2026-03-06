@@ -72,7 +72,8 @@ export default async function handler(req, res) {
       phone: formData.phone || null,
       date_of_birth: formatDate(formData.dateOfBirth),
       gender: formData.gender || null,
-      
+      preferred_name: trimStr(formData.preferredName) || null,
+
       // Address
       street_address: formData.streetAddress || null,
       city: formData.city || null,
@@ -229,7 +230,7 @@ export default async function handler(req, res) {
         const normalizedEmail = intakeRecord.email.toLowerCase().trim();
         const { data: patientMatch } = await supabase
           .from('patients')
-          .select('id, date_of_birth, gender, address, city, state, zip_code')
+          .select('id, date_of_birth, gender, address, city, state, zip_code, preferred_name')
           .eq('email', normalizedEmail)
           .maybeSingle();
 
@@ -241,6 +242,7 @@ export default async function handler(req, res) {
           if (!patientMatch.city && intakeRecord.city) demoUpdates.city = intakeRecord.city;
           if (!patientMatch.state && intakeRecord.state) demoUpdates.state = intakeRecord.state;
           if (!patientMatch.zip_code && intakeRecord.postal_code) demoUpdates.zip_code = intakeRecord.postal_code;
+          if (!patientMatch.preferred_name && intakeRecord.preferred_name) demoUpdates.preferred_name = intakeRecord.preferred_name;
 
           if (Object.keys(demoUpdates).length > 0) {
             await supabase.from('patients').update(demoUpdates).eq('id', patientMatch.id);
@@ -265,6 +267,7 @@ export default async function handler(req, res) {
             phone: intakeRecord.phone || null,
             date_of_birth: intakeRecord.date_of_birth || null,
             gender: intakeRecord.gender || null,
+            preferred_name: intakeRecord.preferred_name || null,
             address: intakeRecord.street_address || null,
             city: intakeRecord.city || null,
             state: intakeRecord.state || null,

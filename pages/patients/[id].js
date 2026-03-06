@@ -411,10 +411,13 @@ export default function PatientProfile() {
   };
 
   const getPatientDisplayName = () => {
-    if (patient?.first_name && patient?.last_name) {
-      return `${patient.first_name} ${patient.last_name}`;
+    const fullName = (patient?.first_name && patient?.last_name)
+      ? `${patient.first_name} ${patient.last_name}`
+      : patient?.name || 'Unknown Patient';
+    if (patient?.preferred_name && patient.preferred_name !== patient.first_name) {
+      return `${fullName} ("${patient.preferred_name}")`;
     }
-    return patient?.name || 'Unknown Patient';
+    return fullName;
   };
 
   const getCategoryStyle = (category) => CATEGORY_COLORS[category] || CATEGORY_COLORS.other;
@@ -860,6 +863,7 @@ export default function PatientProfile() {
     setPatientEditForm({
       first_name: patient.first_name || '',
       last_name: patient.last_name || '',
+      preferred_name: patient.preferred_name || '',
       email: patient.email || '',
       phone: patient.phone || '',
       date_of_birth: patient.date_of_birth || '',
@@ -1125,6 +1129,16 @@ export default function PatientProfile() {
                   )}
                 </div>
                 <div className="demo-item">
+                  <label>Preferred Name</label>
+                  {patient.preferred_name ? (
+                    <span>{patient.preferred_name}</span>
+                  ) : intakeDemographics?.preferred_name ? (
+                    <span>{intakeDemographics.preferred_name} <span className="from-intake">(from intake)</span></span>
+                  ) : (
+                    <span>—</span>
+                  )}
+                </div>
+                <div className="demo-item">
                   <label>Phone</label>
                   <span>{patient.phone ? formatPhone(patient.phone) : '—'}</span>
                 </div>
@@ -1150,6 +1164,10 @@ export default function PatientProfile() {
                 <div className="edit-field">
                   <label>Last Name</label>
                   <input type="text" value={patientEditForm.last_name} onChange={e => setPatientEditForm(f => ({ ...f, last_name: e.target.value }))} />
+                </div>
+                <div className="edit-field">
+                  <label>Preferred Name</label>
+                  <input type="text" value={patientEditForm.preferred_name} onChange={e => setPatientEditForm(f => ({ ...f, preferred_name: e.target.value }))} placeholder="What they like to be called" />
                 </div>
                 <div className="edit-field">
                   <label>Email</label>

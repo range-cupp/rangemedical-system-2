@@ -307,7 +307,7 @@ export default async function handler(req, res) {
 
       // ===== NEW: Get intake forms =====
       let intakes = [];
-      const intakeFields = 'id, first_name, last_name, email, phone, date_of_birth, gender, submitted_at, pdf_url, symptoms, photo_id_url, signature_url, patient_id, ghl_contact_id';
+      const intakeFields = 'id, first_name, last_name, email, phone, date_of_birth, gender, preferred_name, submitted_at, pdf_url, symptoms, photo_id_url, signature_url, patient_id, ghl_contact_id';
 
       // Try by patient_id first
       const { data: intakesByPatientId } = await supabase
@@ -549,7 +549,7 @@ export default async function handler(req, res) {
       let intakeDemographics = null;
       const firstIntake = intakes?.[0];
       if (firstIntake) {
-        const hasMissingDemographics = !patient.date_of_birth || !patient.gender || !patient.first_name || !patient.last_name;
+        const hasMissingDemographics = !patient.date_of_birth || !patient.gender || !patient.first_name || !patient.last_name || !patient.preferred_name;
         if (hasMissingDemographics) {
           intakeDemographics = {
             date_of_birth: firstIntake.date_of_birth,
@@ -557,7 +557,8 @@ export default async function handler(req, res) {
             first_name: firstIntake.first_name,
             last_name: firstIntake.last_name,
             phone: firstIntake.phone,
-            email: firstIntake.email
+            email: firstIntake.email,
+            preferred_name: firstIntake.preferred_name || null
           };
         }
       }
@@ -617,7 +618,7 @@ export default async function handler(req, res) {
 
       // Only allow fields that exist in the patients table
       const allowedFields = [
-        'first_name', 'last_name', 'name', 'email', 'phone',
+        'first_name', 'last_name', 'name', 'preferred_name', 'email', 'phone',
         'date_of_birth', 'gender', 'ghl_contact_id',
         'address', 'city', 'state', 'zip_code',
         'notes', 'tags', 'status'
@@ -659,7 +660,7 @@ export default async function handler(req, res) {
 
       // If a column doesn't exist, strip unknown columns and retry
       if (error && error.message && error.message.includes('column')) {
-        const maybeNewColumns = ['address', 'city', 'state', 'zip_code'];
+        const maybeNewColumns = ['address', 'city', 'state', 'zip_code', 'preferred_name'];
         const retryUpdates = { ...updates };
         maybeNewColumns.forEach(col => delete retryUpdates[col]);
 

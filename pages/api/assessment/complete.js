@@ -184,7 +184,7 @@ export default async function handler(req, res) {
         const normalizedEmail = email.toLowerCase().trim();
         const { data: patientMatch } = await supabase
           .from('patients')
-          .select('id, date_of_birth, gender, address, city, state, zip_code')
+          .select('id, date_of_birth, gender, address, city, state, zip_code, preferred_name')
           .eq('email', normalizedEmail)
           .maybeSingle();
 
@@ -193,6 +193,7 @@ export default async function handler(req, res) {
         const addr = pi.address || {};
         const dob = pi.dob || pi.date_of_birth || pi.dateOfBirth || intakeData.dob;
         const gender = pi.gender || pi.sex || intakeData.gender;
+        const preferredName = pi.preferredName || intakeData.preferredName || null;
         const street = addr.street || addr.streetAddress || pi.streetAddress || intakeData.streetAddress;
         const city = addr.city || pi.city || intakeData.city;
         const state = addr.state || pi.state || intakeData.state;
@@ -230,6 +231,9 @@ export default async function handler(req, res) {
           if (!patientMatch.zip_code && zip) {
             demographicUpdates.zip_code = zip;
           }
+          if (!patientMatch.preferred_name && preferredName) {
+            demographicUpdates.preferred_name = preferredName;
+          }
 
           if (Object.keys(demographicUpdates).length > 0) {
             const { error: demoError } = await supabase
@@ -255,6 +259,7 @@ export default async function handler(req, res) {
             phone: phone || null,
             date_of_birth: parsedDob,
             gender: gender || null,
+            preferred_name: preferredName || null,
             address: street || null,
             city: city || null,
             state: state || null,

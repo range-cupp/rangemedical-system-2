@@ -3,7 +3,6 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
-import { addGHLNote, updateGHLContact } from '../../../../lib/ghl-sync';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -119,8 +118,7 @@ export default async function handler(req, res) {
         *,
         patients (
           id,
-          name,
-          ghl_contact_id
+          name
         )
       `)
       .eq('id', id)
@@ -205,71 +203,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to update protocol' });
     }
 
-    // Calculate weight change if we have both weights
-    let weightChange = '';
-    if (weight && protocol.starting_weight) {
-      const change = weight - protocol.starting_weight;
-      weightChange = change < 0 
-        ? `↓ ${Math.abs(change).toFixed(1)} lbs from start`
-        : change > 0 
-          ? `↑ ${change.toFixed(1)} lbs from start`
-          : 'No change from start';
-    }
-
-    // Sync to GHL (only for today's date to avoid confusing timeline)
-    const contactId = protocol.patients?.ghl_contact_id;
     const patientName = protocol.patients?.name || 'Unknown';
-    const isToday = log_date === new Date().toISOString().split('T')[0];
-    
-    if (contactId) {
-      // Update custom fields
-      await updateGHLContact(contactId, {
-        'wl__injections_used': String(newSessionsUsed),
-        'wl__injections_remaining': String(sessionsRemaining),
-        ...(weight ? { 'wl__current_weight': String(weight) } : {})
-      });
-
-      // Add note (mark if backfilled)
-      const deliveryLabel = delivery_method === 'in_clinic' ? 'IN CLINIC' : 'TAKE HOME';
-      let ghlNote = isToday 
-        ? `💉 INJECTION LOGGED (${deliveryLabel})`
-        : `💉 INJECTION LOGGED - BACKFILLED (${deliveryLabel})`;
-      
-      ghlNote += `\n\nDate: ${log_date}`;
-      ghlNote += `\nInjection: ${newSessionsUsed} of ${totalSessions}`;
-      
-      if (weight) {
-        ghlNote += `\nWeight: ${weight} lbs`;
-        if (weightChange) {
-          ghlNote += ` (${weightChange})`;
-        }
-      }
-      
-      if (dose) {
-        ghlNote += `\nDose: ${dose}`;
-      }
-
-      if (blood_pressure) {
-        ghlNote += `\nBlood Pressure: ${blood_pressure}`;
-      }
-
-      if (side_effects && side_effects.length > 0 && !side_effects.includes('None')) {
-        ghlNote += `\n\n⚠️ Side Effects: ${side_effects.join(', ')}`;
-      }
-      
-      if (notes && notes.trim()) {
-        ghlNote += `\n\nNotes: ${notes.trim()}`;
-      }
-      
-      if (sessionsRemaining <= 0) {
-        ghlNote += `\n\n✅ PROTOCOL COMPLETE - All ${totalSessions} injections used`;
-      } else if (sessionsRemaining === 1) {
-        ghlNote += `\n\n⚠️ Last injection remaining`;
-      }
-
-      await addGHLNote(contactId, ghlNote);
-    }
-
     console.log(`✓ Injection logged for ${patientName}: #${newSessionsUsed}/${totalSessions} on ${log_date}`);
 
     return res.status(200).json({

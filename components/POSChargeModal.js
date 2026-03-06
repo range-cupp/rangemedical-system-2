@@ -770,7 +770,9 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     }
 
     if (piData.status === 'requires_action' || piData.status === 'requires_confirmation') {
-      const { error, paymentIntent } = await stripe.confirmCardPayment(piData.client_secret);
+      const { error, paymentIntent } = await stripe.confirmCardPayment(piData.client_secret, {
+        payment_method: paymentMethodId,
+      });
 
       if (error) {
         setResultStatus('error');
@@ -786,8 +788,18 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
         setResultStatus('success');
         setResultMessage(getResultMessage(amount));
         setStep('result');
+      } else {
+        setResultStatus('error');
+        setResultMessage(`Payment not completed — status: ${paymentIntent.status}`);
+        setStep('result');
       }
+      return;
     }
+
+    // Unexpected status
+    setResultStatus('error');
+    setResultMessage(`Unexpected payment status: ${piData.status}`);
+    setStep('result');
   }
 
   function handleClose() {

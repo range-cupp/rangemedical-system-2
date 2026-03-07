@@ -1470,7 +1470,7 @@ export default function PatientProfile() {
                     }}>
                       {stage.icon} {stage.label}
                     </span>
-                    <span style={{ fontSize: '12px', color: '#6b7280' }}>{panelType}</span>
+                    <span style={{ fontSize: '12px', color: '#6b7280' }}>{activeLab.program_name || panelType}</span>
                     {drawDate && <span style={{ fontSize: '12px', color: '#6b7280' }}>• Draw: {drawDate}</span>}
                     <span style={{ marginLeft: 'auto', fontSize: '12px', color: '#9ca3af' }}>View →</span>
                   </div>

@@ -108,6 +108,8 @@ export default function SchedulePage() {
               <th style={styles.th}>Time</th>
               <th style={styles.th}>Patient</th>
               <th style={styles.th}>Service</th>
+              <th style={styles.th}>Provider</th>
+              <th style={styles.th}>Location</th>
               <th style={styles.th}>Status</th>
             </tr>
           </thead>
@@ -128,6 +130,18 @@ export default function SchedulePage() {
                     </span>
                   </td>
                   <td style={styles.td}>{apt.service_name || apt.title || '-'}</td>
+                  <td style={styles.td}>
+                    <span style={{ fontSize: '13px', color: '#555' }}>{apt.provider || '—'}</span>
+                  </td>
+                  <td style={styles.td}>
+                    {apt.location && apt.location !== 'Range Medical — Newport Beach' ? (
+                      <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '10px', background: '#ede9fe', color: '#6d28d9', fontWeight: '500' }}>
+                        📍 Placentia
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '13px', color: '#999' }}>Newport Beach</span>
+                    )}
+                  </td>
                   <td style={styles.td}>
                     <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
                       <span style={{

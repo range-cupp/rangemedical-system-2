@@ -85,6 +85,7 @@ export default async function handler(req, res) {
         patient_id,
         program_name,
         program_type,
+        delivery_method,
         injection_day,
         checkin_reminder_enabled,
         patients!inner (
@@ -98,7 +99,8 @@ export default async function handler(req, res) {
       .eq('status', 'active')
       .ilike('program_type', 'weight_loss%')
       .eq('checkin_reminder_enabled', true)
-      .eq('injection_day', todayPacific);
+      .eq('injection_day', todayPacific)
+      .neq('delivery_method', 'in_clinic');
 
     if (protocolsError) {
       // If columns don't exist yet, return helpful message

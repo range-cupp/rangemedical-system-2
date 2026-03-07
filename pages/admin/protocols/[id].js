@@ -2071,8 +2071,8 @@ export default function ProtocolDetail() {
                   );
                 })()}
 
-                {/* Weekly Check-in Texts (weight loss) */}
-                {isWeightLoss && (() => {
+                {/* Weekly Check-in Texts (weight loss take-home only — in-clinic patients don't need automated check-ins) */}
+                {isWeightLoss && (protocol?.delivery_method || protocol?.injection_location) !== 'in_clinic' && (() => {
                   const checkinEnabled = protocol?.checkin_reminder_enabled === true;
                   const injDay = protocol?.injection_day;
 

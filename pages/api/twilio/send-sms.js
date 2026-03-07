@@ -23,6 +23,7 @@ export default async function handler(req, res) {
     to,           // phone number
     message,
     message_type, // optional: label for comms_log
+    provider,     // optional: 'blooio' or 'twilio' override
   } = req.body;
 
   if (!to || !message) {
@@ -46,8 +47,8 @@ export default async function handler(req, res) {
     ghlContactId = patient?.ghl_contact_id || null;
   }
 
-  // Send via configured provider (Blooio or Twilio based on SMS_PROVIDER env var)
-  const result = await sendSMS({ to: normalizedTo, message });
+  // Send via configured provider (or explicit override from UI toggle)
+  const result = await sendSMS({ to: normalizedTo, message, provider });
 
   if (result.success) {
     await logComm({

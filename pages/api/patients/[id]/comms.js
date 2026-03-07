@@ -18,18 +18,24 @@ export default async function handler(req, res) {
   const { id } = req.query;
   const limit = Math.min(500, parseInt(req.query.limit) || 200);
   const channel = req.query.channel; // 'sms' | 'email' | 'call' | undefined (all)
+  const phone = req.query.phone; // optional: query by phone instead of patient_id
 
-  if (!id) {
-    return res.status(400).json({ error: 'Patient ID required' });
+  if (!id && !phone) {
+    return res.status(400).json({ error: 'Patient ID or phone required' });
   }
 
   try {
     let query = supabase
       .from('comms_log')
-      .select('id, channel, message_type, message, status, error_message, recipient, subject, direction, source, created_at')
-      .eq('patient_id', id)
-      .order('created_at', { ascending: false })
-      .limit(limit);
+      .select('id, channel, message_type, message, status, error_message, recipient, subject, direction, source, created_at');
+
+    if (id && id !== '_') {
+      query = query.eq('patient_id', id);
+    } else if (phone) {
+      query = query.eq('recipient', phone);
+    }
+
+    query = query.order('created_at', { ascending: false }).limit(limit);
 
     if (channel) {
       query = query.eq('channel', channel);

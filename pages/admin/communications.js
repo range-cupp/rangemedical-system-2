@@ -80,7 +80,7 @@ export default function CommunicationsPage() {
       const patientMap = {};
       const unreadCounts = {};
       for (const log of logs) {
-        const key = log.patient_id || (log.ghl_contact_id ? `ghl_${log.ghl_contact_id}` : null);
+        const key = log.patient_id || (log.ghl_contact_id ? `ghl_${log.ghl_contact_id}` : null) || (log.recipient ? `phone_${log.recipient}` : null);
         if (!key) continue;
 
         // Count unread inbound messages per patient
@@ -471,7 +471,7 @@ export default function CommunicationsPage() {
           <ConversationView
             patientId={selectedPatient?.id}
             patientName={selectedPatient?.name}
-            patientPhone={selectedPatient?.phone}
+            patientPhone={selectedPatient?.phone || selectedPatient?.recipient}
             ghlContactId={selectedPatient?.ghl_contact_id}
             onBack={handleBack}
           />

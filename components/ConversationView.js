@@ -18,22 +18,25 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const [ghlLoaded, setGhlLoaded] = useState(false);
   const [callsSynced, setCallsSynced] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState(null);
+  const [smsProvider, setSmsProvider] = useState('blooio');
   const messagesContainerRef = useRef(null);
   const shouldScrollRef = useRef(false);
 
   useEffect(() => {
-    if (patientId) {
+    if (patientId || patientPhone) {
       shouldScrollRef.current = true;
       fetchMessages();
 
       // Mark this patient's messages as read
-      fetch('/api/admin/mark-read', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ patientId }),
-      }).catch(() => {}); // non-blocking, best-effort
+      if (patientId) {
+        fetch('/api/admin/mark-read', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ patientId }),
+        }).catch(() => {}); // non-blocking, best-effort
+      }
     }
-  }, [patientId]);
+  }, [patientId, patientPhone]);
 
   // Scroll to bottom after messages have rendered in the DOM
   useEffect(() => {
@@ -59,8 +62,11 @@ export default function ConversationView({ patientId, patientName, patientPhone,
     try {
       setLoading(true);
 
-      // Fetch local comms_log
-      const res = await fetch(`/api/patients/${patientId}/comms?limit=200`);
+      // Fetch local comms_log (by patient ID or phone number)
+      const commsUrl = patientId
+        ? `/api/patients/${patientId}/comms?limit=200`
+        : `/api/patients/_/comms?limit=200&phone=${encodeURIComponent(patientPhone)}`;
+      const res = await fetch(commsUrl);
       const data = await res.json();
       const localLogs = data.comms || [];
 
@@ -162,6 +168,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
           to: patientPhone,
           message: newMessage.trim(),
           message_type: 'direct_sms',
+          provider: smsProvider,
         }),
       });
 
@@ -177,7 +184,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
         message: newMessage.trim(),
         direction: 'outbound',
         status: 'sent',
-        source: 'twilio/send-sms',
+        source: `send-sms(${smsProvider})`,
         created_at: new Date().toISOString(),
       }]);
 
@@ -277,7 +284,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
     return null;
   };
 
-  if (!patientId) {
+  if (!patientId && !patientPhone) {
     return (
       <div style={styles.emptyState}>
         <div style={styles.emptyIcon}>💬</div>
@@ -596,6 +603,29 @@ export default function ConversationView({ patientId, patientName, patientPhone,
         </div>
       )}
 
+      {/* Provider toggle */}
+      <div style={styles.providerToggle}>
+        <span style={styles.providerLabel}>Send via:</span>
+        <button
+          onClick={() => setSmsProvider('blooio')}
+          style={{
+            ...styles.providerBtn,
+            ...(smsProvider === 'blooio' ? styles.providerBtnActive : {}),
+          }}
+        >
+          Blooio
+        </button>
+        <button
+          onClick={() => setSmsProvider('twilio')}
+          style={{
+            ...styles.providerBtn,
+            ...(smsProvider === 'twilio' ? styles.providerBtnActive : {}),
+          }}
+        >
+          949 Number
+        </button>
+      </div>
+
       {/* Input */}
       <div style={styles.inputArea}>
         <button
@@ -883,6 +913,34 @@ const styles = {
     cursor: 'pointer',
     fontSize: '14px',
     padding: '2px 6px',
+  },
+  providerToggle: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '6px 16px',
+    borderTop: '1px solid #f0f0f0',
+    background: '#fafafa',
+  },
+  providerLabel: {
+    fontSize: '12px',
+    color: '#999',
+    marginRight: '4px',
+  },
+  providerBtn: {
+    padding: '3px 10px',
+    fontSize: '12px',
+    border: '1px solid #ddd',
+    borderRadius: '12px',
+    background: '#fff',
+    color: '#666',
+    cursor: 'pointer',
+    fontWeight: '500',
+  },
+  providerBtnActive: {
+    background: '#000',
+    color: '#fff',
+    borderColor: '#000',
   },
   inputArea: {
     display: 'flex',

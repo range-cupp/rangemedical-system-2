@@ -108,7 +108,8 @@ function calculateRemaining(protocol) {
         return { days_remaining: daysRemaining, total_days: vialDays, status_text: statusText };
       } else {
         const is4Week = supplyType.includes('4') || supplyType.includes('four') || supplyType.includes('month');
-        const supplyDays = is4Week ? 28 : 14;
+        // HRT subscriptions are 30-day cycles; only use 14 if explicitly prefilled_2week
+        const supplyDays = is4Week ? 28 : (supplyType.includes('2') || supplyType.includes('two') ? 14 : 30);
         const daysRemaining = supplyDays - daysSinceRefill;
 
         const statusText = daysRemaining <= 0 ? 'Refill overdue' :

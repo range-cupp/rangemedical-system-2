@@ -221,7 +221,6 @@ const NAV_ITEMS = [
   { href: '/admin', label: 'Dashboard', icon: 'grid' },
   { href: '/admin/patients', label: 'Patients', icon: 'users' },
   { href: '/admin/protocols', label: 'Protocols', icon: 'activity' },
-  { href: '/admin/journeys', label: 'Journeys', icon: 'map' },
   { href: '/admin/schedule', label: 'Schedule', icon: 'calendar' },
   { href: '/admin/labs', label: 'Labs', icon: 'flask' },
   { href: '/admin/service-log', label: 'Service Log', icon: 'clipboard' },

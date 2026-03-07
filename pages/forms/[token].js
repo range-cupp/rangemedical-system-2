@@ -56,6 +56,11 @@ export default function FormBundlePage() {
       if (bundle.patientInfo.phone) params.set('ph', bundle.patientInfo.phone);
       if (bundle.patientInfo.dateOfBirth) params.set('dob', bundle.patientInfo.dateOfBirth);
     }
+    // Also pass phone/email directly for HIPAA form compatibility (reads "phone" not "ph")
+    const phone = bundle.patientInfo?.phone || bundle.patientPhone;
+    if (phone) params.set('phone', phone);
+    const email = bundle.patientInfo?.email || bundle.patientEmail;
+    if (email) params.set('email', email);
     return `${form.path}?${params.toString()}`;
   }
 

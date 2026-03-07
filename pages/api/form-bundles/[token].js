@@ -165,6 +165,8 @@ export default async function handler(req, res) {
         patientName: bundle.patient_name || '',
         firstName,
         ghlContactId: bundle.ghl_contact_id || '',
+        patientPhone: bundle.patient_phone || '',
+        patientEmail: bundle.patient_email || '',
         forms,
         completedCount,
         totalCount: forms.length,

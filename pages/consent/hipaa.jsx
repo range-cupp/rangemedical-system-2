@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 
 export default function HIPAANotice() {
   const router = useRouter();
-  const { phone, cid } = router.query; // phone number or contact ID from SMS link
+  const { phone, cid, email, fn, ln } = router.query; // from SMS link or bundle
   
   const [acknowledged, setAcknowledged] = useState(false);
   const [status, setStatus] = useState({ type: '', message: '' });
@@ -48,6 +48,9 @@ export default function HIPAANotice() {
             consentType: 'hipaa',
             consentDate: new Date().toISOString().split('T')[0],
             consentGiven: true,
+            firstName: fn || null,
+            lastName: ln || null,
+            email: email || null,
             phone: phone || null,
             ghlContactId: cid || null,
           })

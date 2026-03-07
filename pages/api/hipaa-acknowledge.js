@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { phone, contactId, acknowledgedAt } = req.body;
+    const { phone, contactId, acknowledgedAt, signatureUrl, pdfUrl } = req.body;
 
     let finalContactId = contactId;
 
@@ -84,7 +84,9 @@ export default async function handler(req, res) {
             {
               key: 'hipaa_acknowledged_date',
               field_value: acknowledgedAt || new Date().toISOString()
-            }
+            },
+            ...(pdfUrl ? [{ key: 'hipaa_pdf_url', field_value: pdfUrl }] : []),
+            ...(signatureUrl ? [{ key: 'hipaa_signature_url', field_value: signatureUrl }] : [])
           ]
         })
       }
@@ -107,7 +109,7 @@ export default async function handler(req, res) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          body: `HIPAA Notice of Privacy Practices acknowledged on ${new Date().toLocaleString()}`,
+          body: `HIPAA Notice of Privacy Practices acknowledged on ${new Date().toLocaleString()}${pdfUrl ? `\n📄 PDF: ${pdfUrl}` : ''}${signatureUrl ? `\n✍️ Signature: ${signatureUrl}` : ''}`,
           userId: null
         })
       }

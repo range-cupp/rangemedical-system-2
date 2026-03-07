@@ -14,6 +14,13 @@ export default function BloodDrawConsentPage() {
     const ghlContactId = urlParams.get('contactId') || urlParams.get('contact_id') || urlParams.get('cid') || '';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    // Pre-fill from bundle query params
+    ['fn:firstName','ln:lastName','em:email','ph:phone','dob:dateOfBirth'].forEach(p => {
+      const [k, id] = p.split(':');
+      const v = urlParams.get(k);
+      if (v) { const el = document.getElementById(id); if (el) el.value = v; }
+    });
+
     // Signature pad
     const canvas = document.getElementById('signaturePad');
     const signaturePad = new SignaturePad(canvas, { backgroundColor: 'rgb(255, 255, 255)', penColor: 'rgb(0, 0, 0)' });
@@ -171,6 +178,8 @@ export default function BloodDrawConsentPage() {
     });
 
     function showThankYouPage(formData) {
+      const bundleToken = urlParams.get('bundle');
+      if (bundleToken) { window.location.href = '/forms/' + bundleToken; return; }
       document.getElementById('consentContainer').innerHTML = `
         <div class="thank-you-page">
           <div class="thank-you-icon">✓</div>

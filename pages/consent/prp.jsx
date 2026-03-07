@@ -20,6 +20,13 @@ export default function PRPConsentPage() {
 
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    // Pre-fill from bundle query params
+    ['fn:firstName','ln:lastName','em:email','ph:phone','dob:dateOfBirth'].forEach(p => {
+      const [k, id] = p.split(':');
+      const v = urlParams.get(k);
+      if (v) { const el = document.getElementById(id); if (el) el.value = v; }
+    });
+
     // ============================================
     // SIGNATURE PAD
     // ============================================
@@ -311,6 +318,8 @@ export default function PRPConsentPage() {
     // THANK YOU PAGE
     // ============================================
     function showThankYouPage(formData) {
+      const bundleToken = urlParams.get('bundle');
+      if (bundleToken) { window.location.href = '/forms/' + bundleToken; return; }
       document.getElementById('consentContainer').innerHTML = `
         <div class="thank-you-page">
           <div class="thank-you-icon">\u2713</div>

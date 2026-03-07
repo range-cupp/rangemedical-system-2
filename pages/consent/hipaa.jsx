@@ -56,11 +56,15 @@ export default function HIPAANotice() {
         console.error('Consent DB save error:', dbErr);
       }
 
+      // Bundle redirect — go to next form
+      const bundleToken = new URLSearchParams(window.location.search).get('bundle');
+      if (bundleToken) { window.location.href = '/forms/' + bundleToken; return; }
       setSubmitted(true);
     } catch (error) {
       console.error('Error:', error);
       // Still show success - we don't want to block patients
-      // The acknowledgment can be verified by them viewing the page
+      const bundleToken = new URLSearchParams(window.location.search).get('bundle');
+      if (bundleToken) { window.location.href = '/forms/' + bundleToken; return; }
       setSubmitted(true);
     } finally {
       setLoading(false);

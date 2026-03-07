@@ -1,31 +1,16 @@
 // /pages/api/admin/send-forms-email.js
-// Send consent/form links to patients via email (Resend)
+// Send consent/form links to patients via email (Resend) — creates a form bundle
 // Range Medical
 
 import { Resend } from 'resend';
 import { logComm } from '../../../lib/comms-log';
+import { createFormBundle, FORM_DEFINITIONS } from '../../../lib/form-bundles';
 
-const FORM_DEFINITIONS = {
-  'intake': { name: 'Medical Intake', path: '/intake' },
-  'hipaa': { name: 'HIPAA Privacy Notice', path: '/consent/hipaa' },
-  'blood-draw': { name: 'Blood Draw Consent', path: '/consent/blood-draw' },
-  'hrt': { name: 'HRT Consent', path: '/consent/hrt' },
-  'peptide': { name: 'Peptide Therapy Consent', path: '/consent/peptide' },
-  'iv': { name: 'IV/Injection Consent', path: '/consent/iv' },
-  'hbot': { name: 'HBOT Consent', path: '/consent/hbot' },
-  'weight-loss': { name: 'Weight Loss Consent', path: '/consent/weight-loss' },
-  'red-light': { name: 'Red Light Therapy Consent', path: '/consent/red-light' },
-  'prp': { name: 'PRP Consent', path: '/consent/prp' },
-  'exosome-iv': { name: 'Exosome IV Consent', path: '/consent/exosome-iv' },
-};
-
-function generateFormsEmailHtml({ firstName, forms, baseUrl }) {
-  const formLinksHtml = forms.map(f => `
+function generateFormsEmailHtml({ firstName, forms, bundleUrl }) {
+  const formListHtml = forms.map(f => `
     <tr>
-      <td style="padding: 8px 0;">
-        <a href="${baseUrl}${f.path}" style="display: inline-block; padding: 12px 24px; background-color: #000000; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500;">
-          ${f.name}
-        </a>
+      <td style="padding: 6px 0; color: #404040; font-size: 14px;">
+        &bull; ${f.name} <span style="color: #999;">(${f.time})</span>
       </td>
     </tr>
   `).join('');
@@ -57,11 +42,23 @@ function generateFormsEmailHtml({ firstName, forms, baseUrl }) {
                             <p style="margin: 0 0 24px; color: #404040; font-size: 15px; line-height: 1.7;">Hi ${firstName},</p>
                             <p style="margin: 0 0 24px; color: #404040; font-size: 15px; line-height: 1.7;">Please complete the following form${forms.length > 1 ? 's' : ''} before your visit to Range Medical:</p>
 
-                            <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 0 24px;">
-                                ${formLinksHtml}
+                            <!-- Single CTA button -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 auto 24px;">
+                                <tr>
+                                    <td style="padding: 0;">
+                                        <a href="${bundleUrl}" style="display: inline-block; padding: 16px 40px; background-color: #000000; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 700; letter-spacing: 0.05em;">
+                                            Complete Your Forms
+                                        </a>
+                                    </td>
+                                </tr>
                             </table>
 
-                            <p style="margin: 0 0 8px; color: #666; font-size: 13px; line-height: 1.6;">Completing these forms ahead of time helps us provide you with the best care possible.</p>
+                            <!-- Form list for context -->
+                            <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 0 24px; width: 100%;">
+                                ${formListHtml}
+                            </table>
+
+                            <p style="margin: 0 0 8px; color: #666; font-size: 13px; line-height: 1.6;">Your information carries forward between forms so you only need to enter it once.</p>
                         </td>
                     </tr>
 
@@ -69,7 +66,6 @@ function generateFormsEmailHtml({ firstName, forms, baseUrl }) {
                     <tr>
                         <td style="padding: 24px 30px; border-top: 1px solid #e5e5e5; background-color: #fafafa;">
                             <p style="margin: 0 0 4px; color: #999; font-size: 12px;">Range Medical</p>
-                            <p style="margin: 0 0 4px; color: #999; font-size: 12px;">Questions? Call us at (949) 997-3988</p>
                             <p style="margin: 0; color: #999; font-size: 12px;">www.range-medical.com</p>
                         </td>
                     </tr>
@@ -87,7 +83,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { email, firstName, formIds, patientId, patientName, ghlContactId } = req.body;
+  const { email, firstName, formIds, patientId, patientName, ghlContactId, patientPhone } = req.body;
 
   if (!email) {
     return res.status(400).json({ error: 'Email address is required' });
@@ -99,7 +95,7 @@ export default async function handler(req, res) {
 
   // Validate and sort form IDs — intake first, hipaa second, then rest
   const PRIORITY_ORDER = ['intake', 'hipaa'];
-  const validForms = formIds
+  const validFormIds = formIds
     .filter(id => FORM_DEFINITIONS[id])
     .sort((a, b) => {
       const aIdx = PRIORITY_ORDER.indexOf(a);
@@ -108,23 +104,32 @@ export default async function handler(req, res) {
       if (aIdx !== -1) return -1;
       if (bIdx !== -1) return 1;
       return 0;
-    })
-    .map(id => FORM_DEFINITIONS[id]);
+    });
 
-  if (validForms.length === 0) {
+  if (validFormIds.length === 0) {
     return res.status(400).json({ error: 'No valid forms selected' });
   }
 
-  const baseUrl = 'https://app.range-medical.com';
+  const validForms = validFormIds.map(id => ({ ...FORM_DEFINITIONS[id], id }));
   const name = firstName || 'there';
 
   try {
+    // Create form bundle
+    const bundle = await createFormBundle({
+      formIds: validFormIds,
+      patientId: patientId || null,
+      patientName: patientName || firstName || null,
+      patientEmail: email,
+      patientPhone: patientPhone || null,
+      ghlContactId: ghlContactId || null,
+    });
+
     const resend = new Resend(process.env.RESEND_API_KEY);
 
     const html = generateFormsEmailHtml({
       firstName: name,
       forms: validForms,
-      baseUrl,
+      bundleUrl: bundle.url,
     });
 
     const formNames = validForms.map(f => f.name).join(', ');
@@ -148,7 +153,7 @@ export default async function handler(req, res) {
     await logComm({
       channel: 'email',
       messageType: 'form_links',
-      message: `Forms sent via email: ${formNames}`,
+      message: `Forms sent via email: ${formNames} (bundle: ${bundle.token})`,
       source: 'send-forms-email',
       patientId: patientId || null,
       patientName: patientName || firstName || null,
@@ -158,11 +163,13 @@ export default async function handler(req, res) {
       subject,
     });
 
-    console.log(`Forms email sent to ${email}: ${formNames}`);
+    console.log(`Forms email sent to ${email}: ${formNames} (bundle: ${bundle.token})`);
 
     return res.status(200).json({
       success: true,
       formsSent: validForms.length,
+      bundleToken: bundle.token,
+      bundleUrl: bundle.url,
       message: `Sent ${validForms.length} form${validForms.length > 1 ? 's' : ''} via email`,
     });
 

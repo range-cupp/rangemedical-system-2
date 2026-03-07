@@ -1691,6 +1691,14 @@ function initializeForm() {
     IMask(document.getElementById('dob'), { mask: '00/00/0000' });
   }
 
+  // Pre-fill from bundle query params
+  const bundleParams = new URLSearchParams(window.location.search);
+  ['fn:firstName','ln:lastName','em:email','ph:phone','dob:dob'].forEach(p => {
+    const [k, id] = p.split(':');
+    const v = bundleParams.get(k);
+    if (v) { const el = document.getElementById(id); if (el) el.value = v; }
+  });
+
   // ============================================
   // FILE UPLOAD FUNCTIONS
   // ============================================
@@ -2451,6 +2459,10 @@ function initializeForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
+
+      // Bundle redirect — go to next form
+      const bundleToken = new URLSearchParams(window.location.search).get('bundle');
+      if (bundleToken) { window.location.href = '/forms/' + bundleToken; return; }
 
       // Show thank you screen
       document.getElementById('intakeContainer').querySelector('.form-container').style.display = 'none';

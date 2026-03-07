@@ -74,14 +74,14 @@ export default async function handler(req, res) {
     let messageBody;
     if (validGuideIds.length === 1) {
       const guide = GUIDE_DEFINITIONS[validGuideIds[0]];
-      messageBody = `${greeting}Range Medical here. Here's your ${guide.name}:\n\n${baseUrl}${guide.path}\n\nQuestions? (949) 997-3988`;
+      messageBody = `${greeting}Range Medical here. Here's your ${guide.name}:\n\n${baseUrl}${guide.path}`;
     } else {
       const guideLinks = validGuideIds.map(id => {
         const guide = GUIDE_DEFINITIONS[id];
         return `${guide.name}: ${baseUrl}${guide.path}`;
       }).join('\n');
 
-      messageBody = `${greeting}Range Medical here. Here are your treatment guides:\n\n${guideLinks}\n\nQuestions? (949) 997-3988`;
+      messageBody = `${greeting}Range Medical here. Here are your treatment guides:\n\n${guideLinks}`;
     }
 
     // Send via SMS provider (Blooio/Twilio based on SMS_PROVIDER env)

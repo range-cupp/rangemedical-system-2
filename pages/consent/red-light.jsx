@@ -49,6 +49,18 @@ export default function RedLightConsentForm() {
     setFormData(prev => ({ ...prev, consentDate: today }));
     const urlParams = new URLSearchParams(window.location.search);
     setGhlContactId(urlParams.get('contactId') || urlParams.get('contact_id') || urlParams.get('cid') || '');
+    // Pre-fill from bundle query params
+    const fn = urlParams.get('fn'), ln = urlParams.get('ln'), em = urlParams.get('em'), ph = urlParams.get('ph'), dob = urlParams.get('dob');
+    if (fn || ln || em || ph || dob) {
+      setFormData(prev => ({
+        ...prev,
+        ...(fn && { firstName: fn }),
+        ...(ln && { lastName: ln }),
+        ...(em && { email: em }),
+        ...(ph && { phone: ph }),
+        ...(dob && { dateOfBirth: dob }),
+      }));
+    }
   }, []);
 
   useEffect(() => {
@@ -450,6 +462,9 @@ export default function RedLightConsentForm() {
       setStatus({ type: 'loading', message: 'Updating patient record...' });
       await sendToGHL(signatureUrl, pdfUrl);
 
+      // Bundle redirect — go to next form
+      const bundleToken = new URLSearchParams(window.location.search).get('bundle');
+      if (bundleToken) { window.location.href = '/forms/' + bundleToken; return; }
       setShowThankYou(true);
     } catch (error) {
       console.error('Submission error:', error);

@@ -1,23 +1,10 @@
 // pages/api/send-forms-sms.js
-// Sends selected form links via SMS using Twilio
+// Sends selected form links via SMS — creates a form bundle with single link
 // Range Medical
 
 import { sendSMS, normalizePhone } from '../../lib/send-sms';
 import { logComm } from '../../lib/comms-log';
-
-const FORM_DEFINITIONS = {
-  'intake': { name: 'Medical Intake', path: '/intake' },
-  'hipaa': { name: 'HIPAA Notice', path: '/consent/hipaa' },
-  'blood-draw': { name: 'Blood Draw Consent', path: '/consent/blood-draw' },
-  'hrt': { name: 'HRT Consent', path: '/consent/hrt' },
-  'peptide': { name: 'Peptide Consent', path: '/consent/peptide' },
-  'iv': { name: 'IV/Injection Consent', path: '/consent/iv' },
-  'hbot': { name: 'HBOT Consent', path: '/consent/hbot' },
-  'weight-loss': { name: 'Weight Loss Consent', path: '/consent/weight-loss' },
-  'red-light': { name: 'Red Light Therapy Consent', path: '/consent/red-light' },
-  'prp': { name: 'PRP Consent', path: '/consent/prp' },
-  'exosome-iv': { name: 'Exosome IV Consent', path: '/consent/exosome-iv' },
-};
+import { createFormBundle, FORM_DEFINITIONS } from '../../lib/form-bundles';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -25,7 +12,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { phone, firstName, formIds, patientId, patientName, ghlContactId } = req.body;
+    const { phone, firstName, formIds, patientId, patientName, ghlContactId, patientEmail } = req.body;
 
     if (!phone || phone.replace(/\D/g, '').length < 10) {
       return res.status(400).json({ error: 'Valid phone number required' });
@@ -58,26 +45,29 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid phone number format' });
     }
 
-    // Build the base URL
-    const baseUrl = 'https://app.range-medical.com';
+    // Create form bundle with single link
+    const bundle = await createFormBundle({
+      formIds: validFormIds,
+      patientId: patientId || null,
+      patientName: patientName || firstName || null,
+      patientEmail: patientEmail || null,
+      patientPhone: normalizedPhone,
+      ghlContactId: ghlContactId || null,
+    });
 
-    // Build SMS message
+    // Build SMS message with single bundle link
     const greeting = firstName ? `Hi ${firstName}! ` : '';
+    const formNames = validFormIds.map(id => FORM_DEFINITIONS[id].name).join(', ');
 
     let messageBody;
     if (validFormIds.length === 1) {
       const form = FORM_DEFINITIONS[validFormIds[0]];
-      messageBody = `${greeting}Range Medical here. Please complete your ${form.name} before your visit:\n\n${baseUrl}${form.path}\n\nQuestions? (949) 997-3988`;
+      messageBody = `${greeting}Range Medical here. Please complete your ${form.name} before your visit:\n\n${bundle.url}`;
     } else {
-      const formLinks = validFormIds.map(id => {
-        const form = FORM_DEFINITIONS[id];
-        return `${form.name}: ${baseUrl}${form.path}`;
-      }).join('\n');
-
-      messageBody = `${greeting}Range Medical here. Please complete these forms before your visit:\n\n${formLinks}\n\nQuestions? (949) 997-3988`;
+      messageBody = `${greeting}Range Medical here. Please complete your ${validFormIds.length} forms before your visit:\n\n${bundle.url}`;
     }
 
-    // Send via SMS provider (Blooio/Twilio based on SMS_PROVIDER env)
+    // Send via SMS provider
     const result = await sendSMS({ to: normalizedPhone, message: messageBody });
 
     if (!result.success) {
@@ -86,7 +76,6 @@ export default async function handler(req, res) {
     }
 
     // Log to comms_log
-    const formNames = validFormIds.map(id => FORM_DEFINITIONS[id].name).join(', ');
     await logComm({
       channel: 'sms',
       messageType: 'form_links',
@@ -101,7 +90,7 @@ export default async function handler(req, res) {
       provider: result.provider || null,
     });
 
-    console.log(`Forms SMS sent to ${normalizedPhone}: ${formNames}`);
+    console.log(`Forms SMS sent to ${normalizedPhone}: ${formNames} (bundle: ${bundle.token})`);
 
     // Also tag GHL contact in background (non-blocking)
     if (ghlContactId || phone) {
@@ -114,6 +103,8 @@ export default async function handler(req, res) {
       success: true,
       formsSent: validFormIds.length,
       messageSid: result.messageSid,
+      bundleToken: bundle.token,
+      bundleUrl: bundle.url,
       message: 'Forms sent successfully',
     });
 

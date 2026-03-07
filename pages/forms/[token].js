@@ -1,9 +1,9 @@
 // pages/forms/[token].js
-// Form bundle landing page — auto-progresses through forms
-// Shows progress, redirects to next uncompleted form, carries patient info forward
+// Form bundle landing page — shows checklist of forms with completion tracking
+// Patient clicks each form, completes it, returns to see updated progress
 // Range Medical
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 
@@ -13,8 +13,6 @@ export default function FormBundlePage() {
   const [bundle, setBundle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [redirecting, setRedirecting] = useState(false);
-  const redirectingRef = useRef(false);
 
   const fetchBundle = useCallback(async () => {
     if (!token) return;
@@ -39,8 +37,6 @@ export default function FormBundlePage() {
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible' && token) {
-        redirectingRef.current = false;
-        setRedirecting(false);
         fetchBundle();
       }
     };
@@ -48,36 +44,20 @@ export default function FormBundlePage() {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [fetchBundle, token]);
 
-  // Auto-redirect to the next uncompleted form
-  useEffect(() => {
-    if (!bundle || bundle.allComplete || redirectingRef.current) return;
-
-    const nextForm = bundle.forms.find(f => !f.completed);
-    if (!nextForm) return;
-
-    redirectingRef.current = true;
-    setRedirecting(true);
-
-    // Short delay so patient can see progress before redirect
-    const delay = bundle.completedCount === 0 ? 100 : 1500;
-    setTimeout(() => {
-      // Build URL with query params for patient info carry-forward
-      const params = new URLSearchParams();
-      params.set('bundle', token);
-      if (bundle.ghlContactId) params.set('cid', bundle.ghlContactId);
-
-      // Carry patient info from previously completed forms
-      if (bundle.patientInfo) {
-        if (bundle.patientInfo.firstName) params.set('fn', bundle.patientInfo.firstName);
-        if (bundle.patientInfo.lastName) params.set('ln', bundle.patientInfo.lastName);
-        if (bundle.patientInfo.email) params.set('em', bundle.patientInfo.email);
-        if (bundle.patientInfo.phone) params.set('ph', bundle.patientInfo.phone);
-        if (bundle.patientInfo.dateOfBirth) params.set('dob', bundle.patientInfo.dateOfBirth);
-      }
-
-      window.location.href = `${nextForm.path}?${params.toString()}`;
-    }, delay);
-  }, [bundle, token]);
+  // Build the URL for a form with patient info carry-forward
+  function getFormUrl(form) {
+    const params = new URLSearchParams();
+    params.set('bundle', token);
+    if (bundle.ghlContactId) params.set('cid', bundle.ghlContactId);
+    if (bundle.patientInfo) {
+      if (bundle.patientInfo.firstName) params.set('fn', bundle.patientInfo.firstName);
+      if (bundle.patientInfo.lastName) params.set('ln', bundle.patientInfo.lastName);
+      if (bundle.patientInfo.email) params.set('em', bundle.patientInfo.email);
+      if (bundle.patientInfo.phone) params.set('ph', bundle.patientInfo.phone);
+      if (bundle.patientInfo.dateOfBirth) params.set('dob', bundle.patientInfo.dateOfBirth);
+    }
+    return `${form.path}?${params.toString()}`;
+  }
 
   if (loading) {
     return (
@@ -161,7 +141,9 @@ export default function FormBundlePage() {
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
                     </div>
-                    <span style={styles.formNameComplete}>{form.name}</span>
+                    <div style={styles.formInfo}>
+                      <span style={styles.formNameComplete}>{form.name}</span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -172,8 +154,7 @@ export default function FormBundlePage() {
     );
   }
 
-  // In-progress — showing progress before redirect
-  const nextForm = bundle.forms.find(f => !f.completed);
+  // In-progress — show checklist with clickable forms
   const progressPct = Math.round((bundle.completedCount / bundle.totalCount) * 100);
 
   return (
@@ -183,36 +164,42 @@ export default function FormBundlePage() {
         <div style={styles.container}>
           <div style={styles.header}>
             <h1 style={styles.logo}>RANGE MEDICAL</h1>
+            <p style={styles.headerSub}>Forms to Complete</p>
           </div>
           <div style={styles.body}>
+            {bundle.firstName && (
+              <p style={styles.greeting}>Hi {bundle.firstName},</p>
+            )}
+            <p style={styles.instructions}>
+              Please complete the following form{bundle.totalCount - bundle.completedCount > 1 ? 's' : ''} before your visit.
+            </p>
+
             {bundle.completedCount > 0 && (
-              <>
-                <h2 style={styles.progressTitle}>
-                  {bundle.completedCount} of {bundle.totalCount} forms completed
-                </h2>
+              <div style={styles.progressSection}>
+                <p style={styles.progressLabel}>
+                  {bundle.completedCount} of {bundle.totalCount} completed
+                </p>
                 <div style={styles.progressBar}>
                   <div style={{ ...styles.progressFill, width: `${progressPct}%` }} />
                 </div>
-              </>
+              </div>
             )}
 
             <div style={styles.formsList}>
-              {bundle.forms.map((form, idx) => (
-                <div
-                  key={form.id}
-                  style={form.completed ? styles.formItemComplete :
-                         form.id === nextForm?.id ? styles.formItemNext : styles.formItem}
-                >
+              {bundle.forms.map((form) => (
+                <div key={form.id} style={form.completed ? styles.formItemComplete : styles.formItem}>
                   {form.completed ? (
                     <div style={styles.checkCircle}>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
                     </div>
-                  ) : form.id === nextForm?.id ? (
-                    <div style={styles.activeCircle}>{idx + 1}</div>
                   ) : (
-                    <div style={styles.pendingCircle}>{idx + 1}</div>
+                    <div style={styles.pendingCircle}>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                      </svg>
+                    </div>
                   )}
                   <div style={styles.formInfo}>
                     <span style={form.completed ? styles.formNameComplete : styles.formName}>
@@ -220,18 +207,18 @@ export default function FormBundlePage() {
                     </span>
                     <span style={styles.formTime}>{form.time}</span>
                   </div>
-                  {form.id === nextForm?.id && (
-                    <div style={styles.nextBadge}>Next</div>
+                  {!form.completed && (
+                    <a href={getFormUrl(form)} style={styles.startButton}>
+                      Start
+                    </a>
                   )}
                 </div>
               ))}
             </div>
 
-            {redirecting && nextForm && (
-              <p style={styles.redirectText}>
-                Opening {nextForm.name}...
-              </p>
-            )}
+            <p style={styles.infoNote}>
+              Your information carries forward between forms so you only need to enter it once.
+            </p>
           </div>
         </div>
       </div>
@@ -269,9 +256,25 @@ const styles = {
     fontWeight: 700,
     letterSpacing: '3px',
   },
+  headerSub: {
+    margin: '6px 0 0',
+    color: '#a3a3a3',
+    fontSize: '13px',
+  },
   body: {
-    padding: '32px 24px',
-    textAlign: 'center',
+    padding: '28px 24px',
+  },
+  greeting: {
+    margin: '0 0 4px',
+    fontSize: '16px',
+    fontWeight: 600,
+    color: '#111',
+  },
+  instructions: {
+    margin: '0 0 20px',
+    fontSize: '15px',
+    color: '#666',
+    lineHeight: '1.5',
   },
   // Loading
   spinner: {
@@ -287,6 +290,7 @@ const styles = {
     color: '#666',
     fontSize: '15px',
     margin: 0,
+    textAlign: 'center',
   },
   // Error
   errorIcon: {
@@ -307,47 +311,57 @@ const styles = {
     fontWeight: 600,
     margin: '0 0 8px',
     color: '#111',
+    textAlign: 'center',
   },
   errorText: {
     fontSize: '15px',
     color: '#666',
     margin: '0 0 16px',
     lineHeight: '1.5',
+    textAlign: 'center',
   },
   contactText: {
     fontSize: '15px',
     color: '#111',
     fontWeight: 600,
     margin: 0,
+    textAlign: 'center',
   },
   // Success
   successIcon: {
     margin: '0 auto 16px',
+    textAlign: 'center',
   },
   successTitle: {
     fontSize: '24px',
     fontWeight: 700,
     margin: '0 0 12px',
     color: '#111',
+    textAlign: 'center',
   },
   successText: {
     fontSize: '16px',
     color: '#333',
     margin: '0 0 8px',
     lineHeight: '1.5',
+    textAlign: 'center',
   },
   successSubtext: {
     fontSize: '15px',
     color: '#666',
     margin: '0 0 24px',
     lineHeight: '1.5',
+    textAlign: 'center',
   },
   // Progress
-  progressTitle: {
-    fontSize: '18px',
+  progressSection: {
+    marginBottom: '20px',
+  },
+  progressLabel: {
+    margin: '0 0 8px',
+    fontSize: '14px',
     fontWeight: 600,
-    margin: '0 0 12px',
-    color: '#111',
+    color: '#333',
   },
   progressBar: {
     width: '100%',
@@ -355,7 +369,6 @@ const styles = {
     background: '#e5e5e5',
     borderRadius: '4px',
     overflow: 'hidden',
-    marginBottom: '24px',
   },
   progressFill: {
     height: '100%',
@@ -385,16 +398,6 @@ const styles = {
     background: '#f0fdf4',
     gap: '12px',
   },
-  formItemNext: {
-    display: 'flex',
-    alignItems: 'center',
-    padding: '14px 16px',
-    borderRadius: '10px',
-    marginBottom: '8px',
-    background: '#fff',
-    border: '2px solid #000',
-    gap: '12px',
-  },
   checkCircle: {
     width: '28px',
     height: '28px',
@@ -405,30 +408,14 @@ const styles = {
     justifyContent: 'center',
     flexShrink: 0,
   },
-  activeCircle: {
-    width: '28px',
-    height: '28px',
-    borderRadius: '50%',
-    background: '#000',
-    color: '#fff',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '13px',
-    fontWeight: 700,
-    flexShrink: 0,
-  },
   pendingCircle: {
     width: '28px',
     height: '28px',
     borderRadius: '50%',
-    background: '#e5e5e5',
-    color: '#999',
+    background: '#f0f0f0',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '13px',
-    fontWeight: 600,
     flexShrink: 0,
   },
   formInfo: {
@@ -444,28 +431,29 @@ const styles = {
   formNameComplete: {
     fontSize: '15px',
     fontWeight: 500,
-    color: '#666',
-    textDecoration: 'line-through',
+    color: '#22c55e',
   },
   formTime: {
     fontSize: '13px',
     color: '#999',
     marginTop: '2px',
   },
-  nextBadge: {
-    padding: '4px 10px',
-    borderRadius: '12px',
+  startButton: {
+    display: 'inline-block',
+    padding: '8px 20px',
     background: '#000',
     color: '#fff',
-    fontSize: '11px',
-    fontWeight: 700,
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-  },
-  redirectText: {
-    marginTop: '20px',
+    borderRadius: '8px',
     fontSize: '14px',
-    color: '#666',
-    fontStyle: 'italic',
+    fontWeight: 600,
+    textDecoration: 'none',
+    flexShrink: 0,
+  },
+  infoNote: {
+    marginTop: '20px',
+    fontSize: '13px',
+    color: '#999',
+    lineHeight: '1.5',
+    textAlign: 'center',
   },
 };

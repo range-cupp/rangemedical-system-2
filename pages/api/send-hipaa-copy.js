@@ -54,7 +54,7 @@ export default async function handler(req, res) {
           <p style="margin:0 0 4px;font-size:15px;color:#111;font-weight:600;">Range Medical</p>
           <p style="margin:0 0 4px;font-size:14px;color:#666;">(949) 997-3988</p>
           <p style="margin:0 0 4px;font-size:14px;color:#666;">info@range-medical.com</p>
-          <p style="margin:0;font-size:14px;color:#666;">27201 Puerta Real, Suite 300, Mission Viejo, CA 92691</p>
+          <p style="margin:0;font-size:14px;color:#666;">1901 Westcliff Dr, Suite 10, Newport Beach, CA 92660</p>
         </td></tr>
         <!-- Footer -->
         <tr><td style="padding:16px 28px 24px;border-top:1px solid #eee;">

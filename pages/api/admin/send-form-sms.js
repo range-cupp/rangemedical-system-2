@@ -54,11 +54,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Send via Twilio
+    // Send via SMS provider (Blooio/Twilio based on SMS_PROVIDER env)
     const result = await sendSMS({ to: phone, message });
 
     if (!result.success) {
-      console.error('Twilio SMS error:', result.error);
+      console.error('SMS send error:', result.error);
       return res.status(500).json({ error: 'Failed to send SMS', details: result.error });
     }
 
@@ -66,13 +66,14 @@ export default async function handler(req, res) {
       channel: 'sms',
       messageType: `form_link_${formType}`,
       message,
-      source: 'send-form-sms(twilio)',
+      source: `send-form-sms(${result.provider || 'sms'})`,
       patientId: patientId || null,
       patientName: patientName || null,
       ghlContactId: ghlContactId || null,
       recipient: phone,
       twilioMessageSid: result.messageSid,
       direction: 'outbound',
+      provider: result.provider || null,
     });
 
     console.log(`SMS sent to ${phone}: ${formType}`);

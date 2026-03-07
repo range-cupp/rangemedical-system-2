@@ -84,11 +84,11 @@ export default async function handler(req, res) {
       messageBody = `${greeting}Range Medical here. Here are your treatment guides:\n\n${guideLinks}\n\nQuestions? (949) 997-3988`;
     }
 
-    // Send via Twilio
+    // Send via SMS provider (Blooio/Twilio based on SMS_PROVIDER env)
     const result = await sendSMS({ to: normalizedPhone, message: messageBody });
 
     if (!result.success) {
-      console.error('Twilio SMS error:', result.error);
+      console.error('SMS send error:', result.error);
       return res.status(500).json({ error: 'Failed to send SMS', details: result.error });
     }
 
@@ -98,13 +98,14 @@ export default async function handler(req, res) {
       channel: 'sms',
       messageType: 'guide_links',
       message: messageBody,
-      source: 'send-guide-sms(twilio)',
+      source: `send-guide-sms(${result.provider || 'sms'})`,
       patientId: patientId || null,
       patientName: patientName || firstName || null,
       ghlContactId: ghlContactId || null,
       recipient: normalizedPhone,
       twilioMessageSid: result.messageSid,
       direction: 'outbound',
+      provider: result.provider || null,
     });
 
     console.log(`Guide SMS sent to ${normalizedPhone}: ${guideNames}`);

@@ -77,11 +77,11 @@ export default async function handler(req, res) {
       messageBody = `${greeting}Range Medical here. Please complete these forms before your visit:\n\n${formLinks}\n\nQuestions? (949) 997-3988`;
     }
 
-    // Send via Twilio
+    // Send via SMS provider (Blooio/Twilio based on SMS_PROVIDER env)
     const result = await sendSMS({ to: normalizedPhone, message: messageBody });
 
     if (!result.success) {
-      console.error('Twilio SMS error:', result.error);
+      console.error('SMS send error:', result.error);
       return res.status(500).json({ error: 'Failed to send SMS', details: result.error });
     }
 
@@ -91,13 +91,14 @@ export default async function handler(req, res) {
       channel: 'sms',
       messageType: 'form_links',
       message: messageBody,
-      source: 'send-forms-sms(twilio)',
+      source: `send-forms-sms(${result.provider || 'sms'})`,
       patientId: patientId || null,
       patientName: patientName || firstName || null,
       ghlContactId: ghlContactId || null,
       recipient: normalizedPhone,
       twilioMessageSid: result.messageSid,
       direction: 'outbound',
+      provider: result.provider || null,
     });
 
     console.log(`Forms SMS sent to ${normalizedPhone}: ${formNames}`);

@@ -14,11 +14,11 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Check if current time is within allowed window (9am-6pm PST)
+// Check if current time is within allowed window (8am-6pm PST)
 function isWithinAllowedHours() {
   const now = new Date();
   const pstHour = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })).getHours();
-  return pstHour >= 9 && pstHour < 18; // 9am to 6pm PST
+  return pstHour >= 8 && pstHour < 18; // 8am to 6pm PST
 }
 
 // Determine if today is an injection day based on protocol frequency

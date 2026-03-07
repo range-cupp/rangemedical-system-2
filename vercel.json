@@ -22,8 +22,12 @@
       "schedule": "0 14 * * *"
     },
     {
-      "path": "/api/cron/peptide-reminders",
+      "path": "/api/cron/injection-reminders",
       "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/cron/peptide-reminders",
+      "schedule": "30 16 * * *"
     },
     {
       "path": "/api/cron/hrt-lab-reminders",

@@ -207,6 +207,26 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to update protocol' });
     }
 
+    // Also create service_logs entry (single source of truth for session tracking)
+    if (!missed) {
+      const { error: slError } = await supabase
+        .from('service_logs')
+        .insert({
+          patient_id: protocol.patient_id,
+          protocol_id: id,
+          category: 'weight_loss',
+          entry_type: logType === 'checkin' ? 'pickup' : 'injection',
+          entry_date: log_date,
+          medication: protocol.medication || null,
+          dosage: dose || protocol.selected_dose || null,
+          weight: weight || null,
+          notes: logNotes || `Injection #${newSessionsUsed}`,
+        });
+      if (slError) {
+        console.error('Service log sync error:', slError);
+      }
+    }
+
     const patientName = protocol.patients?.name || 'Unknown';
     console.log(`✓ Injection logged for ${patientName}: #${newSessionsUsed}/${totalSessions} on ${log_date}`);
 

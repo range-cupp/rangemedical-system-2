@@ -1449,7 +1449,8 @@ export default function PatientProfile() {
                 const activeLab = labProtocols.find(lp => lp.status !== 'consult_complete');
                 const stage = LAB_STAGES.find(s => s.id === activeLab.status) || LAB_STAGES[0];
                 const panelType = activeLab.medication || 'Essential';
-                const drawDate = activeLab.start_date ? new Date(activeLab.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+                const drawDateObj = activeLab.start_date ? new Date(activeLab.start_date + 'T12:00:00') : null;
+                const drawDate = drawDateObj ? drawDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(drawDateObj.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) }) : '';
                 return (
                   <div
                     onClick={() => setActiveTab('labs')}
@@ -1879,7 +1880,8 @@ export default function PatientProfile() {
                       const panelType = lp.medication || 'Essential';
                       const labType = lp.delivery_method === 'follow_up' ? 'Follow-up' : 'New Patient';
                       const panelColor = panelType === 'Elite' ? { bg: '#fdf2f8', text: '#9d174d' } : { bg: '#f0f9ff', text: '#0369a1' };
-                      const drawDate = lp.start_date ? new Date(lp.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-';
+                      const drawDateObj2 = lp.start_date ? new Date(lp.start_date + 'T12:00:00') : null;
+                      const drawDate = drawDateObj2 ? drawDateObj2.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(drawDateObj2.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) }) : '-';
                       return (
                         <div key={lp.id} style={{
                           padding: '14px 16px',
@@ -1961,7 +1963,8 @@ export default function PatientProfile() {
                         {labProtocols.filter(lp => lp.status === 'consult_complete').map(lp => {
                           const panelType = lp.medication || 'Essential';
                           const labType = lp.delivery_method === 'follow_up' ? 'Follow-up' : 'New Patient';
-                          const drawDate = lp.start_date ? new Date(lp.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-';
+                          const drawDateObj3 = lp.start_date ? new Date(lp.start_date + 'T12:00:00') : null;
+                          const drawDate = drawDateObj3 ? drawDateObj3.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(drawDateObj3.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) }) : '-';
                           return (
                             <div key={lp.id} style={{
                               padding: '10px 12px', borderRadius: '8px', border: '1px solid #e5e7eb',

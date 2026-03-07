@@ -623,6 +623,24 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       return;
     }
 
+    // Cash payment — skip Stripe, just record the purchase
+    if (selectedCard === 'cash') {
+      setStep('processing');
+      try {
+        await recordPurchases({ payment_method: 'cash' });
+        await createProtocolsForPeptides();
+        setResultStatus('success');
+        setResultMessage(`Cash payment recorded: ${description} — ${formatPrice(amount)} for ${patient.name}`);
+        setStep('result');
+      } catch (error) {
+        console.error('Cash recording error:', error);
+        setResultStatus('error');
+        setResultMessage(error.message || 'Failed to record cash payment');
+        setStep('result');
+      }
+      return;
+    }
+
     if (!stripe || !elements) return;
 
     try {
@@ -1547,6 +1565,19 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                     </div>
                   )}
                 </div>
+
+                {/* Cash Option */}
+                <div style={modalStyles.cardList}>
+                  <label style={modalStyles.cardOption}>
+                    <input
+                      type="radio"
+                      name="payment_method"
+                      checked={selectedCard === 'cash'}
+                      onChange={() => setSelectedCard('cash')}
+                    />
+                    <span>💵 Cash</span>
+                  </label>
+                </div>
               </>
             )}
 
@@ -1557,9 +1588,11 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
               <button
                 style={modalStyles.primaryBtn}
                 onClick={handlePay}
-                disabled={!stripe}
+                disabled={selectedCard !== 'cash' && !stripe}
               >
-                {isRecurring()
+                {selectedCard === 'cash'
+                  ? `Record Cash ${formatPrice(finalAmount)}`
+                  : isRecurring()
                   ? `Subscribe ${formatPrice(finalAmount)}/mo`
                   : `Pay ${formatPrice(finalAmount)}`
                 }

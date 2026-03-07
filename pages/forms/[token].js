@@ -3,7 +3,7 @@
 // Shows progress, redirects to next uncompleted form, carries patient info forward
 // Range Medical
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 
@@ -14,6 +14,7 @@ export default function FormBundlePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [redirecting, setRedirecting] = useState(false);
+  const redirectingRef = useRef(false);
 
   const fetchBundle = useCallback(async () => {
     if (!token) return;
@@ -38,6 +39,8 @@ export default function FormBundlePage() {
   useEffect(() => {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible' && token) {
+        redirectingRef.current = false;
+        setRedirecting(false);
         fetchBundle();
       }
     };
@@ -47,15 +50,17 @@ export default function FormBundlePage() {
 
   // Auto-redirect to the next uncompleted form
   useEffect(() => {
-    if (!bundle || bundle.allComplete || redirecting) return;
+    if (!bundle || bundle.allComplete || redirectingRef.current) return;
 
     const nextForm = bundle.forms.find(f => !f.completed);
     if (!nextForm) return;
 
+    redirectingRef.current = true;
     setRedirecting(true);
 
     // Short delay so patient can see progress before redirect
-    const timer = setTimeout(() => {
+    const delay = bundle.completedCount === 0 ? 100 : 1500;
+    setTimeout(() => {
       // Build URL with query params for patient info carry-forward
       const params = new URLSearchParams();
       params.set('bundle', token);
@@ -71,10 +76,8 @@ export default function FormBundlePage() {
       }
 
       window.location.href = `${nextForm.path}?${params.toString()}`;
-    }, bundle.completedCount === 0 ? 100 : 1500);
-
-    return () => clearTimeout(timer);
-  }, [bundle, token, redirecting]);
+    }, delay);
+  }, [bundle, token]);
 
   if (loading) {
     return (

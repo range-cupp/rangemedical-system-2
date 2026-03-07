@@ -8,7 +8,7 @@
 import Stripe from 'stripe';
 import { Resend } from 'resend';
 import { createClient } from '@supabase/supabase-js';
-import { sendTwilioSMS } from '../../../lib/twilio-sms';
+import { sendSMS } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -354,7 +354,7 @@ async function processHRTMembershipPerk(invoice) {
     .single();
 
   const smsMessage = `💉 HRT Perk: Free Range IV credited for ${patient?.name || 'Unknown'}`;
-  await sendTwilioSMS({ to: OWNER_PHONE, message: smsMessage }).catch(() => {});
+  await sendSMS({ to: OWNER_PHONE, message: smsMessage }).catch(() => {});
 }
 
 export default async function handler(req, res) {
@@ -395,7 +395,7 @@ export default async function handler(req, res) {
 
       // Send SMS via Twilio
       const smsMessage = `💰 New Purchase!\n\n${customerName}\n${items.join(', ')}\n${amount}\n\nvia range-medical.com`;
-      const smsResult = await sendTwilioSMS({ to: OWNER_PHONE, message: smsMessage });
+      const smsResult = await sendSMS({ to: OWNER_PHONE, message: smsMessage });
       const smsSent = smsResult.success;
 
       // Also send email notification

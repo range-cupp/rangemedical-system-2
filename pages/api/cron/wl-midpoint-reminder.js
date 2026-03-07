@@ -5,7 +5,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { logComm } from '../../../lib/comms-log';
-import { sendTwilioSMS } from '../../../lib/twilio-sms';
+import { sendSMS } from '../../../lib/send-sms';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -74,7 +74,7 @@ export default async function handler(req, res) {
       const message = `📅 WL Mid-Point Check\n\n${patientName} is 2 weeks into their monthly ${medication} ${dose} supply.\n\n${daysRemaining} days until next pickup (${protocol.end_date}).\n\nConsider checking in with patient.`;
 
       // Send to clinic owner via Twilio
-      const result = await sendTwilioSMS({ to: OWNER_PHONE, message });
+      const result = await sendSMS({ to: OWNER_PHONE, message });
 
       await logComm({
         channel: 'sms',

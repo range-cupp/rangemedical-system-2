@@ -7,7 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { logComm } from '../../../lib/comms-log';
-import { sendTwilioSMS, normalizePhone } from '../../../lib/twilio-sms';
+import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -115,7 +115,7 @@ export default async function handler(req, res) {
         continue;
       }
 
-      const smsResult = await sendTwilioSMS({ to: phone, message });
+      const smsResult = await sendSMS({ to: phone, message });
 
       if (smsResult.success) {
         await supabase.from('protocol_logs').insert({

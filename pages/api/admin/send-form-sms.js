@@ -3,7 +3,7 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
-import { sendTwilioSMS, normalizePhone } from '../../../lib/twilio-sms';
+import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
 
 const supabase = createClient(
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
 
   try {
     // Send via Twilio
-    const result = await sendTwilioSMS({ to: phone, message });
+    const result = await sendSMS({ to: phone, message });
 
     if (!result.success) {
       console.error('Twilio SMS error:', result.error);

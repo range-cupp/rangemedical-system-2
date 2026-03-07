@@ -5,7 +5,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { logComm } from '../../../lib/comms-log';
-import { sendTwilioSMS, normalizePhone } from '../../../lib/twilio-sms';
+import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -46,15 +46,16 @@ export default async function handler(req, res) {
     ghlContactId = patient?.ghl_contact_id || null;
   }
 
-  // Send via Twilio (primary — uses Messaging Service SID for A2P compliance)
-  const result = await sendTwilioSMS({ to: normalizedTo, message });
+  // Send via configured provider (Blooio or Twilio based on SMS_PROVIDER env var)
+  const result = await sendSMS({ to: normalizedTo, message });
 
   if (result.success) {
     await logComm({
       channel: 'sms',
       messageType: message_type || 'direct_sms',
       message,
-      source: 'send-sms(twilio)',
+      source: `send-sms(${result.provider || 'unknown'})`,
+      provider: result.provider || null,
       patientId: patient_id || null,
       patientName: patient_name || null,
       recipient: normalizedTo,
@@ -63,7 +64,7 @@ export default async function handler(req, res) {
       direction: 'outbound',
     });
 
-    return res.status(200).json({ success: true, via: 'twilio', messageSid: result.messageSid });
+    return res.status(200).json({ success: true, via: result.provider || 'unknown', messageSid: result.messageSid });
   }
 
   // Log the failure
@@ -71,7 +72,8 @@ export default async function handler(req, res) {
     channel: 'sms',
     messageType: message_type || 'direct_sms',
     message,
-    source: 'send-sms(twilio)',
+    source: `send-sms(${result.provider || 'unknown'})`,
+      provider: result.provider || null,
     patientId: patient_id || null,
     patientName: patient_name || null,
     recipient: normalizedTo,

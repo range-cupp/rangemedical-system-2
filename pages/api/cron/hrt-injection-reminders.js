@@ -7,7 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { logComm } from '../../../lib/comms-log';
-import { sendTwilioSMS, normalizePhone } from '../../../lib/twilio-sms';
+import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -159,7 +159,7 @@ export default async function handler(req, res) {
       const firstName = getFirstName(protocol.patient_name);
       const message = `Hi ${firstName}! It's injection day — time for your testosterone injection. — Range Medical`;
 
-      const smsResult = await sendTwilioSMS({ to: phone, message });
+      const smsResult = await sendSMS({ to: phone, message });
 
       if (smsResult.success) {
         await logSent(protocol.id, protocol.patient_id, 'hrt_injection_reminder', message);

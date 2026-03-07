@@ -2,7 +2,7 @@
 // Sends guide links via SMS using Twilio
 // Range Medical
 
-import { sendTwilioSMS, normalizePhone } from '../../lib/twilio-sms';
+import { sendSMS, normalizePhone } from '../../lib/send-sms';
 import { logComm } from '../../lib/comms-log';
 
 const GUIDE_DEFINITIONS = {
@@ -85,7 +85,7 @@ export default async function handler(req, res) {
     }
 
     // Send via Twilio
-    const result = await sendTwilioSMS({ to: normalizedPhone, message: messageBody });
+    const result = await sendSMS({ to: normalizedPhone, message: messageBody });
 
     if (!result.success) {
       console.error('Twilio SMS error:', result.error);

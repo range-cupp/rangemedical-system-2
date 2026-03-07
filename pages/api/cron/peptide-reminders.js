@@ -8,7 +8,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { isRecoveryPeptide } from '../../../lib/protocol-config';
 import { logComm } from '../../../lib/comms-log';
-import { sendTwilioSMS, normalizePhone } from '../../../lib/twilio-sms';
+import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -172,7 +172,7 @@ export default async function handler(req, res) {
               const checkinUrl = `${BASE_URL}/peptide-checkin.html?contact_id=${ghlContactId || patient.id}`;
               const message = `Hi ${firstName}! Time for your recovery peptide check-in. Takes 30 seconds:\n\n${checkinUrl}\n\n- Range Medical`;
 
-              const smsResult = await sendTwilioSMS({ to: phone, message });
+              const smsResult = await sendSMS({ to: phone, message });
               if (smsResult.success) {
                 await logSent(protocol.id, patient.id, logType, message);
                 await logComm({ channel: 'sms', messageType: logType, message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name, recipient: phone, twilioMessageSid: smsResult.messageSid });

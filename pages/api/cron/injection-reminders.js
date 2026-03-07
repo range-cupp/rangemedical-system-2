@@ -7,7 +7,7 @@
 // Only sends between 9am-6pm PST
 
 import { createClient } from '@supabase/supabase-js';
-import { sendTwilioSMS, normalizePhone } from '../../../lib/twilio-sms';
+import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -75,7 +75,7 @@ async function sendSMSForProtocol(protocol, message) {
   const phone = normalizePhone(patient?.phone);
   if (!phone) return { sent: false, error: 'No phone number' };
 
-  const result = await sendTwilioSMS({ to: phone, message });
+  const result = await sendSMS({ to: phone, message });
   return { sent: result.success, error: result.error, messageSid: result.messageSid };
 }
 

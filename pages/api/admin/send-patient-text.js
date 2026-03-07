@@ -2,7 +2,7 @@
 // Unified SMS API for Portal and Onboarding links — sends via Twilio
 // Range Medical
 
-import { sendTwilioSMS, normalizePhone } from '../../../lib/twilio-sms';
+import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
 
 export default async function handler(req, res) {
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
   }
 
   // Send via Twilio
-  const result = await sendTwilioSMS({ to: phone, message });
+  const result = await sendSMS({ to: phone, message });
 
   if (result.success) {
     await logComm({

@@ -490,6 +490,32 @@ export default function ProtocolDetail() {
     });
   };
 
+  // Clear/delete an injection log entry
+  const handleClearInjection = async () => {
+    if (!editDateModal) return;
+    if (!confirm(`Are you sure you want to clear Injection #${editDateModal.injectionNum}? This cannot be undone.`)) return;
+    setEditDateSaving(true);
+    try {
+      const res = await fetch(`/api/protocols/${id}/log-injection`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          log_id: editDateModal.logId,
+          source: editDateModal.source || 'protocol_logs',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to clear injection');
+      setSuccess(`Injection #${editDateModal.injectionNum} cleared`);
+      setEditDateModal(null);
+      fetchProtocol(); // Refresh all data
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setEditDateSaving(false);
+    }
+  };
+
   // Toggle delivery method (take home <-> in clinic) for a log entry
   const handleToggleDelivery = async (log) => {
     const currentType = log.log_type;
@@ -1114,25 +1140,25 @@ export default function ProtocolDetail() {
                       >
                         <div style={styles.dayNumber}>{num}</div>
                         <div style={{
-                          fontSize: '9px',
+                          fontSize: '12px',
                           fontWeight: '500',
-                          opacity: isCompleted || isNext ? 0.85 : 0.6,
-                          marginTop: '1px',
+                          opacity: isCompleted || isNext ? 0.9 : 0.6,
+                          marginTop: '2px',
                           letterSpacing: '-0.2px'
                         }}>
                           {displayDate ? formatShortDate(displayDate) : ''}
                         </div>
                         {isCompleted && isMissed && (
-                          <div style={{ fontSize: '8px', fontWeight: '600', opacity: 0.9, marginTop: '1px' }}>✕ missed</div>
+                          <div style={{ fontSize: '11px', fontWeight: '600', opacity: 0.9, marginTop: '2px' }}>✕ missed</div>
                         )}
                         {isCompleted && !isMissed && logWeight && (
-                          <div style={{ fontSize: '8px', fontWeight: '600', opacity: 0.9, marginTop: '1px' }}>
+                          <div style={{ fontSize: '11px', fontWeight: '600', opacity: 0.9, marginTop: '2px' }}>
                             {logWeight} lbs
                           </div>
                         )}
                         {isCompleted && !isMissed && !logWeight && <div style={styles.checkmark}>✓</div>}
                         {isCompleted && !isMissed && logDose && (
-                          <div style={{ fontSize: '7px', fontWeight: '500', opacity: 0.8, marginTop: '1px' }}>
+                          <div style={{ fontSize: '10px', fontWeight: '500', opacity: 0.85, marginTop: '2px' }}>
                             {logDose}
                           </div>
                         )}
@@ -2384,6 +2410,11 @@ export default function ProtocolDetail() {
             </div>
 
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={handleClearInjection} disabled={editDateSaving} style={{
+                padding: '8px 16px', border: '1px solid #dc2626', borderRadius: 6,
+                background: '#fff', color: '#dc2626', cursor: editDateSaving ? 'wait' : 'pointer',
+                fontSize: 13, fontWeight: 600, marginRight: 'auto'
+              }}>Clear Injection</button>
               <button onClick={() => setEditDateModal(null)} style={{
                 padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: 6,
                 background: '#fff', cursor: 'pointer', fontSize: 14
@@ -2612,11 +2643,11 @@ const styles = {
   // Calendar
   card: { background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
   cardTitle: { margin: '0 0 16px', fontSize: '15px', fontWeight: '600' },
-  calendarGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))', gap: '8px' },
-  calendarDay: { minHeight: '72px', border: '2px solid', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: '14px', padding: '4px 2px' },
-  dayNumber: { fontWeight: '600', fontSize: '16px' },
-  checkmark: { fontSize: '10px', marginTop: '1px' },
-  todayLabel: { fontSize: '8px', fontWeight: '600', marginTop: '1px' },
+  calendarGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: '8px' },
+  calendarDay: { minHeight: '90px', border: '2px solid', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: '14px', padding: '6px 4px' },
+  dayNumber: { fontWeight: '700', fontSize: '22px' },
+  checkmark: { fontSize: '14px', marginTop: '2px' },
+  todayLabel: { fontSize: '11px', fontWeight: '700', marginTop: '2px', letterSpacing: '0.5px' },
   legend: { display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '16px', fontSize: '12px', color: '#666' },
   legendDot: { display: 'inline-block', width: '12px', height: '12px', borderRadius: '3px', background: '#22c55e', marginRight: '4px', verticalAlign: 'middle' },
   

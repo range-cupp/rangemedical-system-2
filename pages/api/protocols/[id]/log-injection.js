@@ -12,18 +12,101 @@ const supabase = createClient(
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, PATCH, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  if (req.method !== 'POST' && req.method !== 'PATCH') {
+  if (req.method !== 'POST' && req.method !== 'PATCH' && req.method !== 'DELETE') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const { id } = req.query;
+
+  // DELETE — clear/remove an injection log entry
+  if (req.method === 'DELETE') {
+    const { log_id, source } = req.body;
+    if (!log_id) {
+      return res.status(400).json({ error: 'log_id required' });
+    }
+    try {
+      // Delete from the appropriate table
+      if (source === 'service_log') {
+        // Try service_logs first, then injection_logs
+        const { error: slErr } = await supabase
+          .from('service_logs')
+          .delete()
+          .eq('id', log_id);
+        if (slErr) {
+          const { error: ilErr } = await supabase
+            .from('injection_logs')
+            .delete()
+            .eq('id', log_id);
+          if (ilErr) {
+            console.error('Delete service log error:', slErr, ilErr);
+            return res.status(500).json({ error: 'Failed to delete log entry' });
+          }
+        }
+      } else {
+        // Delete from protocol_logs
+        const { error: delErr } = await supabase
+          .from('protocol_logs')
+          .delete()
+          .eq('id', log_id)
+          .eq('protocol_id', id);
+        if (delErr) {
+          console.error('Delete protocol log error:', delErr);
+          return res.status(500).json({ error: 'Failed to delete log entry' });
+        }
+      }
+
+      // Also try to delete matching service_logs entry (sync cleanup)
+      // Find service_logs by protocol_id and similar date
+      if (source !== 'service_log') {
+        await supabase
+          .from('service_logs')
+          .delete()
+          .eq('protocol_id', id)
+          .eq('id', log_id)
+          .then(() => {}) // Ignore if no match
+          .catch(() => {}); // Ignore errors
+      }
+
+      // Recount actual injection/checkin logs and update sessions_used
+      const { count: logCount } = await supabase
+        .from('protocol_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('protocol_id', id)
+        .in('log_type', ['checkin', 'injection']);
+
+      const newSessionsUsed = logCount || 0;
+
+      const { error: updateErr } = await supabase
+        .from('protocols')
+        .update({
+          sessions_used: newSessionsUsed,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (updateErr) {
+        console.error('Update sessions_used after delete error:', updateErr);
+      }
+
+      console.log(`✓ Injection cleared for protocol ${id}: sessions_used now ${newSessionsUsed}`);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Injection cleared',
+        sessions_used: newSessionsUsed
+      });
+    } catch (err) {
+      console.error('DELETE log-injection error:', err);
+      return res.status(500).json({ error: 'Server error' });
+    }
+  }
 
   // PATCH — update an existing log entry (date, weight, and/or delivery method)
   if (req.method === 'PATCH') {

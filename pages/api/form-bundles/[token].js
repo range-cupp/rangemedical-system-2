@@ -68,37 +68,32 @@ export default async function handler(req, res) {
     let completedTypes = [];
     let patientInfo = null;
 
-    if (conditions.length > 0 || bundle.patient_email || bundle.patient_phone) {
-      // Query consents table for completed forms
-      let query = supabase
+    // Build OR filter parts for matching by patient identifiers
+    const orParts = [];
+    if (bundle.patient_id) orParts.push(`patient_id.eq.${bundle.patient_id}`);
+    if (bundle.ghl_contact_id) orParts.push(`ghl_contact_id.eq.${bundle.ghl_contact_id}`);
+    if (bundle.patient_email) orParts.push(`email.ilike.${bundle.patient_email}`);
+    if (bundle.patient_phone) {
+      const digits = bundle.patient_phone.replace(/\D/g, '');
+      const last10 = digits.slice(-10);
+      orParts.push(`phone.ilike.%${last10}`);
+    }
+
+    if (orParts.length > 0) {
+      // Query consents table for completed consent forms
+      let consentsQuery = supabase
         .from('consents')
         .select('consent_type, first_name, last_name, email, phone, date_of_birth, submitted_at')
+        .or(orParts.join(','))
         .order('submitted_at', { ascending: true });
 
-      // Build OR filter
-      const orParts = [];
-      if (bundle.patient_id) orParts.push(`patient_id.eq.${bundle.patient_id}`);
-      if (bundle.ghl_contact_id) orParts.push(`ghl_contact_id.eq.${bundle.ghl_contact_id}`);
-      if (bundle.patient_email) orParts.push(`email.ilike.${bundle.patient_email}`);
-      if (bundle.patient_phone) {
-        const digits = bundle.patient_phone.replace(/\D/g, '');
-        const last10 = digits.slice(-10);
-        orParts.push(`phone.ilike.%${last10}`);
-      }
-
-      if (orParts.length > 0) {
-        query = query.or(orParts.join(','));
-      }
-
-      const { data: consents } = await query;
+      const { data: consents } = await consentsQuery;
 
       if (consents && consents.length > 0) {
-        // Get completed form IDs
         completedTypes = consents
           .map(c => CONSENT_TYPE_MAP[c.consent_type] || c.consent_type)
           .filter(Boolean);
 
-        // Get patient info from the first consent that has it
         const infoSource = consents.find(c => c.first_name && c.last_name) || consents[0];
         if (infoSource) {
           patientInfo = {
@@ -108,6 +103,41 @@ export default async function handler(req, res) {
             phone: infoSource.phone || '',
             dateOfBirth: infoSource.date_of_birth || '',
           };
+        }
+      }
+
+      // Check intakes table separately (intake form saves there, not consents)
+      if (bundle.form_ids.includes('intake')) {
+        const intakeOrParts = [];
+        if (bundle.patient_id) intakeOrParts.push(`patient_id.eq.${bundle.patient_id}`);
+        if (bundle.patient_email) intakeOrParts.push(`email.ilike.${bundle.patient_email}`);
+        if (bundle.patient_phone) {
+          const digits = bundle.patient_phone.replace(/\D/g, '');
+          const last10 = digits.slice(-10);
+          intakeOrParts.push(`phone.ilike.%${last10}`);
+        }
+
+        if (intakeOrParts.length > 0) {
+          const { data: intakes } = await supabase
+            .from('intakes')
+            .select('first_name, last_name, email, phone, date_of_birth, submitted_at')
+            .or(intakeOrParts.join(','))
+            .order('submitted_at', { ascending: false })
+            .limit(1);
+
+          if (intakes && intakes.length > 0) {
+            completedTypes.push('intake');
+            // Use intake info as patient info if we don't have it yet
+            if (!patientInfo) {
+              patientInfo = {
+                firstName: intakes[0].first_name || '',
+                lastName: intakes[0].last_name || '',
+                email: intakes[0].email || '',
+                phone: intakes[0].phone || '',
+                dateOfBirth: intakes[0].date_of_birth || '',
+              };
+            }
+          }
         }
       }
     }

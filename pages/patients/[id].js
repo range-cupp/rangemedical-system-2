@@ -395,7 +395,11 @@ export default function PatientProfile() {
     if (!dateStr) return '—';
     const [year, month, day] = dateStr.split('T')[0].split('-');
     const date = new Date(year, month - 1, day);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const opts = { month: 'short', day: 'numeric' };
+    if (date.getFullYear() !== new Date().getFullYear()) {
+      opts.year = 'numeric';
+    }
+    return date.toLocaleDateString('en-US', opts);
   };
 
   const formatFileSize = (bytes) => {

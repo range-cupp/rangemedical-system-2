@@ -46,6 +46,9 @@ export default async function handler(req, res) {
         patients (
           id,
           name,
+          first_name,
+          preferred_name,
+          phone,
           ghl_contact_id
         )
       `)
@@ -142,6 +145,9 @@ export default async function handler(req, res) {
         id: p.id,
         patient_id: p.patient_id,
         patient_name: p.patients?.name || 'Unknown',
+        patient_first_name: p.patients?.first_name || null,
+        preferred_name: p.patients?.preferred_name || null,
+        phone: p.patients?.phone || null,
         ghl_contact_id: p.patients?.ghl_contact_id || null,
         program_name: p.program_name,
         medication: p.medication,

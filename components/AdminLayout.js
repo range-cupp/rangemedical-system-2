@@ -223,6 +223,7 @@ const NAV_ITEMS = [
   { href: '/admin/protocols', label: 'Protocols', icon: 'activity' },
   { href: '/admin/schedule', label: 'Schedule', icon: 'calendar' },
   { href: '/admin/labs', label: 'Labs', icon: 'flask' },
+  { href: '/admin/weight-loss', label: 'Weight Loss', icon: 'trending-down' },
   { href: '/admin/service-log', label: 'Service Log', icon: 'clipboard' },
   { href: '/admin/payments', label: 'Payments', icon: 'credit-card' },
   { href: '/admin/purchases', label: 'Purchases', icon: 'shopping-bag' },
@@ -256,6 +257,11 @@ const icons = {
   flask: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M9 3h6v7l5 8H4l5-8V3z" /><line x1="8" y1="3" x2="16" y2="3" />
+    </svg>
+  ),
+  'trending-down': (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="23 18 13.5 8.5 8.5 13.5 1 6" /><polyline points="17 18 23 18 23 12" />
     </svg>
   ),
   clipboard: (

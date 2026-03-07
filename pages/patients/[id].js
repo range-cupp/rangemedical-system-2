@@ -247,7 +247,7 @@ export default function PatientProfile() {
               const bloodDrawLogs = (protoData.activityLogs || []).filter(l => l.log_type === 'blood_draw');
               const firstFollowup = protoData.protocol?.first_followup_weeks || p.first_followup_weeks || 8;
               const schedule = getHRTLabSchedule(p.start_date, firstFollowup);
-              schedules[p.id] = matchDrawsToLogs(schedule, bloodDrawLogs, data.labs || []);
+              schedules[p.id] = matchDrawsToLogs(schedule, bloodDrawLogs, data.labs || [], data.labProtocols || []);
             } catch {
               const firstFollowup = p.first_followup_weeks || 8;
               const schedule = getHRTLabSchedule(p.start_date, firstFollowup);
@@ -364,7 +364,7 @@ export default function PatientProfile() {
       const protoData = await protoRes.json();
       const bloodDrawLogs = (protoData.activityLogs || []).filter(l => l.log_type === 'blood_draw');
       const schedule = getHRTLabSchedule(updatedProto.start_date, newWeeks);
-      const matched = matchDrawsToLogs(schedule, bloodDrawLogs, labs || []);
+      const matched = matchDrawsToLogs(schedule, bloodDrawLogs, labs || [], labProtocols || []);
       setHrtLabSchedules(prev => ({ ...prev, [protocolId]: matched }));
     } catch {
       const schedule = getHRTLabSchedule(updatedProto.start_date, newWeeks);

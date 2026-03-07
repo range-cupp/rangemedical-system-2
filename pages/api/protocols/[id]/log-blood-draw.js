@@ -57,6 +57,35 @@ export default async function handler(req, res) {
           .delete()
           .eq('id', existingLogs[0].id);
 
+        // Sync: revert matching lab protocol back to draw_scheduled
+        try {
+          const { data: labProtos } = await supabase
+            .from('protocols')
+            .select('id, start_date, program_name, notes')
+            .eq('patient_id', protocol.patient_id)
+            .eq('program_type', 'labs')
+            .eq('status', 'blood_draw_complete');
+
+          if (labProtos && labProtos.length > 0) {
+            let matchId = null;
+            for (const lp of labProtos) {
+              if ((lp.program_name || '').includes(drawLabel) || (lp.notes || '').includes(drawLabel)) {
+                matchId = lp.id;
+                break;
+              }
+            }
+            if (matchId) {
+              await supabase
+                .from('protocols')
+                .update({ status: 'draw_scheduled', updated_at: new Date().toISOString() })
+                .eq('id', matchId);
+              console.log(`✓ Synced lab protocol ${matchId} back to draw_scheduled`);
+            }
+          }
+        } catch (syncErr) {
+          console.error('Lab undo sync error (non-fatal):', syncErr);
+        }
+
         console.log(`✓ Blood draw undone: ${drawLabel} for ${patientName}`);
 
         return res.status(200).json({
@@ -88,6 +117,52 @@ export default async function handler(req, res) {
           log_date: logDate,
           notes: drawLabel
         });
+    }
+
+    // Sync: advance matching auto-scheduled lab protocol to blood_draw_complete
+    try {
+      const windowDays = 28;
+      const logDateMs = new Date(logDate + 'T00:00:00').getTime();
+      const windowMs = windowDays * 24 * 60 * 60 * 1000;
+
+      // Find matching lab protocol: same patient, draw_scheduled, start_date within ±28 days
+      const { data: labProtos } = await supabase
+        .from('protocols')
+        .select('id, start_date, program_name, notes')
+        .eq('patient_id', protocol.patient_id)
+        .eq('program_type', 'labs')
+        .eq('status', 'draw_scheduled');
+
+      if (labProtos && labProtos.length > 0) {
+        // Find best match: by label first, then by date proximity
+        let matchId = null;
+        for (const lp of labProtos) {
+          if ((lp.program_name || '').includes(drawLabel) || (lp.notes || '').includes(drawLabel)) {
+            matchId = lp.id;
+            break;
+          }
+        }
+        if (!matchId) {
+          for (const lp of labProtos) {
+            if (lp.start_date) {
+              const lpMs = new Date(lp.start_date + 'T00:00:00').getTime();
+              if (Math.abs(lpMs - logDateMs) <= windowMs) {
+                matchId = lp.id;
+                break;
+              }
+            }
+          }
+        }
+        if (matchId) {
+          await supabase
+            .from('protocols')
+            .update({ status: 'blood_draw_complete', updated_at: new Date().toISOString() })
+            .eq('id', matchId);
+          console.log(`✓ Synced lab protocol ${matchId} to blood_draw_complete`);
+        }
+      }
+    } catch (syncErr) {
+      console.error('Lab sync error (non-fatal):', syncErr);
     }
 
     // Add note to GHL

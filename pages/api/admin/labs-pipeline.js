@@ -241,6 +241,78 @@ async function updateLabProtocol(req, res) {
       return res.status(400).json({ error: error.message });
     }
 
+    // Sync: when advancing to blood_draw_complete, also log blood draw for parent HRT protocol
+    if (newStage === 'blood_draw_complete' && data && (data.notes || '').includes('Auto-scheduled from HRT Protocol')) {
+      try {
+        // Find the parent HRT protocol for this patient
+        const { data: hrtProtos } = await supabase
+          .from('protocols')
+          .select('id')
+          .eq('patient_id', data.patient_id)
+          .ilike('program_type', '%hrt%')
+          .in('status', ['active', 'completed']);
+
+        if (hrtProtos && hrtProtos.length > 0) {
+          const hrtId = hrtProtos[0].id;
+          // Extract draw label from program_name (e.g. "8 Week Lab Follow-Up" → "8-Week Labs")
+          const pn = data.program_name || '';
+          const weekMatch = pn.match(/^(\d+)\s*Week/i);
+          const drawLabel = weekMatch ? `${weekMatch[1]}-Week Labs` : pn;
+
+          // Check if blood draw log already exists
+          const { data: existingLog } = await supabase
+            .from('protocol_logs')
+            .select('id')
+            .eq('protocol_id', hrtId)
+            .eq('log_type', 'blood_draw')
+            .eq('notes', drawLabel)
+            .maybeSingle();
+
+          if (!existingLog) {
+            await supabase.from('protocol_logs').insert({
+              protocol_id: hrtId,
+              patient_id: data.patient_id,
+              log_type: 'blood_draw',
+              log_date: data.start_date || new Date().toISOString().split('T')[0],
+              notes: drawLabel
+            });
+            console.log(`✓ Synced blood draw log for HRT protocol ${hrtId}: ${drawLabel}`);
+          }
+        }
+      } catch (syncErr) {
+        console.error('HRT blood draw sync error (non-fatal):', syncErr);
+      }
+    }
+
+    // Sync: when moving back to draw_scheduled, remove the blood draw log
+    if (newStage === 'draw_scheduled' && data && (data.notes || '').includes('Auto-scheduled from HRT Protocol')) {
+      try {
+        const { data: hrtProtos } = await supabase
+          .from('protocols')
+          .select('id')
+          .eq('patient_id', data.patient_id)
+          .ilike('program_type', '%hrt%');
+
+        if (hrtProtos && hrtProtos.length > 0) {
+          const pn = data.program_name || '';
+          const weekMatch = pn.match(/^(\d+)\s*Week/i);
+          const drawLabel = weekMatch ? `${weekMatch[1]}-Week Labs` : pn;
+
+          for (const hp of hrtProtos) {
+            await supabase
+              .from('protocol_logs')
+              .delete()
+              .eq('protocol_id', hp.id)
+              .eq('log_type', 'blood_draw')
+              .eq('notes', drawLabel);
+          }
+          console.log(`✓ Removed blood draw log for draw_scheduled revert: ${drawLabel}`);
+        }
+      } catch (syncErr) {
+        console.error('HRT blood draw undo sync error (non-fatal):', syncErr);
+      }
+    }
+
     return res.status(200).json({ success: true, data });
 
   } catch (error) {

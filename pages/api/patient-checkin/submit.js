@@ -131,7 +131,8 @@ export default async function handler(req, res) {
         medication: protocol.medication || 'Weight Loss',
         dosage: protocol.selected_dose || null,
         weight: parsedWeight,
-        notes: logNotes
+        notes: logNotes,
+        emr_entered: false
       });
 
     if (serviceLogError) {

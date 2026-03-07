@@ -8,15 +8,15 @@ const TEMPLATES = [
     templates: [
       {
         label: 'Appointment Reminder',
-        message: 'Hi {{name}}, just a reminder about your upcoming appointment at Range Medical. Please arrive 10 minutes early. If you need to reschedule, call us at (949) 438-3881.',
+        message: 'Hi {{name}}, just a reminder about your upcoming appointment at Range Medical. Please arrive 10 minutes early. If you need to reschedule, call us at (949) 997-3988.',
       },
       {
         label: 'Follow-up Scheduling',
-        message: 'Hi {{name}}, it\'s time to schedule your follow-up visit at Range Medical. You can book online or call us at (949) 438-3881.',
+        message: 'Hi {{name}}, it\'s time to schedule your follow-up visit at Range Medical. You can book online or call us at (949) 997-3988.',
       },
       {
         label: 'Check-In Request',
-        message: 'Hi {{name}}, how are you feeling on your current protocol? Reply to this message or call (949) 438-3881 to let us know.',
+        message: 'Hi {{name}}, how are you feeling on your current protocol? Reply to this message or call (949) 997-3988 to let us know.',
       },
     ],
   },
@@ -25,11 +25,11 @@ const TEMPLATES = [
     templates: [
       {
         label: 'Lab Draw Reminder',
-        message: 'Hi {{name}}, your lab work is due. Please schedule your blood draw at your earliest convenience. Book online or call (949) 438-3881.',
+        message: 'Hi {{name}}, your lab work is due. Please schedule your blood draw at your earliest convenience. Book online or call (949) 997-3988.',
       },
       {
         label: 'Labs Ready',
-        message: 'Hi {{name}}, your lab results are in! We\'ll review them and follow up with you shortly. Contact us at (949) 438-3881 with any questions.',
+        message: 'Hi {{name}}, your lab results are in! We\'ll review them and follow up with you shortly. Contact us at (949) 997-3988 with any questions.',
       },
     ],
   },
@@ -38,15 +38,15 @@ const TEMPLATES = [
     templates: [
       {
         label: 'Protocol Started',
-        message: 'Hi {{name}}, your protocol is now active! Remember to follow your dosing schedule as discussed. Contact us at (949) 438-3881 with any questions.',
+        message: 'Hi {{name}}, your protocol is now active! Remember to follow your dosing schedule as discussed. Contact us at (949) 997-3988 with any questions.',
       },
       {
         label: 'Renewal Reminder',
-        message: 'Hi {{name}}, your current protocol is coming up for renewal. Let\'s discuss your results and next steps. Call (949) 438-3881 to schedule.',
+        message: 'Hi {{name}}, your current protocol is coming up for renewal. Let\'s discuss your results and next steps. Call (949) 997-3988 to schedule.',
       },
       {
         label: 'Medication Reminder',
-        message: 'Hi {{name}}, just a friendly reminder about your medication schedule. If you\'re running low or have questions, reach out to us at (949) 438-3881.',
+        message: 'Hi {{name}}, just a friendly reminder about your medication schedule. If you\'re running low or have questions, reach out to us at (949) 997-3988.',
       },
     ],
   },
@@ -55,11 +55,11 @@ const TEMPLATES = [
     templates: [
       {
         label: 'Welcome',
-        message: 'Welcome to Range Medical, {{name}}! We\'re excited to start your health optimization journey. Reach us anytime at (949) 438-3881.',
+        message: 'Welcome to Range Medical, {{name}}! We\'re excited to start your health optimization journey. Reach us anytime at (949) 997-3988.',
       },
       {
         label: 'Thank You',
-        message: 'Thanks for visiting Range Medical today, {{name}}! If you have any questions about your visit, don\'t hesitate to reach out at (949) 438-3881.',
+        message: 'Thanks for visiting Range Medical today, {{name}}! If you have any questions about your visit, don\'t hesitate to reach out at (949) 997-3988.',
       },
       {
         label: 'Custom Message',

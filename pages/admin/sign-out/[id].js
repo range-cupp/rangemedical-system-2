@@ -82,8 +82,8 @@ export default function SignOutSheet() {
         <div style={styles.header}>
           <div style={styles.clinicInfo}>
             <h1 style={styles.clinicName}>RANGE MEDICAL</h1>
-            <p style={styles.clinicAddress}>1901 Westcliff Dr, Suite 9 & 10, Newport Beach, CA 92660</p>
-            <p style={styles.clinicPhone}>(949) 438-3881</p>
+            <p style={styles.clinicAddress}>1901 Westcliff Dr, Suite 10, Newport Beach, CA 92660</p>
+            <p style={styles.clinicPhone}>(949) 997-3988</p>
           </div>
           <div style={styles.sheetTitle}>
             <h2>Service Sign-Out Sheet</h2>

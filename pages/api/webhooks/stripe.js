@@ -245,13 +245,13 @@ async function sendRangeIVPerkEmail(patientId) {
           Stop by the clinic anytime during business hours, or give us a call to schedule your IV session. This perk is available for the next 30 days.
         </p>
         <div style="text-align: center; margin: 24px 0;">
-          <a href="tel:+19496900339" style="display: inline-block; background: #000; color: #fff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 600; font-size: 15px;">
-            Call to Schedule: (949) 690-0339
+          <a href="tel:+19499973988" style="display: inline-block; background: #000; color: #fff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 600; font-size: 15px;">
+            Call to Schedule: (949) 997-3988
           </a>
         </div>
         <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #f3f4f6; text-align: center;">
           <p style="color: #9ca3af; font-size: 12px; margin: 0;">
-            Range Medical · 4011 Westerly Pl, Suite 106, Newport Beach, CA 92660
+            Range Medical · 1901 Westcliff Dr, Suite 10, Newport Beach, CA 92660
           </p>
         </div>
       </div>

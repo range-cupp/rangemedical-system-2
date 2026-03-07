@@ -17,53 +17,53 @@ const supabase = createClient(
 const STAGE_NOTIFICATIONS = {
   // HRT
   baseline_labs: {
-    sms: (name) => `Hi ${name}, your baseline labs have been ordered. Please schedule your blood draw at your earliest convenience. Call us at (949) 438-3881 or book online.`,
+    sms: (name) => `Hi ${name}, your baseline labs have been ordered. Please schedule your blood draw at your earliest convenience. Call us at (949) 997-3988 or book online.`,
     subject: 'Baseline Labs Ordered — Range Medical',
   },
   protocol_started: {
-    sms: (name) => `Hi ${name}, your HRT protocol is now active! Remember to follow your dosing schedule. Contact us with any questions: (949) 438-3881.`,
+    sms: (name) => `Hi ${name}, your HRT protocol is now active! Remember to follow your dosing schedule. Contact us with any questions: (949) 997-3988.`,
     subject: 'Protocol Started — Range Medical',
   },
   week4_checkin: {
-    sms: (name) => `Hi ${name}, it's been 4 weeks on your HRT protocol. How are you feeling? Reply to this message or call (949) 438-3881 to discuss your progress.`,
+    sms: (name) => `Hi ${name}, it's been 4 weeks on your HRT protocol. How are you feeling? Reply to this message or call (949) 997-3988 to discuss your progress.`,
     subject: '4-Week Check-in — Range Medical',
   },
   week8_labs: {
-    sms: (name) => `Hi ${name}, it's time for your 8-week follow-up labs. Please schedule your blood draw. Book online or call (949) 438-3881.`,
+    sms: (name) => `Hi ${name}, it's time for your 8-week follow-up labs. Please schedule your blood draw. Book online or call (949) 997-3988.`,
     subject: '8-Week Labs — Range Medical',
   },
   renewal: {
-    sms: (name) => `Hi ${name}, your protocol is coming up for renewal. Please contact us to discuss continuing your treatment: (949) 438-3881.`,
+    sms: (name) => `Hi ${name}, your protocol is coming up for renewal. Please contact us to discuss continuing your treatment: (949) 997-3988.`,
     subject: 'Protocol Renewal — Range Medical',
   },
 
   // Weight Loss
   midpoint: {
-    sms: (name) => `Hi ${name}, you've reached the midpoint of your weight loss program! Let's check in on your progress. Call (949) 438-3881 or reply here.`,
+    sms: (name) => `Hi ${name}, you've reached the midpoint of your weight loss program! Let's check in on your progress. Call (949) 997-3988 or reply here.`,
     subject: 'Midpoint Check — Range Medical',
   },
   target_dose: {
-    sms: (name) => `Hi ${name}, great news — you've reached your target dose! We'll continue monitoring your progress. Contact us anytime: (949) 438-3881.`,
+    sms: (name) => `Hi ${name}, great news — you've reached your target dose! We'll continue monitoring your progress. Contact us anytime: (949) 997-3988.`,
     subject: 'Target Dose Reached — Range Medical',
   },
   completion: {
-    sms: (name) => `Hi ${name}, your weight loss protocol is nearing completion. Let's discuss your results and next steps. Call (949) 438-3881 to schedule.`,
+    sms: (name) => `Hi ${name}, your weight loss protocol is nearing completion. Let's discuss your results and next steps. Call (949) 997-3988 to schedule.`,
     subject: 'Program Completion — Range Medical',
   },
 
   // Peptide
   midpoint_review: {
-    sms: (name) => `Hi ${name}, you're at the midpoint of your peptide cycle. How's it going? Reply or call (949) 438-3881 for a check-in.`,
+    sms: (name) => `Hi ${name}, you're at the midpoint of your peptide cycle. How's it going? Reply or call (949) 997-3988 for a check-in.`,
     subject: 'Midpoint Review — Range Medical',
   },
   cycle_complete: {
-    sms: (name) => `Hi ${name}, your peptide cycle is complete. Let's discuss your results and whether to continue. Call (949) 438-3881.`,
+    sms: (name) => `Hi ${name}, your peptide cycle is complete. Let's discuss your results and whether to continue. Call (949) 997-3988.`,
     subject: 'Cycle Complete — Range Medical',
   },
 
   // Session-based (HBOT, RLT, IV)
   completing: {
-    sms: (name) => `Hi ${name}, you're in the final stretch of your sessions! Make sure to schedule your remaining appointments. Call (949) 438-3881.`,
+    sms: (name) => `Hi ${name}, you're in the final stretch of your sessions! Make sure to schedule your remaining appointments. Call (949) 997-3988.`,
     subject: 'Sessions Completing — Range Medical',
   },
 };

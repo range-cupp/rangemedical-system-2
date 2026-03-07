@@ -252,7 +252,7 @@ export default function PatientPortal() {
         {/* Contact */}
         <div style={styles.contactSection}>
           <p style={styles.contactText}>Questions? Contact Range Medical</p>
-          <a href="tel:+19497576060" style={styles.phoneLink}>📞 (949) 757-6060</a>
+          <a href="tel:+19499973988" style={styles.phoneLink}>📞 (949) 997-3988</a>
         </div>
 
         {/* Footer */}

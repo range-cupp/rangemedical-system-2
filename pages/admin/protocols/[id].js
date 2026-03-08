@@ -331,7 +331,7 @@ export default function ProtocolDetail() {
       const data = await res.json();
       // Combine weightCheckins + activityLogs (injections + checkins) into a single timeline
       const checkins = data.weightCheckins || [];
-      const activity = (data.activityLogs || []).filter(l => l.log_type === 'injection' || l.log_type === 'checkin');
+      const activity = (data.activityLogs || []).filter(l => l.log_type === 'injection' || l.log_type === 'checkin' || l.log_type === 'missed');
       // Merge and deduplicate by id
       const allEntries = [...checkins, ...activity];
       const seen = new Set();

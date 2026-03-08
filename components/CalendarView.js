@@ -1178,14 +1178,14 @@ export default function CalendarView({ preselectedPatient = null }) {
 
   // ===================== MAIN RENDER =====================
   return (
-    <div style={styles.container}>
+    <div style={styles.container} className="cal-container">
       {/* Left Panel — Wizard */}
-      <div style={styles.leftPanel}>
+      <div style={styles.leftPanel} className="cal-left">
         {renderWizard()}
       </div>
 
       {/* Right Panel — Calendar */}
-      <div style={styles.rightPanel}>
+      <div style={styles.rightPanel} className="cal-right">
         {/* View toggle + navigation */}
         <div style={styles.calHeader}>
           <div style={styles.viewToggle}>
@@ -1219,7 +1219,7 @@ export default function CalendarView({ preselectedPatient = null }) {
         </div>
 
         {/* Calendar content */}
-        <div style={styles.calBody}>
+        <div style={styles.calBody} className="cal-body">
           {loading && <div style={styles.loadingOverlay}>Loading...</div>}
           {viewMode === 'day' && renderDayView()}
           {viewMode === 'week' && renderWeekView()}
@@ -1500,6 +1500,29 @@ export default function CalendarView({ preselectedPatient = null }) {
           </>
         );
       })()}
+
+      <style jsx>{`
+        @media (max-width: 768px) {
+          .cal-container {
+            flex-direction: column !important;
+            min-height: auto !important;
+          }
+          .cal-left {
+            width: 100% !important;
+            min-width: 0 !important;
+            max-height: none !important;
+            border-right: none !important;
+            border-bottom: 1px solid #e5e5e5 !important;
+            padding: 16px !important;
+          }
+          .cal-right {
+            width: 100% !important;
+          }
+          .cal-body {
+            max-height: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

@@ -255,18 +255,32 @@ export default function ProtocolsPage() {
                     const isOngoing = programType.includes('hrt') ||
                       programName.includes('hrt') || programName.includes('testosterone');
 
-                    // Calculate total: prefer duration_days, then compute from date range, then total_sessions
-                    let total = protocol.duration_days;
-                    if (!total && protocol.start_date && protocol.end_date) {
-                      const sp = protocol.start_date.split('-');
-                      const ep = protocol.end_date.split('-');
-                      const s = new Date(parseInt(sp[0]), parseInt(sp[1]) - 1, parseInt(sp[2]));
-                      const e = new Date(parseInt(ep[0]), parseInt(ep[1]) - 1, parseInt(ep[2]));
-                      total = Math.round((e - s) / (1000 * 60 * 60 * 24));
+                    // Weight loss protocols — track by injection count (sessions_used)
+                    const isWeightLoss = !isOngoing && (programType.includes('weight_loss') ||
+                      ['semaglutide', 'tirzepatide', 'retatrutide'].some(m => programName.includes(m) || (protocol.medication || '').toLowerCase().includes(m)));
+
+                    // Calculate total: for weight loss use total_sessions (injection count),
+                    // otherwise prefer duration_days, then date range, then total_sessions
+                    let total;
+                    if (isWeightLoss) {
+                      total = protocol.total_sessions || 4;
+                    } else {
+                      total = protocol.duration_days;
+                      if (!total && protocol.start_date && protocol.end_date) {
+                        const sp = protocol.start_date.split('-');
+                        const ep = protocol.end_date.split('-');
+                        const s = new Date(parseInt(sp[0]), parseInt(sp[1]) - 1, parseInt(sp[2]));
+                        const e = new Date(parseInt(ep[0]), parseInt(ep[1]) - 1, parseInt(ep[2]));
+                        total = Math.round((e - s) / (1000 * 60 * 60 * 24));
+                      }
+                      if (!total) total = protocol.total_sessions || 10;
                     }
-                    if (!total) total = protocol.total_sessions || 10;
-                    const current = calculateCurrentDay(protocol.start_date);
-                    const isEnded = isOngoing ? false : current > total;
+                    const current = isWeightLoss
+                      ? (protocol.sessions_used || 0)
+                      : calculateCurrentDay(protocol.start_date);
+                    const isEnded = isOngoing ? false : (isWeightLoss
+                      ? current >= total
+                      : current > total);
                     const isActive = protocol.status === 'active';
                     const progress = isOngoing ? 100 : Math.min(100, Math.round((current / total) * 100));
                     const renewal = renewalMap[protocol.id];

@@ -56,7 +56,7 @@ export default async function handler(req, res) {
       for (const protocol of expiredProtocols) {
         const { error: updateError } = await supabase
           .from('protocols')
-          .update({ 
+          .update({
             status: 'completed',
             updated_at: new Date().toISOString()
           })
@@ -68,6 +68,35 @@ export default async function handler(req, res) {
         } else {
           console.log(`Completed: ${protocol.program_name} (ended ${protocol.end_date})`);
           completed++;
+        }
+      }
+    }
+
+    // Also complete single-session IV protocols that are fully used up
+    // These are single IVs that shouldn't be long-running protocols
+    const { data: usedUpIVs, error: ivError } = await supabase
+      .from('protocols')
+      .select('id, program_name, total_sessions, sessions_used')
+      .eq('status', 'active')
+      .in('program_type', ['iv', 'iv_therapy', 'iv_sessions'])
+      .not('total_sessions', 'is', null)
+      .filter('total_sessions', 'lte', 1);
+
+    if (ivError) {
+      console.error('Error fetching single IV protocols:', ivError);
+    }
+
+    if (usedUpIVs && usedUpIVs.length > 0) {
+      for (const protocol of usedUpIVs) {
+        if ((protocol.sessions_used || 0) >= (protocol.total_sessions || 1)) {
+          const { error: updateErr } = await supabase
+            .from('protocols')
+            .update({ status: 'completed', updated_at: new Date().toISOString() })
+            .eq('id', protocol.id);
+          if (!updateErr) {
+            console.log(`Completed single IV: ${protocol.program_name}`);
+            completed++;
+          }
         }
       }
     }

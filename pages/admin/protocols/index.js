@@ -260,12 +260,19 @@ export default function ProtocolsPage() {
                       ['semaglutide', 'tirzepatide', 'retatrutide'].some(m => programName.includes(m) || (protocol.medication || '').toLowerCase().includes(m)));
 
                     // Calculate total: for weight loss use total_sessions (injection count),
-                    // otherwise prefer duration_days, then date range, then total_sessions
+                    // otherwise parse from program name first (source of truth for X-Day protocols)
                     let total;
                     if (isWeightLoss) {
                       total = protocol.total_sessions || 4;
                     } else {
-                      total = protocol.duration_days;
+                      // 1. Parse from program name (e.g., "10-Day Recovery Protocol" → 10)
+                      const dayMatch = (protocol.program_name || '').match(/(\d+)[- ]?Day/i);
+                      if (dayMatch) total = parseInt(dayMatch[1]);
+                      // 2. duration_days from DB
+                      if (!total) total = protocol.duration_days;
+                      // 3. total_sessions from DB
+                      if (!total) total = protocol.total_sessions;
+                      // 4. Compute from date range as last resort
                       if (!total && protocol.start_date && protocol.end_date) {
                         const sp = protocol.start_date.split('-');
                         const ep = protocol.end_date.split('-');
@@ -273,7 +280,7 @@ export default function ProtocolsPage() {
                         const e = new Date(parseInt(ep[0]), parseInt(ep[1]) - 1, parseInt(ep[2]));
                         total = Math.round((e - s) / (1000 * 60 * 60 * 24));
                       }
-                      if (!total) total = protocol.total_sessions || 10;
+                      if (!total) total = 10;
                     }
                     const current = isWeightLoss
                       ? (protocol.sessions_used || 0)

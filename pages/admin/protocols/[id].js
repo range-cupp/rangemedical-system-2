@@ -34,29 +34,32 @@ function normalizeFrequencyValue(freq) {
 function normalizeProtocol(p) {
   if (!p) return p;
 
-  // Calculate duration - prefer dates as source of truth
-  let durationDays = p.duration_days || p.total_days;
+  // Calculate duration — program name is source of truth for X-Day protocols
+  let durationDays = null;
 
-  // Calculate from start/end dates first (most accurate)
-  if (p.start_date && p.end_date) {
+  // 1. Parse from program_name first (e.g., "10-Day Recovery Protocol" → 10)
+  if (p.program_name) {
+    const match = p.program_name.match(/(\d+)[- ]?Day/i);
+    if (match) durationDays = parseInt(match[1]);
+  }
+
+  // 2. duration_days or total_days from DB
+  if (!durationDays) durationDays = p.duration_days || p.total_days;
+
+  // 3. Fallback to total_sessions for non-weight-loss protocols
+  const pType = (p.program_type || '').toLowerCase();
+  if (!durationDays && !pType.includes('weight_loss')) {
+    durationDays = p.total_sessions;
+  }
+
+  // 4. Compute from date range as last resort
+  if (!durationDays && p.start_date && p.end_date) {
     const start = new Date(p.start_date);
     const end = new Date(p.end_date);
     start.setHours(0, 0, 0, 0);
     end.setHours(0, 0, 0, 0);
     const calculated = Math.round((end - start) / (1000 * 60 * 60 * 24));
     if (calculated > 0) durationDays = calculated;
-  }
-
-  // Fallback to total_sessions for non-weight-loss protocols (where sessions = days)
-  const pType = (p.program_type || '').toLowerCase();
-  if (!durationDays && !pType.includes('weight_loss')) {
-    durationDays = p.total_sessions;
-  }
-
-  // Parse duration from program_name as last resort (e.g., "Peptide Therapy - 30 Day")
-  if (!durationDays && p.program_name) {
-    const match = p.program_name.match(/(\d+)\s*day/i);
-    if (match) durationDays = parseInt(match[1]);
   }
 
   return {
@@ -435,6 +438,41 @@ export default function ProtocolDetail() {
       setSuccess(logForm.missed ? `Injection #${data.injection_number} — missed week logged` : `Injection #${data.injection_number} logged`);
       setLogModal(null);
       fetchProtocol(); // Refresh all data
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLogSaving(false);
+    }
+  };
+
+  // Quick-complete: mark next injection as done with one click (no modal)
+  const handleQuickComplete = async (injectionDate) => {
+    setLogSaving(true);
+    try {
+      const dateStr = injectionDate
+        ? injectionDate.toISOString().split('T')[0]
+        : new Date().toISOString().split('T')[0];
+      const lastDose = injectionLogs.length > 0
+        ? (injectionLogs[0].dosage || (injectionLogs[0].notes || '').match(/Dose:\s*([^|]+)/)?.[1]?.trim())
+        : null;
+      const res = await fetch(`/api/protocols/${id}/log-injection`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          log_date: dateStr,
+          weight: null,
+          dose: lastDose || protocol?.selected_dose || null,
+          notes: null,
+          delivery_method: 'take_home',
+          side_effects: null,
+          blood_pressure: null,
+          missed: false,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to log injection');
+      setSuccess(`Injection #${data.injection_number} marked complete`);
+      fetchProtocol();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -1173,6 +1211,32 @@ export default function ProtocolDetail() {
                   <span><span style={{ ...styles.legendDot, background: '#000' }} /> Next</span>
                   <span><span style={{ ...styles.legendDot, background: '#e5e5e5' }} /> Upcoming</span>
                 </div>
+                {/* Quick actions for next injection */}
+                {wlSessionsUsed < wlTotalInjections && (
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #e5e5e5' }}>
+                    <button
+                      onClick={() => handleQuickComplete(nextInjDate)}
+                      disabled={logSaving}
+                      style={{
+                        flex: 1, padding: '10px 16px', background: '#22c55e', color: '#fff',
+                        border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600',
+                        cursor: logSaving ? 'not-allowed' : 'pointer', opacity: logSaving ? 0.6 : 1,
+                      }}
+                    >
+                      {logSaving ? 'Saving...' : `✓ Mark Injection #${wlSessionsUsed + 1} Complete`}
+                    </button>
+                    <button
+                      onClick={() => handleCalendarDayClick(wlSessionsUsed + 1, nextInjDate)}
+                      style={{
+                        padding: '10px 16px', background: '#fff', color: '#374151',
+                        border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', fontWeight: '600',
+                        cursor: 'pointer', whiteSpace: 'nowrap',
+                      }}
+                    >
+                      Log Details
+                    </button>
+                  </div>
+                )}
               </div>
               );
             })()}

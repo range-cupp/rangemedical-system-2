@@ -3577,11 +3577,21 @@ export default function PatientProfile() {
                 </div>
               </div>
               <div className="slideout-content">
-                <iframe
-                  src={pdfSlideOut.url}
-                  title={pdfSlideOut.title}
-                  className="slideout-iframe"
-                />
+                {/\.(jpg|jpeg|png|gif|webp|bmp|heic)(\?|$)/i.test(pdfSlideOut.url) ? (
+                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start', height: '100%', overflow: 'auto', padding: 20, background: '#f3f4f6' }}>
+                    <img
+                      src={pdfSlideOut.url}
+                      alt={pdfSlideOut.title}
+                      style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8, boxShadow: '0 2px 12px rgba(0,0,0,0.1)' }}
+                    />
+                  </div>
+                ) : (
+                  <iframe
+                    src={pdfSlideOut.url}
+                    title={pdfSlideOut.title}
+                    className="slideout-iframe"
+                  />
+                )}
               </div>
             </div>
           </>

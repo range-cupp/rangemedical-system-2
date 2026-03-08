@@ -145,6 +145,7 @@ export default function ProtocolDetail() {
   const [editDateModal, setEditDateModal] = useState(null); // { logId, injectionNum, currentDate, source }
   const [editDateValue, setEditDateValue] = useState('');
   const [editWeightValue, setEditWeightValue] = useState('');
+  const [editDoseValue, setEditDoseValue] = useState('');
   const [editDateSaving, setEditDateSaving] = useState(false);
   const [sendingOptin, setSendingOptin] = useState(false);
   const [optinSent, setOptinSent] = useState(false);
@@ -510,6 +511,8 @@ export default function ProtocolDetail() {
           log_date: editDateValue,
           weight: weightVal,
           update_weight: true,
+          dose: editDoseValue.trim() || null,
+          update_dose: true,
           source: editDateModal.source || 'protocol_logs',
         }),
       });
@@ -534,6 +537,9 @@ export default function ProtocolDetail() {
     if (!logEntry) return;
     setEditDateValue(logEntry.log_date?.split('T')[0] || logEntry.log_date);
     setEditWeightValue(logEntry.weight != null ? String(logEntry.weight) : '');
+    // Extract dose from dosage field (service_logs) or notes (protocol_logs)
+    const logDose = logEntry.dosage || ((logEntry.notes || '').match(/Dose:\s*([^|]+)/)?.[1]?.trim()) || '';
+    setEditDoseValue(logDose);
     setEditDateModal({
       logId: logEntry.id,
       injectionNum,
@@ -2611,7 +2617,7 @@ export default function ProtocolDetail() {
               Edit Injection #{editDateModal.injectionNum}
             </h3>
             <p style={{ margin: '0 0 16px', color: '#6b7280', fontSize: 14 }}>
-              Update date and weight for this injection
+              Update date, weight, and dose for this injection
             </p>
 
             <div style={{ marginBottom: 12 }}>
@@ -2624,7 +2630,7 @@ export default function ProtocolDetail() {
               />
             </div>
 
-            <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 12 }}>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Weight (lbs)</label>
               <input
                 type="number"
@@ -2639,6 +2645,23 @@ export default function ProtocolDetail() {
                   onClick={() => setEditWeightValue('')}
                   style={{ marginTop: 4, fontSize: 12, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                 >✕ Clear weight</button>
+              )}
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Dose</label>
+              <input
+                type="text"
+                value={editDoseValue}
+                onChange={e => setEditDoseValue(e.target.value)}
+                placeholder="e.g. 2mg, 4mg"
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+              />
+              {editDoseValue && (
+                <button
+                  onClick={() => setEditDoseValue('')}
+                  style={{ marginTop: 4, fontSize: 12, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                >✕ Clear dose</button>
               )}
             </div>
 

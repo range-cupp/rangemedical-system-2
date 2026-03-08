@@ -108,13 +108,13 @@ export default async function handler(req, res) {
     }
   }
 
-  // PATCH — update an existing log entry (date, weight, and/or delivery method)
+  // PATCH — update an existing log entry (date, weight, dose, and/or delivery method)
   if (req.method === 'PATCH') {
-    const { log_id, log_date: newDate, source, log_type: newLogType, weight: newWeight, update_weight } = req.body;
+    const { log_id, log_date: newDate, source, log_type: newLogType, weight: newWeight, update_weight, dose: newDose, update_dose } = req.body;
     if (!log_id) {
       return res.status(400).json({ error: 'log_id required' });
     }
-    if (!newDate && !newLogType && !update_weight) {
+    if (!newDate && !newLogType && !update_weight && !update_dose) {
       return res.status(400).json({ error: 'At least one field to update required' });
     }
     try {
@@ -122,11 +122,12 @@ export default async function handler(req, res) {
       let updateErr = null;
 
       if (source === 'service_log') {
-        // Build update fields for service_logs (entry_date, entry_type, weight)
+        // Build update fields for service_logs (entry_date, entry_type, weight, dosage)
         const updateFields = {};
         if (newDate) updateFields.entry_date = newDate;
         if (newLogType) updateFields.entry_type = newLogType === 'injection' ? 'injection' : 'pickup';
         if (update_weight) updateFields.weight = newWeight;
+        if (update_dose) updateFields.dosage = newDose;
 
         const { data: slData, error: slErr } = await supabase
           .from('service_logs')
@@ -158,6 +159,33 @@ export default async function handler(req, res) {
         if (newDate) updateFields.log_date = newDate;
         if (newLogType) updateFields.log_type = newLogType;
         if (update_weight) updateFields.weight = newWeight;
+
+        // For protocol_logs, dose is stored in the notes field as "Dose: Xmg"
+        if (update_dose) {
+          // First fetch the current notes to update the dose segment
+          const { data: currentLog } = await supabase
+            .from('protocol_logs')
+            .select('notes')
+            .eq('id', log_id)
+            .eq('protocol_id', id)
+            .single();
+
+          let currentNotes = (currentLog?.notes || '');
+          if (newDose) {
+            // Replace existing dose or prepend
+            if (/Dose:\s*[^|]+/.test(currentNotes)) {
+              currentNotes = currentNotes.replace(/Dose:\s*[^|]+/, `Dose: ${newDose}`).trim();
+            } else {
+              currentNotes = currentNotes ? `Dose: ${newDose} | ${currentNotes}` : `Dose: ${newDose}`;
+            }
+          } else {
+            // Clear dose from notes
+            currentNotes = currentNotes.replace(/Dose:\s*[^|]*\|?\s*/, '').trim();
+            // Clean up trailing pipe
+            currentNotes = currentNotes.replace(/^\|\s*/, '').replace(/\s*\|\s*$/, '').trim();
+          }
+          updateFields.notes = currentNotes;
+        }
 
         const result = await supabase
           .from('protocol_logs')

@@ -86,6 +86,7 @@ export default function PatientProfile() {
 
   // Slide-out PDF viewer state
   const [pdfSlideOut, setPdfSlideOut] = useState({ open: false, url: '', title: '' });
+  const [slideoutWidth, setSlideoutWidth] = useState(70); // percentage
 
   // Template/peptide data for protocol assignment
   const [templates, setTemplates] = useState({ grouped: {} });
@@ -1065,6 +1066,7 @@ export default function PatientProfile() {
 
   // Helper to open PDF in slide-out viewer
   const openPdfViewer = (url, title = 'Document') => {
+    setSlideoutWidth(70);
     setPdfSlideOut({ open: true, url, title });
   };
 
@@ -3557,10 +3559,22 @@ export default function PatientProfile() {
         {pdfSlideOut.open && (
           <>
             <div className="slideout-overlay" onClick={closePdfViewer} />
-            <div className="slideout-panel">
+            <div className="slideout-panel" style={{ width: `${slideoutWidth}%` }}>
               <div className="slideout-header">
                 <h3>{pdfSlideOut.title}</h3>
-                <button onClick={closePdfViewer} className="close-btn">×</button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <div style={{ display: 'flex', gap: 2, marginRight: 8 }}>
+                    {[30, 50, 70].map(w => (
+                      <button key={w} onClick={() => setSlideoutWidth(w)} style={{
+                        padding: '4px 8px', fontSize: 11, fontWeight: 600, border: '1px solid #d1d5db',
+                        borderRadius: 4, cursor: 'pointer',
+                        background: slideoutWidth === w ? '#111827' : '#fff',
+                        color: slideoutWidth === w ? '#fff' : '#374151',
+                      }}>{w === 30 ? 'S' : w === 50 ? 'M' : 'L'}</button>
+                    ))}
+                  </div>
+                  <button onClick={closePdfViewer} className="close-btn">×</button>
+                </div>
               </div>
               <div className="slideout-content">
                 <iframe
@@ -4713,15 +4727,14 @@ export default function PatientProfile() {
           top: 0;
           right: 0;
           bottom: 0;
-          width: 70%;
-          max-width: 900px;
-          min-width: 400px;
+          min-width: 300px;
           background: #fff;
           box-shadow: -4px 0 20px rgba(0,0,0,0.15);
           z-index: 1101;
           display: flex;
           flex-direction: column;
           animation: slideIn 0.25s ease-out;
+          transition: width 0.2s ease;
         }
         @keyframes fadeIn {
           from { opacity: 0; }
@@ -4763,7 +4776,7 @@ export default function PatientProfile() {
           .pending-card { flex-direction: column; gap: 12px; align-items: flex-start; }
           .protocol-row { flex-direction: column; align-items: flex-start; gap: 8px; }
           .intake-detail-grid { grid-template-columns: 1fr; }
-          .slideout-panel { width: 100%; min-width: unset; }
+          .slideout-panel { width: 100% !important; min-width: unset; }
         }
       `}</style>
     </AdminLayout>

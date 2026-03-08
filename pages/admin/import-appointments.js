@@ -1,8 +1,9 @@
 // /pages/admin/import-appointments.js
-// GHL Appointment Import Tool
+// GHL Appointment Import Tool — with patient name mapping step
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AdminLayout from '../../components/AdminLayout';
+import { supabase } from '../../lib/supabase';
 
 export default function ImportAppointments() {
   const [file, setFile] = useState(null);
@@ -13,18 +14,60 @@ export default function ImportAppointments() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('all');
 
+  // Patient mapping state
+  const [nameMappings, setNameMappings] = useState({});  // ghlName → patientId
+  const [searchTerms, setSearchTerms] = useState({});     // ghlName → search text
+  const [searchResults, setSearchResults] = useState({});  // ghlName → [patients]
+  const [allPatients, setAllPatients] = useState([]);
+  const [showMapping, setShowMapping] = useState(false);
+
+  // Load all patients once for search
+  useEffect(() => {
+    supabase.from('patients').select('id, name, first_name, last_name, phone').order('name')
+      .then(({ data }) => { if (data) setAllPatients(data); });
+  }, []);
+
   async function handleAnalyze() {
     if (!file) { setError('Please select a CSV file'); return; }
     setAnalyzing(true);
     setError(null);
     setPreview(null);
     setResults(null);
+    setNameMappings({});
+    setShowMapping(false);
     try {
       const csvData = await file.text();
       const res = await fetch('/api/import/ghl-appointments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ csvData, dryRun: true }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPreview(data);
+        // Auto-show mapping step if there are unmatched names
+        if (data.summary.unmatched > 0) {
+          setShowMapping(true);
+          setActiveTab('unmatched');
+        }
+      } else {
+        setError(data.error || 'Analysis failed');
+      }
+    } catch (err) { setError(err.message); }
+    finally { setAnalyzing(false); }
+  }
+
+  async function handleReanalyze() {
+    // Re-analyze with current mappings applied
+    if (!file) return;
+    setAnalyzing(true);
+    setError(null);
+    try {
+      const csvData = await file.text();
+      const res = await fetch('/api/import/ghl-appointments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ csvData, dryRun: true, nameMappings }),
       });
       const data = await res.json();
       if (res.ok) { setPreview(data); } else { setError(data.error || 'Analysis failed'); }
@@ -41,16 +84,53 @@ export default function ImportAppointments() {
       const res = await fetch('/api/import/ghl-appointments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ csvData, dryRun: false }),
+        body: JSON.stringify({ csvData, dryRun: false, nameMappings }),
       });
       const data = await res.json();
-      if (res.ok) { setResults(data); setPreview(null); } else { setError(data.error || 'Import failed'); }
+      if (res.ok) { setResults(data); setPreview(null); setShowMapping(false); } else { setError(data.error || 'Import failed'); }
     } catch (err) { setError(err.message); }
     finally { setImporting(false); }
   }
 
+  function searchPatients(ghlName, query) {
+    setSearchTerms(prev => ({ ...prev, [ghlName]: query }));
+    if (!query || query.length < 2) {
+      setSearchResults(prev => ({ ...prev, [ghlName]: [] }));
+      return;
+    }
+    const q = query.toLowerCase();
+    const matches = allPatients.filter(p => {
+      const name = (p.name || `${p.first_name || ''} ${p.last_name || ''}`).toLowerCase();
+      return name.includes(q);
+    }).slice(0, 8);
+    setSearchResults(prev => ({ ...prev, [ghlName]: matches }));
+  }
+
+  function mapPatient(ghlName, patientId) {
+    setNameMappings(prev => ({ ...prev, [ghlName]: patientId }));
+    setSearchTerms(prev => ({ ...prev, [ghlName]: '' }));
+    setSearchResults(prev => ({ ...prev, [ghlName]: [] }));
+  }
+
+  function unmapPatient(ghlName) {
+    setNameMappings(prev => { const n = { ...prev }; delete n[ghlName]; return n; });
+  }
+
   const data = results || preview;
   const details = data?.details || [];
+  const suggestions = preview?.unmatchedSuggestions || {};
+
+  // Get unique unmatched names with their appointment count
+  const unmatchedNames = [];
+  if (preview) {
+    const nameCount = {};
+    details.filter(d => d.status === 'unmatched').forEach(d => {
+      nameCount[d.name] = (nameCount[d.name] || 0) + 1;
+    });
+    Object.entries(nameCount)
+      .sort((a, b) => b[1] - a[1])
+      .forEach(([name, count]) => unmatchedNames.push({ name, count }));
+  }
 
   function getFiltered() {
     switch (activeTab) {
@@ -63,6 +143,7 @@ export default function ImportAppointments() {
   }
 
   const filtered = getFiltered();
+  const mappedCount = Object.keys(nameMappings).length;
 
   return (
     <AdminLayout title="Import Appointments">
@@ -78,7 +159,7 @@ export default function ImportAppointments() {
             <input
               type="file"
               accept=".csv"
-              onChange={e => { setFile(e.target.files[0]); setPreview(null); setResults(null); setError(null); }}
+              onChange={e => { setFile(e.target.files[0]); setPreview(null); setResults(null); setError(null); setNameMappings({}); setShowMapping(false); }}
               style={{ fontSize: 14 }}
             />
             {file && !results && (
@@ -88,9 +169,16 @@ export default function ImportAppointments() {
                     {analyzing ? 'Analyzing...' : 'Analyze CSV'}
                   </button>
                 ) : (
-                  <button onClick={handleImport} disabled={importing} style={btnStyle('#16a34a')}>
-                    {importing ? 'Importing...' : `Import ${preview.summary.toImport} Appointments`}
-                  </button>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {mappedCount > 0 && (
+                      <button onClick={handleReanalyze} disabled={analyzing} style={btnStyle('#7c3aed')}>
+                        {analyzing ? 'Re-analyzing...' : `Re-analyze with ${mappedCount} Mapping${mappedCount > 1 ? 's' : ''}`}
+                      </button>
+                    )}
+                    <button onClick={handleImport} disabled={importing} style={btnStyle('#16a34a')}>
+                      {importing ? 'Importing...' : `Import ${preview.summary.toImport} Appointments`}
+                    </button>
+                  </div>
                 )}
               </>
             )}
@@ -118,6 +206,120 @@ export default function ImportAppointments() {
           </div>
         )}
 
+        {/* Patient Mapping Section */}
+        {showMapping && unmatchedNames.length > 0 && (
+          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: 20, marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <div>
+                <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#92400e' }}>
+                  Map Unmatched Patients ({unmatchedNames.length} names)
+                </h3>
+                <p style={{ fontSize: 13, color: '#a16207', margin: '4px 0 0' }}>
+                  Search and link GHL names to existing patients. Then click &quot;Re-analyze&quot; to apply.
+                </p>
+              </div>
+              <button onClick={() => setShowMapping(false)} style={{ background: 'none', border: 'none', color: '#a16207', cursor: 'pointer', fontSize: 13 }}>
+                Hide
+              </button>
+            </div>
+
+            <div style={{ maxHeight: 500, overflow: 'auto' }}>
+              {unmatchedNames.map(({ name, count }) => {
+                const mapped = nameMappings[name];
+                const mappedPatient = mapped ? allPatients.find(p => p.id === mapped) : null;
+                const sug = suggestions[name] || [];
+
+                return (
+                  <div key={name} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: '10px 14px', marginBottom: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: mapped ? 0 : 6 }}>
+                      <div>
+                        <span style={{ fontWeight: 600, fontSize: 14 }}>{name}</span>
+                        <span style={{ color: '#9ca3af', fontSize: 12, marginLeft: 8 }}>({count} appt{count > 1 ? 's' : ''})</span>
+                      </div>
+                      {mapped && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ background: '#dcfce7', color: '#16a34a', padding: '2px 8px', borderRadius: 10, fontSize: 12, fontWeight: 600 }}>
+                            → {mappedPatient?.name || mappedPatient?.first_name + ' ' + mappedPatient?.last_name}
+                          </span>
+                          <button onClick={() => unmapPatient(name)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 12 }}>
+                            ✕
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {!mapped && (
+                      <>
+                        {/* Suggestions */}
+                        {sug.length > 0 && (
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+                            {sug.map(s => (
+                              <button
+                                key={s.id}
+                                onClick={() => mapPatient(name, s.id)}
+                                style={{
+                                  background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6,
+                                  padding: '3px 10px', fontSize: 12, color: '#2563eb', cursor: 'pointer',
+                                }}
+                              >
+                                {s.name}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Search */}
+                        <div style={{ position: 'relative' }}>
+                          <input
+                            type="text"
+                            placeholder="Search patients..."
+                            value={searchTerms[name] || ''}
+                            onChange={e => searchPatients(name, e.target.value)}
+                            style={{ width: '100%', padding: '6px 10px', fontSize: 13, border: '1px solid #d1d5db', borderRadius: 6, boxSizing: 'border-box' }}
+                          />
+                          {(searchResults[name] || []).length > 0 && (
+                            <div style={{
+                              position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
+                              background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6, boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                              maxHeight: 200, overflow: 'auto',
+                            }}>
+                              {searchResults[name].map(p => (
+                                <button
+                                  key={p.id}
+                                  onClick={() => mapPatient(name, p.id)}
+                                  style={{
+                                    width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 13,
+                                    border: 'none', borderBottom: '1px solid #f3f4f6', background: '#fff', cursor: 'pointer',
+                                  }}
+                                  onMouseEnter={e => e.target.style.background = '#f0f9ff'}
+                                  onMouseLeave={e => e.target.style.background = '#fff'}
+                                >
+                                  {p.name || `${p.first_name || ''} ${p.last_name || ''}`}
+                                  {p.phone && <span style={{ color: '#9ca3af', marginLeft: 8 }}>{p.phone}</span>}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Show mapping toggle if hidden */}
+        {preview && !showMapping && unmatchedNames.length > 0 && (
+          <button
+            onClick={() => setShowMapping(true)}
+            style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 14px', fontSize: 13, color: '#92400e', cursor: 'pointer', marginBottom: 20, display: 'block' }}
+          >
+            Show patient mapping ({unmatchedNames.length} unmatched names)
+          </button>
+        )}
+
         {/* Results success message */}
         {results?.success && (
           <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, color: '#16a34a', fontSize: 14, marginBottom: 20 }}>
@@ -129,7 +331,7 @@ export default function ImportAppointments() {
         {/* Detail Tabs */}
         {details.length > 0 && (
           <>
-            <div style={{ display: 'flex', gap: 2, borderBottom: '1px solid #e5e7eb', marginBottom: 16 }}>
+            <div style={{ display: 'flex', gap: 2, borderBottom: '1px solid #e5e7eb', marginBottom: 16, flexWrap: 'wrap' }}>
               {[
                 { key: 'all', label: `All (${details.length})` },
                 { key: 'matched', label: `Matched (${details.filter(d => d.status === 'matched' || d.status === 'imported').length})` },

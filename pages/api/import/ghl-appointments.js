@@ -105,13 +105,77 @@ function parseGHLDate(dateStr) {
   return d;
 }
 
+// Normalize a name for matching: lowercase, remove periods, collapse spaces
+function normalizeName(name) {
+  return (name || '').toLowerCase().replace(/\./g, '').replace(/\s+/g, ' ').trim();
+}
+
+// Find best patient match using multiple strategies
+function findPatient(contactName, patientsByNorm, patientsByLast, patientsByFirst) {
+  const norm = normalizeName(contactName);
+  if (!norm) return null;
+
+  // Strategy 1: Exact normalized match
+  if (patientsByNorm.has(norm)) return patientsByNorm.get(norm);
+
+  // Strategy 2: Split CSV name into first/last words, match first+last
+  const parts = norm.split(' ');
+  if (parts.length >= 2) {
+    const first = parts[0];
+    const last = parts[parts.length - 1];
+    // Try first + last (skipping middle name/initial)
+    const firstLast = `${first} ${last}`;
+    if (patientsByNorm.has(firstLast)) return patientsByNorm.get(firstLast);
+  }
+
+  // Strategy 3: Match by last name + first name starts with same letter
+  if (parts.length >= 2) {
+    const first = parts[0];
+    const last = parts[parts.length - 1];
+    const lastMatches = patientsByLast.get(last) || [];
+    for (const p of lastMatches) {
+      const pFirst = normalizeName(p.first_name || (p.name || '').split(' ')[0]);
+      if (pFirst && pFirst[0] === first[0] && lastMatches.length === 1) {
+        return p; // Only auto-match if there's exactly one person with that last name
+      }
+    }
+  }
+
+  return null;
+}
+
+// Find suggestions for unmatched names
+function findSuggestions(contactName, patientsByLast, patientsByFirst, allPatients) {
+  const norm = normalizeName(contactName);
+  const parts = norm.split(' ');
+  const suggestions = new Map(); // id → patient
+
+  if (parts.length >= 2) {
+    const first = parts[0];
+    const last = parts[parts.length - 1];
+
+    // Suggest patients with same last name
+    const lastMatches = patientsByLast.get(last) || [];
+    for (const p of lastMatches) suggestions.set(p.id, p);
+
+    // Suggest patients with same first name
+    const firstMatches = patientsByFirst.get(first) || [];
+    for (const p of firstMatches) suggestions.set(p.id, p);
+  }
+
+  return Array.from(suggestions.values()).slice(0, 5).map(p => ({
+    id: p.id,
+    name: p.name || `${p.first_name || ''} ${p.last_name || ''}`.trim(),
+  }));
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { csvData, dryRun = false } = req.body;
+    const { csvData, dryRun = false, nameMappings = {} } = req.body;
     if (!csvData) {
       return res.status(400).json({ error: 'csvData is required' });
     }
@@ -122,22 +186,56 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'No valid rows found in CSV' });
     }
 
-    // Fetch all patients for matching
+    // Fetch all patients for matching (include preferred_name for GHL nickname matching)
     const { data: patients, error: pErr } = await supabase
       .from('patients')
-      .select('id, name, first_name, last_name, phone')
+      .select('id, name, first_name, last_name, phone, preferred_name')
       .order('name');
 
     if (pErr) throw pErr;
 
-    // Build lookup map — lowercase name → patient
-    const patientMap = new Map();
+    // Build multiple lookup indices
+    const patientsByNorm = new Map();     // normalized full name → patient
+    const patientsByLast = new Map();     // normalized last name → [patients]
+    const patientsByFirst = new Map();    // normalized first name → [patients]
+    const patientsById = new Map();       // id → patient
+
     for (const p of patients) {
-      const fullName = (p.name || `${p.first_name || ''} ${p.last_name || ''}`.trim()).toLowerCase();
-      if (fullName) patientMap.set(fullName, p);
-      // Also index by first_name + last_name
+      patientsById.set(p.id, p);
+
+      const fullName = normalizeName(p.name || `${p.first_name || ''} ${p.last_name || ''}`.trim());
+      if (fullName) patientsByNorm.set(fullName, p);
+
+      // Also index by first_name + last_name separately
       if (p.first_name && p.last_name) {
-        patientMap.set(`${p.first_name} ${p.last_name}`.toLowerCase(), p);
+        const fl = normalizeName(`${p.first_name} ${p.last_name}`);
+        patientsByNorm.set(fl, p);
+      }
+
+      // Index by preferred_name + last_name (handles GHL nickname → legal name, e.g. "RJ Kosich" → "Walter Kosich")
+      if (p.preferred_name && p.last_name) {
+        const pl = normalizeName(`${p.preferred_name} ${p.last_name}`);
+        patientsByNorm.set(pl, p);
+      }
+      // Also index preferred_name + last word of name (if last_name not set)
+      if (p.preferred_name && !p.last_name && p.name) {
+        const nameParts = p.name.trim().split(/\s+/);
+        if (nameParts.length >= 2) {
+          const pl = normalizeName(`${p.preferred_name} ${nameParts[nameParts.length - 1]}`);
+          patientsByNorm.set(pl, p);
+        }
+      }
+
+      const lastName = normalizeName(p.last_name || (p.name || '').split(' ').pop());
+      if (lastName) {
+        if (!patientsByLast.has(lastName)) patientsByLast.set(lastName, []);
+        patientsByLast.get(lastName).push(p);
+      }
+
+      const firstName = normalizeName(p.first_name || (p.name || '').split(' ')[0]);
+      if (firstName) {
+        if (!patientsByFirst.has(firstName)) patientsByFirst.set(firstName, []);
+        patientsByFirst.get(firstName).push(p);
       }
     }
 
@@ -152,13 +250,14 @@ export default async function handler(req, res) {
     // Build duplicate check set
     const existingSet = new Set();
     for (const a of (existingAppts || [])) {
-      const key = `${(a.patient_name || '').toLowerCase()}|${(a.service_name || '').toLowerCase()}|${a.start_time}`;
+      const key = `${normalizeName(a.patient_name)}|${normalizeName(a.service_name)}|${a.start_time}`;
       existingSet.add(key);
     }
 
     // Process rows
     const details = [];
     const toInsert = [];
+    const unmatchedNames = new Set(); // track unique unmatched names for suggestions
 
     for (const row of rows) {
       const detail = {
@@ -198,14 +297,20 @@ export default async function handler(req, res) {
       // Map status
       const apptStatus = STATUS_MAP[row.status] || 'scheduled';
 
-      // Match patient
-      const patient = patientMap.get(row.contactName.toLowerCase());
+      // Match patient — check manual mappings first, then auto-match
+      const manualMapping = nameMappings[row.contactName];
+      let patient = null;
+      if (manualMapping) {
+        patient = patientsById.get(manualMapping);
+      } else {
+        patient = findPatient(row.contactName, patientsByNorm, patientsByLast, patientsByFirst);
+      }
 
       // Calculate end time
       const endDate = new Date(startDate.getTime() + serviceInfo.duration * 60000);
 
       // Check duplicate
-      const dupeKey = `${row.contactName.toLowerCase()}|${serviceInfo.name.toLowerCase()}|${startDate.toISOString()}`;
+      const dupeKey = `${normalizeName(row.contactName)}|${normalizeName(serviceInfo.name)}|${startDate.toISOString()}`;
       if (existingSet.has(dupeKey)) {
         detail.status = 'duplicate';
         detail.reason = 'Already imported';
@@ -238,8 +343,15 @@ export default async function handler(req, res) {
       detail.reason = patient ? `Matched to ${patient.name || patient.first_name + ' ' + patient.last_name}` : 'No matching patient found';
       detail.mappedService = serviceInfo.name;
       detail.mappedStatus = apptStatus;
+      if (!patient) unmatchedNames.add(row.contactName);
       details.push(detail);
       toInsert.push(apptRecord);
+    }
+
+    // Build suggestions for unmatched names
+    const unmatchedSuggestions = {};
+    for (const name of unmatchedNames) {
+      unmatchedSuggestions[name] = findSuggestions(name, patientsByLast, patientsByFirst, patients);
     }
 
     // Summary stats
@@ -254,7 +366,7 @@ export default async function handler(req, res) {
     };
 
     if (dryRun) {
-      return res.status(200).json({ success: true, dryRun: true, summary, details });
+      return res.status(200).json({ success: true, dryRun: true, summary, details, unmatchedSuggestions });
     }
 
     // Insert in batches of 100

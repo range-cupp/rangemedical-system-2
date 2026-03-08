@@ -1,14 +1,20 @@
 // /pages/api/twilio/webhook.js
 // Receive inbound SMS from Twilio
 // Stores messages in comms_log for conversation view
+// Auto-replies to HRT IV scheduling prompts when patient replies YES
 // Range Medical System V2
 
 import { createClient } from '@supabase/supabase-js';
+import { sendSMS } from '../../../lib/send-sms';
+import { logComm } from '../../../lib/comms-log';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// Positive reply keywords for scheduling prompt
+const POSITIVE_REPLIES = ['yes', 'y', 'yeah', 'sure', 'yep', 'yea', 'ok', 'okay'];
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -69,7 +75,73 @@ export default async function handler(req, res) {
       console.error('Error storing inbound SMS:', insertError);
     }
 
-    // Return TwiML (empty = no auto-reply)
+    // ================================================================
+    // AUTO-REPLY: HRT IV Scheduling Prompt
+    // If patient replies YES to a recent scheduling prompt, send booking link
+    // ================================================================
+    if (patient?.id && Body) {
+      const normalizedBody = (Body || '').trim().toLowerCase();
+
+      if (POSITIVE_REPLIES.includes(normalizedBody)) {
+        // Check for a recent (last 30 days) unanswered hrt_iv_schedule_prompt
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const { data: pendingPrompt } = await supabase
+          .from('comms_log')
+          .select('id, created_at')
+          .eq('patient_id', patient.id)
+          .eq('message_type', 'hrt_iv_schedule_prompt')
+          .eq('direction', 'outbound')
+          .neq('status', 'replied')
+          .gte('created_at', thirtyDaysAgo.toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (pendingPrompt) {
+          console.log(`HRT IV schedule YES reply from ${patient.name} — sending booking link`);
+
+          // Send the scheduling link
+          const scheduleLink = 'https://app.range-medical.com/schedule-iv';
+          const linkMessage = `Here's your link to schedule your Range IV: ${scheduleLink} — Range Medical`;
+
+          const linkResult = await sendSMS({ to: From, message: linkMessage }).catch(err => {
+            console.error('HRT IV schedule link SMS error:', err);
+            return { success: false, error: err.message };
+          });
+
+          // Log the scheduling link SMS
+          await logComm({
+            channel: 'sms',
+            messageType: 'hrt_iv_schedule_link',
+            message: linkMessage,
+            source: 'twilio/webhook',
+            patientId: patient.id,
+            patientName: patient.name,
+            recipient: From,
+            status: linkResult.success ? 'sent' : 'error',
+            errorMessage: linkResult.error || null,
+            twilioMessageSid: linkResult.messageSid || null,
+            provider: linkResult.provider || null,
+            direction: 'outbound',
+          }).catch(() => {});
+
+          // Mark the original prompt as replied (prevents duplicate link sends)
+          await supabase
+            .from('comms_log')
+            .update({ status: 'replied' })
+            .eq('id', pendingPrompt.id)
+            .catch(() => {});
+
+          if (linkResult.success) {
+            console.log(`HRT IV scheduling link sent to ${patient.name} (${From})`);
+          }
+        }
+      }
+    }
+
+    // Return TwiML (empty = no auto-reply via TwiML, replies sent via API above)
     res.setHeader('Content-Type', 'text/xml');
     return res.status(200).send('<Response></Response>');
 
@@ -81,7 +153,7 @@ export default async function handler(req, res) {
   }
 }
 
-// Disable body parser for Twilio webhooks (they send form-encoded)
+// Twilio sends form-encoded POST data
 export const config = {
   api: {
     bodyParser: true,

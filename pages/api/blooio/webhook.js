@@ -131,6 +131,70 @@ async function handleInboundMessage(body) {
 
   // Auto-send any pending link messages now that patient has replied
   await sendPendingMessages(senderPhone, patient);
+
+  // ================================================================
+  // AUTO-REPLY: HRT IV Scheduling Prompt
+  // If patient replies YES to a recent scheduling prompt, send booking link
+  // ================================================================
+  if (patient?.id && messageText) {
+    const POSITIVE_REPLIES = ['yes', 'y', 'yeah', 'sure', 'yep', 'yea', 'ok', 'okay'];
+    const normalizedBody = messageText.trim().toLowerCase();
+
+    if (POSITIVE_REPLIES.includes(normalizedBody)) {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const { data: pendingPrompt } = await supabase
+        .from('comms_log')
+        .select('id, created_at')
+        .eq('patient_id', patient.id)
+        .eq('message_type', 'hrt_iv_schedule_prompt')
+        .eq('direction', 'outbound')
+        .neq('status', 'replied')
+        .gte('created_at', thirtyDaysAgo.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (pendingPrompt) {
+        console.log(`HRT IV schedule YES reply from ${patient.name} via Blooio — sending booking link`);
+
+        const scheduleLink = 'https://app.range-medical.com/schedule-iv';
+        const linkMessage = `Here's your link to schedule your Range IV: ${scheduleLink} — Range Medical`;
+
+        const linkResult = await sendBlooioMessage({ to: senderPhone, message: linkMessage });
+
+        // Log the scheduling link SMS
+        const linkRow = {
+          patient_id: patient.id,
+          patient_name: patient.name,
+          channel: 'sms',
+          message_type: 'hrt_iv_schedule_link',
+          message: linkMessage,
+          source: 'blooio/webhook',
+          recipient: senderPhone,
+          status: linkResult.success ? 'sent' : 'error',
+          error_message: linkResult.error || null,
+          direction: 'outbound',
+          provider: 'blooio',
+        };
+        if (linkResult.messageSid) linkRow.twilio_message_sid = linkResult.messageSid;
+
+        await supabase.from('comms_log').insert(linkRow).catch(() => {});
+
+        // Mark original prompt as replied (prevents duplicate link sends)
+        await supabase
+          .from('comms_log')
+          .update({ status: 'replied' })
+          .eq('id', pendingPrompt.id)
+          .catch(() => {});
+
+        if (linkResult.success) {
+          console.log(`HRT IV scheduling link sent to ${patient.name} (${senderPhone}) via Blooio`);
+        }
+      }
+    }
+  }
 }
 
 async function sendPendingMessages(phone, patient) {

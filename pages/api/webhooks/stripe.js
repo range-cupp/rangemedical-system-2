@@ -349,12 +349,43 @@ async function processHRTMembershipPerk(invoice) {
   // Notify owner
   const { data: patient } = await supabase
     .from('patients')
-    .select('name')
+    .select('name, first_name, phone')
     .eq('id', patientId)
     .single();
 
   const smsMessage = `💉 HRT Perk: Free Range IV credited for ${patient?.name || 'Unknown'}`;
   await sendSMS({ to: OWNER_PHONE, message: smsMessage }).catch(() => {});
+
+  // Send patient scheduling prompt SMS
+  if (patient?.phone) {
+    const firstName = patient.first_name || (patient.name || '').split(' ')[0] || 'there';
+    const monthName = new Date().toLocaleDateString('en-US', { month: 'long' });
+    const schedulePrompt = `Hi ${firstName}! Your complimentary Range IV for ${monthName} is ready 💉 Want to schedule? Reply YES and we'll send you a link to pick a time! — Range Medical`;
+
+    const promptResult = await sendSMS({ to: patient.phone, message: schedulePrompt }).catch(err => {
+      console.error('HRT IV schedule prompt SMS error:', err);
+      return { success: false, error: err.message };
+    });
+
+    await logComm({
+      channel: 'sms',
+      messageType: 'hrt_iv_schedule_prompt',
+      message: schedulePrompt,
+      source: 'stripe-webhook',
+      patientId,
+      patientName: patient.name,
+      recipient: patient.phone,
+      status: promptResult.success ? 'sent' : 'error',
+      errorMessage: promptResult.error || null,
+      twilioMessageSid: promptResult.messageSid || null,
+      provider: promptResult.provider || null,
+      direction: 'outbound',
+    }).catch(() => {});
+
+    if (promptResult.success) {
+      console.log(`HRT IV scheduling prompt sent to ${patient.name} (${patient.phone})`);
+    }
+  }
 }
 
 export default async function handler(req, res) {

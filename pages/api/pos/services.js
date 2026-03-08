@@ -87,7 +87,7 @@ async function handlePut(req, res) {
   }
 
   // Only allow specific fields
-  const allowed = ['name', 'category', 'price', 'recurring', 'interval', 'active', 'sort_order'];
+  const allowed = ['name', 'category', 'price', 'recurring', 'interval', 'active', 'sort_order', 'delivery_method', 'duration_days'];
   const cleanUpdates = {};
   for (const key of allowed) {
     if (updates[key] !== undefined) {

@@ -134,6 +134,8 @@ export default async function handler(req, res) {
       service_name,
       quantity,
       skip_receipt,
+      delivery_method,
+      duration_days,
     } = req.body;
 
     if (!patient_id || (amount === undefined || amount === null)) {
@@ -197,14 +199,14 @@ export default async function handler(req, res) {
     }
 
     // Fire-and-forget auto-protocol creation/extension
-    // Skip peptides — POS modal handles peptide protocol creation via createProtocolsForPeptides()
-    // to avoid duplicate protocols (record-purchase + POS modal both creating)
-    if (service_category && service_name && service_category !== 'peptide') {
+    if (service_category && service_name) {
       autoCreateOrExtendProtocol({
         patientId: patient_id,
         serviceCategory: service_category,
         serviceName: service_name,
         purchaseId: data.id,
+        deliveryMethod: delivery_method || null,
+        durationDays: duration_days || null,
       }).catch(err =>
         console.error('Auto-protocol failed:', err)
       );

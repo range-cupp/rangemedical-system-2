@@ -553,6 +553,8 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           service_category: item.category,
           service_name: item.name,
           quantity: qty,
+          delivery_method: item.delivery_method || null,
+          duration_days: item.duration_days || null,
           skip_receipt: true, // consolidated receipt sent below
           ...(itemDiscountAmt > 0 ? {
             discount_type: item.itemDiscountType,

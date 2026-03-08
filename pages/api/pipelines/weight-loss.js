@@ -53,6 +53,7 @@ export default async function handler(req, res) {
         )
       `)
       .ilike('program_type', 'weight_loss%')
+      .not('status', 'in', '("merged","cancelled")')
       .order('created_at', { ascending: false });
 
     if (error) {

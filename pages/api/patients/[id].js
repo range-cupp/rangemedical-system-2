@@ -241,7 +241,7 @@ export default async function handler(req, res) {
         // Skip labs — they live in the Labs pipeline, not in Active Protocols
         if (protocol.program_type === 'labs') return;
 
-        if (isCompleted) {
+        if (isCompleted || protocol.status === 'merged') {
           completedProtocols.push(formatted);
         } else if (protocol.status !== 'cancelled') {
           activeProtocols.push(formatted);

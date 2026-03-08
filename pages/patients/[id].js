@@ -162,6 +162,9 @@ export default function PatientProfile() {
   const [expandedNotes, setExpandedNotes] = useState({});
   const recognitionRef = useRef(null);
 
+  // Blooio opt-in status
+  const [blooioOptIn, setBlooioOptIn] = useState(null); // null=loading, true=opted in, false=pending
+
   // Patient edit mode
   const [editingPatient, setEditingPatient] = useState(false);
   const [patientEditForm, setPatientEditForm] = useState({});
@@ -194,6 +197,21 @@ export default function PatientProfile() {
         .catch(() => {});
     }
   }, [id, activeProtocols]);
+
+  // Check Blooio opt-in status when patient phone is available
+  useEffect(() => {
+    if (!patient?.phone) return;
+    fetch(`/api/blooio/check-optin?phone=${encodeURIComponent(patient.phone)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.provider === 'twilio') {
+          setBlooioOptIn(null); // Not using Blooio, hide badge
+        } else {
+          setBlooioOptIn(data.optedIn);
+        }
+      })
+      .catch(() => setBlooioOptIn(null));
+  }, [patient?.phone]);
 
   // Close PDF viewer on Escape key
   useEffect(() => {
@@ -1095,6 +1113,18 @@ export default function PatientProfile() {
             <div className="contact-row">
               {patient.email && <span>{patient.email}</span>}
               {patient.phone && <span>{formatPhone(patient.phone)}</span>}
+              {patient.phone && blooioOptIn !== null && (
+                <span style={{
+                  fontSize: 11,
+                  padding: '2px 8px',
+                  borderRadius: 10,
+                  fontWeight: 600,
+                  backgroundColor: blooioOptIn ? '#dcfce7' : '#fef3c7',
+                  color: blooioOptIn ? '#166534' : '#92400e',
+                }}>
+                  {blooioOptIn ? 'Blooio: Active' : 'Blooio: Pending'}
+                </span>
+              )}
             </div>
           </div>
 

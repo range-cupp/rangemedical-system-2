@@ -450,7 +450,7 @@ export default function ProtocolDetail() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to log injection');
-      setSuccess(logForm.missed ? `Injection #${data.injection_number} — missed week logged` : `Injection #${data.injection_number} logged`);
+      setSuccess(logForm.missed ? `Injection #${data.injection_number} — missed check-in logged` : `Injection #${data.injection_number} logged`);
       setLogModal(null);
       fetchProtocol(); // Refresh all data
     } catch (err) {
@@ -487,6 +487,38 @@ export default function ProtocolDetail() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to log injection');
       setSuccess(`Injection #${data.injection_number} marked complete`);
+      fetchProtocol();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLogSaving(false);
+    }
+  };
+
+  // Quick-missed: mark next injection as missed check-in with one click
+  const handleQuickMissed = async (injectionDate) => {
+    setLogSaving(true);
+    try {
+      const dateStr = injectionDate
+        ? injectionDate.toISOString().split('T')[0]
+        : new Date().toISOString().split('T')[0];
+      const res = await fetch(`/api/protocols/${id}/log-injection`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          log_date: dateStr,
+          weight: null,
+          dose: null,
+          notes: null,
+          delivery_method: null,
+          side_effects: null,
+          blood_pressure: null,
+          missed: true,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to log missed check-in');
+      setSuccess(`Injection #${data.injection_number} — missed check-in logged`);
       fetchProtocol();
     } catch (err) {
       setError(err.message);
@@ -1267,7 +1299,7 @@ export default function ProtocolDetail() {
                           {displayDate ? formatShortDate(displayDate) : ''}
                         </div>
                         {isCompleted && isMissed && (
-                          <div style={{ fontSize: '11px', fontWeight: '600', opacity: 0.9, marginTop: '2px' }}>✕ missed</div>
+                          <div style={{ fontSize: '10px', fontWeight: '600', opacity: 0.9, marginTop: '2px' }}>✕ no check-in</div>
                         )}
                         {isCompleted && !isMissed && logWeight && (
                           <div style={{ fontSize: '11px', fontWeight: '600', opacity: 0.9, marginTop: '2px' }}>
@@ -1287,7 +1319,7 @@ export default function ProtocolDetail() {
                 </div>
                 <div style={styles.legend}>
                   <span><span style={styles.legendDot} /> Complete</span>
-                  <span><span style={{ ...styles.legendDot, background: '#f59e0b' }} /> Missed</span>
+                  <span><span style={{ ...styles.legendDot, background: '#f59e0b' }} /> No Check-in</span>
                   <span><span style={{ ...styles.legendDot, background: '#000' }} /> Next</span>
                   <span><span style={{ ...styles.legendDot, background: '#e5e5e5' }} /> Upcoming</span>
                 </div>
@@ -1304,6 +1336,18 @@ export default function ProtocolDetail() {
                       }}
                     >
                       {logSaving ? 'Saving...' : `✓ Mark Injection #${wlSessionsUsed + 1} Complete`}
+                    </button>
+                    <button
+                      onClick={() => handleQuickMissed(nextInjDate)}
+                      disabled={logSaving}
+                      style={{
+                        padding: '10px 16px', background: '#fff', color: '#f59e0b',
+                        border: '1px solid #f59e0b', borderRadius: '8px', fontSize: '14px', fontWeight: '600',
+                        cursor: logSaving ? 'not-allowed' : 'pointer', opacity: logSaving ? 0.6 : 1,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      ✕ Missed Check-in
                     </button>
                     <button
                       onClick={() => handleCalendarDayClick(wlSessionsUsed + 1, nextInjDate)}
@@ -1405,7 +1449,7 @@ export default function ProtocolDetail() {
                                 borderRadius: '10px', background: '#fef3c7', color: '#92400e',
                                 textTransform: 'uppercase',
                               }}>
-                                Missed
+                                No Check-in
                               </span>
                             )}
                             {!isMissedLog && log.log_type === 'injection' && (
@@ -2474,7 +2518,7 @@ export default function ProtocolDetail() {
                     background: logForm.missed ? '#f59e0b' : '#fff',
                     color: logForm.missed ? '#fff' : '#374151',
                   }}
-                >Missed for the Week</button>
+                >Missed Check-in</button>
               </div>
             </div>
 
@@ -2596,7 +2640,7 @@ export default function ProtocolDetail() {
                 padding: '8px 20px', border: 'none', borderRadius: 6,
                 background: '#000', color: '#fff', cursor: logSaving ? 'wait' : 'pointer',
                 fontSize: 14, fontWeight: 600, opacity: logSaving ? 0.6 : 1
-              }}>{logSaving ? 'Saving...' : (logForm.missed ? 'Log Missed Week' : 'Log Injection')}</button>
+              }}>{logSaving ? 'Saving...' : (logForm.missed ? 'Log Missed Check-in' : 'Log Injection')}</button>
             </div>
           </div>
         </>

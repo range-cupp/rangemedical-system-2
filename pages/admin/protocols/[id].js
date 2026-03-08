@@ -43,7 +43,7 @@ function normalizeProtocol(p) {
     const end = new Date(p.end_date);
     start.setHours(0, 0, 0, 0);
     end.setHours(0, 0, 0, 0);
-    const calculated = Math.round((end - start) / (1000 * 60 * 60 * 24)) + 1;
+    const calculated = Math.round((end - start) / (1000 * 60 * 60 * 24));
     if (calculated > 0) durationDays = calculated;
   }
 

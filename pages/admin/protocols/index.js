@@ -259,7 +259,16 @@ export default function ProtocolsPage() {
                     const isWeightLoss = !isOngoing && (programType.includes('weight_loss') ||
                       ['semaglutide', 'tirzepatide', 'retatrutide'].some(m => programName.includes(m) || (protocol.medication || '').toLowerCase().includes(m)));
 
-                    const total = protocol.total_sessions || protocol.duration_days || 10;
+                    // Calculate total: prefer total_sessions, then duration_days, then compute from date range
+                    let total = protocol.total_sessions || protocol.duration_days;
+                    if (!total && protocol.start_date && protocol.end_date) {
+                      const sp = protocol.start_date.split('-');
+                      const ep = protocol.end_date.split('-');
+                      const s = new Date(parseInt(sp[0]), parseInt(sp[1]) - 1, parseInt(sp[2]));
+                      const e = new Date(parseInt(ep[0]), parseInt(ep[1]) - 1, parseInt(ep[2]));
+                      total = Math.round((e - s) / (1000 * 60 * 60 * 24));
+                    }
+                    if (!total) total = 10;
                     const current = isWeightLoss
                       ? (protocol.sessions_used || 0)
                       : calculateCurrentDay(protocol.start_date);

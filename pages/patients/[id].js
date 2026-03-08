@@ -1452,6 +1452,9 @@ export default function PatientProfile() {
                           <div className="protocol-main">
                             <span className="protocol-badge" style={{ background: cat.bg, color: cat.text }}>{cat.label}</span>
                             <span className="protocol-name" style={{ textDecoration: 'underline', textDecorationColor: '#d1d5db' }}>{protocol.program_name || protocol.medication}</span>
+                            {protocol.medication && protocol.program_name && protocol.medication !== protocol.program_name && (
+                              <span className="protocol-dose" style={{ fontWeight: 500 }}>({protocol.medication})</span>
+                            )}
                             {protocol.selected_dose && <span className="protocol-dose">{protocol.selected_dose}</span>}
                           </div>
                           <div className="protocol-status">
@@ -1704,6 +1707,9 @@ export default function PatientProfile() {
                             {protocol.delivery_method === 'in_clinic' && <span className="clinic-badge">In-Clinic</span>}
                           </div>
                           <div className="protocol-details">
+                            {protocol.medication && protocol.program_name && protocol.medication !== protocol.program_name && (
+                              <span style={{ fontWeight: 500 }}>{protocol.medication}</span>
+                            )}
                             {protocol.selected_dose && <span>{protocol.selected_dose}</span>}
                             {protocol.frequency && <span>{protocol.frequency}</span>}
                           </div>

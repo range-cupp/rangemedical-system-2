@@ -164,7 +164,7 @@ function getProtocolCategory(protocol) {
   if (programType.includes('weight') || programType.includes('glp') || programType.includes('tirzepatide') || programType.includes('semaglutide')) {
     return 'weight_loss';
   }
-  if (programType.includes('peptide') || programType.includes('bpc') || programType.includes('tb-500')) {
+  if (programType.includes('peptide') || programType.includes('bpc') || programType.includes('tb-500') || programType.includes('recovery')) {
     return 'peptide';
   }
   if (programType.includes('iv') || programType.includes('infusion') || programType.includes('nad')) {

@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
 import { supabase } from '../../lib/supabase';
 
@@ -53,6 +54,7 @@ function displayName(protocol) {
 }
 
 export default function WeightLossTracker() {
+  const router = useRouter();
   const [protocols, setProtocols] = useState([]);
   const [todayLogs, setTodayLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -250,7 +252,15 @@ export default function WeightLossTracker() {
                   const progressPct = p.total_injections > 0 ? Math.round((p.injections_used / p.total_injections) * 100) : 0;
 
                   return (
-                    <tr key={p.id} style={{ opacity: status === 'complete' ? 0.55 : 1 }}>
+                    <tr
+                      key={p.id}
+                      style={{ opacity: status === 'complete' ? 0.55 : 1, cursor: 'pointer' }}
+                      onClick={(e) => {
+                        // Don't navigate if clicking a link (patient name)
+                        if (e.target.closest('a')) return;
+                        router.push(`/admin/protocols/${p.id}`);
+                      }}
+                    >
                       {/* Status */}
                       <td style={sharedStyles.td}>
                         <span style={{ ...styles.statusBadge, background: cfg.bg, color: cfg.color }}>

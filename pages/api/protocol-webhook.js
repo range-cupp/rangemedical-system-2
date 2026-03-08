@@ -477,13 +477,35 @@ export default async function handler(req, res) {
       }
     }
 
-    // Insert all purchases
+    // Insert all purchases (with dedup check)
     if (purchases.length > 0) {
-      console.log('Creating', purchases.length, 'purchase(s)');
-      
+      // Check for existing purchases with same patient + date + item + amount (prevent webhook double-fire)
+      const dedupedPurchases = [];
+      for (const p of purchases) {
+        const { data: existing } = await supabase
+          .from('purchases')
+          .select('id')
+          .eq('patient_id', p.patient_id)
+          .eq('purchase_date', p.purchase_date)
+          .eq('item_name', p.item_name)
+          .eq('amount', p.amount)
+          .limit(1);
+        if (existing && existing.length > 0) {
+          console.log('Skipping duplicate purchase:', p.item_name, p.purchase_date, '$' + p.amount);
+        } else {
+          dedupedPurchases.push(p);
+        }
+      }
+
+      if (dedupedPurchases.length === 0) {
+        return res.status(200).json({ status: 'duplicate', reason: 'All purchases already exist' });
+      }
+
+      console.log('Creating', dedupedPurchases.length, 'purchase(s)', purchases.length > dedupedPurchases.length ? `(${purchases.length - dedupedPurchases.length} duplicates skipped)` : '');
+
       const { data: inserted, error: insertError } = await supabase
         .from('purchases')
-        .insert(purchases)
+        .insert(dedupedPurchases)
         .select();
 
       if (insertError) {

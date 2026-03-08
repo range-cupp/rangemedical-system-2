@@ -546,6 +546,46 @@ export default async function handler(req, res) {
         }
       }
 
+      // ===== Also fetch from native appointments table (includes GHL CSV imports) =====
+      const { data: nativeAppointments } = await supabase
+        .from('appointments')
+        .select('id, patient_id, patient_name, service_name, service_category, provider, start_time, end_time, duration_minutes, status, notes, source, ghl_appointment_id, created_at')
+        .eq('patient_id', id)
+        .order('start_time', { ascending: false })
+        .limit(200);
+
+      // Normalize native appointments to match clinic_appointments shape
+      const normalizedNative = (nativeAppointments || []).map(a => ({
+        id: a.id,
+        calendar_name: a.service_name,
+        appointment_title: a.service_category,
+        start_time: a.start_time,
+        end_time: a.end_time,
+        status: a.status,
+        notes: a.notes,
+        source: a.source || 'native',
+        provider: a.provider,
+        duration_minutes: a.duration_minutes,
+        ghl_appointment_id: a.ghl_appointment_id,
+        _table: 'appointments'
+      }));
+
+      // Tag clinic_appointments with their source
+      const taggedClinic = appointments.map(a => ({ ...a, _table: 'clinic_appointments' }));
+
+      // Merge + deduplicate by ghl_appointment_id or start_time+calendar_name
+      const seen = new Set();
+      const merged = [];
+      for (const apt of [...taggedClinic, ...normalizedNative]) {
+        const key = apt.ghl_appointment_id || `${apt.start_time}-${apt.calendar_name}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          merged.push(apt);
+        }
+      }
+      merged.sort((a, b) => new Date(b.start_time) - new Date(a.start_time));
+      appointments = merged;
+
       // Extract demographics from intake if patient record is missing them
       let intakeDemographics = null;
       const firstIntake = intakes?.[0];

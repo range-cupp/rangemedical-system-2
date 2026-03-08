@@ -111,6 +111,13 @@ export default function PatientProfile() {
   const [editingPurchase, setEditingPurchase] = useState(null);
   const [editPurchaseForm, setEditPurchaseForm] = useState({ product_name: '', amount_paid: '', stripe_subscription_id: '', notes: '' });
 
+  // Appointment edit modal state
+  const [editingAppointment, setEditingAppointment] = useState(null);
+  const [aptEditStatus, setAptEditStatus] = useState('');
+  const [aptEditNotes, setAptEditNotes] = useState('');
+  const [aptEditCategory, setAptEditCategory] = useState('');
+  const [savingApt, setSavingApt] = useState(false);
+
   // Payments sub-tab state
   const [paymentsSubTab, setPaymentsSubTab] = useState('invoices');
 
@@ -2251,7 +2258,12 @@ export default function PatientProfile() {
                       const aptDate = new Date(apt.start_time);
                       const isPast = aptDate < new Date();
                       const isUpcoming = !isPast;
-                      const status = (apt.status || 'scheduled').toLowerCase();
+                      const cutoffDate = new Date('2026-03-07T00:00:00-08:00');
+                      let displayStatus = (apt.status || 'scheduled').toLowerCase();
+                      // Past appointments before March 7 show as "showed"
+                      if (aptDate < cutoffDate && ['scheduled', 'confirmed'].includes(displayStatus)) {
+                        displayStatus = 'showed';
+                      }
                       const statusColors = {
                         scheduled: { bg: '#fef3c7', text: '#92400e' },
                         confirmed: { bg: '#dbeafe', text: '#1e40af' },
@@ -2260,10 +2272,18 @@ export default function PatientProfile() {
                         no_show: { bg: '#fee2e2', text: '#dc2626' },
                         cancelled: { bg: '#f3f4f6', text: '#6b7280' }
                       };
-                      const statusStyle = statusColors[status] || statusColors.scheduled;
+                      const statusStyle = statusColors[displayStatus] || statusColors.scheduled;
 
                       return (
-                        <div key={apt.id} className={`appointment-row ${isUpcoming ? 'upcoming' : 'past'}`}>
+                        <div key={apt.id || `${apt.start_time}-${apt.calendar_name}`} className={`appointment-row ${isUpcoming ? 'upcoming' : 'past'}`}
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => {
+                            setEditingAppointment(apt);
+                            setAptEditStatus(displayStatus);
+                            setAptEditNotes(apt.notes || '');
+                            setAptEditCategory(apt.appointment_title || apt.service_category || '');
+                          }}
+                        >
                           <div className="apt-date">
                             <div className="apt-day">{aptDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' })}</div>
                             <div className="apt-time">{aptDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Los_Angeles' })}</div>
@@ -2275,7 +2295,7 @@ export default function PatientProfile() {
                             )}
                           </div>
                           <span className="apt-status" style={{ background: statusStyle.bg, color: statusStyle.text }}>
-                            {status.replace('_', ' ')}
+                            {displayStatus.replace('_', ' ')}
                           </span>
                         </div>
                       );
@@ -3568,6 +3588,93 @@ export default function PatientProfile() {
           </>
         )}
 
+        {/* Appointment Edit Modal */}
+        {editingAppointment && (
+          <div className="modal-overlay" onClick={() => setEditingAppointment(null)}>
+            <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
+              <div className="modal-header">
+                <h3>Edit Appointment</h3>
+                <button onClick={() => setEditingAppointment(null)} className="close-btn">&times;</button>
+              </div>
+              <div className="modal-body">
+                <div style={{ marginBottom: 12, padding: '8px 12px', background: '#f9fafb', borderRadius: 6, fontSize: 13, color: '#6b7280' }}>
+                  <strong style={{ color: '#111827' }}>{editingAppointment.calendar_name || 'Appointment'}</strong>
+                  {' — '}
+                  {new Date(editingAppointment.start_time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' })}
+                  {' at '}
+                  {new Date(editingAppointment.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Los_Angeles' })}
+                </div>
+                <div className="form-group">
+                  <label>Status</label>
+                  <select value={aptEditStatus} onChange={e => setAptEditStatus(e.target.value)}>
+                    <option value="scheduled">Scheduled</option>
+                    <option value="confirmed">Confirmed</option>
+                    <option value="showed">Showed</option>
+                    <option value="completed">Completed</option>
+                    <option value="no_show">No Show</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Category / Label</label>
+                  <input
+                    type="text"
+                    value={aptEditCategory}
+                    onChange={e => setAptEditCategory(e.target.value)}
+                    placeholder="e.g. IV Therapy, Follow-up, Consultation"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Notes</label>
+                  <textarea
+                    value={aptEditNotes}
+                    onChange={e => setAptEditNotes(e.target.value)}
+                    rows={3}
+                    placeholder="Optional notes..."
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button onClick={() => setEditingAppointment(null)} className="btn-secondary">Cancel</button>
+                <button
+                  disabled={savingApt}
+                  className="btn-primary"
+                  onClick={async () => {
+                    setSavingApt(true);
+                    try {
+                      const table = editingAppointment._table || 'clinic_appointments';
+                      const res = await fetch('/api/appointments/update', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          id: editingAppointment.id,
+                          table,
+                          status: aptEditStatus,
+                          notes: aptEditNotes,
+                          category: aptEditCategory
+                        })
+                      });
+                      if (res.ok) {
+                        fetchPatient();
+                        setEditingAppointment(null);
+                      } else {
+                        const err = await res.json();
+                        alert('Error saving: ' + (err.error || 'Unknown error'));
+                      }
+                    } catch (err) {
+                      alert('Error saving appointment');
+                    } finally {
+                      setSavingApt(false);
+                    }
+                  }}
+                >
+                  {savingApt ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* PDF Slide-Out Viewer */}
         {pdfSlideOut.open && (
           <>
@@ -4407,6 +4514,10 @@ export default function PatientProfile() {
         }
         .appointment-row.past {
           background: #f9fafb;
+        }
+        .appointment-row:hover {
+          background: #eff6ff !important;
+          border-color: #bfdbfe;
         }
         .apt-date {
           min-width: 100px;

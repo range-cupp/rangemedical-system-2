@@ -2260,9 +2260,9 @@ export default function PatientProfile() {
                       const isUpcoming = !isPast;
                       const cutoffDate = new Date('2026-03-07T00:00:00-08:00');
                       let displayStatus = (apt.status || 'scheduled').toLowerCase();
-                      // Past appointments before March 7 show as "showed"
-                      if (aptDate < cutoffDate && ['scheduled', 'confirmed'].includes(displayStatus)) {
-                        displayStatus = 'showed';
+                      // Past appointments before March 7 show as "completed"
+                      if (aptDate < cutoffDate && ['scheduled', 'confirmed', 'showed'].includes(displayStatus)) {
+                        displayStatus = 'completed';
                       }
                       const statusColors = {
                         scheduled: { bg: '#fef3c7', text: '#92400e' },

@@ -335,7 +335,7 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
         )}
 
         {/* Sidebar */}
-        <aside style={{
+        <aside data-admin-sidebar className={sidebarOpen ? 'open' : ''} style={{
           ...styles.sidebar,
           ...(sidebarOpen ? styles.sidebarOpen : {})
         }}>
@@ -384,9 +384,9 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
         </aside>
 
         {/* Main content */}
-        <div style={styles.mainWrapper}>
+        <div data-admin-main style={styles.mainWrapper}>
           {/* Mobile header */}
-          <header style={styles.mobileHeader}>
+          <header data-admin-mobile-header style={styles.mobileHeader}>
             <button
               style={styles.menuBtn}
               onClick={() => setSidebarOpen(!sidebarOpen)}

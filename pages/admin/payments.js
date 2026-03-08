@@ -30,6 +30,16 @@ export default function PaymentsPage() {
   const [posServicesLoading, setPosServicesLoading] = useState(false);
   const [posServicesLoaded, setPosServicesLoaded] = useState(false);
 
+  // Gift Cards state
+  const [giftCards, setGiftCards] = useState([]);
+  const [giftCardsLoading, setGiftCardsLoading] = useState(false);
+  const [giftCardsLoaded, setGiftCardsLoaded] = useState(false);
+  const [giftCardSearch, setGiftCardSearch] = useState('');
+  const [giftCardStatusFilter, setGiftCardStatusFilter] = useState('all');
+  const [expandedGiftCard, setExpandedGiftCard] = useState(null);
+  const [giftCardRedemptions, setGiftCardRedemptions] = useState({});
+  const [voidingGiftCardId, setVoidingGiftCardId] = useState(null);
+
   // POS state
   const [showChargeModal, setShowChargeModal] = useState(false);
   const [chargePatient, setChargePatient] = useState(null);
@@ -51,6 +61,9 @@ export default function PaymentsPage() {
     if (tab === 'products' && !posServicesLoaded) {
       fetchPosServices();
     }
+    if (tab === 'gift_cards' && !giftCardsLoaded) {
+      fetchGiftCards();
+    }
   }, [tab]);
 
   const fetchPosServices = async () => {
@@ -65,6 +78,73 @@ export default function PaymentsPage() {
     } finally {
       setPosServicesLoading(false);
     }
+  };
+
+  const fetchGiftCards = async () => {
+    setGiftCardsLoading(true);
+    try {
+      const res = await fetch('/api/gift-cards');
+      const data = await res.json();
+      setGiftCards(data.gift_cards || []);
+      setGiftCardsLoaded(true);
+    } catch (err) {
+      console.error('Error fetching gift cards:', err);
+    } finally {
+      setGiftCardsLoading(false);
+    }
+  };
+
+  const fetchGiftCardDetail = async (id) => {
+    if (giftCardRedemptions[id]) return; // already loaded
+    try {
+      const res = await fetch(`/api/gift-cards/${id}`);
+      const data = await res.json();
+      setGiftCardRedemptions(prev => ({ ...prev, [id]: data.redemptions || [] }));
+    } catch (err) {
+      console.error('Error fetching gift card detail:', err);
+    }
+  };
+
+  const handleVoidGiftCard = async (card) => {
+    if (!confirm(`Void gift card ${card.code}? This cannot be undone.`)) return;
+    setVoidingGiftCardId(card.id);
+    try {
+      const res = await fetch(`/api/gift-cards/${card.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'voided' }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error);
+      }
+      setActionMsg('Gift card voided');
+      setTimeout(() => setActionMsg(''), 3000);
+      fetchGiftCards();
+    } catch (err) {
+      alert('Void failed: ' + err.message);
+    } finally {
+      setVoidingGiftCardId(null);
+    }
+  };
+
+  const filteredGiftCards = giftCards.filter(gc => {
+    if (giftCardStatusFilter !== 'all' && gc.status !== giftCardStatusFilter) return false;
+    if (giftCardSearch) {
+      const q = giftCardSearch.toLowerCase();
+      return (gc.code || '').toLowerCase().includes(q) ||
+        (gc.buyer_name || '').toLowerCase().includes(q);
+    }
+    return true;
+  });
+
+  const giftCardStats = {
+    totalSold: giftCards.length,
+    totalValue: giftCards.reduce((s, gc) => s + (gc.initial_amount || 0), 0),
+    outstanding: giftCards.filter(gc => gc.status === 'active').reduce((s, gc) => s + (gc.remaining_amount || 0), 0),
+    active: giftCards.filter(gc => gc.status === 'active').length,
+    depleted: giftCards.filter(gc => gc.status === 'depleted').length,
+    voided: giftCards.filter(gc => gc.status === 'voided').length,
   };
 
   // Patient search with debounce
@@ -230,7 +310,7 @@ export default function PaymentsPage() {
       {/* Tab bar + Create button */}
       <div style={styles.topBar}>
         <div style={styles.tabBar}>
-          {['invoices', 'pos', 'products'].map(t => (
+          {['invoices', 'pos', 'products', 'gift_cards'].map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -239,7 +319,7 @@ export default function PaymentsPage() {
                 ...(tab === t ? styles.tabActive : {})
               }}
             >
-              {t === 'invoices' ? 'Invoices' : t === 'pos' ? 'POS Checkout' : 'Products & Services'}
+              {t === 'invoices' ? 'Invoices' : t === 'pos' ? 'POS Checkout' : t === 'products' ? 'Products & Services' : 'Gift Cards'}
             </button>
           ))}
         </div>
@@ -603,7 +683,7 @@ export default function PaymentsPage() {
               const CATEGORY_ORDER = [
                 'programs', 'combo_membership', 'hbot', 'red_light', 'hrt', 'weight_loss',
                 'iv_therapy', 'specialty_iv', 'injection_standard', 'injection_premium',
-                'injection_pack', 'nad_injection', 'peptide', 'labs', 'assessment', 'custom',
+                'injection_pack', 'nad_injection', 'peptide', 'labs', 'assessment', 'gift_card', 'custom',
               ];
               const CATEGORY_LABELS = {
                 programs: 'Programs',
@@ -621,6 +701,7 @@ export default function PaymentsPage() {
                 peptide: 'Peptides',
                 labs: 'Lab Panels',
                 assessment: 'Assessment',
+                gift_card: 'Gift Cards',
                 custom: 'Custom',
               };
 
@@ -672,6 +753,182 @@ export default function PaymentsPage() {
                 </div>
               );
             })()
+          )}
+        </div>
+      )}
+
+      {/* Gift Cards Tab */}
+      {tab === 'gift_cards' && (
+        <div>
+          {giftCardsLoading ? (
+            <div style={styles.loading}>Loading gift cards...</div>
+          ) : (
+            <>
+              {/* Stats */}
+              <div style={styles.statsRow}>
+                <div style={styles.stat}>
+                  <div style={styles.statValue}>{giftCardStats.totalSold}</div>
+                  <div style={styles.statLabel}>Total Sold</div>
+                </div>
+                <div style={styles.stat}>
+                  <div style={{ ...styles.statValue, color: '#166534' }}>{formatCents(giftCardStats.totalValue)}</div>
+                  <div style={styles.statLabel}>Total Value</div>
+                </div>
+                <div style={styles.stat}>
+                  <div style={{ ...styles.statValue, color: '#92400e' }}>{formatCents(giftCardStats.outstanding)}</div>
+                  <div style={styles.statLabel}>Outstanding</div>
+                </div>
+                <div style={styles.stat}>
+                  <div style={styles.statValue}>{giftCardStats.active}</div>
+                  <div style={styles.statLabel}>Active</div>
+                </div>
+                <div style={styles.stat}>
+                  <div style={styles.statValue}>{giftCardStats.depleted}</div>
+                  <div style={styles.statLabel}>Depleted</div>
+                </div>
+                <div style={styles.stat}>
+                  <div style={styles.statValue}>{giftCardStats.voided}</div>
+                  <div style={styles.statLabel}>Voided</div>
+                </div>
+              </div>
+
+              {/* Filters */}
+              <div style={styles.filters}>
+                <input
+                  type="text"
+                  placeholder="Search by code or buyer..."
+                  value={giftCardSearch}
+                  onChange={e => setGiftCardSearch(e.target.value)}
+                  style={styles.searchInput}
+                />
+                <div style={styles.filterPills}>
+                  {['all', 'active', 'depleted', 'voided'].map(s => (
+                    <button
+                      key={s}
+                      onClick={() => setGiftCardStatusFilter(s)}
+                      style={{
+                        ...styles.filterPill,
+                        ...(giftCardStatusFilter === s ? styles.filterPillActive : {}),
+                      }}
+                    >
+                      {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Gift Cards Table */}
+              {filteredGiftCards.length === 0 ? (
+                <div style={styles.empty}>No gift cards found</div>
+              ) : (
+                <div style={styles.card}>
+                  <table style={styles.table}>
+                    <thead>
+                      <tr>
+                        <th style={styles.th}>Code</th>
+                        <th style={styles.th}>Buyer</th>
+                        <th style={styles.th}>Initial</th>
+                        <th style={styles.th}>Remaining</th>
+                        <th style={styles.th}>Status</th>
+                        <th style={styles.th}>Created</th>
+                        <th style={styles.th}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredGiftCards.map(gc => {
+                        const gcStatusColors = {
+                          active: { bg: '#dcfce7', color: '#166534' },
+                          depleted: { bg: '#f0f0f0', color: '#666' },
+                          voided: { bg: '#fee2e2', color: '#dc2626' },
+                        };
+                        const sc = gcStatusColors[gc.status] || { bg: '#f0f0f0', color: '#666' };
+                        const isExpanded = expandedGiftCard === gc.id;
+                        return (
+                          <React.Fragment key={gc.id}>
+                            <tr
+                              style={{ ...styles.tr, cursor: 'pointer', background: isExpanded ? '#fafafa' : 'transparent' }}
+                              onClick={() => {
+                                if (isExpanded) {
+                                  setExpandedGiftCard(null);
+                                } else {
+                                  setExpandedGiftCard(gc.id);
+                                  fetchGiftCardDetail(gc.id);
+                                }
+                              }}
+                            >
+                              <td style={styles.td}>
+                                <span style={{ fontFamily: 'monospace', fontWeight: 600, letterSpacing: '1px' }}>{gc.code}</span>
+                              </td>
+                              <td style={styles.td}>{gc.buyer_name || '—'}</td>
+                              <td style={styles.td}>{formatCents(gc.initial_amount)}</td>
+                              <td style={styles.td}>
+                                <span style={{ fontWeight: 600, color: gc.remaining_amount > 0 ? '#166534' : '#666' }}>
+                                  {formatCents(gc.remaining_amount)}
+                                </span>
+                              </td>
+                              <td style={styles.td}>
+                                <span style={{ ...styles.badge, background: sc.bg, color: sc.color }}>{gc.status}</span>
+                              </td>
+                              <td style={styles.td}>{formatDate(gc.created_at)}</td>
+                              <td style={styles.td}>
+                                <div style={styles.actions} onClick={e => e.stopPropagation()}>
+                                  {gc.status === 'active' && (
+                                    <button
+                                      style={styles.voidBtn}
+                                      onClick={() => handleVoidGiftCard(gc)}
+                                      disabled={voidingGiftCardId === gc.id}
+                                    >
+                                      {voidingGiftCardId === gc.id ? 'Voiding...' : 'Void'}
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                            {isExpanded && (
+                              <tr>
+                                <td colSpan={7} style={styles.expandedRow}>
+                                  <div style={{ padding: '12px 0' }}>
+                                    <div style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', color: '#999', marginBottom: '10px', letterSpacing: '0.3px' }}>
+                                      Redemption History
+                                    </div>
+                                    {!giftCardRedemptions[gc.id] ? (
+                                      <div style={{ color: '#888', fontSize: '13px' }}>Loading...</div>
+                                    ) : giftCardRedemptions[gc.id].length === 0 ? (
+                                      <div style={{ color: '#888', fontSize: '13px' }}>No redemptions yet</div>
+                                    ) : (
+                                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                                        <thead>
+                                          <tr>
+                                            <th style={{ ...styles.th, fontSize: '10px', padding: '8px 12px' }}>Date</th>
+                                            <th style={{ ...styles.th, fontSize: '10px', padding: '8px 12px' }}>Redeemed By</th>
+                                            <th style={{ ...styles.th, fontSize: '10px', padding: '8px 12px' }}>Amount</th>
+                                            <th style={{ ...styles.th, fontSize: '10px', padding: '8px 12px' }}>Balance After</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {giftCardRedemptions[gc.id].map(r => (
+                                            <tr key={r.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                                              <td style={{ padding: '8px 12px' }}>{formatDate(r.created_at)}</td>
+                                              <td style={{ padding: '8px 12px' }}>{r.redeemed_by_name || '—'}</td>
+                                              <td style={{ padding: '8px 12px', fontWeight: 600, color: '#dc2626' }}>-{formatCents(r.amount)}</td>
+                                              <td style={{ padding: '8px 12px' }}>{formatCents(r.balance_after)}</td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

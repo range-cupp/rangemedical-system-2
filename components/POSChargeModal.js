@@ -10,7 +10,7 @@ import { formatPrice } from '../lib/pos-pricing';
 const CATEGORY_ORDER = [
   'programs', 'combo_membership', 'hbot', 'red_light', 'hrt', 'weight_loss',
   'iv_therapy', 'specialty_iv', 'injection_standard', 'injection_premium',
-  'injection_pack', 'nad_injection', 'peptide', 'labs', 'assessment', 'custom',
+  'injection_pack', 'nad_injection', 'peptide', 'labs', 'assessment', 'gift_card', 'custom',
 ];
 const CATEGORY_LABELS = {
   programs: 'Programs',
@@ -28,6 +28,7 @@ const CATEGORY_LABELS = {
   peptide: 'Peptides',
   labs: 'Lab Panels',
   assessment: 'Assessment',
+  gift_card: 'Gift Cards',
   custom: 'Custom',
 };
 
@@ -75,6 +76,15 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   const [resultStatus, setResultStatus] = useState(null);
   const [resultMessage, setResultMessage] = useState('');
 
+  // Gift card state (buying)
+  const [giftCardCustomAmount, setGiftCardCustomAmount] = useState('');
+  const [createdGiftCardCode, setCreatedGiftCardCode] = useState(null);
+
+  // Gift card state (redeeming as payment)
+  const [giftCardCode, setGiftCardCode] = useState('');
+  const [giftCardLookup, setGiftCardLookup] = useState(null); // { id, code, remaining_amount, status }
+  const [lookingUpGiftCard, setLookingUpGiftCard] = useState(false);
+
   // Invoice state
   const [showInvoiceSend, setShowInvoiceSend] = useState(false);
   const [invoiceSending, setInvoiceSending] = useState(false);
@@ -92,7 +102,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
         // Build category list from returned services, in preferred order
         const cats = [];
         for (const cat of CATEGORY_ORDER) {
-          if (cat === 'custom' || svc.some(s => s.category === cat)) {
+          if (cat === 'custom' || (cat === 'gift_card' && svc.some(s => s.category === cat)) || svc.some(s => s.category === cat)) {
             cats.push(cat);
           }
         }
@@ -234,7 +244,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
 
   // Check if a category should use sub-grouped rendering
   function shouldSubGroup(categoryId) {
-    if (categoryId === 'peptide' || categoryId === 'custom') return false;
+    if (categoryId === 'peptide' || categoryId === 'custom' || categoryId === 'gift_card') return false;
     const result = getSubGroupedItems(categoryId);
     return result && result.subgroups.length > 0;
   }
@@ -307,6 +317,24 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     const exists = cartItems.find(i => i.id === item.id);
     if (exists) {
       setCartItems(cartItems.filter(i => i.id !== item.id));
+      setGiftCardCustomAmount('');
+      return;
+    }
+    // Gift card isolation: must be purchased alone, only one at a time
+    if (item.category === 'gift_card') {
+      if (cartItems.some(i => i.category !== 'gift_card')) {
+        setCartWarning('Gift cards must be purchased alone');
+        setTimeout(() => setCartWarning(''), 3000);
+        return;
+      }
+      // Replace any existing gift card (only one at a time)
+      setGiftCardCustomAmount('');
+      setCartItems([{ ...item, quantity: 1, itemDiscountType: 'none', itemDiscountValue: '' }]);
+      return;
+    }
+    if (cartItems.some(i => i.category === 'gift_card')) {
+      setCartWarning('Cannot add items when a gift card is in cart');
+      setTimeout(() => setCartWarning(''), 3000);
       return;
     }
     if (item.recurring && cartItems.length > 0) {
@@ -397,6 +425,9 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   function canProceedToPayment() {
     if (activeCategory === 'custom') {
       return parseFloat(customAmount) > 0;
+    }
+    if (activeCategory === 'gift_card') {
+      return cartItems.length > 0 && cartItems[0]?.category === 'gift_card';
     }
     return cartItems.length > 0;
   }
@@ -545,6 +576,81 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     }
   }
 
+  // Like recordPurchases but returns the first purchase record (used for gift card linking)
+  async function recordPurchasesWithReturn(extraFields) {
+    if (activeCategory === 'custom') {
+      const amount = getChargeAmount();
+      const desc = getChargeDescription();
+      const discountData = getDiscountData();
+      const discountSuffix = discountType === 'percent'
+        ? `${discountValue}% off`
+        : `$${discountValue} off`;
+      const res = await fetch('/api/stripe/record-purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: patient.id,
+          amount,
+          description: discountData.discount_type ? `${desc} (${discountSuffix})` : desc,
+          payment_method: 'stripe',
+          service_category: activeCategory,
+          service_name: customDescription,
+          quantity: 1,
+          ...discountData,
+          ...extraFields,
+        }),
+      });
+      return await res.json();
+    }
+
+    let firstPurchase = null;
+    const purchaseIds = [];
+    for (const item of cartItems) {
+      const qty = item.quantity || 1;
+      const itemBase = (item.price || 0) * qty;
+      const itemDiscountAmt = getItemDiscountCents(item);
+      const itemFinal = itemBase - itemDiscountAmt;
+      const itemName = qty > 1 ? `${item.name} x${qty}` : item.name;
+      const discountSuffix = item.itemDiscountType === 'percent'
+        ? `${item.itemDiscountValue}% off`
+        : `$${item.itemDiscountValue} off`;
+
+      const res = await fetch('/api/stripe/record-purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: patient.id,
+          amount: itemFinal,
+          description: itemDiscountAmt > 0 ? `${itemName} (${discountSuffix})` : itemName,
+          payment_method: 'stripe',
+          service_category: item.category,
+          service_name: item.name,
+          quantity: qty,
+          skip_receipt: cartItems.length > 1,
+          ...(itemDiscountAmt > 0 ? {
+            discount_type: item.itemDiscountType,
+            discount_amount: parseFloat(item.itemDiscountValue),
+            original_amount: itemBase,
+          } : {}),
+          ...extraFields,
+        }),
+      });
+      const data = await res.json();
+      if (!firstPurchase) firstPurchase = data;
+      if (data.purchase?.id) purchaseIds.push(data.purchase.id);
+    }
+
+    if (purchaseIds.length > 1) {
+      fetch('/api/stripe/send-consolidated-receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ purchase_ids: purchaseIds }),
+      }).catch(err => console.error('Consolidated receipt failed:', err));
+    }
+
+    return firstPurchase;
+  }
+
   // After successful payment, auto-create protocols for peptide purchases
   // Patient has already done consult + forms, so start at 'dispensed' stage
   async function createProtocolsForPeptides() {
@@ -601,6 +707,92 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     }
   }
 
+  // Gift card: add custom amount as a synthetic cart item
+  function addGiftCardCustom() {
+    const dollars = parseFloat(giftCardCustomAmount);
+    if (isNaN(dollars) || dollars < 1) return;
+    const cents = Math.round(dollars * 100);
+    setCartItems([{
+      id: 'gift_card_custom',
+      name: `Gift Card — ${formatPrice(cents)}`,
+      price: cents,
+      category: 'gift_card',
+      quantity: 1,
+      itemDiscountType: 'none',
+      itemDiscountValue: '',
+    }]);
+  }
+
+  // Gift card: look up a code for redemption (payment step)
+  async function handleGiftCardLookup() {
+    const code = giftCardCode.trim().toUpperCase();
+    if (!code) return;
+    setLookingUpGiftCard(true);
+    setGiftCardLookup(null);
+    try {
+      const res = await fetch(`/api/gift-cards/lookup?code=${encodeURIComponent(code)}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setGiftCardLookup({ error: data.error || 'Not found' });
+      } else {
+        setGiftCardLookup(data.gift_card);
+      }
+    } catch (err) {
+      setGiftCardLookup({ error: 'Failed to look up gift card' });
+    }
+    setLookingUpGiftCard(false);
+  }
+
+  // Gift card: create card after a gift card purchase
+  async function createGiftCardAfterPurchase(purchaseId, amountCents) {
+    try {
+      const res = await fetch('/api/gift-cards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: amountCents,
+          buyer_patient_id: patient.id,
+          buyer_name: patient.name,
+          purchase_id: purchaseId,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.gift_card?.code) {
+        setCreatedGiftCardCode(data.gift_card.code);
+        return data.gift_card.code;
+      }
+    } catch (err) {
+      console.error('Gift card creation error (non-fatal):', err);
+    }
+    return null;
+  }
+
+  // Check if current cart is a gift card purchase
+  function isGiftCardPurchase() {
+    return cartItems.length > 0 && cartItems[0]?.category === 'gift_card';
+  }
+
+  // Shared success handler — records purchase, creates gift card if needed, shows result
+  async function handlePaymentSuccess(stripePaymentIntentId, amount) {
+    const extraFields = stripePaymentIntentId
+      ? { stripe_payment_intent_id: stripePaymentIntentId }
+      : {};
+    const purchaseData = await recordPurchasesWithReturn(extraFields);
+    await createProtocolsForPeptides();
+
+    let message = getResultMessage(amount);
+    if (isGiftCardPurchase() && purchaseData?.purchase?.id) {
+      const code = await createGiftCardAfterPurchase(purchaseData.purchase.id, amount);
+      if (code) {
+        message = `Payment successful: ${formatPrice(amount)}\nGift Card Created: ${code}\nGive this code to the recipient`;
+      }
+    }
+
+    setResultStatus('success');
+    setResultMessage(message);
+    setStep('result');
+  }
+
   async function handlePay() {
     const amount = getChargeAmount();
     const description = getChargeDescription();
@@ -627,15 +819,62 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     if (selectedCard === 'cash') {
       setStep('processing');
       try {
-        await recordPurchases({ payment_method: 'cash' });
+        const purchaseData = await recordPurchasesWithReturn({ payment_method: 'cash' });
         await createProtocolsForPeptides();
-        setResultStatus('success');
-        setResultMessage(`Cash payment recorded: ${description} — ${formatPrice(amount)} for ${patient.name}`);
+        // If this was a gift card purchase, create the gift card
+        if (isGiftCardPurchase() && purchaseData?.purchase?.id) {
+          const code = await createGiftCardAfterPurchase(purchaseData.purchase.id, amount);
+          setResultStatus('success');
+          setResultMessage(code
+            ? `Cash payment recorded: ${formatPrice(amount)}\nGift Card Created: ${code}\nGive this code to the recipient`
+            : `Cash payment recorded: ${description} — ${formatPrice(amount)} for ${patient.name}`);
+        } else {
+          setResultStatus('success');
+          setResultMessage(`Cash payment recorded: ${description} — ${formatPrice(amount)} for ${patient.name}`);
+        }
         setStep('result');
       } catch (error) {
         console.error('Cash recording error:', error);
         setResultStatus('error');
         setResultMessage(error.message || 'Failed to record cash payment');
+        setStep('result');
+      }
+      return;
+    }
+
+    // Gift card redemption — deduct from gift card balance, record purchase
+    if (selectedCard === 'gift_card') {
+      if (!giftCardLookup || giftCardLookup.error) return;
+      setStep('processing');
+      try {
+        // Record the purchase first
+        const purchaseData = await recordPurchasesWithReturn({ payment_method: 'gift_card' });
+        // Redeem from the gift card
+        const redeemRes = await fetch('/api/gift-cards/redeem', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code: giftCardLookup.code,
+            amount: amount,
+            purchase_id: purchaseData?.purchase?.id || null,
+            redeemed_by_patient_id: patient.id,
+            redeemed_by_name: patient.name,
+          }),
+        });
+        const redeemData = await redeemRes.json();
+        if (!redeemRes.ok) throw new Error(redeemData.error || 'Failed to redeem gift card');
+        await createProtocolsForPeptides();
+        const remaining = redeemData.redemption?.balance_after ?? 0;
+        setResultStatus('success');
+        setResultMessage(
+          `Paid ${formatPrice(amount)} with Gift Card ${giftCardLookup.code}\n` +
+          `Remaining balance: ${formatPrice(remaining)}`
+        );
+        setStep('result');
+      } catch (error) {
+        console.error('Gift card redemption error:', error);
+        setResultStatus('error');
+        setResultMessage(error.message || 'Failed to redeem gift card');
         setStep('result');
       }
       return;
@@ -757,12 +996,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     }
 
     if (paymentIntent.status === 'succeeded') {
-      await recordPurchases({ stripe_payment_intent_id: paymentIntent.id });
-      await createProtocolsForPeptides();
-
-      setResultStatus('success');
-      setResultMessage(getResultMessage(amount));
-      setStep('result');
+      await handlePaymentSuccess(paymentIntent.id, amount);
     }
   }
 
@@ -782,12 +1016,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     if (!piRes.ok) throw new Error(piData.error);
 
     if (piData.status === 'succeeded') {
-      await recordPurchases({ stripe_payment_intent_id: piData.payment_intent_id });
-      await createProtocolsForPeptides();
-
-      setResultStatus('success');
-      setResultMessage(getResultMessage(amount));
-      setStep('result');
+      await handlePaymentSuccess(piData.payment_intent_id, amount);
       return;
     }
 
@@ -805,12 +1034,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       }
 
       if (paymentIntent.status === 'succeeded') {
-        await recordPurchases({ stripe_payment_intent_id: paymentIntent.id });
-        await createProtocolsForPeptides();
-
-        setResultStatus('success');
-        setResultMessage(getResultMessage(amount));
-        setStep('result');
+        await handlePaymentSuccess(paymentIntent.id, amount);
       } else if (paymentIntent.status === 'requires_confirmation') {
         // Intent needs another confirmation after 3DS — confirm with payment method
         const confirmResult = await stripe.confirmPayment({
@@ -827,12 +1051,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           setResultMessage(confirmResult.error.message);
           setStep('result');
         } else if (confirmResult.paymentIntent?.status === 'succeeded') {
-          await recordPurchases({ stripe_payment_intent_id: confirmResult.paymentIntent.id });
-          await createProtocolsForPeptides();
-
-          setResultStatus('success');
-          setResultMessage(getResultMessage(amount));
-          setStep('result');
+          await handlePaymentSuccess(confirmResult.paymentIntent.id, amount);
         } else {
           setResultStatus('error');
           setResultMessage(`Payment not completed — status: ${confirmResult.paymentIntent?.status}`);
@@ -867,6 +1086,11 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     setDiscountValue('');
     setResultStatus(null);
     setResultMessage('');
+    setGiftCardCustomAmount('');
+    setCreatedGiftCardCode(null);
+    setGiftCardCode('');
+    setGiftCardLookup(null);
+    setLookingUpGiftCard(false);
     onClose();
   }
 
@@ -1058,6 +1282,72 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                       </div>
                     );
                   })()
+                ) : activeCategory === 'gift_card' ? (
+                  // Gift card view: presets + custom amount
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ fontSize: '13px', color: '#666', marginBottom: '12px' }}>
+                      Select a preset amount or enter a custom value
+                    </div>
+                    <div style={modalStyles.itemGrid}>
+                      {getItemsByCategory('gift_card').map(item => (
+                        <button
+                          key={item.id}
+                          style={{
+                            ...modalStyles.itemCard,
+                            ...(cartItems.some(i => i.id === item.id) ? modalStyles.itemCardSelected : {}),
+                          }}
+                          onClick={() => toggleCartItem(item)}
+                        >
+                          {cartItems.some(i => i.id === item.id) && (
+                            <span style={modalStyles.inCartBadge}>&#10003;</span>
+                          )}
+                          <div style={modalStyles.itemName}>{item.name}</div>
+                          <div style={modalStyles.itemPrice}>{formatPrice(item.price)}</div>
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{ marginTop: '16px', padding: '16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                      <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px', color: '#374151' }}>Custom Amount</div>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <input
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={giftCardCustomAmount}
+                          onChange={e => {
+                            setGiftCardCustomAmount(e.target.value);
+                            // Clear preset selection when typing custom amount
+                            if (cartItems.some(i => i.id !== 'gift_card_custom')) {
+                              setCartItems([]);
+                            }
+                          }}
+                          placeholder="Enter amount"
+                          style={{ ...modalStyles.input, flex: 1, marginBottom: 0 }}
+                        />
+                        <button
+                          onClick={addGiftCardCustom}
+                          disabled={!giftCardCustomAmount || parseFloat(giftCardCustomAmount) < 1}
+                          style={{
+                            ...modalStyles.primaryBtn,
+                            padding: '10px 20px',
+                            opacity: (!giftCardCustomAmount || parseFloat(giftCardCustomAmount) < 1) ? 0.5 : 1,
+                          }}
+                        >
+                          Add ${giftCardCustomAmount || '0'}
+                        </button>
+                      </div>
+                    </div>
+                    {cartItems.length > 0 && cartItems[0]?.category === 'gift_card' && (
+                      <div style={{ marginTop: '12px', padding: '12px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                        <div style={{ fontWeight: 600, color: '#166534' }}>
+                          Selected: {cartItems[0].name} — {formatPrice(cartItems[0].price)}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#15803d', marginTop: '4px' }}>
+                          A unique gift card code will be generated after purchase
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 ) : activeCategory !== 'custom' ? (
                   shouldSubGroup(activeCategory) ? (
                     // Sub-grouped view
@@ -1578,6 +1868,75 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                     <span>💵 Cash</span>
                   </label>
                 </div>
+
+                {/* Gift Card Option (not shown when buying a gift card) */}
+                {!isGiftCardPurchase() && (
+                  <div style={modalStyles.cardList}>
+                    <label style={modalStyles.cardOption}>
+                      <input
+                        type="radio"
+                        name="payment_method"
+                        checked={selectedCard === 'gift_card'}
+                        onChange={() => { setSelectedCard('gift_card'); setGiftCardLookup(null); setGiftCardCode(''); }}
+                      />
+                      <span>🎁 Gift Card</span>
+                    </label>
+
+                    {selectedCard === 'gift_card' && (
+                      <div style={{ padding: '12px 16px', borderTop: '1px solid #f0f0f0' }}>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
+                          <input
+                            type="text"
+                            value={giftCardCode}
+                            onChange={e => setGiftCardCode(e.target.value.toUpperCase())}
+                            placeholder="Enter code (RM-XXXX-XXXX)"
+                            style={{ ...modalStyles.input, flex: 1, marginBottom: 0, fontFamily: 'monospace', letterSpacing: '1px' }}
+                          />
+                          <button
+                            onClick={handleGiftCardLookup}
+                            disabled={!giftCardCode.trim() || lookingUpGiftCard}
+                            style={{
+                              ...modalStyles.primaryBtn,
+                              padding: '10px 16px',
+                              opacity: (!giftCardCode.trim() || lookingUpGiftCard) ? 0.5 : 1,
+                            }}
+                          >
+                            {lookingUpGiftCard ? 'Looking up...' : 'Look Up'}
+                          </button>
+                        </div>
+
+                        {giftCardLookup && !giftCardLookup.error && (
+                          <div style={{ padding: '12px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontWeight: 600, color: '#166534' }}>Balance: {formatPrice(giftCardLookup.remaining_amount)}</span>
+                              <span style={{ fontSize: '12px', color: '#15803d', background: '#dcfce7', padding: '2px 8px', borderRadius: '4px' }}>
+                                {giftCardLookup.status}
+                              </span>
+                            </div>
+                            {giftCardLookup.remaining_amount < finalAmount ? (
+                              <div style={{ marginTop: '8px', fontSize: '13px', color: '#dc2626' }}>
+                                Insufficient balance. Card has {formatPrice(giftCardLookup.remaining_amount)} but charge is {formatPrice(finalAmount)}.
+                              </div>
+                            ) : (
+                              <div style={{ marginTop: '8px', fontSize: '13px', color: '#15803d' }}>
+                                This card covers the full charge of {formatPrice(finalAmount)}.
+                                {giftCardLookup.remaining_amount > finalAmount && (
+                                  <span> Remaining after: {formatPrice(giftCardLookup.remaining_amount - finalAmount)}</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {giftCardLookup?.error && (
+                          <div style={{ padding: '10px', background: '#fee2e2', borderRadius: '6px', fontSize: '13px', color: '#dc2626' }}>
+                            {giftCardLookup.error}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </>
             )}
 
@@ -1588,10 +1947,16 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
               <button
                 style={modalStyles.primaryBtn}
                 onClick={handlePay}
-                disabled={selectedCard !== 'cash' && !stripe}
+                disabled={
+                  selectedCard === 'gift_card'
+                    ? (!giftCardLookup || giftCardLookup.error || giftCardLookup.remaining_amount < finalAmount)
+                    : (selectedCard !== 'cash' && !stripe)
+                }
               >
                 {selectedCard === 'cash'
                   ? `Record Cash ${formatPrice(finalAmount)}`
+                  : selectedCard === 'gift_card'
+                  ? `Redeem Gift Card ${formatPrice(finalAmount)}`
                   : isRecurring()
                   ? `Subscribe ${formatPrice(finalAmount)}/mo`
                   : `Pay ${formatPrice(finalAmount)}`
@@ -1618,7 +1983,30 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
               {resultStatus === 'success' ? (
                 <>
                   <div style={modalStyles.successIcon}>✓</div>
-                  <p style={modalStyles.resultText}>{resultMessage}</p>
+                  <p style={{ ...modalStyles.resultText, whiteSpace: 'pre-line' }}>{resultMessage}</p>
+                  {createdGiftCardCode && (
+                    <div style={{
+                      marginTop: '16px', padding: '16px', background: '#f0fdf4', borderRadius: '10px',
+                      border: '2px solid #86efac', textAlign: 'center',
+                    }}>
+                      <div style={{ fontSize: '12px', color: '#15803d', marginBottom: '6px', fontWeight: 600 }}>GIFT CARD CODE</div>
+                      <div style={{
+                        fontSize: '24px', fontWeight: 700, fontFamily: 'monospace', letterSpacing: '2px',
+                        color: '#166534', padding: '8px', background: '#fff', borderRadius: '6px', border: '1px solid #bbf7d0',
+                      }}>
+                        {createdGiftCardCode}
+                      </div>
+                      <button
+                        onClick={() => navigator.clipboard.writeText(createdGiftCardCode)}
+                        style={{
+                          marginTop: '10px', padding: '6px 16px', background: '#166534', color: '#fff',
+                          border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer',
+                        }}
+                      >
+                        Copy Code
+                      </button>
+                    </div>
+                  )}
                 </>
               ) : (
                 <>

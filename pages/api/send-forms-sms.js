@@ -5,6 +5,7 @@
 import { sendSMS, normalizePhone } from '../../lib/send-sms';
 import { logComm } from '../../lib/comms-log';
 import { createFormBundle, FORM_DEFINITIONS } from '../../lib/form-bundles';
+import { hasBlooioOptIn, queuePendingLinkMessage, isBlooioProvider } from '../../lib/blooio-optin';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -67,7 +68,71 @@ export default async function handler(req, res) {
       messageBody = `${greeting}Range Medical here. Please complete your ${validFormIds.length} forms before your visit:\n\n${bundle.url}`;
     }
 
-    // Send via SMS provider
+    // Blooio two-step: first contact cannot include links
+    if (isBlooioProvider()) {
+      const optedIn = await hasBlooioOptIn(normalizedPhone);
+
+      if (!optedIn) {
+        // Step 1: Send link-free opt-in message
+        const formCount = validFormIds.length;
+        const optInMessage = formCount === 1
+          ? `${greeting}Range Medical here. We have your ${FORM_DEFINITIONS[validFormIds[0]].name} ready for you. Reply YES to receive it.`
+          : `${greeting}Range Medical here. We have ${formCount} forms ready for you. Reply YES to receive them.`;
+
+        const optInResult = await sendSMS({ to: normalizedPhone, message: optInMessage });
+
+        if (!optInResult.success) {
+          console.error('Opt-in SMS send error:', optInResult.error);
+          return res.status(500).json({ error: 'Failed to send opt-in SMS', details: optInResult.error });
+        }
+
+        // Log opt-in message to comms_log
+        await logComm({
+          channel: 'sms',
+          messageType: 'blooio_optin_request',
+          message: optInMessage,
+          source: `send-forms-sms(${optInResult.provider || 'sms'})`,
+          patientId: patientId || null,
+          patientName: patientName || firstName || null,
+          ghlContactId: ghlContactId || null,
+          recipient: normalizedPhone,
+          twilioMessageSid: optInResult.messageSid,
+          direction: 'outbound',
+          provider: optInResult.provider || null,
+        });
+
+        // Queue the link message for auto-send when patient replies
+        await queuePendingLinkMessage({
+          phone: normalizedPhone,
+          message: messageBody,
+          messageType: 'form_links',
+          patientId: patientId || null,
+          patientName: patientName || firstName || null,
+          formBundleId: bundle.id || null,
+        });
+
+        console.log(`Forms opt-in sent to ${normalizedPhone}: ${formNames} (bundle: ${bundle.token}) — awaiting reply`);
+
+        // GHL tagging still happens
+        if (ghlContactId || phone) {
+          tagGHLContact(phone, firstName, validFormIds, ghlContactId).catch(err => {
+            console.error('GHL tagging error (non-critical):', err.message);
+          });
+        }
+
+        return res.status(200).json({
+          success: true,
+          twoStep: true,
+          formsSent: validFormIds.length,
+          messageSid: optInResult.messageSid,
+          bundleToken: bundle.token,
+          bundleUrl: bundle.url,
+          message: 'Opt-in message sent. Forms will be delivered automatically when the patient replies.',
+        });
+      }
+    }
+
+    // Direct send — either not Blooio, or patient already opted in
     const result = await sendSMS({ to: normalizedPhone, message: messageBody });
 
     if (!result.success) {

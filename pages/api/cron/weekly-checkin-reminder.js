@@ -6,6 +6,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { logComm } from '../../../lib/comms-log';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
+import { hasBlooioOptIn, queuePendingLinkMessage, isBlooioProvider } from '../../../lib/blooio-optin';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -138,7 +139,42 @@ export default async function handler(req, res) {
       // Build the message
       const message = 'Hi ' + firstName + '! 📊\n\nTime for your weekly weight loss check-in. Takes 30 seconds:\n\n' + checkinUrl + '\n\n- Range Medical';
 
-      // Send the SMS via Twilio
+      // Blooio two-step: if first contact, send link-free version + queue link message
+      if (isBlooioProvider() && !(await hasBlooioOptIn(phone))) {
+        const optInMessage = `Hi ${firstName}! Time for your weekly weight loss check-in. Reply YES to get your check-in link. - Range Medical`;
+
+        const optInResult = await sendSMS({ to: phone, message: optInMessage });
+        if (optInResult.success) {
+          await queuePendingLinkMessage({
+            phone,
+            message,
+            messageType: 'wl_weekly_checkin',
+            patientId: patient.id,
+            patientName: patient.name,
+          });
+          await logReminder(protocol.id, patient.id, ghlContactId, patient.name, 'sent', null, optInMessage);
+          await logComm({
+            channel: 'sms',
+            messageType: 'blooio_optin_request',
+            message: optInMessage,
+            source: 'weekly-checkin-reminder',
+            patientId: patient.id,
+            protocolId: protocol.id,
+            ghlContactId,
+            patientName: patient.name,
+            recipient: phone,
+            twilioMessageSid: optInResult.messageSid,
+            direction: 'outbound',
+          });
+          results.sent.push({ patient: patient.name, protocolId: protocol.id, twoStep: true });
+        } else {
+          results.errors.push({ patient: patient.name, error: optInResult.error });
+          await logReminder(protocol.id, patient.id, ghlContactId, patient.name, 'error', optInResult.error, optInMessage);
+        }
+        continue;
+      }
+
+      // Direct send — patient already opted in or not using Blooio
       const smsResult = await sendSMS({ to: phone, message });
 
       if (smsResult.success) {

@@ -2,7 +2,7 @@
 // Standalone Send Forms & Guides page — send consent/form/guide links via SMS or Email
 // Range Medical System V2
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import AdminLayout from '../../components/AdminLayout';
 
 const AVAILABLE_FORMS = [
@@ -95,10 +95,44 @@ export default function SendFormsPage() {
   // Delivery method
   const [deliveryMethod, setDeliveryMethod] = useState('email'); // 'sms' | 'email'
 
+  // Blooio opt-in status
+  const [blooioOptIn, setBlooioOptIn] = useState(null); // null = unknown, true = opted in, false = first contact
+
   // Status
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState(null);
   const [recentSends, setRecentSends] = useState([]);
+
+  // Check Blooio opt-in when patient + SMS selected
+  useEffect(() => {
+    const phone = mode === 'search' && selectedPatient ? selectedPatient.phone : manualPhone;
+    if (deliveryMethod !== 'sms' || !phone || phone.replace(/\D/g, '').length < 10) {
+      setBlooioOptIn(null);
+      return;
+    }
+
+    let cancelled = false;
+    const checkOptIn = async () => {
+      try {
+        const digits = phone.replace(/\D/g, '');
+        const res = await fetch(`/api/blooio/check-optin?phone=${encodeURIComponent(digits)}`);
+        const data = await res.json();
+        if (!cancelled) {
+          if (data.provider === 'twilio') {
+            setBlooioOptIn(null); // Not using Blooio, not relevant
+          } else {
+            setBlooioOptIn(data.optedIn);
+          }
+        }
+      } catch (err) {
+        console.error('Opt-in check error:', err);
+        if (!cancelled) setBlooioOptIn(null);
+      }
+    };
+
+    checkOptIn();
+    return () => { cancelled = true; };
+  }, [deliveryMethod, selectedPatient, manualPhone, mode]);
 
   // Patient search
   const handleSearch = (query) => {
@@ -272,8 +306,13 @@ export default function SendFormsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to send SMS');
 
-      setResult({ success: true, message: `${selectedForms.length} form${selectedForms.length > 1 ? 's' : ''} sent via SMS` });
-      addRecentSend(patient?.name || manualName || phone, 'sms', selectedForms.length, 'forms');
+      if (data.twoStep) {
+        setResult({ success: true, message: `Opt-in message sent. ${selectedForms.length} form${selectedForms.length > 1 ? 's' : ''} will deliver when patient replies.` });
+        addRecentSend(patient?.name || manualName || phone, 'sms', selectedForms.length, 'forms (pending reply)');
+      } else {
+        setResult({ success: true, message: `${selectedForms.length} form${selectedForms.length > 1 ? 's' : ''} sent via SMS` });
+        addRecentSend(patient?.name || manualName || phone, 'sms', selectedForms.length, 'forms');
+      }
     }
 
     setSelectedForms([]);
@@ -317,8 +356,13 @@ export default function SendFormsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to send SMS');
 
-      setResult({ success: true, message: `${selectedGuides.length} guide${selectedGuides.length > 1 ? 's' : ''} sent via SMS` });
-      addRecentSend(patient?.name || manualName || phone, 'sms', selectedGuides.length, 'guides');
+      if (data.twoStep) {
+        setResult({ success: true, message: `Opt-in message sent. ${selectedGuides.length} guide${selectedGuides.length > 1 ? 's' : ''} will deliver when patient replies.` });
+        addRecentSend(patient?.name || manualName || phone, 'sms', selectedGuides.length, 'guides (pending reply)');
+      } else {
+        setResult({ success: true, message: `${selectedGuides.length} guide${selectedGuides.length > 1 ? 's' : ''} sent via SMS` });
+        addRecentSend(patient?.name || manualName || phone, 'sms', selectedGuides.length, 'guides');
+      }
     }
 
     setSelectedGuides([]);
@@ -752,6 +796,25 @@ export default function SendFormsPage() {
                     ? <span>Sending to: <strong>{selectedPatient.phone}</strong></span>
                     : <span style={styles.warningText}>No phone on file for this patient</span>
                 )}
+              </div>
+            )}
+
+            {/* Blooio opt-in status indicator */}
+            {deliveryMethod === 'sms' && blooioOptIn !== null && (
+              <div style={{
+                marginTop: '10px',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontWeight: '500',
+                background: blooioOptIn ? '#f0fdf4' : '#fffbeb',
+                color: blooioOptIn ? '#166534' : '#92400e',
+                border: `1px solid ${blooioOptIn ? '#bbf7d0' : '#fde68a'}`,
+              }}>
+                {blooioOptIn
+                  ? '✓ Blooio ready — links will send directly'
+                  : '⚠ First contact — patient will need to reply before links deliver'
+                }
               </div>
             )}
           </div>

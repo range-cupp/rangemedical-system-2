@@ -9,6 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 import { isRecoveryPeptide } from '../../../lib/protocol-config';
 import { logComm } from '../../../lib/comms-log';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
+import { hasBlooioOptIn, queuePendingLinkMessage, isBlooioProvider } from '../../../lib/blooio-optin';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -171,6 +172,29 @@ export default async function handler(req, res) {
               }
               const checkinUrl = `${BASE_URL}/peptide-checkin.html?contact_id=${ghlContactId || patient.id}`;
               const message = `Hi ${firstName}! Time for your recovery peptide check-in. Takes 30 seconds:\n\n${checkinUrl}\n\n- Range Medical`;
+
+              // Blooio two-step: if first contact, send link-free version + queue link message
+              if (isBlooioProvider() && !(await hasBlooioOptIn(phone))) {
+                const optInMessage = `Hi ${firstName}! Time for your recovery peptide check-in. Reply YES to get your check-in link. - Range Medical`;
+                const optInResult = await sendSMS({ to: phone, message: optInMessage });
+                if (optInResult.success) {
+                  await queuePendingLinkMessage({
+                    phone,
+                    message,
+                    messageType: logType,
+                    patientId: patient.id,
+                    patientName: patient.name,
+                  });
+                  await logSent(protocol.id, patient.id, logType, optInMessage);
+                  await logComm({ channel: 'sms', messageType: 'blooio_optin_request', message: optInMessage, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name, recipient: phone, twilioMessageSid: optInResult.messageSid });
+                  logSet.add(logKey);
+                  results.sent.push({ patient: patient.name, protocolId: protocol.id, type: `weekly_checkin_${weekNum}_of_${totalWeeks}`, twoStep: true });
+                } else {
+                  results.errors.push({ patient: patient.name, protocolId: protocol.id, type: `weekly_checkin_${weekNum}`, error: optInResult.error });
+                }
+                sentThisRun = true;
+                break;
+              }
 
               const smsResult = await sendSMS({ to: phone, message });
               if (smsResult.success) {

@@ -8,6 +8,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
+import { hasBlooioOptIn, queuePendingLinkMessage, isBlooioProvider } from '../../../lib/blooio-optin';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -181,9 +182,44 @@ export default async function handler(req, res) {
         message = `Hi ${firstName}! Quick reminder - Day ${dayNumber} injection done? Tap to log: ${trackerUrl} - Range Medical`;
       }
 
-      const smsResult = await sendSMSForProtocol(protocol, message);
+      // Get patient phone for opt-in check
+      const { data: patientData } = await supabase
+        .from('patients')
+        .select('phone')
+        .eq('id', protocol.patient_id)
+        .single();
+      const phone = normalizePhone(patientData?.phone);
 
-      if (smsResult.sent) {
+      if (!phone) {
+        results.skipped.push({ patient: protocol.patient_name, reason: 'No phone number' });
+        continue;
+      }
+
+      // Blooio two-step: if first contact, send link-free version + queue link message
+      if (isBlooioProvider() && !(await hasBlooioOptIn(phone))) {
+        const optInMessage = isWeightLoss
+          ? `Hi ${firstName}! It's injection day for your weight loss program. Reply YES to get your tracking link. - Range Medical`
+          : `Hi ${firstName}! Quick reminder - time for your injection. Reply YES to get your tracking link. - Range Medical`;
+
+        const optInResult = await sendSMS({ to: phone, message: optInMessage });
+        if (optInResult.success) {
+          await queuePendingLinkMessage({
+            phone,
+            message,
+            messageType: 'injection_reminder',
+            patientId: protocol.patient_id,
+            patientName: protocol.patient_name,
+          });
+          results.sent.push({ patient: protocol.patient_name, day: dayNumber, twoStep: true });
+        } else {
+          results.errors.push({ patient: protocol.patient_name, error: optInResult.error || 'Opt-in SMS failed' });
+        }
+        continue;
+      }
+
+      const smsResult = await sendSMS({ to: phone, message });
+
+      if (smsResult.success) {
         results.sent.push({ patient: protocol.patient_name, day: dayNumber });
       } else {
         results.errors.push({ patient: protocol.patient_name, error: smsResult.error || 'SMS failed' });

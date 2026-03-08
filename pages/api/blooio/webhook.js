@@ -5,6 +5,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
+import { sendBlooioMessage } from '../../../lib/blooio';
+import { getPendingMessages, markPendingMessageSent } from '../../../lib/blooio-optin';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -125,6 +127,52 @@ async function handleInboundMessage(body) {
     } else {
       console.error('Error storing inbound message:', insertError);
     }
+  }
+
+  // Auto-send any pending link messages now that patient has replied
+  await sendPendingMessages(senderPhone, patient);
+}
+
+async function sendPendingMessages(phone, patient) {
+  try {
+    const pending = await getPendingMessages(phone);
+    if (pending.length === 0) return;
+
+    console.log(`Found ${pending.length} pending link message(s) for ${phone} — auto-sending`);
+
+    for (const msg of pending) {
+      // Send the queued link message via Blooio (patient just replied on Blooio)
+      const result = await sendBlooioMessage({ to: msg.phone, message: msg.message });
+
+      if (result.success) {
+        // Log auto-send to comms_log
+        const logRow = {
+          patient_id: msg.patient_id || patient?.id || null,
+          patient_name: msg.patient_name || patient?.name || phone,
+          ghl_contact_id: patient?.ghl_contact_id || null,
+          channel: 'sms',
+          message_type: msg.message_type || 'auto_send',
+          message: msg.message,
+          source: 'blooio/webhook(auto-send)',
+          status: 'sent',
+          recipient: msg.phone,
+          direction: 'outbound',
+          provider: 'blooio',
+        };
+        if (result.messageSid) logRow.twilio_message_sid = result.messageSid;
+
+        await supabase.from('comms_log').insert(logRow);
+
+        // Mark pending message as sent
+        await markPendingMessageSent(msg.id);
+
+        console.log(`Auto-sent pending ${msg.message_type} to ${msg.phone} (${msg.id})`);
+      } else {
+        console.error(`Failed to auto-send pending message ${msg.id}:`, result.error);
+      }
+    }
+  } catch (err) {
+    console.error('sendPendingMessages error:', err);
   }
 }
 

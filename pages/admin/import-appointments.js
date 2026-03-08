@@ -3,7 +3,6 @@
 
 import { useState, useEffect } from 'react';
 import AdminLayout from '../../components/AdminLayout';
-import { supabase } from '../../lib/supabase';
 
 export default function ImportAppointments() {
   const [file, setFile] = useState(null);
@@ -21,10 +20,12 @@ export default function ImportAppointments() {
   const [allPatients, setAllPatients] = useState([]);
   const [showMapping, setShowMapping] = useState(false);
 
-  // Load all patients once for search
+  // Load all patients via API (uses service role key for full access)
   useEffect(() => {
-    supabase.from('patients').select('id, name, first_name, last_name, phone').order('name')
-      .then(({ data }) => { if (data) setAllPatients(data); });
+    fetch('/api/patients-all')
+      .then(r => r.json())
+      .then(data => { if (data.patients) setAllPatients(data.patients); })
+      .catch(() => {});
   }, []);
 
   async function handleAnalyze() {

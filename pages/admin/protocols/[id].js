@@ -161,6 +161,11 @@ export default function ProtocolDetail() {
   const [sessionModal, setSessionModal] = useState(null); // { sessionNum }
   const [sessionDate, setSessionDate] = useState(new Date().toISOString().split('T')[0]);
   const [sessionSaving, setSessionSaving] = useState(false);
+  const [clinicalNotes, setClinicalNotes] = useState([]);
+  const [showAddClinicalNote, setShowAddClinicalNote] = useState(false);
+  const [clinicalNoteInput, setClinicalNoteInput] = useState('');
+  const [clinicalNoteSaving, setClinicalNoteSaving] = useState(false);
+  const [clinicalNoteFormatting, setClinicalNoteFormatting] = useState(false);
 
   useEffect(() => {
     if (id) fetchProtocol();
@@ -276,6 +281,15 @@ export default function ProtocolDetail() {
         setWeightProgress(null);
         setDripLogs([]);
       }
+
+      // Fetch clinical notes linked to this protocol
+      try {
+        const notesRes = await fetch(`/api/notes/by-protocol?protocol_id=${id}`);
+        if (notesRes.ok) {
+          const notesData = await notesRes.json();
+          setClinicalNotes(notesData.notes || []);
+        }
+      } catch { setClinicalNotes([]); }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -745,6 +759,66 @@ export default function ProtocolDetail() {
       setError(err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Clinical notes handlers
+  const handleSaveClinicalNote = async () => {
+    if (!clinicalNoteInput.trim()) return;
+    setClinicalNoteSaving(true);
+    try {
+      const res = await fetch('/api/notes/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: protocol.patient_id,
+          raw_input: clinicalNoteInput,
+          body: clinicalNoteInput,
+          created_by: 'Staff',
+          protocol_id: id,
+          protocol_name: protocol.program_name || 'Protocol',
+        }),
+      });
+      const data = await res.json();
+      if (data.note) {
+        setClinicalNotes(prev => [data.note, ...prev]);
+        setShowAddClinicalNote(false);
+        setClinicalNoteInput('');
+      }
+    } catch (error) {
+      console.error('Save clinical note error:', error);
+    } finally {
+      setClinicalNoteSaving(false);
+    }
+  };
+
+  const handleFormatClinicalNote = async () => {
+    if (!clinicalNoteInput.trim()) return;
+    setClinicalNoteFormatting(true);
+    try {
+      const res = await fetch('/api/notes/format', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ raw_text: clinicalNoteInput }),
+      });
+      const data = await res.json();
+      if (data.formatted) {
+        setClinicalNoteInput(data.formatted);
+      }
+    } catch (error) {
+      console.error('Format note error:', error);
+    } finally {
+      setClinicalNoteFormatting(false);
+    }
+  };
+
+  const handleDeleteClinicalNote = async (noteId) => {
+    if (!confirm('Delete this note?')) return;
+    try {
+      await fetch(`/api/notes/${noteId}`, { method: 'DELETE' });
+      setClinicalNotes(prev => prev.filter(n => n.id !== noteId));
+    } catch (error) {
+      console.error('Delete clinical note error:', error);
     }
   };
 
@@ -1784,6 +1858,101 @@ export default function ProtocolDetail() {
                       <div style={styles.detailValue}>
                         {rawDuration} doses → {effectiveCalendarDays} days
                       </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Clinical Notes */}
+            {!isEditing && (
+              <div style={styles.card}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px 8px' }}>
+                  <h2 style={{ ...styles.cardTitle, padding: 0, margin: 0 }}>Clinical Notes ({clinicalNotes.length})</h2>
+                  <button
+                    onClick={() => setShowAddClinicalNote(true)}
+                    style={{
+                      padding: '6px 14px', background: '#000', color: '#fff',
+                      border: 'none', borderRadius: '6px', fontSize: '13px',
+                      fontWeight: '500', cursor: 'pointer'
+                    }}
+                  >
+                    + Add Note
+                  </button>
+                </div>
+
+                {/* Inline Add Note Form */}
+                {showAddClinicalNote && (
+                  <div style={{ margin: '8px 20px 16px', padding: 14, background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+                    <textarea
+                      value={clinicalNoteInput}
+                      onChange={e => setClinicalNoteInput(e.target.value)}
+                      rows={4}
+                      placeholder="Type clinical note..."
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, lineHeight: 1.6, fontFamily: 'inherit', resize: 'vertical', minHeight: 80, boxSizing: 'border-box' }}
+                    />
+                    <div style={{ display: 'flex', gap: 8, marginTop: 8, justifyContent: 'space-between' }}>
+                      <button
+                        onClick={handleFormatClinicalNote}
+                        disabled={!clinicalNoteInput.trim() || clinicalNoteFormatting}
+                        style={{
+                          padding: '6px 12px', background: '#f3f4f6', border: '1px solid #d1d5db',
+                          borderRadius: '6px', fontSize: '13px', cursor: 'pointer',
+                          opacity: (!clinicalNoteInput.trim() || clinicalNoteFormatting) ? 0.5 : 1
+                        }}
+                      >
+                        {clinicalNoteFormatting ? 'Formatting...' : '✨ Format with AI'}
+                      </button>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button
+                          onClick={() => { setShowAddClinicalNote(false); setClinicalNoteInput(''); }}
+                          style={{ padding: '6px 14px', background: '#fff', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleSaveClinicalNote}
+                          disabled={!clinicalNoteInput.trim() || clinicalNoteSaving}
+                          style={{
+                            padding: '6px 14px', background: '#000', color: '#fff',
+                            border: 'none', borderRadius: '6px', fontSize: '13px',
+                            fontWeight: '500', cursor: 'pointer',
+                            opacity: (!clinicalNoteInput.trim() || clinicalNoteSaving) ? 0.5 : 1
+                          }}
+                        >
+                          {clinicalNoteSaving ? 'Saving...' : 'Save Note'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Notes List */}
+                <div style={{ padding: '0 20px 16px' }}>
+                  {clinicalNotes.length === 0 && !showAddClinicalNote ? (
+                    <div style={{ padding: '20px 0', textAlign: 'center', color: '#9ca3af', fontSize: 14 }}>
+                      No clinical notes yet
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {clinicalNotes.map(note => (
+                        <div key={note.id} style={{ padding: '10px 14px', background: '#f9fafb', borderRadius: 8, border: '1px solid #f3f4f6' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                            <div style={{ fontSize: 12, color: '#6b7280' }}>
+                              {formatDate(note.note_date || note.created_at)}
+                              {note.created_by && <span style={{ fontWeight: 400, marginLeft: 8 }}>by {note.created_by}</span>}
+                            </div>
+                            <button
+                              onClick={() => handleDeleteClinicalNote(note.id)}
+                              style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: 16, padding: '0 4px', lineHeight: 1 }}
+                              title="Delete note"
+                            >×</button>
+                          </div>
+                          <div style={{ fontSize: 14, color: '#1f2937', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                            {note.body}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>

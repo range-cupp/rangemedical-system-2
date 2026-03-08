@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { patient_id, raw_input, body, created_by } = req.body;
+  const { patient_id, raw_input, body, created_by, protocol_id, protocol_name } = req.body;
 
   if (!patient_id) {
     return res.status(400).json({ error: 'patient_id is required' });
@@ -66,7 +66,9 @@ export default async function handler(req, res) {
         raw_input: raw_input || null,
         created_by: created_by || null,
         note_date: new Date().toISOString(),
-        source: 'manual',
+        source: protocol_id ? 'protocol' : 'manual',
+        protocol_id: protocol_id || null,
+        protocol_name: protocol_name || null,
       })
       .select()
       .single());

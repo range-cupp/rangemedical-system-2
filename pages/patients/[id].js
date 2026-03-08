@@ -2383,11 +2383,28 @@ export default function PatientProfile() {
                             {note.created_by && <span style={{ fontWeight: 400, marginLeft: 8 }}>by {note.created_by}</span>}
                             <span style={{
                               marginLeft: 8, fontSize: 11, padding: '2px 8px', borderRadius: 4, fontWeight: 500,
-                              background: note.source === 'manual' ? '#dbeafe' : '#f3f4f6',
-                              color: note.source === 'manual' ? '#1e40af' : '#6b7280',
+                              background: note.source === 'protocol' ? '#f3e8ff' : note.source === 'manual' ? '#dbeafe' : '#f3f4f6',
+                              color: note.source === 'protocol' ? '#7c3aed' : note.source === 'manual' ? '#1e40af' : '#6b7280',
                             }}>
-                              {note.source === 'manual' ? 'Staff Note' : 'GHL Import'}
+                              {note.source === 'protocol' ? 'Protocol Note' : note.source === 'manual' ? 'Staff Note' : 'GHL Import'}
                             </span>
+                            {note.protocol_name && (
+                              <span
+                                style={{
+                                  marginLeft: 6, fontSize: 11, padding: '2px 8px', borderRadius: 4, fontWeight: 500,
+                                  background: '#f0f9ff', color: '#0369a1',
+                                  cursor: note.protocol_id ? 'pointer' : 'default',
+                                }}
+                                onClick={() => {
+                                  if (note.protocol_id) {
+                                    window.open(`/admin/protocols/${note.protocol_id}`, '_blank');
+                                  }
+                                }}
+                                title={note.protocol_id ? 'View protocol' : ''}
+                              >
+                                {note.protocol_name}
+                              </span>
+                            )}
                             {note.pinned && (
                               <span style={{
                                 marginLeft: 6, fontSize: 11, padding: '2px 8px', borderRadius: 4, fontWeight: 500,
@@ -2411,7 +2428,7 @@ export default function PatientProfile() {
                               }}
                               title={note.pinned ? 'Unpin note' : 'Pin note'}
                             >📌</button>
-                            {note.source === 'manual' && (
+                            {(note.source === 'manual' || note.source === 'protocol') && (
                               <button
                                 onClick={() => handleDeleteNote(note.id)}
                                 style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 18, padding: '0 4px', lineHeight: 1 }}

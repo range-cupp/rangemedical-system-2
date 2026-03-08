@@ -698,6 +698,22 @@ export default function PatientProfile() {
     }
   };
 
+  const handleDeleteProtocol = async (protocolId) => {
+    if (!confirm('Are you sure you want to delete this protocol? This cannot be undone.')) return;
+    try {
+      const res = await fetch(`/api/protocols/${protocolId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setShowEditModal(false);
+        fetchPatient();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to delete protocol');
+      }
+    } catch (error) {
+      console.error('Error deleting protocol:', error);
+    }
+  };
+
   // Lab handlers
   const handleAddLabs = async () => {
     try {
@@ -1366,10 +1382,10 @@ export default function PatientProfile() {
 
                 {/* Recovery Peptide Cycle Tracker — uses actual protocol duration as source of truth */}
                 {cycleInfo?.hasCycle && (() => {
-                  const planned = cycleInfo.totalPlannedDays || cycleInfo.maxDays;
+                  const planned = cycleInfo.maxDays;
                   const used = cycleInfo.cycleDaysUsed;
-                  const remaining = cycleInfo.daysRemaining;
-                  const approachingMax = used > 60 || planned > 60;
+                  const remaining = Math.max(0, planned - used);
+                  const approachingMax = used > 60;
                   const isWarning = remaining <= 5 && remaining > 0;
                   const isComplete = remaining === 0 || cycleInfo.cycleExhausted;
                   return (
@@ -3373,9 +3389,15 @@ export default function PatientProfile() {
                   <textarea value={editForm.notes} onChange={e => setEditForm({...editForm, notes: e.target.value})} rows={2} />
                 </div>
               </div>
-              <div className="modal-footer">
-                <button onClick={() => setShowEditModal(false)} className="btn-secondary">Cancel</button>
-                <button onClick={handleEditProtocol} className="btn-primary">Save Changes</button>
+              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <button
+                  onClick={() => handleDeleteProtocol(selectedProtocol.id)}
+                  style={{ background: 'none', border: 'none', color: '#dc2626', fontSize: '13px', cursor: 'pointer', padding: '8px 0' }}
+                >Delete Protocol</button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => setShowEditModal(false)} className="btn-secondary">Cancel</button>
+                  <button onClick={handleEditProtocol} className="btn-primary">Save Changes</button>
+                </div>
               </div>
             </div>
           </div>

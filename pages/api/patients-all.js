@@ -16,10 +16,12 @@ export default async function handler(req, res) {
 
   try {
     // Fetch ALL patients - no filters, no limits
+    // Supabase defaults to 1000 rows — must set explicit high limit
     const { data: patients, error } = await supabase
       .from('patients')
       .select('id, first_name, last_name, name, email, phone, ghl_contact_id')
-      .order('name', { ascending: true });
+      .order('name', { ascending: true })
+      .limit(10000);
 
     if (error) {
       console.error('Error fetching patients:', error);

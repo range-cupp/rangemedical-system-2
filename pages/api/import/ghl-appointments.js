@@ -187,10 +187,12 @@ export default async function handler(req, res) {
     }
 
     // Fetch all patients for matching (include preferred_name for GHL nickname matching)
+    // Note: Supabase defaults to 1000 rows — must set explicit high limit
     const { data: patients, error: pErr } = await supabase
       .from('patients')
       .select('id, name, first_name, last_name, phone, preferred_name')
-      .order('name');
+      .order('name')
+      .limit(10000);
 
     if (pErr) throw pErr;
 

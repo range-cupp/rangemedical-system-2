@@ -102,8 +102,10 @@ export default function ImportAppointments() {
     const q = query.toLowerCase();
     const matches = allPatients.filter(p => {
       const name = (p.name || `${p.first_name || ''} ${p.last_name || ''}`).toLowerCase();
-      return name.includes(q);
-    }).slice(0, 8);
+      const email = (p.email || '').toLowerCase();
+      const phone = (p.phone || '');
+      return name.includes(q) || email.includes(q) || phone.includes(q);
+    }).slice(0, 12);
     setSearchResults(prev => ({ ...prev, [ghlName]: matches }));
   }
 
@@ -197,6 +199,7 @@ export default function ImportAppointments() {
         {data?.summary && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 12, marginBottom: 20 }}>
             <StatCard label="Total Rows" value={data.summary.total} color="#374151" />
+            <StatCard label="Patients Loaded" value={data.summary.patientsLoaded || '?'} color="#7c3aed" />
             <StatCard label="Matched" value={data.summary.matched} color="#16a34a" />
             <StatCard label="Unmatched" value={data.summary.unmatched} color="#f59e0b" />
             <StatCard label="Duplicates" value={data.summary.duplicates} color="#6b7280" />
@@ -296,7 +299,8 @@ export default function ImportAppointments() {
                                   onMouseLeave={e => e.target.style.background = '#fff'}
                                 >
                                   {p.name || `${p.first_name || ''} ${p.last_name || ''}`}
-                                  {p.phone && <span style={{ color: '#9ca3af', marginLeft: 8 }}>{p.phone}</span>}
+                                  {p.email && <span style={{ color: '#9ca3af', marginLeft: 8 }}>{p.email}</span>}
+                                  {p.phone && <span style={{ color: '#b0b0b0', marginLeft: 6, fontSize: 11 }}>{p.phone}</span>}
                                 </button>
                               ))}
                             </div>

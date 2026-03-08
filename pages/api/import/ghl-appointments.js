@@ -186,15 +186,22 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'No valid rows found in CSV' });
     }
 
-    // Fetch all patients for matching (include preferred_name for GHL nickname matching)
-    // Note: Supabase defaults to 1000 rows — must set explicit high limit
-    const { data: patients, error: pErr } = await supabase
-      .from('patients')
-      .select('id, name, first_name, last_name, phone, preferred_name')
-      .order('name')
-      .limit(10000);
-
-    if (pErr) throw pErr;
+    // Fetch ALL patients by paginating (Supabase caps at 1000 per request)
+    let patients = [];
+    let from = 0;
+    const PAGE_SIZE = 1000;
+    let hasMore = true;
+    while (hasMore) {
+      const { data: batch, error: pErr } = await supabase
+        .from('patients')
+        .select('id, name, first_name, last_name, phone, preferred_name')
+        .order('name')
+        .range(from, from + PAGE_SIZE - 1);
+      if (pErr) throw pErr;
+      patients = patients.concat(batch || []);
+      from += PAGE_SIZE;
+      hasMore = (batch || []).length === PAGE_SIZE;
+    }
 
     // Build multiple lookup indices
     const patientsByNorm = new Map();     // normalized full name → patient
@@ -359,6 +366,7 @@ export default async function handler(req, res) {
     // Summary stats
     const summary = {
       total: rows.length,
+      patientsLoaded: patients.length,
       matched: details.filter(d => d.status === 'matched').length,
       unmatched: details.filter(d => d.status === 'unmatched').length,
       duplicates: details.filter(d => d.status === 'duplicate').length,

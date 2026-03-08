@@ -15,17 +15,24 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Fetch ALL patients - no filters, no limits
-    // Supabase defaults to 1000 rows — must set explicit high limit
-    const { data: patients, error } = await supabase
-      .from('patients')
-      .select('id, first_name, last_name, name, email, phone, ghl_contact_id')
-      .order('name', { ascending: true })
-      .limit(10000);
-
-    if (error) {
-      console.error('Error fetching patients:', error);
-      return res.status(500).json({ error: error.message });
+    // Fetch ALL patients by paginating (Supabase caps at 1000 per request)
+    let patients = [];
+    let from = 0;
+    const PAGE_SIZE = 1000;
+    let hasMore = true;
+    while (hasMore) {
+      const { data: batch, error } = await supabase
+        .from('patients')
+        .select('id, first_name, last_name, name, email, phone, ghl_contact_id')
+        .order('name', { ascending: true })
+        .range(from, from + PAGE_SIZE - 1);
+      if (error) {
+        console.error('Error fetching patients:', error);
+        return res.status(500).json({ error: error.message });
+      }
+      patients = patients.concat(batch || []);
+      from += PAGE_SIZE;
+      hasMore = (batch || []).length === PAGE_SIZE;
     }
 
     return res.status(200).json({ 

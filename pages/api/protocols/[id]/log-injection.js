@@ -276,13 +276,25 @@ export default async function handler(req, res) {
         .eq('id', insertedLog.id);
     }
 
-    // Update protocol sessions_used based on actual count
+    // Update protocol sessions_used + next_expected_date + last_visit_date
+    const nextExpected = new Date(log_date + 'T12:00:00');
+    nextExpected.setDate(nextExpected.getDate() + 7); // Weekly injections
+    const nextExpectedStr = nextExpected.toISOString().split('T')[0];
+
+    const protocolUpdate = {
+      sessions_used: newSessionsUsed,
+      last_visit_date: log_date,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Set next_expected_date for non-missed injections
+    if (!missed) {
+      protocolUpdate.next_expected_date = nextExpectedStr;
+    }
+
     const { error: updateError } = await supabase
       .from('protocols')
-      .update({
-        sessions_used: newSessionsUsed,
-        updated_at: new Date().toISOString()
-      })
+      .update(protocolUpdate)
       .eq('id', id);
 
     if (updateError) {

@@ -165,6 +165,7 @@ export default function PatientProfile() {
 
   // Blooio opt-in status
   const [blooioOptIn, setBlooioOptIn] = useState(null); // null=loading, true=opted in, false=pending
+  const [showDemographics, setShowDemographics] = useState(false);
 
   // Patient edit mode
   const [editingPatient, setEditingPatient] = useState(false);
@@ -1084,167 +1085,179 @@ export default function PatientProfile() {
         {/* Header */}
         <header className="profile-header">
           <div className="header-top">
-            <button onClick={() => {
-              if (window.history.length > 1) {
-                router.back();
-              } else {
-                router.push('/admin/patients');
-              }
-            }} className="back-btn">← Back</button>
+            <div className="header-left">
+              <button onClick={() => {
+                if (window.history.length > 1) {
+                  router.back();
+                } else {
+                  router.push('/admin/patients');
+                }
+              }} className="back-btn"><span className="back-arrow">←</span><span className="back-text">Back</span></button>
+              <div className="header-identity">
+                <h1>{getPatientDisplayName()}</h1>
+                <div className="contact-row">
+                  {patient.email && <span>{patient.email}</span>}
+                  {patient.phone && <span>{formatPhone(patient.phone)}</span>}
+                  {patient.phone && blooioOptIn !== null && (
+                    <span className="blooio-badge" style={{
+                      backgroundColor: blooioOptIn ? '#dcfce7' : '#fef3c7',
+                      color: blooioOptIn ? '#166534' : '#92400e',
+                    }}>
+                      {blooioOptIn ? 'Blooio: Active' : 'Blooio: Pending'}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
             <div className="header-actions">
-              {patient.phone && (
-                <>
-                  <a href={`sms:${patient.phone}`} className="action-btn">📱 Text</a>
-                  <a href={`tel:${patient.phone}`} className="action-btn">📞 Call</a>
-                </>
-              )}
-              {patient.email && (
-                <a href={`mailto:${patient.email}`} className="action-btn">📧 Email</a>
-              )}
-              {ghlLink && (
-                <a href={ghlLink} target="_blank" rel="noopener noreferrer" className="action-btn">🔗 Open GHL</a>
-              )}
-              <button onClick={() => setShowBookingModal(true)} className="action-btn action-btn-primary">📅 Book Appointment</button>
-              <button onClick={() => setShowChargeModal(true)} className="action-btn action-btn-charge">💳 Charge</button>
-              <button onClick={handleDeletePatient} className="action-btn action-btn-delete">🗑️ Delete</button>
+              <div className="actions-primary">
+                {patient.phone && <a href={`sms:${patient.phone}`} className="action-btn" title="Send text message">SMS</a>}
+                {patient.phone && <a href={`tel:${patient.phone}`} className="action-btn" title="Call patient">Call</a>}
+                {patient.email && <a href={`mailto:${patient.email}`} className="action-btn" title="Send email">Email</a>}
+                {ghlLink && <a href={ghlLink} target="_blank" rel="noopener noreferrer" className="action-btn" title="Open in GoHighLevel">GHL</a>}
+              </div>
+              <div className="actions-cta">
+                <button onClick={() => setShowBookingModal(true)} className="action-btn action-btn-primary">Book</button>
+                <button onClick={() => setShowChargeModal(true)} className="action-btn action-btn-charge">Charge</button>
+              </div>
+              <button onClick={handleDeletePatient} className="action-btn action-btn-delete" title="Delete patient">Del</button>
             </div>
           </div>
 
-          <div className="header-main">
-            <h1>{getPatientDisplayName()}</h1>
-            <div className="contact-row">
-              {patient.email && <span>{patient.email}</span>}
-              {patient.phone && <span>{formatPhone(patient.phone)}</span>}
-              {patient.phone && blooioOptIn !== null && (
-                <span style={{
-                  fontSize: 11,
-                  padding: '2px 8px',
-                  borderRadius: 10,
-                  fontWeight: 600,
-                  backgroundColor: blooioOptIn ? '#dcfce7' : '#fef3c7',
-                  color: blooioOptIn ? '#166534' : '#92400e',
-                }}>
-                  {blooioOptIn ? 'Blooio: Active' : 'Blooio: Pending'}
-                </span>
-              )}
-            </div>
+          {/* Demographics Toggle */}
+          <div className="demographics-toggle-row">
+            <button className="demographics-toggle" onClick={() => { if (editingPatient) return; setShowDemographics(!showDemographics); }}>
+              <span className="demographics-preview">
+                {!showDemographics && (
+                  <>
+                    {(patient.date_of_birth || intakeDemographics?.date_of_birth) && <span>{formatDate(patient.date_of_birth || intakeDemographics?.date_of_birth)}</span>}
+                    {(patient.gender || intakeDemographics?.gender) && <span>{patient.gender || intakeDemographics?.gender}</span>}
+                    {patient.created_at && <span>Since {formatDate(patient.created_at)}</span>}
+                  </>
+                )}
+                {showDemographics && <span style={{ color: '#374151' }}>Patient Details</span>}
+              </span>
+              <span className="demographics-toggle-icon">{showDemographics ? '▲ Hide' : '▼ Details'}</span>
+            </button>
           </div>
 
           {/* Demographics */}
-          <div className="demographics-section">
-            <div className="demographics-header">
+          {(showDemographics || editingPatient) && (
+            <div className="demographics-section">
+              <div className="demographics-header">
+                {!editingPatient ? (
+                  <button onClick={startEditingPatient} className="edit-demographics-btn">Edit</button>
+                ) : (
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={savePatientEdits} disabled={savingPatient} className="save-demographics-btn">{savingPatient ? 'Saving...' : 'Save'}</button>
+                    <button onClick={cancelEditingPatient} className="cancel-demographics-btn">Cancel</button>
+                  </div>
+                )}
+              </div>
               {!editingPatient ? (
-                <button onClick={startEditingPatient} className="edit-demographics-btn">✏️ Edit</button>
+                <div className="demographics-grid">
+                  <div className="demo-item">
+                    <label>Date of Birth</label>
+                    {patient.date_of_birth ? (
+                      <span>{formatDate(patient.date_of_birth)}</span>
+                    ) : intakeDemographics?.date_of_birth ? (
+                      <span>{formatDate(intakeDemographics.date_of_birth)} <span className="from-intake">(from intake)</span></span>
+                    ) : (
+                      <span>—</span>
+                    )}
+                  </div>
+                  <div className="demo-item">
+                    <label>Gender</label>
+                    {patient.gender ? (
+                      <span>{patient.gender}</span>
+                    ) : intakeDemographics?.gender ? (
+                      <span>{intakeDemographics.gender} <span className="from-intake">(from intake)</span></span>
+                    ) : (
+                      <span>—</span>
+                    )}
+                  </div>
+                  <div className="demo-item">
+                    <label>Preferred Name</label>
+                    {patient.preferred_name ? (
+                      <span>{patient.preferred_name}</span>
+                    ) : intakeDemographics?.preferred_name ? (
+                      <span>{intakeDemographics.preferred_name} <span className="from-intake">(from intake)</span></span>
+                    ) : (
+                      <span>—</span>
+                    )}
+                  </div>
+                  <div className="demo-item">
+                    <label>Phone</label>
+                    <span>{patient.phone ? formatPhone(patient.phone) : '—'}</span>
+                  </div>
+                  <div className="demo-item">
+                    <label>Address</label>
+                    <span>{patient.address || '—'}</span>
+                  </div>
+                  <div className="demo-item">
+                    <label>City, State, Zip</label>
+                    <span>{[patient.city, patient.state, patient.zip_code].filter(Boolean).join(', ') || '—'}</span>
+                  </div>
+                  <div className="demo-item">
+                    <label>Patient Since</label>
+                    <span>{patient.created_at ? formatDate(patient.created_at) : '—'}</span>
+                  </div>
+                </div>
               ) : (
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={savePatientEdits} disabled={savingPatient} className="save-demographics-btn">{savingPatient ? 'Saving...' : 'Save'}</button>
-                  <button onClick={cancelEditingPatient} className="cancel-demographics-btn">Cancel</button>
+                <div className="demographics-edit-grid">
+                  <div className="edit-field">
+                    <label>First Name</label>
+                    <input type="text" value={patientEditForm.first_name} onChange={e => setPatientEditForm(f => ({ ...f, first_name: e.target.value }))} />
+                  </div>
+                  <div className="edit-field">
+                    <label>Last Name</label>
+                    <input type="text" value={patientEditForm.last_name} onChange={e => setPatientEditForm(f => ({ ...f, last_name: e.target.value }))} />
+                  </div>
+                  <div className="edit-field">
+                    <label>Preferred Name</label>
+                    <input type="text" value={patientEditForm.preferred_name} onChange={e => setPatientEditForm(f => ({ ...f, preferred_name: e.target.value }))} placeholder="What they like to be called" />
+                  </div>
+                  <div className="edit-field">
+                    <label>Email</label>
+                    <input type="email" value={patientEditForm.email} onChange={e => setPatientEditForm(f => ({ ...f, email: e.target.value }))} />
+                  </div>
+                  <div className="edit-field">
+                    <label>Phone</label>
+                    <input type="tel" value={patientEditForm.phone} onChange={e => setPatientEditForm(f => ({ ...f, phone: e.target.value }))} />
+                  </div>
+                  <div className="edit-field">
+                    <label>Date of Birth</label>
+                    <input type="date" value={patientEditForm.date_of_birth} onChange={e => setPatientEditForm(f => ({ ...f, date_of_birth: e.target.value }))} />
+                  </div>
+                  <div className="edit-field">
+                    <label>Gender</label>
+                    <select value={patientEditForm.gender} onChange={e => setPatientEditForm(f => ({ ...f, gender: e.target.value }))}>
+                      <option value="">—</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div className="edit-field edit-field-full">
+                    <label>Address</label>
+                    <input type="text" value={patientEditForm.address} onChange={e => setPatientEditForm(f => ({ ...f, address: e.target.value }))} placeholder="Street address" />
+                  </div>
+                  <div className="edit-field">
+                    <label>City</label>
+                    <input type="text" value={patientEditForm.city} onChange={e => setPatientEditForm(f => ({ ...f, city: e.target.value }))} />
+                  </div>
+                  <div className="edit-field">
+                    <label>State</label>
+                    <input type="text" value={patientEditForm.state} onChange={e => setPatientEditForm(f => ({ ...f, state: e.target.value }))} />
+                  </div>
+                  <div className="edit-field">
+                    <label>Zip</label>
+                    <input type="text" value={patientEditForm.zip_code} onChange={e => setPatientEditForm(f => ({ ...f, zip_code: e.target.value }))} />
+                  </div>
                 </div>
               )}
             </div>
-            {!editingPatient ? (
-              <div className="demographics-grid">
-                <div className="demo-item">
-                  <label>Date of Birth</label>
-                  {patient.date_of_birth ? (
-                    <span>{formatDate(patient.date_of_birth)}</span>
-                  ) : intakeDemographics?.date_of_birth ? (
-                    <span>{formatDate(intakeDemographics.date_of_birth)} <span className="from-intake">(from intake)</span></span>
-                  ) : (
-                    <span>—</span>
-                  )}
-                </div>
-                <div className="demo-item">
-                  <label>Gender</label>
-                  {patient.gender ? (
-                    <span>{patient.gender}</span>
-                  ) : intakeDemographics?.gender ? (
-                    <span>{intakeDemographics.gender} <span className="from-intake">(from intake)</span></span>
-                  ) : (
-                    <span>—</span>
-                  )}
-                </div>
-                <div className="demo-item">
-                  <label>Preferred Name</label>
-                  {patient.preferred_name ? (
-                    <span>{patient.preferred_name}</span>
-                  ) : intakeDemographics?.preferred_name ? (
-                    <span>{intakeDemographics.preferred_name} <span className="from-intake">(from intake)</span></span>
-                  ) : (
-                    <span>—</span>
-                  )}
-                </div>
-                <div className="demo-item">
-                  <label>Phone</label>
-                  <span>{patient.phone ? formatPhone(patient.phone) : '—'}</span>
-                </div>
-                <div className="demo-item">
-                  <label>Address</label>
-                  <span>{patient.address || '—'}</span>
-                </div>
-                <div className="demo-item">
-                  <label>City, State, Zip</label>
-                  <span>{[patient.city, patient.state, patient.zip_code].filter(Boolean).join(', ') || '—'}</span>
-                </div>
-                <div className="demo-item">
-                  <label>Patient Since</label>
-                  <span>{patient.created_at ? formatDate(patient.created_at) : '—'}</span>
-                </div>
-              </div>
-            ) : (
-              <div className="demographics-edit-grid">
-                <div className="edit-field">
-                  <label>First Name</label>
-                  <input type="text" value={patientEditForm.first_name} onChange={e => setPatientEditForm(f => ({ ...f, first_name: e.target.value }))} />
-                </div>
-                <div className="edit-field">
-                  <label>Last Name</label>
-                  <input type="text" value={patientEditForm.last_name} onChange={e => setPatientEditForm(f => ({ ...f, last_name: e.target.value }))} />
-                </div>
-                <div className="edit-field">
-                  <label>Preferred Name</label>
-                  <input type="text" value={patientEditForm.preferred_name} onChange={e => setPatientEditForm(f => ({ ...f, preferred_name: e.target.value }))} placeholder="What they like to be called" />
-                </div>
-                <div className="edit-field">
-                  <label>Email</label>
-                  <input type="email" value={patientEditForm.email} onChange={e => setPatientEditForm(f => ({ ...f, email: e.target.value }))} />
-                </div>
-                <div className="edit-field">
-                  <label>Phone</label>
-                  <input type="tel" value={patientEditForm.phone} onChange={e => setPatientEditForm(f => ({ ...f, phone: e.target.value }))} />
-                </div>
-                <div className="edit-field">
-                  <label>Date of Birth</label>
-                  <input type="date" value={patientEditForm.date_of_birth} onChange={e => setPatientEditForm(f => ({ ...f, date_of_birth: e.target.value }))} />
-                </div>
-                <div className="edit-field">
-                  <label>Gender</label>
-                  <select value={patientEditForm.gender} onChange={e => setPatientEditForm(f => ({ ...f, gender: e.target.value }))}>
-                    <option value="">—</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                <div className="edit-field edit-field-full">
-                  <label>Address</label>
-                  <input type="text" value={patientEditForm.address} onChange={e => setPatientEditForm(f => ({ ...f, address: e.target.value }))} placeholder="Street address" />
-                </div>
-                <div className="edit-field">
-                  <label>City</label>
-                  <input type="text" value={patientEditForm.city} onChange={e => setPatientEditForm(f => ({ ...f, city: e.target.value }))} />
-                </div>
-                <div className="edit-field">
-                  <label>State</label>
-                  <input type="text" value={patientEditForm.state} onChange={e => setPatientEditForm(f => ({ ...f, state: e.target.value }))} />
-                </div>
-                <div className="edit-field">
-                  <label>Zip</label>
-                  <input type="text" value={patientEditForm.zip_code} onChange={e => setPatientEditForm(f => ({ ...f, zip_code: e.target.value }))} />
-                </div>
-              </div>
-            )}
-          </div>
+          )}
         </header>
 
         {/* Pending Purchases Alert */}
@@ -1321,15 +1334,15 @@ export default function PatientProfile() {
         {/* Tab Navigation */}
         <nav className="tabs">
           <button className={activeTab === 'overview' ? 'active' : ''} onClick={() => setActiveTab('overview')}>Overview</button>
-          <button className={activeTab === 'protocols' ? 'active' : ''} onClick={() => setActiveTab('protocols')}>Protocols ({stats.activeCount})</button>
+          <button className={activeTab === 'protocols' ? 'active' : ''} onClick={() => setActiveTab('protocols')}>Protocols{stats.activeCount > 0 && <span className="tab-count">{stats.activeCount}</span>}</button>
           <button className={activeTab === 'timeline' ? 'active' : ''} onClick={() => { setActiveTab('timeline'); if (timeline.length === 0) fetchTimeline(); }}>Timeline</button>
           <button className={activeTab === 'labs' ? 'active' : ''} onClick={() => setActiveTab('labs')}>Labs</button>
-          <button className={activeTab === 'appointments' ? 'active' : ''} onClick={() => setActiveTab('appointments')}>Visits ({appointments.length + serviceLogs.length})</button>
-          <button className={activeTab === 'intakes' ? 'active' : ''} onClick={() => setActiveTab('intakes')}>Documents ({intakes.length + consents.length + medicalDocuments.length})</button>
-          <button className={activeTab === 'notes' ? 'active' : ''} onClick={() => setActiveTab('notes')}>Notes ({notes.length})</button>
-          <button className={activeTab === 'symptoms' ? 'active' : ''} onClick={() => setActiveTab('symptoms')}>Symptoms{questionnaireResponses.length > 0 ? ` (${questionnaireResponses.length})` : ''}</button>
+          <button className={activeTab === 'appointments' ? 'active' : ''} onClick={() => setActiveTab('appointments')}>Visits{(appointments.length + serviceLogs.length) > 0 && <span className="tab-count">{appointments.length + serviceLogs.length}</span>}</button>
+          <button className={activeTab === 'intakes' ? 'active' : ''} onClick={() => setActiveTab('intakes')}>Docs{(intakes.length + consents.length + medicalDocuments.length) > 0 && <span className="tab-count">{intakes.length + consents.length + medicalDocuments.length}</span>}</button>
+          <button className={activeTab === 'notes' ? 'active' : ''} onClick={() => setActiveTab('notes')}>Notes{notes.length > 0 && <span className="tab-count">{notes.length}</span>}</button>
+          <button className={activeTab === 'symptoms' ? 'active' : ''} onClick={() => setActiveTab('symptoms')}>Symptoms{questionnaireResponses.length > 0 && <span className="tab-count">{questionnaireResponses.length}</span>}</button>
           <button className={activeTab === 'payments' ? 'active' : ''} onClick={() => setActiveTab('payments')}>Payments</button>
-          <button className={activeTab === 'communications' ? 'active' : ''} onClick={() => setActiveTab('communications')}>Communications</button>
+          <button className={activeTab === 'communications' ? 'active' : ''} onClick={() => setActiveTab('communications')}>Comms</button>
         </nav>
 
         {/* Tab Content */}
@@ -3670,61 +3683,102 @@ export default function PatientProfile() {
 
         /* Header */
         .profile-header {
-          margin-bottom: 24px;
-          padding-bottom: 24px;
-          border-bottom: 1px solid #e5e7eb;
+          margin-bottom: 20px;
         }
         .header-top {
           display: flex;
           justify-content: space-between;
-          align-items: center;
-          margin-bottom: 16px;
+          align-items: flex-start;
+          gap: 16px;
+        }
+        .header-left {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          min-width: 0;
         }
         .back-btn {
           background: none;
           border: none;
           font-size: 14px;
-          color: #666;
+          color: #9ca3af;
           cursor: pointer;
+          padding: 4px 0;
+          margin-top: 4px;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          gap: 4px;
         }
         .back-btn:hover { color: #000; }
+        .header-identity { min-width: 0; }
+        .header-identity h1 {
+          font-size: 24px;
+          font-weight: 700;
+          margin: 0 0 4px;
+          line-height: 1.2;
+        }
+        .contact-row {
+          display: flex;
+          gap: 12px;
+          color: #6b7280;
+          font-size: 13px;
+          flex-wrap: wrap;
+          align-items: center;
+        }
+        .blooio-badge {
+          font-size: 11px;
+          padding: 2px 8px;
+          border-radius: 10px;
+          font-weight: 600;
+        }
         .header-actions {
           display: flex;
-          gap: 8px;
+          gap: 6px;
           align-items: center;
-          flex-wrap: wrap;
+          flex-shrink: 0;
+        }
+        .actions-primary {
+          display: flex;
+          gap: 2px;
+          background: #f3f4f6;
+          border-radius: 8px;
+          padding: 2px;
+        }
+        .actions-cta {
+          display: flex;
+          gap: 4px;
         }
         .action-btn {
-          font-size: 13px;
+          font-size: 12px;
           color: #374151;
           text-decoration: none;
-          padding: 6px 12px;
-          border: 1px solid #d1d5db;
+          padding: 6px 10px;
+          border: none;
           border-radius: 6px;
-          background: #fff;
+          background: transparent;
           cursor: pointer;
-          font-weight: 500;
+          font-weight: 600;
           white-space: nowrap;
+          line-height: 1;
+          transition: background 0.15s;
         }
-        .action-btn:hover { background: #f3f4f6; border-color: #9ca3af; }
+        .action-btn:hover { background: #e5e7eb; }
         .action-btn-primary {
           background: #2563eb;
           color: #fff;
-          border-color: #2563eb;
         }
-        .action-btn-primary:hover { background: #1d4ed8; border-color: #1d4ed8; }
+        .action-btn-primary:hover { background: #1d4ed8; }
         .action-btn-charge {
           background: #16a34a;
           color: #fff;
-          border-color: #16a34a;
         }
-        .action-btn-charge:hover { background: #15803d; border-color: #15803d; }
+        .action-btn-charge:hover { background: #15803d; }
         .action-btn-delete {
-          background: transparent;
-          color: #dc2626;
-          border-color: #fca5a5;
+          color: #9ca3af;
+          padding: 6px 8px;
         }
-        .action-btn-delete:hover { background: #fef2f2; border-color: #dc2626; }
+        .action-btn-delete:hover { color: #dc2626; background: #fef2f2; }
         .delete-modal {
           position: fixed;
           top: 50%;
@@ -3738,22 +3792,54 @@ export default function PatientProfile() {
           max-width: 480px;
           width: 90%;
         }
-        .header-main h1 {
-          font-size: 28px;
-          font-weight: 600;
-          margin: 0 0 8px;
+
+        /* Demographics Toggle */
+        .demographics-toggle-row {
+          margin-top: 12px;
+          border-top: 1px solid #f3f4f6;
+          padding-top: 8px;
         }
-        .contact-row {
+        .demographics-toggle {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          width: 100%;
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 6px 0;
+          color: #6b7280;
+          font-size: 12px;
+        }
+        .demographics-toggle:hover { color: #374151; }
+        .demographics-preview {
           display: flex;
           gap: 16px;
-          color: #666;
-          font-size: 14px;
+          font-size: 12px;
+          color: #9ca3af;
         }
+        .demographics-preview span + span::before {
+          content: '·';
+          margin-right: 16px;
+          color: #d1d5db;
+        }
+        .demographics-toggle-icon {
+          font-size: 11px;
+          color: #9ca3af;
+          font-weight: 500;
+        }
+
+        /* Demographics Section */
         .demographics-section {
-          margin-top: 20px;
-          padding: 16px;
+          margin-top: 8px;
+          padding: 14px 16px;
           background: #f9fafb;
           border-radius: 8px;
+          animation: slideDown 0.15s ease-out;
+        }
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-4px); }
+          to { opacity: 1; transform: translateY(0); }
         }
         .demographics-header {
           display: flex;
@@ -3874,26 +3960,51 @@ export default function PatientProfile() {
         /* Tabs */
         .tabs {
           display: flex;
-          gap: 4px;
-          margin-bottom: 24px;
+          gap: 0;
+          margin-bottom: 20px;
           border-bottom: 1px solid #e5e7eb;
-          padding-bottom: 0;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
         }
+        .tabs::-webkit-scrollbar { display: none; }
         .tabs button {
-          padding: 12px 20px;
+          padding: 10px 14px;
           border: none;
           background: none;
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 500;
-          color: #6b7280;
+          color: #9ca3af;
           cursor: pointer;
           border-bottom: 2px solid transparent;
           margin-bottom: -1px;
+          white-space: nowrap;
+          transition: color 0.15s;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-shrink: 0;
         }
-        .tabs button:hover { color: #111; }
+        .tabs button:hover { color: #374151; }
         .tabs button.active {
-          color: #000;
-          border-bottom-color: #000;
+          color: #111;
+          border-bottom-color: #2563eb;
+          font-weight: 600;
+        }
+        .tab-count {
+          font-size: 10px;
+          font-weight: 600;
+          background: #f3f4f6;
+          color: #6b7280;
+          padding: 1px 6px;
+          border-radius: 10px;
+          min-width: 18px;
+          text-align: center;
+          line-height: 1.4;
+        }
+        .tabs button.active .tab-count {
+          background: #dbeafe;
+          color: #2563eb;
         }
 
         /* Cards */
@@ -4777,16 +4888,48 @@ export default function PatientProfile() {
           border: none;
         }
 
-        /* Responsive */
+        /* Responsive: Tablet */
         @media (max-width: 768px) {
+          .patient-profile { padding: 16px; }
+          .header-top { flex-direction: column; gap: 12px; }
+          .header-left { width: 100%; }
+          .header-identity h1 { font-size: 22px; }
+          .header-actions { width: 100%; flex-wrap: wrap; }
+          .actions-primary { flex: 1; justify-content: center; }
+          .actions-cta { flex: 1; justify-content: center; }
           .demographics-grid { grid-template-columns: repeat(2, 1fr); }
           .demographics-edit-grid { grid-template-columns: repeat(2, 1fr); }
-          .tabs { overflow-x: auto; }
-          .tabs button { padding: 12px 16px; white-space: nowrap; }
+          .demographics-preview { gap: 8px; font-size: 11px; }
+          .tabs button { padding: 10px 12px; font-size: 12px; }
           .pending-card { flex-direction: column; gap: 12px; align-items: flex-start; }
           .protocol-row { flex-direction: column; align-items: flex-start; gap: 8px; }
           .intake-detail-grid { grid-template-columns: 1fr; }
           .slideout-panel { width: 100% !important; min-width: unset; }
+          .form-row { grid-template-columns: 1fr; }
+        }
+
+        /* Responsive: Phone */
+        @media (max-width: 480px) {
+          .patient-profile { padding: 12px; }
+          .header-identity h1 { font-size: 20px; }
+          .back-text { display: none; }
+          .contact-row { font-size: 12px; gap: 8px; }
+          .header-actions { gap: 4px; }
+          .actions-primary { gap: 0; padding: 1px; }
+          .action-btn { padding: 5px 8px; font-size: 11px; }
+          .action-btn-delete { padding: 5px 6px; }
+          .demographics-grid { grid-template-columns: 1fr; gap: 10px; }
+          .demographics-edit-grid { grid-template-columns: 1fr; }
+          .demographics-preview { flex-direction: column; gap: 2px; }
+          .demographics-preview span + span::before { display: none; }
+          .tabs button { padding: 8px 10px; font-size: 12px; }
+          .tab-count { font-size: 9px; padding: 1px 5px; }
+          .card-header { padding: 12px 14px; }
+          .pending-actions { width: 100%; }
+          .pending-actions button { flex: 1; }
+          .modal { max-width: 100% !important; border-radius: 16px 16px 0 0; width: 100%; }
+          .wl-table { font-size: 12px; }
+          .wl-table th, .wl-table td { padding: 6px 8px; }
         }
       `}</style>
     </AdminLayout>

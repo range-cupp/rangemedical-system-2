@@ -721,7 +721,7 @@ export default function ProtocolDetail() {
   // Injection protocols: single injections & injection packs
   const isInjectionProtocol = !isOngoing && (programType.includes('injection') || programName.includes('injection'));
 
-  // Weight loss protocols: track weekly injections using sessions_used as source of truth
+  // Weight loss protocols: day-based tracking for renewal visibility
   const isWeightLoss = !isOngoing && (programType.includes('weight_loss') ||
                        ['semaglutide', 'tirzepatide', 'retatrutide'].some(m => programName.includes(m)));
 
@@ -775,7 +775,7 @@ export default function ProtocolDetail() {
 
   const isActive = protocol?.status === 'active';
   const isComplete = isOngoing ? false : (isWeightLoss
-    ? wlInjectionsRemaining <= 0
+    ? currentDay > totalDays
     : isSessionBased
       ? sessionsRemaining <= 0
       : (isInjectionProtocol
@@ -825,28 +825,28 @@ export default function ProtocolDetail() {
             {!isEditing && !isOngoing && (
               <div style={styles.dayCard}>
                 <div style={styles.dayLabel}>
-                  {isWeightLoss ? 'CURRENT INJECTION' : isSessionBased ? 'SESSIONS USED' : (isInjectionProtocol ? 'CURRENT INJECTION' : 'CURRENT DAY')}
+                  {isWeightLoss ? 'CURRENT DAY' : isSessionBased ? 'SESSIONS USED' : (isInjectionProtocol ? 'CURRENT INJECTION' : 'CURRENT DAY')}
                 </div>
                 <div style={styles.dayDisplay}>
                   <span style={styles.currentDay}>
                     {isComplete ? '✓' : (
-                      isWeightLoss ? (wlSessionsUsed > 0 ? wlSessionsUsed : '—') :
+                      isWeightLoss ? (currentDay > 0 ? currentDay : '—') :
                       isSessionBased ? sessionsCompleted : (
                         isInjectionProtocol ? (currentInjection > 0 ? currentInjection : '—') : (currentDay > 0 ? currentDay : '—')
                       )
                     )}
                   </span>
                   <span style={styles.dayDivider}>/</span>
-                  <span style={styles.totalDays}>{isWeightLoss ? wlTotalInjections : isSessionBased ? totalSessions : totalUnits}</span>
+                  <span style={styles.totalDays}>{isWeightLoss ? totalDays : isSessionBased ? totalSessions : totalUnits}</span>
                 </div>
                 <div style={styles.dayStatus}>
                   {isComplete ? (
                     <span style={styles.completeText}>
-                      {isWeightLoss ? 'All Injections Complete' : isSessionBased ? 'All Sessions Used' : 'Protocol Complete'}
+                      {isWeightLoss ? 'Ready for Renewal' : isSessionBased ? 'All Sessions Used' : 'Protocol Complete'}
                     </span>
                   ) : isWeightLoss ? (
                     <span style={styles.activeText}>
-                      {wlInjectionsRemaining} injection{wlInjectionsRemaining !== 1 ? 's' : ''} remaining
+                      {totalDays - currentDay} days remaining
                     </span>
                   ) : isSessionBased ? (
                     <span style={styles.activeText}>

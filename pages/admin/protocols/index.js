@@ -255,12 +255,8 @@ export default function ProtocolsPage() {
                     const isOngoing = programType.includes('hrt') ||
                       programName.includes('hrt') || programName.includes('testosterone');
 
-                    // Weight loss protocols — use sessions_used (source of truth)
-                    const isWeightLoss = !isOngoing && (programType.includes('weight_loss') ||
-                      ['semaglutide', 'tirzepatide', 'retatrutide'].some(m => programName.includes(m) || (protocol.medication || '').toLowerCase().includes(m)));
-
-                    // Calculate total: prefer total_sessions, then duration_days, then compute from date range
-                    let total = protocol.total_sessions || protocol.duration_days;
+                    // Calculate total: prefer duration_days, then compute from date range, then total_sessions
+                    let total = protocol.duration_days;
                     if (!total && protocol.start_date && protocol.end_date) {
                       const sp = protocol.start_date.split('-');
                       const ep = protocol.end_date.split('-');
@@ -268,13 +264,9 @@ export default function ProtocolsPage() {
                       const e = new Date(parseInt(ep[0]), parseInt(ep[1]) - 1, parseInt(ep[2]));
                       total = Math.round((e - s) / (1000 * 60 * 60 * 24));
                     }
-                    if (!total) total = 10;
-                    const current = isWeightLoss
-                      ? (protocol.sessions_used || 0)
-                      : calculateCurrentDay(protocol.start_date);
-                    const isEnded = isOngoing ? false : (isWeightLoss
-                      ? current >= total
-                      : current > total);
+                    if (!total) total = protocol.total_sessions || 10;
+                    const current = calculateCurrentDay(protocol.start_date);
+                    const isEnded = isOngoing ? false : current > total;
                     const isActive = protocol.status === 'active';
                     const progress = isOngoing ? 100 : Math.min(100, Math.round((current / total) * 100));
                     const renewal = renewalMap[protocol.id];

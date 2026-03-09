@@ -2039,6 +2039,8 @@ export default function CommandCenter() {
             <OverviewTab
               data={data}
               setActiveTab={setActiveTab}
+              session={session}
+              employeeId={employee?.id}
               onAssignFromPurchase={(purchase) => {
                 // Find patient from data.patients
                 const patient = data.patients?.find(p => p.id === purchase.patient_id);
@@ -5153,7 +5155,104 @@ function CycleProgressSection({ protocol, formatDate }) {
 // TAB COMPONENTS
 // ============================================
 
-function OverviewTab({ data, setActiveTab, onAssignFromPurchase, onEditProtocol }) {
+function MyTasksWidget({ session, employeeId }) {
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!session || !employeeId) return;
+    const fetchTasks = async () => {
+      try {
+        const res = await fetch('/api/admin/tasks?filter=my&status=pending', {
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        const data = await res.json();
+        setTasks((data.tasks || []).slice(0, 5));
+      } catch (e) {
+        // Silent fail
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTasks();
+  }, [session, employeeId]);
+
+  const toggleComplete = async (taskId) => {
+    try {
+      await fetch('/api/admin/tasks', {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: taskId, status: 'completed' }),
+      });
+      setTasks(prev => prev.filter(t => t.id !== taskId));
+    } catch (e) {
+      console.error('Complete task error:', e);
+    }
+  };
+
+  if (loading || tasks.length === 0) return null;
+
+  const PRIORITY_COLORS = {
+    urgent: '#dc2626', high: '#c2410c', medium: '#1e40af', low: '#166534',
+  };
+
+  return (
+    <div style={{
+      background: '#fff',
+      border: '1px solid #e5e7eb',
+      borderRadius: '12px',
+      padding: '16px 20px',
+      marginBottom: '16px',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+        <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#1a1a1a' }}>
+          My Tasks ({tasks.length})
+        </h3>
+        <a href="/admin/tasks" style={{ fontSize: '12px', color: '#2563eb', textDecoration: 'none', fontWeight: 500 }}>
+          View All →
+        </a>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        {tasks.map(task => (
+          <div key={task.id} style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            padding: '6px 0', borderBottom: '1px solid #f5f5f5',
+          }}>
+            <button
+              onClick={() => toggleComplete(task.id)}
+              style={{
+                width: '18px', height: '18px', borderRadius: '4px',
+                border: '2px solid #d1d5db', background: '#fff',
+                cursor: 'pointer', flexShrink: 0,
+              }}
+            />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: '13px', fontWeight: 500, color: '#1a1a1a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {task.title}
+              </div>
+              <div style={{ fontSize: '11px', color: '#999' }}>
+                {task.assigned_by_name && `From ${task.assigned_by_name}`}
+                {task.due_date && ` · Due ${new Date(task.due_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+              </div>
+            </div>
+            <span style={{
+              width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0,
+              background: PRIORITY_COLORS[task.priority] || '#1e40af',
+            }} title={task.priority} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function OverviewTab({ data, setActiveTab, onAssignFromPurchase, onEditProtocol, session, employeeId }) {
   const stats = data?.stats || {};
   const recentPurchases = (data?.purchases || []).slice(0, 10);
   const endingSoon = (data?.protocols || []).filter(p =>
@@ -5353,6 +5452,9 @@ function OverviewTab({ data, setActiveTab, onAssignFromPurchase, onEditProtocol 
 
         {/* Right Column */}
         <div style={styles.overviewColumn}>
+          {/* My Tasks Widget */}
+          <MyTasksWidget session={session} employeeId={employeeId} />
+
           {/* Needs Protocol Alert */}
           {(data?.purchasesNeedingProtocol || []).length > 0 && (
             <div style={{ ...styles.card, background: '#FFF7ED', borderColor: '#FB923C', borderWidth: '2px' }}>

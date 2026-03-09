@@ -10,8 +10,8 @@ const supabase = createClient(
 );
 
 const VALID_TRANSITIONS = {
-  scheduled: ['confirmed', 'checked_in', 'cancelled', 'no_show', 'rescheduled'],
-  confirmed: ['checked_in', 'cancelled', 'no_show', 'rescheduled'],
+  scheduled: ['confirmed', 'checked_in', 'completed', 'cancelled', 'no_show', 'rescheduled'],
+  confirmed: ['checked_in', 'completed', 'cancelled', 'no_show', 'rescheduled'],
   checked_in: ['in_progress', 'completed', 'cancelled', 'no_show'],
   in_progress: ['completed', 'cancelled'],
   completed: [],

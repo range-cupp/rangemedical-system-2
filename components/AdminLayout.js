@@ -249,6 +249,54 @@ function useNewPatientNotifications(router) {
   }, [router]);
 }
 
+// Hook for unread task count badge
+function useUnreadTasks(employeeId) {
+  const [taskCount, setTaskCount] = useState(0);
+
+  useEffect(() => {
+    if (!employeeId) return;
+    let mounted = true;
+    let interval = null;
+
+    const checkTasks = async () => {
+      if (document.visibilityState === 'hidden') return;
+      try {
+        const res = await fetch(`/api/admin/unread-tasks?employee_id=${employeeId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (mounted) setTaskCount(data.count || 0);
+      } catch (e) {
+        // Silent fail
+      }
+    };
+
+    const startPolling = () => {
+      if (interval) clearInterval(interval);
+      checkTasks();
+      interval = setInterval(checkTasks, 120000); // Poll every 2 minutes
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        startPolling();
+      } else {
+        if (interval) { clearInterval(interval); interval = null; }
+      }
+    };
+
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      mounted = false;
+      if (interval) clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [employeeId]);
+
+  return taskCount;
+}
+
 const NAV_ITEMS = [
   { href: '/admin', label: 'Dashboard', icon: 'grid' },
   { href: '/admin/patients', label: 'Patients', icon: 'users' },
@@ -260,6 +308,7 @@ const NAV_ITEMS = [
   { href: '/admin/payments', label: 'Payments', icon: 'credit-card' },
   { href: '/admin/purchases', label: 'Purchases', icon: 'shopping-bag' },
   { href: '/admin/communications', label: 'Communications', icon: 'message' },
+  { href: '/admin/tasks', label: 'Tasks', icon: 'check-square' },
   { href: '/admin/send-forms', label: 'Send Forms', icon: 'file-text' },
   { href: '/admin/provider-schedule', label: 'Staff Hours', icon: 'clock' },
   { href: '/admin/employees', label: 'Employees', icon: 'user-check', permission: 'can_manage_employees' },
@@ -343,6 +392,11 @@ const icons = {
       <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><polyline points="17 11 19 13 23 9" />
     </svg>
   ),
+  'check-square': (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 11 12 14 22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+    </svg>
+  ),
   'log-out': (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
@@ -367,6 +421,7 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
   const unreadCount = useUnreadNotifications(router);
   useNewPatientNotifications(router);
   const { employee, loading: authLoading, signOut, hasPermission, isAuthenticated } = useAuth();
+  const taskCount = useUnreadTasks(employee?.id);
 
   // Redirect to login if not authenticated (after loading completes)
   useEffect(() => {
@@ -422,7 +477,8 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
               const isActive = currentPath === item.href ||
                 (item.href !== '/admin' && currentPath.startsWith(item.href)) ||
                 (item.href === '/admin/patients' && currentPath.startsWith('/patients'));
-              const showBadge = item.href === '/admin/communications' && unreadCount > 0;
+              const showBadge = (item.href === '/admin/communications' && unreadCount > 0)
+                || (item.href === '/admin/tasks' && taskCount > 0);
               return (
                 <Link
                   key={item.href}
@@ -440,7 +496,9 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
                   {item.label}
                   {showBadge && (
                     <span style={styles.unreadBadge}>
-                      {unreadCount > 99 ? '99+' : unreadCount}
+                      {item.href === '/admin/tasks'
+                        ? (taskCount > 99 ? '99+' : taskCount)
+                        : (unreadCount > 99 ? '99+' : unreadCount)}
                     </span>
                   )}
                 </Link>

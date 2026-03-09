@@ -46,6 +46,19 @@ const STATUS_BORDER_COLORS = {
   rescheduled: '#9ca3af',
 };
 
+// Map appointment service_category → service-log category for session logging
+const APPT_CATEGORY_TO_SERVICE_LOG = {
+  rlt: 'red_light',
+  hbot: 'hbot',
+  iv: 'iv_therapy',
+  injection: 'vitamin',
+  hrt: 'testosterone',
+  weight_loss: 'weight_loss',
+  peptide: 'peptide',
+};
+// Session-based categories that show "Log Session" in popover
+const SESSION_BASED_CATEGORIES = ['rlt', 'hbot', 'iv', 'injection'];
+
 const HOURS = Array.from({ length: 10 }, (_, i) => i + 9); // 9 AM to 6 PM
 
 export default function CalendarView({ preselectedPatient = null }) {
@@ -92,6 +105,10 @@ export default function CalendarView({ preselectedPatient = null }) {
   // Patient contact info for appointment detail
   const [apptPatientInfo, setApptPatientInfo] = useState(null);
   const [loadingPatientInfo, setLoadingPatientInfo] = useState(false);
+
+  // Session logging from appointment
+  const [loggingSession, setLoggingSession] = useState(false);
+  const [sessionLogResult, setSessionLogResult] = useState(null);
 
   // Patient slide-out drawer (stores full API response)
   const [drawerData, setDrawerData] = useState(null);
@@ -168,8 +185,10 @@ export default function CalendarView({ preselectedPatient = null }) {
   useEffect(() => {
     if (!selectedAppt?.patient_id) {
       setApptPatientInfo(null);
+      setSessionLogResult(null);
       return;
     }
+    setSessionLogResult(null);
     let cancelled = false;
     setLoadingPatientInfo(true);
     fetch(`/api/patients/${selectedAppt.patient_id}`)
@@ -180,6 +199,7 @@ export default function CalendarView({ preselectedPatient = null }) {
             ...(data.patient || data),
             consents: data.consents || [],
             intakes: data.intakes || [],
+            activeProtocols: data.activeProtocols || [],
           });
           setLoadingPatientInfo(false);
         }
@@ -540,6 +560,66 @@ export default function CalendarView({ preselectedPatient = null }) {
       }
     } catch (err) {
       console.error('Delete appointment error:', err);
+    }
+  };
+
+  // Log a session from the appointment popover — decrements the patient's protocol package
+  const handleLogSessionFromAppt = async (appt, protocol) => {
+    if (loggingSession) return;
+    setLoggingSession(true);
+    setSessionLogResult(null);
+    try {
+      const serviceLogCategory = APPT_CATEGORY_TO_SERVICE_LOG[appt.service_category];
+      if (!serviceLogCategory) throw new Error('Unmapped service category: ' + appt.service_category);
+
+      const logRes = await fetch('/api/service-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: appt.patient_id,
+          category: serviceLogCategory,
+          entry_type: 'session',
+          entry_date: new Date().toISOString().split('T')[0],
+          protocol_id: protocol.id,
+          notes: `Logged from appointment: ${appt.service_name}`,
+        }),
+      });
+      const logData = await logRes.json();
+      if (!logData.success && !logRes.ok) throw new Error(logData.error || 'Failed to log session');
+
+      // Update appointment status to completed
+      await fetch(`/api/appointments/${appt.id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'completed' }),
+      });
+
+      const newSessionsUsed = logData.package_update?.sessions_used || (protocol.sessions_used || 0) + 1;
+      const totalSessions = protocol.total_sessions || 0;
+
+      setSessionLogResult({
+        success: true,
+        sessions_used: newSessionsUsed,
+        total_sessions: totalSessions,
+        remaining: totalSessions - newSessionsUsed,
+      });
+
+      // Update protocols in local state
+      setApptPatientInfo(prev => prev ? {
+        ...prev,
+        activeProtocols: (prev.activeProtocols || []).map(p =>
+          p.id === protocol.id ? { ...p, sessions_used: newSessionsUsed } : p
+        ),
+      } : prev);
+
+      // Update appointment status badge locally
+      setSelectedAppt(prev => prev ? { ...prev, status: 'completed' } : prev);
+      fetchAppointments();
+    } catch (err) {
+      console.error('Log session error:', err);
+      setSessionLogResult({ success: false, error: err.message });
+    } finally {
+      setLoggingSession(false);
     }
   };
 
@@ -1066,6 +1146,75 @@ export default function CalendarView({ preselectedPatient = null }) {
                 ))}
               </div>
             )}
+
+            {/* Package / Session tracking */}
+            {apptPatientInfo?.activeProtocols && (() => {
+              const matchingProtocol = (apptPatientInfo.activeProtocols || []).find(p => {
+                if (p.category === appt.service_category) return true;
+                const pt = (p.program_type || '').toLowerCase();
+                const slCat = APPT_CATEGORY_TO_SERVICE_LOG[appt.service_category];
+                if (slCat === 'red_light' && pt === 'red_light') return true;
+                if (slCat === 'hbot' && pt === 'hbot') return true;
+                if (slCat === 'iv_therapy' && (pt === 'iv_therapy' || pt === 'iv')) return true;
+                if (slCat === 'vitamin' && (pt === 'vitamin' || pt === 'injection')) return true;
+                return false;
+              });
+              if (!matchingProtocol || !matchingProtocol.total_sessions) return null;
+
+              const sessionsUsed = sessionLogResult?.success ? sessionLogResult.sessions_used : (matchingProtocol.sessions_used || 0);
+              const totalSessions = matchingProtocol.total_sessions;
+              const remaining = totalSessions - sessionsUsed;
+              const pct = Math.min(100, Math.round((sessionsUsed / totalSessions) * 100));
+              const isExhausted = remaining <= 0;
+              const isCompleted = appt.status === 'completed';
+              const showLogButton = SESSION_BASED_CATEGORIES.includes(appt.service_category) && !isCompleted && !isExhausted && !sessionLogResult?.success;
+
+              return (
+                <div style={{
+                  margin: '12px 0', padding: '10px 12px', borderRadius: '8px',
+                  background: isExhausted ? '#fef2f2' : '#f0f9ff',
+                  border: `1px solid ${isExhausted ? '#fecaca' : '#bae6fd'}`,
+                }}>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: isExhausted ? '#991b1b' : '#0369a1', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {matchingProtocol.program_name || appt.service_name} Package
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 500, color: '#1a1a1a' }}>
+                      {sessionsUsed}/{totalSessions} sessions used
+                    </span>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: isExhausted ? '#dc2626' : remaining <= 3 ? '#d97706' : '#059669' }}>
+                      {isExhausted ? 'Package exhausted' : `${remaining} remaining`}
+                    </span>
+                  </div>
+                  <div style={{ background: '#e5e7eb', borderRadius: '4px', height: '6px', overflow: 'hidden', marginBottom: '8px' }}>
+                    <div style={{ width: `${pct}%`, height: '100%', background: isExhausted ? '#dc2626' : pct >= 80 ? '#d97706' : '#0ea5e9', borderRadius: '4px', transition: 'width 0.3s' }} />
+                  </div>
+                  {sessionLogResult?.success && (
+                    <div style={{ fontSize: '12px', color: '#166534', fontWeight: 600, padding: '6px 0' }}>
+                      Session logged. {sessionLogResult.remaining} remaining.
+                    </div>
+                  )}
+                  {sessionLogResult && !sessionLogResult.success && (
+                    <div style={{ fontSize: '12px', color: '#dc2626', padding: '6px 0' }}>
+                      Error: {sessionLogResult.error}
+                    </div>
+                  )}
+                  {showLogButton && (
+                    <button
+                      onClick={() => handleLogSessionFromAppt(appt, matchingProtocol)}
+                      disabled={loggingSession}
+                      style={{
+                        width: '100%', padding: '8px 0', background: loggingSession ? '#93c5fd' : '#1e40af',
+                        color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600,
+                        cursor: loggingSession ? 'wait' : 'pointer',
+                      }}
+                    >
+                      {loggingSession ? 'Logging Session...' : `Log Session (${sessionsUsed + 1}/${totalSessions})`}
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
 
             {appt.notes && (
               <div style={styles.popoverRow}>

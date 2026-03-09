@@ -1,6 +1,6 @@
 // components/ConversationView.js
 // Chat-style SMS/Email conversation UI for patient communications
-// Fetches from local comms_log + GHL conversation history
+// Fetches from local comms_log
 // Range Medical System V2
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -14,8 +14,6 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const [showTemplates, setShowTemplates] = useState(false);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all'); // 'all' | 'sms' | 'email'
-  const [ghlLoading, setGhlLoading] = useState(false);
-  const [ghlLoaded, setGhlLoaded] = useState(false);
   const [callsSynced, setCallsSynced] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [smsProvider, setSmsProvider] = useState('blooio');
@@ -74,54 +72,15 @@ export default function ConversationView({ patientId, patientName, patientPhone,
       // Sort oldest first for conversation view
       const sorted = localLogs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
       setMessages(sorted);
+      setLoading(false);
 
-      // Also fetch GHL history if contact ID available
-      if (ghlContactId && !ghlLoaded) {
-        fetchGHLMessages(sorted);
-      }
-
-      // Sync Twilio call history
+      // Sync Twilio call history in background (non-blocking)
       if (patientPhone && !callsSynced) {
         syncTwilioCalls();
       }
     } catch (err) {
       console.error('Error fetching messages:', err);
-    } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchGHLMessages = async (localMessages) => {
-    if (!ghlContactId) return;
-    setGhlLoading(true);
-
-    try {
-      // Sync GHL messages to comms_log (persists inbound + outbound to our DB)
-      const syncRes = await fetch('/api/ghl/sync-messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contact_id: ghlContactId,
-          patient_id: patientId,
-        }),
-      });
-
-      const syncData = await syncRes.json();
-
-      // If new messages were synced, re-fetch from comms_log to get the full updated list
-      if (syncData.synced > 0) {
-        const refreshRes = await fetch(`/api/patients/${patientId}/comms?limit=200`);
-        const refreshData = await refreshRes.json();
-        const refreshedLogs = refreshData.comms || [];
-        const sorted = refreshedLogs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-        setMessages(sorted);
-      }
-
-      setGhlLoaded(true);
-    } catch (err) {
-      console.error('Error syncing GHL messages:', err);
-    } finally {
-      setGhlLoading(false);
     }
   };
 
@@ -156,6 +115,21 @@ export default function ConversationView({ patientId, patientName, patientPhone,
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !patientPhone) return;
+    const msgText = newMessage.trim();
+    const tempId = `temp-${Date.now()}`;
+
+    // Immediately show message in UI before API call
+    setMessages(prev => [...prev, {
+      id: tempId,
+      channel: 'sms',
+      message_type: 'direct_sms',
+      message: msgText,
+      direction: 'outbound',
+      status: 'sending',
+      source: `send-sms(${smsProvider})`,
+      created_at: new Date().toISOString(),
+    }]);
+    setNewMessage('');
     setSending(true);
     setError('');
 
@@ -167,7 +141,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
           patient_id: patientId,
           patient_name: patientName,
           to: patientPhone,
-          message: newMessage.trim(),
+          message: msgText,
           message_type: 'direct_sms',
           provider: smsProvider,
         }),
@@ -175,21 +149,14 @@ export default function ConversationView({ patientId, patientName, patientPhone,
 
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error || 'Failed to send');
+      if (!res.ok) {
+        // Mark the optimistic message as failed
+        setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'error' } : m));
+        throw new Error(data.error || 'Failed to send');
+      }
 
-      // Add optimistic message to UI
-      setMessages(prev => [...prev, {
-        id: Date.now(),
-        channel: 'sms',
-        message_type: 'direct_sms',
-        message: newMessage.trim(),
-        direction: 'outbound',
-        status: 'sent',
-        source: `send-sms(${smsProvider})`,
-        created_at: new Date().toISOString(),
-      }]);
-
-      setNewMessage('');
+      // Update optimistic message status to sent
+      setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'sent' } : m));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -374,13 +341,6 @@ export default function ConversationView({ patientId, patientName, patientPhone,
         </div>
       </div>
 
-      {/* GHL sync indicator */}
-      {ghlLoading && (
-        <div style={styles.syncBanner}>
-          Syncing messages...
-        </div>
-      )}
-
       {/* Messages */}
       <div style={styles.messagesContainer} ref={messagesContainerRef}>
         {loading ? (
@@ -409,7 +369,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
             const isEmail = item.channel === 'email';
             const isCall = item.channel === 'call';
             const msgLabel = getMessageLabel(item);
-            const isGHL = item.source === 'ghl';
+            const isGHL = item.source === 'ghl'; // legacy GHL messages still show badge
 
             // Call events — centered timeline card
             if (isCall) {
@@ -741,14 +701,6 @@ const styles = {
     cursor: 'pointer',
     color: '#666',
     flexShrink: 0,
-  },
-  syncBanner: {
-    padding: '6px 16px',
-    background: '#fffbeb',
-    borderBottom: '1px solid #fde68a',
-    fontSize: '12px',
-    color: '#92400e',
-    textAlign: 'center',
   },
   messagesContainer: {
     flex: 1,

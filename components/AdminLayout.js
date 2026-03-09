@@ -131,8 +131,8 @@ function useUnreadNotifications(router) {
     // Initial check
     checkUnread();
 
-    // Poll every 15 seconds
-    const interval = setInterval(checkUnread, 15000);
+    // Poll every 60 seconds
+    const interval = setInterval(checkUnread, 60000);
 
     return () => {
       mounted = false;
@@ -209,7 +209,7 @@ function useNewPatientNotifications(router) {
     };
 
     checkNewPatients();
-    const interval = setInterval(checkNewPatients, 15000);
+    const interval = setInterval(checkNewPatients, 60000);
 
     return () => {
       mounted = false;

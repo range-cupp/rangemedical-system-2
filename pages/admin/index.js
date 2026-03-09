@@ -27,7 +27,7 @@ export default function Dashboard() {
         fetch('/api/admin/purchases').then(r => r.json()).catch(() => ({})),
         fetch('/api/appointments/list').then(r => r.json()).catch(() => ({})),
         fetch('/api/admin/comms-log?limit=10').then(r => r.json()).catch(() => ({})),
-        fetch('/api/invoices/list?limit=200').then(r => r.json()).catch(() => ({})),
+        fetch('/api/invoices/list?limit=50').then(r => r.json()).catch(() => ({})),
         fetch('/api/admin/alerts', { headers: { 'x-admin-password': 'range2024' } }).then(r => r.json()).catch(() => ({})),
       ]);
 

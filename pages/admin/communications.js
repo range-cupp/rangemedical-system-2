@@ -29,44 +29,16 @@ export default function CommunicationsPage() {
   const [callsLoaded, setCallsLoaded] = useState(false);
 
   useEffect(() => {
-    // Sync recent inbound messages from GHL first, then load patient list
-    syncRecentGHL().then(() => {
-      fetchRecentPatients();
-    });
-    // Sync all Twilio calls to comms_log, then fetch activity log
-    fetch('/api/twilio/sync-all-calls', { method: 'POST' })
-      .catch(() => {})
-      .finally(() => fetchComms());
+    fetchRecentPatients();
+    fetchComms();
   }, []);
 
-  // Sync and fetch calls when Calls tab is first selected
+  // Fetch calls when Calls tab is first selected
   useEffect(() => {
     if (tab === 'calls' && !callsLoaded) {
-      syncAndFetchCalls();
+      fetchCalls(0);
     }
   }, [tab]);
-
-  // Bulk sync all Twilio calls to comms_log, then fetch for display
-  const syncAndFetchCalls = async () => {
-    setCallsLoading(true);
-    try {
-      // First sync all calls from Twilio into comms_log
-      await fetch('/api/twilio/sync-all-calls', { method: 'POST' });
-    } catch (err) {
-      console.error('Call sync error:', err);
-    }
-    // Then fetch the call list from Twilio for display
-    fetchCalls(0);
-  };
-
-  // Sync recent inbound messages from GHL to catch anything the webhook missed
-  const syncRecentGHL = async () => {
-    try {
-      await fetch('/api/ghl/sync-recent-inbound', { method: 'POST' });
-    } catch (err) {
-      console.error('GHL sync error:', err);
-    }
-  };
 
   // Fetch patients who have recent SMS activity
   const fetchRecentPatients = async () => {
@@ -184,13 +156,24 @@ export default function CommunicationsPage() {
     }
   };
 
-  // Fetch call history from Twilio
+  // Fetch call history from comms_log
   const fetchCalls = async (page) => {
     setCallsLoading(true);
     try {
-      const res = await fetch(`/api/twilio/calls?page=${page}&limit=20`);
+      const res = await fetch(`/api/admin/comms-log?channel=call&limit=50&page=${page + 1}`);
       const data = await res.json();
-      setCalls(data.calls || []);
+      const callComms = (data.comms || []).map(c => ({
+        sid: c.id,
+        from: c.direction === 'inbound' ? c.recipient : '+19499973988',
+        to: c.direction === 'inbound' ? '+19499973988' : c.recipient,
+        direction: c.direction || 'inbound',
+        duration: 0,
+        status: c.status || 'completed',
+        startTime: c.created_at,
+        patientName: c.patient_name || null,
+        message: c.message,
+      }));
+      setCalls(callComms);
       setCallsPage(page);
       setCallsLoaded(true);
     } catch (err) {
@@ -543,9 +526,8 @@ export default function CommunicationsPage() {
                     <th style={styles.th}>Date / Time</th>
                     <th style={styles.th}>Direction</th>
                     <th style={styles.th}>Patient</th>
-                    <th style={styles.th}>From</th>
-                    <th style={styles.th}>To</th>
-                    <th style={styles.th}>Duration</th>
+                    <th style={styles.th}>Phone</th>
+                    <th style={styles.th}>Details</th>
                     <th style={styles.th}>Status</th>
                   </tr>
                 </thead>
@@ -569,18 +551,17 @@ export default function CommunicationsPage() {
                         </span>
                       </td>
                       <td style={styles.td}>
-                        <span style={styles.phoneText}>{call.from}</span>
+                        <span style={styles.phoneText}>
+                          {call.direction === 'inbound' ? call.from : call.to}
+                        </span>
                       </td>
-                      <td style={styles.td}>
-                        <span style={styles.phoneText}>{call.to}</span>
-                      </td>
-                      <td style={styles.td}>{formatDuration(call.duration)}</td>
+                      <td style={styles.td}>{call.message || '-'}</td>
                       <td style={styles.td}>
                         <span style={{
                           ...styles.badge,
                           ...getCallStatusStyle(call.status),
                         }}>
-                          {(call.status || 'unknown').replace('-', ' ')}
+                          {(call.status || 'unknown').replace('-', ' ').replace('_', ' ')}
                         </span>
                       </td>
                     </tr>
@@ -602,8 +583,8 @@ export default function CommunicationsPage() {
                 </button>
                 <span style={styles.pageInfo}>Page {callsPage + 1}</span>
                 <button
-                  onClick={() => { if (calls.length >= 20) fetchCalls(callsPage + 1); }}
-                  disabled={calls.length < 20}
+                  onClick={() => { if (calls.length >= 50) fetchCalls(callsPage + 1); }}
+                  disabled={calls.length < 50}
                   style={{
                     ...styles.paginationBtn,
                     opacity: calls.length < 20 ? 0.4 : 1,

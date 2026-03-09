@@ -157,6 +157,8 @@ export default function ProtocolDetail() {
   const [enablingWlCheckin, setEnablingWlCheckin] = useState(false);
   const [dripLogs, setDripLogs] = useState([]);
   const [startingDrip, setStartingDrip] = useState(false);
+  const [onboardingLogs, setOnboardingLogs] = useState([]);
+  const [startingOnboarding, setStartingOnboarding] = useState(false);
   const [hrtReminderSchedule, setHrtReminderSchedule] = useState('mon_thu');
   const [enablingHrtReminders, setEnablingHrtReminders] = useState(false);
   const [sessionModal, setSessionModal] = useState(null); // { sessionNum }
@@ -262,6 +264,17 @@ export default function ProtocolDetail() {
         fetchLabSchedule(enrichedProtocol);
       } else {
         setLabSchedule([]);
+      }
+
+      // Fetch HRT onboarding logs
+      if (isHRTProtocol(enrichedProtocol.program_type)) {
+        try {
+          const obRes = await fetch(`/api/protocols/${id}`);
+          const obData = await obRes.json();
+          setOnboardingLogs((obData.activityLogs || []).filter(l => l.log_type === 'hrt_onboarding'));
+        } catch { setOnboardingLogs([]); }
+      } else {
+        setOnboardingLogs([]);
       }
 
       // Fetch injection logs + weight progress for weight loss protocols
@@ -2350,6 +2363,95 @@ export default function ProtocolDetail() {
                           );
                         })}
                       </div>
+                    </div>
+                  );
+                })()}
+
+                {/* HRT Onboarding Sequence */}
+                {isOngoing && isHRTProtocol(programType) && protocol?.status === 'active' && (() => {
+                  const onboardingSteps = [
+                    { id: 'welcome', label: 'Welcome + Range IV Info' },
+                    { id: 'injection_training', label: 'Injection Training / Schedule' },
+                    { id: 'week1_checkin', label: 'Week 1 Check-in' },
+                    { id: 'month1_iv', label: 'Monthly Range IV Reminder' },
+                    { id: 'prelab_headsup', label: 'Pre-Lab Heads Up' },
+                    { id: 'book_labs', label: 'Book Follow-Up Labs' }
+                  ];
+                  const hasStarted = protocol?.onboarding_start_date || onboardingLogs.length > 0;
+                  return (
+                    <div style={{ padding: '12px 14px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>📧 HRT Onboarding</span>
+                        {!hasStarted && (
+                          <button
+                            onClick={async () => {
+                              if (protocol?.delivery_method === 'take_home' && !protocol?.injection_method) {
+                                setError('Please set the injection method (IM or SubQ) before starting onboarding.');
+                                return;
+                              }
+                              if (!confirm('Start the HRT onboarding email + SMS sequence? A welcome email will be sent immediately.')) return;
+                              setStartingOnboarding(true);
+                              try {
+                                const resp = await fetch('/api/protocols/start-hrt-onboarding', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ protocolId: id })
+                                });
+                                const data = await resp.json();
+                                if (data.success) {
+                                  setSuccess('Welcome email sent! Onboarding sequence started.');
+                                  const obRes = await fetch(`/api/protocols/${id}`);
+                                  const obData = await obRes.json();
+                                  setOnboardingLogs((obData.activityLogs || []).filter(l => l.log_type === 'hrt_onboarding'));
+                                  setProtocol(prev => ({ ...prev, onboarding_start_date: data.onboardingStartDate }));
+                                } else {
+                                  setError(data.error || 'Failed to start onboarding');
+                                }
+                              } catch (err) {
+                                setError(err.message);
+                              }
+                              setStartingOnboarding(false);
+                            }}
+                            disabled={startingOnboarding}
+                            style={{
+                              fontSize: '11px', fontWeight: 600, padding: '4px 10px',
+                              background: '#000', color: '#fff', border: 'none', borderRadius: '4px',
+                              cursor: startingOnboarding ? 'wait' : 'pointer', opacity: startingOnboarding ? 0.6 : 1
+                            }}
+                          >
+                            {startingOnboarding ? 'Sending...' : 'Start Onboarding'}
+                          </button>
+                        )}
+                        {hasStarted && protocol?.onboarding_start_date && (
+                          <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 600 }}>
+                            Started {new Date(protocol.onboarding_start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {onboardingSteps.map(step => {
+                          const sent = onboardingLogs.find(l => l.notes && l.notes.includes(`step: ${step.id}`));
+                          return (
+                            <div key={step.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
+                              <span style={{
+                                width: '7px', height: '7px', borderRadius: '50%', flexShrink: 0,
+                                background: sent ? '#22c55e' : '#d1d5db'
+                              }} />
+                              <span style={{ color: sent ? '#374151' : '#9ca3af' }}>
+                                {step.label}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {/* Show recurring reminders if sequence is complete */}
+                      {onboardingLogs.some(l => l.notes?.includes('step: book_labs')) && (
+                        <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #e5e7eb' }}>
+                          <span style={{ fontSize: '11px', color: '#6b7280' }}>
+                            Recurring: Monthly IV + Quarterly Lab reminders active
+                          </span>
+                        </div>
+                      )}
                     </div>
                   );
                 })()}

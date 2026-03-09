@@ -509,6 +509,19 @@ export default function CalendarView({ preselectedPatient = null }) {
     }
   };
 
+  const deleteAppointment = async (apptId) => {
+    if (!confirm('Delete this appointment? The patient will NOT be notified.')) return;
+    try {
+      const res = await fetch(`/api/appointments/${apptId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setSelectedAppt(null);
+        fetchAppointments();
+      }
+    } catch (err) {
+      console.error('Delete appointment error:', err);
+    }
+  };
+
   const handleReschedule = async () => {
     if (!rescheduleDate || !rescheduleTime || !rescheduleAppt) return;
     try {
@@ -1045,6 +1058,11 @@ export default function CalendarView({ preselectedPatient = null }) {
                 <button onClick={() => { const reason = prompt('Cancellation reason (optional):'); updateStatus(appt.id, 'cancelled', reason); }} style={{ ...styles.actionBtn, background: '#fee2e2', color: '#dc2626' }}>Cancel</button>
               </div>
             )}
+
+            {/* Delete button — always visible, no notification sent */}
+            <div style={{ marginTop: '12px', borderTop: '1px solid #f3f4f6', paddingTop: '12px' }}>
+              <button onClick={() => deleteAppointment(appt.id)} style={{ ...styles.actionBtn, background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca', fontSize: '12px' }}>Delete (No Notification)</button>
+            </div>
           </div>
         </div>
       </div>

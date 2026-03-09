@@ -59,11 +59,11 @@ export default function HormoneOptimization() {
     },
     {
       question: "What's included in the $250/month membership?",
-      answer: "Everything. All hormone medications (testosterone, estrogen, progesterone, thyroid, support meds), one custom IV per month ($225 value), all follow-up labs, and direct provider access via text or call. No hidden fees."
+      answer: "All hormone medications (testosterone, estrogen, progesterone, thyroid, support meds), one free custom IV your first month ($225 value), all follow-up labs (6-8 week and quarterly), and direct provider access via text or call. Initial labs are billed separately."
     },
     {
       question: "Do I need labs first?",
-      answer: "Yes — we run comprehensive labs to understand your baseline and personalize your protocol. This is included in your membership after the initial assessment."
+      answer: "Yes — we run comprehensive labs to understand your baseline and personalize your protocol. Initial labs are billed separately (Essential Panel $350 or Elite Panel $750). All follow-up labs are included in your membership."
     },
     {
       question: "Is there a contract?",
@@ -112,8 +112,8 @@ export default function HormoneOptimization() {
 
   const membershipIncludes = [
     { icon: "💊", title: "All Medications", desc: "Testosterone, estrogen, progesterone, thyroid, and support meds — all included." },
-    { icon: "💉", title: "Monthly IV Therapy", desc: "One custom IV infusion per month ($225 value) with vitamins tailored to you." },
-    { icon: "🔬", title: "All Lab Work", desc: "Initial labs, 6-8 week follow-up, and quarterly monitoring — no extra charges." },
+    { icon: "💉", title: "Free Welcome IV", desc: "One complimentary Range IV your first month ($225 value) — 5 vitamins and minerals tailored to you." },
+    { icon: "🔬", title: "Follow-Up Labs", desc: "6-8 week follow-up and quarterly monitoring labs — all included. Initial labs billed separately." },
     { icon: "📱", title: "Direct Provider Access", desc: "Text or call your provider directly. No waiting for appointments for simple questions." }
   ];
 
@@ -337,7 +337,7 @@ export default function HormoneOptimization() {
               <h2>$250/month. Everything included.</h2>
               <div className="hrt-divider"></div>
               <p className="hrt-body-text">
-                No surprise bills. No separate charges for labs or medications. One monthly price that covers everything you need for proper hormone optimization.
+                No surprise bills. No separate charges for follow-up labs or medications. One monthly price that covers everything you need for ongoing hormone optimization.
               </p>
             </div>
 
@@ -352,8 +352,8 @@ export default function HormoneOptimization() {
             </div>
 
             <div className="hrt-membership-compare hrt-animate">
-              <p><strong>Typical cost elsewhere:</strong> $500-800+/month for separate medications, IVs, labs, and visits.</p>
-              <p><strong>Range membership:</strong> $250/month, all-inclusive. No contracts.</p>
+              <p><strong>Typical cost elsewhere:</strong> $500-800+/month for separate medications, labs, and visits.</p>
+              <p><strong>Range membership:</strong> $250/month — medications, follow-up labs, and provider access included. No contracts.</p>
             </div>
           </div>
         </section>

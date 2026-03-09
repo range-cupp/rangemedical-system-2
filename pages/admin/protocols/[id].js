@@ -7,7 +7,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../../lib/hrt-lab-schedule';
-import { isRecoveryPeptide, isGHPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS, INJECTION_METHODS, HRT_SUPPLY_TYPES } from '../../../lib/protocol-config';
+import { isRecoveryPeptide, isGHPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS, INJECTION_METHODS, HRT_SUPPLY_TYPES, HRT_SECONDARY_MEDICATIONS } from '../../../lib/protocol-config';
 import { PROTOCOL_TYPES, detectProtocolType, getDBProgramType, getDeliveryLabel } from '../../../lib/protocol-types';
 import AdminLayout from '../../../components/AdminLayout';
 
@@ -236,7 +236,8 @@ export default function ProtocolDetail() {
         // HRT decision tree fields
         injectionMethod: enrichedProtocol.injection_method || '',
         supplyType: enrichedProtocol.supply_type || '',
-        scheduledDays: enrichedProtocol.scheduled_days || []
+        scheduledDays: enrichedProtocol.scheduled_days || [],
+        secondaryMedication: enrichedProtocol.secondary_medication || ''
       });
 
       // Build check-in schedule for take-home protocols (NOT HRT — HRT has its own reminder system)
@@ -795,6 +796,7 @@ export default function ProtocolDetail() {
 
       // HRT-specific fields — scheduled_days is the source of truth for HRT scheduling
       if (isHRTProtocol(form.protocolType)) {
+        saveData.secondary_medication = form.secondaryMedication || null;
         if (form.injectionMethod) saveData.injection_method = form.injectionMethod;
         if (form.supplyType) saveData.supply_type = form.supplyType;
         if (form.scheduledDays && form.scheduledDays.length > 0) {
@@ -1782,6 +1784,18 @@ export default function ProtocolDetail() {
                           </select>
                         )}
                       </div>
+                      {/* Secondary Medication for HRT */}
+                      {isHRTProtocol(form.protocolType) && (
+                        <div style={styles.field}>
+                          <label style={styles.label}>Secondary Medication</label>
+                          <select value={form.secondaryMedication} onChange={e => setForm({ ...form, secondaryMedication: e.target.value })} style={styles.select}>
+                            <option value="">None</option>
+                            {HRT_SECONDARY_MEDICATIONS.map(m => (
+                              <option key={m} value={m}>{m}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

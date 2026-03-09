@@ -40,7 +40,17 @@ export default function SchedulePage() {
 
   const fetchAppointments = async () => {
     try {
-      const res = await fetch('/api/appointments/list');
+      // Fetch from start of today (Pacific) onwards so Today/Upcoming tabs work
+      const now = new Date();
+      const pacificDate = now.toLocaleDateString('en-US', {
+        timeZone: 'America/Los_Angeles',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      const [m, d, y] = pacificDate.split('/');
+      const todayStart = `${y}-${m}-${d}T00:00:00`;
+      const res = await fetch(`/api/appointments/list?start_date=${todayStart}`);
       const data = await res.json();
       setAppointments(data.appointments || data || []);
     } catch (err) {
@@ -50,17 +60,26 @@ export default function SchedulePage() {
     }
   };
 
-  const today = new Date().toISOString().split('T')[0];
+  // Use Pacific time for date comparisons
+  const now = new Date();
+  const pacificDateStr = now.toLocaleDateString('en-US', {
+    timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit'
+  });
+  const [pm, pd, py] = pacificDateStr.split('/');
+  const today = `${py}-${pm}-${pd}`;
 
   const todayAppointments = appointments.filter(apt => {
-    const aptDate = (apt.start_time || apt.booking_date || '').split('T')[0];
-    return aptDate === today;
+    // Convert appointment start_time to Pacific date for comparison
+    const aptPacific = new Date(apt.start_time || apt.booking_date).toLocaleDateString('en-US', {
+      timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit'
+    });
+    const [am, ad, ay] = aptPacific.split('/');
+    return `${ay}-${am}-${ad}` === today;
   }).sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
 
-  const upcomingAppointments = appointments.filter(apt => {
-    const aptDate = new Date(apt.start_time || apt.booking_date);
-    return aptDate >= new Date();
-  }).sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+  const upcomingAppointments = appointments
+    .filter(apt => apt.status !== 'cancelled' && apt.status !== 'no_show')
+    .sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
 
   const statusStyle = (status) => {
     const map = {

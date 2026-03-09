@@ -166,7 +166,7 @@ const styles = {
     marginBottom: '32px',
   },
   logoImg: {
-    height: '70px',
+    height: '110px',
     width: 'auto',
     marginBottom: '8px',
   },

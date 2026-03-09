@@ -47,6 +47,7 @@ export default function TasksPage() {
   const [patientResults, setPatientResults] = useState([]);
   const [searchingPatients, setSearchingPatients] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
+  const [expandedTask, setExpandedTask] = useState(null);
 
   const authHeaders = useCallback(() => ({
     Authorization: `Bearer ${session?.access_token}`,
@@ -380,106 +381,206 @@ export default function TasksPage() {
             {tasks.map(task => {
               const pri = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium;
               const overdue = isOverdue(task);
+              const isExpanded = expandedTask === task.id;
+              const hasDescription = task.description && task.description.trim();
               return (
                 <div
                   key={task.id}
                   style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '12px',
-                    padding: '12px 16px',
                     background: task.status === 'completed' ? '#fafafa' : '#fff',
-                    border: `1px solid ${overdue ? '#fecaca' : '#e5e7eb'}`,
+                    border: `1px solid ${overdue ? '#fecaca' : isExpanded ? '#3b82f6' : '#e5e7eb'}`,
                     borderRadius: '10px',
                     opacity: task.status === 'completed' ? 0.7 : 1,
+                    transition: 'border-color 0.15s',
                   }}
                 >
-                  {/* Checkbox */}
-                  <button
-                    onClick={() => toggleComplete(task)}
+                  {/* Collapsed row — always visible */}
+                  <div
                     style={{
-                      width: '22px',
-                      height: '22px',
-                      borderRadius: '6px',
-                      border: `2px solid ${task.status === 'completed' ? '#16a34a' : '#d1d5db'}`,
-                      background: task.status === 'completed' ? '#16a34a' : '#fff',
-                      color: '#fff',
-                      fontSize: '13px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
                       display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      marginTop: '2px',
+                      alignItems: 'flex-start',
+                      gap: '12px',
+                      padding: '12px 16px',
+                      cursor: 'pointer',
                     }}
+                    onClick={() => setExpandedTask(isExpanded ? null : task.id)}
                   >
-                    {task.status === 'completed' ? '✓' : ''}
-                  </button>
+                    {/* Checkbox */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleComplete(task); }}
+                      style={{
+                        width: '22px',
+                        height: '22px',
+                        borderRadius: '6px',
+                        border: `2px solid ${task.status === 'completed' ? '#16a34a' : '#d1d5db'}`,
+                        background: task.status === 'completed' ? '#16a34a' : '#fff',
+                        color: '#fff',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        marginTop: '2px',
+                      }}
+                    >
+                      {task.status === 'completed' ? '✓' : ''}
+                    </button>
 
-                  {/* Content */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                      <span style={{
-                        fontSize: '14px',
-                        fontWeight: 600,
-                        color: task.status === 'completed' ? '#999' : '#1a1a1a',
-                        textDecoration: task.status === 'completed' ? 'line-through' : 'none',
-                      }}>
-                        {task.title}
-                      </span>
-                      <span style={{
-                        padding: '1px 8px',
-                        borderRadius: '10px',
-                        fontSize: '10px',
-                        fontWeight: 600,
-                        background: pri.bg,
-                        color: pri.text,
-                        border: `1px solid ${pri.border}`,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                      }}>
-                        {pri.label}
-                      </span>
-                    </div>
-                    {task.description && (
-                      <p style={{ margin: '0 0 4px', fontSize: '13px', color: '#666', lineHeight: 1.4 }}>
-                        {task.description}
-                      </p>
-                    )}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '11px', color: '#999' }}>
-                      {filter !== 'my' && (
-                        <span>To: <strong style={{ color: '#666' }}>{task.assigned_to_name}</strong></span>
-                      )}
-                      <span>From: {task.assigned_by_name}</span>
-                      {task.patient_name && (
-                        <span>Patient: <strong style={{ color: '#666' }}>{task.patient_name}</strong></span>
-                      )}
-                      {task.due_date && (
-                        <span style={{ color: overdue ? '#dc2626' : '#999', fontWeight: overdue ? 600 : 400 }}>
-                          {overdue ? 'Overdue: ' : 'Due: '}{formatDate(task.due_date)}
+                    {/* Content */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{
+                          fontSize: '14px',
+                          fontWeight: 600,
+                          color: task.status === 'completed' ? '#999' : '#1a1a1a',
+                          textDecoration: task.status === 'completed' ? 'line-through' : 'none',
+                          ...(!isExpanded && hasDescription ? {
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            maxWidth: '400px',
+                          } : {}),
+                        }}>
+                          {task.title}
                         </span>
+                        <span style={{
+                          padding: '1px 8px',
+                          borderRadius: '10px',
+                          fontSize: '10px',
+                          fontWeight: 600,
+                          background: pri.bg,
+                          color: pri.text,
+                          border: `1px solid ${pri.border}`,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                          flexShrink: 0,
+                        }}>
+                          {pri.label}
+                        </span>
+                        {!isExpanded && hasDescription && (
+                          <span style={{ fontSize: '11px', color: '#9ca3af', flexShrink: 0 }}>
+                            ▸ tap to view
+                          </span>
+                        )}
+                      </div>
+                      {!isExpanded && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '11px', color: '#999', marginTop: '4px' }}>
+                          {filter !== 'my' && (
+                            <span>To: <strong style={{ color: '#666' }}>{task.assigned_to_name}</strong></span>
+                          )}
+                          <span>From: {task.assigned_by_name}</span>
+                          {task.due_date && (
+                            <span style={{ color: overdue ? '#dc2626' : '#999', fontWeight: overdue ? 600 : 400 }}>
+                              {overdue ? 'Overdue: ' : 'Due: '}{formatDate(task.due_date)}
+                            </span>
+                          )}
+                          <span>{getTimeAgo(task.created_at)}</span>
+                        </div>
                       )}
-                      <span>{getTimeAgo(task.created_at)}</span>
+                    </div>
+
+                    {/* Expand indicator + Delete */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                      <span style={{ color: '#ccc', fontSize: '12px', transition: 'transform 0.15s', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>
+                        ▶
+                      </span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#ccc',
+                          cursor: 'pointer',
+                          fontSize: '16px',
+                          padding: '2px 4px',
+                        }}
+                        title="Delete task"
+                      >
+                        &#10005;
+                      </button>
                     </div>
                   </div>
 
-                  {/* Delete */}
-                  <button
-                    onClick={() => deleteTask(task.id)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#ccc',
-                      cursor: 'pointer',
-                      fontSize: '16px',
-                      padding: '2px 4px',
-                      flexShrink: 0,
-                    }}
-                    title="Delete task"
-                  >
-                    &#10005;
-                  </button>
+                  {/* Expanded detail panel */}
+                  {isExpanded && (
+                    <div style={{
+                      padding: '0 16px 16px 50px',
+                      borderTop: '1px solid #f0f0f0',
+                      marginTop: '-4px',
+                      paddingTop: '12px',
+                    }}>
+                      {/* Full title if it was truncated */}
+                      {hasDescription && (
+                        <div style={{ marginBottom: '12px' }}>
+                          <div style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                            Task
+                          </div>
+                          <div style={{ fontSize: '14px', fontWeight: 600, color: '#1f2937', lineHeight: 1.5 }}>
+                            {task.title}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Description */}
+                      {hasDescription && (
+                        <div style={{ marginBottom: '12px' }}>
+                          <div style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                            Details
+                          </div>
+                          <div style={{
+                            fontSize: '14px',
+                            color: '#374151',
+                            lineHeight: 1.6,
+                            whiteSpace: 'pre-wrap',
+                            background: '#f9fafb',
+                            padding: '10px 14px',
+                            borderRadius: '8px',
+                            border: '1px solid #f0f0f0',
+                          }}>
+                            {task.description}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Metadata grid */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', fontSize: '13px' }}>
+                        <div>
+                          <span style={{ color: '#9ca3af' }}>Assigned to: </span>
+                          <strong style={{ color: '#374151' }}>{task.assigned_to_name}</strong>
+                        </div>
+                        <div>
+                          <span style={{ color: '#9ca3af' }}>Created by: </span>
+                          <strong style={{ color: '#374151' }}>{task.assigned_by_name}</strong>
+                        </div>
+                        {task.patient_name && (
+                          <div>
+                            <span style={{ color: '#9ca3af' }}>Patient: </span>
+                            <strong style={{ color: '#374151' }}>{task.patient_name}</strong>
+                          </div>
+                        )}
+                        {task.due_date && (
+                          <div>
+                            <span style={{ color: '#9ca3af' }}>Due: </span>
+                            <strong style={{ color: overdue ? '#dc2626' : '#374151' }}>
+                              {formatDate(task.due_date)}{overdue ? ' (Overdue)' : ''}
+                            </strong>
+                          </div>
+                        )}
+                        <div>
+                          <span style={{ color: '#9ca3af' }}>Created: </span>
+                          <span style={{ color: '#374151' }}>{getTimeAgo(task.created_at)}</span>
+                        </div>
+                        {task.completed_at && (
+                          <div>
+                            <span style={{ color: '#9ca3af' }}>Completed: </span>
+                            <span style={{ color: '#16a34a' }}>{getTimeAgo(task.completed_at)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}

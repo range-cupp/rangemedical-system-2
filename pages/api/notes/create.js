@@ -37,7 +37,7 @@ export default async function handler(req, res) {
           });
 
           const message = await anthropic.messages.create({
-            model: 'claude-3-5-haiku-20241022',
+            model: 'claude-haiku-4-20250214',
             max_tokens: 2048,
             system: `You are a medical note formatter for a regenerative medicine clinic (Range Medical). Take the raw clinical note text and format it into a clean, structured, readable clinical note. Keep all medical information accurate and complete. Do not add or remove information.`,
             messages: [

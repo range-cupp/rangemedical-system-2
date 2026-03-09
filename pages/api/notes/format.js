@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     });
 
     const message = await anthropic.messages.create({
-      model: 'claude-3-5-haiku-20241022',
+      model: 'claude-haiku-4-20250214',
       max_tokens: 2048,
       system: `You are a clinical note formatter for Range Medical, a regenerative medicine clinic. Your job is to take messy, raw, or dictated text and restructure it into a clean, professional clinical note.
 

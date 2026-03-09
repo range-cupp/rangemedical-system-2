@@ -1,35 +1,23 @@
 // /pages/invoice/[id].js
 // Public-facing invoice payment page — Range Medical
 // No auth required. Mobile-first design.
+// Supports Apple Pay, Google Pay, Affirm, Klarna, and all Stripe payment methods.
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { loadStripe } from '@stripe/stripe-js';
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
   : null;
 
-const CARD_ELEMENT_OPTIONS = {
-  style: {
-    base: {
-      fontSize: '16px',
-      color: '#1a1a1a',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      '::placeholder': { color: '#a0a0a0' },
-    },
-    invalid: { color: '#dc2626' },
-  },
-};
-
-function PaymentForm({ invoice }) {
+function PaymentForm({ invoice, onSuccess }) {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(false);
 
   const total = (invoice.total_cents / 100).toFixed(2);
 
@@ -41,30 +29,23 @@ function PaymentForm({ invoice }) {
     setError(null);
 
     try {
-      // Create payment intent
-      const piRes = await fetch('/api/stripe/payment-intent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          patient_id: invoice.patient_id,
-          amount: invoice.total_cents,
-          description: `Invoice — ${invoice.items.map(i => i.name).join(', ')}`,
-        }),
+      const baseUrl = window.location.origin;
+      const returnUrl = `${baseUrl}/invoice/${invoice.id}`;
+
+      const { error: stripeError, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: returnUrl,
+        },
+        redirect: 'if_required',
       });
 
-      const piData = await piRes.json();
-      if (!piRes.ok) throw new Error(piData.error || 'Could not create payment');
+      if (stripeError) {
+        throw new Error(stripeError.message);
+      }
 
-      // Confirm card payment
-      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
-        piData.client_secret,
-        { payment_method: { card: elements.getElement(CardElement) } }
-      );
-
-      if (stripeError) throw new Error(stripeError.message);
-
-      if (paymentIntent.status === 'succeeded') {
-        // Complete the invoice
+      // If we reach here without redirect, payment succeeded inline (e.g., card, Apple Pay)
+      if (paymentIntent && paymentIntent.status === 'succeeded') {
         await fetch(`/api/invoices/${invoice.id}/complete`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -72,7 +53,7 @@ function PaymentForm({ invoice }) {
             stripe_payment_intent_id: paymentIntent.id,
           }),
         });
-        setSuccess(true);
+        onSuccess();
       }
     } catch (err) {
       setError(err.message);
@@ -80,17 +61,6 @@ function PaymentForm({ invoice }) {
       setProcessing(false);
     }
   };
-
-  if (success) {
-    return (
-      <div style={styles.successContainer}>
-        <div style={styles.successIcon}>✓</div>
-        <h2 style={styles.successTitle}>Payment Received</h2>
-        <p style={styles.successText}>Thank you! A receipt will be sent to your email.</p>
-        <p style={styles.successAmount}>${total}</p>
-      </div>
-    );
-  }
 
   return (
     <form onSubmit={handleSubmit}>
@@ -128,12 +98,13 @@ function PaymentForm({ invoice }) {
         </div>
       )}
 
-      {/* Card Input */}
+      {/* Payment Element — shows card, Apple Pay, Google Pay, Affirm, etc. */}
       <div style={styles.cardSection}>
-        <label style={styles.cardLabel}>Card Details</label>
-        <div style={styles.cardInput}>
-          <CardElement options={CARD_ELEMENT_OPTIONS} />
-        </div>
+        <PaymentElement
+          options={{
+            layout: 'tabs',
+          }}
+        />
       </div>
 
       {error && <p style={styles.error}>{error}</p>}
@@ -152,13 +123,28 @@ function PaymentForm({ invoice }) {
   );
 }
 
+function SuccessView({ invoice }) {
+  const total = (invoice.total_cents / 100).toFixed(2);
+  return (
+    <div style={styles.successContainer}>
+      <div style={styles.successIcon}>✓</div>
+      <h2 style={styles.successTitle}>Payment Received</h2>
+      <p style={styles.successText}>Thank you! A receipt will be sent to your email.</p>
+      <p style={styles.successAmount}>${total}</p>
+    </div>
+  );
+}
+
 export default function InvoicePaymentPage() {
   const router = useRouter();
-  const { id } = router.query;
+  const { id, payment_complete, payment_intent, redirect_status } = router.query;
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [clientSecret, setClientSecret] = useState(null);
+  const [success, setSuccess] = useState(false);
 
+  // Load invoice
   useEffect(() => {
     if (!id) return;
     fetch(`/api/invoices/${id}`)
@@ -170,6 +156,45 @@ export default function InvoicePaymentPage() {
       .catch(() => setError('Could not load invoice'))
       .finally(() => setLoading(false));
   }, [id]);
+
+  // Handle redirect return (from Affirm, Klarna, etc.)
+  useEffect(() => {
+    if (!payment_intent || !id) return;
+
+    if (redirect_status === 'succeeded') {
+      // Complete the invoice after redirect-based payment
+      fetch(`/api/invoices/${id}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stripe_payment_intent_id: payment_intent }),
+      })
+        .then(() => setSuccess(true))
+        .catch(() => setSuccess(true)); // Still show success — payment went through on Stripe's side
+    } else if (redirect_status === 'failed') {
+      setError('Payment was not completed. Please try again.');
+    }
+  }, [payment_intent, redirect_status, id]);
+
+  // Create payment intent once invoice is loaded
+  useEffect(() => {
+    if (!invoice || invoice.status !== 'pending' || clientSecret || success) return;
+
+    fetch('/api/stripe/payment-intent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        patient_id: invoice.patient_id,
+        amount: invoice.total_cents,
+        description: `Invoice — ${invoice.items.map(i => i.name).join(', ')}`,
+      }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.client_secret) setClientSecret(data.client_secret);
+        else setError('Could not initialize payment');
+      })
+      .catch(() => setError('Could not initialize payment'));
+  }, [invoice, clientSecret, success]);
 
   const pageTitle = 'Invoice — Range Medical';
 
@@ -189,7 +214,7 @@ export default function InvoicePaymentPage() {
     );
   }
 
-  if (error || !invoice) {
+  if (error && !invoice) {
     return (
       <div style={styles.page}>
         <Head><title>{pageTitle}</title></Head>
@@ -207,8 +232,8 @@ export default function InvoicePaymentPage() {
     );
   }
 
-  // Check statuses
-  if (invoice.status === 'paid') {
+  // Paid
+  if (invoice?.status === 'paid' || success) {
     return (
       <div style={styles.page}>
         <Head><title>{pageTitle}</title></Head>
@@ -217,23 +242,15 @@ export default function InvoicePaymentPage() {
             <h1 style={styles.logo}>RANGE MEDICAL</h1>
           </div>
           <div style={styles.body}>
-            <div style={styles.successContainer}>
-              <div style={styles.successIcon}>✓</div>
-              <h2 style={styles.successTitle}>Invoice Paid</h2>
-              <p style={styles.successText}>
-                This invoice was paid on {new Date(invoice.paid_at).toLocaleDateString('en-US', {
-                  month: 'long', day: 'numeric', year: 'numeric',
-                })}.
-              </p>
-              <p style={styles.successAmount}>${(invoice.total_cents / 100).toFixed(2)}</p>
-            </div>
+            <SuccessView invoice={invoice} />
           </div>
         </div>
       </div>
     );
   }
 
-  if (invoice.status === 'expired' || invoice.status === 'cancelled') {
+  // Expired / Cancelled
+  if (invoice?.status === 'expired' || invoice?.status === 'cancelled') {
     return (
       <div style={styles.page}>
         <Head><title>{pageTitle}</title></Head>
@@ -265,14 +282,34 @@ export default function InvoicePaymentPage() {
           <p style={styles.headerSub}>Invoice</p>
         </div>
         <div style={styles.body}>
-          {stripePromise ? (
-            <Elements stripe={stripePromise}>
-              <PaymentForm invoice={invoice} />
+          {stripePromise && clientSecret ? (
+            <Elements
+              stripe={stripePromise}
+              options={{
+                clientSecret,
+                appearance: {
+                  theme: 'stripe',
+                  variables: {
+                    colorPrimary: '#000000',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    borderRadius: '8px',
+                  },
+                },
+              }}
+            >
+              <PaymentForm invoice={invoice} onSuccess={() => setSuccess(true)} />
             </Elements>
-          ) : (
+          ) : !stripePromise ? (
             <p style={{ textAlign: 'center', color: '#dc2626', padding: '20px' }}>
               Payment system unavailable. Please call (949) 997-3988.
             </p>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <p style={{ color: '#888', fontSize: '14px' }}>Loading payment options...</p>
+            </div>
+          )}
+          {error && (
+            <p style={styles.error}>{error}</p>
           )}
         </div>
         <div style={styles.footer}>
@@ -383,19 +420,6 @@ const styles = {
   },
   cardSection: {
     marginBottom: '20px',
-  },
-  cardLabel: {
-    display: 'block',
-    fontSize: '13px',
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: '8px',
-  },
-  cardInput: {
-    border: '1px solid #ddd',
-    borderRadius: '8px',
-    padding: '14px',
-    background: '#fff',
   },
   error: {
     color: '#dc2626',

@@ -793,11 +793,27 @@ export default function ProtocolDetail() {
         notes: form.notes
       };
 
-      // HRT-specific fields
+      // HRT-specific fields — scheduled_days is the source of truth for HRT scheduling
       if (isHRTProtocol(form.protocolType)) {
         if (form.injectionMethod) saveData.injection_method = form.injectionMethod;
         if (form.supplyType) saveData.supply_type = form.supplyType;
-        if (form.scheduledDays && form.scheduledDays.length > 0) saveData.scheduled_days = form.scheduledDays;
+        if (form.scheduledDays && form.scheduledDays.length > 0) {
+          saveData.scheduled_days = form.scheduledDays;
+          // Auto-derive frequency from scheduled_days
+          const numDays = form.scheduledDays.length;
+          if (numDays === 7) saveData.frequency = 'daily';
+          else if (numDays === 3) saveData.frequency = '3x_weekly';
+          else saveData.frequency = '2x_weekly';
+          // Auto-derive hrt_reminder_schedule from scheduled_days
+          const days = form.scheduledDays.map(d => d.toLowerCase());
+          if (numDays === 7) {
+            saveData.hrt_reminder_schedule = 'daily';
+          } else if (days.includes('monday') && days.includes('thursday') && numDays === 2) {
+            saveData.hrt_reminder_schedule = 'mon_thu';
+          } else if (days.includes('tuesday') && days.includes('friday') && numDays === 2) {
+            saveData.hrt_reminder_schedule = 'tue_fri';
+          }
+        }
       }
 
       // Only set total_sessions for non-weight-loss protocols
@@ -1774,12 +1790,15 @@ export default function ProtocolDetail() {
                 <div style={styles.section}>
                   <h3 style={styles.sectionTitle}>Schedule</h3>
                   <div style={styles.grid}>
-                    <div style={styles.field}>
-                      <label style={styles.label}>Frequency</label>
-                      <select value={form.frequency} onChange={e => setForm({ ...form, frequency: e.target.value })} style={styles.select}>
-                        {selectedType?.frequencies?.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-                      </select>
-                    </div>
+                    {/* Hide frequency for HRT — scheduled_days is the source of truth */}
+                    {!isHRTProtocol(form.protocolType) && (
+                      <div style={styles.field}>
+                        <label style={styles.label}>Frequency</label>
+                        <select value={form.frequency} onChange={e => setForm({ ...form, frequency: e.target.value })} style={styles.select}>
+                          {selectedType?.frequencies?.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                        </select>
+                      </div>
+                    )}
                     <div style={styles.field}>
                       <label style={styles.label}>Delivery</label>
                       <select value={form.deliveryMethod} onChange={e => setForm({ ...form, deliveryMethod: e.target.value })} style={styles.select}>

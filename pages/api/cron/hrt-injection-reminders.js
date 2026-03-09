@@ -34,8 +34,16 @@ function getTodayDateStr() {
   return `${parts[2]}-${parts[0]}-${parts[1]}`;
 }
 
-// Check if today matches the schedule
-function isScheduledDay(schedule) {
+// Check if today matches the schedule — supports both scheduled_days array and legacy hrt_reminder_schedule string
+function isScheduledDay(protocol) {
+  // Prefer scheduled_days array (new source of truth)
+  if (protocol.scheduled_days && Array.isArray(protocol.scheduled_days) && protocol.scheduled_days.length > 0) {
+    const todayName = getTodayDayName().toLowerCase();
+    return protocol.scheduled_days.map(d => d.toLowerCase()).includes(todayName);
+  }
+  // Fall back to legacy hrt_reminder_schedule string
+  const schedule = protocol.hrt_reminder_schedule;
+  if (!schedule) return false;
   if (schedule === 'daily') return true;
   const dayName = getTodayDayName();
   if (schedule === 'mon_thu') return dayName === 'Monday' || dayName === 'Thursday';
@@ -120,10 +128,13 @@ export default async function handler(req, res) {
       const patient = protocol.patients;
 
       // Check if today is a scheduled injection day
-      if (!protocol.hrt_reminder_schedule || !isScheduledDay(protocol.hrt_reminder_schedule)) {
+      if (!isScheduledDay(protocol)) {
+        const scheduleInfo = protocol.scheduled_days?.length
+          ? protocol.scheduled_days.join(', ')
+          : (protocol.hrt_reminder_schedule || 'none');
         results.skipped.push({
           patient: protocol.patient_name,
-          reason: `Not a scheduled day (schedule: ${protocol.hrt_reminder_schedule || 'none'})`
+          reason: `Not a scheduled day (schedule: ${scheduleInfo})`
         });
         continue;
       }

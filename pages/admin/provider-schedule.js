@@ -247,7 +247,7 @@ export default function ProviderSchedulePage() {
   const overrideLocation = overrideSchedule ? getScheduleLocation(overrideSchedule) : null;
 
   return (
-    <AdminLayout title="Provider Hours">
+    <AdminLayout title="Range Staff Hours">
       {successMsg && (
         <div style={{ ...pageStyles.alert, background: '#dcfce7', color: '#166534' }}>{successMsg}</div>
       )}

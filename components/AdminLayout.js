@@ -230,7 +230,7 @@ const NAV_ITEMS = [
   { href: '/admin/purchases', label: 'Purchases', icon: 'shopping-bag' },
   { href: '/admin/communications', label: 'Communications', icon: 'message' },
   { href: '/admin/send-forms', label: 'Send Forms', icon: 'file-text' },
-  { href: '/admin/provider-schedule', label: 'Provider Hours', icon: 'clock' },
+  { href: '/admin/provider-schedule', label: 'Staff Hours', icon: 'clock' },
   { href: '/admin/employees', label: 'Employees', icon: 'user-check', permission: 'can_manage_employees' },
   { href: '/admin/settings', label: 'Settings', icon: 'settings' }
 ];

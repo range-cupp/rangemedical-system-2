@@ -238,22 +238,21 @@ export default function CalendarView({ preselectedPatient = null }) {
       .then(data => {
         if (cancelled) return;
         // Parse slot data — Cal.com returns { slots: { "YYYY-MM-DD": [{ start, end }] } }
+        // IMPORTANT: Only use slots for the requested date. Cal.com sometimes returns
+        // nearby dates' slots when the requested day has no availability.
         const daySlots = data.slots || {};
         const slotTimes = [];
-        for (const [dateKey, times] of Object.entries(daySlots)) {
-          if (Array.isArray(times)) {
-            times.forEach(slot => {
-              // slot can be { start: "2026-03-10T09:00:00-07:00", end: "..." }
-              // or just a time string
-              const startStr = typeof slot === 'string' ? slot : slot.start;
-              if (startStr) {
-                const d = new Date(startStr);
-                const hours = d.getHours().toString().padStart(2, '0');
-                const mins = d.getMinutes().toString().padStart(2, '0');
-                slotTimes.push(`${hours}:${mins}`);
-              }
-            });
-          }
+        const requestedDaySlots = daySlots[apptDate] || [];
+        if (Array.isArray(requestedDaySlots)) {
+          requestedDaySlots.forEach(slot => {
+            const startStr = typeof slot === 'string' ? slot : slot.start;
+            if (startStr) {
+              const d = new Date(startStr);
+              const hours = d.getHours().toString().padStart(2, '0');
+              const mins = d.getMinutes().toString().padStart(2, '0');
+              slotTimes.push(`${hours}:${mins}`);
+            }
+          });
         }
         setAvailableSlots(slotTimes);
         setLoadingSlots(false);

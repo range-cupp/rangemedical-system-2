@@ -1752,9 +1752,9 @@ export default function PatientProfile() {
                             </div>
                           </div>
 
-                          {/* HRT Onboarding Status */}
+                          {/* HRT Onboarding Status + Portal Link */}
                           {isHRTProtocol(protocol.program_type) && protocol.status === 'active' && (
-                            <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                               {protocol.onboarding_start_date ? (
                                 <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: 600 }}>
                                   ✓ Onboarding started {formatShortDate(protocol.onboarding_start_date)}
@@ -1787,6 +1787,46 @@ export default function PatientProfile() {
                                   style={{ padding: '4px 12px', fontSize: '12px', fontWeight: 600, background: '#000', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
                                 >
                                   Start Onboarding
+                                </button>
+                              )}
+                              <button
+                                onClick={async () => {
+                                  if (!confirm('Send the HRT portal link to this patient via SMS?')) return;
+                                  try {
+                                    const resp = await fetch('/api/protocols/send-portal-link', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ protocolId: protocol.id })
+                                    });
+                                    const data = await resp.json();
+                                    if (data.success) {
+                                      alert(`Portal link sent! URL: ${data.portalUrl}`);
+                                      fetchPatient();
+                                    } else {
+                                      if (data.portalUrl) {
+                                        prompt('SMS failed, but here is the portal link to share manually:', data.portalUrl);
+                                      } else {
+                                        alert('Error: ' + (data.error || 'Failed to send portal link'));
+                                      }
+                                    }
+                                  } catch (err) {
+                                    alert('Error: ' + err.message);
+                                  }
+                                }}
+                                style={{ padding: '4px 12px', fontSize: '12px', fontWeight: 600, background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                              >
+                                Send Portal Link
+                              </button>
+                              {protocol.access_token && (
+                                <button
+                                  onClick={() => {
+                                    const url = `https://www.range-medical.com/hrt/${protocol.access_token}`;
+                                    navigator.clipboard.writeText(url).then(() => alert('Portal link copied!')).catch(() => prompt('Copy this link:', url));
+                                  }}
+                                  style={{ padding: '4px 8px', fontSize: '12px', color: '#6b7280', background: 'none', border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer' }}
+                                  title="Copy portal link"
+                                >
+                                  📋
                                 </button>
                               )}
                             </div>

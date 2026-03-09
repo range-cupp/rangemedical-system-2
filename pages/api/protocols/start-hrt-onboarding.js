@@ -3,6 +3,7 @@
 // Sends Day 0 welcome email + SMS, sets onboarding_start_date
 // Range Medical
 
+import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { HRT_ONBOARDING_SEQUENCE, personalizeHRTEmail } from '../../../lib/hrt-drip-emails';
@@ -215,13 +216,24 @@ export default async function handler(req, res) {
       notes: `HRT onboarding step: welcome (Day 0)`
     });
 
-    // Set onboarding_start_date
+    // Generate access_token for patient portal (if not already set)
+    let accessToken = protocol.access_token;
+    if (!accessToken) {
+      accessToken = crypto.randomBytes(32).toString('hex');
+    }
+
+    // Set onboarding_start_date + access_token
     await supabase
       .from('protocols')
-      .update({ onboarding_start_date: today, updated_at: new Date().toISOString() })
+      .update({
+        onboarding_start_date: today,
+        access_token: accessToken,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', protocolId);
 
-    console.log(`HRT onboarding started for protocol ${protocolId} - Welcome email sent to ${patient.email}`);
+    const portalUrl = `https://www.range-medical.com/hrt/${accessToken}`;
+    console.log(`HRT onboarding started for protocol ${protocolId} - Welcome email sent to ${patient.email} - Portal: ${portalUrl}`);
 
     return res.status(200).json({
       success: true,
@@ -229,7 +241,8 @@ export default async function handler(req, res) {
       email: patient.email,
       smsSent,
       patientName: patient.name,
-      onboardingStartDate: today
+      onboardingStartDate: today,
+      portalUrl
     });
 
   } catch (error) {

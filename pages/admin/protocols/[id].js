@@ -2452,6 +2452,72 @@ export default function ProtocolDetail() {
                           </span>
                         </div>
                       )}
+                      {/* Patient Portal Link */}
+                      <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '11px', color: '#6b7280' }}>🔗 Patient Portal:</span>
+                        {protocol?.access_token ? (
+                          <>
+                            <button
+                              onClick={() => {
+                                const url = `https://www.range-medical.com/hrt/${protocol.access_token}`;
+                                navigator.clipboard.writeText(url).then(() => setSuccess('Portal link copied!')).catch(() => prompt('Copy this link:', url));
+                              }}
+                              style={{ fontSize: '11px', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+                            >
+                              Copy Link
+                            </button>
+                            <span style={{ color: '#d1d5db' }}>|</span>
+                            <button
+                              onClick={async () => {
+                                if (!confirm('Send portal link to patient via SMS?')) return;
+                                try {
+                                  const resp = await fetch('/api/protocols/send-portal-link', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ protocolId: id })
+                                  });
+                                  const data = await resp.json();
+                                  if (data.success) {
+                                    setSuccess('Portal link sent via SMS!');
+                                  } else {
+                                    setError(data.error || 'Failed to send');
+                                  }
+                                } catch (err) {
+                                  setError(err.message);
+                                }
+                              }}
+                              style={{ fontSize: '11px', color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}
+                            >
+                              Send to Patient
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={async () => {
+                              if (!confirm('Generate and send portal link to patient via SMS?')) return;
+                              try {
+                                const resp = await fetch('/api/protocols/send-portal-link', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ protocolId: id })
+                                });
+                                const data = await resp.json();
+                                if (data.success) {
+                                  setSuccess('Portal link generated and sent!');
+                                  setProtocol(prev => ({ ...prev, access_token: data.portalUrl.split('/hrt/')[1] }));
+                                } else {
+                                  setError(data.error || 'Failed to generate link');
+                                }
+                              } catch (err) {
+                                setError(err.message);
+                              }
+                            }}
+                            style={{ fontSize: '11px', fontWeight: 600, padding: '3px 8px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                          >
+                            Generate + Send Link
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })()}

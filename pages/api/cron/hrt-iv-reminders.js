@@ -1,9 +1,10 @@
 // /pages/api/cron/hrt-iv-reminders.js
-// Daily cron to remind HRT membership patients about their complimentary monthly IV
+// Monthly cron to remind HRT membership patients about their complimentary monthly IV
 // Range Medical
 //
 // Checks active HRT protocols with a payment in the last 30 days.
-// If no IV session found in that window, sends SMS reminder via GHL.
+// If no IV session found in that window, sends ONE SMS reminder per billing cycle.
+// Waits at least 14 days after payment before sending the reminder.
 
 import { createClient } from '@supabase/supabase-js';
 import { logComm } from '../../../lib/comms-log';
@@ -71,19 +72,30 @@ export default async function handler(req, res) {
     }
 
     for (const protocol of protocols) {
-      // Double-send prevention: check protocol_logs for today
+      // Only send reminder once at least 14 days have passed since payment
+      const paymentDate = new Date(protocol.last_payment_date);
+      const daysSincePayment = Math.floor((new Date() - paymentDate) / (1000 * 60 * 60 * 24));
+      if (daysSincePayment < 14) {
+        results.skipped.push({
+          patient: protocol.patient_name,
+          reason: `Only ${daysSincePayment} days since payment (waiting for 14)`
+        });
+        continue;
+      }
+
+      // One reminder per billing cycle: check if already sent since last payment
       const { data: existingLog } = await supabase
         .from('protocol_logs')
         .select('id')
         .eq('protocol_id', protocol.id)
         .eq('log_type', 'hrt_iv_reminder')
-        .eq('log_date', todayStr)
+        .gte('log_date', protocol.last_payment_date)
         .maybeSingle();
 
       if (existingLog) {
         results.skipped.push({
           patient: protocol.patient_name,
-          reason: 'Already sent today'
+          reason: 'Already reminded this billing cycle'
         });
         continue;
       }

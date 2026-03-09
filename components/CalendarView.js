@@ -60,6 +60,7 @@ export default function CalendarView({ preselectedPatient = null }) {
   const [apptNotes, setApptNotes] = useState('');
   const [sendNotification, setSendNotification] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [panelType, setPanelType] = useState(null); // 'essential' | 'elite' for New Patient Blood Draw
 
   // Cal.com availability state
   const [eventTypesMap, setEventTypesMap] = useState({}); // slug → { id, hosts }
@@ -370,6 +371,10 @@ export default function CalendarView({ preselectedPatient = null }) {
         // This blocks the slot in Cal.com and the webhook syncs to appointments table
         const hostInfo = eventType.hosts?.find(h => h.username === selectedProvider?.calcomUsername);
 
+        // Build service details (e.g., panel type for blood draws)
+        const serviceDetails = {};
+        if (panelType) serviceDetails.panelType = panelType;
+
         const body = {
           eventTypeId: eventType.id,
           start: startDT.toISOString(),
@@ -383,6 +388,7 @@ export default function CalendarView({ preselectedPatient = null }) {
           notes: apptNotes || null,
           hostUserId: hostInfo?.userId || null,
           hostName: selectedProvider?.label || selectedProvider?.name || null,
+          serviceDetails: Object.keys(serviceDetails).length > 0 ? serviceDetails : null,
         };
 
         res = await fetch('/api/bookings/create', {
@@ -415,11 +421,15 @@ export default function CalendarView({ preselectedPatient = null }) {
               send_notification: sendNotification,
               cal_com_booking_id: String(data.calcom?.id || data.booking?.calcom_booking_id || ''),
               source: 'cal_com',
+              service_details: Object.keys(serviceDetails).length > 0 ? serviceDetails : null,
             }),
           }).catch(err => console.error('Native appointment write error:', err));
         }
       } else {
         // Fallback: manual booking (no Cal.com event type or walk-in)
+        const fallbackDetails = {};
+        if (panelType) fallbackDetails.panelType = panelType;
+
         const body = {
           patient_id: selectedPatient?.id || null,
           patient_name: patientName,
@@ -434,6 +444,7 @@ export default function CalendarView({ preselectedPatient = null }) {
           notes: apptNotes || null,
           created_by: 'command_center',
           send_notification: sendNotification,
+          service_details: Object.keys(fallbackDetails).length > 0 ? fallbackDetails : null,
         };
 
         res = await fetch('/api/appointments/create', {
@@ -478,6 +489,7 @@ export default function CalendarView({ preselectedPatient = null }) {
     setSendNotification(true);
     setAvailableSlots(null);
     setLoadingSlots(false);
+    setPanelType(null);
   };
 
   // ===================== Status Changes =====================
@@ -1159,6 +1171,9 @@ export default function CalendarView({ preselectedPatient = null }) {
                   onClick={() => {
                     setSelectedService(svc);
                     setSelectedProvider(null);
+                    setPanelType(null);
+                    // Blood draws need panel selection before advancing
+                    if (svc.calcomSlug === 'new-patient-blood-draw') return;
                     // If service supports location selection, go to location step
                     if (LOCATION_ENABLED_CATEGORIES.includes(svc.category)) {
                       setSelectedLocation(DEFAULT_LOCATION);
@@ -1178,6 +1193,44 @@ export default function CalendarView({ preselectedPatient = null }) {
                   <span style={{ fontSize: '12px', color: '#888' }}>{svc.duration} min</span>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Panel type selector for New Patient Blood Draw */}
+          {selectedService?.calcomSlug === 'new-patient-blood-draw' && (
+            <div style={{ marginTop: '12px' }}>
+              <label style={styles.fieldLabel}>Lab Panel</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {[
+                  { key: 'essential', label: 'Essential Panel', price: '$350' },
+                  { key: 'elite', label: 'Elite Panel', price: '$750' },
+                ].map(panel => (
+                  <button
+                    key={panel.key}
+                    onClick={() => {
+                      setPanelType(panel.key);
+                      setSelectedLocation(DEFAULT_LOCATION);
+                      setWizardStep(4);
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      border: panelType === panel.key ? '2px solid #000' : '1px solid #e5e5e5',
+                      borderRadius: '8px',
+                      background: panelType === panel.key ? '#000' : '#fff',
+                      color: panelType === panel.key ? '#fff' : '#111',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <div>{panel.label}</div>
+                    <div style={{ fontSize: '12px', fontWeight: '400', marginTop: '2px', opacity: 0.7 }}>{panel.price}</div>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -1454,6 +1507,12 @@ export default function CalendarView({ preselectedPatient = null }) {
               <span style={styles.confirmLabel}>Service</span>
               <span>{selectedService?.name}</span>
             </div>
+            {panelType && (
+              <div style={styles.confirmRow}>
+                <span style={styles.confirmLabel}>Lab Panel</span>
+                <span>{panelType === 'elite' ? 'Elite Panel ($750)' : 'Essential Panel ($350)'}</span>
+              </div>
+            )}
             <div style={styles.confirmRow}>
               <span style={styles.confirmLabel}>Provider</span>
               <span>{selectedProvider?.label || 'N/A'}</span>

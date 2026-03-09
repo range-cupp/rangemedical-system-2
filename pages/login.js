@@ -84,11 +84,11 @@ export default function Login() {
         <div style={styles.card}>
           {/* Logo */}
           <div style={styles.logoWrap}>
-            <svg width="48" height="48" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="50" cy="50" r="46" stroke="#111" strokeWidth="4" />
-              <path d="M50 20 L50 80 M30 50 L70 50 M35 30 L65 70 M65 30 L35 70" stroke="#111" strokeWidth="3" strokeLinecap="round" />
-            </svg>
-            <div style={styles.logoText}>RANGE</div>
+            <img
+              src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png"
+              alt="Range Medical"
+              style={styles.logoImg}
+            />
             <div style={styles.logoSubtext}>Medical System</div>
           </div>
 
@@ -165,12 +165,10 @@ const styles = {
     textAlign: 'center',
     marginBottom: '32px',
   },
-  logoText: {
-    fontSize: '20px',
-    fontWeight: 800,
-    letterSpacing: '4px',
-    color: '#111',
-    marginTop: '12px',
+  logoImg: {
+    height: '70px',
+    width: 'auto',
+    marginBottom: '8px',
   },
   logoSubtext: {
     fontSize: '13px',

@@ -43,6 +43,10 @@ const EVENT_TYPES = [
   // THERAPIES
   { slug: 'hbot', title: 'Hyperbaric Oxygen Therapy (HBOT)', length: 60, desc: 'Hyperbaric oxygen therapy session at Range Medical.', loc: LOC_IN_PERSON, hosts: hosts([CHRIS, DAMON]) },
   { slug: 'red-light-therapy', title: 'Red Light Therapy', length: 30, desc: 'Red light therapy session at Range Medical.', loc: LOC_IN_PERSON, hosts: hosts([CHRIS, DAMON]) },
+  { slug: 'therapeutic-phlebotomy', title: 'Therapeutic Phlebotomy', length: 60, desc: 'Therapeutic phlebotomy session at Range Medical. Approximately 1 hour.', loc: LOC_IN_PERSON, hosts: hosts([LILY, EVAN, DAMIEN]) },
+
+  // PICKUPS
+  { slug: 'medication-pickup', title: 'Medication Pickup', length: 15, desc: 'Pick up your prescribed medication at Range Medical.', loc: LOC_IN_PERSON, hosts: hosts([DAMON, CHRIS]) },
 
   // IV THERAPY
   { slug: 'range-iv', title: 'Range IV', length: 60, desc: 'IV therapy session. Your blend of vitamins and minerals customized to how you\'re feeling.', loc: LOC_IN_PERSON, hosts: hosts([LILY, DAMIEN]) },

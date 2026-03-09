@@ -179,6 +179,32 @@ export default async function handler(req, res) {
       }
     }
 
+    // Send immediate IV booking SMS (separate from welcome — direct booking nudge)
+    if (patient.phone) {
+      const phone = normalizePhone(patient.phone);
+      if (phone && !isInQuietHours()) {
+        const firstName = patient.first_name || (patient.name ? patient.name.split(' ')[0] : 'there');
+        const ivBookingMsg = `Hey ${firstName}! Your HRT membership includes a monthly Range IV ($225 value) — and you're eligible right now. Want to book your first one? Call (949) 997-3988 or reply here!`;
+
+        const ivSmsResult = await sendSMS({ to: phone, message: ivBookingMsg });
+        await logComm({
+          channel: 'sms',
+          messageType: 'hrt_onboarding_iv_booking',
+          message: ivBookingMsg,
+          source: 'start-hrt-onboarding',
+          patientId: protocol.patient_id,
+          protocolId: protocol.id,
+          ghlContactId: patient.ghl_contact_id,
+          patientName: patient.name,
+          recipient: phone,
+          status: ivSmsResult.success ? 'sent' : 'error',
+          errorMessage: ivSmsResult.success ? null : ivSmsResult.error,
+          provider: ivSmsResult.provider,
+          twilioMessageSid: ivSmsResult.messageSid
+        });
+      }
+    }
+
     // Log to protocol_logs
     const today = new Date().toISOString().split('T')[0];
     await supabase.from('protocol_logs').insert({

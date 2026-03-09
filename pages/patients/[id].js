@@ -2870,12 +2870,14 @@ export default function PatientProfile() {
 
           {/* Communications Tab */}
           {activeTab === 'communications' && (
-            <ConversationView
-              patientId={id}
-              patientName={patient?.name || patient?.full_name}
-              patientPhone={patient?.phone}
-              ghlContactId={patient?.ghl_contact_id}
-            />
+            <div style={{ height: 'calc(100vh - 220px)', minHeight: '400px', maxHeight: '800px' }}>
+              <ConversationView
+                patientId={id}
+                patientName={patient?.name || patient?.full_name}
+                patientPhone={patient?.phone}
+                ghlContactId={patient?.ghl_contact_id}
+              />
+            </div>
           )}
         </div>
 

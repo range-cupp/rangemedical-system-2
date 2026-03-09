@@ -29,13 +29,8 @@ function fixedHost(userId) {
 
 const EVENT_TYPES = [
   // LAB / BLOOD DRAW
-  { slug: 'new-patient-blood-draw', title: 'New Patient Blood Draw', length: 30, desc: 'Your first blood draw at Range Medical. We will collect labs for your initial panel.', loc: LOC_IN_PERSON, hosts: hosts([LILY, EVAN, DAMIEN]) },
+  { slug: 'new-patient-blood-draw', title: 'New Patient Blood Draw', length: 15, desc: 'Your first blood draw at Range Medical. We will collect labs for your initial panel.', loc: LOC_IN_PERSON, hosts: hosts([LILY, EVAN, DAMIEN]) },
   { slug: 'follow-up-blood-draw', title: 'Follow Up Blood Draw', length: 15, desc: 'Follow-up blood draw for existing patients.', loc: LOC_IN_PERSON, hosts: hosts([LILY, EVAN, DAMIEN]) },
-  { slug: 'initial-lab-review', title: 'Initial Lab Review', length: 30, desc: 'Review your initial lab results with Dr. Burgess.', loc: LOC_IN_PERSON, hosts: fixedHost(DAMIEN) },
-  { slug: 'follow-up-lab-review', title: 'Follow Up Lab Review', length: 30, desc: 'Follow-up lab review with Dr. Burgess.', loc: LOC_IN_PERSON, hosts: fixedHost(DAMIEN) },
-  { slug: 'initial-lab-review-telemedicine', title: 'Initial Lab Review - Tele-Medicine', length: 30, desc: 'Virtual initial lab review with Dr. Burgess.', loc: LOC_VIDEO, hosts: fixedHost(DAMIEN) },
-  { slug: 'follow-up-lab-review-telemedicine', title: 'Follow Up Lab Review - Tele-Medicine', length: 30, desc: 'Virtual follow-up lab review with Dr. Burgess.', loc: LOC_VIDEO, hosts: fixedHost(DAMIEN) },
-  { slug: 'follow-up-lab-review-phone', title: 'Follow Up Lab Review - Telephone Call', length: 15, desc: 'Phone follow-up lab review with Dr. Burgess.', loc: LOC_PHONE, hosts: fixedHost(DAMIEN) },
 
   // INJECTIONS
   { slug: 'range-injections', title: 'Range Injections', length: 15, desc: 'Vitamin and nutrient injection appointment. Fast — in and out in 5 minutes.', loc: LOC_IN_PERSON, hosts: hosts([LILY, EVAN, DAMIEN]) },
@@ -58,10 +53,15 @@ const EVENT_TYPES = [
   { slug: 'vitamin-c-iv', title: 'Vitamin C IV', length: 90, desc: 'High-dose Vitamin C IV infusion.', loc: LOC_IN_PERSON, hosts: hosts([LILY, DAMIEN]) },
   { slug: 'specialty-iv', title: 'Specialty IV', length: 60, desc: 'Specialty IV therapy session.', loc: LOC_IN_PERSON, hosts: hosts([LILY, DAMIEN]) },
 
-  // CONSULTATIONS
-  { slug: 'initial-consultation', title: 'Initial Consultation', length: 30, desc: 'Initial consultation with Dr. Burgess to discuss your health goals.', loc: LOC_IN_PERSON, hosts: fixedHost(DAMIEN) },
-  { slug: 'initial-consultation-peptide', title: 'Initial Consultation - Peptide', length: 30, desc: 'Initial peptide therapy consultation with Dr. Burgess.', loc: LOC_IN_PERSON, hosts: fixedHost(DAMIEN) },
-  { slug: 'follow-up-consultation', title: 'Follow-Up Consultation', length: 30, desc: 'Follow-up consultation with Dr. Burgess.', loc: LOC_IN_PERSON, hosts: fixedHost(DAMIEN) },
+  // CONSULTATIONS (all Dr. Burgess only)
+  { slug: 'initial-consultation', title: 'Initial Consultation', length: 45, desc: 'Initial consultation with Dr. Burgess to discuss your health goals.', loc: LOC_IN_PERSON, hosts: fixedHost(DAMIEN) },
+  { slug: 'initial-consultation-peptide', title: 'Initial Consultation - Peptide', length: 45, desc: 'Initial peptide therapy consultation with Dr. Burgess.', loc: LOC_IN_PERSON, hosts: fixedHost(DAMIEN) },
+  { slug: 'follow-up-consultation', title: 'Follow-Up Consultation', length: 45, desc: 'Follow-up consultation with Dr. Burgess.', loc: LOC_IN_PERSON, hosts: fixedHost(DAMIEN) },
+  { slug: 'initial-lab-review', title: 'Initial Lab Review', length: 45, desc: 'Review your initial lab results with Dr. Burgess.', loc: LOC_IN_PERSON, hosts: fixedHost(DAMIEN) },
+  { slug: 'follow-up-lab-review', title: 'Follow Up Lab Review', length: 45, desc: 'Follow-up lab review with Dr. Burgess.', loc: LOC_IN_PERSON, hosts: fixedHost(DAMIEN) },
+  { slug: 'initial-lab-review-telemedicine', title: 'Initial Lab Review - Tele-Medicine', length: 45, desc: 'Virtual initial lab review with Dr. Burgess.', loc: LOC_VIDEO, hosts: fixedHost(DAMIEN) },
+  { slug: 'follow-up-lab-review-telemedicine', title: 'Follow Up Lab Review - Tele-Medicine', length: 45, desc: 'Virtual follow-up lab review with Dr. Burgess.', loc: LOC_VIDEO, hosts: fixedHost(DAMIEN) },
+  { slug: 'follow-up-lab-review-phone', title: 'Follow Up Lab Review - Telephone Call', length: 45, desc: 'Phone follow-up lab review with Dr. Burgess.', loc: LOC_PHONE, hosts: fixedHost(DAMIEN) },
 ];
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));

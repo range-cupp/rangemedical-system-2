@@ -85,11 +85,14 @@ function useUnreadNotifications(router) {
     };
   }, []);
 
-  // Poll for unread messages
+  // Poll for unread messages — only when tab is visible
   useEffect(() => {
     let mounted = true;
+    let interval = null;
 
     const checkUnread = async () => {
+      // Skip if tab is hidden (prevents background tabs from flooding connections)
+      if (document.visibilityState === 'hidden') return;
       try {
         const res = await fetch('/api/admin/unread-sms');
         if (!res.ok) return;
@@ -110,14 +113,13 @@ function useUnreadNotifications(router) {
             const notif = new Notification('New SMS — Range Medical', {
               body: `${data.latest.patientName}: ${data.latest.message}`,
               icon: '/favicon.ico',
-              tag: 'range-sms', // prevents duplicate notifications
+              tag: 'range-sms',
             });
             notif.onclick = () => {
               window.focus();
               router.push('/admin/communications');
               notif.close();
             };
-            // Auto-close after 8 seconds
             setTimeout(() => notif.close(), 8000);
           }
         }
@@ -128,15 +130,29 @@ function useUnreadNotifications(router) {
       }
     };
 
-    // Initial check
-    checkUnread();
+    const startPolling = () => {
+      if (interval) clearInterval(interval);
+      checkUnread();
+      interval = setInterval(checkUnread, 120000); // Poll every 2 minutes
+    };
 
-    // Poll every 60 seconds
-    const interval = setInterval(checkUnread, 60000);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        // Tab became visible — check immediately and resume polling
+        startPolling();
+      } else {
+        // Tab hidden — stop polling to free connections
+        if (interval) { clearInterval(interval); interval = null; }
+      }
+    };
+
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
       mounted = false;
-      clearInterval(interval);
+      if (interval) clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [router]);
 
@@ -161,8 +177,11 @@ function useNewPatientNotifications(router) {
 
   useEffect(() => {
     let mounted = true;
+    let interval = null;
 
     const checkNewPatients = async () => {
+      // Skip if tab is hidden
+      if (document.visibilityState === 'hidden') return;
       try {
         const since = latestTimestampRef.current;
         const url = since
@@ -173,18 +192,15 @@ function useNewPatientNotifications(router) {
         const data = await res.json();
         if (!mounted) return;
 
-        // Update timestamp
         if (data.latestTimestamp) {
           latestTimestampRef.current = data.latestTimestamp;
         }
 
-        // Only notify after initial load (skip first poll)
         if (!initializedRef.current) {
           initializedRef.current = true;
           return;
         }
 
-        // New external patient arrived
         if (data.newPatients && data.newPatients.length > 0 && hasInteractedRef.current) {
           const patient = data.newPatients[0];
           playNewPatientSound();
@@ -208,12 +224,27 @@ function useNewPatientNotifications(router) {
       }
     };
 
-    checkNewPatients();
-    const interval = setInterval(checkNewPatients, 60000);
+    const startPolling = () => {
+      if (interval) clearInterval(interval);
+      checkNewPatients();
+      interval = setInterval(checkNewPatients, 120000); // Poll every 2 minutes
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        startPolling();
+      } else {
+        if (interval) { clearInterval(interval); interval = null; }
+      }
+    };
+
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
       mounted = false;
-      clearInterval(interval);
+      if (interval) clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [router]);
 }

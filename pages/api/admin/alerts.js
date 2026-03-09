@@ -24,9 +24,15 @@ export default async function handler(req, res) {
         .eq('status', 'active')
         .order('triggered_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        // Table or column doesn't exist — return empty instead of 500
+        if (error.code === '42P01' || error.code === '42703') {
+          return res.status(200).json({ alerts: [] });
+        }
+        throw error;
+      }
 
-      return res.status(200).json({ alerts });
+      return res.status(200).json({ alerts: alerts || [] });
     } catch (error) {
       console.error('Alerts error:', error);
       return res.status(500).json({ error: 'Server error' });

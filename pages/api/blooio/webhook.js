@@ -159,7 +159,19 @@ async function handleInboundMessage(body) {
       if (pendingPrompt) {
         console.log(`HRT IV schedule YES reply from ${patient.name} via Blooio — sending booking link`);
 
-        const scheduleLink = 'https://app.range-medical.com/schedule-iv';
+        // Look up patient email for pre-filling the booking form
+        const { data: patientDetails } = await supabase
+          .from('patients')
+          .select('email, first_name, name')
+          .eq('id', patient.id)
+          .single();
+
+        const linkParams = new URLSearchParams();
+        const displayName = patientDetails?.first_name || patientDetails?.name || patient.name || '';
+        if (displayName) linkParams.set('name', displayName);
+        if (patientDetails?.email) linkParams.set('email', patientDetails.email);
+        const queryStr = linkParams.toString();
+        const scheduleLink = `https://app.range-medical.com/schedule-iv${queryStr ? '?' + queryStr : ''}`;
         const linkMessage = `Here's your link to schedule your Range IV: ${scheduleLink} — Range Medical`;
 
         const linkResult = await sendBlooioMessage({ to: senderPhone, message: linkMessage });

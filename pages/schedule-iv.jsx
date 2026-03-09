@@ -1,18 +1,27 @@
 import Layout from '../components/Layout';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
 import Head from 'next/head';
 
 export default function ScheduleIV() {
-  // Load Cal.com embed script
+  const router = useRouter();
+  const [calUrl, setCalUrl] = useState('');
+
   useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://app.cal.com/embed/embed.js';
-    script.async = true;
-    document.body.appendChild(script);
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
+    // Build Cal.com embed URL with optional pre-filled name/email from query params
+    const base = 'https://range-medical.cal.com/range-team/range-iv';
+    const params = new URLSearchParams({
+      embed: 'true',
+      layout: 'month_view',
+      theme: 'light',
+    });
+
+    // Pre-fill patient name and email if passed via URL (e.g., ?name=Chris&email=chris@test.com)
+    if (router.query.name) params.set('name', router.query.name);
+    if (router.query.email) params.set('email', router.query.email);
+
+    setCalUrl(`${base}?${params.toString()}`);
+  }, [router.query]);
 
   return (
     <Layout
@@ -48,23 +57,23 @@ export default function ScheduleIV() {
         <div className="container">
           <div className="section-kicker">Your Visit</div>
           <h2 className="section-title">What to Expect</h2>
-          <p className="section-subtitle">A personalized IV session tailored to how you are feeling.</p>
+          <p className="section-subtitle">A personalized IV session included with your HRT membership.</p>
 
-          <div className="included-box">
-            <div className="included-left">
-              <div className="included-price">included</div>
-              <div className="included-duration">~60 minute session</div>
-              <span className="included-credit">Complimentary with HRT membership</span>
+          <div style={styles.infoGrid}>
+            <div style={styles.infoCard}>
+              <div style={styles.infoIcon}>&#128167;</div>
+              <h3 style={styles.infoCardTitle}>Custom IV Blend</h3>
+              <p style={styles.infoCardText}>5 vitamins and minerals tailored to how you are feeling that day. Add extras for a small upcharge.</p>
             </div>
-            <div className="included-right">
-              <h3>Your Range IV includes:</h3>
-              <ul className="included-list">
-                <li>Custom blend of vitamins and minerals</li>
-                <li>Tailored to how you are feeling that day</li>
-                <li>Comfortable lounge setting</li>
-                <li>Hydration + nutrient support</li>
-                <li>No additional cost — included with your membership</li>
-              </ul>
+            <div style={styles.infoCard}>
+              <div style={styles.infoIcon}>&#9201;</div>
+              <h3 style={styles.infoCardTitle}>~60 Minute Session</h3>
+              <p style={styles.infoCardText}>Relax in our comfortable lounge while your IV drip does the work.</p>
+            </div>
+            <div style={styles.infoCard}>
+              <div style={styles.infoIcon}>&#10003;</div>
+              <h3 style={styles.infoCardTitle}>No Additional Cost</h3>
+              <p style={styles.infoCardText}>Your Range IV with 5 vitamins and minerals is included at no charge with your HRT membership.</p>
             </div>
           </div>
         </div>
@@ -79,11 +88,13 @@ export default function ScheduleIV() {
 
           <div className="calendar-container visible" style={{ marginTop: '24px' }}>
             <div className="calendar-embed">
-              <iframe
-                src="https://range-medical.cal.com/range-team/range-iv?embed=true&layout=month_view&theme=light"
-                style={{ width: '100%', height: '700px', border: 'none', overflow: 'hidden' }}
-                scrolling="no"
-              />
+              {calUrl && (
+                <iframe
+                  src={calUrl}
+                  style={{ width: '100%', height: '700px', border: 'none', overflow: 'hidden' }}
+                  scrolling="no"
+                />
+              )}
             </div>
           </div>
 
@@ -97,3 +108,38 @@ export default function ScheduleIV() {
     </Layout>
   );
 }
+
+const styles = {
+  infoGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+    gap: '24px',
+    marginTop: '32px',
+    maxWidth: '900px',
+    marginLeft: 'auto',
+    marginRight: 'auto',
+  },
+  infoCard: {
+    background: '#ffffff',
+    border: '1px solid #e5e7eb',
+    borderRadius: '12px',
+    padding: '28px 24px',
+    textAlign: 'center',
+  },
+  infoIcon: {
+    fontSize: '32px',
+    marginBottom: '12px',
+  },
+  infoCardTitle: {
+    fontSize: '17px',
+    fontWeight: 700,
+    color: '#111',
+    margin: '0 0 8px',
+  },
+  infoCardText: {
+    fontSize: '14px',
+    lineHeight: '1.6',
+    color: '#6b7280',
+    margin: 0,
+  },
+};

@@ -41,6 +41,52 @@ import LabDashboard from '../../components/labs/LabDashboard';
 import ConversationView from '../../components/ConversationView';
 import { loadStripe } from '@stripe/stripe-js';
 import POSChargeModal from '../../components/POSChargeModal';
+import SignatureCanvas from '../../components/SignatureCanvas';
+import { PROTOCOL_TYPES } from '../../lib/protocol-types';
+
+// Map protocol.category → service-log category
+const CATEGORY_TO_SVC = {
+  hrt: 'testosterone',
+  weight_loss: 'weight_loss',
+  peptide: 'peptide',
+  iv: 'iv_therapy',
+  hbot: 'hbot',
+  rlt: 'red_light',
+  injection: 'vitamin',
+};
+
+// HRT dosages & delivery from protocol-types
+const HRT_OPTIONS = {
+  male: { dosages: PROTOCOL_TYPES.hrt_male.dosages, deliveryMethods: PROTOCOL_TYPES.hrt_male.deliveryMethods },
+  female: { dosages: PROTOCOL_TYPES.hrt_female.dosages, deliveryMethods: PROTOCOL_TYPES.hrt_female.deliveryMethods },
+};
+
+// Weight loss meds with dosages
+const WL_MEDS = WEIGHT_LOSS_MEDICATIONS.map(med => ({
+  value: med, label: med, dosages: WEIGHT_LOSS_DOSAGES[med] || []
+}));
+
+// Vitamin injection options
+const _injMeds = PROTOCOL_TYPES.single_injection?.medications || [];
+const VITAMIN_OPTS = [
+  ..._injMeds.map(m => ({ value: m, label: m })),
+  { value: 'NAD+ 50mg', label: 'NAD+ 50mg' },
+  { value: 'NAD+ 100mg', label: 'NAD+ 100mg' },
+  { value: 'Lipo-C', label: 'Lipo-C' },
+  { value: 'Taurine', label: 'Taurine' },
+  { value: 'Toradol', label: 'Toradol' },
+];
+
+// IV therapy options
+const IV_OPTS = (PROTOCOL_TYPES.iv_therapy?.medications || []).map(m => ({ value: m, label: m }));
+
+// Drip email info
+const WL_DRIP_EMAILS = [
+  { num: 1, subject: 'Welcome' },
+  { num: 2, subject: 'Nutrition' },
+  { num: 3, subject: 'Nausea Tips' },
+  { num: 4, subject: 'Exercise' },
+];
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -123,6 +169,22 @@ export default function PatientProfile() {
   const [showEditPurchaseModal, setShowEditPurchaseModal] = useState(false);
   const [editingPurchase, setEditingPurchase] = useState(null);
   const [editPurchaseForm, setEditPurchaseForm] = useState({ product_name: '', amount_paid: '', stripe_subscription_id: '', notes: '' });
+
+  // Log Entry modal state
+  const [showLogEntryModal, setShowLogEntryModal] = useState(false);
+  const [logEntryProtocol, setLogEntryProtocol] = useState(null);
+  const [logEntryType, setLogEntryType] = useState('injection');
+  const [logEntryDate, setLogEntryDate] = useState('');
+  const [logForm, setLogForm] = useState({ hrt_type: 'male', medication: '', dosage: '', custom_dosage: '', weight: '', quantity: 1, delivery_method: '', duration: 60, notes: '' });
+  const [logDispensing, setLogDispensing] = useState({ administered_by: '', lot_number: '', expiration_date: '' });
+  const [logSignature, setLogSignature] = useState(null);
+  const [logSubmitting, setLogSubmitting] = useState(false);
+
+  // WL drip email + check-in state
+  const [dripLogs, setDripLogs] = useState({});
+  const [startingDrip, setStartingDrip] = useState(null);
+  const [wlCheckinDay, setWlCheckinDay] = useState('Monday');
+  const [enablingCheckin, setEnablingCheckin] = useState(null);
 
   // Appointment edit modal state
   const [editingAppointment, setEditingAppointment] = useState(null);
@@ -258,6 +320,8 @@ export default function PatientProfile() {
         setPatient(data.patient);
         setIntakeDemographics(data.intakeDemographics || null);
         setActiveProtocols(data.activeProtocols || []);
+        // Fetch drip logs for weight loss protocols
+        (data.activeProtocols || []).filter(p => p.category === 'weight_loss').forEach(p => fetchDripLogs(p.id));
         setCompletedProtocols(data.completedProtocols || []);
         setPendingNotifications(data.pendingNotifications || []);
         setLabProtocols(data.labProtocols || []);
@@ -606,24 +670,116 @@ export default function PatientProfile() {
     }
   };
 
-  // Log a session for a session-based protocol (HBOT, RLT, injection packs, etc.)
-  const handleLogSession = async (protocolId, e) => {
+  // Open Log Entry modal for a protocol
+  const openLogEntryModal = (protocol, e) => {
     if (e) e.stopPropagation();
+    const svcCat = CATEGORY_TO_SVC[protocol.category] || protocol.category;
+    let defaultType = 'injection';
+    if (['hbot', 'rlt', 'iv'].includes(protocol.category)) defaultType = 'session';
+    else if (protocol.delivery_method === 'take_home') defaultType = 'pickup';
+    const hrtType = (protocol.program_type || '').includes('female') || (protocol.medication || '').toLowerCase().includes('female') ? 'female' : 'male';
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+    setLogEntryProtocol({ ...protocol, svcCat });
+    setLogEntryType(defaultType);
+    setLogEntryDate(today);
+    setLogForm({ hrt_type: hrtType, medication: protocol.medication || '', dosage: protocol.selected_dose || '', custom_dosage: '', weight: '', quantity: 1, delivery_method: '', duration: protocol.category === 'rlt' ? 20 : 60, notes: '' });
+    setLogDispensing({ administered_by: '', lot_number: '', expiration_date: '' });
+    setLogSignature(null);
+    setShowLogEntryModal(true);
+  };
+
+  // Submit log entry to service-log API
+  const handleSubmitLogEntry = async () => {
+    if (!logEntryProtocol || !patient) return;
+    setLogSubmitting(true);
     try {
-      const res = await fetch(`/api/protocols/${protocolId}/log-session`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          log_type: 'session',
-          log_date: new Date().toISOString().split('T')[0]
-        })
-      });
-      if (res.ok) {
+      const svcCat = logEntryProtocol.svcCat;
+      const payload = {
+        patient_id: patient.id,
+        category: svcCat,
+        entry_type: logEntryType,
+        entry_date: logEntryDate,
+        notes: logForm.notes || null,
+        protocol_id: logEntryProtocol.id,
+        administered_by: logDispensing.administered_by || null,
+        lot_number: logDispensing.lot_number || null,
+        expiration_date: logDispensing.expiration_date || null,
+        signature_url: logSignature || null,
+      };
+      if (svcCat === 'testosterone') {
+        payload.medication = logForm.hrt_type === 'male' ? 'Male HRT' : 'Female HRT';
+        if (logEntryType === 'injection') {
+          payload.dosage = logForm.dosage === 'custom' ? logForm.custom_dosage : logForm.dosage;
+        } else {
+          const dm = logForm.delivery_method || '';
+          const isVial = dm === 'vial';
+          const qty = isVial ? 1 : (dm.startsWith('prefilled_') ? parseInt(dm.replace('prefilled_', '')) : (logForm.quantity || 1));
+          payload.delivery_method = dm;
+          payload.quantity = qty;
+          payload.supply_type = isVial ? 'vial_10ml' : qty >= 8 ? 'prefilled_4week' : qty >= 4 ? 'prefilled_2week' : 'prefilled';
+          payload.dosage = isVial ? `1 vial @ ${logForm.dosage}` : `${qty} prefilled @ ${logForm.dosage}`;
+        }
+      } else if (svcCat === 'weight_loss') {
+        payload.medication = logForm.medication;
+        if (logEntryType === 'injection') {
+          payload.dosage = logForm.dosage;
+          payload.weight = logForm.weight ? parseFloat(logForm.weight) : null;
+        } else {
+          payload.quantity = logForm.quantity;
+          payload.dosage = logForm.dosage ? `${logForm.quantity} week supply @ ${logForm.dosage}` : `${logForm.quantity} week supply`;
+        }
+      } else if (svcCat === 'vitamin') {
+        payload.medication = logForm.medication;
+        payload.quantity = logForm.quantity || 1;
+        payload.dosage = logForm.quantity > 1 ? `${logForm.quantity} injections` : 'Standard';
+      } else if (svcCat === 'peptide') {
+        payload.medication = logForm.medication;
+        if (logEntryType === 'injection') {
+          payload.dosage = logForm.dosage || 'Standard';
+        } else if (logEntryType === 'med_pickup') {
+          payload.entry_type = 'pickup';
+          payload.quantity = logForm.quantity || 1;
+          payload.dosage = logForm.dosage || 'Standard';
+          payload.supply_type = 'medication';
+        } else {
+          payload.quantity = logForm.quantity || 1;
+          payload.dosage = logForm.dosage ? `${logForm.quantity} vial(s) @ ${logForm.dosage}` : `${logForm.quantity} vial(s)`;
+        }
+      } else if (svcCat === 'iv_therapy') {
+        payload.medication = logForm.medication;
+        payload.duration = logForm.duration;
+      } else if (svcCat === 'hbot') {
+        payload.medication = 'HBOT Session';
+        payload.duration = 60;
+      } else if (svcCat === 'red_light') {
+        payload.medication = 'Red Light Session';
+        payload.duration = logForm.duration || 20;
+      }
+      const res = await fetch('/api/service-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const data = await res.json();
+      if (data.success) {
+        setShowLogEntryModal(false);
         fetchPatient();
+      } else {
+        alert('Error: ' + (data.error || 'Failed to log entry'));
       }
     } catch (err) {
-      console.error('Error logging session:', err);
+      console.error('Error submitting log entry:', err);
+      alert('Error: ' + err.message);
     }
+    setLogSubmitting(false);
+  };
+
+  // Fetch drip email logs for a weight loss protocol
+  const fetchDripLogs = async (protocolId) => {
+    try {
+      const res = await fetch(`/api/protocols/${protocolId}`);
+      if (res.ok) {
+        const data = await res.json();
+        const logs = (data.activityLogs || []).filter(l => l.log_type === 'drip_email');
+        setDripLogs(prev => ({ ...prev, [protocolId]: logs }));
+      }
+    } catch { /* ignore */ }
   };
 
   const openEditModal = (protocol) => {
@@ -1497,11 +1653,11 @@ export default function PatientProfile() {
                           </div>
                           <div className="protocol-status">
                             <span className="status-text">{protocol.status_text}</span>
-                            {protocol.total_sessions > 0 && protocol.sessions_remaining > 0 && (
+                            {protocol.status === 'active' && (
                               <button
-                                onClick={(e) => handleLogSession(protocol.id, e)}
+                                onClick={(e) => openLogEntryModal(protocol, e)}
                                 style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: '6px', padding: '3px 10px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
-                              >✓ Log</button>
+                              >+ Log</button>
                             )}
                             <button onClick={(e) => { e.stopPropagation(); openEditModal(protocol); }} className="btn-text">Edit</button>
                           </div>
@@ -1761,11 +1917,11 @@ export default function PatientProfile() {
                           <div className="protocol-footer">
                             <span className="status-badge">{protocol.status_text}</span>
                             <div style={{ display: 'flex', gap: 8 }}>
-                              {protocol.total_sessions > 0 && protocol.sessions_remaining > 0 && (
+                              {protocol.status === 'active' && (
                                 <button
-                                  onClick={() => handleLogSession(protocol.id)}
+                                  onClick={(e) => openLogEntryModal(protocol, e)}
                                   style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
-                                >✓ Log Session</button>
+                                >+ Log Entry</button>
                               )}
                               {isWeightLoss && protocolLogs.length > 0 && (
                                 <button
@@ -1921,6 +2077,79 @@ export default function PatientProfile() {
                           })()}
 
                           {/* Weight Loss Progress Panel */}
+                          {/* Weight Loss Email Drip Sequence */}
+                          {isWeightLoss && protocol.status === 'active' && (() => {
+                            const pDripLogs = dripLogs[protocol.id] || [];
+                            const hasStarted = pDripLogs.length > 0;
+                            return (
+                              <div style={{ marginTop: 10, padding: '10px 14px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                                  <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Email Sequence</span>
+                                  {!hasStarted && (
+                                    <button
+                                      onClick={async () => {
+                                        if (!confirm('Start the 4-day email sequence? Email 1 will send immediately.')) return;
+                                        setStartingDrip(protocol.id);
+                                        try {
+                                          const resp = await fetch('/api/protocols/start-drip', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ protocolId: protocol.id }) });
+                                          const data = await resp.json();
+                                          if (data.success) { alert('Email 1 sent! Emails 2-4 follow over next 3 days.'); fetchDripLogs(protocol.id); }
+                                          else { alert('Error: ' + (data.error || 'Failed to start sequence')); }
+                                        } catch (err) { alert('Error: ' + err.message); }
+                                        setStartingDrip(null);
+                                      }}
+                                      disabled={startingDrip === protocol.id}
+                                      style={{ padding: '3px 10px', fontSize: 11, fontWeight: 600, background: '#000', color: '#fff', border: 'none', borderRadius: 5, cursor: 'pointer' }}
+                                    >{startingDrip === protocol.id ? 'Starting...' : 'Start Sequence'}</button>
+                                  )}
+                                </div>
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                  {WL_DRIP_EMAILS.map(em => {
+                                    const sent = pDripLogs.some(l => (l.notes || '').includes(`Email ${em.num}`));
+                                    return (
+                                      <div key={em.num} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11 }}>
+                                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: sent ? '#22c55e' : '#d1d5db', display: 'inline-block' }} />
+                                        <span style={{ color: sent ? '#166534' : '#9ca3af' }}>{em.subject}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* Weight Loss Weekly Check-in Texts */}
+                          {isWeightLoss && protocol.status === 'active' && protocol.delivery_method !== 'in_clinic' && (() => {
+                            const enabled = protocol.checkin_reminder_enabled === true;
+                            const injDay = protocol.injection_day;
+                            if (enabled) {
+                              return (
+                                <div style={{ marginTop: 6, padding: '8px 14px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 8, fontSize: 12, color: '#16A34A', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                  <span>✅ Weekly check-ins ({injDay || 'Monday'})</span>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <select value={injDay || 'Monday'} onChange={async e => { try { await fetch(`/api/admin/protocols/${protocol.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ injection_day: e.target.value }) }); fetchPatient(); } catch {} }} style={{ padding: '2px 4px', border: '1px solid #BBF7D0', borderRadius: 4, fontSize: 11, color: '#15803D', background: '#F0FDF4' }}>
+                                      {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(d => <option key={d} value={d}>{d}</option>)}
+                                    </select>
+                                    <button onClick={async () => { try { await fetch(`/api/admin/protocols/${protocol.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ checkin_reminder_enabled: false }) }); fetchPatient(); } catch {} }} style={{ fontSize: 10, color: '#666', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Disable</button>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return (
+                              <div style={{ marginTop: 6, padding: '8px 14px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ fontSize: 11, color: '#666' }}>Check-in day:</span>
+                                <select value={wlCheckinDay} onChange={e => setWlCheckinDay(e.target.value)} style={{ padding: '3px 6px', border: '1px solid #e5e5e5', borderRadius: 4, fontSize: 11 }}>
+                                  {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(d => <option key={d} value={d}>{d}</option>)}
+                                </select>
+                                <button
+                                  onClick={async () => { setEnablingCheckin(protocol.id); try { await fetch(`/api/admin/protocols/${protocol.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ checkin_reminder_enabled: true, injection_day: wlCheckinDay }) }); fetchPatient(); } catch { alert('Failed'); } setEnablingCheckin(null); }}
+                                  disabled={enablingCheckin === protocol.id}
+                                  style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', background: '#000', color: '#fff', border: 'none', borderRadius: 5, cursor: 'pointer', marginLeft: 'auto' }}
+                                >{enablingCheckin === protocol.id ? 'Enabling...' : 'Enable Check-ins'}</button>
+                              </div>
+                            );
+                          })()}
+
                           {isWeightLoss && isExpanded && protocolLogs.length > 0 && (
                             <div className="wl-progress">
                               {/* Stats Row */}
@@ -3889,6 +4118,258 @@ export default function PatientProfile() {
           patient={patient}
           stripePromise={stripePromise}
         />
+
+        {/* ==================== LOG ENTRY MODAL ==================== */}
+        {showLogEntryModal && logEntryProtocol && (
+          <div className="modal-overlay" onClick={() => setShowLogEntryModal(false)}>
+            <div className="modal" style={{ maxWidth: 520, width: '95%' }} onClick={e => e.stopPropagation()}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <h3 style={{ margin: 0, fontSize: 16 }}>Log Entry — {logEntryProtocol.program_name || logEntryProtocol.medication}</h3>
+                <button onClick={() => setShowLogEntryModal(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#666' }}>×</button>
+              </div>
+
+              {/* Date */}
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Date</label>
+                <input type="date" value={logEntryDate} onChange={e => setLogEntryDate(e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }} />
+              </div>
+
+              {/* Entry type toggle (HRT, WL, Peptide) */}
+              {['testosterone', 'weight_loss'].includes(logEntryProtocol.svcCat) && (
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Type</label>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button onClick={() => setLogEntryType('injection')} style={{ flex: 1, padding: '7px 0', border: '1px solid', borderColor: logEntryType === 'injection' ? '#000' : '#d1d5db', borderRadius: 6, background: logEntryType === 'injection' ? '#000' : '#fff', color: logEntryType === 'injection' ? '#fff' : '#333', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>💉 In-Clinic Injection</button>
+                    <button onClick={() => setLogEntryType('pickup')} style={{ flex: 1, padding: '7px 0', border: '1px solid', borderColor: logEntryType === 'pickup' ? '#000' : '#d1d5db', borderRadius: 6, background: logEntryType === 'pickup' ? '#000' : '#fff', color: logEntryType === 'pickup' ? '#fff' : '#333', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>📦 Medication Pickup</button>
+                  </div>
+                </div>
+              )}
+              {logEntryProtocol.svcCat === 'peptide' && (
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Type</label>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button onClick={() => setLogEntryType('injection')} style={{ flex: 1, padding: '7px 0', border: '1px solid', borderColor: logEntryType === 'injection' ? '#000' : '#d1d5db', borderRadius: 6, background: logEntryType === 'injection' ? '#000' : '#fff', color: logEntryType === 'injection' ? '#fff' : '#333', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>💉 Injection</button>
+                    <button onClick={() => setLogEntryType('pickup')} style={{ flex: 1, padding: '7px 0', border: '1px solid', borderColor: logEntryType === 'pickup' ? '#000' : '#d1d5db', borderRadius: 6, background: logEntryType === 'pickup' ? '#000' : '#fff', color: logEntryType === 'pickup' ? '#fff' : '#333', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>📦 Vial Pickup</button>
+                    <button onClick={() => setLogEntryType('med_pickup')} style={{ flex: 1, padding: '7px 0', border: '1px solid', borderColor: logEntryType === 'med_pickup' ? '#000' : '#d1d5db', borderRadius: 6, background: logEntryType === 'med_pickup' ? '#000' : '#fff', color: logEntryType === 'med_pickup' ? '#fff' : '#333', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>💊 Med Pickup</button>
+                  </div>
+                </div>
+              )}
+
+              {/* ---- TESTOSTERONE / HRT ---- */}
+              {logEntryProtocol.svcCat === 'testosterone' && (
+                <>
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>HRT Type</label>
+                    <select value={logForm.hrt_type} onChange={e => setLogForm(p => ({ ...p, hrt_type: e.target.value, dosage: '' }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
+                      <option value="male">Male HRT (200mg/ml)</option>
+                      <option value="female">Female HRT (100mg/ml)</option>
+                    </select>
+                  </div>
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Dosage</label>
+                    <select value={logForm.dosage} onChange={e => setLogForm(p => ({ ...p, dosage: e.target.value }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
+                      <option value="">Select dosage...</option>
+                      {(HRT_OPTIONS[logForm.hrt_type]?.dosages || []).map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                    </select>
+                    {logForm.dosage === 'custom' && (
+                      <input type="text" placeholder="Enter custom dosage..." value={logForm.custom_dosage} onChange={e => setLogForm(p => ({ ...p, custom_dosage: e.target.value }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, marginTop: 6 }} />
+                    )}
+                  </div>
+                  {logEntryType === 'pickup' && (
+                    <div style={{ marginBottom: 12 }}>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Dispensing</label>
+                      <select value={logForm.delivery_method} onChange={e => setLogForm(p => ({ ...p, delivery_method: e.target.value }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
+                        <option value="">Select...</option>
+                        {(HRT_OPTIONS[logForm.hrt_type]?.deliveryMethods || []).map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                      </select>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* ---- WEIGHT LOSS ---- */}
+              {logEntryProtocol.svcCat === 'weight_loss' && (
+                <>
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Medication</label>
+                    <select value={logForm.medication} onChange={e => setLogForm(p => ({ ...p, medication: e.target.value, dosage: '' }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
+                      {WL_MEDS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                    </select>
+                  </div>
+                  {logEntryType === 'injection' && (
+                    <>
+                      <div style={{ marginBottom: 12 }}>
+                        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Current Weight (lbs)</label>
+                        <input type="number" step="0.1" value={logForm.weight} onChange={e => setLogForm(p => ({ ...p, weight: e.target.value }))} placeholder="e.g. 215.5" style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }} />
+                      </div>
+                      <div style={{ marginBottom: 12 }}>
+                        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Dosage</label>
+                        <select value={logForm.dosage} onChange={e => setLogForm(p => ({ ...p, dosage: e.target.value }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
+                          <option value="">Select dosage...</option>
+                          {(WL_MEDS.find(m => m.value === logForm.medication)?.dosages || []).map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                      </div>
+                    </>
+                  )}
+                  {logEntryType === 'pickup' && (
+                    <>
+                      <div style={{ marginBottom: 12 }}>
+                        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Dosage</label>
+                        <select value={logForm.dosage} onChange={e => setLogForm(p => ({ ...p, dosage: e.target.value }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
+                          <option value="">Select dosage...</option>
+                          {Array.from({ length: 30 }, (_, i) => { const mg = (i + 1) * 0.5; const label = mg % 1 === 0 ? `${mg}mg` : `${mg.toFixed(1)}mg`; return <option key={mg} value={label}>{label}</option>; })}
+                        </select>
+                      </div>
+                      <div style={{ marginBottom: 12 }}>
+                        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Supply Duration</label>
+                        <select value={logForm.quantity} onChange={e => setLogForm(p => ({ ...p, quantity: parseInt(e.target.value) }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
+                          <option value="1">1 week</option>
+                          <option value="2">2 weeks</option>
+                          <option value="3">3 weeks</option>
+                          <option value="4">4 weeks</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+
+              {/* ---- VITAMIN / INJECTION ---- */}
+              {logEntryProtocol.svcCat === 'vitamin' && (
+                <>
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Injection</label>
+                    <select value={logForm.medication} onChange={e => setLogForm(p => ({ ...p, medication: e.target.value }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
+                      <option value="">Select injection...</option>
+                      {VITAMIN_OPTS.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Quantity</label>
+                    <select value={logForm.quantity} onChange={e => setLogForm(p => ({ ...p, quantity: parseInt(e.target.value) }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
+                      <option value="1">1 injection</option>
+                      <option value="2">2 injections</option>
+                      <option value="3">3 injections</option>
+                      <option value="4">4 pack</option>
+                      <option value="8">8 pack</option>
+                      <option value="10">10 pack</option>
+                      <option value="12">12 pack</option>
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {/* ---- PEPTIDE ---- */}
+              {logEntryProtocol.svcCat === 'peptide' && (
+                <>
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Peptide</label>
+                    <select value={logForm.medication} onChange={e => setLogForm(p => ({ ...p, medication: e.target.value }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
+                      <option value="">Select peptide...</option>
+                      {logForm.medication && !PEPTIDE_OPTIONS.flatMap(g => g.options).find(o => o.value === logForm.medication) && (
+                        <option value={logForm.medication}>{logForm.medication} (from protocol)</option>
+                      )}
+                      {PEPTIDE_OPTIONS.map(group => (
+                        <optgroup key={group.group} label={group.group}>
+                          {group.options.map(opt => <option key={opt.value} value={opt.value}>{opt.value}</option>)}
+                        </optgroup>
+                      ))}
+                    </select>
+                  </div>
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Dosage</label>
+                    <input type="text" value={logForm.dosage} onChange={e => setLogForm(p => ({ ...p, dosage: e.target.value }))} placeholder="e.g. 500mcg, 1mg..." style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }} />
+                  </div>
+                  {(logEntryType === 'pickup' || logEntryType === 'med_pickup') && (
+                    <div style={{ marginBottom: 12 }}>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Quantity</label>
+                      <input type="number" min="1" value={logForm.quantity} onChange={e => setLogForm(p => ({ ...p, quantity: parseInt(e.target.value) || 1 }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }} />
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* ---- IV THERAPY ---- */}
+              {logEntryProtocol.svcCat === 'iv_therapy' && (
+                <>
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>IV Type</label>
+                    <select value={logForm.medication} onChange={e => setLogForm(p => ({ ...p, medication: e.target.value }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
+                      <option value="">Select IV...</option>
+                      {IV_OPTS.map(iv => <option key={iv.value} value={iv.value}>{iv.label}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Duration</label>
+                    <select value={logForm.duration} onChange={e => setLogForm(p => ({ ...p, duration: parseInt(e.target.value) }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
+                      <option value="30">30 minutes</option>
+                      <option value="45">45 minutes</option>
+                      <option value="60">60 minutes</option>
+                      <option value="90">90 minutes</option>
+                      <option value="120">120 minutes</option>
+                      <option value="180">180 minutes (NAD+)</option>
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {/* ---- HBOT ---- */}
+              {logEntryProtocol.svcCat === 'hbot' && (
+                <div style={{ marginBottom: 12, padding: '10px 14px', background: '#f0f9ff', borderRadius: 8, border: '1px solid #bae6fd', fontSize: 13, color: '#0369a1' }}>
+                  🫁 60-minute session at 2.0 ATA
+                </div>
+              )}
+
+              {/* ---- RED LIGHT ---- */}
+              {logEntryProtocol.svcCat === 'red_light' && (
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Duration</label>
+                  <select value={logForm.duration} onChange={e => setLogForm(p => ({ ...p, duration: parseInt(e.target.value) }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
+                    <option value="10">10 minutes</option>
+                    <option value="15">15 minutes</option>
+                    <option value="20">20 minutes</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Notes */}
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Notes (optional)</label>
+                <textarea value={logForm.notes} onChange={e => setLogForm(p => ({ ...p, notes: e.target.value }))} rows={2} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, resize: 'vertical' }} />
+              </div>
+
+              {/* Dispensing Details */}
+              <div style={{ padding: 12, background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb', marginBottom: 16 }}>
+                <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 8, color: '#374151' }}>Dispensing Details</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, color: '#666', marginBottom: 2 }}>Administered By</label>
+                    <input type="text" value={logDispensing.administered_by} onChange={e => setLogDispensing(p => ({ ...p, administered_by: e.target.value }))} style={{ width: '100%', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: 4, fontSize: 12 }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, color: '#666', marginBottom: 2 }}>Lot #</label>
+                    <input type="text" value={logDispensing.lot_number} onChange={e => setLogDispensing(p => ({ ...p, lot_number: e.target.value }))} style={{ width: '100%', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: 4, fontSize: 12 }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11, color: '#666', marginBottom: 2 }}>Exp Date</label>
+                    <input type="date" value={logDispensing.expiration_date} onChange={e => setLogDispensing(p => ({ ...p, expiration_date: e.target.value }))} style={{ width: '100%', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: 4, fontSize: 12 }} />
+                  </div>
+                </div>
+                <div style={{ marginTop: 10 }}>
+                  <SignatureCanvas onSignature={dataUrl => setLogSignature(dataUrl)} width={440} height={120} label="Patient Signature" />
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button onClick={() => setShowLogEntryModal(false)} style={{ padding: '8px 16px', border: '1px solid #d1d5db', borderRadius: 6, background: '#fff', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+                <button onClick={handleSubmitLogEntry} disabled={logSubmitting} style={{ padding: '8px 20px', border: 'none', borderRadius: 6, background: '#000', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: logSubmitting ? 0.6 : 1 }}>
+                  {logSubmitting ? 'Saving...' : 'Save Entry'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Delete Patient Confirmation Modal */}
         {showDeleteConfirm && deletePreview && (

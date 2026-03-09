@@ -4122,248 +4122,245 @@ export default function PatientProfile() {
         {/* ==================== LOG ENTRY MODAL ==================== */}
         {showLogEntryModal && logEntryProtocol && (
           <div className="modal-overlay" onClick={() => setShowLogEntryModal(false)}>
-            <div className="modal" style={{ maxWidth: 520, width: '95%' }} onClick={e => e.stopPropagation()}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <h3 style={{ margin: 0, fontSize: 16 }}>Log Entry — {logEntryProtocol.program_name || logEntryProtocol.medication}</h3>
-                <button onClick={() => setShowLogEntryModal(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#666' }}>×</button>
+            <div className="modal" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Log Entry — {logEntryProtocol.program_name || logEntryProtocol.medication}</h3>
+                <button onClick={() => setShowLogEntryModal(false)} className="close-btn">&times;</button>
               </div>
-
-              {/* Date */}
-              <div style={{ marginBottom: 12 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Date</label>
-                <input type="date" value={logEntryDate} onChange={e => setLogEntryDate(e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }} />
-              </div>
-
-              {/* Entry type toggle (HRT, WL, Peptide) */}
-              {['testosterone', 'weight_loss'].includes(logEntryProtocol.svcCat) && (
-                <div style={{ marginBottom: 12 }}>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Type</label>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button onClick={() => setLogEntryType('injection')} style={{ flex: 1, padding: '7px 0', border: '1px solid', borderColor: logEntryType === 'injection' ? '#000' : '#d1d5db', borderRadius: 6, background: logEntryType === 'injection' ? '#000' : '#fff', color: logEntryType === 'injection' ? '#fff' : '#333', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>💉 In-Clinic Injection</button>
-                    <button onClick={() => setLogEntryType('pickup')} style={{ flex: 1, padding: '7px 0', border: '1px solid', borderColor: logEntryType === 'pickup' ? '#000' : '#d1d5db', borderRadius: 6, background: logEntryType === 'pickup' ? '#000' : '#fff', color: logEntryType === 'pickup' ? '#fff' : '#333', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>📦 Medication Pickup</button>
-                  </div>
+              <div className="modal-body">
+                {/* Date */}
+                <div className="form-group">
+                  <label>Date</label>
+                  <input type="date" value={logEntryDate} onChange={e => setLogEntryDate(e.target.value)} />
                 </div>
-              )}
-              {logEntryProtocol.svcCat === 'peptide' && (
-                <div style={{ marginBottom: 12 }}>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Type</label>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button onClick={() => setLogEntryType('injection')} style={{ flex: 1, padding: '7px 0', border: '1px solid', borderColor: logEntryType === 'injection' ? '#000' : '#d1d5db', borderRadius: 6, background: logEntryType === 'injection' ? '#000' : '#fff', color: logEntryType === 'injection' ? '#fff' : '#333', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>💉 Injection</button>
-                    <button onClick={() => setLogEntryType('pickup')} style={{ flex: 1, padding: '7px 0', border: '1px solid', borderColor: logEntryType === 'pickup' ? '#000' : '#d1d5db', borderRadius: 6, background: logEntryType === 'pickup' ? '#000' : '#fff', color: logEntryType === 'pickup' ? '#fff' : '#333', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>📦 Vial Pickup</button>
-                    <button onClick={() => setLogEntryType('med_pickup')} style={{ flex: 1, padding: '7px 0', border: '1px solid', borderColor: logEntryType === 'med_pickup' ? '#000' : '#d1d5db', borderRadius: 6, background: logEntryType === 'med_pickup' ? '#000' : '#fff', color: logEntryType === 'med_pickup' ? '#fff' : '#333', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>💊 Med Pickup</button>
-                  </div>
-                </div>
-              )}
 
-              {/* ---- TESTOSTERONE / HRT ---- */}
-              {logEntryProtocol.svcCat === 'testosterone' && (
-                <>
-                  <div style={{ marginBottom: 12 }}>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>HRT Type</label>
-                    <select value={logForm.hrt_type} onChange={e => setLogForm(p => ({ ...p, hrt_type: e.target.value, dosage: '' }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
-                      <option value="male">Male HRT (200mg/ml)</option>
-                      <option value="female">Female HRT (100mg/ml)</option>
-                    </select>
+                {/* Entry type toggle (HRT, WL) */}
+                {['testosterone', 'weight_loss'].includes(logEntryProtocol.svcCat) && (
+                  <div className="form-group">
+                    <label>Type</label>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={() => setLogEntryType('injection')} style={{ flex: 1, padding: '8px 0', border: '1px solid', borderColor: logEntryType === 'injection' ? '#000' : '#d1d5db', borderRadius: 6, background: logEntryType === 'injection' ? '#000' : '#fff', color: logEntryType === 'injection' ? '#fff' : '#333', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>In-Clinic Injection</button>
+                      <button onClick={() => setLogEntryType('pickup')} style={{ flex: 1, padding: '8px 0', border: '1px solid', borderColor: logEntryType === 'pickup' ? '#000' : '#d1d5db', borderRadius: 6, background: logEntryType === 'pickup' ? '#000' : '#fff', color: logEntryType === 'pickup' ? '#fff' : '#333', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Medication Pickup</button>
+                    </div>
                   </div>
-                  <div style={{ marginBottom: 12 }}>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Dosage</label>
-                    <select value={logForm.dosage} onChange={e => setLogForm(p => ({ ...p, dosage: e.target.value }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
-                      <option value="">Select dosage...</option>
-                      {(HRT_OPTIONS[logForm.hrt_type]?.dosages || []).map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
-                    </select>
-                    {logForm.dosage === 'custom' && (
-                      <input type="text" placeholder="Enter custom dosage..." value={logForm.custom_dosage} onChange={e => setLogForm(p => ({ ...p, custom_dosage: e.target.value }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, marginTop: 6 }} />
-                    )}
+                )}
+                {logEntryProtocol.svcCat === 'peptide' && (
+                  <div className="form-group">
+                    <label>Type</label>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={() => setLogEntryType('injection')} style={{ flex: 1, padding: '8px 0', border: '1px solid', borderColor: logEntryType === 'injection' ? '#000' : '#d1d5db', borderRadius: 6, background: logEntryType === 'injection' ? '#000' : '#fff', color: logEntryType === 'injection' ? '#fff' : '#333', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Injection</button>
+                      <button onClick={() => setLogEntryType('pickup')} style={{ flex: 1, padding: '8px 0', border: '1px solid', borderColor: logEntryType === 'pickup' ? '#000' : '#d1d5db', borderRadius: 6, background: logEntryType === 'pickup' ? '#000' : '#fff', color: logEntryType === 'pickup' ? '#fff' : '#333', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Vial Pickup</button>
+                      <button onClick={() => setLogEntryType('med_pickup')} style={{ flex: 1, padding: '8px 0', border: '1px solid', borderColor: logEntryType === 'med_pickup' ? '#000' : '#d1d5db', borderRadius: 6, background: logEntryType === 'med_pickup' ? '#000' : '#fff', color: logEntryType === 'med_pickup' ? '#fff' : '#333', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Med Pickup</button>
+                    </div>
                   </div>
-                  {logEntryType === 'pickup' && (
-                    <div style={{ marginBottom: 12 }}>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Dispensing</label>
-                      <select value={logForm.delivery_method} onChange={e => setLogForm(p => ({ ...p, delivery_method: e.target.value }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
-                        <option value="">Select...</option>
-                        {(HRT_OPTIONS[logForm.hrt_type]?.deliveryMethods || []).map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                )}
+
+                {/* ---- TESTOSTERONE / HRT ---- */}
+                {logEntryProtocol.svcCat === 'testosterone' && (
+                  <>
+                    <div className="form-group">
+                      <label>HRT Type</label>
+                      <select value={logForm.hrt_type} onChange={e => setLogForm(p => ({ ...p, hrt_type: e.target.value, dosage: '' }))}>
+                        <option value="male">Male HRT (200mg/ml)</option>
+                        <option value="female">Female HRT (100mg/ml)</option>
                       </select>
                     </div>
-                  )}
-                </>
-              )}
-
-              {/* ---- WEIGHT LOSS ---- */}
-              {logEntryProtocol.svcCat === 'weight_loss' && (
-                <>
-                  <div style={{ marginBottom: 12 }}>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Medication</label>
-                    <select value={logForm.medication} onChange={e => setLogForm(p => ({ ...p, medication: e.target.value, dosage: '' }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
-                      {WL_MEDS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                    </select>
-                  </div>
-                  {logEntryType === 'injection' && (
-                    <>
-                      <div style={{ marginBottom: 12 }}>
-                        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Current Weight (lbs)</label>
-                        <input type="number" step="0.1" value={logForm.weight} onChange={e => setLogForm(p => ({ ...p, weight: e.target.value }))} placeholder="e.g. 215.5" style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }} />
-                      </div>
-                      <div style={{ marginBottom: 12 }}>
-                        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Dosage</label>
-                        <select value={logForm.dosage} onChange={e => setLogForm(p => ({ ...p, dosage: e.target.value }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
-                          <option value="">Select dosage...</option>
-                          {(WL_MEDS.find(m => m.value === logForm.medication)?.dosages || []).map(d => <option key={d} value={d}>{d}</option>)}
-                        </select>
-                      </div>
-                    </>
-                  )}
-                  {logEntryType === 'pickup' && (
-                    <>
-                      <div style={{ marginBottom: 12 }}>
-                        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Dosage</label>
-                        <select value={logForm.dosage} onChange={e => setLogForm(p => ({ ...p, dosage: e.target.value }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
-                          <option value="">Select dosage...</option>
-                          {Array.from({ length: 30 }, (_, i) => { const mg = (i + 1) * 0.5; const label = mg % 1 === 0 ? `${mg}mg` : `${mg.toFixed(1)}mg`; return <option key={mg} value={label}>{label}</option>; })}
-                        </select>
-                      </div>
-                      <div style={{ marginBottom: 12 }}>
-                        <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Supply Duration</label>
-                        <select value={logForm.quantity} onChange={e => setLogForm(p => ({ ...p, quantity: parseInt(e.target.value) }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
-                          <option value="1">1 week</option>
-                          <option value="2">2 weeks</option>
-                          <option value="3">3 weeks</option>
-                          <option value="4">4 weeks</option>
-                        </select>
-                      </div>
-                    </>
-                  )}
-                </>
-              )}
-
-              {/* ---- VITAMIN / INJECTION ---- */}
-              {logEntryProtocol.svcCat === 'vitamin' && (
-                <>
-                  <div style={{ marginBottom: 12 }}>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Injection</label>
-                    <select value={logForm.medication} onChange={e => setLogForm(p => ({ ...p, medication: e.target.value }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
-                      <option value="">Select injection...</option>
-                      {VITAMIN_OPTS.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
-                    </select>
-                  </div>
-                  <div style={{ marginBottom: 12 }}>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Quantity</label>
-                    <select value={logForm.quantity} onChange={e => setLogForm(p => ({ ...p, quantity: parseInt(e.target.value) }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
-                      <option value="1">1 injection</option>
-                      <option value="2">2 injections</option>
-                      <option value="3">3 injections</option>
-                      <option value="4">4 pack</option>
-                      <option value="8">8 pack</option>
-                      <option value="10">10 pack</option>
-                      <option value="12">12 pack</option>
-                    </select>
-                  </div>
-                </>
-              )}
-
-              {/* ---- PEPTIDE ---- */}
-              {logEntryProtocol.svcCat === 'peptide' && (
-                <>
-                  <div style={{ marginBottom: 12 }}>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Peptide</label>
-                    <select value={logForm.medication} onChange={e => setLogForm(p => ({ ...p, medication: e.target.value }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
-                      <option value="">Select peptide...</option>
-                      {logForm.medication && !PEPTIDE_OPTIONS.flatMap(g => g.options).find(o => o.value === logForm.medication) && (
-                        <option value={logForm.medication}>{logForm.medication} (from protocol)</option>
+                    <div className="form-group">
+                      <label>Dosage</label>
+                      <select value={logForm.dosage} onChange={e => setLogForm(p => ({ ...p, dosage: e.target.value }))}>
+                        <option value="">Select dosage...</option>
+                        {(HRT_OPTIONS[logForm.hrt_type]?.dosages || []).map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                      </select>
+                      {logForm.dosage === 'custom' && (
+                        <input type="text" placeholder="Enter custom dosage..." value={logForm.custom_dosage} onChange={e => setLogForm(p => ({ ...p, custom_dosage: e.target.value }))} style={{ marginTop: 6 }} />
                       )}
-                      {PEPTIDE_OPTIONS.map(group => (
-                        <optgroup key={group.group} label={group.group}>
-                          {group.options.map(opt => <option key={opt.value} value={opt.value}>{opt.value}</option>)}
-                        </optgroup>
-                      ))}
-                    </select>
-                  </div>
-                  <div style={{ marginBottom: 12 }}>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Dosage</label>
-                    <input type="text" value={logForm.dosage} onChange={e => setLogForm(p => ({ ...p, dosage: e.target.value }))} placeholder="e.g. 500mcg, 1mg..." style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }} />
-                  </div>
-                  {(logEntryType === 'pickup' || logEntryType === 'med_pickup') && (
-                    <div style={{ marginBottom: 12 }}>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Quantity</label>
-                      <input type="number" min="1" value={logForm.quantity} onChange={e => setLogForm(p => ({ ...p, quantity: parseInt(e.target.value) || 1 }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }} />
                     </div>
-                  )}
-                </>
-              )}
+                    {logEntryType === 'pickup' && (
+                      <div className="form-group">
+                        <label>Dispensing</label>
+                        <select value={logForm.delivery_method} onChange={e => setLogForm(p => ({ ...p, delivery_method: e.target.value }))}>
+                          <option value="">Select...</option>
+                          {(HRT_OPTIONS[logForm.hrt_type]?.deliveryMethods || []).map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                        </select>
+                      </div>
+                    )}
+                  </>
+                )}
 
-              {/* ---- IV THERAPY ---- */}
-              {logEntryProtocol.svcCat === 'iv_therapy' && (
-                <>
-                  <div style={{ marginBottom: 12 }}>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>IV Type</label>
-                    <select value={logForm.medication} onChange={e => setLogForm(p => ({ ...p, medication: e.target.value }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
-                      <option value="">Select IV...</option>
-                      {IV_OPTS.map(iv => <option key={iv.value} value={iv.value}>{iv.label}</option>)}
+                {/* ---- WEIGHT LOSS ---- */}
+                {logEntryProtocol.svcCat === 'weight_loss' && (
+                  <>
+                    <div className="form-group">
+                      <label>Medication</label>
+                      <select value={logForm.medication} onChange={e => setLogForm(p => ({ ...p, medication: e.target.value, dosage: '' }))}>
+                        {WL_MEDS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                      </select>
+                    </div>
+                    {logEntryType === 'injection' && (
+                      <>
+                        <div className="form-group">
+                          <label>Current Weight (lbs)</label>
+                          <input type="number" step="0.1" value={logForm.weight} onChange={e => setLogForm(p => ({ ...p, weight: e.target.value }))} placeholder="e.g. 215.5" />
+                        </div>
+                        <div className="form-group">
+                          <label>Dosage</label>
+                          <select value={logForm.dosage} onChange={e => setLogForm(p => ({ ...p, dosage: e.target.value }))}>
+                            <option value="">Select dosage...</option>
+                            {(WL_MEDS.find(m => m.value === logForm.medication)?.dosages || []).map(d => <option key={d} value={d}>{d}</option>)}
+                          </select>
+                        </div>
+                      </>
+                    )}
+                    {logEntryType === 'pickup' && (
+                      <>
+                        <div className="form-group">
+                          <label>Dosage</label>
+                          <select value={logForm.dosage} onChange={e => setLogForm(p => ({ ...p, dosage: e.target.value }))}>
+                            <option value="">Select dosage...</option>
+                            {Array.from({ length: 30 }, (_, i) => { const mg = (i + 1) * 0.5; const label = mg % 1 === 0 ? `${mg}mg` : `${mg.toFixed(1)}mg`; return <option key={mg} value={label}>{label}</option>; })}
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label>Supply Duration</label>
+                          <select value={logForm.quantity} onChange={e => setLogForm(p => ({ ...p, quantity: parseInt(e.target.value) }))}>
+                            <option value="1">1 week</option>
+                            <option value="2">2 weeks</option>
+                            <option value="3">3 weeks</option>
+                            <option value="4">4 weeks</option>
+                          </select>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+
+                {/* ---- VITAMIN / INJECTION ---- */}
+                {logEntryProtocol.svcCat === 'vitamin' && (
+                  <>
+                    <div className="form-group">
+                      <label>Injection</label>
+                      <select value={logForm.medication} onChange={e => setLogForm(p => ({ ...p, medication: e.target.value }))}>
+                        <option value="">Select injection...</option>
+                        {VITAMIN_OPTS.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Quantity</label>
+                      <select value={logForm.quantity} onChange={e => setLogForm(p => ({ ...p, quantity: parseInt(e.target.value) }))}>
+                        <option value="1">1 injection</option>
+                        <option value="2">2 injections</option>
+                        <option value="3">3 injections</option>
+                        <option value="4">4 pack</option>
+                        <option value="8">8 pack</option>
+                        <option value="10">10 pack</option>
+                        <option value="12">12 pack</option>
+                      </select>
+                    </div>
+                  </>
+                )}
+
+                {/* ---- PEPTIDE ---- */}
+                {logEntryProtocol.svcCat === 'peptide' && (
+                  <>
+                    <div className="form-group">
+                      <label>Peptide</label>
+                      <select value={logForm.medication} onChange={e => setLogForm(p => ({ ...p, medication: e.target.value }))}>
+                        <option value="">Select peptide...</option>
+                        {logForm.medication && !PEPTIDE_OPTIONS.flatMap(g => g.options).find(o => o.value === logForm.medication) && (
+                          <option value={logForm.medication}>{logForm.medication} (from protocol)</option>
+                        )}
+                        {PEPTIDE_OPTIONS.map(group => (
+                          <optgroup key={group.group} label={group.group}>
+                            {group.options.map(opt => <option key={opt.value} value={opt.value}>{opt.value}</option>)}
+                          </optgroup>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Dosage</label>
+                      <input type="text" value={logForm.dosage} onChange={e => setLogForm(p => ({ ...p, dosage: e.target.value }))} placeholder="e.g. 500mcg, 1mg..." />
+                    </div>
+                    {(logEntryType === 'pickup' || logEntryType === 'med_pickup') && (
+                      <div className="form-group">
+                        <label>Quantity</label>
+                        <input type="number" min="1" value={logForm.quantity} onChange={e => setLogForm(p => ({ ...p, quantity: parseInt(e.target.value) || 1 }))} />
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* ---- IV THERAPY ---- */}
+                {logEntryProtocol.svcCat === 'iv_therapy' && (
+                  <>
+                    <div className="form-group">
+                      <label>IV Type</label>
+                      <select value={logForm.medication} onChange={e => setLogForm(p => ({ ...p, medication: e.target.value }))}>
+                        <option value="">Select IV...</option>
+                        {IV_OPTS.map(iv => <option key={iv.value} value={iv.value}>{iv.label}</option>)}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Duration</label>
+                      <select value={logForm.duration} onChange={e => setLogForm(p => ({ ...p, duration: parseInt(e.target.value) }))}>
+                        <option value="30">30 minutes</option>
+                        <option value="45">45 minutes</option>
+                        <option value="60">60 minutes</option>
+                        <option value="90">90 minutes</option>
+                        <option value="120">120 minutes</option>
+                        <option value="180">180 minutes (NAD+)</option>
+                      </select>
+                    </div>
+                  </>
+                )}
+
+                {/* ---- HBOT ---- */}
+                {logEntryProtocol.svcCat === 'hbot' && (
+                  <div className="form-hint" style={{ marginBottom: 16, background: '#f0f9ff', border: '1px solid #bae6fd', color: '#0369a1' }}>
+                    60-minute session at 2.0 ATA
+                  </div>
+                )}
+
+                {/* ---- RED LIGHT ---- */}
+                {logEntryProtocol.svcCat === 'red_light' && (
+                  <div className="form-group">
+                    <label>Duration</label>
+                    <select value={logForm.duration} onChange={e => setLogForm(p => ({ ...p, duration: parseInt(e.target.value) }))}>
+                      <option value="10">10 minutes</option>
+                      <option value="15">15 minutes</option>
+                      <option value="20">20 minutes</option>
                     </select>
                   </div>
-                  <div style={{ marginBottom: 12 }}>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Duration</label>
-                    <select value={logForm.duration} onChange={e => setLogForm(p => ({ ...p, duration: parseInt(e.target.value) }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
-                      <option value="30">30 minutes</option>
-                      <option value="45">45 minutes</option>
-                      <option value="60">60 minutes</option>
-                      <option value="90">90 minutes</option>
-                      <option value="120">120 minutes</option>
-                      <option value="180">180 minutes (NAD+)</option>
-                    </select>
-                  </div>
-                </>
-              )}
+                )}
 
-              {/* ---- HBOT ---- */}
-              {logEntryProtocol.svcCat === 'hbot' && (
-                <div style={{ marginBottom: 12, padding: '10px 14px', background: '#f0f9ff', borderRadius: 8, border: '1px solid #bae6fd', fontSize: 13, color: '#0369a1' }}>
-                  🫁 60-minute session at 2.0 ATA
+                {/* Notes */}
+                <div className="form-group">
+                  <label>Notes (optional)</label>
+                  <textarea value={logForm.notes} onChange={e => setLogForm(p => ({ ...p, notes: e.target.value }))} rows={2} />
                 </div>
-              )}
 
-              {/* ---- RED LIGHT ---- */}
-              {logEntryProtocol.svcCat === 'red_light' && (
-                <div style={{ marginBottom: 12 }}>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Duration</label>
-                  <select value={logForm.duration} onChange={e => setLogForm(p => ({ ...p, duration: parseInt(e.target.value) }))} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
-                    <option value="10">10 minutes</option>
-                    <option value="15">15 minutes</option>
-                    <option value="20">20 minutes</option>
-                  </select>
-                </div>
-              )}
-
-              {/* Notes */}
-              <div style={{ marginBottom: 12 }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Notes (optional)</label>
-                <textarea value={logForm.notes} onChange={e => setLogForm(p => ({ ...p, notes: e.target.value }))} rows={2} style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, resize: 'vertical' }} />
-              </div>
-
-              {/* Dispensing Details */}
-              <div style={{ padding: 12, background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb', marginBottom: 16 }}>
-                <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 8, color: '#374151' }}>Dispensing Details</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 11, color: '#666', marginBottom: 2 }}>Administered By</label>
-                    <input type="text" value={logDispensing.administered_by} onChange={e => setLogDispensing(p => ({ ...p, administered_by: e.target.value }))} style={{ width: '100%', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: 4, fontSize: 12 }} />
+                {/* Dispensing Details */}
+                <div className="form-section-label">Dispensing Details</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Administered By</label>
+                    <input type="text" value={logDispensing.administered_by} onChange={e => setLogDispensing(p => ({ ...p, administered_by: e.target.value }))} />
                   </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 11, color: '#666', marginBottom: 2 }}>Lot #</label>
-                    <input type="text" value={logDispensing.lot_number} onChange={e => setLogDispensing(p => ({ ...p, lot_number: e.target.value }))} style={{ width: '100%', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: 4, fontSize: 12 }} />
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Lot #</label>
+                    <input type="text" value={logDispensing.lot_number} onChange={e => setLogDispensing(p => ({ ...p, lot_number: e.target.value }))} />
                   </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 11, color: '#666', marginBottom: 2 }}>Exp Date</label>
-                    <input type="date" value={logDispensing.expiration_date} onChange={e => setLogDispensing(p => ({ ...p, expiration_date: e.target.value }))} style={{ width: '100%', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: 4, fontSize: 12 }} />
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label>Exp Date</label>
+                    <input type="date" value={logDispensing.expiration_date} onChange={e => setLogDispensing(p => ({ ...p, expiration_date: e.target.value }))} />
                   </div>
                 </div>
-                <div style={{ marginTop: 10 }}>
+                <div style={{ marginBottom: 4 }}>
                   <SignatureCanvas onSignature={dataUrl => setLogSignature(dataUrl)} width={440} height={120} label="Patient Signature" />
                 </div>
               </div>
-
-              {/* Footer */}
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button onClick={() => setShowLogEntryModal(false)} style={{ padding: '8px 16px', border: '1px solid #d1d5db', borderRadius: 6, background: '#fff', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
-                <button onClick={handleSubmitLogEntry} disabled={logSubmitting} style={{ padding: '8px 20px', border: 'none', borderRadius: 6, background: '#000', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: logSubmitting ? 0.6 : 1 }}>
+              <div className="modal-footer">
+                <button onClick={() => setShowLogEntryModal(false)} className="btn-secondary">Cancel</button>
+                <button onClick={handleSubmitLogEntry} disabled={logSubmitting} className="btn-primary">
                   {logSubmitting ? 'Saving...' : 'Save Entry'}
                 </button>
               </div>

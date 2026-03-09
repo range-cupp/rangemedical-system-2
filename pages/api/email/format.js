@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     if (subject) contextHints.push(`The email subject is: "${subject}".`);
 
     const message = await anthropic.messages.create({
-      model: 'claude-haiku-4-20250214',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 1024,
       system: `You are an email formatter for Range Medical, a regenerative medicine and wellness clinic in Newport Beach, CA. Your job is to take rough, messy, or dictated text and rewrite it as a clear, professional, and warm patient-facing email.
 

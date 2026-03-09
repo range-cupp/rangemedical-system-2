@@ -93,6 +93,7 @@ export default function PatientProfile() {
   const [activeTab, setActiveTab] = useState('overview');
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [expandedProtocols, setExpandedProtocols] = useState({});
+  const [pinnedNoteExpanded, setPinnedNoteExpanded] = useState(false);
 
   // Slide-out PDF viewer state
   const [pdfSlideOut, setPdfSlideOut] = useState({ open: false, url: '', title: '' });
@@ -1329,45 +1330,61 @@ export default function PatientProfile() {
             borderRadius: 8,
             padding: '12px 16px',
             marginBottom: 16,
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 10,
           }}>
-            <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>📌</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, color: '#92400e', fontWeight: 600, marginBottom: 4 }}>
-                PINNED NOTE
-                <span style={{ fontWeight: 400, marginLeft: 8 }}>
-                  {formatDate(pinnedNote.note_date || pinnedNote.created_at)}
-                  {pinnedNote.created_by && ` · ${pinnedNote.created_by}`}
-                </span>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+              <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>📌</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, color: '#92400e', fontWeight: 600, marginBottom: 4 }}>
+                  PINNED NOTE
+                  <span style={{ fontWeight: 400, marginLeft: 8 }}>
+                    {formatDate(pinnedNote.note_date || pinnedNote.created_at)}
+                    {pinnedNote.created_by && ` · ${pinnedNote.created_by}`}
+                  </span>
+                </div>
+                <div style={{
+                  fontSize: 14,
+                  color: '#374151',
+                  lineHeight: 1.5,
+                  whiteSpace: 'pre-wrap',
+                  maxHeight: pinnedNoteExpanded ? 'none' : 80,
+                  overflow: 'hidden',
+                }}>
+                  {pinnedNote.body}
+                </div>
               </div>
-              <div style={{
-                fontSize: 14,
-                color: '#374151',
-                lineHeight: 1.5,
-                whiteSpace: 'pre-wrap',
-                maxHeight: 80,
-                overflow: 'hidden',
-              }}>
-                {pinnedNote.body}
-              </div>
+              <button
+                onClick={() => handleTogglePin(pinnedNote.id, true)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#92400e',
+                  cursor: 'pointer',
+                  fontSize: 14,
+                  padding: '2px 6px',
+                  flexShrink: 0,
+                }}
+                title="Unpin note"
+              >
+                ✕
+              </button>
             </div>
-            <button
-              onClick={() => handleTogglePin(pinnedNote.id, true)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#92400e',
-                cursor: 'pointer',
-                fontSize: 14,
-                padding: '2px 6px',
-                flexShrink: 0,
-              }}
-              title="Unpin note"
-            >
-              ✕
-            </button>
+            {pinnedNote.body && pinnedNote.body.length > 120 && (
+              <button
+                onClick={() => setPinnedNoteExpanded(!pinnedNoteExpanded)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#92400e',
+                  cursor: 'pointer',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  padding: '6px 0 0 26px',
+                  display: 'block',
+                }}
+              >
+                {pinnedNoteExpanded ? '▲ Show less' : '▼ Show more'}
+              </button>
+            )}
           </section>
         )}
 

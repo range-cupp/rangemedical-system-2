@@ -21,80 +21,23 @@ export default function Dashboard() {
 
   const fetchDashboard = async () => {
     try {
-      // Fetch all data concurrently
-      const [protocolsRes, purchasesRes, appointmentsRes, commsRes, invoicesRes, alertsRes] = await Promise.all([
-        fetch('/api/admin/protocols').then(r => r.json()).catch(() => ({})),
-        fetch('/api/admin/purchases').then(r => r.json()).catch(() => ({})),
-        fetch('/api/appointments/list').then(r => r.json()).catch(() => ({})),
-        fetch('/api/admin/comms-log?limit=10').then(r => r.json()).catch(() => ({})),
-        fetch('/api/invoices/list?limit=50').then(r => r.json()).catch(() => ({})),
-        fetch('/api/admin/alerts', { headers: { 'x-admin-password': 'range2024' } }).then(r => r.json()).catch(() => ({})),
-      ]);
+      // Single API call replaces 6 concurrent calls (avoids browser connection limit)
+      const res = await fetch('/api/admin/dashboard-v3');
+      const data = await res.json();
 
-      const protocols = protocolsRes.protocols || protocolsRes || [];
-      const purchases = purchasesRes.purchases || purchasesRes || [];
-      const appointments = appointmentsRes.appointments || appointmentsRes || [];
-      const comms = commsRes.logs || commsRes.comms || [];
-      const invoices = invoicesRes.invoices || [];
+      setStats(data.stats || {});
+      setRecentProtocols(data.recentProtocols || []);
+      setTodayAppointments(data.todayAppointments || []);
+      setRecentComms(data.recentComms || []);
 
-      // Calculate stats
-      const activeProtocols = protocols.filter(p => p.status === 'active');
-      const completedProtocols = protocols.filter(p => p.status === 'completed');
-      const unassignedPurchases = purchases.filter(p => !p.protocol_id);
-      const uniquePatients = new Set(protocols.map(p => p.patient_id).filter(Boolean)).size;
-
-      // Today's appointments
-      const today = new Date().toISOString().split('T')[0];
-      const todayAppts = appointments.filter(apt => {
-        const aptDate = (apt.start_time || apt.booking_date || '').split('T')[0];
-        return aptDate === today;
-      }).sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
-
-      // Revenue from paid invoices (last 30 days)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const recentPaid = invoices.filter(inv =>
-        inv.status === 'paid' && inv.paid_at && new Date(inv.paid_at) >= thirtyDaysAgo
-      );
-      const monthlyRevenue = recentPaid.reduce((sum, inv) => sum + (inv.total_cents || 0), 0);
-
-      setStats({
-        activeProtocols: activeProtocols.length,
-        completedProtocols: completedProtocols.length,
-        unassignedPurchases: unassignedPurchases.length,
-        uniquePatients,
-        todayAppointments: todayAppts.length,
-        monthlyRevenue,
-        pendingInvoices: invoices.filter(i => i.status === 'pending' || i.status === 'sent').length,
-      });
-
-      setRecentProtocols(activeProtocols.slice(0, 8));
-      setTodayAppointments(todayAppts.slice(0, 6));
-      setRecentComms(comms.slice(0, 5));
-
-      // Consent alerts
-      const alerts = alertsRes.alerts || [];
-      setConsentAlerts(alerts.filter(a => a.alert_type === 'missing_consent'));
-
-      // Renewal alerts — protocols nearing completion
+      // Renewal alerts — enrich with display labels
       const todayDate = new Date();
-      const renewals = activeProtocols.filter(p => {
-        if (p.total_sessions && p.total_sessions > 0) {
-          const remaining = p.total_sessions - (p.sessions_used || 0);
-          return remaining <= 2;
-        }
-        if (p.end_date) {
-          const endDate = new Date(p.end_date + 'T23:59:59');
-          const daysLeft = Math.ceil((endDate - todayDate) / (1000 * 60 * 60 * 24));
-          p._daysLeft = daysLeft;
-          return daysLeft <= 7;
-        }
-        return false;
-      }).map(p => {
+      const renewals = (data.renewalAlerts || []).map(p => {
         const sessionsUsed = p.sessions_used || 0;
         const sessionsRemaining = p.total_sessions ? (p.total_sessions - sessionsUsed) : null;
-        const isDue = sessionsRemaining !== null ? sessionsRemaining <= 0 : (p._daysLeft <= 0);
-        return { ...p, sessionsUsed, sessionsRemaining, isDue, statusLabel: p.total_sessions ? `${sessionsUsed} of ${p.total_sessions} sessions` : `${p._daysLeft}d left` };
+        const daysLeft = p.end_date ? Math.ceil((new Date(p.end_date + 'T23:59:59') - todayDate) / (1000 * 60 * 60 * 24)) : null;
+        const isDue = sessionsRemaining !== null ? sessionsRemaining <= 0 : (daysLeft !== null && daysLeft <= 0);
+        return { ...p, sessionsUsed, sessionsRemaining, isDue, statusLabel: p.total_sessions ? `${sessionsUsed} of ${p.total_sessions} sessions` : `${daysLeft}d left` };
       });
       setRenewalAlerts(renewals);
 

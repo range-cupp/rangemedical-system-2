@@ -176,6 +176,25 @@ export default function EmployeesPage() {
     }
   };
 
+  // Send password reset email
+  const handleSendReset = async (emp) => {
+    if (!window.confirm(`Send a password reset email to ${emp.name} at ${emp.email}?`)) return;
+    try {
+      const res = await fetch(`/api/admin/employees/${emp.id}/reset-password`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showSuccess(`Password reset email sent to ${emp.email}`);
+      } else {
+        setError(data.error || 'Failed to send reset email');
+      }
+    } catch (err) {
+      setError('Failed to send reset email');
+    }
+  };
+
   const activeEmployees = employees.filter(e => e.is_active);
   const inactiveEmployees = employees.filter(e => !e.is_active);
 
@@ -263,6 +282,9 @@ export default function EmployeesPage() {
                 )}
 
                 <div style={pageStyles.cardFooter}>
+                  <button onClick={() => handleSendReset(emp)} style={pageStyles.resetBtn}>
+                    Send Password Reset
+                  </button>
                   <button onClick={() => toggleActive(emp)} style={pageStyles.deactivateBtn}>
                     Deactivate
                   </button>
@@ -532,6 +554,17 @@ const pageStyles = {
   cardFooter: {
     paddingTop: '12px',
     borderTop: '1px solid #f3f4f6',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  resetBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#2563eb',
+    fontSize: '13px',
+    cursor: 'pointer',
+    padding: '4px 0',
   },
   deactivateBtn: {
     background: 'none',

@@ -8,6 +8,8 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import AdminLayout from '../../components/AdminLayout';
+import EmailComposeModal from '../../components/EmailComposeModal';
+import { useAuth } from '../../components/AuthProvider';
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -45,6 +47,10 @@ const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 export default function PatientProfile() {
   const router = useRouter();
   const { id } = router.query || {};
+  const { session } = useAuth();
+
+  // Email compose modal
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
 
   // Core data state
   const [loading, setLoading] = useState(true);
@@ -1136,7 +1142,7 @@ export default function PatientProfile() {
               <div className="actions-primary">
                 {patient.phone && <a href={`sms:${patient.phone}`} className="action-btn" title="Send text message">SMS</a>}
                 {patient.phone && <a href={`tel:${patient.phone}`} className="action-btn" title="Call patient">Call</a>}
-                {patient.email && <a href={`mailto:${patient.email}`} className="action-btn" title="Send email">Email</a>}
+                {patient.email && <button onClick={() => setEmailModalOpen(true)} className="action-btn" title="Send email" style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', color: 'inherit', padding: 0 }}>Email</button>}
                 {ghlLink && <a href={ghlLink} target="_blank" rel="noopener noreferrer" className="action-btn" title="Open in GoHighLevel">GHL</a>}
               </div>
               <div className="actions-cta">
@@ -5088,6 +5094,18 @@ export default function PatientProfile() {
           .wl-table th, .wl-table td { padding: 6px 8px; }
         }
       `}</style>
+
+      {/* Email Compose Modal */}
+      <EmailComposeModal
+        isOpen={emailModalOpen}
+        onClose={() => setEmailModalOpen(false)}
+        recipientEmail={patient?.email}
+        recipientName={patient?.first_name || patient?.name || ''}
+        patientId={patient?.id}
+        patientName={patient?.name || `${patient?.first_name || ''} ${patient?.last_name || ''}`.trim()}
+        ghlContactId={patient?.ghl_contact_id}
+        session={session}
+      />
     </AdminLayout>
   );
 }

@@ -31,7 +31,7 @@ const STATUS_BORDER_COLORS = {
   rescheduled: '#9ca3af',
 };
 
-const HOURS = Array.from({ length: 11 }, (_, i) => i + 8); // 8 AM to 6 PM
+const HOURS = Array.from({ length: 10 }, (_, i) => i + 9); // 9 AM to 6 PM
 
 export default function CalendarView({ preselectedPatient = null }) {
   // Calendar state
@@ -60,6 +60,11 @@ export default function CalendarView({ preselectedPatient = null }) {
   const [apptNotes, setApptNotes] = useState('');
   const [sendNotification, setSendNotification] = useState(true);
   const [creating, setCreating] = useState(false);
+
+  // Cal.com availability state
+  const [eventTypesMap, setEventTypesMap] = useState({}); // slug → { id, hosts }
+  const [availableSlots, setAvailableSlots] = useState(null); // null = not loaded, [] = no slots, [...] = available
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
   // Reschedule state
   const [rescheduleAppt, setRescheduleAppt] = useState(null);
@@ -177,6 +182,81 @@ export default function CalendarView({ preselectedPatient = null }) {
 
   const closeDrawer = () => { setDrawerData(null); setDrawerLoading(false); };
 
+  // Fetch Cal.com event types once on mount → build slug→id map
+  useEffect(() => {
+    fetch('/api/bookings/event-types')
+      .then(r => r.json())
+      .then(data => {
+        if (data.eventTypes) {
+          const map = {};
+          data.eventTypes.forEach(et => {
+            map[et.slug] = { id: et.id, title: et.title, hosts: et.hosts || [] };
+          });
+          setEventTypesMap(map);
+        }
+      })
+      .catch(err => console.error('Failed to load Cal.com event types:', err));
+  }, []);
+
+  // Fetch available slots from Cal.com when date/service/provider change
+  useEffect(() => {
+    if (!apptDate || !selectedService?.calcomSlug) {
+      setAvailableSlots(null);
+      return;
+    }
+
+    const eventType = eventTypesMap[selectedService.calcomSlug];
+    if (!eventType) {
+      setAvailableSlots(null);
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingSlots(true);
+    setAvailableSlots(null);
+    setApptTime(''); // Reset selected time when date changes
+
+    let url = `/api/bookings/slots?eventTypeId=${eventType.id}&date=${apptDate}`;
+    if (selectedProvider?.calcomUsername) {
+      url += `&memberUsername=${encodeURIComponent(selectedProvider.calcomUsername)}`;
+    }
+
+    fetch(url)
+      .then(r => r.json())
+      .then(data => {
+        if (cancelled) return;
+        // Parse slot data — Cal.com returns { slots: { "YYYY-MM-DD": [{ start, end }] } }
+        const daySlots = data.slots || {};
+        const slotTimes = [];
+        for (const [dateKey, times] of Object.entries(daySlots)) {
+          if (Array.isArray(times)) {
+            times.forEach(slot => {
+              // slot can be { start: "2026-03-10T09:00:00-07:00", end: "..." }
+              // or just a time string
+              const startStr = typeof slot === 'string' ? slot : slot.start;
+              if (startStr) {
+                const d = new Date(startStr);
+                const hours = d.getHours().toString().padStart(2, '0');
+                const mins = d.getMinutes().toString().padStart(2, '0');
+                slotTimes.push(`${hours}:${mins}`);
+              }
+            });
+          }
+        }
+        setAvailableSlots(slotTimes);
+        setLoadingSlots(false);
+      })
+      .catch(err => {
+        if (!cancelled) {
+          console.error('Failed to fetch slots:', err);
+          setAvailableSlots(null);
+          setLoadingSlots(false);
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, [apptDate, selectedService?.calcomSlug, selectedProvider?.calcomUsername, eventTypesMap]);
+
   // Pre-fill wizard if patient is preselected
   useEffect(() => {
     if (preselectedPatient) {
@@ -208,33 +288,94 @@ export default function CalendarView({ preselectedPatient = null }) {
       const startDT = new Date(`${apptDate}T${apptTime}`);
       const duration = selectedService?.duration || 30;
       const endDT = new Date(startDT.getTime() + duration * 60000);
+      const patientName = isWalkIn ? walkInName : selectedPatient?.name;
+      const patientPhone = isWalkIn ? walkInPhone : selectedPatient?.phone;
 
-      const body = {
-        patient_id: selectedPatient?.id || null,
-        patient_name: isWalkIn ? walkInName : selectedPatient?.name,
-        patient_phone: isWalkIn ? walkInPhone : selectedPatient?.phone,
-        service_name: selectedService.name,
-        service_category: selectedService.category,
-        provider: selectedProvider?.name || null,
-        start_time: startDT.toISOString(),
-        end_time: endDT.toISOString(),
-        duration_minutes: duration,
-        location: selectedLocation?.label || DEFAULT_LOCATION.label,
-        notes: apptNotes || null,
-        created_by: 'command_center',
-        send_notification: sendNotification,
-      };
+      const calcomSlug = selectedService?.calcomSlug;
+      const eventType = calcomSlug ? eventTypesMap[calcomSlug] : null;
 
-      const res = await fetch('/api/appointments/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
+      let res;
+
+      if (eventType && selectedPatient?.id) {
+        // Route through Cal.com for tracked services with a known patient
+        // This blocks the slot in Cal.com and the webhook syncs to appointments table
+        const hostInfo = eventType.hosts?.find(h => h.username === selectedProvider?.calcomUsername);
+
+        const body = {
+          eventTypeId: eventType.id,
+          start: startDT.toISOString(),
+          patientId: selectedPatient.id,
+          patientName,
+          patientEmail: selectedPatient.email || null,
+          patientPhone: patientPhone || null,
+          serviceName: selectedService.name,
+          serviceSlug: calcomSlug,
+          durationMinutes: duration,
+          notes: apptNotes || null,
+          hostUserId: hostInfo?.userId || null,
+          hostName: selectedProvider?.label || selectedProvider?.name || null,
+        };
+
+        res = await fetch('/api/bookings/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+
+          // Also create in native appointments table for immediate calendar display
+          // Webhook will upsert on cal_com_booking_id, so no duplicate
+          await fetch('/api/appointments/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              patient_id: selectedPatient.id,
+              patient_name: patientName,
+              patient_phone: patientPhone,
+              service_name: selectedService.name,
+              service_category: selectedService.category,
+              provider: selectedProvider?.name || null,
+              start_time: startDT.toISOString(),
+              end_time: endDT.toISOString(),
+              duration_minutes: duration,
+              location: selectedLocation?.label || DEFAULT_LOCATION.label,
+              notes: apptNotes || null,
+              created_by: 'command_center',
+              send_notification: sendNotification,
+              cal_com_booking_id: String(data.calcom?.id || data.booking?.calcom_booking_id || ''),
+              source: 'cal_com',
+            }),
+          }).catch(err => console.error('Native appointment write error:', err));
+        }
+      } else {
+        // Fallback: manual booking (no Cal.com event type or walk-in)
+        const body = {
+          patient_id: selectedPatient?.id || null,
+          patient_name: patientName,
+          patient_phone: patientPhone,
+          service_name: selectedService.name,
+          service_category: selectedService.category,
+          provider: selectedProvider?.name || null,
+          start_time: startDT.toISOString(),
+          end_time: endDT.toISOString(),
+          duration_minutes: duration,
+          location: selectedLocation?.label || DEFAULT_LOCATION.label,
+          notes: apptNotes || null,
+          created_by: 'command_center',
+          send_notification: sendNotification,
+        };
+
+        res = await fetch('/api/appointments/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+      }
 
       if (res.ok) {
-        // Reset wizard
         resetWizard();
-        // Set date to the new appointment's date and refresh
         setCurrentDate(startDT);
         setViewMode('day');
         fetchAppointments();
@@ -243,6 +384,7 @@ export default function CalendarView({ preselectedPatient = null }) {
         alert('Error: ' + (err.error || 'Could not create appointment'));
       }
     } catch (err) {
+      console.error('Booking error:', err);
       alert('Error creating appointment');
     } finally {
       setCreating(false);
@@ -265,6 +407,8 @@ export default function CalendarView({ preselectedPatient = null }) {
     setApptTime('');
     setApptNotes('');
     setSendNotification(true);
+    setAvailableSlots(null);
+    setLoadingSlots(false);
   };
 
   // ===================== Status Changes =====================
@@ -445,7 +589,7 @@ export default function CalendarView({ preselectedPatient = null }) {
         {columnized.map(({ appt, column, totalColumns }) => {
           const start = new Date(appt.start_time);
           const startHour = start.getHours() + start.getMinutes() / 60;
-          const top = (startHour - 8) * 60;
+          const top = (startHour - 9) * 60;
           const height = Math.max(appt.duration_minutes || 30, 20);
           if (top < 0 || startHour > 18) return null;
           const catStyle = getApptStyle(appt);
@@ -499,8 +643,8 @@ export default function CalendarView({ preselectedPatient = null }) {
         {/* Current time line */}
         {showTimeLine && (() => {
           const nowHour = now.getHours() + now.getMinutes() / 60;
-          if (nowHour < 8 || nowHour > 18) return null;
-          const top = (nowHour - 8) * 60;
+          if (nowHour < 9 || nowHour > 18) return null;
+          const top = (nowHour - 9) * 60;
           return <div style={{ ...styles.timeLine, top: `${top}px` }} />;
         })()}
       </div>
@@ -1047,61 +1191,117 @@ export default function CalendarView({ preselectedPatient = null }) {
       )}
 
       {/* Step 4: Date/Time */}
-      {wizardStep === 4 && (
-        <div>
-          <p style={styles.wizardLabel}>
-            {selectedService?.name} — {selectedService?.duration} min
-            {selectedLocation && selectedLocation.id !== 'newport' && (
-              <span style={{ fontSize: '12px', color: '#6b7280' }}> · 📍 {selectedLocation.short}</span>
-            )}
-          </p>
-          <div style={{ marginBottom: '12px' }}>
-            <label style={styles.fieldLabel}>Date</label>
-            <input
-              type="date"
-              value={apptDate}
-              onChange={e => setApptDate(e.target.value)}
-              style={styles.input}
-            />
-          </div>
-          <div style={{ marginBottom: '12px' }}>
-            <label style={styles.fieldLabel}>Time</label>
-            <div style={styles.timeGrid}>
-              {generateTimeSlots().map(time => (
-                <button
-                  key={time}
-                  onClick={() => setApptTime(time)}
-                  style={{
-                    ...styles.timeSlot,
-                    ...(apptTime === time ? styles.timeSlotActive : {}),
-                  }}
-                >
-                  {formatTimeLabel(time)}
-                </button>
-              ))}
+      {wizardStep === 4 && (() => {
+        const hasCalcom = !!selectedService?.calcomSlug && !!eventTypesMap[selectedService.calcomSlug];
+        const useCalcomSlots = hasCalcom && apptDate;
+        const slotsToShow = useCalcomSlots ? availableSlots : null;
+
+        return (
+          <div>
+            <p style={styles.wizardLabel}>
+              {selectedService?.name} — {selectedService?.duration} min
+              {selectedLocation && selectedLocation.id !== 'newport' && (
+                <span style={{ fontSize: '12px', color: '#6b7280' }}> · 📍 {selectedLocation.short}</span>
+              )}
+            </p>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={styles.fieldLabel}>Date</label>
+              <input
+                type="date"
+                value={apptDate}
+                onChange={e => { setApptDate(e.target.value); setApptTime(''); }}
+                style={styles.input}
+              />
+            </div>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={styles.fieldLabel}>
+                Time
+                {hasCalcom && (
+                  <span style={{ fontWeight: 400, color: '#16a34a', marginLeft: '8px', fontSize: '11px' }}>
+                    Live availability
+                  </span>
+                )}
+              </label>
+
+              {/* Loading state */}
+              {loadingSlots && apptDate && hasCalcom && (
+                <div style={{ padding: '20px 0', textAlign: 'center', color: '#888', fontSize: '13px' }}>
+                  Checking availability...
+                </div>
+              )}
+
+              {/* No availability message */}
+              {!loadingSlots && useCalcomSlots && slotsToShow && slotsToShow.length === 0 && (
+                <div style={{ padding: '16px', background: '#fef3c7', borderRadius: '8px', color: '#92400e', fontSize: '13px', textAlign: 'center' }}>
+                  No availability for {selectedProvider?.label || 'this provider'} on this date. Try a different date.
+                </div>
+              )}
+
+              {/* Cal.com available slots */}
+              {!loadingSlots && useCalcomSlots && slotsToShow && slotsToShow.length > 0 && (
+                <div style={styles.timeGrid}>
+                  {slotsToShow.map(time => (
+                    <button
+                      key={time}
+                      onClick={() => setApptTime(time)}
+                      style={{
+                        ...styles.timeSlot,
+                        ...(apptTime === time ? styles.timeSlotActive : {}),
+                      }}
+                    >
+                      {formatTimeLabel(time)}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Static fallback grid (no Cal.com slug or no date selected) */}
+              {!hasCalcom && (
+                <div style={styles.timeGrid}>
+                  {generateTimeSlots().map(time => (
+                    <button
+                      key={time}
+                      onClick={() => setApptTime(time)}
+                      style={{
+                        ...styles.timeSlot,
+                        ...(apptTime === time ? styles.timeSlotActive : {}),
+                      }}
+                    >
+                      {formatTimeLabel(time)}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Prompt to select date first (Cal.com services) */}
+              {hasCalcom && !apptDate && !loadingSlots && (
+                <div style={{ padding: '16px 0', color: '#888', fontSize: '13px', textAlign: 'center' }}>
+                  Select a date to see available times
+                </div>
+              )}
+            </div>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={styles.fieldLabel}>Notes (optional)</label>
+              <textarea
+                value={apptNotes}
+                onChange={e => setApptNotes(e.target.value)}
+                placeholder="Any notes..."
+                style={{ ...styles.input, minHeight: '60px', resize: 'vertical' }}
+              />
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => setWizardStep(5)}
+                disabled={!apptDate || !apptTime}
+                style={{ ...styles.primaryBtn, opacity: (apptDate && apptTime) ? 1 : 0.5 }}
+              >
+                Next
+              </button>
+              <button onClick={() => setWizardStep(3)} style={styles.linkBtn}>← Back</button>
             </div>
           </div>
-          <div style={{ marginBottom: '12px' }}>
-            <label style={styles.fieldLabel}>Notes (optional)</label>
-            <textarea
-              value={apptNotes}
-              onChange={e => setApptNotes(e.target.value)}
-              placeholder="Any notes..."
-              style={{ ...styles.input, minHeight: '60px', resize: 'vertical' }}
-            />
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={() => setWizardStep(5)}
-              disabled={!apptDate || !apptTime}
-              style={{ ...styles.primaryBtn, opacity: (apptDate && apptTime) ? 1 : 0.5 }}
-            >
-              Next
-            </button>
-            <button onClick={() => setWizardStep(3)} style={styles.linkBtn}>← Back</button>
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Step 5: Confirm */}
       {wizardStep === 5 && (
@@ -1552,7 +1752,7 @@ function getWeekStart(d) {
 
 function generateTimeSlots() {
   const slots = [];
-  for (let h = 8; h <= 17; h++) {
+  for (let h = 9; h <= 17; h++) {
     slots.push(`${String(h).padStart(2, '0')}:00`);
     slots.push(`${String(h).padStart(2, '0')}:30`);
   }
@@ -1666,7 +1866,7 @@ const styles = {
   // Day view
   dayGrid: {
     position: 'relative',
-    minHeight: `${11 * 60}px`,
+    minHeight: `${10 * 60}px`,
     paddingLeft: '70px',
   },
   hourRow: {

@@ -31,6 +31,7 @@ export default async function handler(req, res) {
       source,
       created_by,
       send_notification = true,
+      cal_com_booking_id,
     } = req.body;
 
     if (!patient_name || !service_name || !start_time || !end_time || !duration_minutes) {
@@ -39,24 +40,31 @@ export default async function handler(req, res) {
 
     const appointmentLocation = location || 'Range Medical — Newport Beach';
 
+    const insertRow = {
+      patient_id: patient_id || null,
+      patient_name,
+      patient_phone: patient_phone || null,
+      service_name,
+      service_category: service_category || null,
+      provider: provider || null,
+      location: appointmentLocation,
+      start_time,
+      end_time,
+      duration_minutes,
+      status: 'scheduled',
+      notes: notes || null,
+      source: source || 'manual',
+      created_by: created_by || null,
+    };
+
+    // Include cal_com_booking_id if provided (prevents duplicate when webhook fires)
+    if (cal_com_booking_id) {
+      insertRow.cal_com_booking_id = cal_com_booking_id;
+    }
+
     const { data: appointment, error } = await supabase
       .from('appointments')
-      .insert({
-        patient_id: patient_id || null,
-        patient_name,
-        patient_phone: patient_phone || null,
-        service_name,
-        service_category: service_category || null,
-        provider: provider || null,
-        location: appointmentLocation,
-        start_time,
-        end_time,
-        duration_minutes,
-        status: 'scheduled',
-        notes: notes || null,
-        source: source || 'manual',
-        created_by: created_by || null,
-      })
+      .insert(insertRow)
       .select()
       .single();
 

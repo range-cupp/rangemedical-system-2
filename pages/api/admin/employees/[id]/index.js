@@ -1,9 +1,9 @@
-// /pages/api/admin/employees/[id].js
+// /pages/api/admin/employees/[id]/index.js
 // Update or deactivate an employee
 // Range Medical System
 
 import { createClient } from '@supabase/supabase-js';
-import { requirePermission, logAction } from '../../../../lib/auth';
+import { requirePermission, logAction } from '../../../../../lib/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,

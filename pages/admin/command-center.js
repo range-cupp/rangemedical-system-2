@@ -5,6 +5,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import AdminLayout from '../../components/AdminLayout';
+import EmailComposeModal from '../../components/EmailComposeModal';
+import { useAuth } from '../../components/AuthProvider';
 import ServiceLogContent from '../../components/ServiceLogContent';
 import LabsPipelineTab from '../../components/LabsPipelineTab';
 import BookingTab from '../../components/BookingTab';
@@ -445,10 +447,14 @@ function openGHL(contactId) {
 // ============================================
 
 export default function CommandCenter() {
+  const { session } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Email compose modal state
+  const [emailModal, setEmailModal] = useState({ open: false, email: '', name: '', patientId: null, patientName: null, ghlContactId: null });
   // Filters
   const [protocolFilter, setProtocolFilter] = useState({ status: 'active', category: 'all', delivery: 'all', search: '' });
   const [leadFilter, setLeadFilter] = useState({ status: 'all', search: '' });
@@ -5052,6 +5058,18 @@ export default function CommandCenter() {
           to { transform: rotate(360deg); }
         }
       `}</style>
+
+      {/* Email Compose Modal */}
+      <EmailComposeModal
+        isOpen={emailModal.open}
+        onClose={() => setEmailModal({ open: false, email: '', name: '', patientId: null, patientName: null, ghlContactId: null })}
+        recipientEmail={emailModal.email}
+        recipientName={emailModal.name}
+        patientId={emailModal.patientId}
+        patientName={emailModal.patientName}
+        ghlContactId={emailModal.ghlContactId}
+        session={session}
+      />
     </AdminLayout>
   );
 }
@@ -6384,7 +6402,7 @@ function LeadsTab({ data, patients, leads, filter, setFilter, onAssignFromPurcha
                     </>
                   )}
                   {lead.email && (
-                    <a href={`mailto:${lead.email}`} style={styles.actionBtn}>📧 Email</a>
+                    <button style={styles.actionBtn} onClick={() => setEmailModal({ open: true, email: lead.email, name: lead.first_name || lead.name || '', patientId: lead.patient_id || null, patientName: lead.name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim(), ghlContactId: lead.ghl_contact_id || null })}>📧 Email</button>
                   )}
                   <button
                     style={styles.actionBtn}
@@ -6797,7 +6815,7 @@ function PatientsTab({ patients, search, setSearch, selected, setSelected, detai
                 </>
               )}
               {selected.email && (
-                <a href={`mailto:${selected.email}`} style={styles.actionBtn}>📧 Email</a>
+                <button style={styles.actionBtn} onClick={() => setEmailModal({ open: true, email: selected.email, name: selected.first_name || selected.name || '', patientId: selected.id || null, patientName: selected.name || `${selected.first_name || ''} ${selected.last_name || ''}`.trim(), ghlContactId: selected.ghl_contact_id || null })}>📧 Email</button>
               )}
               <button
                 style={styles.actionBtn}

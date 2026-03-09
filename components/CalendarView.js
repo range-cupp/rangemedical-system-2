@@ -76,6 +76,7 @@ export default function CalendarView({ preselectedPatient = null }) {
   const [sendNotification, setSendNotification] = useState(true);
   const [creating, setCreating] = useState(false);
   const [panelType, setPanelType] = useState(null); // 'essential' | 'elite' for New Patient Blood Draw
+  const [useCustomTime, setUseCustomTime] = useState(false); // Override Cal.com availability
 
   // Cal.com availability state
   const [eventTypesMap, setEventTypesMap] = useState({}); // slug → { id, hosts }
@@ -385,7 +386,7 @@ export default function CalendarView({ preselectedPatient = null }) {
 
       let res;
 
-      if (eventType && selectedPatient?.id) {
+      if (eventType && selectedPatient?.id && !useCustomTime) {
         // Route through Cal.com for tracked services with a known patient
         // This blocks the slot in Cal.com and the webhook syncs to appointments table
         const hostInfo = eventType.hosts?.find(h => h.username === selectedProvider?.calcomUsername);
@@ -509,6 +510,7 @@ export default function CalendarView({ preselectedPatient = null }) {
     setAvailableSlots(null);
     setLoadingSlots(false);
     setPanelType(null);
+    setUseCustomTime(false);
   };
 
   // ===================== Status Changes =====================
@@ -1409,7 +1411,7 @@ export default function CalendarView({ preselectedPatient = null }) {
             )}
 
             {/* Per-provider availability columns (Cal.com services) */}
-            {!loadingSlots && hasCalcom && apptDate && availableSlots && (
+            {!loadingSlots && hasCalcom && apptDate && availableSlots && !useCustomTime && (
               <div>
                 <label style={styles.fieldLabel}>
                   Pick a time
@@ -1489,9 +1491,71 @@ export default function CalendarView({ preselectedPatient = null }) {
             )}
 
             {/* No availability for any provider */}
-            {!loadingSlots && hasCalcom && apptDate && availableSlots && availableSlots.length === 0 && (
+            {!loadingSlots && hasCalcom && apptDate && availableSlots && availableSlots.length === 0 && !useCustomTime && (
               <div style={{ padding: '16px', background: '#fef3c7', borderRadius: '8px', color: '#92400e', fontSize: '13px', textAlign: 'center' }}>
-                No availability on this date. Try a different date.
+                No availability on this date. Try a different date or use custom time below.
+              </div>
+            )}
+
+            {/* Custom time toggle link — always visible for Cal.com services when date is selected */}
+            {hasCalcom && apptDate && !useCustomTime && !loadingSlots && (
+              <div style={{ textAlign: 'center', marginTop: '8px' }}>
+                <button
+                  onClick={() => { setUseCustomTime(true); setApptTime(''); setSelectedProvider(providers.length === 1 ? providers[0] : selectedProvider); }}
+                  style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '12px', cursor: 'pointer', textDecoration: 'underline', padding: '4px' }}
+                >
+                  Use custom time (override availability)
+                </button>
+              </div>
+            )}
+
+            {/* Custom time entry (bypasses Cal.com availability) */}
+            {hasCalcom && useCustomTime && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <label style={styles.fieldLabel}>Custom Time</label>
+                  <button
+                    onClick={() => { setUseCustomTime(false); setApptTime(''); }}
+                    style={{ background: 'none', border: 'none', color: '#666', fontSize: '11px', cursor: 'pointer', textDecoration: 'underline' }}
+                  >
+                    ← Back to available slots
+                  </button>
+                </div>
+                {providers.length > 1 && (
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={styles.fieldLabel}>Provider</label>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {providers.map(prov => (
+                        <button
+                          key={prov.name}
+                          onClick={() => setSelectedProvider(prov)}
+                          style={{
+                            padding: '6px 14px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer',
+                            border: selectedProvider?.name === prov.name ? '2px solid #000' : '1px solid #e5e5e5',
+                            background: selectedProvider?.name === prov.name ? '#000' : '#fff',
+                            color: selectedProvider?.name === prov.name ? '#fff' : '#111',
+                          }}
+                        >
+                          {prov.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <input
+                  type="time"
+                  value={apptTime}
+                  onChange={e => setApptTime(e.target.value)}
+                  style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '14px', width: '160px' }}
+                />
+                <p style={{ fontSize: '11px', color: '#92400e', marginTop: '6px', marginBottom: 0 }}>
+                  This will override availability and may double-book the provider.
+                </p>
+                {selectedProvider && apptTime && (
+                  <div style={{ marginTop: '10px', padding: '10px 12px', background: '#fefce8', borderRadius: '8px', fontSize: '13px', color: '#854d0e' }}>
+                    ✓ {formatTimeLabel(apptTime)} with <strong>{selectedProvider.label}</strong> (custom)
+                  </div>
+                )}
               </div>
             )}
 

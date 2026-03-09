@@ -407,7 +407,7 @@ async function handlePut(req, res) {
   }
 }
 
-// DELETE - Remove log entry
+// DELETE - Remove log entry and sync protocol
 async function handleDelete(req, res) {
   const { id, source } = req.query;
 
@@ -416,40 +416,114 @@ async function handleDelete(req, res) {
   }
 
   try {
+    let deletedEntry = null;
+
     // If source is specified, delete from that table directly
     if (source === 'protocol_logs') {
+      // Fetch entry before deleting so we can sync the protocol
+      const { data: plEntry } = await supabase
+        .from('protocol_logs')
+        .select('*')
+        .eq('id', id)
+        .single();
+      deletedEntry = plEntry ? {
+        protocol_id: plEntry.protocol_id,
+        patient_id: plEntry.patient_id,
+        entry_date: plEntry.log_date,
+        category: 'weight_loss', // protocol_logs are primarily weight loss
+        entry_type: plEntry.log_type === 'injection' ? 'injection' : (plEntry.log_type === 'missed' ? 'missed' : 'injection'),
+      } : null;
+
       const { error } = await supabase.from('protocol_logs').delete().eq('id', id);
       if (error) throw error;
-      return res.status(200).json({ success: true });
-    }
-
-    // Try service_logs first
-    const { data: sData, error: sError } = await supabase
-      .from('service_logs')
-      .delete()
-      .eq('id', id)
-      .select();
-
-    if (sError) throw sError;
-
-    // If nothing was deleted from service_logs, try injection_logs
-    if (!sData || sData.length === 0) {
-      const { data: iData, error: iError } = await supabase
-        .from('injection_logs')
-        .delete()
+    } else {
+      // Try service_logs first — fetch before deleting
+      const { data: slEntry } = await supabase
+        .from('service_logs')
+        .select('*')
         .eq('id', id)
-        .select();
+        .single();
 
-      if (iError) throw iError;
-
-      // If nothing was deleted from injection_logs, try protocol_logs
-      if (!iData || iData.length === 0) {
-        const { error: pError } = await supabase
-          .from('protocol_logs')
+      if (slEntry) {
+        deletedEntry = slEntry;
+        const { error: sError } = await supabase
+          .from('service_logs')
           .delete()
           .eq('id', id);
+        if (sError) throw sError;
+      } else {
+        // Try injection_logs
+        const { data: ilEntry } = await supabase
+          .from('injection_logs')
+          .select('*')
+          .eq('id', id)
+          .single();
 
-        if (pError) throw pError;
+        if (ilEntry) {
+          deletedEntry = ilEntry;
+          const { error: iError } = await supabase
+            .from('injection_logs')
+            .delete()
+            .eq('id', id);
+          if (iError) throw iError;
+        } else {
+          // Try protocol_logs
+          const { data: plEntry } = await supabase
+            .from('protocol_logs')
+            .select('*')
+            .eq('id', id)
+            .single();
+          if (plEntry) {
+            deletedEntry = {
+              protocol_id: plEntry.protocol_id,
+              patient_id: plEntry.patient_id,
+              entry_date: plEntry.log_date,
+              category: 'weight_loss',
+              entry_type: plEntry.log_type === 'injection' ? 'injection' : 'injection',
+            };
+          }
+          const { error: pError } = await supabase
+            .from('protocol_logs')
+            .delete()
+            .eq('id', id);
+          if (pError) throw pError;
+        }
+      }
+    }
+
+    // ── Sync protocol after deletion ──
+    // Clean up matching entries in other tables and recalculate protocol state
+    if (deletedEntry) {
+      const protocolId = deletedEntry.protocol_id;
+      const patientId = deletedEntry.patient_id;
+      const entryDate = deletedEntry.entry_date;
+      const category = deletedEntry.category;
+
+      // 1. Clean up matching protocol_logs entry (if we deleted from service_logs)
+      if (source !== 'protocol_logs' && protocolId && entryDate) {
+        await supabase
+          .from('protocol_logs')
+          .delete()
+          .eq('protocol_id', protocolId)
+          .eq('log_date', entryDate)
+          .then(() => {})
+          .catch(() => {});
+      }
+
+      // 2. Clean up matching service_logs entry (if we deleted from protocol_logs)
+      if (source === 'protocol_logs' && protocolId && entryDate) {
+        await supabase
+          .from('service_logs')
+          .delete()
+          .eq('protocol_id', protocolId)
+          .eq('entry_date', entryDate)
+          .then(() => {})
+          .catch(() => {});
+      }
+
+      // 3. Recalculate protocol sessions_used, last_visit_date, next_expected_date
+      if (protocolId) {
+        await recalcProtocolAfterDelete(protocolId, patientId, category);
       }
     }
 
@@ -457,6 +531,80 @@ async function handleDelete(req, res) {
   } catch (err) {
     console.error('Error deleting log:', err);
     return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+// Recalculate protocol state after an injection/session is deleted
+async function recalcProtocolAfterDelete(protocolId, patientId, category) {
+  try {
+    // Count remaining injection/checkin entries from protocol_logs
+    const { count: plCount } = await supabase
+      .from('protocol_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('protocol_id', protocolId)
+      .in('log_type', ['checkin', 'injection']);
+
+    // Also count from service_logs (non-pickup entries for this protocol)
+    const { count: slCount } = await supabase
+      .from('service_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('protocol_id', protocolId)
+      .in('entry_type', ['injection', 'session']);
+
+    // Use whichever count is higher (entries may exist in one or both tables)
+    const sessionsUsed = Math.max(plCount || 0, slCount || 0);
+
+    // Find the most recent remaining injection date
+    const { data: latestPL } = await supabase
+      .from('protocol_logs')
+      .select('log_date')
+      .eq('protocol_id', protocolId)
+      .in('log_type', ['checkin', 'injection'])
+      .order('log_date', { ascending: false })
+      .limit(1);
+
+    const { data: latestSL } = await supabase
+      .from('service_logs')
+      .select('entry_date')
+      .eq('protocol_id', protocolId)
+      .in('entry_type', ['injection', 'session'])
+      .order('entry_date', { ascending: false })
+      .limit(1);
+
+    const plDate = latestPL?.[0]?.log_date || null;
+    const slDate = latestSL?.[0]?.entry_date || null;
+    const lastDate = plDate && slDate ? (plDate > slDate ? plDate : slDate)
+      : plDate || slDate || null;
+
+    const updateData = {
+      sessions_used: sessionsUsed,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (lastDate) {
+      updateData.last_visit_date = lastDate;
+      // Recalculate next_expected_date from the most recent injection + 7 days
+      const nextDate = new Date(lastDate + 'T12:00:00');
+      nextDate.setDate(nextDate.getDate() + 7);
+      updateData.next_expected_date = nextDate.toISOString().split('T')[0];
+    } else {
+      // All injections cleared — reset dates
+      updateData.last_visit_date = null;
+      updateData.next_expected_date = null;
+    }
+
+    const { error } = await supabase
+      .from('protocols')
+      .update(updateData)
+      .eq('id', protocolId);
+
+    if (error) {
+      console.error('recalcProtocolAfterDelete update error:', error);
+    } else {
+      console.log(`✓ Protocol ${protocolId} recalculated after delete: sessions_used=${sessionsUsed}, last_visit=${lastDate}`);
+    }
+  } catch (err) {
+    console.error('recalcProtocolAfterDelete error:', err);
   }
 }
 

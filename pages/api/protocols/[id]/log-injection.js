@@ -32,9 +32,18 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'log_id required' });
     }
     try {
-      // Delete from the appropriate table
+      let deletedDate = null;
+
+      // Delete from the appropriate table, capturing the date for cross-table cleanup
       if (source === 'service_log') {
-        // Try service_logs first, then injection_logs
+        // Fetch entry before deleting to get the date
+        const { data: slEntry } = await supabase
+          .from('service_logs')
+          .select('entry_date')
+          .eq('id', log_id)
+          .single();
+        deletedDate = slEntry?.entry_date || null;
+
         const { error: slErr } = await supabase
           .from('service_logs')
           .delete()
@@ -49,8 +58,26 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: 'Failed to delete log entry' });
           }
         }
+
+        // Clean up matching protocol_logs entry by date
+        if (deletedDate) {
+          await supabase
+            .from('protocol_logs')
+            .delete()
+            .eq('protocol_id', id)
+            .eq('log_date', deletedDate)
+            .catch(() => {});
+        }
       } else {
-        // Delete from protocol_logs
+        // Fetch protocol_logs entry before deleting to get the date
+        const { data: plEntry } = await supabase
+          .from('protocol_logs')
+          .select('log_date')
+          .eq('id', log_id)
+          .eq('protocol_id', id)
+          .single();
+        deletedDate = plEntry?.log_date || null;
+
         const { error: delErr } = await supabase
           .from('protocol_logs')
           .delete()
@@ -60,42 +87,81 @@ export default async function handler(req, res) {
           console.error('Delete protocol log error:', delErr);
           return res.status(500).json({ error: 'Failed to delete log entry' });
         }
+
+        // Clean up matching service_logs entry by date
+        if (deletedDate) {
+          await supabase
+            .from('service_logs')
+            .delete()
+            .eq('protocol_id', id)
+            .eq('entry_date', deletedDate)
+            .catch(() => {});
+        }
       }
 
-      // Also try to delete matching service_logs entry (sync cleanup)
-      // Find service_logs by protocol_id and similar date
-      if (source !== 'service_log') {
-        await supabase
-          .from('service_logs')
-          .delete()
-          .eq('protocol_id', id)
-          .eq('id', log_id)
-          .then(() => {}) // Ignore if no match
-          .catch(() => {}); // Ignore errors
-      }
-
-      // Recount actual injection/checkin logs and update sessions_used
-      const { count: logCount } = await supabase
+      // Recount from both tables and use whichever is higher
+      const { count: plCount } = await supabase
         .from('protocol_logs')
         .select('*', { count: 'exact', head: true })
         .eq('protocol_id', id)
         .in('log_type', ['checkin', 'injection']);
 
-      const newSessionsUsed = logCount || 0;
+      const { count: slCount } = await supabase
+        .from('service_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('protocol_id', id)
+        .in('entry_type', ['injection', 'session']);
+
+      const newSessionsUsed = Math.max(plCount || 0, slCount || 0);
+
+      // Find the most recent remaining injection date for recalculating next_expected_date
+      const { data: latestPL } = await supabase
+        .from('protocol_logs')
+        .select('log_date')
+        .eq('protocol_id', id)
+        .in('log_type', ['checkin', 'injection'])
+        .order('log_date', { ascending: false })
+        .limit(1);
+
+      const { data: latestSL } = await supabase
+        .from('service_logs')
+        .select('entry_date')
+        .eq('protocol_id', id)
+        .in('entry_type', ['injection', 'session'])
+        .order('entry_date', { ascending: false })
+        .limit(1);
+
+      const plDate = latestPL?.[0]?.log_date || null;
+      const slDate = latestSL?.[0]?.entry_date || null;
+      const lastDate = plDate && slDate ? (plDate > slDate ? plDate : slDate)
+        : plDate || slDate || null;
+
+      const updateData = {
+        sessions_used: newSessionsUsed,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (lastDate) {
+        updateData.last_visit_date = lastDate;
+        const nextDate = new Date(lastDate + 'T12:00:00');
+        nextDate.setDate(nextDate.getDate() + 7);
+        updateData.next_expected_date = nextDate.toISOString().split('T')[0];
+      } else {
+        // All injections cleared — reset dates
+        updateData.last_visit_date = null;
+        updateData.next_expected_date = null;
+      }
 
       const { error: updateErr } = await supabase
         .from('protocols')
-        .update({
-          sessions_used: newSessionsUsed,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', id);
 
       if (updateErr) {
-        console.error('Update sessions_used after delete error:', updateErr);
+        console.error('Update protocol after delete error:', updateErr);
       }
 
-      console.log(`✓ Injection cleared for protocol ${id}: sessions_used now ${newSessionsUsed}`);
+      console.log(`✓ Injection cleared for protocol ${id}: sessions_used=${newSessionsUsed}, last_visit=${lastDate}`);
 
       return res.status(200).json({
         success: true,

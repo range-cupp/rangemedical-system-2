@@ -363,16 +363,15 @@ export default function ProtocolDetail() {
       setInjectionLogs(unique);
       setWeightProgress(data.weightProgress || null);
 
-      // Reconcile sessions_used with actual injection log count
-      const injectionCount = unique.length;
-      if (protocol && injectionCount > (protocol.sessions_used || 0)) {
-        setProtocol(prev => ({ ...prev, sessions_used: injectionCount }));
-        // Also fix in DB
-        fetch(`/api/protocols/${protocolId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessions_used: injectionCount })
-        }).catch(() => {});
+      // Sync local state with protocol.sessions_used from DB (authoritative source)
+      // Do NOT auto-correct upward based on merged log count — that causes ghost entries
+      // from stale cross-table data to bump the count back up after deletions.
+      if (protocol && protocol.sessions_used !== undefined) {
+        const dbCount = protocol.sessions_used || 0;
+        if (unique.length !== dbCount) {
+          // Trust the DB count, trim or pad the local log list display
+          setProtocol(prev => prev);
+        }
       }
     } catch (err) {
       console.error('Error fetching injection logs:', err);

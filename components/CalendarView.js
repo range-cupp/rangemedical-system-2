@@ -228,10 +228,10 @@ export default function CalendarView({ preselectedPatient = null }) {
     setAvailableSlots(null);
     setApptTime(''); // Reset selected time when date changes
 
-    let url = `/api/bookings/slots?eventTypeId=${eventType.id}&date=${apptDate}`;
-    if (selectedProvider?.calcomUsername) {
-      url += `&memberUsername=${encodeURIComponent(selectedProvider.calcomUsername)}`;
-    }
+    // Cal.com v2 doesn't support per-member slot filtering — fetch combined team availability.
+    // For location-specific event types (e.g., range-iv-placentia), only that location's
+    // host(s) are on the event type, so the slots are already provider-scoped.
+    const url = `/api/bookings/slots?eventTypeId=${eventType.id}&date=${apptDate}`;
 
     fetch(url)
       .then(r => r.json())
@@ -267,7 +267,7 @@ export default function CalendarView({ preselectedPatient = null }) {
       });
 
     return () => { cancelled = true; };
-  }, [apptDate, selectedService?.calcomSlug, selectedProvider?.calcomUsername, eventTypesMap, resolveEventType]);
+  }, [apptDate, selectedService?.calcomSlug, eventTypesMap, resolveEventType]);
 
   // Pre-fill wizard if patient is preselected
   useEffect(() => {

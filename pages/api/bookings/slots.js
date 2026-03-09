@@ -8,7 +8,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { eventTypeId, date, memberUsername } = req.query;
+  const { eventTypeId, date } = req.query;
 
   if (!eventTypeId || !date) {
     return res.status(400).json({ error: 'eventTypeId and date are required' });
@@ -23,8 +23,7 @@ export default async function handler(req, res) {
       parseInt(eventTypeId),
       startTime,
       endTime,
-      'America/Los_Angeles',
-      memberUsername || null
+      'America/Los_Angeles'
     );
 
     if (!slots) {

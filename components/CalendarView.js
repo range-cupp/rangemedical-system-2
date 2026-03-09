@@ -63,6 +63,7 @@ export default function CalendarView({ preselectedPatient = null }) {
 
   // Cal.com availability state
   const [eventTypesMap, setEventTypesMap] = useState({}); // slug → { id, hosts }
+  const [providerSchedules, setProviderSchedules] = useState({}); // username → { newport: { monday: [{start,end}], ... }, locations: { placentia: { monday: [{start,end}] } } }
   const [availableSlots, setAvailableSlots] = useState(null); // null = not loaded, [] = no slots, [...] = available
   const [loadingSlots, setLoadingSlots] = useState(false);
 
@@ -182,7 +183,7 @@ export default function CalendarView({ preselectedPatient = null }) {
 
   const closeDrawer = () => { setDrawerData(null); setDrawerLoading(false); };
 
-  // Fetch Cal.com event types once on mount → build slug→id map
+  // Fetch Cal.com event types + provider schedules once on mount
   useEffect(() => {
     fetch('/api/bookings/event-types')
       .then(r => r.json())
@@ -196,6 +197,13 @@ export default function CalendarView({ preselectedPatient = null }) {
         }
       })
       .catch(err => console.error('Failed to load Cal.com event types:', err));
+
+    fetch('/api/bookings/provider-schedules')
+      .then(r => r.json())
+      .then(data => {
+        if (data.schedules) setProviderSchedules(data.schedules);
+      })
+      .catch(err => console.error('Failed to load provider schedules:', err));
   }, []);
 
   // Resolve the Cal.com event type for the current service + location
@@ -210,7 +218,37 @@ export default function CalendarView({ preselectedPatient = null }) {
     return eventTypesMap[slug] ? { ...eventTypesMap[slug], slug } : null;
   }, [eventTypesMap, selectedLocation?.id]);
 
-  // Fetch available slots from Cal.com when date/service/provider/location change
+  // Check if a time slot falls within a provider's schedule hours for a given day
+  const isSlotInProviderSchedule = useCallback((timeStr, dayOfWeek) => {
+    if (!selectedProvider?.calcomUsername || !providerSchedules[selectedProvider.calcomUsername]) {
+      return true; // No schedule data → allow all (don't block)
+    }
+
+    const schedule = providerSchedules[selectedProvider.calcomUsername];
+    const dayName = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][dayOfWeek];
+
+    // Use location-specific schedule when applicable, fall back to newport (default)
+    let dayHours;
+    if (selectedLocation?.id === 'placentia' && schedule.locations?.placentia?.[dayName]) {
+      dayHours = schedule.locations.placentia[dayName];
+    } else {
+      dayHours = schedule.newport?.[dayName];
+    }
+
+    if (!dayHours || dayHours.length === 0) return false; // Provider is off this day
+
+    // Check if the slot time falls within any of the provider's hour blocks
+    const [h, m] = timeStr.split(':').map(Number);
+    const slotMinutes = h * 60 + m;
+
+    return dayHours.some(block => {
+      const [sh, sm] = block.start.split(':').map(Number);
+      const [eh, em] = block.end.split(':').map(Number);
+      return slotMinutes >= sh * 60 + sm && slotMinutes < eh * 60 + em;
+    });
+  }, [selectedProvider?.calcomUsername, selectedLocation?.id, providerSchedules]);
+
+  // Fetch available slots from Cal.com when date/service/location change
   useEffect(() => {
     if (!apptDate || !selectedService?.calcomSlug) {
       setAvailableSlots(null);
@@ -243,6 +281,9 @@ export default function CalendarView({ preselectedPatient = null }) {
         const daySlots = data.slots || {};
         const slotTimes = [];
         const requestedDaySlots = daySlots[apptDate] || [];
+        const dateObj = new Date(apptDate + 'T12:00:00'); // noon to avoid timezone issues
+        const dayOfWeek = dateObj.getDay();
+
         if (Array.isArray(requestedDaySlots)) {
           requestedDaySlots.forEach(slot => {
             const startStr = typeof slot === 'string' ? slot : slot.start;
@@ -250,7 +291,11 @@ export default function CalendarView({ preselectedPatient = null }) {
               const d = new Date(startStr);
               const hours = d.getHours().toString().padStart(2, '0');
               const mins = d.getMinutes().toString().padStart(2, '0');
-              slotTimes.push(`${hours}:${mins}`);
+              const timeStr = `${hours}:${mins}`;
+              // Filter by provider's schedule hours when a provider is selected
+              if (isSlotInProviderSchedule(timeStr, dayOfWeek)) {
+                slotTimes.push(timeStr);
+              }
             }
           });
         }
@@ -266,7 +311,7 @@ export default function CalendarView({ preselectedPatient = null }) {
       });
 
     return () => { cancelled = true; };
-  }, [apptDate, selectedService?.calcomSlug, eventTypesMap, resolveEventType]);
+  }, [apptDate, selectedService?.calcomSlug, selectedProvider?.calcomUsername, eventTypesMap, resolveEventType, isSlotInProviderSchedule]);
 
   // Pre-fill wizard if patient is preselected
   useEffect(() => {

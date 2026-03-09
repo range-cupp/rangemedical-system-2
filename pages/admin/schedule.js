@@ -114,6 +114,18 @@ export default function SchedulePage() {
     });
   };
 
+  const deleteAppointment = async (apptId) => {
+    if (!confirm('Delete this appointment? The patient will NOT be notified.')) return;
+    try {
+      const res = await fetch(`/api/appointments/${apptId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setAppointments(prev => prev.filter(a => a.id !== apptId));
+      }
+    } catch (err) {
+      console.error('Delete appointment error:', err);
+    }
+  };
+
   const renderAppointmentList = (list, emptyMsg) => (
     <div style={styles.card}>
       {loading ? (
@@ -130,6 +142,7 @@ export default function SchedulePage() {
               <th style={styles.th}>Provider</th>
               <th style={styles.th}>Location</th>
               <th style={styles.th}>Status</th>
+              <th style={{ ...styles.th, width: '60px' }}></th>
             </tr>
           </thead>
           <tbody>
@@ -184,6 +197,15 @@ export default function SchedulePage() {
                         );
                       })()}
                     </div>
+                  </td>
+                  <td style={styles.td}>
+                    <button
+                      onClick={() => deleteAppointment(apt.id)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999', fontSize: '13px', padding: '4px' }}
+                      title="Delete (no notification)"
+                    >
+                      ✕
+                    </button>
                   </td>
                 </tr>
               );

@@ -66,6 +66,7 @@ export default function PatientProfile() {
   const [intakes, setIntakes] = useState([]);
   const [consents, setConsents] = useState([]);
   const [medicalDocuments, setMedicalDocuments] = useState([]);
+  const [assessments, setAssessments] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [symptomResponses, setSymptomResponses] = useState([]);
   const [questionnaireResponses, setQuestionnaireResponses] = useState([]);
@@ -261,6 +262,7 @@ export default function PatientProfile() {
         setIntakes(data.intakes || []);
         setConsents(data.consents || []);
         setMedicalDocuments(data.medicalDocuments || []);
+        setAssessments(data.assessments || []);
         setSessions(data.sessions || []);
         setSymptomResponses(data.symptomResponses || []);
         setQuestionnaireResponses(data.questionnaireResponses || []);
@@ -1376,7 +1378,7 @@ export default function PatientProfile() {
           <button className={activeTab === 'timeline' ? 'active' : ''} onClick={() => { setActiveTab('timeline'); if (timeline.length === 0) fetchTimeline(); }}>Timeline</button>
           <button className={activeTab === 'labs' ? 'active' : ''} onClick={() => setActiveTab('labs')}>Labs</button>
           <button className={activeTab === 'appointments' ? 'active' : ''} onClick={() => setActiveTab('appointments')}>Visits{(appointments.length + serviceLogs.length) > 0 && <span className="tab-count">{appointments.length + serviceLogs.length}</span>}</button>
-          <button className={activeTab === 'intakes' ? 'active' : ''} onClick={() => setActiveTab('intakes')}>Docs{(intakes.length + consents.length + medicalDocuments.length) > 0 && <span className="tab-count">{intakes.length + consents.length + medicalDocuments.length}</span>}</button>
+          <button className={activeTab === 'intakes' ? 'active' : ''} onClick={() => setActiveTab('intakes')}>Docs{(intakes.length + consents.length + medicalDocuments.length + assessments.length) > 0 && <span className="tab-count">{intakes.length + consents.length + medicalDocuments.length + assessments.length}</span>}</button>
           <button className={activeTab === 'notes' ? 'active' : ''} onClick={() => setActiveTab('notes')}>Notes{notes.length > 0 && <span className="tab-count">{notes.length}</span>}</button>
           <button className={activeTab === 'symptoms' ? 'active' : ''} onClick={() => setActiveTab('symptoms')}>Symptoms{questionnaireResponses.length > 0 && <span className="tab-count">{questionnaireResponses.length}</span>}</button>
           <button className={activeTab === 'payments' ? 'active' : ''} onClick={() => setActiveTab('payments')}>Payments</button>
@@ -2191,9 +2193,63 @@ export default function PatientProfile() {
             </>
           )}
 
-          {/* Documents Tab (Intakes + Consents) */}
+          {/* Documents Tab (Intakes + Consents + Assessments) */}
           {activeTab === 'intakes' && (
             <>
+              {/* Assessments Section */}
+              {assessments.length > 0 && (
+                <section className="card">
+                  <div className="card-header">
+                    <h3>Assessments ({assessments.length})</h3>
+                  </div>
+                  <div className="document-list">
+                    {assessments.map(a => {
+                      const pathLabel = a.assessment_path === 'injury' ? 'Injury & Recovery' : 'Energy & Optimization';
+                      const pathIcon = a.assessment_path === 'injury' ? '🏥' : '⚡';
+                      const pathColor = a.assessment_path === 'injury' ? '#dc2626' : '#16a34a';
+                      // Build summary from fields
+                      const details = [];
+                      if (a.assessment_path === 'injury') {
+                        if (a.injury_type) details.push(`Type: ${a.injury_type.replace(/_/g, ' ')}`);
+                        if (a.injury_location) details.push(`Location: ${a.injury_location.replace(/_/g, ' ')}`);
+                        if (a.injury_duration) details.push(`Duration: ${a.injury_duration.replace(/_/g, ' ')}`);
+                        if (a.recovery_goal) details.push(`Goal: ${a.recovery_goal.replace(/_/g, ' ')}`);
+                      } else {
+                        if (a.primary_symptom) details.push(`Symptoms: ${a.primary_symptom.replace(/_/g, ' ')}`);
+                        if (a.energy_goal) details.push(`Goals: ${a.energy_goal.replace(/_/g, ' ')}`);
+                        if (a.tried_hormone_therapy) details.push(`Previous HRT: ${a.tried_hormone_therapy}`);
+                      }
+                      if (a.additional_info) details.push(`Notes: ${a.additional_info}`);
+
+                      return (
+                        <div key={a.id} className="document-card" onClick={() => a.pdf_url && openPdfViewer(a.pdf_url, `${a.first_name} ${a.last_name} — ${pathLabel} Assessment`)} style={{ cursor: a.pdf_url ? 'pointer' : 'default' }}>
+                          <div className="document-header">
+                            <span className="document-icon">{pathIcon}</span>
+                            <div>
+                              <strong>{pathLabel} Assessment</strong>
+                              <span className="document-type" style={{ color: pathColor }}>{a.first_name} {a.last_name}</span>
+                            </div>
+                          </div>
+                          <div style={{ padding: '8px 12px', fontSize: 13, color: '#525252', lineHeight: '1.5' }}>
+                            {details.map((d, i) => (
+                              <div key={i}>{d}</div>
+                            ))}
+                          </div>
+                          <div className="document-details">
+                            <span>{formatDate(a.created_at)}</span>
+                            {a.medical_history && <span style={{ color: '#16a34a', fontWeight: 500 }}>✓ Intake completed</span>}
+                            {!a.medical_history && <span style={{ color: '#d97706' }}>Pending intake</span>}
+                          </div>
+                          <div className="document-actions">
+                            {a.pdf_url && <button onClick={e => { e.stopPropagation(); openPdfViewer(a.pdf_url, `${a.first_name} ${a.last_name} — ${pathLabel} Assessment`); }} className="btn-secondary-sm">View PDF</button>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+
               {/* Consent Forms Section */}
               <section className="card">
                 <div className="card-header">

@@ -460,6 +460,17 @@ export default async function handler(req, res) {
         .eq('patient_id', id)
         .order('uploaded_at', { ascending: false });
 
+      // ===== Get assessment leads (by email match) =====
+      let assessments = [];
+      if (patient.email) {
+        const { data: assessmentData } = await supabase
+          .from('assessment_leads')
+          .select('id, first_name, last_name, email, phone, assessment_path, injury_type, injury_location, injury_duration, in_physical_therapy, recovery_goal, primary_symptom, symptom_duration, has_recent_labs, tried_hormone_therapy, energy_goal, additional_info, medical_history, pdf_url, created_at')
+          .eq('email', patient.email.toLowerCase().trim())
+          .order('created_at', { ascending: false });
+        assessments = assessmentData || [];
+      }
+
       // ===== Weight loss service logs (for progress chart) =====
       const { data: weightLossLogs } = await supabase
         .from('service_logs')
@@ -633,6 +644,7 @@ export default async function handler(req, res) {
         intakes: intakes || [],
         consents: consents || [],
         medicalDocuments: medicalDocuments || [],
+        assessments: assessments || [],
         sessions: sessions || [],
         symptomResponses: symptomResponses || [],
         questionnaireResponses: questionnaireResponses || [],

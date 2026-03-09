@@ -59,7 +59,7 @@ const APPT_CATEGORY_TO_SERVICE_LOG = {
 // Session-based categories that show "Log Session" in popover
 const SESSION_BASED_CATEGORIES = ['rlt', 'hbot', 'iv', 'injection'];
 
-const HOURS = Array.from({ length: 10 }, (_, i) => i + 9); // 9 AM to 6 PM
+const HOURS = Array.from({ length: 15 }, (_, i) => i + 6); // 6 AM to 8 PM
 
 export default function CalendarView({ preselectedPatient = null }) {
   // Calendar state
@@ -784,9 +784,9 @@ export default function CalendarView({ preselectedPatient = null }) {
         {columnized.map(({ appt, column, totalColumns }) => {
           const start = new Date(appt.start_time);
           const startHour = start.getHours() + start.getMinutes() / 60;
-          const top = (startHour - 9) * 60;
+          const top = (startHour - 6) * 60;
           const height = Math.max(appt.duration_minutes || 30, 20);
-          if (top < 0 || startHour > 18) return null;
+          if (top < 0 || startHour > 20) return null;
           const catStyle = getApptStyle(appt);
 
           // Calculate horizontal position based on column
@@ -838,8 +838,8 @@ export default function CalendarView({ preselectedPatient = null }) {
         {/* Current time line */}
         {showTimeLine && (() => {
           const nowHour = now.getHours() + now.getMinutes() / 60;
-          if (nowHour < 9 || nowHour > 18) return null;
-          const top = (nowHour - 9) * 60;
+          if (nowHour < 6 || nowHour > 20) return null;
+          const top = (nowHour - 6) * 60;
           return <div style={{ ...styles.timeLine, top: `${top}px` }} />;
         })()}
       </div>
@@ -2240,11 +2240,11 @@ function getWeekStart(d) {
 
 function generateTimeSlots() {
   const slots = [];
-  for (let h = 9; h <= 17; h++) {
+  for (let h = 6; h <= 19; h++) {
     slots.push(`${String(h).padStart(2, '0')}:00`);
     slots.push(`${String(h).padStart(2, '0')}:30`);
   }
-  slots.push('18:00');
+  slots.push('20:00');
   return slots;
 }
 
@@ -2354,7 +2354,7 @@ const styles = {
   // Day view
   dayGrid: {
     position: 'relative',
-    minHeight: `${10 * 60}px`,
+    minHeight: `${15 * 60}px`,
     paddingLeft: '70px',
   },
   hourRow: {

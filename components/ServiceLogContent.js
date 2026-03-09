@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatPhone } from '../lib/format-utils';
-import { WEIGHT_LOSS_MEDICATIONS, WEIGHT_LOSS_DOSAGES } from '../lib/protocol-config';
+import { WEIGHT_LOSS_MEDICATIONS, WEIGHT_LOSS_DOSAGES, PEPTIDE_OPTIONS as ALL_PEPTIDE_OPTIONS } from '../lib/protocol-config';
 import { PROTOCOL_TYPES, getDeliveryLabel } from '../lib/protocol-types';
 import SignatureCanvas from './SignatureCanvas';
 
@@ -54,13 +54,10 @@ const VITAMIN_OPTIONS = [
   { value: 'Toradol', label: 'Toradol' }
 ];
 
-// Peptides — from protocol-types single source of truth (recovery + GH)
-const _recoveryMeds = PROTOCOL_TYPES.peptide.medications;
-const _ghMeds = PROTOCOL_TYPES.gh_peptide.medications;
-const _allPeptideMeds = [...new Set([..._recoveryMeds, ..._ghMeds])];
+// Peptides — from protocol-config single source of truth (all peptide groups)
 const PEPTIDE_OPTIONS = [
-  ..._allPeptideMeds.map(m => ({ value: m, label: m })),
-  { value: 'Other', label: 'Other (specify in notes)' }
+  ...ALL_PEPTIDE_OPTIONS.flatMap(group => group.options.map(opt => ({ value: opt.value, label: opt.value, group: group.group }))),
+  { value: 'Other', label: 'Other (specify in notes)', group: null }
 ];
 
 // IV Therapy — from protocol-types single source of truth
@@ -1629,9 +1626,14 @@ export default function ServiceLogContent() {
                             {formData.medication && !PEPTIDE_OPTIONS.find(p => p.value === formData.medication) && (
                               <option value={formData.medication}>{formData.medication} (from protocol)</option>
                             )}
-                            {PEPTIDE_OPTIONS.map(p => (
-                              <option key={p.value} value={p.value}>{p.label}</option>
+                            {ALL_PEPTIDE_OPTIONS.map(group => (
+                              <optgroup key={group.group} label={group.group}>
+                                {group.options.map(opt => (
+                                  <option key={opt.value} value={opt.value}>{opt.value}</option>
+                                ))}
+                              </optgroup>
                             ))}
+                            <option value="Other">Other (specify in notes)</option>
                           </select>
                         </div>
 

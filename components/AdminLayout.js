@@ -6,6 +6,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import { useAuth } from './AuthProvider';
 
 // SMS notification sound — two-tone "ding-ding" (880Hz + 1100Hz)
 function playNotificationSound() {
@@ -229,6 +230,8 @@ const NAV_ITEMS = [
   { href: '/admin/purchases', label: 'Purchases', icon: 'shopping-bag' },
   { href: '/admin/communications', label: 'Communications', icon: 'message' },
   { href: '/admin/send-forms', label: 'Send Forms', icon: 'file-text' },
+  { href: '/admin/provider-schedule', label: 'Provider Hours', icon: 'clock' },
+  { href: '/admin/employees', label: 'Employees', icon: 'user-check', permission: 'can_manage_employees' },
   { href: '/admin/settings', label: 'Settings', icon: 'settings' }
 ];
 
@@ -299,6 +302,21 @@ const icons = {
       <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
   ),
+  clock: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+    </svg>
+  ),
+  'user-check': (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="8.5" cy="7" r="4" /><polyline points="17 11 19 13 23 9" />
+    </svg>
+  ),
+  'log-out': (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  ),
   menu: (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" />
@@ -317,6 +335,29 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const unreadCount = useUnreadNotifications(router);
   useNewPatientNotifications(router);
+  const { employee, loading: authLoading, signOut, hasPermission, isAuthenticated } = useAuth();
+
+  // Redirect to login if not authenticated (after loading completes)
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.replace('/login');
+    }
+  }, [authLoading, isAuthenticated, router]);
+
+  // Show nothing while checking auth
+  if (authLoading || !isAuthenticated) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', color: '#666' }}>
+        Loading...
+      </div>
+    );
+  }
+
+  // Filter nav items based on permissions
+  const visibleNavItems = NAV_ITEMS.filter(item => {
+    if (!item.permission) return true;
+    return hasPermission(item.permission);
+  });
 
   return (
     <>
@@ -346,7 +387,7 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
           </div>
 
           <nav style={styles.nav}>
-            {NAV_ITEMS.map(item => {
+            {visibleNavItems.map(item => {
               const isActive = currentPath === item.href ||
                 (item.href !== '/admin' && currentPath.startsWith(item.href)) ||
                 (item.href === '/admin/patients' && currentPath.startsWith('/patients'));
@@ -380,6 +421,24 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
             <Link href="/admin/command-center" style={styles.commandCenterLink}>
               Command Center
             </Link>
+            {employee && (
+              <div style={styles.employeeInfo}>
+                <div style={styles.employeeAvatar}>
+                  {(employee.name || '?')[0].toUpperCase()}
+                </div>
+                <div style={styles.employeeDetails}>
+                  <div style={styles.employeeName}>{employee.name}</div>
+                  <div style={styles.employeeTitle}>{employee.title}{employee.is_admin ? ' · Admin' : ''}</div>
+                </div>
+                <button
+                  onClick={signOut}
+                  style={styles.signOutBtn}
+                  title="Sign out"
+                >
+                  {icons['log-out']}
+                </button>
+              </div>
+            )}
           </div>
         </aside>
 
@@ -803,6 +862,56 @@ const styles = {
     padding: '8px 12px',
     borderRadius: '8px',
     transition: 'color 0.15s'
+  },
+  employeeInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '10px 12px',
+    marginTop: '8px',
+    borderRadius: '10px',
+    background: 'rgba(255,255,255,0.06)',
+  },
+  employeeAvatar: {
+    width: '32px',
+    height: '32px',
+    borderRadius: '50%',
+    background: 'rgba(255,255,255,0.15)',
+    color: '#fff',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '14px',
+    fontWeight: 700,
+    flexShrink: 0,
+  },
+  employeeDetails: {
+    flex: 1,
+    minWidth: 0,
+  },
+  employeeName: {
+    fontSize: '13px',
+    fontWeight: 600,
+    color: '#fff',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  employeeTitle: {
+    fontSize: '11px',
+    color: 'rgba(255,255,255,0.5)',
+  },
+  signOutBtn: {
+    background: 'none',
+    border: 'none',
+    color: 'rgba(255,255,255,0.4)',
+    cursor: 'pointer',
+    padding: '4px',
+    borderRadius: '6px',
+    display: 'flex',
+    alignItems: 'center',
+    transition: 'color 0.15s',
+    flexShrink: 0,
   },
   mainWrapper: {
     flex: 1,

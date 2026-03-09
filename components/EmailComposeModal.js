@@ -4,6 +4,7 @@
 // Range Medical System
 
 import { useState, useEffect } from 'react';
+import { Sparkles } from 'lucide-react';
 import { sharedStyles } from './AdminLayout';
 
 export default function EmailComposeModal({
@@ -20,6 +21,7 @@ export default function EmailComposeModal({
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
+  const [formatting, setFormatting] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
 
@@ -34,6 +36,39 @@ export default function EmailComposeModal({
       setError('');
     }
   }, [isOpen, recipientEmail]);
+
+  const handleFormat = async () => {
+    if (!body.trim()) {
+      setError('Write or dictate your message first, then format');
+      return;
+    }
+    setError('');
+    setFormatting(true);
+
+    try {
+      const res = await fetch('/api/email/format', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          raw_text: body,
+          recipientName: recipientName || patientName || null,
+          subject: subject || null,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.formatted) {
+        setBody(data.formatted);
+      } else {
+        setError(data.error || 'Failed to format email');
+      }
+    } catch (err) {
+      setError('Failed to format email');
+    } finally {
+      setFormatting(false);
+    }
+  };
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -133,13 +168,39 @@ export default function EmailComposeModal({
                 </div>
 
                 <div>
-                  <label style={sharedStyles.label}>Message</label>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <label style={sharedStyles.label}>Message</label>
+                    <button
+                      type="button"
+                      onClick={handleFormat}
+                      disabled={formatting || !body.trim()}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        padding: '4px 10px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: formatting ? '#9ca3af' : '#7c3aed',
+                        background: formatting ? '#f3f4f6' : '#f5f3ff',
+                        border: '1px solid',
+                        borderColor: formatting ? '#e5e7eb' : '#ddd6fe',
+                        borderRadius: '6px',
+                        cursor: formatting || !body.trim() ? 'not-allowed' : 'pointer',
+                        opacity: !body.trim() ? 0.5 : 1,
+                        marginBottom: '6px',
+                      }}
+                    >
+                      <Sparkles size={13} />
+                      {formatting ? 'Formatting...' : 'AI Format'}
+                    </button>
+                  </div>
                   <textarea
                     value={body}
                     onChange={e => setBody(e.target.value)}
                     required
                     style={modalStyles.textarea}
-                    placeholder="Type your message..."
+                    placeholder="Type or dictate your message, then click AI Format to clean it up..."
                     rows={8}
                   />
                 </div>

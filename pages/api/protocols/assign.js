@@ -157,6 +157,7 @@ export default async function handler(req, res) {
       supplyType,
       // HRT additional fields
       hrtType,
+      injectionMethod,
       hrtRemindersEnabled,
       hrtReminderSchedule,
       followupDate,
@@ -538,6 +539,7 @@ export default async function handler(req, res) {
         supply_type: supplyType || null,
         // HRT additional fields
         hrt_type: hrtType || null,
+        injection_method: injectionMethod || null,
         hrt_reminders_enabled: hrtRemindersEnabled || false,
         hrt_reminder_schedule: hrtReminderSchedule || null,
         hrt_followup_date: followupDate || null,

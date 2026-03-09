@@ -23,6 +23,7 @@ import {
   HRT_MEDICATIONS,
   TESTOSTERONE_DOSES,
   HRT_SUPPLY_TYPES,
+  INJECTION_METHODS,
   FREQUENCY_OPTIONS,
   VISIT_FREQUENCY_OPTIONS,
   PROTOCOL_STATUS_OPTIONS,
@@ -146,6 +147,8 @@ export default function PatientProfile() {
     endDate: '', status: '', notes: '', sessionsUsed: 0, totalSessions: null,
     // HRT vial-specific fields
     dosePerInjection: '', injectionsPerWeek: 2, vialSize: '', supplyType: '', lastRefillDate: '',
+    // HRT injection method (IM or SubQ)
+    injectionMethod: '',
     // In-clinic scheduling fields
     deliveryMethod: '', visitFrequency: '', scheduledDays: [], lastVisitDate: '', nextExpectedDate: ''
   });
@@ -650,6 +653,8 @@ export default function PatientProfile() {
       vialSize: protocol.vial_size || '',
       supplyType: supplyType,
       lastRefillDate: protocol.last_refill_date || '',
+      // HRT injection method
+      injectionMethod: protocol.injection_method || '',
       // In-clinic scheduling fields
       deliveryMethod: deliveryMethod,
       visitFrequency: protocol.visit_frequency || '',
@@ -683,6 +688,8 @@ export default function PatientProfile() {
           vial_size: editForm.vialSize ? parseFloat(editForm.vialSize) : null,
           supply_type: editForm.supplyType || null,
           last_refill_date: dateOrNull(editForm.lastRefillDate),
+          // HRT injection method
+          injection_method: editForm.injectionMethod || null,
           // In-clinic scheduling fields
           delivery_method: editForm.deliveryMethod || null,
           visit_frequency: editForm.visitFrequency || null,
@@ -1744,6 +1751,46 @@ export default function PatientProfile() {
                               <button onClick={() => openEditModal(protocol)} className="btn-secondary-sm">Edit</button>
                             </div>
                           </div>
+
+                          {/* HRT Onboarding Status */}
+                          {isHRTProtocol(protocol.program_type) && protocol.status === 'active' && (
+                            <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              {protocol.onboarding_start_date ? (
+                                <span style={{ fontSize: '12px', color: '#16a34a', fontWeight: 600 }}>
+                                  ✓ Onboarding started {formatShortDate(protocol.onboarding_start_date)}
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={async () => {
+                                    if (protocol.delivery_method === 'take_home' && !protocol.injection_method) {
+                                      alert('Please set the injection method (IM or SubQ) via Edit before starting onboarding.');
+                                      return;
+                                    }
+                                    if (!confirm('Start the HRT onboarding email + SMS sequence? A welcome email will be sent immediately.')) return;
+                                    try {
+                                      const resp = await fetch('/api/protocols/start-hrt-onboarding', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ protocolId: protocol.id })
+                                      });
+                                      const data = await resp.json();
+                                      if (data.success) {
+                                        alert(`Welcome email sent to ${data.email}. Onboarding sequence started!`);
+                                        fetchPatient();
+                                      } else {
+                                        alert('Error: ' + (data.error || 'Failed to start onboarding'));
+                                      }
+                                    } catch (err) {
+                                      alert('Error: ' + err.message);
+                                    }
+                                  }}
+                                  style={{ padding: '4px 12px', fontSize: '12px', fontWeight: 600, background: '#000', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                                >
+                                  Start Onboarding
+                                </button>
+                              )}
+                            </div>
+                          )}
 
                           {/* HRT Lab Schedule */}
                           {isHRTProtocol(protocol.program_type) && hrtLabSchedules[protocol.id]?.length > 0 && (() => {
@@ -3317,6 +3364,19 @@ export default function PatientProfile() {
                     ))}
                   </select>
                 </div>
+
+                {/* Injection Method (IM/SubQ) - show for HRT take-home protocols */}
+                {selectedProtocol?.category === 'hrt' && editForm.deliveryMethod === 'take_home' && (
+                  <div className="form-group">
+                    <label>Injection Method</label>
+                    <select value={editForm.injectionMethod} onChange={e => setEditForm({...editForm, injectionMethod: e.target.value})}>
+                      <option value="">Select...</option>
+                      {INJECTION_METHODS.map(im => (
+                        <option key={im.value} value={im.value}>{im.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 {editForm.deliveryMethod === 'in_clinic' && (
                   <>

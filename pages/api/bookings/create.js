@@ -2,7 +2,7 @@
 // Creates a booking in Cal.com and stores it in Supabase
 
 import { createClient } from '@supabase/supabase-js';
-import { createBooking } from '../../../lib/calcom';
+import { createBooking, reassignBooking } from '../../../lib/calcom';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -38,7 +38,7 @@ export default async function handler(req, res) {
     // Use placeholder email if patient has none
     const email = patientEmail || `${patientId}@booking.rangemedical.com`;
 
-    // Create booking in Cal.com
+    // Create booking in Cal.com (round-robin auto-assigns host)
     const calResult = await createBooking({
       eventTypeId: parseInt(eventTypeId),
       start,
@@ -46,7 +46,6 @@ export default async function handler(req, res) {
       email,
       phoneNumber: patientPhone,
       notes,
-      hostUserId: hostUserId ? parseInt(hostUserId) : undefined,
     });
 
     if (calResult.error) {
@@ -55,6 +54,20 @@ export default async function handler(req, res) {
     }
 
     console.log('📅 Cal.com booking created:', calResult.id || calResult.uid);
+
+    // If a specific host was requested and Cal.com assigned someone else, reassign
+    if (hostUserId) {
+      const assignedHostId = calResult.hosts?.[0]?.id;
+      if (assignedHostId && assignedHostId !== parseInt(hostUserId)) {
+        console.log(`📅 Reassigning from host ${assignedHostId} to requested host ${hostUserId}`);
+        const reassignResult = await reassignBooking(calResult.uid, parseInt(hostUserId));
+        if (reassignResult.error) {
+          console.warn('Cal.com reassign failed (booking still created):', reassignResult.error);
+        } else {
+          console.log('📅 Host reassigned successfully');
+        }
+      }
+    }
 
     // Calculate end time
     const duration = durationMinutes || 30;

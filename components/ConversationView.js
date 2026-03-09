@@ -62,9 +62,10 @@ export default function ConversationView({ patientId, patientName, patientPhone,
     try {
       setLoading(true);
 
-      // Fetch local comms_log (by patient ID or phone number)
+      // Fetch local comms_log (by patient ID + phone to catch orphaned pre-link messages)
+      const phoneParam = patientPhone ? `&phone=${encodeURIComponent(patientPhone)}` : '';
       const commsUrl = patientId
-        ? `/api/patients/${patientId}/comms?limit=200`
+        ? `/api/patients/${patientId}/comms?limit=200${phoneParam}`
         : `/api/patients/_/comms?limit=200&phone=${encodeURIComponent(patientPhone)}`;
       const res = await fetch(commsUrl);
       const data = await res.json();

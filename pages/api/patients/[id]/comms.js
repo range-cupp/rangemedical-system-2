@@ -29,7 +29,10 @@ export default async function handler(req, res) {
       .from('comms_log')
       .select('id, channel, message_type, message, status, error_message, recipient, subject, direction, source, created_at');
 
-    if (id && id !== '_') {
+    if (id && id !== '_' && phone) {
+      // Query by patient_id OR matching phone — catches orphaned pre-link messages
+      query = query.or(`patient_id.eq.${id},recipient.eq.${phone}`);
+    } else if (id && id !== '_') {
       query = query.eq('patient_id', id);
     } else if (phone) {
       query = query.eq('recipient', phone);

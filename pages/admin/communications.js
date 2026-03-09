@@ -79,9 +79,21 @@ export default function CommunicationsPage() {
       // Also track unread count per patient (inbound + read_at IS NULL)
       const patientMap = {};
       const unreadCounts = {};
+      // Track phone → key mappings so we can merge duplicates
+      const phoneToKeys = {};
+
       for (const log of logs) {
         const key = log.patient_id || (log.ghl_contact_id ? `ghl_${log.ghl_contact_id}` : null) || (log.recipient ? `phone_${log.recipient}` : null);
         if (!key) continue;
+
+        // Track phone-to-key mapping for merging (normalize to last 10 digits)
+        if (log.recipient) {
+          const normalizedPhone = log.recipient.replace(/\D/g, '').slice(-10);
+          if (normalizedPhone.length === 10) {
+            if (!phoneToKeys[normalizedPhone]) phoneToKeys[normalizedPhone] = new Set();
+            phoneToKeys[normalizedPhone].add(key);
+          }
+        }
 
         // Count unread inbound messages per patient
         if (log.direction === 'inbound' && !log.read_at) {
@@ -98,6 +110,44 @@ export default function CommunicationsPage() {
             direction: log.direction || (log.message_type === 'inbound_sms' ? 'inbound' : 'outbound'),
             recipient: log.recipient || null,
           };
+        }
+      }
+
+      // Merge conversations that share the same phone number
+      // (e.g., messages sent before patient was linked vs after)
+      for (const [, keys] of Object.entries(phoneToKeys)) {
+        if (keys.size <= 1) continue;
+        const keyArr = Array.from(keys);
+        // Prefer the key with a patient_id (UUID), then ghl_, then phone_
+        const preferredKey = keyArr.find(k => !k.startsWith('phone_') && !k.startsWith('ghl_'))
+          || keyArr.find(k => k.startsWith('ghl_'))
+          || keyArr[0];
+
+        for (const key of keyArr) {
+          if (key === preferredKey) continue;
+          const other = patientMap[key];
+          const preferred = patientMap[preferredKey];
+          if (!other || !preferred) continue;
+
+          // Keep the most recent message
+          if (new Date(other.lastMessage) > new Date(preferred.lastMessage)) {
+            preferred.lastMessage = other.lastMessage;
+            preferred.lastPreview = other.lastPreview;
+            preferred.direction = other.direction;
+          }
+          // Prefer a real name over a raw phone number
+          if ((!preferred.name || preferred.name === preferred.recipient) && other.name && other.name !== other.recipient) {
+            preferred.name = other.name;
+          }
+          // Keep patient_id / ghl_contact_id if either has it
+          if (!preferred.id && other.id) preferred.id = other.id;
+          if (!preferred.ghl_contact_id && other.ghl_contact_id) preferred.ghl_contact_id = other.ghl_contact_id;
+          if (!preferred.recipient && other.recipient) preferred.recipient = other.recipient;
+          // Merge unread counts
+          unreadCounts[preferredKey] = (unreadCounts[preferredKey] || 0) + (unreadCounts[key] || 0);
+          // Remove the duplicate entry
+          delete patientMap[key];
+          delete unreadCounts[key];
         }
       }
 

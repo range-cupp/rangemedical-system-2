@@ -70,11 +70,17 @@ export default function TasksPage() {
 
   const fetchEmployees = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/employees', { headers: authHeaders() });
+      const res = await fetch('/api/admin/employees?basic=true', { headers: authHeaders() });
+      if (!res.ok) {
+        console.error('Failed to fetch employees:', res.status);
+        setEmployees([]);
+        return;
+      }
       const data = await res.json();
-      setEmployees(data.employees || data || []);
+      setEmployees(Array.isArray(data.employees) ? data.employees : Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to fetch employees:', err);
+      setEmployees([]);
     }
   }, [authHeaders]);
 

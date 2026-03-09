@@ -3,7 +3,7 @@
 // Range Medical System
 
 import { createClient } from '@supabase/supabase-js';
-import { requirePermission, logAction } from '../../../../lib/auth';
+import { requireAuth, requirePermission, logAction } from '../../../../lib/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -21,6 +21,30 @@ export default async function handler(req, res) {
 }
 
 async function handleList(req, res) {
+  const { basic } = req.query;
+
+  // Basic list (id, name, is_active) available to any authenticated employee
+  // Used by task assignment, etc. — no permission required beyond being logged in
+  if (basic === 'true') {
+    const employee = await requireAuth(req, res);
+    if (!employee) return;
+
+    try {
+      const { data: employees, error } = await supabase
+        .from('employees')
+        .select('id, name, title, is_active')
+        .order('name');
+
+      if (error) throw error;
+
+      return res.status(200).json({ success: true, employees: employees || [] });
+    } catch (error) {
+      console.error('List employees (basic) error:', error);
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
+  // Full list with sensitive fields requires can_manage_employees permission
   const employee = await requirePermission(req, res, 'can_manage_employees');
   if (!employee) return;
 

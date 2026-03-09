@@ -6,7 +6,7 @@ import { Resend } from 'resend';
 import { requireAuth, logAction } from '../../../lib/auth';
 import { logComm } from '../../../lib/comms-log';
 
-function generateEmailHtml({ body, senderName }) {
+function generateEmailHtml({ body, senderName, senderEmail }) {
   // Convert newlines to <br> tags for the body
   const formattedBody = body
     .replace(/&/g, '&amp;')
@@ -43,25 +43,64 @@ function generateEmailHtml({ body, senderName }) {
                         </td>
                     </tr>
 
-                    <!-- Sender -->
+                    <!-- Email Signature -->
                     <tr>
                         <td style="padding: 0 30px 30px;">
-                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                            <table cellpadding="0" cellspacing="0" border="0" style="font-family: Arial, Helvetica, sans-serif; color: #1a1a1a; font-size: 14px; line-height: 1.4;">
                                 <tr>
-                                    <td style="border-left: 4px solid #000000; padding-left: 20px;">
-                                        <p style="margin: 0 0 2px; color: #111; font-size: 14px; font-weight: 600;">${senderName}</p>
-                                        <p style="margin: 0; color: #888; font-size: 13px;">Range Medical</p>
+                                    <td style="padding-right: 20px; vertical-align: top; border-right: 2px solid #1a1a1a;">
+                                        <table cellpadding="0" cellspacing="0" border="0">
+                                            <tr>
+                                                <td style="font-size: 18px; font-weight: bold; color: #1a1a1a; letter-spacing: 0.3px; padding-bottom: 2px;">
+                                                    ${senderName}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-size: 12px; color: #555555; text-transform: uppercase; letter-spacing: 1.5px;">
+                                                    Range Medical
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                    <td style="padding-left: 20px; vertical-align: top;">
+                                        <table cellpadding="0" cellspacing="0" border="0" style="font-size: 13px; color: #333333;">
+                                            <tr>
+                                                <td style="padding-bottom: 3px;">
+                                                    <a href="tel:9499973988" style="color: #333333; text-decoration: none;">(949) 997-3988</a>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding-bottom: 3px;">
+                                                    <a href="mailto:${senderEmail}" style="color: #333333; text-decoration: none;">${senderEmail}</a>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding-bottom: 3px;">
+                                                    <a href="https://www.range-medical.com" style="color: #1a1a1a; text-decoration: none; font-weight: 600;">www.range-medical.com</a>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="font-size: 12px; color: #777777;">
+                                                    1901 Westcliff Dr, Ste 9 &amp; 10 &middot; Newport Beach, CA
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2" style="padding-top: 16px;">
+                                        <table cellpadding="0" cellspacing="0" border="0" width="100%">
+                                            <tr>
+                                                <td style="border-top: 1px solid #e0e0e0; padding-top: 12px; font-size: 10px; color: #999999; line-height: 1.5; max-width: 500px;">
+                                                    <strong style="color: #888888;">Confidentiality:</strong> This email is intended solely for its addressed recipient and may contain privileged information. If received in error, please notify the sender and delete this message.
+                                                    <br><br>
+                                                    <strong style="color: #888888;">Medical:</strong> Content is informational only and not a substitute for professional medical advice, diagnosis, or treatment. Range Medical does not provide emergency care.
+                                                </td>
+                                            </tr>
+                                        </table>
                                     </td>
                                 </tr>
                             </table>
-                        </td>
-                    </tr>
-
-                    <!-- Footer -->
-                    <tr>
-                        <td style="padding: 24px 30px; border-top: 1px solid #e5e5e5; background-color: #fafafa;">
-                            <p style="margin: 0 0 4px; color: #999; font-size: 12px;">Range Medical</p>
-                            <p style="margin: 0; color: #999; font-size: 12px;">www.range-medical.com</p>
                         </td>
                     </tr>
 
@@ -93,6 +132,7 @@ export default async function handler(req, res) {
     const html = generateEmailHtml({
       body,
       senderName: employee.name,
+      senderEmail: employee.email,
     });
 
     const { data, error: emailError } = await resend.emails.send({

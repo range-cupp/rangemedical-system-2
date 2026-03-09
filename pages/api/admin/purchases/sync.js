@@ -95,14 +95,17 @@ export default async function handler(req, res) {
       }
 
       // Add to insert list
+      const amt = parseFloat(p.amount) || 0;
       toInsert.push({
         ghl_contact_id: p.ghl_contact_id,
         patient_name: p.patient_name,
         patient_email: p.patient_email,
         patient_phone: p.patient_phone,
         item_name: p.item_name,
-        amount: parseFloat(p.amount) || 0,
+        amount: amt,
+        amount_paid: parseFloat(p.amount_paid) || amt,
         list_price: p.list_price ? parseFloat(p.list_price) : null,
+        discount_amount: p.discount_amount ? parseFloat(p.discount_amount) : null,
         quantity: parseInt(p.quantity) || 1,
         category: categorizeItem(p.item_name),
         source: p.source || 'ghl',

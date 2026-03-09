@@ -85,20 +85,33 @@ export default function UtilitiesPage() {
       const calendarCount = records.filter(r => r['Source type'] === 'calendar').length;
 
       // Map to purchase format
-      const purchases = valid.map(r => ({
-        ghl_transaction_id: r['Internal transaction id'],
-        ghl_contact_id: r['Customer id'],
-        patient_name: r['Customer name'],
-        patient_email: r['Customer email'],
-        patient_phone: r['Customer phone'],
-        item_name: r['Line item name'],
-        amount: parseFloat(r['Total amount paid']) || 0,
-        list_price: parseFloat(r['Sub total']) || null,
-        quantity: parseInt(r['Line item quantity']) || 1,
-        source: r['Source type'] || 'ghl',
-        purchase_date: parseDate(r['Transaction date']),
-        ghl_source_type: r['Source type']
-      }));
+      // GHL CSV columns: 'Total amount paid' = line item total (before discount)
+      //                   'Sub total' = line item subtotal
+      //                   'Discount amount' = discount applied to transaction
+      //                   'Amount' = sometimes the net payment amount
+      const purchases = valid.map(r => {
+        const lineTotal = parseFloat(r['Total amount paid']) || 0;
+        const discount = parseFloat(r['Discount amount'] || r['Discount'] || '0') || 0;
+        const netAmount = parseFloat(r['Amount']) || 0;
+        // Use 'Amount' column if available (net payment), else subtract discount from line total
+        const actualPaid = netAmount > 0 ? netAmount : (lineTotal - discount);
+        return {
+          ghl_transaction_id: r['Internal transaction id'],
+          ghl_contact_id: r['Customer id'],
+          patient_name: r['Customer name'],
+          patient_email: r['Customer email'],
+          patient_phone: r['Customer phone'],
+          item_name: r['Line item name'],
+          amount: actualPaid,
+          amount_paid: actualPaid,
+          list_price: lineTotal > actualPaid ? lineTotal : (parseFloat(r['Sub total']) || null),
+          discount_amount: discount || null,
+          quantity: parseInt(r['Line item quantity']) || 1,
+          source: r['Source type'] || 'ghl',
+          purchase_date: parseDate(r['Transaction date']),
+          ghl_source_type: r['Source type']
+        };
+      });
 
       // Call sync API
       const res = await fetch('/api/admin/purchases/sync', {

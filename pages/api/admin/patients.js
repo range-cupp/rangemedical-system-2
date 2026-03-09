@@ -69,6 +69,63 @@ async function attachActivePrograms(patients) {
 }
 
 export default async function handler(req, res) {
+  // ── POST: Create a new patient ──
+  if (req.method === 'POST') {
+    try {
+      const { first_name, last_name, email, phone, date_of_birth } = req.body;
+
+      if (!first_name || !last_name) {
+        return res.status(400).json({ error: 'First name and last name are required' });
+      }
+
+      const name = `${first_name.trim()} ${last_name.trim()}`;
+      const patientData = {
+        first_name: first_name.trim(),
+        last_name: last_name.trim(),
+        name,
+        email: email?.trim() || null,
+        phone: phone?.trim() || null,
+        date_of_birth: date_of_birth || null,
+        tags: ['walk-in'],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // Check for duplicate email if provided
+      if (patientData.email) {
+        const { data: existing } = await supabase
+          .from('patients')
+          .select('id, name')
+          .eq('email', patientData.email)
+          .maybeSingle();
+
+        if (existing) {
+          return res.status(409).json({
+            error: `A patient with email ${patientData.email} already exists (${existing.name})`,
+            existingId: existing.id
+          });
+        }
+      }
+
+      const { data: newPatient, error: insertError } = await supabase
+        .from('patients')
+        .insert(patientData)
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Error creating patient:', insertError);
+        return res.status(500).json({ error: insertError.message });
+      }
+
+      return res.status(201).json(newPatient);
+    } catch (error) {
+      console.error('Create patient error:', error);
+      return res.status(500).json({ error: 'Server error' });
+    }
+  }
+
+  // ── GET: Fetch patients ──
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

@@ -14,6 +14,12 @@ export default function PatientsList() {
   const [activeFilter, setActiveFilter] = useState('all');
   const [filteredPatients, setFilteredPatients] = useState([]);
 
+  // Add Patient modal state
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addForm, setAddForm] = useState({ firstName: '', lastName: '', email: '', phone: '', dateOfBirth: '' });
+  const [addSaving, setAddSaving] = useState(false);
+  const [addError, setAddError] = useState('');
+
   // Merge modal state
   const [showMergeModal, setShowMergeModal] = useState(false);
   const [mergeStep, setMergeStep] = useState(1); // 1: select primary, 2: select duplicate, 3: preview/confirm
@@ -230,6 +236,37 @@ export default function PatientsList() {
     }
   };
 
+  const handleAddPatient = async () => {
+    setAddSaving(true);
+    setAddError('');
+    try {
+      const res = await fetch('/api/admin/patients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          first_name: addForm.firstName,
+          last_name: addForm.lastName,
+          email: addForm.email || null,
+          phone: addForm.phone || null,
+          date_of_birth: addForm.dateOfBirth || null
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setAddError(data.error || 'Failed to create patient');
+        return;
+      }
+      // Success — close modal and navigate to new patient
+      setShowAddModal(false);
+      setAddForm({ firstName: '', lastName: '', email: '', phone: '', dateOfBirth: '' });
+      window.location.href = `/patients/${data.id}`;
+    } catch (err) {
+      setAddError(err.message);
+    } finally {
+      setAddSaving(false);
+    }
+  };
+
   if (loading) {
     return <AdminLayout title="Patients"><div style={styles.loading}>Loading patients...</div></AdminLayout>;
   }
@@ -238,9 +275,14 @@ export default function PatientsList() {
     <AdminLayout
       title={`Patients (${filteredPatients.length})`}
       actions={
-        <button onClick={openMergeModal} style={styles.mergeBtn}>
-          Merge Patients
-        </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button onClick={() => { setShowAddModal(true); setAddError(''); }} style={styles.addBtn}>
+            + Add Patient
+          </button>
+          <button onClick={openMergeModal} style={styles.mergeBtn}>
+            Merge Patients
+          </button>
+        </div>
       }
     >
 
@@ -320,6 +362,90 @@ export default function PatientsList() {
             })}
           </div>
         )}
+
+      {/* Add Patient Modal */}
+      {showAddModal && (
+        <div style={styles.modalOverlay}>
+          <div style={{ ...styles.modal, width: '460px' }}>
+            <div style={styles.modalHeader}>
+              <h2 style={styles.modalTitle}>Add Patient</h2>
+              <button style={styles.closeBtn} onClick={() => { setShowAddModal(false); setAddError(''); }}>×</button>
+            </div>
+            <div style={styles.modalBody}>
+              {addError && (
+                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '12px', marginBottom: '16px', color: '#dc2626', fontSize: '14px' }}>
+                  {addError}
+                </div>
+              )}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                <div>
+                  <label style={styles.addLabel}>First Name *</label>
+                  <input
+                    type="text"
+                    value={addForm.firstName}
+                    onChange={e => setAddForm({ ...addForm, firstName: e.target.value })}
+                    style={styles.addInput}
+                    placeholder="First name"
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label style={styles.addLabel}>Last Name *</label>
+                  <input
+                    type="text"
+                    value={addForm.lastName}
+                    onChange={e => setAddForm({ ...addForm, lastName: e.target.value })}
+                    style={styles.addInput}
+                    placeholder="Last name"
+                  />
+                </div>
+              </div>
+              <div style={{ marginBottom: '12px' }}>
+                <label style={styles.addLabel}>Email</label>
+                <input
+                  type="email"
+                  value={addForm.email}
+                  onChange={e => setAddForm({ ...addForm, email: e.target.value })}
+                  style={styles.addInput}
+                  placeholder="patient@email.com"
+                />
+              </div>
+              <div style={{ marginBottom: '12px' }}>
+                <label style={styles.addLabel}>Phone</label>
+                <input
+                  type="tel"
+                  value={addForm.phone}
+                  onChange={e => setAddForm({ ...addForm, phone: e.target.value })}
+                  style={styles.addInput}
+                  placeholder="(555) 555-5555"
+                />
+              </div>
+              <div style={{ marginBottom: '20px' }}>
+                <label style={styles.addLabel}>Date of Birth</label>
+                <input
+                  type="date"
+                  value={addForm.dateOfBirth}
+                  onChange={e => setAddForm({ ...addForm, dateOfBirth: e.target.value })}
+                  style={styles.addInput}
+                />
+              </div>
+              <button
+                onClick={handleAddPatient}
+                disabled={addSaving || !addForm.firstName.trim() || !addForm.lastName.trim()}
+                style={{
+                  ...styles.addBtn,
+                  width: '100%',
+                  padding: '12px',
+                  fontSize: '15px',
+                  opacity: (addSaving || !addForm.firstName.trim() || !addForm.lastName.trim()) ? 0.5 : 1
+                }}
+              >
+                {addSaving ? 'Creating...' : 'Create Patient'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Merge Modal */}
       {showMergeModal && (
@@ -572,6 +698,32 @@ const styles = {
     padding: '8px 16px',
     border: '1px solid #e5e7eb',
     borderRadius: '6px'
+  },
+  addBtn: {
+    padding: '8px 16px',
+    background: '#000',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: '500',
+    cursor: 'pointer'
+  },
+  addLabel: {
+    display: 'block',
+    fontSize: '13px',
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: '4px'
+  },
+  addInput: {
+    width: '100%',
+    padding: '10px 12px',
+    fontSize: '14px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '6px',
+    outline: 'none',
+    boxSizing: 'border-box'
   },
   mergeBtn: {
     padding: '8px 16px',

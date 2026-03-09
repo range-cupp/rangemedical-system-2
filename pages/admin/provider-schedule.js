@@ -1,5 +1,6 @@
 // /pages/admin/provider-schedule.js
 // Provider Schedule Manager — view/edit Cal.com provider availability
+// Supports multiple schedules per provider (e.g., Newport Beach + Placentia)
 // Range Medical System
 
 import { useState, useEffect, useCallback } from 'react';
@@ -47,6 +48,15 @@ function buildAvailability(daySettings) {
   return Object.values(groups);
 }
 
+// Detect location from schedule name
+function getScheduleLocation(schedule) {
+  const name = (schedule?.name || '').toLowerCase();
+  if (name.includes('placentia') || name.includes('tlab')) {
+    return { label: 'Placentia', short: 'Placentia', color: '#7c3aed', bg: '#ede9fe', icon: '📍' };
+  }
+  return { label: 'Newport Beach', short: 'Newport Beach', color: '#0369a1', bg: '#e0f2fe', icon: '🏥' };
+}
+
 export default function ProviderSchedulePage() {
   const { session, hasPermission } = useAuth();
   const [providers, setProviders] = useState([]);
@@ -57,10 +67,12 @@ export default function ProviderSchedulePage() {
 
   // Edit hours modal
   const [editProvider, setEditProvider] = useState(null);
+  const [editSchedule, setEditSchedule] = useState(null);
   const [daySettings, setDaySettings] = useState({});
 
   // Override modal
   const [overrideProvider, setOverrideProvider] = useState(null);
+  const [overrideSchedule, setOverrideSchedule] = useState(null);
   const [overrideDate, setOverrideDate] = useState('');
   const [overrideType, setOverrideType] = useState('custom'); // 'custom' or 'unavailable'
   const [overrideStart, setOverrideStart] = useState('09:00');
@@ -97,9 +109,8 @@ export default function ProviderSchedulePage() {
     setTimeout(() => setSuccessMsg(''), 3000);
   };
 
-  // Open edit hours modal
-  const openEditModal = (provider) => {
-    const schedule = provider.schedules?.[0];
+  // Open edit hours modal for a specific schedule
+  const openEditModal = (provider, schedule) => {
     if (!schedule) {
       setError('No schedule found for this provider');
       return;
@@ -116,13 +127,12 @@ export default function ProviderSchedulePage() {
     }
     setDaySettings(settings);
     setEditProvider(provider);
+    setEditSchedule(schedule);
   };
 
   // Save hours
   const saveHours = async () => {
-    if (!editProvider) return;
-    const schedule = editProvider.schedules?.[0];
-    if (!schedule) return;
+    if (!editProvider || !editSchedule) return;
 
     setSaving(true);
     try {
@@ -131,15 +141,17 @@ export default function ProviderSchedulePage() {
         method: 'PATCH',
         headers: authHeaders(),
         body: JSON.stringify({
-          scheduleId: schedule.id,
+          scheduleId: editSchedule.id,
           availability,
         }),
       });
       const data = await res.json();
       if (data.success) {
         setEditProvider(null);
+        setEditSchedule(null);
         fetchProviders();
-        showSuccess(`${editProvider.name}'s hours updated`);
+        const location = getScheduleLocation(editSchedule);
+        showSuccess(`${editProvider.name}'s ${location.short} hours updated`);
       } else {
         setError(data.error || 'Failed to save hours');
       }
@@ -150,9 +162,10 @@ export default function ProviderSchedulePage() {
     }
   };
 
-  // Open override modal
-  const openOverrideModal = (provider) => {
+  // Open override modal for a specific schedule
+  const openOverrideModal = (provider, schedule) => {
     setOverrideProvider(provider);
+    setOverrideSchedule(schedule);
     setOverrideDate('');
     setOverrideType('custom');
     setOverrideStart('09:00');
@@ -161,13 +174,11 @@ export default function ProviderSchedulePage() {
 
   // Save override
   const saveOverride = async () => {
-    if (!overrideProvider || !overrideDate) return;
-    const schedule = overrideProvider.schedules?.[0];
-    if (!schedule) return;
+    if (!overrideProvider || !overrideSchedule || !overrideDate) return;
 
     setSaving(true);
     try {
-      const existingOverrides = schedule.overrides || [];
+      const existingOverrides = overrideSchedule.overrides || [];
       // Remove any existing override for the same date
       const filtered = existingOverrides.filter(o => o.date !== overrideDate);
 
@@ -184,13 +195,14 @@ export default function ProviderSchedulePage() {
         method: 'PATCH',
         headers: authHeaders(),
         body: JSON.stringify({
-          scheduleId: schedule.id,
+          scheduleId: overrideSchedule.id,
           overrides: filtered,
         }),
       });
       const data = await res.json();
       if (data.success) {
         setOverrideProvider(null);
+        setOverrideSchedule(null);
         fetchProviders();
         showSuccess(`Override added for ${overrideProvider.name}`);
       } else {
@@ -204,11 +216,8 @@ export default function ProviderSchedulePage() {
   };
 
   // Remove override
-  const removeOverride = async (provider, dateToRemove) => {
+  const removeOverride = async (provider, schedule, dateToRemove) => {
     if (!window.confirm(`Remove override for ${formatDate(dateToRemove)}?`)) return;
-
-    const schedule = provider.schedules?.[0];
-    if (!schedule) return;
 
     try {
       const updatedOverrides = (schedule.overrides || []).filter(o => o.date !== dateToRemove);
@@ -233,6 +242,10 @@ export default function ProviderSchedulePage() {
 
   const canManageSchedules = hasPermission('can_manage_schedules');
 
+  // Get modal schedule location for title
+  const editLocation = editSchedule ? getScheduleLocation(editSchedule) : null;
+  const overrideLocation = overrideSchedule ? getScheduleLocation(overrideSchedule) : null;
+
   return (
     <AdminLayout title="Provider Hours">
       {successMsg && (
@@ -250,8 +263,8 @@ export default function ProviderSchedulePage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {providers.map(provider => {
-            const schedule = provider.schedules?.[0];
-            const overrides = schedule?.overrides || [];
+            const schedules = provider.schedules || [];
+            const hasMultipleSchedules = schedules.length > 1;
 
             return (
               <div key={provider.userId} style={pageStyles.card}>
@@ -261,67 +274,121 @@ export default function ProviderSchedulePage() {
                     <h3 style={pageStyles.providerName}>{provider.name}</h3>
                     <span style={pageStyles.providerEmail}>{provider.email}</span>
                   </div>
-                  {canManageSchedules && (
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button onClick={() => openEditModal(provider)} style={pageStyles.actionBtn}>
-                        Edit Hours
-                      </button>
-                      <button onClick={() => openOverrideModal(provider)} style={pageStyles.actionBtnOutline}>
-                        Add Override
-                      </button>
-                    </div>
+                  {hasMultipleSchedules && (
+                    <span style={pageStyles.multiLocationBadge}>
+                      {schedules.length} locations
+                    </span>
                   )}
                 </div>
 
-                {/* Weekly grid */}
-                <div style={pageStyles.weekGrid}>
-                  {DAY_ORDER.map(day => {
-                    const avail = schedule ? getDayAvailability(schedule.availability, day) : null;
-                    return (
-                      <div key={day} style={pageStyles.dayCell}>
-                        <div style={pageStyles.dayLabel}>{DAY_SHORT[day]}</div>
-                        {avail ? (
-                          <div style={pageStyles.dayTime}>
-                            {formatTime12(avail.startTime)} – {formatTime12(avail.endTime)}
-                          </div>
-                        ) : (
-                          <div style={pageStyles.dayOff}>OFF</div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Overrides */}
-                {overrides.length > 0 && (
-                  <div style={pageStyles.overridesSection}>
-                    <div style={pageStyles.overridesTitle}>
-                      Overrides ({overrides.length})
-                    </div>
-                    {overrides.map((override, idx) => (
-                      <div key={idx} style={pageStyles.overrideRow}>
-                        <span style={pageStyles.overrideDate}>{formatDate(override.date)}</span>
-                        <span style={pageStyles.overrideTime}>
-                          {override.startTime && override.endTime
-                            ? `${formatTime12(override.startTime)} – ${formatTime12(override.endTime)}`
-                            : 'Unavailable'}
-                        </span>
-                        {canManageSchedules && (
-                          <button
-                            onClick={() => removeOverride(provider, override.date)}
-                            style={pageStyles.removeBtn}
-                          >
-                            ✕
-                          </button>
-                        )}
-                      </div>
-                    ))}
+                {/* Render each schedule */}
+                {schedules.length === 0 && (
+                  <div style={{ color: '#999', fontSize: '14px', padding: '12px 0' }}>
+                    No schedule configured in Cal.com
                   </div>
                 )}
 
-                {!schedule && (
-                  <div style={{ color: '#999', fontSize: '14px', padding: '12px 0' }}>
-                    No schedule configured in Cal.com
+                {schedules.map((schedule, idx) => {
+                  const location = getScheduleLocation(schedule);
+                  const overrides = schedule.overrides || [];
+                  // Filter to future overrides only
+                  const today = new Date().toISOString().split('T')[0];
+                  const futureOverrides = overrides.filter(o => o.date >= today);
+
+                  return (
+                    <div key={schedule.id} style={{
+                      ...pageStyles.scheduleSection,
+                      ...(idx > 0 ? { borderTop: '1px solid #e5e7eb', marginTop: '16px', paddingTop: '16px' } : {}),
+                    }}>
+                      {/* Schedule header with location badge */}
+                      <div style={pageStyles.scheduleHeader}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          {hasMultipleSchedules && (
+                            <span style={{
+                              ...pageStyles.locationBadge,
+                              background: location.bg,
+                              color: location.color,
+                            }}>
+                              {location.icon} {location.label}
+                            </span>
+                          )}
+                          {hasMultipleSchedules && (
+                            <span style={pageStyles.scheduleName}>
+                              {schedule.name || 'Default Schedule'}
+                            </span>
+                          )}
+                        </div>
+                        {hasMultipleSchedules && canManageSchedules && (
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button onClick={() => openEditModal(provider, schedule)} style={pageStyles.actionBtn}>
+                              Edit Hours
+                            </button>
+                            <button onClick={() => openOverrideModal(provider, schedule)} style={pageStyles.actionBtnOutline}>
+                              Add Override
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Weekly grid */}
+                      <div style={pageStyles.weekGrid}>
+                        {DAY_ORDER.map(day => {
+                          const avail = getDayAvailability(schedule.availability, day);
+                          return (
+                            <div key={day} style={pageStyles.dayCell}>
+                              <div style={pageStyles.dayLabel}>{DAY_SHORT[day]}</div>
+                              {avail ? (
+                                <div style={pageStyles.dayTime}>
+                                  {formatTime12(avail.startTime)} – {formatTime12(avail.endTime)}
+                                </div>
+                              ) : (
+                                <div style={pageStyles.dayOff}>OFF</div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Overrides */}
+                      {futureOverrides.length > 0 && (
+                        <div style={pageStyles.overridesSection}>
+                          <div style={pageStyles.overridesTitle}>
+                            Overrides ({futureOverrides.length})
+                          </div>
+                          {futureOverrides.map((override, oidx) => (
+                            <div key={oidx} style={pageStyles.overrideRow}>
+                              <span style={pageStyles.overrideDate}>{formatDate(override.date)}</span>
+                              <span style={pageStyles.overrideTime}>
+                                {override.startTime && override.endTime
+                                  ? `${formatTime12(override.startTime)} – ${formatTime12(override.endTime)}`
+                                  : 'Unavailable'}
+                              </span>
+                              {canManageSchedules && (
+                                <button
+                                  onClick={() => removeOverride(provider, schedule, override.date)}
+                                  style={pageStyles.removeBtn}
+                                >
+                                  ✕
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Single schedule — show buttons at provider level if only 1 schedule */}
+                {schedules.length === 1 && !canManageSchedules ? null : null}
+                {schedules.length === 1 && canManageSchedules && (
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                    <button onClick={() => openEditModal(provider, schedules[0])} style={pageStyles.actionBtn}>
+                      Edit Hours
+                    </button>
+                    <button onClick={() => openOverrideModal(provider, schedules[0])} style={pageStyles.actionBtnOutline}>
+                      Add Override
+                    </button>
                   </div>
                 )}
               </div>
@@ -331,12 +398,27 @@ export default function ProviderSchedulePage() {
       )}
 
       {/* Edit Hours Modal */}
-      {editProvider && (
-        <div style={sharedStyles.modalOverlay} onClick={() => setEditProvider(null)}>
+      {editProvider && editSchedule && (
+        <div style={sharedStyles.modalOverlay} onClick={() => { setEditProvider(null); setEditSchedule(null); }}>
           <div style={{ ...sharedStyles.modal, maxWidth: '540px' }} onClick={e => e.stopPropagation()}>
             <div style={sharedStyles.modalHeader}>
-              <h2 style={sharedStyles.modalTitle}>Edit Hours — {editProvider.name}</h2>
-              <button onClick={() => setEditProvider(null)} style={sharedStyles.modalClose}>✕</button>
+              <div>
+                <h2 style={sharedStyles.modalTitle}>Edit Hours — {editProvider.name}</h2>
+                {editLocation && (
+                  <span style={{
+                    fontSize: '13px',
+                    color: editLocation.color,
+                    background: editLocation.bg,
+                    padding: '2px 10px',
+                    borderRadius: '12px',
+                    display: 'inline-block',
+                    marginTop: '4px',
+                  }}>
+                    {editLocation.icon} {editLocation.label}
+                  </span>
+                )}
+              </div>
+              <button onClick={() => { setEditProvider(null); setEditSchedule(null); }} style={sharedStyles.modalClose}>✕</button>
             </div>
             <div style={sharedStyles.modalBody}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -387,7 +469,7 @@ export default function ProviderSchedulePage() {
               </div>
             </div>
             <div style={sharedStyles.modalFooter}>
-              <button onClick={() => setEditProvider(null)} style={sharedStyles.btnSecondary}>Cancel</button>
+              <button onClick={() => { setEditProvider(null); setEditSchedule(null); }} style={sharedStyles.btnSecondary}>Cancel</button>
               <button onClick={saveHours} disabled={saving} style={sharedStyles.btnPrimary}>
                 {saving ? 'Saving...' : 'Save Hours'}
               </button>
@@ -397,12 +479,27 @@ export default function ProviderSchedulePage() {
       )}
 
       {/* Add Override Modal */}
-      {overrideProvider && (
-        <div style={sharedStyles.modalOverlay} onClick={() => setOverrideProvider(null)}>
+      {overrideProvider && overrideSchedule && (
+        <div style={sharedStyles.modalOverlay} onClick={() => { setOverrideProvider(null); setOverrideSchedule(null); }}>
           <div style={{ ...sharedStyles.modal, maxWidth: '440px' }} onClick={e => e.stopPropagation()}>
             <div style={sharedStyles.modalHeader}>
-              <h2 style={sharedStyles.modalTitle}>Add Override — {overrideProvider.name}</h2>
-              <button onClick={() => setOverrideProvider(null)} style={sharedStyles.modalClose}>✕</button>
+              <div>
+                <h2 style={sharedStyles.modalTitle}>Add Override — {overrideProvider.name}</h2>
+                {overrideLocation && (
+                  <span style={{
+                    fontSize: '13px',
+                    color: overrideLocation.color,
+                    background: overrideLocation.bg,
+                    padding: '2px 10px',
+                    borderRadius: '12px',
+                    display: 'inline-block',
+                    marginTop: '4px',
+                  }}>
+                    {overrideLocation.icon} {overrideLocation.label}
+                  </span>
+                )}
+              </div>
+              <button onClick={() => { setOverrideProvider(null); setOverrideSchedule(null); }} style={sharedStyles.modalClose}>✕</button>
             </div>
             <div style={sharedStyles.modalBody}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -462,7 +559,7 @@ export default function ProviderSchedulePage() {
               </div>
             </div>
             <div style={sharedStyles.modalFooter}>
-              <button onClick={() => setOverrideProvider(null)} style={sharedStyles.btnSecondary}>Cancel</button>
+              <button onClick={() => { setOverrideProvider(null); setOverrideSchedule(null); }} style={sharedStyles.btnSecondary}>Cancel</button>
               <button onClick={saveOverride} disabled={saving || !overrideDate} style={sharedStyles.btnPrimary}>
                 {saving ? 'Saving...' : 'Add Override'}
               </button>
@@ -506,6 +603,39 @@ const pageStyles = {
   providerEmail: {
     fontSize: '13px',
     color: '#6b7280',
+  },
+  multiLocationBadge: {
+    fontSize: '12px',
+    fontWeight: 600,
+    color: '#6b7280',
+    background: '#f3f4f6',
+    padding: '4px 10px',
+    borderRadius: '12px',
+  },
+  scheduleSection: {
+    // Container for each schedule within a provider card
+  },
+  scheduleHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '12px',
+    flexWrap: 'wrap',
+    gap: '8px',
+  },
+  locationBadge: {
+    fontSize: '12px',
+    fontWeight: 600,
+    padding: '4px 12px',
+    borderRadius: '16px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+  },
+  scheduleName: {
+    fontSize: '13px',
+    color: '#9ca3af',
+    fontStyle: 'italic',
   },
   actionBtn: {
     background: '#111',
@@ -559,7 +689,7 @@ const pageStyles = {
   },
   overridesSection: {
     borderTop: '1px solid #f3f4f6',
-    paddingTop: '16px',
+    paddingTop: '12px',
   },
   overridesTitle: {
     fontSize: '14px',

@@ -1,51 +1,44 @@
 // POST /api/appointments/webhook
 // Internal automation trigger dispatcher for appointment events
+// SMS sent via sendAppointmentNotification (respects quiet hours + uses Blooio)
 
 import { createClient } from '@supabase/supabase-js';
 import { logComm } from '../../../lib/comms-log';
+import { sendAppointmentNotification } from '../../../lib/appointment-notifications';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Handler functions
+// Handler functions — use sendAppointmentNotification for SMS (respects quiet hours 8am-8pm PST)
 async function sendConfirmationSMS(appointment, event) {
   if (!appointment.patient_id) return;
 
   const { data: patient } = await supabase
     .from('patients')
-    .select('ghl_contact_id, name')
+    .select('id, name, email, phone, ghl_contact_id')
     .eq('id', appointment.patient_id)
     .single();
 
-  if (!patient?.ghl_contact_id) return;
+  if (!patient) return;
 
-  const firstName = patient.name.split(' ')[0];
-  const apptDate = new Date(appointment.start_time).toLocaleDateString('en-US', {
-    weekday: 'long', month: 'long', day: 'numeric',
-  });
-  const apptTime = new Date(appointment.start_time).toLocaleTimeString('en-US', {
-    hour: 'numeric', minute: '2-digit',
-  });
-
-  const message = `Hi ${firstName}! Your appointment for ${appointment.service_name} has been scheduled for ${apptDate} at ${apptTime}. See you at Range Medical!`;
-
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com';
-  await fetch(`${baseUrl}/api/ghl/send-sms`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contact_id: patient.ghl_contact_id, message }),
-  });
-
-  await logComm({
-    channel: 'sms',
-    messageType: 'appointment_confirmation',
-    message,
-    source: 'appointments/webhook',
-    patientId: appointment.patient_id,
-    patientName: patient.name,
-    ghlContactId: patient.ghl_contact_id,
+  await sendAppointmentNotification({
+    type: 'confirmation',
+    patient: {
+      id: patient.id,
+      name: patient.name,
+      email: patient.email,
+      phone: patient.phone,
+    },
+    appointment: {
+      serviceName: appointment.service_name,
+      startTime: appointment.start_time,
+      endTime: appointment.end_time,
+      durationMinutes: appointment.duration_minutes,
+      location: 'Range Medical — Newport Beach',
+      notes: appointment.notes,
+    },
   });
 }
 
@@ -54,34 +47,28 @@ async function sendCancellationSMS(appointment, event) {
 
   const { data: patient } = await supabase
     .from('patients')
-    .select('ghl_contact_id, name')
+    .select('id, name, email, phone, ghl_contact_id')
     .eq('id', appointment.patient_id)
     .single();
 
-  if (!patient?.ghl_contact_id) return;
+  if (!patient) return;
 
-  const firstName = patient.name.split(' ')[0];
-  const apptDate = new Date(appointment.start_time).toLocaleDateString('en-US', {
-    weekday: 'long', month: 'long', day: 'numeric',
-  });
-
-  const message = `Hi ${firstName}, your ${appointment.service_name} appointment on ${apptDate} has been cancelled. Please call (949) 997-3988 to reschedule.`;
-
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com';
-  await fetch(`${baseUrl}/api/ghl/send-sms`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contact_id: patient.ghl_contact_id, message }),
-  });
-
-  await logComm({
-    channel: 'sms',
-    messageType: 'appointment_cancellation',
-    message,
-    source: 'appointments/webhook',
-    patientId: appointment.patient_id,
-    patientName: patient.name,
-    ghlContactId: patient.ghl_contact_id,
+  await sendAppointmentNotification({
+    type: 'cancellation',
+    patient: {
+      id: patient.id,
+      name: patient.name,
+      email: patient.email,
+      phone: patient.phone,
+    },
+    appointment: {
+      serviceName: appointment.service_name,
+      startTime: appointment.start_time,
+      endTime: appointment.end_time,
+      durationMinutes: appointment.duration_minutes,
+      location: 'Range Medical — Newport Beach',
+      notes: appointment.notes,
+    },
   });
 }
 
@@ -90,37 +77,28 @@ async function sendRescheduleSMS(appointment, event) {
 
   const { data: patient } = await supabase
     .from('patients')
-    .select('ghl_contact_id, name')
+    .select('id, name, email, phone, ghl_contact_id')
     .eq('id', appointment.patient_id)
     .single();
 
-  if (!patient?.ghl_contact_id) return;
+  if (!patient) return;
 
-  const firstName = patient.name.split(' ')[0];
-  const newDate = new Date(appointment.start_time).toLocaleDateString('en-US', {
-    weekday: 'long', month: 'long', day: 'numeric',
-  });
-  const newTime = new Date(appointment.start_time).toLocaleTimeString('en-US', {
-    hour: 'numeric', minute: '2-digit',
-  });
-
-  const message = `Hi ${firstName}, your ${appointment.service_name} appointment has been rescheduled to ${newDate} at ${newTime}. See you at Range Medical!`;
-
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com';
-  await fetch(`${baseUrl}/api/ghl/send-sms`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contact_id: patient.ghl_contact_id, message }),
-  });
-
-  await logComm({
-    channel: 'sms',
-    messageType: 'appointment_reschedule',
-    message,
-    source: 'appointments/webhook',
-    patientId: appointment.patient_id,
-    patientName: patient.name,
-    ghlContactId: patient.ghl_contact_id,
+  await sendAppointmentNotification({
+    type: 'reschedule',
+    patient: {
+      id: patient.id,
+      name: patient.name,
+      email: patient.email,
+      phone: patient.phone,
+    },
+    appointment: {
+      serviceName: appointment.service_name,
+      startTime: appointment.start_time,
+      endTime: appointment.end_time,
+      durationMinutes: appointment.duration_minutes,
+      location: 'Range Medical — Newport Beach',
+      notes: appointment.notes,
+    },
   });
 }
 

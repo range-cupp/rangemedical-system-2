@@ -55,6 +55,6 @@ ${contextHints.length > 0 ? '\nContext:\n' + contextHints.join('\n') : ''}`,
     return res.status(200).json({ formatted });
   } catch (error) {
     console.error('Email format error:', error);
-    return res.status(500).json({ error: 'Failed to format email' });
+    return res.status(500).json({ error: 'Failed to format email', details: error.message || String(error) });
   }
 }

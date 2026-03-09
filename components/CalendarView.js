@@ -219,17 +219,18 @@ export default function CalendarView({ preselectedPatient = null }) {
   }, [eventTypesMap, selectedLocation?.id]);
 
   // Check if a time slot falls within a provider's schedule hours for a given day
-  const isSlotInProviderSchedule = useCallback((timeStr, dayOfWeek) => {
-    if (!selectedProvider?.calcomUsername || !providerSchedules[selectedProvider.calcomUsername]) {
+  // Accepts explicit provider username and location for per-provider column rendering
+  const isSlotInSchedule = useCallback((timeStr, dayOfWeek, provUsername, locationId) => {
+    if (!provUsername || !providerSchedules[provUsername]) {
       return true; // No schedule data → allow all (don't block)
     }
 
-    const schedule = providerSchedules[selectedProvider.calcomUsername];
+    const schedule = providerSchedules[provUsername];
     const dayName = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][dayOfWeek];
 
     // Use location-specific schedule when applicable, fall back to newport (default)
     let dayHours;
-    if (selectedLocation?.id === 'placentia' && schedule.locations?.placentia?.[dayName]) {
+    if (locationId === 'placentia' && schedule.locations?.placentia?.[dayName]) {
       dayHours = schedule.locations.placentia[dayName];
     } else {
       dayHours = schedule.newport?.[dayName];
@@ -246,9 +247,18 @@ export default function CalendarView({ preselectedPatient = null }) {
       const [eh, em] = block.end.split(':').map(Number);
       return slotMinutes >= sh * 60 + sm && slotMinutes < eh * 60 + em;
     });
-  }, [selectedProvider?.calcomUsername, selectedLocation?.id, providerSchedules]);
+  }, [providerSchedules]);
+
+  // Get slots for a specific provider from the combined Cal.com slots
+  const getSlotsForProvider = useCallback((provUsername, locationId) => {
+    if (!availableSlots || !apptDate) return [];
+    const dateObj = new Date(apptDate + 'T12:00:00');
+    const dayOfWeek = dateObj.getDay();
+    return availableSlots.filter(time => isSlotInSchedule(time, dayOfWeek, provUsername, locationId));
+  }, [availableSlots, apptDate, isSlotInSchedule]);
 
   // Fetch available slots from Cal.com when date/service/location change
+  // Stores COMBINED team slots — per-provider filtering happens in the render
   useEffect(() => {
     if (!apptDate || !selectedService?.calcomSlug) {
       setAvailableSlots(null);
@@ -265,10 +275,8 @@ export default function CalendarView({ preselectedPatient = null }) {
     setLoadingSlots(true);
     setAvailableSlots(null);
     setApptTime(''); // Reset selected time when date changes
+    setSelectedProvider(null); // Reset provider when date changes
 
-    // Cal.com v2 doesn't support per-member slot filtering — fetch combined team availability.
-    // For location-specific event types (e.g., range-iv-placentia), only that location's
-    // host(s) are on the event type, so the slots are already provider-scoped.
     const url = `/api/bookings/slots?eventTypeId=${eventType.id}&date=${apptDate}`;
 
     fetch(url)
@@ -276,13 +284,10 @@ export default function CalendarView({ preselectedPatient = null }) {
       .then(data => {
         if (cancelled) return;
         // Parse slot data — Cal.com returns { slots: { "YYYY-MM-DD": [{ start, end }] } }
-        // IMPORTANT: Only use slots for the requested date. Cal.com sometimes returns
-        // nearby dates' slots when the requested day has no availability.
+        // Only use slots for the requested date (Cal.com sometimes returns nearby dates).
         const daySlots = data.slots || {};
         const slotTimes = [];
         const requestedDaySlots = daySlots[apptDate] || [];
-        const dateObj = new Date(apptDate + 'T12:00:00'); // noon to avoid timezone issues
-        const dayOfWeek = dateObj.getDay();
 
         if (Array.isArray(requestedDaySlots)) {
           requestedDaySlots.forEach(slot => {
@@ -291,15 +296,13 @@ export default function CalendarView({ preselectedPatient = null }) {
               const d = new Date(startStr);
               const hours = d.getHours().toString().padStart(2, '0');
               const mins = d.getMinutes().toString().padStart(2, '0');
-              const timeStr = `${hours}:${mins}`;
-              // Filter by provider's schedule hours when a provider is selected
-              if (isSlotInProviderSchedule(timeStr, dayOfWeek)) {
-                slotTimes.push(timeStr);
-              }
+              slotTimes.push(`${hours}:${mins}`);
             }
           });
         }
-        setAvailableSlots(slotTimes);
+        // De-duplicate (Cal.com can return overlapping slots for multiple hosts)
+        const unique = [...new Set(slotTimes)].sort();
+        setAvailableSlots(unique);
         setLoadingSlots(false);
       })
       .catch(err => {
@@ -311,7 +314,7 @@ export default function CalendarView({ preselectedPatient = null }) {
       });
 
     return () => { cancelled = true; };
-  }, [apptDate, selectedService?.calcomSlug, selectedProvider?.calcomUsername, eventTypesMap, resolveEventType, isSlotInProviderSchedule]);
+  }, [apptDate, selectedService?.calcomSlug, eventTypesMap, resolveEventType]);
 
   // Pre-fill wizard if patient is preselected
   useEffect(() => {
@@ -320,6 +323,16 @@ export default function CalendarView({ preselectedPatient = null }) {
       setWizardStep(1);
     }
   }, [preselectedPatient]);
+
+  // Auto-select provider for single-provider categories (e.g., consultations → Dr. Burgess)
+  useEffect(() => {
+    if (wizardStep === 4 && selectedService && !selectedProvider) {
+      const providers = PROVIDERS[selectedService.category] || PROVIDERS['other'] || [];
+      if (providers.length === 1) {
+        setSelectedProvider(providers[0]);
+      }
+    }
+  }, [wizardStep, selectedService, selectedProvider]);
 
   // ===================== Patient Search =====================
   const searchPatients = async (q) => {
@@ -1145,21 +1158,15 @@ export default function CalendarView({ preselectedPatient = null }) {
                   key={svc.name}
                   onClick={() => {
                     setSelectedService(svc);
+                    setSelectedProvider(null);
                     // If service supports location selection, go to location step
                     if (LOCATION_ENABLED_CATEGORIES.includes(svc.category)) {
                       setSelectedLocation(DEFAULT_LOCATION);
                       setWizardStep(2);
                     } else {
-                      // Check providers for this category
+                      // Skip provider step — go straight to date/time with per-provider columns
                       setSelectedLocation(DEFAULT_LOCATION);
-                      const providers = PROVIDERS[svc.category] || PROVIDERS['other'] || [];
-                      if (providers.length === 1) {
-                        setSelectedProvider(providers[0]);
-                        setWizardStep(4); // skip to date/time
-                      } else {
-                        setSelectedProvider(null);
-                        setWizardStep(3); // provider selection
-                      }
+                      setWizardStep(4);
                     }
                   }}
                   style={{
@@ -1191,14 +1198,8 @@ export default function CalendarView({ preselectedPatient = null }) {
                 key={loc.id}
                 onClick={() => {
                   setSelectedLocation(loc);
-                  const providers = PROVIDERS[selectedService?.category] || PROVIDERS['other'] || [];
-                  if (providers.length === 1) {
-                    setSelectedProvider(providers[0]);
-                    setWizardStep(4);
-                  } else {
-                    setSelectedProvider(null);
-                    setWizardStep(3);
-                  }
+                  setSelectedProvider(null);
+                  setWizardStep(4); // Skip provider step — per-provider columns shown in date/time
                 }}
                 style={{
                   ...styles.serviceItem,
@@ -1246,11 +1247,11 @@ export default function CalendarView({ preselectedPatient = null }) {
         </div>
       )}
 
-      {/* Step 4: Date/Time */}
+      {/* Step 4: Date + Provider Availability */}
       {wizardStep === 4 && (() => {
-        const hasCalcom = !!selectedService?.calcomSlug && !!eventTypesMap[selectedService.calcomSlug];
-        const useCalcomSlots = hasCalcom && apptDate;
-        const slotsToShow = useCalcomSlots ? availableSlots : null;
+        const hasCalcom = !!selectedService?.calcomSlug && resolveEventType(selectedService.calcomSlug);
+        const providers = PROVIDERS[selectedService?.category] || PROVIDERS['other'] || [];
+        const locationId = selectedLocation?.id || 'newport';
 
         return (
           <div>
@@ -1265,78 +1266,157 @@ export default function CalendarView({ preselectedPatient = null }) {
               <input
                 type="date"
                 value={apptDate}
-                onChange={e => { setApptDate(e.target.value); setApptTime(''); }}
+                onChange={e => { setApptDate(e.target.value); setApptTime(''); setSelectedProvider(null); }}
                 style={styles.input}
               />
             </div>
-            <div style={{ marginBottom: '12px' }}>
-              <label style={styles.fieldLabel}>
-                Time
-                {hasCalcom && (
+
+            {/* Loading state */}
+            {loadingSlots && apptDate && hasCalcom && (
+              <div style={{ padding: '20px 0', textAlign: 'center', color: '#888', fontSize: '13px' }}>
+                Checking availability...
+              </div>
+            )}
+
+            {/* Per-provider availability columns (Cal.com services) */}
+            {!loadingSlots && hasCalcom && apptDate && availableSlots && (
+              <div>
+                <label style={styles.fieldLabel}>
+                  Pick a time
                   <span style={{ fontWeight: 400, color: '#16a34a', marginLeft: '8px', fontSize: '11px' }}>
                     Live availability
                   </span>
+                </label>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '6px' }}>
+                  {providers.map(prov => {
+                    const provSlots = getSlotsForProvider(prov.calcomUsername, locationId);
+                    const isSelected = selectedProvider?.name === prov.name;
+                    return (
+                      <div key={prov.name} style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{
+                          padding: '8px',
+                          background: isSelected ? '#000' : '#f3f4f6',
+                          color: isSelected ? '#fff' : '#111',
+                          borderRadius: '8px 8px 0 0',
+                          fontSize: '13px',
+                          fontWeight: '600',
+                          textAlign: 'center',
+                        }}>
+                          {prov.label}
+                          <div style={{ fontSize: '11px', fontWeight: '400', opacity: 0.7, marginTop: '1px' }}>
+                            {provSlots.length > 0 ? `${provSlots.length} slot${provSlots.length > 1 ? 's' : ''}` : 'Off'}
+                          </div>
+                        </div>
+                        <div style={{
+                          border: isSelected ? '2px solid #000' : '1px solid #e5e5e5',
+                          borderTop: 'none',
+                          borderRadius: '0 0 8px 8px',
+                          padding: '6px',
+                          minHeight: '80px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '4px',
+                        }}>
+                          {provSlots.length === 0 && (
+                            <div style={{ padding: '12px 4px', color: '#aaa', fontSize: '11px', textAlign: 'center' }}>
+                              No availability
+                            </div>
+                          )}
+                          {provSlots.map(time => {
+                            const active = apptTime === time && selectedProvider?.name === prov.name;
+                            return (
+                              <button
+                                key={time}
+                                onClick={() => { setSelectedProvider(prov); setApptTime(time); }}
+                                style={{
+                                  padding: '7px 4px',
+                                  border: active ? '2px solid #000' : '1px solid #e5e5e5',
+                                  borderRadius: '6px',
+                                  background: active ? '#000' : '#fff',
+                                  color: active ? '#fff' : '#111',
+                                  fontSize: '12px',
+                                  cursor: 'pointer',
+                                  textAlign: 'center',
+                                  fontWeight: active ? '600' : '400',
+                                }}
+                              >
+                                {formatTimeLabel(time)}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Selected summary */}
+                {selectedProvider && apptTime && (
+                  <div style={{ marginTop: '10px', padding: '10px 12px', background: '#f0fdf4', borderRadius: '8px', fontSize: '13px', color: '#166534' }}>
+                    ✓ {formatTimeLabel(apptTime)} with <strong>{selectedProvider.label}</strong>
+                  </div>
                 )}
-              </label>
+              </div>
+            )}
 
-              {/* Loading state */}
-              {loadingSlots && apptDate && hasCalcom && (
-                <div style={{ padding: '20px 0', textAlign: 'center', color: '#888', fontSize: '13px' }}>
-                  Checking availability...
-                </div>
-              )}
+            {/* No availability for any provider */}
+            {!loadingSlots && hasCalcom && apptDate && availableSlots && availableSlots.length === 0 && (
+              <div style={{ padding: '16px', background: '#fef3c7', borderRadius: '8px', color: '#92400e', fontSize: '13px', textAlign: 'center' }}>
+                No availability on this date. Try a different date.
+              </div>
+            )}
 
-              {/* No availability message */}
-              {!loadingSlots && useCalcomSlots && slotsToShow && slotsToShow.length === 0 && (
-                <div style={{ padding: '16px', background: '#fef3c7', borderRadius: '8px', color: '#92400e', fontSize: '13px', textAlign: 'center' }}>
-                  No availability for {selectedProvider?.label || 'this provider'} on this date. Try a different date.
-                </div>
-              )}
+            {/* Prompt to select date first (Cal.com services) */}
+            {hasCalcom && !apptDate && !loadingSlots && (
+              <div style={{ padding: '16px 0', color: '#888', fontSize: '13px', textAlign: 'center' }}>
+                Select a date to see provider availability
+              </div>
+            )}
 
-              {/* Cal.com available slots */}
-              {!loadingSlots && useCalcomSlots && slotsToShow && slotsToShow.length > 0 && (
-                <div style={styles.timeGrid}>
-                  {slotsToShow.map(time => (
-                    <button
-                      key={time}
-                      onClick={() => setApptTime(time)}
-                      style={{
-                        ...styles.timeSlot,
-                        ...(apptTime === time ? styles.timeSlotActive : {}),
-                      }}
-                    >
-                      {formatTimeLabel(time)}
-                    </button>
-                  ))}
+            {/* Static fallback (no Cal.com slug — e.g., telemedicine, phone) */}
+            {!hasCalcom && (
+              <div>
+                {providers.length > 1 && (
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={styles.fieldLabel}>Provider</label>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      {providers.map(prov => (
+                        <button
+                          key={prov.name}
+                          onClick={() => setSelectedProvider(prov)}
+                          style={{
+                            padding: '6px 14px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer',
+                            border: selectedProvider?.name === prov.name ? '2px solid #000' : '1px solid #e5e5e5',
+                            background: selectedProvider?.name === prov.name ? '#000' : '#fff',
+                            color: selectedProvider?.name === prov.name ? '#fff' : '#111',
+                          }}
+                        >
+                          {prov.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div style={{ marginBottom: '12px' }}>
+                  <label style={styles.fieldLabel}>Time</label>
+                  <div style={styles.timeGrid}>
+                    {generateTimeSlots().map(time => (
+                      <button
+                        key={time}
+                        onClick={() => setApptTime(time)}
+                        style={{
+                          ...styles.timeSlot,
+                          ...(apptTime === time ? styles.timeSlotActive : {}),
+                        }}
+                      >
+                        {formatTimeLabel(time)}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Static fallback grid (no Cal.com slug or no date selected) */}
-              {!hasCalcom && (
-                <div style={styles.timeGrid}>
-                  {generateTimeSlots().map(time => (
-                    <button
-                      key={time}
-                      onClick={() => setApptTime(time)}
-                      style={{
-                        ...styles.timeSlot,
-                        ...(apptTime === time ? styles.timeSlotActive : {}),
-                      }}
-                    >
-                      {formatTimeLabel(time)}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Prompt to select date first (Cal.com services) */}
-              {hasCalcom && !apptDate && !loadingSlots && (
-                <div style={{ padding: '16px 0', color: '#888', fontSize: '13px', textAlign: 'center' }}>
-                  Select a date to see available times
-                </div>
-              )}
-            </div>
-            <div style={{ marginBottom: '12px' }}>
+            <div style={{ marginBottom: '12px', marginTop: '12px' }}>
               <label style={styles.fieldLabel}>Notes (optional)</label>
               <textarea
                 value={apptNotes}
@@ -1348,12 +1428,15 @@ export default function CalendarView({ preselectedPatient = null }) {
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 onClick={() => setWizardStep(5)}
-                disabled={!apptDate || !apptTime}
-                style={{ ...styles.primaryBtn, opacity: (apptDate && apptTime) ? 1 : 0.5 }}
+                disabled={!apptDate || !apptTime || (hasCalcom && !selectedProvider)}
+                style={{ ...styles.primaryBtn, opacity: (apptDate && apptTime && (!hasCalcom || selectedProvider)) ? 1 : 0.5 }}
               >
                 Next
               </button>
-              <button onClick={() => setWizardStep(3)} style={styles.linkBtn}>← Back</button>
+              <button onClick={() => {
+                const needsLocation = LOCATION_ENABLED_CATEGORIES.includes(selectedService?.category);
+                setWizardStep(needsLocation ? 2 : 1);
+              }} style={styles.linkBtn}>← Back</button>
             </div>
           </div>
         );

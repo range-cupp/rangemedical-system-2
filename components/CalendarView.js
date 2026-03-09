@@ -5,7 +5,22 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getCategoryStyle } from '../lib/protocol-config';
-import { APPOINTMENT_SERVICES, getAllServices, PROVIDERS, LOCATIONS, DEFAULT_LOCATION, LOCATION_ENABLED_CATEGORIES } from '../lib/appointment-services';
+import { APPOINTMENT_SERVICES, getAllServices, PROVIDERS, LOCATIONS, DEFAULT_LOCATION, LOCATION_ENABLED_CATEGORIES, REQUIRED_FORMS } from '../lib/appointment-services';
+
+// Form display names + consent_type normalization (inlined to avoid importing server-only form-bundles.js)
+const FORM_NAMES = {
+  'intake': 'Medical Intake', 'hipaa': 'HIPAA', 'blood-draw': 'Blood Draw Consent',
+  'hrt': 'HRT Consent', 'peptide': 'Peptide Consent', 'iv': 'IV/Injection Consent',
+  'hbot': 'HBOT Consent', 'weight-loss': 'Weight Loss Consent', 'red-light': 'Red Light Consent',
+  'prp': 'PRP Consent', 'exosome-iv': 'Exosome IV Consent',
+};
+const CONSENT_TYPE_TO_FORM_ID = {
+  'hipaa': 'hipaa', 'blood_draw': 'blood-draw', 'blood-draw': 'blood-draw',
+  'hrt': 'hrt', 'peptide': 'peptide', 'iv': 'iv', 'iv_injection': 'iv',
+  'hbot': 'hbot', 'weight_loss': 'weight-loss', 'weight-loss': 'weight-loss',
+  'red_light': 'red-light', 'red-light': 'red-light', 'prp': 'prp',
+  'exosome_iv': 'exosome-iv', 'exosome-iv': 'exosome-iv',
+};
 import { getRenewalStatus } from '../lib/protocol-tracking';
 import { formatPhone } from '../lib/format-utils';
 
@@ -160,7 +175,11 @@ export default function CalendarView({ preselectedPatient = null }) {
       .then(r => r.json())
       .then(data => {
         if (!cancelled) {
-          setApptPatientInfo(data.patient || data);
+          setApptPatientInfo({
+            ...(data.patient || data),
+            consents: data.consents || [],
+            intakes: data.intakes || [],
+          });
           setLoadingPatientInfo(false);
         }
       })
@@ -963,6 +982,46 @@ export default function CalendarView({ preselectedPatient = null }) {
               <span style={styles.popoverLabel}>Status</span>
               <span>{getStatusBadge(appt.status)}</span>
             </div>
+
+            {/* Forms / Consent checklist */}
+            {apptPatientInfo && (() => {
+              const requiredFormIds = REQUIRED_FORMS[appt.service_category] || REQUIRED_FORMS['other'] || ['intake', 'hipaa'];
+              const completedConsentFormIds = new Set(
+                (apptPatientInfo.consents || []).map(c => CONSENT_TYPE_TO_FORM_ID[c.consent_type] || c.consent_type)
+              );
+              const hasIntake = (apptPatientInfo.intakes || []).length > 0;
+              const formChecks = requiredFormIds.map(formId => {
+                if (formId === 'intake') return { formId, name: 'Medical Intake', done: hasIntake };
+                return { formId, name: FORM_NAMES[formId] || formId, done: completedConsentFormIds.has(formId) };
+              });
+              const allDone = formChecks.every(f => f.done);
+              const missingCount = formChecks.filter(f => !f.done).length;
+              return (
+                <div style={{
+                  margin: '12px 0',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  background: allDone ? '#f0fdf4' : '#fefce8',
+                  border: `1px solid ${allDone ? '#bbf7d0' : '#fde68a'}`,
+                }}>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: allDone ? '#166534' : '#92400e', marginBottom: '6px' }}>
+                    {allDone ? 'All forms complete' : `${missingCount} missing form${missingCount > 1 ? 's' : ''}`}
+                  </div>
+                  {formChecks.map(f => (
+                    <div key={f.formId} style={{ fontSize: '12px', color: f.done ? '#166534' : '#991b1b', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                      <span style={{ fontSize: '11px' }}>{f.done ? '✓' : '✗'}</span>
+                      <span>{f.name}</span>
+                    </div>
+                  ))}
+                  {!allDone && appt.patient_id && (
+                    <a href={`/admin/send-forms?patient_id=${appt.patient_id}`} style={{ fontSize: '11px', color: '#2563eb', marginTop: '6px', display: 'inline-block' }}>
+                      Send Missing Forms →
+                    </a>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* Renewal alerts */}
             {renewalMap[appt.patient_id]?.length > 0 && (
               <div style={{

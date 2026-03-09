@@ -3,8 +3,8 @@
 // Create, assign, and track tasks between team members
 // Range Medical System
 
-import { useState, useEffect, useCallback } from 'react';
-import { Sparkles } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Sparkles, Mic, MicOff } from 'lucide-react';
 import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
 import { useAuth } from '../../components/AuthProvider';
 
@@ -36,6 +36,11 @@ export default function TasksPage() {
     priority: 'medium',
     due_date: '',
   });
+
+  // Voice dictation state
+  const [listening, setListening] = useState(false);
+  const [dictationTarget, setDictationTarget] = useState('title'); // 'title' or 'description'
+  const recognitionRef = useRef(null);
 
   // Patient search
   const [patientSearch, setPatientSearch] = useState('');
@@ -100,6 +105,79 @@ export default function TasksPage() {
     }, 300);
     return () => clearTimeout(timer);
   }, [patientSearch]);
+
+  // Voice dictation — uses browser Web Speech API
+  const startListening = (target = 'title') => {
+    const SpeechRecognition = typeof window !== 'undefined'
+      && (window.SpeechRecognition || window.webkitSpeechRecognition);
+    if (!SpeechRecognition) {
+      setError('Speech recognition is not supported in this browser. Try Chrome.');
+      return;
+    }
+
+    // Stop any existing recognition
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    recognitionRef.current = recognition;
+    setDictationTarget(target);
+
+    let finalTranscript = '';
+
+    recognition.onresult = (event) => {
+      let interim = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript + ' ';
+        } else {
+          interim = transcript;
+        }
+      }
+      const currentText = (finalTranscript + interim).trim();
+      if (target === 'title') {
+        setForm(prev => ({ ...prev, title: currentText }));
+      } else {
+        setForm(prev => ({ ...prev, description: currentText }));
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      if (event.error !== 'aborted') {
+        setError('Microphone error: ' + event.error);
+      }
+      setListening(false);
+    };
+
+    recognition.onend = () => {
+      setListening(false);
+      recognitionRef.current = null;
+    };
+
+    recognition.start();
+    setListening(true);
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    setListening(false);
+  };
+
+  // Cleanup recognition when modal closes
+  useEffect(() => {
+    if (!showCreate && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setListening(false);
+    }
+  }, [showCreate]);
 
   const toggleComplete = async (task) => {
     const newStatus = task.status === 'completed' ? 'pending' : 'completed';
@@ -217,6 +295,12 @@ export default function TasksPage() {
 
   return (
     <AdminLayout title="Tasks">
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+      `}</style>
       <div style={{ maxWidth: '900px', margin: '0 auto' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
@@ -408,44 +492,112 @@ export default function TasksPage() {
             <form onSubmit={handleCreate}>
               <div style={sharedStyles.modalBody}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  {/* Title with AI Format */}
+                  {/* Title with Voice + AI Format */}
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <label style={sharedStyles.label}>Task</label>
-                      <button
-                        type="button"
-                        onClick={handleFormat}
-                        disabled={formatting || (!form.title.trim() && !form.description.trim())}
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', gap: '5px',
-                          padding: '4px 10px', fontSize: '12px', fontWeight: 600,
-                          color: formatting ? '#9ca3af' : '#7c3aed',
-                          background: formatting ? '#f3f4f6' : '#f5f3ff',
-                          border: '1px solid', borderColor: formatting ? '#e5e7eb' : '#ddd6fe',
-                          borderRadius: '6px',
-                          cursor: formatting || (!form.title.trim() && !form.description.trim()) ? 'not-allowed' : 'pointer',
-                          opacity: (!form.title.trim() && !form.description.trim()) ? 0.5 : 1,
-                          marginBottom: '6px',
-                        }}
-                      >
-                        <Sparkles size={13} />
-                        {formatting ? 'Formatting...' : 'AI Format'}
-                      </button>
+                      <div style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => listening && dictationTarget === 'title' ? stopListening() : startListening('title')}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '5px',
+                            padding: '4px 10px', fontSize: '12px', fontWeight: 600,
+                            color: listening && dictationTarget === 'title' ? '#fff' : '#dc2626',
+                            background: listening && dictationTarget === 'title' ? '#dc2626' : '#fef2f2',
+                            border: '1px solid', borderColor: listening && dictationTarget === 'title' ? '#dc2626' : '#fecaca',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            animation: listening && dictationTarget === 'title' ? 'pulse 1.5s infinite' : 'none',
+                          }}
+                        >
+                          {listening && dictationTarget === 'title' ? <MicOff size={13} /> : <Mic size={13} />}
+                          {listening && dictationTarget === 'title' ? 'Stop' : 'Dictate'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleFormat}
+                          disabled={formatting || (!form.title.trim() && !form.description.trim())}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '5px',
+                            padding: '4px 10px', fontSize: '12px', fontWeight: 600,
+                            color: formatting ? '#9ca3af' : '#7c3aed',
+                            background: formatting ? '#f3f4f6' : '#f5f3ff',
+                            border: '1px solid', borderColor: formatting ? '#e5e7eb' : '#ddd6fe',
+                            borderRadius: '6px',
+                            cursor: formatting || (!form.title.trim() && !form.description.trim()) ? 'not-allowed' : 'pointer',
+                            opacity: (!form.title.trim() && !form.description.trim()) ? 0.5 : 1,
+                          }}
+                        >
+                          <Sparkles size={13} />
+                          {formatting ? 'Formatting...' : 'AI Format'}
+                        </button>
+                      </div>
                     </div>
+                    {listening && dictationTarget === 'title' && (
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '8px',
+                        padding: '6px 10px', marginBottom: '6px',
+                        background: '#fef2f2', borderRadius: '6px',
+                        fontSize: '12px', color: '#dc2626', fontWeight: 500,
+                      }}>
+                        <span style={{
+                          width: '8px', height: '8px', borderRadius: '50%',
+                          background: '#dc2626', animation: 'pulse 1s infinite',
+                        }} />
+                        Listening... speak now
+                      </div>
+                    )}
                     <input
                       type="text"
                       value={form.title}
                       onChange={e => setForm(prev => ({ ...prev, title: e.target.value }))}
-                      placeholder="Type or dictate your task..."
-                      style={sharedStyles.input}
+                      placeholder="Type or tap Dictate to speak your task..."
+                      style={{
+                        ...sharedStyles.input,
+                        ...(listening && dictationTarget === 'title' ? { borderColor: '#dc2626', boxShadow: '0 0 0 2px rgba(220,38,38,0.1)' } : {}),
+                      }}
                       autoFocus
                       required
                     />
                   </div>
 
-                  {/* Description */}
+                  {/* Description with Voice */}
                   <div>
-                    <label style={sharedStyles.label}>Details (optional)</label>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <label style={sharedStyles.label}>Details (optional)</label>
+                      <button
+                        type="button"
+                        onClick={() => listening && dictationTarget === 'description' ? stopListening() : startListening('description')}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '5px',
+                          padding: '3px 8px', fontSize: '11px', fontWeight: 600,
+                          color: listening && dictationTarget === 'description' ? '#fff' : '#dc2626',
+                          background: listening && dictationTarget === 'description' ? '#dc2626' : '#fef2f2',
+                          border: '1px solid', borderColor: listening && dictationTarget === 'description' ? '#dc2626' : '#fecaca',
+                          borderRadius: '5px',
+                          cursor: 'pointer',
+                          marginBottom: '6px',
+                        }}
+                      >
+                        {listening && dictationTarget === 'description' ? <MicOff size={11} /> : <Mic size={11} />}
+                        {listening && dictationTarget === 'description' ? 'Stop' : 'Dictate'}
+                      </button>
+                    </div>
+                    {listening && dictationTarget === 'description' && (
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '8px',
+                        padding: '6px 10px', marginBottom: '6px',
+                        background: '#fef2f2', borderRadius: '6px',
+                        fontSize: '12px', color: '#dc2626', fontWeight: 500,
+                      }}>
+                        <span style={{
+                          width: '8px', height: '8px', borderRadius: '50%',
+                          background: '#dc2626', animation: 'pulse 1s infinite',
+                        }} />
+                        Listening... speak now
+                      </div>
+                    )}
                     <textarea
                       value={form.description}
                       onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))}
@@ -455,6 +607,7 @@ export default function TasksPage() {
                         border: '1px solid #d1d5db', borderRadius: '8px', outline: 'none',
                         resize: 'vertical', fontFamily: 'inherit', lineHeight: '1.5',
                         minHeight: '80px', boxSizing: 'border-box',
+                        ...(listening && dictationTarget === 'description' ? { borderColor: '#dc2626', boxShadow: '0 0 0 2px rgba(220,38,38,0.1)' } : {}),
                       }}
                     />
                   </div>

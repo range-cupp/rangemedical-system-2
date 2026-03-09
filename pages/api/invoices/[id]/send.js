@@ -1,10 +1,13 @@
 // POST /api/invoices/[id]/send
 // Send invoice via SMS, email, or both
+// SMS uses unified Blooio/Twilio router with two-step opt-in for Blooio
 
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { generateInvoiceHtml } from '../../../../lib/invoice-email';
 import { logComm } from '../../../../lib/comms-log';
+import { sendSMS, normalizePhone } from '../../../../lib/send-sms';
+import { hasBlooioOptIn, queuePendingLinkMessage, isBlooioProvider } from '../../../../lib/blooio-optin';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -39,6 +42,7 @@ export default async function handler(req, res) {
     const paymentUrl = `${baseUrl}/invoice/${invoice.id}`;
     const total = `$${(invoice.total_cents / 100).toFixed(2)}`;
     const firstName = (invoice.patient_name || '').split(' ')[0] || 'there';
+    let twoStep = false;
 
     // Send email
     if (via === 'email' || via === 'both') {
@@ -90,38 +94,107 @@ export default async function handler(req, res) {
       }
     }
 
-    // Send SMS
+    // Send SMS via unified Blooio/Twilio router
     if (via === 'sms' || via === 'both') {
-      if (invoice.patient_id) {
+      // Get patient phone number
+      const phone = invoice.patient_phone || null;
+      let patientPhone = phone;
+
+      // If no phone on invoice, look up from patient record
+      if (!patientPhone && invoice.patient_id) {
+        const { data: patient } = await supabase
+          .from('patients')
+          .select('phone')
+          .eq('id', invoice.patient_id)
+          .single();
+        patientPhone = patient?.phone || null;
+      }
+
+      if (patientPhone) {
+        const normalizedPhone = normalizePhone(patientPhone);
+        const fullMessage = `Hi ${firstName}, you have a ${total} invoice from Range Medical. Pay securely here: ${paymentUrl}`;
+
         try {
-          const { data: patient } = await supabase
-            .from('patients')
-            .select('ghl_contact_id, name')
-            .eq('id', invoice.patient_id)
-            .single();
+          // Check if Blooio requires two-step opt-in
+          if (isBlooioProvider()) {
+            const optedIn = await hasBlooioOptIn(normalizedPhone);
 
-          if (patient?.ghl_contact_id) {
-            const message = `Hi ${firstName}, you have a ${total} invoice from Range Medical. Pay securely here: ${paymentUrl}`;
+            if (!optedIn) {
+              // Step 1: Send link-free opt-in message
+              const optInMsg = `Hi ${firstName}, Range Medical here. You have a ${total} invoice ready. Reply YES to receive the payment link.`;
+              const optInResult = await sendSMS({ to: normalizedPhone, message: optInMsg });
 
-            await fetch(`${baseUrl}/api/ghl/send-sms`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ contact_id: patient.ghl_contact_id, message }),
-            });
+              if (optInResult.success) {
+                // Queue the full message with payment link
+                await queuePendingLinkMessage({
+                  phone: normalizedPhone,
+                  message: fullMessage,
+                  messageType: 'invoice_link',
+                  patientId: invoice.patient_id,
+                  patientName: invoice.patient_name,
+                });
+
+                await logComm({
+                  channel: 'sms',
+                  messageType: 'invoice_optin',
+                  message: optInMsg,
+                  source: 'invoices/send',
+                  patientId: invoice.patient_id,
+                  patientName: invoice.patient_name,
+                  recipient: normalizedPhone,
+                  provider: optInResult.provider,
+                });
+
+                twoStep = true;
+              }
+            } else {
+              // Already opted in — send full message with link
+              const smsResult = await sendSMS({ to: normalizedPhone, message: fullMessage });
+
+              await logComm({
+                channel: 'sms',
+                messageType: 'invoice',
+                message: fullMessage,
+                source: 'invoices/send',
+                patientId: invoice.patient_id,
+                patientName: invoice.patient_name,
+                recipient: normalizedPhone,
+                provider: smsResult.provider,
+                status: smsResult.success ? 'sent' : 'error',
+                errorMessage: smsResult.error || null,
+              });
+            }
+          } else {
+            // Twilio — send directly (no opt-in needed)
+            const smsResult = await sendSMS({ to: normalizedPhone, message: fullMessage });
 
             await logComm({
               channel: 'sms',
               messageType: 'invoice',
-              message,
+              message: fullMessage,
               source: 'invoices/send',
               patientId: invoice.patient_id,
               patientName: invoice.patient_name,
-              ghlContactId: patient.ghl_contact_id,
+              recipient: normalizedPhone,
+              provider: smsResult.provider,
+              status: smsResult.success ? 'sent' : 'error',
+              errorMessage: smsResult.error || null,
             });
           }
         } catch (smsErr) {
           console.error('Invoice SMS error:', smsErr);
+          await logComm({
+            channel: 'sms',
+            messageType: 'invoice',
+            message: `Invoice SMS failed for ${invoice.id}`,
+            source: 'invoices/send',
+            patientId: invoice.patient_id,
+            status: 'error',
+            errorMessage: smsErr.message,
+          });
         }
+      } else {
+        console.warn(`No phone number for invoice ${invoice.id}`);
       }
     }
 
@@ -135,7 +208,12 @@ export default async function handler(req, res) {
       })
       .eq('id', id);
 
-    return res.status(200).json({ success: true, payment_url: paymentUrl });
+    return res.status(200).json({
+      success: true,
+      payment_url: paymentUrl,
+      twoStep,
+      ...(twoStep ? { message: 'Opt-in text sent. Invoice link will be delivered when the patient replies YES.' } : {}),
+    });
   } catch (error) {
     console.error('Send invoice error:', error);
     return res.status(500).json({ error: error.message });

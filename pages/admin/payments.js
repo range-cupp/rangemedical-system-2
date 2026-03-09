@@ -280,12 +280,16 @@ export default function PaymentsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ via }),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      if (data.twoStep) {
+        setActionMsg('Opt-in text sent — invoice link will be delivered when patient replies YES');
+        setTimeout(() => setActionMsg(''), 6000);
+      } else {
+        setActionMsg(`Invoice sent via ${via}`);
+        setTimeout(() => setActionMsg(''), 3000);
       }
-      setActionMsg(`Invoice resent via ${via}`);
-      setTimeout(() => setActionMsg(''), 3000);
       fetchInvoices();
     } catch (err) {
       alert('Send failed: ' + err.message);
@@ -446,14 +450,24 @@ export default function PaymentsPage() {
                             <div style={styles.actions}>
                               {/* Send/resend for pending or sent */}
                               {(inv.status === 'pending' || inv.status === 'sent') && (
-                                <button
-                                  onClick={() => handleResend(inv, 'email')}
-                                  disabled={sendingId === inv.id}
-                                  style={styles.actionBtn}
-                                  title="Send via email"
-                                >
-                                  {sendingId === inv.id ? '...' : 'Send'}
-                                </button>
+                                <>
+                                  <button
+                                    onClick={() => handleResend(inv, 'email')}
+                                    disabled={sendingId === inv.id}
+                                    style={styles.actionBtn}
+                                    title="Send via email"
+                                  >
+                                    {sendingId === inv.id ? '...' : 'Email'}
+                                  </button>
+                                  <button
+                                    onClick={() => handleResend(inv, 'sms')}
+                                    disabled={sendingId === inv.id}
+                                    style={styles.textBtn}
+                                    title="Send via text message"
+                                  >
+                                    {sendingId === inv.id ? '...' : 'Text'}
+                                  </button>
+                                </>
                               )}
                               {/* Void for non-voided */}
                               {inv.status !== 'voided' && inv.status !== 'cancelled' && (
@@ -1111,6 +1125,16 @@ const styles = {
     fontSize: '12px',
     cursor: 'pointer',
     color: '#333',
+    fontWeight: '500',
+  },
+  textBtn: {
+    padding: '4px 10px',
+    border: '1px solid #bbf7d0',
+    borderRadius: '6px',
+    background: '#f0fdf4',
+    fontSize: '12px',
+    cursor: 'pointer',
+    color: '#16a34a',
     fontWeight: '500',
   },
   voidBtn: {

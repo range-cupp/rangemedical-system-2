@@ -198,14 +198,26 @@ export default function CalendarView({ preselectedPatient = null }) {
       .catch(err => console.error('Failed to load Cal.com event types:', err));
   }, []);
 
-  // Fetch available slots from Cal.com when date/service/provider change
+  // Resolve the Cal.com event type for the current service + location
+  // Placentia has separate event types (e.g., 'range-iv-placentia') so we try the
+  // location-specific slug first, then fall back to the base slug.
+  const resolveEventType = useCallback((slug) => {
+    if (!slug) return null;
+    if (selectedLocation?.id === 'placentia') {
+      const placentiaSlug = `${slug}-placentia`;
+      if (eventTypesMap[placentiaSlug]) return { ...eventTypesMap[placentiaSlug], slug: placentiaSlug };
+    }
+    return eventTypesMap[slug] ? { ...eventTypesMap[slug], slug } : null;
+  }, [eventTypesMap, selectedLocation?.id]);
+
+  // Fetch available slots from Cal.com when date/service/provider/location change
   useEffect(() => {
     if (!apptDate || !selectedService?.calcomSlug) {
       setAvailableSlots(null);
       return;
     }
 
-    const eventType = eventTypesMap[selectedService.calcomSlug];
+    const eventType = resolveEventType(selectedService.calcomSlug);
     if (!eventType) {
       setAvailableSlots(null);
       return;
@@ -255,7 +267,7 @@ export default function CalendarView({ preselectedPatient = null }) {
       });
 
     return () => { cancelled = true; };
-  }, [apptDate, selectedService?.calcomSlug, selectedProvider?.calcomUsername, eventTypesMap]);
+  }, [apptDate, selectedService?.calcomSlug, selectedProvider?.calcomUsername, eventTypesMap, resolveEventType]);
 
   // Pre-fill wizard if patient is preselected
   useEffect(() => {
@@ -292,7 +304,7 @@ export default function CalendarView({ preselectedPatient = null }) {
       const patientPhone = isWalkIn ? walkInPhone : selectedPatient?.phone;
 
       const calcomSlug = selectedService?.calcomSlug;
-      const eventType = calcomSlug ? eventTypesMap[calcomSlug] : null;
+      const eventType = resolveEventType(calcomSlug);
 
       let res;
 
@@ -309,7 +321,7 @@ export default function CalendarView({ preselectedPatient = null }) {
           patientEmail: selectedPatient.email || null,
           patientPhone: patientPhone || null,
           serviceName: selectedService.name,
-          serviceSlug: calcomSlug,
+          serviceSlug: eventType?.slug || calcomSlug,
           durationMinutes: duration,
           notes: apptNotes || null,
           hostUserId: hostInfo?.userId || null,

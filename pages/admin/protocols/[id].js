@@ -7,7 +7,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../../lib/hrt-lab-schedule';
-import { isRecoveryPeptide, isGHPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS } from '../../../lib/protocol-config';
+import { isRecoveryPeptide, isGHPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS, INJECTION_METHODS, HRT_SUPPLY_TYPES } from '../../../lib/protocol-config';
 import { PROTOCOL_TYPES, detectProtocolType, getDBProgramType, getDeliveryLabel } from '../../../lib/protocol-types';
 import AdminLayout from '../../../components/AdminLayout';
 
@@ -232,7 +232,11 @@ export default function ProtocolDetail() {
         duration: durationVal,
         totalSessions: enrichedProtocol.total_sessions || durationVal,
         status: enrichedProtocol.status || 'active',
-        notes: enrichedProtocol.notes || ''
+        notes: enrichedProtocol.notes || '',
+        // HRT decision tree fields
+        injectionMethod: enrichedProtocol.injection_method || '',
+        supplyType: enrichedProtocol.supply_type || '',
+        scheduledDays: enrichedProtocol.scheduled_days || []
       });
 
       // Build check-in schedule for take-home protocols (NOT HRT — HRT has its own reminder system)
@@ -788,6 +792,13 @@ export default function ProtocolDetail() {
         status: form.status,
         notes: form.notes
       };
+
+      // HRT-specific fields
+      if (isHRTProtocol(form.protocolType)) {
+        if (form.injectionMethod) saveData.injection_method = form.injectionMethod;
+        if (form.supplyType) saveData.supply_type = form.supplyType;
+        if (form.scheduledDays && form.scheduledDays.length > 0) saveData.scheduled_days = form.scheduledDays;
+      }
 
       // Only set total_sessions for non-weight-loss protocols
       if (!isWL) {
@@ -1784,6 +1795,45 @@ export default function ProtocolDetail() {
                         )}
                       </select>
                     </div>
+                    {/* HRT Decision Tree Fields */}
+                    {isHRTProtocol(form.protocolType) && form.deliveryMethod === 'take_home' && (
+                      <div style={styles.field}>
+                        <label style={styles.label}>Injection Method</label>
+                        <select value={form.injectionMethod} onChange={e => setForm({ ...form, injectionMethod: e.target.value })} style={styles.select}>
+                          <option value="">Select method...</option>
+                          {INJECTION_METHODS.map(m => (
+                            <option key={m.value} value={m.value}>{m.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    {isHRTProtocol(form.protocolType) && form.deliveryMethod === 'take_home' && (
+                      <div style={styles.field}>
+                        <label style={styles.label}>Supply Type</label>
+                        <select value={form.supplyType} onChange={e => setForm({ ...form, supplyType: e.target.value })} style={styles.select}>
+                          <option value="">Select supply...</option>
+                          {HRT_SUPPLY_TYPES.map(s => (
+                            <option key={s.value} value={s.value}>{s.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    {isHRTProtocol(form.protocolType) && (
+                      <div style={styles.field}>
+                        <label style={styles.label}>Scheduled Days</label>
+                        <select
+                          value={Array.isArray(form.scheduledDays) ? form.scheduledDays.join(',') : ''}
+                          onChange={e => setForm({ ...form, scheduledDays: e.target.value ? e.target.value.split(',') : [] })}
+                          style={styles.select}
+                        >
+                          <option value="">Select schedule...</option>
+                          <option value="monday,thursday">Mon / Thu</option>
+                          <option value="tuesday,friday">Tue / Fri</option>
+                          <option value="monday,wednesday,friday">Mon / Wed / Fri</option>
+                          <option value="monday,tuesday,wednesday,thursday,friday,saturday,sunday">Daily</option>
+                        </select>
+                      </div>
+                    )}
                     <div style={styles.field}>
                       <label style={styles.label}>Start Date</label>
                       <input type="date" value={form.startDate} onChange={e => setForm({ ...form, startDate: e.target.value })} style={styles.input} />

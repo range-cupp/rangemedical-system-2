@@ -116,6 +116,15 @@ export default async function handler(req, res) {
       const delivery = b.delivery_method ?? b.injection_location;
       if (delivery !== undefined) updateData.delivery_method = delivery;
 
+      // HRT-specific fields
+      if (b.injection_method !== undefined) updateData.injection_method = b.injection_method;
+      if (b.supply_type !== undefined) updateData.supply_type = b.supply_type;
+      if (b.scheduled_days !== undefined) updateData.scheduled_days = b.scheduled_days;
+      if (b.dose_per_injection !== undefined) updateData.dose_per_injection = b.dose_per_injection;
+      if (b.injections_per_week !== undefined) updateData.injections_per_week = b.injections_per_week;
+      if (b.vial_size !== undefined) updateData.vial_size = b.vial_size;
+      if (b.first_followup_weeks !== undefined) updateData.first_followup_weeks = b.first_followup_weeks;
+
       updateData.updated_at = new Date().toISOString();
 
       // Try old table first

@@ -471,6 +471,32 @@ export default async function handler(req, res) {
         assessments = assessmentData || [];
       }
 
+      // ===== Get tasks linked to this patient =====
+      let patientTasks = [];
+      const { data: tasksData } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('patient_id', id)
+        .order('created_at', { ascending: false });
+      if (tasksData && tasksData.length > 0) {
+        // Enrich with employee names
+        const empIds = [...new Set([
+          ...tasksData.map(t => t.assigned_to),
+          ...tasksData.map(t => t.assigned_by),
+        ])];
+        const { data: empNames } = await supabase
+          .from('employees')
+          .select('id, name')
+          .in('id', empIds);
+        const empMap = {};
+        (empNames || []).forEach(e => { empMap[e.id] = e.name; });
+        patientTasks = tasksData.map(t => ({
+          ...t,
+          assigned_to_name: empMap[t.assigned_to] || 'Unknown',
+          assigned_by_name: empMap[t.assigned_by] || 'Unknown',
+        }));
+      }
+
       // ===== Weight loss service logs (for progress chart) =====
       const { data: weightLossLogs } = await supabase
         .from('service_logs')
@@ -645,6 +671,7 @@ export default async function handler(req, res) {
         consents: consents || [],
         medicalDocuments: medicalDocuments || [],
         assessments: assessments || [],
+        patientTasks: patientTasks || [],
         sessions: sessions || [],
         symptomResponses: symptomResponses || [],
         questionnaireResponses: questionnaireResponses || [],

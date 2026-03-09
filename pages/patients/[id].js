@@ -67,6 +67,8 @@ export default function PatientProfile() {
   const [consents, setConsents] = useState([]);
   const [medicalDocuments, setMedicalDocuments] = useState([]);
   const [assessments, setAssessments] = useState([]);
+  const [patientTasks, setPatientTasks] = useState([]);
+  const [expandedTaskId, setExpandedTaskId] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [symptomResponses, setSymptomResponses] = useState([]);
   const [questionnaireResponses, setQuestionnaireResponses] = useState([]);
@@ -264,6 +266,7 @@ export default function PatientProfile() {
         setConsents(data.consents || []);
         setMedicalDocuments(data.medicalDocuments || []);
         setAssessments(data.assessments || []);
+        setPatientTasks(data.patientTasks || []);
         setSessions(data.sessions || []);
         setSymptomResponses(data.symptomResponses || []);
         setQuestionnaireResponses(data.questionnaireResponses || []);
@@ -1397,6 +1400,7 @@ export default function PatientProfile() {
           <button className={activeTab === 'appointments' ? 'active' : ''} onClick={() => setActiveTab('appointments')}>Visits{(appointments.length + serviceLogs.length) > 0 && <span className="tab-count">{appointments.length + serviceLogs.length}</span>}</button>
           <button className={activeTab === 'intakes' ? 'active' : ''} onClick={() => setActiveTab('intakes')}>Docs{(intakes.length + consents.length + medicalDocuments.length + assessments.length) > 0 && <span className="tab-count">{intakes.length + consents.length + medicalDocuments.length + assessments.length}</span>}</button>
           <button className={activeTab === 'notes' ? 'active' : ''} onClick={() => setActiveTab('notes')}>Notes{notes.length > 0 && <span className="tab-count">{notes.length}</span>}</button>
+          <button className={activeTab === 'tasks' ? 'active' : ''} onClick={() => setActiveTab('tasks')}>Tasks{patientTasks.filter(t => t.status === 'pending').length > 0 && <span className="tab-count">{patientTasks.filter(t => t.status === 'pending').length}</span>}</button>
           <button className={activeTab === 'symptoms' ? 'active' : ''} onClick={() => setActiveTab('symptoms')}>Symptoms{questionnaireResponses.length > 0 && <span className="tab-count">{questionnaireResponses.length}</span>}</button>
           <button className={activeTab === 'payments' ? 'active' : ''} onClick={() => setActiveTab('payments')}>Payments</button>
           <button className={activeTab === 'communications' ? 'active' : ''} onClick={() => setActiveTab('communications')}>Comms</button>
@@ -2652,6 +2656,122 @@ export default function PatientProfile() {
                         )}
                       </div>
                     ))}
+                  </div>
+                )}
+              </section>
+            </>
+          )}
+
+          {/* Tasks Tab */}
+          {activeTab === 'tasks' && (
+            <>
+              <section className="card">
+                <div className="card-header">
+                  <h3>Tasks ({patientTasks.length})</h3>
+                </div>
+                {patientTasks.length === 0 ? (
+                  <div className="empty">No tasks linked to this patient</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                    {/* Pending tasks first, then completed */}
+                    {[...patientTasks].sort((a, b) => {
+                      if (a.status === 'pending' && b.status !== 'pending') return -1;
+                      if (a.status !== 'pending' && b.status === 'pending') return 1;
+                      return new Date(b.created_at) - new Date(a.created_at);
+                    }).map(task => {
+                      const isExpanded = expandedTaskId === task.id;
+                      const isCompleted = task.status === 'completed';
+                      const isOverdue = !isCompleted && task.due_date && new Date(task.due_date + 'T23:59:59') < new Date();
+                      const priorityColors = {
+                        urgent: { bg: '#fef2f2', color: '#dc2626', label: 'Urgent' },
+                        high: { bg: '#fff7ed', color: '#ea580c', label: 'High' },
+                        medium: { bg: '#eff6ff', color: '#2563eb', label: 'Medium' },
+                        low: { bg: '#f0fdf4', color: '#16a34a', label: 'Low' },
+                      };
+                      const pri = priorityColors[task.priority] || priorityColors.medium;
+
+                      return (
+                        <div
+                          key={task.id}
+                          onClick={() => setExpandedTaskId(isExpanded ? null : task.id)}
+                          style={{
+                            padding: '12px 16px',
+                            borderBottom: '1px solid #f0f0f0',
+                            cursor: 'pointer',
+                            background: isExpanded ? '#fafbff' : (isCompleted ? '#fafafa' : '#fff'),
+                            borderLeft: isExpanded ? '3px solid #3b82f6' : '3px solid transparent',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          {/* Collapsed row */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <span style={{
+                              fontSize: 11,
+                              transition: 'transform 0.15s ease',
+                              transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                              color: '#999',
+                            }}>▶</span>
+                            <span style={{
+                              width: 10, height: 10, borderRadius: '50%',
+                              background: isCompleted ? '#16a34a' : (isOverdue ? '#dc2626' : '#d97706'),
+                              flexShrink: 0,
+                            }} />
+                            <span style={{
+                              flex: 1,
+                              fontSize: 14,
+                              fontWeight: 500,
+                              color: isCompleted ? '#9ca3af' : '#1f2937',
+                              textDecoration: isCompleted ? 'line-through' : 'none',
+                              overflow: isExpanded ? 'visible' : 'hidden',
+                              textOverflow: isExpanded ? 'unset' : 'ellipsis',
+                              whiteSpace: isExpanded ? 'normal' : 'nowrap',
+                            }}>
+                              {task.title}
+                            </span>
+                            <span style={{
+                              fontSize: 11,
+                              fontWeight: 600,
+                              padding: '2px 8px',
+                              borderRadius: 4,
+                              background: pri.bg,
+                              color: pri.color,
+                              flexShrink: 0,
+                            }}>{pri.label}</span>
+                            {isOverdue && (
+                              <span style={{ fontSize: 11, fontWeight: 600, color: '#dc2626', flexShrink: 0 }}>OVERDUE</span>
+                            )}
+                          </div>
+
+                          {/* Expanded details */}
+                          {isExpanded && (
+                            <div style={{ marginTop: 12, marginLeft: 24 }}>
+                              {task.description && (
+                                <div style={{
+                                  background: '#f3f4f6',
+                                  borderRadius: 6,
+                                  padding: '10px 14px',
+                                  fontSize: 13,
+                                  color: '#374151',
+                                  lineHeight: 1.6,
+                                  whiteSpace: 'pre-wrap',
+                                  marginBottom: 12,
+                                }}>
+                                  {task.description}
+                                </div>
+                              )}
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 20px', fontSize: 13, color: '#6b7280' }}>
+                                <span><strong>Assigned to:</strong> {task.assigned_to_name}</span>
+                                <span><strong>Created by:</strong> {task.assigned_by_name}</span>
+                                <span><strong>Status:</strong> {isCompleted ? '✓ Completed' : '○ Pending'}</span>
+                                {task.due_date && <span><strong>Due:</strong> {formatDate(task.due_date)}</span>}
+                                <span><strong>Created:</strong> {formatDate(task.created_at)}</span>
+                                {task.completed_at && <span><strong>Completed:</strong> {formatDate(task.completed_at)}</span>}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </section>

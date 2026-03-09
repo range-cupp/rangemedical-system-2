@@ -17,6 +17,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const [callsSynced, setCallsSynced] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [smsProvider, setSmsProvider] = useState('blooio');
+  const [formatting, setFormatting] = useState(false);
   const messagesContainerRef = useRef(null);
   const shouldScrollRef = useRef(false);
 
@@ -169,6 +170,29 @@ export default function ConversationView({ patientId, patientName, patientPhone,
     const populated = templateText.replace(/\{\{name\}\}/g, firstName);
     setNewMessage(populated);
     setShowTemplates(false);
+  };
+
+  const handleFormatSMS = async () => {
+    if (!newMessage.trim()) return;
+    setFormatting(true);
+    try {
+      const res = await fetch('/api/sms/format', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          raw_text: newMessage,
+          recipientName: (patientName || '').split(' ')[0] || null,
+        }),
+      });
+      const data = await res.json();
+      if (data.formatted) {
+        setNewMessage(data.formatted);
+      }
+    } catch (err) {
+      console.error('SMS format error:', err);
+    } finally {
+      setFormatting(false);
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -598,6 +622,18 @@ export default function ConversationView({ patientId, patientName, patientPhone,
           title="Message templates"
         >
           ⚡
+        </button>
+        <button
+          onClick={handleFormatSMS}
+          disabled={!newMessage.trim() || formatting}
+          style={{
+            ...styles.templateBtn,
+            color: formatting ? '#9ca3af' : '#7c3aed',
+            opacity: !newMessage.trim() || formatting ? 0.4 : 1,
+          }}
+          title="AI Format"
+        >
+          {formatting ? '...' : '✨'}
         </button>
         <textarea
           value={newMessage}

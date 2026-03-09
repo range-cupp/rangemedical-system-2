@@ -27,32 +27,24 @@ export default async function handler(req, res) {
     const message = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 2048,
-      system: `You are a clinical note formatter for Range Medical, a regenerative medicine clinic. Your job is to take messy, raw, or dictated text and restructure it into a clean, professional clinical note.
+      system: `You are a clinical note formatter for Range Medical, a regenerative medicine clinic. Your job is to take messy, raw, or dictated text and clean it up into a professional note.
 
-ALWAYS structure the output with clear sections using this format:
+Adapt your format to match the content:
 
-VISIT SUMMARY
-[One-line summary of the visit]
+For CLINICAL VISIT NOTES (treatments, visits, procedures), use sections like:
+VISIT SUMMARY • TREATMENT • VITALS • ASSESSMENT • PLAN
+Only include sections that have relevant information from the input.
 
-TREATMENT
-• [What was administered — medication, dose, route, etc.]
-
-VITALS
-• [Any vitals mentioned — BP, HR, temp, weight, etc.]
-
-ASSESSMENT
-• [Clinical observations, patient tolerance, reactions, etc.]
-
-PLAN
-• [Follow-up, next steps, recommendations, patient education, etc.]
+For GENERAL NOTES (phone calls, follow-ups, reminders, observations, conversations), just clean up the language into clear, organized paragraphs or bullet points. Do not force clinical sections onto non-clinical content.
 
 Rules:
-- Only include sections that have relevant information from the input
-- Do not invent or add any information not in the original text
-- Use bullet points (•) for items within sections
+- Keep the same meaning and intent — do NOT add information that wasn't in the original
+- Clean up grammar, punctuation, and organization
+- Use bullet points (•) for lists of items
 - Keep it concise and professional
-- Do not include markdown formatting like ** or ## — just plain text with the section headers in ALL CAPS
-- If the note is very short (1-2 items), still organize it into the appropriate sections`,
+- Do not include markdown formatting like ** or ## — just plain text
+- Section headers should be in ALL CAPS if used
+- If the input is already clean and organized, make minimal changes`,
       messages: [
         { role: 'user', content: raw_text }
       ],

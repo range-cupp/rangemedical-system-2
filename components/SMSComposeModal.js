@@ -1,72 +1,36 @@
-// /components/EmailComposeModal.js
-// Reusable email compose modal — sends via /api/email/send
-// Uses sharedStyles from AdminLayout for consistent styling
+// /components/SMSComposeModal.js
+// Reusable SMS compose modal — sends via /api/twilio/send-sms
+// AI Format button cleans up rough/dictated text before sending
 // Range Medical System
 
-import { useState, useEffect, useRef } from 'react';
-import { Sparkles, Paperclip, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Sparkles } from 'lucide-react';
 import { sharedStyles } from './AdminLayout';
 
-export default function EmailComposeModal({
+export default function SMSComposeModal({
   isOpen,
   onClose,
-  recipientEmail,
+  recipientPhone,
   recipientName,
   patientId,
   patientName,
-  ghlContactId,
-  session,
 }) {
   const [to, setTo] = useState('');
-  const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
   const [formatting, setFormatting] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
-  const [attachments, setAttachments] = useState([]); // [{ name, size, base64, type }]
-  const fileInputRef = useRef(null);
 
-  // Pre-fill recipient when modal opens
   useEffect(() => {
     if (isOpen) {
-      setTo(recipientEmail || '');
-      setSubject('');
+      setTo(recipientPhone || '');
       setBody('');
       setSending(false);
       setSent(false);
       setError('');
-      setAttachments([]);
     }
-  }, [isOpen, recipientEmail]);
-
-  const handleFileSelect = (e) => {
-    const files = Array.from(e.target.files || []);
-    for (const file of files) {
-      if (file.size > 10 * 1024 * 1024) {
-        setError(`File "${file.name}" is too large (max 10MB)`);
-        continue;
-      }
-      const reader = new FileReader();
-      reader.onload = () => {
-        const base64 = reader.result.split(',')[1]; // Remove data:... prefix
-        setAttachments(prev => [...prev, { name: file.name, size: file.size, base64, type: file.type }]);
-      };
-      reader.readAsDataURL(file);
-    }
-    // Reset input so same file can be selected again
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  const removeAttachment = (index) => {
-    setAttachments(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const formatFileSize = (bytes) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  };
+  }, [isOpen, recipientPhone]);
 
   const handleFormat = async () => {
     if (!body.trim()) {
@@ -77,13 +41,12 @@ export default function EmailComposeModal({
     setFormatting(true);
 
     try {
-      const res = await fetch('/api/email/format', {
+      const res = await fetch('/api/sms/format', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           raw_text: body,
           recipientName: recipientName || patientName || null,
-          subject: subject || null,
         }),
       });
 
@@ -92,10 +55,10 @@ export default function EmailComposeModal({
       if (data.formatted) {
         setBody(data.formatted);
       } else {
-        setError(data.error || 'Failed to format email');
+        setError(data.error || 'Failed to format message');
       }
     } catch (err) {
-      setError('Failed to format email');
+      setError('Failed to format message');
     } finally {
       setFormatting(false);
     }
@@ -105,60 +68,52 @@ export default function EmailComposeModal({
     e.preventDefault();
     setError('');
 
-    if (!to || !subject || !body) {
-      setError('All fields are required');
+    if (!to || !body) {
+      setError('Phone number and message are required');
       return;
     }
 
     setSending(true);
 
     try {
-      const res = await fetch('/api/email/send', {
+      const res = await fetch('/api/twilio/send-sms', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           to,
-          subject,
-          body,
-          patientId: patientId || null,
-          patientName: patientName || null,
-          ghlContactId: ghlContactId || null,
-          attachments: attachments.length > 0 ? attachments.map(a => ({
-            filename: a.name,
-            content: a.base64,
-            type: a.type,
-          })) : undefined,
+          message: body,
+          patient_id: patientId || null,
+          patient_name: patientName || null,
         }),
       });
 
       const data = await res.json();
 
-      if (data.success) {
+      if (res.ok) {
         setSent(true);
         setTimeout(() => {
           onClose();
         }, 2000);
       } else {
-        setError(data.error || 'Failed to send email');
+        setError(data.error || 'Failed to send SMS');
         setSending(false);
       }
     } catch (err) {
-      setError('Failed to send email');
+      setError('Failed to send SMS');
       setSending(false);
     }
   };
 
   if (!isOpen) return null;
 
+  const charCount = body.length;
+
   return (
     <div style={sharedStyles.modalOverlay} onClick={onClose}>
-      <div style={{ ...sharedStyles.modal, maxWidth: '560px' }} onClick={e => e.stopPropagation()}>
+      <div style={{ ...sharedStyles.modal, maxWidth: '520px' }} onClick={e => e.stopPropagation()}>
         <div style={sharedStyles.modalHeader}>
           <h2 style={sharedStyles.modalTitle}>
-            {sent ? 'Email Sent' : `Email ${recipientName || ''}`}
+            {sent ? 'SMS Sent' : `Text ${recipientName || ''}`}
           </h2>
           <button onClick={onClose} style={sharedStyles.modalClose}>&#10005;</button>
         </div>
@@ -167,7 +122,7 @@ export default function EmailComposeModal({
           <div style={sharedStyles.modalBody}>
             <div style={modalStyles.successWrap}>
               <div style={modalStyles.successIcon}>&#10003;</div>
-              <p style={modalStyles.successText}>Email sent to {to}</p>
+              <p style={modalStyles.successText}>SMS sent to {to}</p>
             </div>
           </div>
         ) : (
@@ -181,25 +136,12 @@ export default function EmailComposeModal({
                 <div>
                   <label style={sharedStyles.label}>To</label>
                   <input
-                    type="email"
+                    type="tel"
                     value={to}
                     onChange={e => setTo(e.target.value)}
                     required
                     style={sharedStyles.input}
-                    placeholder="email@example.com"
-                  />
-                </div>
-
-                <div>
-                  <label style={sharedStyles.label}>Subject</label>
-                  <input
-                    type="text"
-                    value={subject}
-                    onChange={e => setSubject(e.target.value)}
-                    required
-                    style={sharedStyles.input}
-                    placeholder="Subject line"
-                    autoFocus
+                    placeholder="(555) 123-4567"
                   />
                 </div>
 
@@ -237,62 +179,13 @@ export default function EmailComposeModal({
                     required
                     style={modalStyles.textarea}
                     placeholder="Type or dictate your message, then click AI Format to clean it up..."
-                    rows={8}
+                    rows={5}
+                    autoFocus
                   />
-                </div>
-              </div>
-
-              {/* Attachments */}
-              <div style={{ marginTop: '12px' }}>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  onChange={handleFileSelect}
-                  style={{ display: 'none' }}
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                    padding: '6px 12px',
-                    fontSize: '12px',
-                    color: '#374151',
-                    background: '#f9fafb',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <Paperclip size={13} />
-                  Attach File
-                </button>
-                {attachments.length > 0 && (
-                  <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    {attachments.map((file, i) => (
-                      <div key={i} style={{
-                        display: 'flex', alignItems: 'center', gap: '8px',
-                        padding: '6px 10px', background: '#f3f4f6', borderRadius: '6px', fontSize: '12px',
-                      }}>
-                        <Paperclip size={12} style={{ color: '#6b7280', flexShrink: 0 }} />
-                        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</span>
-                        <span style={{ color: '#9ca3af', flexShrink: 0 }}>{formatFileSize(file.size)}</span>
-                        <button type="button" onClick={() => removeAttachment(i)} style={{
-                          background: 'none', border: 'none', cursor: 'pointer', padding: '2px', color: '#9ca3af', flexShrink: 0,
-                        }}>
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ))}
+                  <div style={{ fontSize: '11px', color: charCount > 160 ? '#f59e0b' : '#aaa', marginTop: '4px', textAlign: 'right' }}>
+                    {charCount} characters{charCount > 160 ? ` (${Math.ceil(charCount / 160)} segments)` : ''}
                   </div>
-                )}
-              </div>
-
-              <div style={modalStyles.hint}>
-                Sent from your name via Range Medical. Replies go to your email.
+                </div>
               </div>
             </div>
 
@@ -304,7 +197,7 @@ export default function EmailComposeModal({
                 ...sharedStyles.btnPrimary,
                 ...(sending ? { opacity: 0.6, cursor: 'not-allowed' } : {}),
               }}>
-                {sending ? 'Sending...' : 'Send Email'}
+                {sending ? 'Sending...' : 'Send SMS'}
               </button>
             </div>
           </form>
@@ -330,13 +223,8 @@ const modalStyles = {
     resize: 'vertical',
     fontFamily: 'inherit',
     lineHeight: '1.6',
-    minHeight: '160px',
+    minHeight: '120px',
     boxSizing: 'border-box',
-  },
-  hint: {
-    fontSize: '12px',
-    color: '#888',
-    marginTop: '12px',
   },
   error: {
     background: '#fef2f2',

@@ -6,6 +6,15 @@ import { Resend } from 'resend';
 import { requireAuth, logAction } from '../../../lib/auth';
 import { logComm } from '../../../lib/comms-log';
 
+// Increase body size limit for file attachments (default is 1MB)
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '15mb',
+    },
+  },
+};
+
 function generateEmailHtml({ body, senderName, senderEmail }) {
   // Convert newlines to <br> tags for the body
   const formattedBody = body
@@ -120,7 +129,7 @@ export default async function handler(req, res) {
   const employee = await requireAuth(req, res);
   if (!employee) return;
 
-  const { to, subject, body, patientId, patientName, ghlContactId } = req.body;
+  const { to, subject, body, patientId, patientName, ghlContactId, attachments } = req.body;
 
   if (!to || !subject || !body) {
     return res.status(400).json({ error: 'to, subject, and body are required' });
@@ -135,12 +144,20 @@ export default async function handler(req, res) {
       senderEmail: employee.email,
     });
 
+    // Build Resend attachments from base64 data
+    const resendAttachments = (attachments || []).map(att => ({
+      filename: att.filename,
+      content: Buffer.from(att.content, 'base64'),
+      ...(att.type ? { type: att.type } : {}),
+    }));
+
     const { data, error: emailError } = await resend.emails.send({
       from: `${employee.name} via Range Medical <noreply@range-medical.com>`,
       replyTo: employee.email,
       to,
       subject,
       html,
+      ...(resendAttachments.length > 0 ? { attachments: resendAttachments } : {}),
     });
 
     if (emailError) {

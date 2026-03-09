@@ -14,8 +14,9 @@ const supabase = supabaseUrl && supabaseKey
   ? createClient(supabaseUrl, supabaseKey)
   : null;
 
-const GHL_API_KEY = process.env.GHL_API_KEY;
-const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
+// GHL integration disabled
+// const GHL_API_KEY = process.env.GHL_API_KEY;
+// const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
 
 // Condition labels for display
 const CONDITION_LABELS = {
@@ -386,62 +387,7 @@ export default async function handler(req, res) {
       console.error('Consolidated email error:', emailError);
     }
 
-    // 4. Update GHL contact
-    if (GHL_API_KEY) {
-      try {
-        const searchResponse = await fetch(
-          `https://services.leadconnectorhq.com/contacts/?locationId=${GHL_LOCATION_ID}&query=${encodeURIComponent(email)}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${GHL_API_KEY}`,
-              'Version': '2021-07-28'
-            }
-          }
-        );
-
-        const searchData = await searchResponse.json();
-        const contact = searchData.contacts?.find(c => c.email?.toLowerCase() === email.toLowerCase());
-
-        if (contact) {
-          // Add tags
-          const existingTags = contact.tags || [];
-          const newTags = [...new Set([...existingTags, 'intake-completed', 'assessment-completed'])];
-
-          await fetch(
-            `https://services.leadconnectorhq.com/contacts/${contact.id}`,
-            {
-              method: 'PUT',
-              headers: {
-                'Authorization': `Bearer ${GHL_API_KEY}`,
-                'Content-Type': 'application/json',
-                'Version': '2021-07-28'
-              },
-              body: JSON.stringify({
-                tags: newTags,
-                locationId: GHL_LOCATION_ID
-              })
-            }
-          );
-
-          // Add note with full intake summary
-          const noteBody = buildIntakeNote(assessmentPath, formData, intakeData, recommendation);
-          await fetch(
-            `https://services.leadconnectorhq.com/contacts/${contact.id}/notes`,
-            {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${GHL_API_KEY}`,
-                'Version': '2021-07-28',
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ body: noteBody })
-            }
-          );
-        }
-      } catch (ghlError) {
-        console.error('GHL update error:', ghlError);
-      }
-    }
+    // 4. GHL contact update removed — GHL integration disabled
 
     return res.status(200).json({ success: true, pdfUrl });
 

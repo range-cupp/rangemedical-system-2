@@ -131,13 +131,6 @@ export default async function handler(req, res) {
 
         console.log(`Guide opt-in sent to ${normalizedPhone}: ${guideNames} — awaiting reply`);
 
-        // GHL tagging still happens
-        if (ghlContactId || phone) {
-          tagGHLContact(phone, firstName, validGuideIds, ghlContactId).catch(err => {
-            console.error('GHL tagging error (non-critical):', err.message);
-          });
-        }
-
         return res.status(200).json({
           success: true,
           twoStep: true,
@@ -173,13 +166,6 @@ export default async function handler(req, res) {
 
     console.log(`Guide SMS sent to ${normalizedPhone}: ${guideNames}`);
 
-    // Also tag GHL contact in background (non-blocking)
-    if (ghlContactId || phone) {
-      tagGHLContact(phone, firstName, validGuideIds, ghlContactId).catch(err => {
-        console.error('GHL tagging error (non-critical):', err.message);
-      });
-    }
-
     return res.status(200).json({
       success: true,
       guidesSent: validGuideIds.length,
@@ -191,43 +177,4 @@ export default async function handler(req, res) {
     console.error('Send guide SMS error:', error);
     return res.status(500).json({ error: 'Server error. Please try again.' });
   }
-}
-
-// Background GHL tagging — non-blocking, best-effort
-async function tagGHLContact(phone, firstName, guideIds, existingContactId) {
-  const GHL_API_KEY = process.env.GHL_API_KEY;
-  const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
-  if (!GHL_API_KEY || !GHL_LOCATION_ID) return;
-
-  const headers = {
-    'Authorization': `Bearer ${GHL_API_KEY}`,
-    'Version': '2021-07-28',
-    'Content-Type': 'application/json',
-  };
-
-  let contactId = existingContactId;
-
-  // Find contact if no ID provided
-  if (!contactId) {
-    const digits = phone.replace(/\D/g, '');
-    const formattedPhone = '+1' + (digits.length === 10 ? digits : digits.slice(-10));
-    const searchParams = new URLSearchParams({ locationId: GHL_LOCATION_ID, query: formattedPhone });
-    const searchRes = await fetch(`https://services.leadconnectorhq.com/contacts/?${searchParams}`, {
-      method: 'GET', headers
-    });
-    if (searchRes.ok) {
-      const data = await searchRes.json();
-      contactId = data.contacts?.[0]?.id;
-    }
-  }
-
-  if (!contactId) return;
-
-  // Tag contact
-  const guideTags = guideIds.map(id => `guide-${id}-sent`);
-  await fetch(`https://services.leadconnectorhq.com/contacts/${contactId}`, {
-    method: 'PUT',
-    headers,
-    body: JSON.stringify({ tags: ['guide-sent', ...guideTags] }),
-  });
 }

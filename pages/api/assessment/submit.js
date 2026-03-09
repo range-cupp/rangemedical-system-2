@@ -9,8 +9,9 @@ const supabase = supabaseUrl && supabaseKey
   ? createClient(supabaseUrl, supabaseKey)
   : null;
 
-const GHL_API_KEY = process.env.GHL_API_KEY;
-const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
+// GHL integration disabled
+// const GHL_API_KEY = process.env.GHL_API_KEY;
+// const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -193,144 +194,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // 2. Sync to GoHighLevel
-    let ghlContactId = null;
-    if (GHL_API_KEY) {
-      try {
-        // Search for existing contact
-        const searchResponse = await fetch(
-          `https://services.leadconnectorhq.com/contacts/?locationId=${GHL_LOCATION_ID}&query=${encodeURIComponent(email)}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${GHL_API_KEY}`,
-              'Version': '2021-07-28'
-            }
-          }
-        );
-
-        const searchData = await searchResponse.json();
-        const existingContact = searchData.contacts?.find(c => c.email?.toLowerCase() === email.toLowerCase());
-
-        const contactPayload = {
-          firstName,
-          lastName,
-          email: email.toLowerCase().trim(),
-          phone,
-          locationId: GHL_LOCATION_ID,
-          tags,
-          source: `Range Assessment - ${assessmentPath === 'injury' ? 'Injury' : 'Energy'}`
-        };
-
-        if (existingContact) {
-          // Update existing contact - merge tags
-          ghlContactId = existingContact.id;
-          const existingTags = existingContact.tags || [];
-          contactPayload.tags = [...new Set([...existingTags, ...tags])];
-
-          await fetch(
-            `https://services.leadconnectorhq.com/contacts/${ghlContactId}`,
-            {
-              method: 'PUT',
-              headers: {
-                'Authorization': `Bearer ${GHL_API_KEY}`,
-                'Content-Type': 'application/json',
-                'Version': '2021-07-28'
-              },
-              body: JSON.stringify(contactPayload)
-            }
-          );
-        } else {
-          // Create new contact
-          const createResponse = await fetch(
-            'https://services.leadconnectorhq.com/contacts/',
-            {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${GHL_API_KEY}`,
-                'Content-Type': 'application/json',
-                'Version': '2021-07-28'
-              },
-              body: JSON.stringify(contactPayload)
-            }
-          );
-
-          const createData = await createResponse.json();
-          ghlContactId = createData.contact?.id;
-        }
-
-        // Add note with assessment details
-        if (ghlContactId) {
-          const noteBody = buildAssessmentNote(assessmentPath, {
-            injuryType, injuryLocation, injuryDuration, inPhysicalTherapy, recoveryGoal,
-            symptoms, symptomDuration, lastLabWork, triedHormoneTherapy, goals,
-            additionalInfo
-          });
-
-          await fetch(
-            `https://services.leadconnectorhq.com/contacts/${ghlContactId}/notes`,
-            {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${GHL_API_KEY}`,
-                'Version': '2021-07-28',
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ body: noteBody })
-            }
-          );
-        }
-
-        // Update Supabase record with GHL contact ID
-        if (supabase && savedLead?.id && ghlContactId) {
-          await supabase
-            .from('assessment_leads')
-            .update({ ghl_contact_id: ghlContactId })
-            .eq('id', savedLead.id);
-        }
-
-      } catch (ghlError) {
-        console.error('GHL sync error:', ghlError);
-        // Continue anyway - don't block the user flow
-      }
-    }
-
-    // 3. Send SMS notification
-    try {
-      await sendSMSNotification({
-        firstName,
-        lastName,
-        email,
-        phone,
-        assessmentPath
-      });
-    } catch (smsError) {
-      console.error('SMS notification error:', smsError);
-    }
-
-    // 4. Send confirmation SMS to the lead
-    if (GHL_API_KEY && ghlContactId) {
-      try {
-        const pathName = assessmentPath === 'injury' ? 'Injury & Recovery' : 'Energy & Optimization';
-        await fetch(
-          'https://services.leadconnectorhq.com/conversations/messages',
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${GHL_API_KEY}`,
-              'Version': '2021-04-15',
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              type: 'SMS',
-              contactId: ghlContactId,
-              message: `Hi ${firstName}, thanks for completing your ${pathName} assessment with Range Medical! We received your information and will be in contact with you shortly to discuss your results and next steps. Feel free to call us at (949) 997-3988 with any questions. - Range Medical`
-            })
-          }
-        );
-      } catch (leadSmsError) {
-        console.error('Lead SMS confirmation error:', leadSmsError);
-      }
-    }
+    // 2-4. GHL sync, SMS notifications removed — GHL integration disabled
 
     // 5. Send email notification
     try {
@@ -384,7 +248,6 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       leadId: savedLead?.id,
-      ghlContactId
     });
 
   } catch (error) {

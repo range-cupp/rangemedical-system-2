@@ -51,7 +51,7 @@ export default function HormoneOptimization() {
   const faqs = [
     {
       question: "Is hormone therapy safe?",
-      answer: "Yes, when monitored by a licensed provider with regular labs. We check your levels at 6-8 weeks and then quarterly to ensure your protocol is optimized and safe. Side effects are rare and typically mild when hormones are properly dosed."
+      answer: "Yes, when monitored by a licensed provider with regular labs. We check your levels at 8 weeks and then quarterly to ensure your protocol is optimized and safe. Side effects are rare and typically mild when hormones are properly dosed."
     },
     {
       question: "How soon will I feel better?",
@@ -59,11 +59,11 @@ export default function HormoneOptimization() {
     },
     {
       question: "What's included in the $250/month membership?",
-      answer: "All hormone medications (testosterone, estrogen, progesterone, thyroid, support meds), one free custom IV your first month ($225 value), all follow-up labs (6-8 week and quarterly), and direct provider access via text or call. Initial labs are billed separately."
+      answer: "All hormone medications (testosterone, estrogen, progesterone, thyroid, support meds), a monthly Range IV ($225 value), all follow-up labs (8-week and quarterly), and direct provider access via text or call. Initial labs are billed separately."
     },
     {
       question: "Do I need labs first?",
-      answer: "Yes — we run comprehensive labs to understand your baseline and personalize your protocol. Initial labs are billed separately (Essential Panel $350 or Elite Panel $750). All follow-up labs are included in your membership."
+      answer: "Yes — we run comprehensive labs to understand your baseline and personalize your protocol. Initial labs are billed separately (Essential Panel $350 or Elite Panel $750). All follow-up labs (8-week and quarterly) are included in your membership."
     },
     {
       question: "Is there a contract?",
@@ -98,7 +98,7 @@ export default function HormoneOptimization() {
   const timeline = [
     { period: "Week 1-2", title: "Sleep & Early Energy", desc: "Most patients notice improved sleep quality and early energy gains." },
     { period: "Week 3-4", title: "Mood & Mental Clarity", desc: "Brain fog lifts, mood stabilizes, and libido begins to increase." },
-    { period: "Week 6-8", title: "Measurable Changes", desc: "Lab work confirms optimization. Sexual function and mood improvements plateau." },
+    { period: "Week 8", title: "Measurable Changes", desc: "Lab work confirms optimization. Sexual function and mood improvements plateau." },
     { period: "Month 3-6", title: "Body Composition", desc: "Visible changes in muscle tone and body fat. Metabolic improvements measurable." },
     { period: "Month 6-12", title: "Full Optimization", desc: "Maximum benefits achieved: 3-8 lbs lean muscle, 3-6 lbs fat loss, sustained energy." }
   ];
@@ -107,13 +107,13 @@ export default function HormoneOptimization() {
     { step: "Step 1", title: "Take your assessment", desc: "Start with a free Range Assessment. We'll discuss your symptoms, goals, and medical history to see if HRT is right for you." },
     { step: "Step 2", title: "Run comprehensive labs", desc: "We check testosterone, estrogen, thyroid, metabolic markers, and more — not just the basics your regular doctor runs." },
     { step: "Step 3", title: "Review & start protocol", desc: "Your provider explains your results and designs a personalized protocol. You start your $250/month membership." },
-    { step: "Step 4", title: "Ongoing optimization", desc: "Follow-up labs at 6-8 weeks, then quarterly. We adjust your protocol as needed. Direct access to your provider anytime." }
+    { step: "Step 4", title: "Ongoing optimization", desc: "Follow-up labs at 8 weeks, then quarterly. We adjust your protocol as needed. Direct access to your provider anytime." }
   ];
 
   const membershipIncludes = [
     { icon: "💊", title: "All Medications", desc: "Testosterone, estrogen, progesterone, thyroid, and support meds — all included." },
-    { icon: "💉", title: "Free Welcome IV", desc: "One complimentary Range IV your first month ($225 value) — 5 vitamins and minerals tailored to you." },
-    { icon: "🔬", title: "Follow-Up Labs", desc: "6-8 week follow-up and quarterly monitoring labs — all included. Initial labs billed separately." },
+    { icon: "💉", title: "Monthly Range IV", desc: "A custom Range IV every month ($225 value) — 5 vitamins and minerals tailored to support your protocol." },
+    { icon: "🔬", title: "Follow-Up Labs", desc: "8-week follow-up and quarterly monitoring labs — all included. Initial labs billed separately." },
     { icon: "📱", title: "Direct Provider Access", desc: "Text or call your provider directly. No waiting for appointments for simple questions." }
   ];
 
@@ -353,7 +353,7 @@ export default function HormoneOptimization() {
 
             <div className="hrt-membership-compare hrt-animate">
               <p><strong>Typical cost elsewhere:</strong> $500-800+/month for separate medications, labs, and visits.</p>
-              <p><strong>Range membership:</strong> $250/month — medications, follow-up labs, and provider access included. No contracts.</p>
+              <p><strong>Range membership:</strong> $250/month — medications, monthly IV, follow-up labs, and provider access included. No contracts.</p>
             </div>
           </div>
         </section>

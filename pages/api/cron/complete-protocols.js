@@ -32,6 +32,7 @@ export default async function handler(req, res) {
   const yesterdayStr = yesterday.toISOString().split('T')[0];
 
   let completed = 0;
+  let peptideTasksCreated = 0;
   let errors = [];
 
   try {
@@ -47,6 +48,16 @@ export default async function handler(req, res) {
     if (fetchError) {
       console.error('Error fetching expired protocols:', fetchError);
       errors.push(fetchError.message);
+    }
+
+    // Pre-fetch Damon & Tara employee IDs for peptide follow-up tasks
+    let peptideTaskStaff = [];
+    const { data: staffEmployees } = await supabase
+      .from('employees')
+      .select('id, email')
+      .in('email', ['damon@range-medical.com', 'tara@range-medical.com']);
+    if (staffEmployees) {
+      peptideTaskStaff = staffEmployees.map(e => e.id);
     }
 
     if (expiredProtocols && expiredProtocols.length > 0) {
@@ -68,6 +79,39 @@ export default async function handler(req, res) {
         } else {
           console.log(`Completed: ${protocol.program_name} (ended ${protocol.end_date})`);
           completed++;
+
+          // Auto-create follow-up tasks for completed peptide protocols
+          if (protocol.program_type === 'peptide' && peptideTaskStaff.length > 0) {
+            try {
+              // Get patient name
+              const { data: patient } = await supabase
+                .from('patients')
+                .select('id, name, first_name, last_name')
+                .eq('id', protocol.patient_id)
+                .single();
+
+              const patientName = patient?.name
+                || `${patient?.first_name || ''} ${patient?.last_name || ''}`.trim()
+                || 'Unknown';
+
+              for (const empId of peptideTaskStaff) {
+                await supabase.from('tasks').insert({
+                  title: `Peptide Complete: Call ${patientName}`,
+                  description: `${patientName}'s ${protocol.program_name} protocol has completed (ended ${protocol.end_date}). Call them to check how they're doing and discuss next steps.`,
+                  assigned_to: empId,
+                  assigned_by: empId,
+                  patient_id: protocol.patient_id,
+                  patient_name: patientName,
+                  priority: 'medium',
+                  status: 'pending',
+                });
+                peptideTasksCreated++;
+              }
+              console.log(`Peptide follow-up tasks created for ${patientName}`);
+            } catch (taskErr) {
+              console.error('Peptide follow-up task error:', taskErr);
+            }
+          }
         }
       }
     }
@@ -104,6 +148,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       completed,
+      peptideTasksCreated,
       errors: errors.length > 0 ? errors : undefined,
       checked_date: yesterdayStr,
       run_at: new Date().toISOString()

@@ -350,6 +350,37 @@ export default async function handler(req, res) {
 
     // 5. Patient results email removed — now sent from /api/assessment/complete after intake
 
+    // 6. Auto-create task for Damon to follow up on new assessment
+    if (supabase) {
+      try {
+        const pathLabel = assessmentPath === 'injury' ? 'Injury & Recovery' : 'Energy & Optimization';
+
+        // Look up Damon's employee ID
+        const { data: damon } = await supabase
+          .from('employees')
+          .select('id')
+          .eq('email', 'damon@range-medical.com')
+          .single();
+
+        if (damon) {
+          await supabase.from('tasks').insert({
+            title: `New Assessment: ${firstName} ${lastName} (${pathLabel})`,
+            description: `${firstName} ${lastName} completed a ${pathLabel} assessment.\nEmail: ${email}\nPhone: ${phone}`,
+            assigned_to: damon.id,
+            assigned_by: damon.id,
+            patient_id: patientId || null,
+            patient_name: `${firstName} ${lastName}`,
+            priority: 'high',
+            status: 'pending',
+          });
+          console.log(`Assessment follow-up task created for Damon: ${firstName} ${lastName}`);
+        }
+      } catch (taskErr) {
+        console.error('Auto-task creation error:', taskErr);
+        // Non-blocking — don't fail the assessment flow
+      }
+    }
+
     return res.status(200).json({
       success: true,
       leadId: savedLead?.id,

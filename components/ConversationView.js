@@ -18,6 +18,9 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [smsProvider, setSmsProvider] = useState('blooio');
   const [formatting, setFormatting] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalMessages, setTotalMessages] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
   const messagesContainerRef = useRef(null);
   const shouldScrollRef = useRef(false);
 
@@ -73,6 +76,8 @@ export default function ConversationView({ patientId, patientName, patientPhone,
       // Sort oldest first for conversation view
       const sorted = localLogs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
       setMessages(sorted);
+      setHasMore(data.hasMore || false);
+      setTotalMessages(data.total || localLogs.length);
       setLoading(false);
 
       // Sync Twilio call history in background (non-blocking)
@@ -82,6 +87,46 @@ export default function ConversationView({ patientId, patientName, patientPhone,
     } catch (err) {
       console.error('Error fetching messages:', err);
       setLoading(false);
+    }
+  };
+
+  const loadEarlierMessages = async () => {
+    try {
+      setLoadingMore(true);
+      const currentCount = messages.length;
+      const phoneParam = patientPhone ? `&phone=${encodeURIComponent(patientPhone)}` : '';
+      const commsUrl = patientId
+        ? `/api/patients/${patientId}/comms?limit=200&offset=${currentCount}${phoneParam}`
+        : `/api/patients/_/comms?limit=200&offset=${currentCount}&phone=${encodeURIComponent(patientPhone)}`;
+      const res = await fetch(commsUrl);
+      const data = await res.json();
+      const olderLogs = data.comms || [];
+
+      if (olderLogs.length > 0) {
+        // Save scroll position before prepending
+        const container = messagesContainerRef.current;
+        const prevScrollHeight = container?.scrollHeight || 0;
+
+        // Sort older messages oldest first, then prepend
+        const sortedOlder = olderLogs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        setMessages(prev => [...sortedOlder, ...prev]);
+        setHasMore(data.hasMore || false);
+        setTotalMessages(data.total || 0);
+
+        // Restore scroll position after DOM update so user doesn't jump
+        requestAnimationFrame(() => {
+          if (container) {
+            const newScrollHeight = container.scrollHeight;
+            container.scrollTop = newScrollHeight - prevScrollHeight;
+          }
+        });
+      } else {
+        setHasMore(false);
+      }
+    } catch (err) {
+      console.error('Error loading earlier messages:', err);
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -105,6 +150,8 @@ export default function ConversationView({ patientId, patientName, patientPhone,
         const refreshedLogs = refreshData.comms || [];
         const sorted = refreshedLogs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
         setMessages(sorted);
+        setHasMore(refreshData.hasMore || false);
+        setTotalMessages(refreshData.total || refreshedLogs.length);
       }
 
       setCallsSynced(true);
@@ -380,7 +427,24 @@ export default function ConversationView({ patientId, patientName, patientPhone,
             )}
           </div>
         ) : (
-          groupedMessages.map((item, idx) => {
+          <>
+          {/* Load Earlier Messages */}
+          {hasMore && (
+            <div style={{ textAlign: 'center', padding: '12px 0' }}>
+              <button
+                onClick={loadEarlierMessages}
+                disabled={loadingMore}
+                style={{
+                  background: 'none', border: '1px solid #e5e7eb', borderRadius: '20px',
+                  padding: '6px 18px', fontSize: '13px', color: '#2563eb', cursor: 'pointer',
+                  fontWeight: 500, opacity: loadingMore ? 0.6 : 1,
+                }}
+              >
+                {loadingMore ? 'Loading...' : `Load Earlier Messages (showing ${messages.length} of ${totalMessages})`}
+              </button>
+            </div>
+          )}
+          {groupedMessages.map((item, idx) => {
             if (item.type === 'date') {
               return (
                 <div key={`date-${item.dateKey}-${idx}`} style={styles.dateDivider}>
@@ -481,7 +545,8 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                 </div>
               </div>
             );
-          })
+          })}
+          </>
         )}
       </div>
 

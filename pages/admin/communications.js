@@ -20,6 +20,11 @@ export default function CommunicationsPage() {
   const [selectedComm, setSelectedComm] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const PATIENTS_PER_PAGE = 20;
+
+  // Activity log pagination
+  const [commsPage, setCommsPage] = useState(1);
+  const [commsTotal, setCommsTotal] = useState(0);
+  const COMMS_PER_PAGE = 50;
   const searchTimeout = useRef(null);
 
   // Call history state
@@ -143,12 +148,16 @@ export default function CommunicationsPage() {
     }
   };
 
-  // Fetch all recent comms for activity log
-  const fetchComms = async () => {
+  // Fetch recent comms for activity log (paginated)
+  const fetchComms = async (page = 1) => {
     try {
-      const res = await fetch('/api/admin/comms-log?limit=100');
+      setCommsLoading(true);
+      const channelParam = channelFilter !== 'all' ? `&channel=${channelFilter}` : '';
+      const res = await fetch(`/api/admin/comms-log?limit=${COMMS_PER_PAGE}&page=${page}${channelParam}`);
       const data = await res.json();
       setRecentComms(data.logs || data.comms || []);
+      setCommsTotal(data.total || 0);
+      setCommsPage(page);
     } catch (err) {
       console.error('Error fetching comms:', err);
     } finally {
@@ -367,10 +376,12 @@ export default function CommunicationsPage() {
     currentPage * PATIENTS_PER_PAGE
   );
 
-  // Filter comms by channel
-  const filteredComms = channelFilter === 'all'
-    ? recentComms
-    : recentComms.filter(c => c.channel === channelFilter);
+  // Refetch comms when channel filter changes
+  useEffect(() => {
+    fetchComms(1);
+  }, [channelFilter]);
+
+  const commsTotalPages = Math.ceil(commsTotal / COMMS_PER_PAGE);
 
   return (
     <AdminLayout title="Communications">
@@ -619,7 +630,7 @@ export default function CommunicationsPage() {
           <div style={styles.card}>
             {commsLoading ? (
               <div style={styles.loadingArea}>Loading communications...</div>
-            ) : filteredComms.length === 0 ? (
+            ) : recentComms.length === 0 ? (
               <div style={styles.emptyArea}>No communications logged</div>
             ) : (
               <table style={styles.table}>
@@ -634,7 +645,7 @@ export default function CommunicationsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredComms.map(comm => (
+                  {recentComms.map(comm => (
                     <tr
                       key={comm.id}
                       style={styles.trClickable}
@@ -687,6 +698,35 @@ export default function CommunicationsPage() {
                   ))}
                 </tbody>
               </table>
+            )}
+
+            {/* Activity Log Pagination */}
+            {commsTotalPages > 1 && (
+              <div style={styles.callPagination}>
+                <button
+                  onClick={() => { if (commsPage > 1) fetchComms(commsPage - 1); }}
+                  disabled={commsPage <= 1}
+                  style={{
+                    ...styles.paginationBtn,
+                    opacity: commsPage <= 1 ? 0.4 : 1,
+                  }}
+                >
+                  ← Previous
+                </button>
+                <span style={styles.pageInfo}>
+                  Page {commsPage} of {commsTotalPages} ({commsTotal} total)
+                </span>
+                <button
+                  onClick={() => { if (commsPage < commsTotalPages) fetchComms(commsPage + 1); }}
+                  disabled={commsPage >= commsTotalPages}
+                  style={{
+                    ...styles.paginationBtn,
+                    opacity: commsPage >= commsTotalPages ? 0.4 : 1,
+                  }}
+                >
+                  Next →
+                </button>
+              </div>
             )}
           </div>
 

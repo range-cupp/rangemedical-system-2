@@ -179,21 +179,38 @@ export default function InvoicePaymentPage() {
   useEffect(() => {
     if (!invoice || invoice.status !== 'pending' || clientSecret || success) return;
 
+    const itemNames = Array.isArray(invoice.items)
+      ? invoice.items.map(i => i.name).join(', ')
+      : 'Medical services';
+
     fetch('/api/stripe/payment-intent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         patient_id: invoice.patient_id,
         amount: invoice.total_cents,
-        description: `Invoice — ${invoice.items.map(i => i.name).join(', ')}`,
+        description: `Invoice — ${itemNames}`,
       }),
     })
-      .then(res => res.json())
-      .then(data => {
-        if (data.client_secret) setClientSecret(data.client_secret);
-        else setError('Could not initialize payment');
+      .then(res => {
+        if (!res.ok) {
+          return res.json().then(data => {
+            throw new Error(data.error || `Server error (${res.status})`);
+          });
+        }
+        return res.json();
       })
-      .catch(() => setError('Could not initialize payment'));
+      .then(data => {
+        if (data.client_secret) {
+          setClientSecret(data.client_secret);
+        } else {
+          setError('Could not initialize payment. Please call (949) 997-3988.');
+        }
+      })
+      .catch(err => {
+        console.error('Payment init error:', err);
+        setError('Could not initialize payment. Please call (949) 997-3988.');
+      });
   }, [invoice, clientSecret, success]);
 
   const pageTitle = 'Invoice — Range Medical';
@@ -299,17 +316,25 @@ export default function InvoicePaymentPage() {
             >
               <PaymentForm invoice={invoice} onSuccess={() => setSuccess(true)} />
             </Elements>
+          ) : error ? (
+            <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+              <p style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</p>
+              <p style={{ color: '#dc2626', fontSize: '14px', marginBottom: '12px' }}>{error}</p>
+              <p style={{ color: '#888', fontSize: '13px' }}>
+                If this issue persists, please call <strong>(949) 997-3988</strong>.
+              </p>
+            </div>
           ) : !stripePromise ? (
-            <p style={{ textAlign: 'center', color: '#dc2626', padding: '20px' }}>
-              Payment system unavailable. Please call (949) 997-3988.
-            </p>
+            <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+              <p style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</p>
+              <p style={{ color: '#dc2626', fontSize: '14px' }}>
+                Payment system unavailable. Please call (949) 997-3988.
+              </p>
+            </div>
           ) : (
             <div style={{ textAlign: 'center', padding: '40px 0' }}>
               <p style={{ color: '#888', fontSize: '14px' }}>Loading payment options...</p>
             </div>
-          )}
-          {error && (
-            <p style={styles.error}>{error}</p>
           )}
         </div>
         <div style={styles.footer}>

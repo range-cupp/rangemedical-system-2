@@ -17,6 +17,7 @@ export default async function handler(req, res) {
 
   const { id } = req.query;
   const limit = Math.min(500, parseInt(req.query.limit) || 200);
+  const offset = parseInt(req.query.offset) || 0;
   const channel = req.query.channel; // 'sms' | 'email' | 'call' | undefined (all)
   const phone = req.query.phone; // optional: query by phone instead of patient_id
 
@@ -25,24 +26,30 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Build filter for both data query and count query
+    const buildFilter = (q) => {
+      if (id && id !== '_' && phone) {
+        q = q.or(`patient_id.eq.${id},recipient.eq.${phone}`);
+      } else if (id && id !== '_') {
+        q = q.eq('patient_id', id);
+      } else if (phone) {
+        q = q.eq('recipient', phone);
+      }
+      if (channel) q = q.eq('channel', channel);
+      return q;
+    };
+
+    // Get total count
+    let countQuery = supabase.from('comms_log').select('id', { count: 'exact', head: true });
+    countQuery = buildFilter(countQuery);
+    const { count: totalCount } = await countQuery;
+
+    // Get paginated data
     let query = supabase
       .from('comms_log')
       .select('id, channel, message_type, message, status, error_message, recipient, subject, direction, source, created_at');
-
-    if (id && id !== '_' && phone) {
-      // Query by patient_id OR matching phone — catches orphaned pre-link messages
-      query = query.or(`patient_id.eq.${id},recipient.eq.${phone}`);
-    } else if (id && id !== '_') {
-      query = query.eq('patient_id', id);
-    } else if (phone) {
-      query = query.eq('recipient', phone);
-    }
-
-    query = query.order('created_at', { ascending: false }).limit(limit);
-
-    if (channel) {
-      query = query.eq('channel', channel);
-    }
+    query = buildFilter(query);
+    query = query.order('created_at', { ascending: false }).range(offset, offset + limit - 1);
 
     const { data: comms, error } = await query;
 
@@ -50,7 +57,10 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       comms: comms || [],
-      total: comms?.length || 0
+      total: totalCount || 0,
+      offset,
+      limit,
+      hasMore: offset + limit < (totalCount || 0),
     });
 
   } catch (error) {

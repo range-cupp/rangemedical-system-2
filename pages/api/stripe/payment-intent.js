@@ -60,19 +60,29 @@ export default async function handler(req, res) {
       metadata: { patient_id },
     };
 
+    let paymentIntent;
+
     // If a saved payment method is provided, attach it and confirm immediately (POS flow)
     if (payment_method_id) {
       intentParams.payment_method_types = ['card'];
       intentParams.payment_method = payment_method_id;
       intentParams.confirm = true;
       intentParams.return_url = `${process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com'}/admin/payments`;
+      paymentIntent = await stripe.paymentIntents.create(intentParams);
     } else {
-      // Invoice / public payment — enable all payment methods from Stripe Dashboard
+      // Invoice / public payment — try automatic_payment_methods first
       // (Apple Pay, Google Pay, Affirm, Klarna, etc.)
-      intentParams.automatic_payment_methods = { enabled: true };
+      // Fall back to card-only if the account doesn't support it
+      try {
+        intentParams.automatic_payment_methods = { enabled: true };
+        paymentIntent = await stripe.paymentIntents.create(intentParams);
+      } catch (autoErr) {
+        console.warn('automatic_payment_methods failed, falling back to card:', autoErr.message);
+        delete intentParams.automatic_payment_methods;
+        intentParams.payment_method_types = ['card'];
+        paymentIntent = await stripe.paymentIntents.create(intentParams);
+      }
     }
-
-    const paymentIntent = await stripe.paymentIntents.create(intentParams);
 
     return res.status(200).json({
       client_secret: paymentIntent.client_secret,

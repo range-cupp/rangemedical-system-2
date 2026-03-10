@@ -2233,7 +2233,9 @@ export default function ProtocolDetail() {
                           const res = await fetch(`/api/admin/protocols/${id}/send-optin`, { method: 'POST' });
                           const data = await res.json();
                           if (res.ok) {
-                            setSuccess('Opt-in SMS sent!');
+                            setSuccess(data.twoStep
+                              ? 'Opt-in request sent! Link will be delivered when patient replies.'
+                              : 'Opt-in SMS sent!');
                             setOptinSent(true);
                           } else {
                             setError(data.error || 'Failed to send opt-in');
@@ -2259,7 +2261,9 @@ export default function ProtocolDetail() {
                         const res = await fetch(`/api/admin/protocols/${id}/send-guide`, { method: 'POST' });
                         const data = await res.json();
                         if (res.ok) {
-                          setSuccess('Peptide guide SMS sent!');
+                          setSuccess(data.twoStep
+                            ? 'Opt-in sent! Guide will be delivered when patient replies.'
+                            : 'Peptide guide SMS sent!');
                           setProtocol(prev => ({ ...prev, peptide_guide_sent: true }));
                         } else {
                           setError(data.error || 'Failed to send guide');

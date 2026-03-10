@@ -1,18 +1,19 @@
 // /pages/api/admin/protocols/[id]/send-optin.js
 // Send peptide check-in opt-in SMS from the protocol detail page
+// Uses unified sendSMS (Blooio/Twilio) — no GHL dependency
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { logComm } from '../../../../../lib/comms-log';
-import { syncPatientContactToGHL, resolveGHLContactId } from '../../../../../lib/ghl-sync';
+import { sendSMS, normalizePhone } from '../../../../../lib/send-sms';
+import { hasBlooioOptIn, queuePendingLinkMessage, isBlooioProvider } from '../../../../../lib/blooio-optin';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-const GHL_API_KEY = process.env.GHL_API_KEY;
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com';
 
 export default async function handler(req, res) {
@@ -26,7 +27,7 @@ export default async function handler(req, res) {
     // Fetch protocol
     const { data: protocol, error: protocolError } = await supabase
       .from('protocols')
-      .select('id, patient_id, medication, program_name, access_token, ghl_contact_id, patient_name')
+      .select('id, patient_id, medication, program_name, access_token, patient_name')
       .eq('id', id)
       .single();
 
@@ -34,36 +35,23 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Protocol not found' });
     }
 
-    // Get patient info — patient profile is the source of truth for phone/contact data
+    // Get patient info
     const { data: patient } = await supabase
       .from('patients')
-      .select('id, name, first_name, ghl_contact_id, phone, email')
+      .select('id, name, first_name, phone, email')
       .eq('id', protocol.patient_id)
       .single();
 
-    const storedContactId = protocol.ghl_contact_id || patient?.ghl_contact_id;
-    if (!storedContactId && !patient?.phone) {
-      return res.status(400).json({ error: 'Patient has no GHL contact ID or phone — cannot send SMS' });
+    if (!patient?.phone) {
+      return res.status(400).json({ error: 'Patient has no phone number on file — cannot send SMS' });
     }
 
-    const firstName = patient?.first_name || (patient?.name ? patient.name.split(' ')[0] : 'there');
-
-    // Resolve GHL contact ID — validates stored ID and falls back to phone search if invalid
-    const ghlContactId = await resolveGHLContactId(storedContactId, {
-      phone: patient?.phone,
-      patientId: protocol.patient_id,
-      protocolId: id,
-      supabase
-    });
-
-    if (!ghlContactId) {
-      return res.status(400).json({ error: 'Could not find GHL contact — check patient phone number and GHL contact ID' });
+    const phone = normalizePhone(patient.phone);
+    if (!phone) {
+      return res.status(400).json({ error: 'Invalid phone number format' });
     }
 
-    // Sync patient's current phone to GHL before sending (source of truth = patient profile)
-    if (patient?.phone) {
-      await syncPatientContactToGHL(ghlContactId, { phone: patient.phone });
-    }
+    const firstName = patient.first_name || (patient.name ? patient.name.split(' ')[0] : 'there');
 
     // Check if opt-in was already sent
     const { data: existingLog } = await supabase
@@ -91,20 +79,63 @@ export default async function handler(req, res) {
     const optinUrl = `${BASE_URL}/optin/${shortCode}`;
     const message = `Hi ${firstName}! You've started your recovery peptide protocol at Range Medical. We'd like to send quick weekly check-ins via text to track your progress — just 30 seconds each.\n\nTap here to get started:\n${optinUrl}\n\n- Range Medical`;
 
-    // Send SMS
-    const smsRes = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${GHL_API_KEY}`,
-        'Content-Type': 'application/json',
-        'Version': '2021-04-15'
-      },
-      body: JSON.stringify({ type: 'SMS', contactId: ghlContactId, message })
-    });
+    // Blooio two-step: first contact cannot include links
+    if (isBlooioProvider()) {
+      const optedIn = await hasBlooioOptIn(phone);
 
-    const smsData = await smsRes.json();
-    if (!smsRes.ok) {
-      return res.status(500).json({ error: 'SMS failed', details: smsData.message || smsData });
+      if (!optedIn) {
+        // Step 1: Send link-free opt-in message
+        const optInMsg = `Hi ${firstName}! Range Medical here. You've started your recovery peptide protocol. We'd like to send weekly check-ins to track your progress. Reply YES to get started.`;
+
+        const optInResult = await sendSMS({ to: phone, message: optInMsg });
+        if (!optInResult.success) {
+          return res.status(500).json({ error: 'Failed to send SMS', details: optInResult.error });
+        }
+
+        // Log the opt-in request
+        await logComm({
+          channel: 'sms',
+          messageType: 'blooio_optin_request',
+          message: optInMsg,
+          source: 'admin-protocol-page',
+          patientId: protocol.patient_id,
+          patientName: patient.name || protocol.patient_name,
+          recipient: phone,
+          direction: 'outbound',
+          provider: optInResult.provider || null,
+        });
+
+        // Queue the link message for auto-send when patient replies
+        await queuePendingLinkMessage({
+          phone,
+          message,
+          messageType: 'peptide_checkin_optin',
+          patientId: protocol.patient_id,
+          patientName: patient.name || protocol.patient_name,
+        });
+
+        // Log to protocol_logs
+        await supabase.from('protocol_logs').insert({
+          protocol_id: id,
+          patient_id: protocol.patient_id,
+          log_type: 'peptide_checkin_optin_sent',
+          log_date: new Date().toISOString().split('T')[0],
+          notes: `Blooio two-step: opt-in request sent, link queued for auto-delivery`
+        });
+
+        return res.status(200).json({
+          success: true,
+          twoStep: true,
+          message: 'Opt-in request sent. The check-in link will be delivered automatically when the patient replies.',
+        });
+      }
+    }
+
+    // Direct send — either not Blooio, or patient already opted in
+    const result = await sendSMS({ to: phone, message });
+
+    if (!result.success) {
+      return res.status(500).json({ error: 'SMS failed', details: result.error });
     }
 
     // Log it
@@ -122,9 +153,10 @@ export default async function handler(req, res) {
       message,
       source: 'admin-protocol-page',
       patientId: protocol.patient_id,
-      protocolId: id,
-      ghlContactId,
-      patientName: patient?.name || protocol.patient_name
+      patientName: patient.name || protocol.patient_name,
+      recipient: phone,
+      direction: 'outbound',
+      provider: result.provider || null,
     });
 
     return res.status(200).json({ success: true, message: 'Opt-in SMS sent' });

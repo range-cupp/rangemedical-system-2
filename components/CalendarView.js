@@ -967,28 +967,48 @@ export default function CalendarView({ preselectedPatient = null }) {
             );
             const today = isToday(day);
 
-            // Category dots
-            const categories = [...new Set(dayAppts.map(a => a.service_category || 'other'))];
+            // Sort by start time for display
+            const sortedAppts = [...dayAppts].sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+            const maxVisible = 3;
+            const visibleAppts = sortedAppts.slice(0, maxVisible);
+            const remaining = sortedAppts.length - maxVisible;
 
             return (
               <div
                 key={dayStr}
                 onClick={() => goToDate(day)}
-                style={{ ...styles.monthCell, ...(today ? styles.monthCellToday : {}), cursor: 'pointer' }}
+                style={{ ...styles.monthCell, ...(today ? styles.monthCellToday : {}), cursor: 'pointer', textAlign: 'left' }}
               >
-                <div style={{ ...styles.monthCellNum, ...(today ? { color: '#fff', background: '#000', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' } : {}) }}>
+                <div style={{ ...styles.monthCellNum, ...(today ? { color: '#fff', background: '#000', borderRadius: '50%', width: '24px', height: '24px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' } : {}), textAlign: 'center', marginBottom: '2px' }}>
                   {day.getDate()}
                 </div>
-                {dayAppts.length > 0 && (
-                  <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap', justifyContent: 'center' }}>
-                    {categories.slice(0, 4).map(cat => {
-                      const cs = getCategoryStyle(cat);
-                      return <div key={cat} style={{ width: '6px', height: '6px', borderRadius: '50%', background: cs.text }} />;
-                    })}
-                  </div>
-                )}
-                {dayAppts.length > 0 && (
-                  <div style={{ fontSize: '10px', color: '#888', marginTop: '2px' }}>{dayAppts.length}</div>
+                {visibleAppts.map(appt => {
+                  const cs = getCategoryStyle(appt.service_category);
+                  return (
+                    <div
+                      key={appt.id}
+                      onClick={(e) => { e.stopPropagation(); setSelectedAppt(appt); setCurrentDate(day); }}
+                      style={{
+                        fontSize: '11px',
+                        padding: '1px 4px',
+                        marginBottom: '1px',
+                        borderRadius: '3px',
+                        background: cs.bg,
+                        color: cs.text,
+                        overflow: 'hidden',
+                        whiteSpace: 'nowrap',
+                        textOverflow: 'ellipsis',
+                        cursor: 'pointer',
+                        lineHeight: '1.4',
+                      }}
+                    >
+                      <span style={{ fontWeight: '600' }}>{appt.patient_name?.split(' ')[0]}</span>
+                      <span style={{ opacity: 0.7 }}> {formatTime(appt.start_time)}</span>
+                    </div>
+                  );
+                })}
+                {remaining > 0 && (
+                  <div style={{ fontSize: '10px', color: '#888', paddingLeft: '4px', marginTop: '1px' }}>+{remaining} more</div>
                 )}
               </div>
             );
@@ -2529,7 +2549,7 @@ const styles = {
     gridTemplateColumns: 'repeat(7, 1fr)',
   },
   monthCell: {
-    minHeight: '80px',
+    minHeight: '100px',
     borderRight: '1px solid #f5f5f5',
     borderBottom: '1px solid #f5f5f5',
     padding: '4px',

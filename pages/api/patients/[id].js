@@ -505,6 +505,18 @@ export default async function handler(req, res) {
         .eq('category', 'weight_loss')
         .order('entry_date', { ascending: true });
 
+      // ===== Protocol logs (for inline trackers — injection calendars, session grids) =====
+      const protocolIds = (allProtocols || []).map(p => p.id).filter(Boolean);
+      let protocolLogs = [];
+      if (protocolIds.length > 0) {
+        const { data: pLogs } = await supabase
+          .from('protocol_logs')
+          .select('id, protocol_id, log_type, log_date, weight, dosage, notes, created_at')
+          .in('protocol_id', protocolIds)
+          .order('log_date', { ascending: true });
+        protocolLogs = pLogs || [];
+      }
+
       // ===== V2: All service logs (for timeline + visits tab) =====
       const { data: serviceLogs } = await supabase
         .from('service_logs')
@@ -678,6 +690,7 @@ export default async function handler(req, res) {
         appointments: appointments || [],
         notes: patientNotes || [],
         weightLossLogs: weightLossLogs || [],
+        protocolLogs: protocolLogs || [],
         // V2 additions
         serviceLogs: serviceLogs || [],
         commsLog: commsLog || [],

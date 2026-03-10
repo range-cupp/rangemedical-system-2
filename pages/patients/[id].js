@@ -124,6 +124,7 @@ export default function PatientProfile() {
   const [appointments, setAppointments] = useState([]);
   const [notes, setNotes] = useState([]);
   const [weightLossLogs, setWeightLossLogs] = useState([]);
+  const [allProtocolLogs, setAllProtocolLogs] = useState([]);
   const [serviceLogs, setServiceLogs] = useState([]);
   const [commsLog, setCommsLog] = useState([]);
   const [allPurchases, setAllPurchases] = useState([]);
@@ -142,6 +143,11 @@ export default function PatientProfile() {
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [expandedProtocols, setExpandedProtocols] = useState({});
   const [pinnedNoteExpanded, setPinnedNoteExpanded] = useState(false);
+
+  // Session log modal (for inline session grids — HBOT, RLT, IV, Injection)
+  const [sessionLogModal, setSessionLogModal] = useState(null);
+  const [sessionLogDate, setSessionLogDate] = useState('');
+  const [sessionLogSaving, setSessionLogSaving] = useState(false);
 
   // Slide-out PDF viewer state
   const [pdfSlideOut, setPdfSlideOut] = useState({ open: false, url: '', title: '' });
@@ -340,6 +346,7 @@ export default function PatientProfile() {
         setAppointments(data.appointments || []);
         setNotes(data.notes || []);
         setWeightLossLogs(data.weightLossLogs || []);
+        setAllProtocolLogs(data.protocolLogs || []);
         setServiceLogs(data.serviceLogs || []);
         setCommsLog(data.commsLog || []);
         setAllPurchases(data.allPurchases || []);
@@ -492,6 +499,69 @@ export default function PatientProfile() {
     } catch (err) {
       console.error('Could not persist first_followup_weeks:', err);
     }
+  };
+
+  // ===== Protocol inline tracker helpers =====
+
+  const getPacificToday = () => {
+    const now = new Date();
+    const pacific = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+    pacific.setHours(0, 0, 0, 0);
+    return pacific;
+  };
+
+  const getDateForDay = (startDate, dayNum) => {
+    if (!startDate) return null;
+    const parts = startDate.split('-');
+    const start = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    start.setDate(start.getDate() + dayNum - 1);
+    return start;
+  };
+
+  const calculateCurrentDay = (startDate) => {
+    if (!startDate) return null;
+    const parts = startDate.split('-');
+    const start = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    start.setHours(0, 0, 0, 0);
+    const today = getPacificToday();
+    const diffTime = today - start;
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  };
+
+  const getProtocolLogsForId = (protocolId) => {
+    return allProtocolLogs.filter(l => l.protocol_id === protocolId);
+  };
+
+  const handleSessionLog = async () => {
+    if (!sessionLogModal) return;
+    setSessionLogSaving(true);
+    try {
+      const res = await fetch(`/api/protocols/${sessionLogModal.protocolId}/log-session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          log_date: sessionLogDate,
+          log_type: 'session',
+          notes: `Session #${sessionLogModal.sessionNum}`
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSessionLogModal(null);
+        fetchPatient();
+      } else {
+        alert('Error: ' + (data.error || 'Failed to log session'));
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+    setSessionLogSaving(false);
+  };
+
+  const formatDayDate = (date) => {
+    if (!date) return '';
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${months[date.getMonth()]} ${date.getDate()}`;
   };
 
   // Helpers
@@ -1664,10 +1734,10 @@ export default function PatientProfile() {
                     {activeProtocols.slice(0, 5).map(protocol => {
                       const cat = getCategoryStyle(protocol.category);
                       return (
-                        <div key={protocol.id} className="protocol-row" style={{ cursor: 'pointer' }} onClick={() => router.push(`/admin/protocols/${protocol.id}`)}>
+                        <div key={protocol.id} className="protocol-row">
                           <div className="protocol-main">
                             <span className="protocol-badge" style={{ background: cat.bg, color: cat.text }}>{cat.label}</span>
-                            <span className="protocol-name" style={{ textDecoration: 'underline', textDecorationColor: '#d1d5db' }}>{protocol.program_name || protocol.medication}</span>
+                            <span className="protocol-name">{protocol.program_name || protocol.medication}</span>
                             {protocol.medication && protocol.program_name && protocol.medication !== protocol.program_name && (
                               <span className="protocol-dose" style={{ fontWeight: 500 }}>({protocol.medication})</span>
                             )}
@@ -1903,8 +1973,8 @@ export default function PatientProfile() {
                       const cat = getCategoryStyle(protocol.category);
                       const isExpanded = expandedProtocols[protocol.id];
                       const isWeightLoss = protocol.category === 'weight_loss';
-                      const protocolLogs = isWeightLoss ? weightLossLogs.filter(l => !protocol.id || l) : [];
-                      const chartData = protocolLogs.filter(l => l.weight).map(l => ({
+                      const wlLogs = isWeightLoss ? weightLossLogs.filter(l => !protocol.id || l) : [];
+                      const chartData = wlLogs.filter(l => l.weight).map(l => ({
                         date: new Date(l.entry_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
                         weight: parseFloat(l.weight),
                         dose: l.dosage || ''
@@ -1912,14 +1982,15 @@ export default function PatientProfile() {
                       const startingWeight = chartData.length > 0 ? chartData[0].weight : null;
                       const currentWeight = chartData.length > 0 ? chartData[chartData.length - 1].weight : null;
                       const totalLoss = startingWeight && currentWeight ? (startingWeight - currentWeight).toFixed(1) : null;
-                      const startingDose = protocolLogs.length > 0 ? protocolLogs[0].dosage : null;
-                      const currentDose = protocolLogs.length > 0 ? protocolLogs[protocolLogs.length - 1].dosage : null;
+                      const startingDose = wlLogs.length > 0 ? wlLogs[0].dosage : null;
+                      const currentDose = wlLogs.length > 0 ? wlLogs[wlLogs.length - 1].dosage : null;
+                      const pLogs = getProtocolLogsForId(protocol.id);
 
                       return (
                         <div key={protocol.id} className="protocol-card">
-                          <div className="protocol-card-header" style={{ cursor: 'pointer' }} onClick={() => router.push(`/admin/protocols/${protocol.id}`)}>
+                          <div className="protocol-card-header">
                             <span className="protocol-badge" style={{ background: cat.bg, color: cat.text }}>{cat.label}</span>
-                            <span className="protocol-name" style={{ textDecoration: 'underline', textDecorationColor: '#d1d5db' }}>{protocol.program_name || protocol.medication}</span>
+                            <span className="protocol-name">{protocol.program_name || protocol.medication}</span>
                             {protocol.delivery_method === 'in_clinic' && <span className="clinic-badge">In-Clinic</span>}
                           </div>
                           <div className="protocol-details">
@@ -1945,11 +2016,11 @@ export default function PatientProfile() {
                                   style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
                                 >+ Log Entry</button>
                               )}
-                              {isWeightLoss && protocolLogs.length > 0 && (
+                              {protocol.status === 'active' && (
                                 <button
                                   onClick={() => setExpandedProtocols(prev => ({ ...prev, [protocol.id]: !prev[protocol.id] }))}
                                   className="btn-secondary-sm"
-                                >{isExpanded ? 'Hide Progress' : 'View Progress'}</button>
+                                >{isExpanded ? 'Hide Details' : 'View Details'}</button>
                               )}
                               <button onClick={() => openEditModal(protocol)} className="btn-secondary-sm">Edit</button>
                             </div>
@@ -2172,7 +2243,7 @@ export default function PatientProfile() {
                             );
                           })()}
 
-                          {isWeightLoss && isExpanded && protocolLogs.length > 0 && (
+                          {isWeightLoss && isExpanded && wlLogs.length > 0 && (
                             <div className="wl-progress">
                               {/* Stats Row */}
                               <div className="wl-stats-row">
@@ -2199,7 +2270,7 @@ export default function PatientProfile() {
                                 <div className="wl-stat-divider" />
                                 <div className="wl-stat">
                                   <span className="wl-stat-label">Sessions</span>
-                                  <span className="wl-stat-value">{protocolLogs.length}{protocol.total_sessions ? ` of ${protocol.total_sessions}` : ''}</span>
+                                  <span className="wl-stat-value">{wlLogs.length}{protocol.total_sessions ? ` of ${protocol.total_sessions}` : ''}</span>
                                 </div>
                               </div>
 
@@ -2234,7 +2305,7 @@ export default function PatientProfile() {
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {protocolLogs.flatMap((log, i) => {
+                                    {wlLogs.flatMap((log, i) => {
                                       const rows = [];
                                       // Check for missed weeks between entries
                                       if (i > 0) {
@@ -2273,6 +2344,263 @@ export default function PatientProfile() {
                               </div>
                             </div>
                           )}
+
+                          {/* ===== Session-Based Expanded (HBOT, RLT, IV) ===== */}
+                          {['hbot', 'rlt', 'iv'].includes(protocol.category) && isExpanded && (() => {
+                            const totalSessions = protocol.total_sessions || 0;
+                            const sessionsUsed = protocol.sessions_used || protocol.sessions_completed || 0;
+                            const sessionsRemaining = Math.max(0, totalSessions - sessionsUsed);
+                            return (
+                              <div className="protocol-expand">
+                                <div className="px-stats-row">
+                                  <div className="px-stat">
+                                    <span className="px-stat-label">Sessions Used</span>
+                                    <span className="px-stat-value">{sessionsUsed} / {totalSessions}</span>
+                                  </div>
+                                  <div className="px-stat">
+                                    <span className="px-stat-label">Remaining</span>
+                                    <span className="px-stat-value">{sessionsRemaining}</span>
+                                  </div>
+                                  {protocol.start_date && (
+                                    <div className="px-stat">
+                                      <span className="px-stat-label">Started</span>
+                                      <span className="px-stat-value">{formatShortDate(protocol.start_date)}</span>
+                                    </div>
+                                  )}
+                                </div>
+                                {totalSessions > 0 && (
+                                  <div className="px-session-grid">
+                                    {Array.from({ length: totalSessions }, (_, i) => {
+                                      const num = i + 1;
+                                      const isUsed = num <= sessionsUsed;
+                                      const isNext = num === sessionsUsed + 1 && protocol.status === 'active';
+                                      return (
+                                        <div
+                                          key={num}
+                                          className={`px-session-box ${isUsed ? 'used' : isNext ? 'next' : 'future'}`}
+                                          onClick={isNext ? () => {
+                                            setSessionLogModal({ protocolId: protocol.id, sessionNum: num });
+                                            setSessionLogDate(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }));
+                                          } : undefined}
+                                          style={{ cursor: isNext ? 'pointer' : 'default' }}
+                                        >
+                                          <span className="px-session-num">{num}</span>
+                                          {isUsed && <span className="px-session-check">✓</span>}
+                                          {isNext && <span className="px-session-label">NEXT</span>}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                                <div className="px-legend">
+                                  <span><span className="px-legend-dot used" /> Used</span>
+                                  <span><span className="px-legend-dot next" /> Next</span>
+                                  <span><span className="px-legend-dot future" /> Available</span>
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* ===== Injection/NAD Expanded ===== */}
+                          {protocol.category === 'injection' && isExpanded && (() => {
+                            const totalSessions = protocol.total_sessions || protocol.total_units || 0;
+                            const sessionsUsed = protocol.sessions_used || protocol.sessions_completed || 0;
+                            const sessionsRemaining = Math.max(0, totalSessions - sessionsUsed);
+                            return (
+                              <div className="protocol-expand">
+                                <div className="px-stats-row">
+                                  <div className="px-stat">
+                                    <span className="px-stat-label">Injections Used</span>
+                                    <span className="px-stat-value">{sessionsUsed} / {totalSessions}</span>
+                                  </div>
+                                  <div className="px-stat">
+                                    <span className="px-stat-label">Remaining</span>
+                                    <span className="px-stat-value">{sessionsRemaining}</span>
+                                  </div>
+                                </div>
+                                {totalSessions > 0 && (
+                                  <div className="px-session-grid">
+                                    {Array.from({ length: totalSessions }, (_, i) => {
+                                      const num = i + 1;
+                                      const isUsed = num <= sessionsUsed;
+                                      const isNext = num === sessionsUsed + 1 && protocol.status === 'active';
+                                      return (
+                                        <div
+                                          key={num}
+                                          className={`px-session-box ${isUsed ? 'used' : isNext ? 'next' : 'future'}`}
+                                          onClick={isNext ? () => {
+                                            setSessionLogModal({ protocolId: protocol.id, sessionNum: num });
+                                            setSessionLogDate(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }));
+                                          } : undefined}
+                                          style={{ cursor: isNext ? 'pointer' : 'default' }}
+                                        >
+                                          <span className="px-session-num">{num}</span>
+                                          {isUsed && <span className="px-session-check">✓</span>}
+                                          {isNext && <span className="px-session-label">NEXT</span>}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                                <div className="px-legend">
+                                  <span><span className="px-legend-dot used" /> Used</span>
+                                  <span><span className="px-legend-dot next" /> Next</span>
+                                  <span><span className="px-legend-dot future" /> Available</span>
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* ===== Peptide Expanded ===== */}
+                          {protocol.category === 'peptide' && isExpanded && (() => {
+                            const totalDays = protocol.duration_days || protocol.total_days || protocol.total_sessions || 10;
+                            const currentDay = calculateCurrentDay(protocol.start_date);
+                            const daysRemaining = currentDay ? Math.max(0, totalDays - currentDay) : totalDays;
+                            const medication = protocol.medication || protocol.primary_peptide || '';
+                            const isRecovery = isRecoveryPeptide(medication);
+                            const completedDays = pLogs.filter(l => l.log_type === 'injection_completed').map(l => {
+                              if (!protocol.start_date || !l.log_date) return null;
+                              const parts = protocol.start_date.split('-');
+                              const start = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+                              const logParts = l.log_date.split('-');
+                              const logDate = new Date(parseInt(logParts[0]), parseInt(logParts[1]) - 1, parseInt(logParts[2]));
+                              return Math.floor((logDate - start) / (1000 * 60 * 60 * 24)) + 1;
+                            }).filter(Boolean);
+                            return (
+                              <div className="protocol-expand">
+                                <div className="px-stats-row">
+                                  <div className="px-stat">
+                                    <span className="px-stat-label">Current Day</span>
+                                    <span className="px-stat-value">{currentDay && currentDay > 0 ? Math.min(currentDay, totalDays) : '—'} / {totalDays}</span>
+                                  </div>
+                                  <div className="px-stat">
+                                    <span className="px-stat-label">Remaining</span>
+                                    <span className="px-stat-value">{daysRemaining} days</span>
+                                  </div>
+                                  {protocol.selected_dose && (
+                                    <div className="px-stat">
+                                      <span className="px-stat-label">Dose</span>
+                                      <span className="px-stat-value">{protocol.selected_dose}</span>
+                                    </div>
+                                  )}
+                                </div>
+                                {/* Day grid */}
+                                <div className="px-session-grid">
+                                  {Array.from({ length: totalDays }, (_, i) => {
+                                    const dayNum = i + 1;
+                                    const dayDate = getDateForDay(protocol.start_date, dayNum);
+                                    const isCompleted = completedDays.includes(dayNum);
+                                    const isPast = currentDay && dayNum < currentDay;
+                                    const isToday = currentDay && dayNum === currentDay;
+                                    return (
+                                      <div
+                                        key={dayNum}
+                                        className={`px-session-box ${isCompleted ? 'used' : isToday ? 'next' : isPast ? 'used' : 'future'}`}
+                                        style={{ cursor: 'default' }}
+                                      >
+                                        <span className="px-session-num">{dayNum}</span>
+                                        {dayDate && <span style={{ fontSize: '9px', opacity: 0.7 }}>{formatDayDate(dayDate)}</span>}
+                                        {isToday && <span className="px-session-label">TODAY</span>}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                                <div className="px-legend">
+                                  <span><span className="px-legend-dot used" /> Past</span>
+                                  <span><span className="px-legend-dot next" /> Today</span>
+                                  <span><span className="px-legend-dot future" /> Future</span>
+                                </div>
+                                {/* Action buttons for recovery peptides */}
+                                {isRecovery && protocol.status === 'active' && (
+                                  <div className="px-actions">
+                                    {!protocol.peptide_checkin_optin_sent && (
+                                      <button
+                                        onClick={async () => {
+                                          try {
+                                            const res = await fetch(`/api/admin/protocols/${protocol.id}/send-optin`, { method: 'POST' });
+                                            const data = await res.json();
+                                            if (res.ok) { alert(data.twoStep ? 'Opt-in request sent! Link will deliver when patient replies.' : 'Check-in opt-in sent!'); fetchPatient(); }
+                                            else { alert(data.error || 'Failed to send'); }
+                                          } catch (e) { alert('Failed to send'); }
+                                        }}
+                                        className="btn-secondary-sm"
+                                      >📱 Send Check-in Opt-in</button>
+                                    )}
+                                    {!protocol.peptide_guide_sent && (
+                                      <button
+                                        onClick={async () => {
+                                          try {
+                                            const res = await fetch(`/api/admin/protocols/${protocol.id}/send-guide`, { method: 'POST' });
+                                            const data = await res.json();
+                                            if (res.ok) { alert(data.twoStep ? 'Guide will deliver when patient replies.' : 'Peptide guide sent!'); fetchPatient(); }
+                                            else { alert(data.error || 'Failed to send'); }
+                                          } catch (e) { alert('Failed to send'); }
+                                        }}
+                                        className="btn-secondary-sm"
+                                      >📖 Send Peptide Guide</button>
+                                    )}
+                                    {protocol.peptide_guide_sent && (
+                                      <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }}>✓ Guide Sent</span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
+
+                          {/* ===== HRT Expanded ===== */}
+                          {protocol.category === 'hrt' && isExpanded && (() => {
+                            const monthsOn = protocol.start_date
+                              ? Math.max(0, Math.floor((new Date() - new Date(protocol.start_date + 'T00:00:00')) / (1000 * 60 * 60 * 24 * 30.44)))
+                              : 0;
+                            return (
+                              <div className="protocol-expand">
+                                <div className="px-stats-row">
+                                  <div className="px-stat">
+                                    <span className="px-stat-label">Membership</span>
+                                    <span className="px-stat-value">{monthsOn} month{monthsOn !== 1 ? 's' : ''}</span>
+                                  </div>
+                                  <div className="px-stat">
+                                    <span className="px-stat-label">Supply</span>
+                                    <span className="px-stat-value">{protocol.status_text || '—'}</span>
+                                  </div>
+                                  {protocol.selected_dose && (
+                                    <div className="px-stat">
+                                      <span className="px-stat-label">Dose</span>
+                                      <span className="px-stat-value">{protocol.selected_dose}</span>
+                                    </div>
+                                  )}
+                                  {protocol.frequency && (
+                                    <div className="px-stat">
+                                      <span className="px-stat-label">Frequency</span>
+                                      <span className="px-stat-value">{protocol.frequency}</span>
+                                    </div>
+                                  )}
+                                </div>
+                                {/* Injection reminders status */}
+                                {protocol.delivery_method === 'take_home' && (
+                                  <div style={{ padding: '8px 12px', background: protocol.hrt_reminders_enabled ? '#F0FDF4' : '#f9fafb', border: `1px solid ${protocol.hrt_reminders_enabled ? '#BBF7D0' : '#e5e7eb'}`, borderRadius: 8, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    {protocol.hrt_reminders_enabled ? (
+                                      <span style={{ color: '#16a34a', fontWeight: 600 }}>✅ Injection Reminders ON ({protocol.hrt_reminder_schedule === 'tue_fri' ? 'Tue & Fri' : protocol.hrt_reminder_schedule === 'daily' ? 'Daily' : 'Mon & Thu'})</span>
+                                    ) : (
+                                      <>
+                                        <span style={{ color: '#666' }}>Injection Reminders: Off</span>
+                                        <button
+                                          onClick={async () => {
+                                            try {
+                                              await fetch(`/api/admin/protocols/${protocol.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ hrt_reminders_enabled: true, hrt_reminder_schedule: 'mon_thu' }) });
+                                              fetchPatient();
+                                            } catch {}
+                                          }}
+                                          style={{ padding: '3px 10px', fontSize: 11, fontWeight: 600, background: '#000', color: '#fff', border: 'none', borderRadius: 5, cursor: 'pointer' }}
+                                        >Enable Reminders</button>
+                                      </>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       );
                     })}
@@ -2292,9 +2620,9 @@ export default function PatientProfile() {
                       const cat = getCategoryStyle(protocol.category);
                       return (
                         <div key={protocol.id} className="protocol-card completed">
-                          <div className="protocol-card-header" style={{ cursor: 'pointer' }} onClick={() => router.push(`/admin/protocols/${protocol.id}`)}>
+                          <div className="protocol-card-header">
                             <span className="protocol-badge" style={{ background: cat.bg, color: cat.text }}>{cat.label}</span>
-                            <span className="protocol-name" style={{ textDecoration: 'underline', textDecorationColor: '#d1d5db' }}>{protocol.program_name || protocol.medication}</span>
+                            <span className="protocol-name">{protocol.program_name || protocol.medication}</span>
                           </div>
                           <div className="protocol-dates">{formatShortDate(protocol.start_date)} → {formatShortDate(protocol.end_date)}</div>
                           <div className="protocol-footer">
@@ -4608,6 +4936,51 @@ export default function PatientProfile() {
           </>
         )}
 
+        {/* Session Log Modal */}
+        {sessionLogModal && (
+          <>
+            <div onClick={() => setSessionLogModal(null)} style={{
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 10000
+            }} />
+            <div style={{
+              position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+              background: '#fff', borderRadius: 12, padding: 24, zIndex: 10001,
+              width: '90%', maxWidth: 400, boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+            }}>
+              <h3 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 700 }}>
+                ✅ Log Session #{sessionLogModal.sessionNum}
+              </h3>
+              <p style={{ margin: '0 0 16px', color: '#6b7280', fontSize: 14 }}>
+                Mark this session as completed
+              </p>
+
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
+                  Session Date
+                </label>
+                <input
+                  type="date"
+                  value={sessionLogDate}
+                  onChange={e => setSessionLogDate(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button onClick={() => setSessionLogModal(null)} style={{
+                  padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: 6,
+                  background: '#fff', cursor: 'pointer', fontSize: 14
+                }}>Cancel</button>
+                <button onClick={handleSessionLog} disabled={sessionLogSaving} style={{
+                  padding: '8px 20px', border: 'none', borderRadius: 6,
+                  background: '#000', color: '#fff', cursor: sessionLogSaving ? 'wait' : 'pointer',
+                  fontSize: 14, fontWeight: 600, opacity: sessionLogSaving ? 0.6 : 1
+                }}>{sessionLogSaving ? 'Saving...' : 'Log Session'}</button>
+              </div>
+            </div>
+          </>
+        )}
+
         {/* Blood Draw Modal */}
         {bloodDrawModal && (
           <>
@@ -5197,6 +5570,151 @@ export default function PatientProfile() {
         }
         .wl-table tr:last-child td {
           border-bottom: none;
+        }
+
+        /* Protocol Expand — inline trackers */
+        .protocol-expand {
+          border-top: 1px solid #e5e7eb;
+          padding: 16px 0 0;
+          margin-top: 12px;
+        }
+        .px-stats-row {
+          display: flex;
+          gap: 16px;
+          margin-bottom: 16px;
+          flex-wrap: wrap;
+        }
+        .px-stat {
+          flex: 1;
+          min-width: 100px;
+          background: #f9fafb;
+          border-radius: 8px;
+          padding: 10px 14px;
+          text-align: center;
+        }
+        .px-stat-label {
+          font-size: 11px;
+          color: #6b7280;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 2px;
+        }
+        .px-stat-value {
+          font-size: 18px;
+          font-weight: 700;
+          color: #111827;
+        }
+        .px-session-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+          gap: 6px;
+          margin-bottom: 10px;
+        }
+        .px-session-box {
+          aspect-ratio: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          border-radius: 6px;
+          font-size: 11px;
+          font-weight: 600;
+          position: relative;
+          user-select: none;
+        }
+        .px-session-box.used {
+          background: #22c55e;
+          color: #fff;
+        }
+        .px-session-box.next {
+          background: #111827;
+          color: #fff;
+          cursor: pointer;
+          transition: transform 0.1s;
+        }
+        .px-session-box.next:hover {
+          transform: scale(1.08);
+        }
+        .px-session-box.future {
+          background: #f3f4f6;
+          color: #9ca3af;
+        }
+        .px-session-num {
+          font-size: 13px;
+          font-weight: 700;
+          line-height: 1;
+        }
+        .px-session-check {
+          font-size: 10px;
+          line-height: 1;
+          margin-top: 1px;
+        }
+        .px-session-label {
+          font-size: 8px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          line-height: 1;
+          margin-top: 1px;
+        }
+        .px-legend {
+          display: flex;
+          gap: 16px;
+          font-size: 12px;
+          color: #6b7280;
+          margin-bottom: 12px;
+        }
+        .px-legend-dot {
+          display: inline-block;
+          width: 10px;
+          height: 10px;
+          border-radius: 3px;
+          margin-right: 4px;
+          vertical-align: middle;
+        }
+        .px-cycle-bar {
+          margin-bottom: 12px;
+        }
+        .px-bar-bg {
+          width: 100%;
+          height: 10px;
+          background: #e5e7eb;
+          border-radius: 5px;
+          overflow: hidden;
+        }
+        .px-bar-fill {
+          height: 100%;
+          background: #22c55e;
+          border-radius: 5px;
+          transition: width 0.3s;
+        }
+        .px-actions {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .px-actions button {
+          padding: 6px 14px;
+          font-size: 13px;
+          font-weight: 600;
+          border-radius: 6px;
+          border: 1px solid #d1d5db;
+          background: #fff;
+          cursor: pointer;
+          transition: background 0.15s;
+        }
+        .px-actions button:hover {
+          background: #f3f4f6;
+        }
+        .px-actions button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        .px-day-date {
+          font-size: 8px;
+          color: inherit;
+          opacity: 0.8;
+          line-height: 1;
+          margin-top: 1px;
         }
 
         .view-all {

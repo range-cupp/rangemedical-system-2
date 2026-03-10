@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 function calculateCurrentDay(startDate) {
   if (!startDate) return null;
@@ -22,6 +23,7 @@ export default function PatientPortal() {
   const { token } = router.query;
   
   const [protocol, setProtocol] = useState(null);
+  const [weightLossLogs, setWeightLossLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -54,6 +56,8 @@ export default function PatientPortal() {
           end_date: activeProtocol.end_date,
           special_instructions: activeProtocol.special_instructions
         });
+        // Capture weight loss logs
+        setWeightLossLogs(data.weightLossLogs || []);
       } else if (data.protocol) {
         // Direct protocol response
         setProtocol(data.protocol);
@@ -168,6 +172,50 @@ export default function PatientPortal() {
             </div>
           </div>
         )}
+
+        {/* Weight Loss Progress Chart */}
+        {(() => {
+          const wlChartData = weightLossLogs.filter(l => l.weight).map(l => ({
+            date: new Date(l.entry_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+            weight: parseFloat(l.weight)
+          }));
+          if (wlChartData.length < 2) return null;
+          const startWeight = wlChartData[0].weight;
+          const curWeight = wlChartData[wlChartData.length - 1].weight;
+          const totalLoss = (startWeight - curWeight).toFixed(1);
+          return (
+            <div style={{ margin: '24px 20px 0' }}>
+              <h2 style={styles.sectionTitle}>Your Progress</h2>
+              <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: '16px' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '11px', color: '#999', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px' }}>Starting</div>
+                    <div style={{ fontSize: '20px', fontWeight: '700' }}>{startWeight} lbs</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '11px', color: '#999', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px' }}>Current</div>
+                    <div style={{ fontSize: '20px', fontWeight: '700' }}>{curWeight} lbs</div>
+                  </div>
+                  {parseFloat(totalLoss) > 0 && (
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '11px', color: '#999', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Loss</div>
+                      <div style={{ fontSize: '20px', fontWeight: '700', color: '#16a34a' }}>-{totalLoss} lbs</div>
+                    </div>
+                  )}
+                </div>
+                <ResponsiveContainer width="100%" height={200}>
+                  <LineChart data={wlChartData} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                    <YAxis domain={['dataMin - 2', 'dataMax + 2']} tick={{ fontSize: 12 }} unit=" lbs" width={65} />
+                    <Tooltip formatter={(value) => [`${value} lbs`, 'Weight']} contentStyle={{ fontSize: 13, borderRadius: 8 }} />
+                    <Line type="monotone" dataKey="weight" stroke="#1e40af" strokeWidth={2} dot={{ r: 4, fill: '#1e40af' }} activeDot={{ r: 6 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Calendar */}
         {!isComplete && !isNotStarted && (

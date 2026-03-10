@@ -114,9 +114,22 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'No protocols found for this link' });
     }
 
+    // Fetch weight loss logs if patient exists
+    let weightLossLogs = [];
+    if (patient?.id) {
+      const { data: wlLogs } = await supabase
+        .from('service_logs')
+        .select('entry_date, medication, dosage, weight')
+        .eq('patient_id', patient.id)
+        .eq('category', 'weight_loss')
+        .order('entry_date', { ascending: true });
+      weightLossLogs = wlLogs || [];
+    }
+
     return res.status(200).json({
       patient: patient || { first_name: 'there' },
-      protocols
+      protocols,
+      weightLossLogs
     });
 
   } catch (error) {

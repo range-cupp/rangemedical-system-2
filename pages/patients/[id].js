@@ -199,6 +199,13 @@ export default function PatientProfile() {
   const [aptEditCategory, setAptEditCategory] = useState('');
   const [savingApt, setSavingApt] = useState(false);
 
+  // Send Progress modal state
+  const [showSendProgressModal, setShowSendProgressModal] = useState(false);
+  const [sendProgressProtocol, setSendProgressProtocol] = useState(null);
+  const [sendProgressMethod, setSendProgressMethod] = useState('both');
+  const [sendingProgress, setSendingProgress] = useState(false);
+  const [sendProgressResult, setSendProgressResult] = useState(null);
+
   // Payments sub-tab state
   const [paymentsSubTab, setPaymentsSubTab] = useState('invoices');
 
@@ -1370,6 +1377,70 @@ export default function PatientProfile() {
     setPdfSlideOut({ open: false, url: '', title: '' });
   };
 
+  // Chart capture: SVG -> Canvas -> PNG base64
+  const captureChartAsBase64 = async (protocolId) => {
+    const chartEl = document.getElementById(`wl-chart-${protocolId}`);
+    if (!chartEl) return null;
+    const svgElement = chartEl.querySelector('svg');
+    if (!svgElement) return null;
+    try {
+      const clone = svgElement.cloneNode(true);
+      const { width, height } = svgElement.getBoundingClientRect();
+      clone.setAttribute('width', width);
+      clone.setAttribute('height', height);
+      clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      const svgString = new XMLSerializer().serializeToString(clone);
+      const canvas = document.createElement('canvas');
+      const scale = 2;
+      canvas.width = width * scale;
+      canvas.height = height * scale;
+      const ctx = canvas.getContext('2d');
+      ctx.scale(scale, scale);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => { ctx.drawImage(img, 0, 0, width, height); resolve(canvas.toDataURL('image/png').split(',')[1]); };
+        img.onerror = () => resolve(null);
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
+      });
+    } catch (err) {
+      console.error('Chart capture error:', err);
+      return null;
+    }
+  };
+
+  // Send Progress handler
+  const handleSendProgress = async () => {
+    if (!sendProgressProtocol || !patient) return;
+    setSendingProgress(true);
+    try {
+      const chartBase64 = await captureChartAsBase64(sendProgressProtocol.id);
+      const wlLogs = (allProtocolLogs || []).filter(l => l.protocol_id === sendProgressProtocol.id && l.weight);
+      const sWeight = wlLogs.length > 0 ? parseFloat(wlLogs[0].weight) : null;
+      const cWeight = wlLogs.length > 0 ? parseFloat(wlLogs[wlLogs.length - 1].weight) : null;
+      const tLoss = sWeight && cWeight ? (sWeight - cWeight).toFixed(1) : null;
+
+      const res = await fetch('/api/protocols/send-progress', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientId: patient.id,
+          protocolId: sendProgressProtocol.id,
+          method: sendProgressMethod,
+          chartImage: chartBase64,
+          stats: { startingWeight: sWeight, currentWeight: cWeight, totalLoss: tLoss, sessions: wlLogs.length }
+        }),
+      });
+      const data = await res.json();
+      setSendProgressResult({ success: data.success !== false, message: data.message || (data.success !== false ? 'Progress sent!' : 'Failed to send') });
+    } catch (err) {
+      setSendProgressResult({ success: false, message: err.message || 'Network error' });
+    } finally {
+      setSendingProgress(false);
+    }
+  };
+
   return (
     <AdminLayout title="Patient Profile" hideHeader>
       <Head>
@@ -2272,11 +2343,24 @@ export default function PatientProfile() {
                                   <span className="wl-stat-label">Sessions</span>
                                   <span className="wl-stat-value">{wlLogs.length}{protocol.total_sessions ? ` of ${protocol.total_sessions}` : ''}</span>
                                 </div>
+                                {chartData.length >= 2 && (
+                                  <button
+                                    onClick={() => {
+                                      setSendProgressProtocol(protocol);
+                                      setSendProgressMethod('both');
+                                      setSendProgressResult(null);
+                                      setShowSendProgressModal(true);
+                                    }}
+                                    style={{ marginLeft: 'auto', padding: '5px 12px', fontSize: '12px', fontWeight: 600, background: '#1e40af', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
+                                  >
+                                    📤 Send Progress
+                                  </button>
+                                )}
                               </div>
 
                               {/* Weight Chart */}
                               {chartData.length >= 2 && (
-                                <div className="wl-chart">
+                                <div className="wl-chart" id={`wl-chart-${protocol.id}`}>
                                   <ResponsiveContainer width="100%" height={200}>
                                     <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
                                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -4511,6 +4595,79 @@ export default function PatientProfile() {
           patient={patient}
           stripePromise={stripePromise}
         />
+
+        {/* ==================== SEND PROGRESS MODAL ==================== */}
+        {showSendProgressModal && sendProgressProtocol && (
+          <div className="modal-overlay" onClick={() => setShowSendProgressModal(false)}>
+            <div className="modal" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Send Progress to Patient</h3>
+                <button onClick={() => setShowSendProgressModal(false)} className="close-btn">&times;</button>
+              </div>
+              <div className="modal-body">
+                {sendProgressResult ? (
+                  <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                    <div style={{ fontSize: '48px', marginBottom: '12px' }}>{sendProgressResult.success ? '✅' : '❌'}</div>
+                    <p style={{ fontSize: '15px', fontWeight: 600, color: sendProgressResult.success ? '#16a34a' : '#dc2626', lineHeight: 1.5 }}>
+                      {sendProgressResult.message}
+                    </p>
+                    <button onClick={() => setShowSendProgressModal(false)} style={{ marginTop: '16px', padding: '8px 20px', background: '#000', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}>Done</button>
+                  </div>
+                ) : (
+                  <>
+                    <p style={{ marginBottom: '16px', color: '#666', fontSize: '14px' }}>
+                      Send {patient?.first_name || 'patient'}'s weight loss progress chart and a link to their portal.
+                    </p>
+                    <div style={{ marginBottom: '16px' }}>
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '8px', color: '#333' }}>Send via</label>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        {['email', 'sms', 'both'].map(m => (
+                          <button key={m} onClick={() => setSendProgressMethod(m)} style={{
+                            flex: 1, padding: '10px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                            border: sendProgressMethod === m ? '2px solid #1e40af' : '1px solid #ddd',
+                            background: sendProgressMethod === m ? '#eff6ff' : '#fff',
+                            color: sendProgressMethod === m ? '#1e40af' : '#666'
+                          }}>
+                            {m === 'both' ? '📧 + 💬 Both' : m === 'email' ? '📧 Email' : '💬 SMS'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {(sendProgressMethod === 'email' || sendProgressMethod === 'both') && !patient?.email && (
+                      <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '10px', marginBottom: '8px', fontSize: '13px', color: '#dc2626' }}>⚠️ No email on file for this patient</div>
+                    )}
+                    {(sendProgressMethod === 'sms' || sendProgressMethod === 'both') && !patient?.phone && (
+                      <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '10px', marginBottom: '8px', fontSize: '13px', color: '#dc2626' }}>⚠️ No phone number on file for this patient</div>
+                    )}
+                    <div style={{ background: '#f9fafb', borderRadius: '8px', padding: '14px', marginTop: '12px', fontSize: '13px', color: '#555' }}>
+                      <strong style={{ color: '#333' }}>Will send:</strong>
+                      <ul style={{ margin: '8px 0 0', paddingLeft: '18px' }}>
+                        {(sendProgressMethod === 'email' || sendProgressMethod === 'both') && patient?.email && (
+                          <li>Email with chart image + portal link → {patient.email}</li>
+                        )}
+                        {(sendProgressMethod === 'sms' || sendProgressMethod === 'both') && patient?.phone && (
+                          <li>SMS with summary + portal link → {patient.phone}</li>
+                        )}
+                      </ul>
+                    </div>
+                  </>
+                )}
+              </div>
+              {!sendProgressResult && (
+                <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', padding: '16px 20px', borderTop: '1px solid #eee' }}>
+                  <button onClick={() => setShowSendProgressModal(false)} style={{ padding: '8px 16px', background: '#f5f5f5', border: '1px solid #ddd', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>Cancel</button>
+                  <button
+                    onClick={handleSendProgress}
+                    disabled={sendingProgress || ((sendProgressMethod === 'email' || sendProgressMethod === 'both') && !patient?.email && sendProgressMethod !== 'sms') || ((sendProgressMethod === 'sms' || sendProgressMethod === 'both') && !patient?.phone && sendProgressMethod !== 'email')}
+                    style={{ padding: '8px 20px', background: sendingProgress ? '#93c5fd' : '#1e40af', color: '#fff', border: 'none', borderRadius: '8px', cursor: sendingProgress ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 600 }}
+                  >
+                    {sendingProgress ? 'Sending...' : 'Send Progress'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ==================== LOG ENTRY MODAL ==================== */}
         {showLogEntryModal && logEntryProtocol && (

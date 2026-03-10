@@ -2344,17 +2344,25 @@ export default function PatientProfile() {
                                   <span className="wl-stat-value">{wlLogs.length}{protocol.total_sessions ? ` of ${protocol.total_sessions}` : ''}</span>
                                 </div>
                                 {chartData.length >= 2 && (
-                                  <button
-                                    onClick={() => {
-                                      setSendProgressProtocol(protocol);
-                                      setSendProgressMethod('both');
-                                      setSendProgressResult(null);
-                                      setShowSendProgressModal(true);
-                                    }}
-                                    style={{ marginLeft: 'auto', padding: '5px 12px', fontSize: '12px', fontWeight: 600, background: '#1e40af', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
-                                  >
-                                    📤 Send Progress
-                                  </button>
+                                  <div style={{ marginLeft: 'auto', display: 'flex', gap: '6px' }}>
+                                    <button
+                                      onClick={() => window.open(`/portal/${protocol.access_token || protocol.id}`, '_blank')}
+                                      style={{ padding: '5px 12px', fontSize: '12px', fontWeight: 600, background: '#f5f5f5', color: '#333', border: '1px solid #ddd', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
+                                    >
+                                      👁 View Portal
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setSendProgressProtocol(protocol);
+                                        setSendProgressMethod('both');
+                                        setSendProgressResult(null);
+                                        setShowSendProgressModal(true);
+                                      }}
+                                      style={{ padding: '5px 12px', fontSize: '12px', fontWeight: 600, background: '#1e40af', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
+                                    >
+                                      📤 Send Progress
+                                    </button>
+                                  </div>
                                 )}
                               </div>
 

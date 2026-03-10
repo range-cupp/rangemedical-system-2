@@ -244,6 +244,9 @@ export default function PatientProfile() {
   const [noteFormatting, setNoteFormatting] = useState(false);
   const [noteSaving, setNoteSaving] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [editingNote, setEditingNote] = useState(null);
+  const [editNoteBody, setEditNoteBody] = useState('');
+  const [editNoteSaving, setEditNoteSaving] = useState(false);
   const [expandedNotes, setExpandedNotes] = useState({});
   const recognitionRef = useRef(null);
 
@@ -1253,6 +1256,28 @@ export default function PatientProfile() {
     }
   };
 
+  const handleEditNote = async () => {
+    if (!editingNote || !editNoteBody.trim()) return;
+    setEditNoteSaving(true);
+    try {
+      const res = await fetch(`/api/notes/${editingNote.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body: editNoteBody }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNotes(prev => prev.map(n => n.id === editingNote.id ? { ...n, body: editNoteBody } : n));
+        setEditingNote(null);
+        setEditNoteBody('');
+      }
+    } catch (error) {
+      console.error('Edit note error:', error);
+    } finally {
+      setEditNoteSaving(false);
+    }
+  };
+
   // Loading states
   if (!router.isReady) return <div className="loading">Loading...</div>;
   if (loading) return <div className="loading">Loading patient...</div>;
@@ -1511,21 +1536,18 @@ export default function PatientProfile() {
                   {pinnedNote.body}
                 </div>
               </div>
-              <button
-                onClick={() => handleTogglePin(pinnedNote.id, true)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#92400e',
-                  cursor: 'pointer',
-                  fontSize: 14,
-                  padding: '2px 6px',
-                  flexShrink: 0,
-                }}
-                title="Unpin note"
-              >
-                ✕
-              </button>
+              <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                <button
+                  onClick={() => { setEditingNote(pinnedNote); setEditNoteBody(pinnedNote.body || ''); }}
+                  style={{ background: 'none', border: 'none', color: '#92400e', cursor: 'pointer', fontSize: 13, padding: '2px 6px' }}
+                  title="Edit note"
+                >✏️</button>
+                <button
+                  onClick={() => handleTogglePin(pinnedNote.id, true)}
+                  style={{ background: 'none', border: 'none', color: '#92400e', cursor: 'pointer', fontSize: 14, padding: '2px 6px' }}
+                  title="Unpin note"
+                >✕</button>
+              </div>
             </div>
             {pinnedNote.body && pinnedNote.body.length > 120 && (
               <button
@@ -2839,6 +2861,11 @@ export default function PatientProfile() {
                           </div>
                           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                             <button
+                              onClick={() => { setEditingNote(note); setEditNoteBody(note.body || ''); }}
+                              style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 14, padding: '0 4px', lineHeight: 1 }}
+                              title="Edit note"
+                            >✏️</button>
+                            <button
                               onClick={() => handleTogglePin(note.id, note.pinned)}
                               style={{
                                 background: 'none',
@@ -3425,6 +3452,44 @@ export default function PatientProfile() {
                   style={{ opacity: (!noteInput.trim() || noteSaving) ? 0.5 : 1 }}
                 >
                   {noteSaving ? 'Saving...' : 'Save Note'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Note Modal */}
+        {editingNote && (
+          <div className="modal-overlay" onClick={() => { setEditingNote(null); setEditNoteBody(''); }}>
+            <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 640 }}>
+              <div className="modal-header">
+                <h3>Edit Note</h3>
+                <button onClick={() => { setEditingNote(null); setEditNoteBody(''); }} className="close-btn">&times;</button>
+              </div>
+              <div className="modal-body">
+                <div style={{ fontSize: 12, color: '#888', marginBottom: 12 }}>
+                  {formatDate(editingNote.note_date || editingNote.created_at)}
+                  {editingNote.created_by && ` — by ${editingNote.created_by}`}
+                </div>
+                <div className="form-group">
+                  <label>Note Content</label>
+                  <textarea
+                    value={editNoteBody}
+                    onChange={e => setEditNoteBody(e.target.value)}
+                    rows={10}
+                    style={{ fontFamily: 'inherit', fontSize: 14, lineHeight: 1.6 }}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button onClick={() => { setEditingNote(null); setEditNoteBody(''); }} className="btn-secondary">Cancel</button>
+                <button
+                  onClick={handleEditNote}
+                  disabled={!editNoteBody.trim() || editNoteSaving}
+                  className="btn-primary"
+                  style={{ opacity: (!editNoteBody.trim() || editNoteSaving) ? 0.5 : 1 }}
+                >
+                  {editNoteSaving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </div>

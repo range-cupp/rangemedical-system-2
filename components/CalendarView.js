@@ -102,6 +102,11 @@ export default function CalendarView({ preselectedPatient = null }) {
   const [rescheduleDate, setRescheduleDate] = useState('');
   const [rescheduleTime, setRescheduleTime] = useState('');
 
+  // Appointment notes editing
+  const [editingApptNotes, setEditingApptNotes] = useState(null); // appt id being edited
+  const [apptNotesValue, setApptNotesValue] = useState('');
+  const [savingApptNotes, setSavingApptNotes] = useState(false);
+
   // Patient contact info for appointment detail
   const [apptPatientInfo, setApptPatientInfo] = useState(null);
   const [loadingPatientInfo, setLoadingPatientInfo] = useState(false);
@@ -560,6 +565,25 @@ export default function CalendarView({ preselectedPatient = null }) {
       }
     } catch (err) {
       console.error('Delete appointment error:', err);
+    }
+  };
+
+  const saveApptNotes = async (apptId) => {
+    setSavingApptNotes(true);
+    try {
+      const res = await fetch('/api/appointments/update', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: apptId, table: 'appointments', notes: apptNotesValue }),
+      });
+      if (res.ok) {
+        setEditingApptNotes(null);
+        fetchAppointments();
+      }
+    } catch (err) {
+      console.error('Save appointment notes error:', err);
+    } finally {
+      setSavingApptNotes(false);
     }
   };
 
@@ -1216,12 +1240,45 @@ export default function CalendarView({ preselectedPatient = null }) {
               );
             })()}
 
-            {appt.notes && (
-              <div style={styles.popoverRow}>
-                <span style={styles.popoverLabel}>Notes</span>
-                <span style={styles.popoverValue}>{appt.notes}</span>
-              </div>
-            )}
+            {/* Appointment Notes — editable */}
+            <div style={styles.popoverRow}>
+              <span style={styles.popoverLabel}>Notes</span>
+              {editingApptNotes === appt.id ? (
+                <div style={{ flex: 1 }}>
+                  <textarea
+                    value={apptNotesValue}
+                    onChange={e => setApptNotesValue(e.target.value)}
+                    rows={3}
+                    style={{ width: '100%', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', resize: 'vertical', boxSizing: 'border-box' }}
+                    autoFocus
+                  />
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                    <button
+                      onClick={() => saveApptNotes(appt.id)}
+                      disabled={savingApptNotes}
+                      style={{ ...styles.actionBtn, background: '#000', color: '#fff', fontSize: '12px', padding: '4px 12px' }}
+                    >
+                      {savingApptNotes ? 'Saving...' : 'Save'}
+                    </button>
+                    <button
+                      onClick={() => setEditingApptNotes(null)}
+                      style={{ ...styles.actionBtn, fontSize: '12px', padding: '4px 12px' }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ flex: 1, display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                  <span style={{ ...styles.popoverValue, flex: 1 }}>{appt.notes || <span style={{ color: '#aaa', fontStyle: 'italic' }}>No notes</span>}</span>
+                  <button
+                    onClick={() => { setEditingApptNotes(appt.id); setApptNotesValue(appt.notes || ''); }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', padding: '0 2px', color: '#999', flexShrink: 0 }}
+                    title="Edit notes"
+                  >✏️</button>
+                </div>
+              )}
+            </div>
             {appt.cancellation_reason && (
               <div style={styles.popoverRow}>
                 <span style={styles.popoverLabel}>Reason</span>

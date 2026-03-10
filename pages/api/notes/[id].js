@@ -1,5 +1,5 @@
 // /pages/api/notes/[id].js
-// Delete or update (pin/unpin) a clinical note
+// Delete, update content, or pin/unpin a clinical note
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -32,11 +32,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'PATCH') {
     try {
-      const { pinned } = req.body;
-
-      if (typeof pinned !== 'boolean') {
-        return res.status(400).json({ error: 'pinned (boolean) is required' });
-      }
+      const { pinned, body } = req.body;
 
       // Get the note to find its patient_id
       const { data: note, error: fetchError } = await supabase
@@ -49,26 +45,41 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'Note not found' });
       }
 
-      if (pinned) {
-        // Unpin any currently pinned note for this patient
-        await supabase
-          .from('patient_notes')
-          .update({ pinned: false })
-          .eq('patient_id', note.patient_id)
-          .eq('pinned', true);
+      // Build update object
+      const updates = {};
+
+      // Handle pin toggle
+      if (typeof pinned === 'boolean') {
+        if (pinned) {
+          // Unpin any currently pinned note for this patient
+          await supabase
+            .from('patient_notes')
+            .update({ pinned: false })
+            .eq('patient_id', note.patient_id)
+            .eq('pinned', true);
+        }
+        updates.pinned = pinned;
       }
 
-      // Set the pin state on the target note
+      // Handle body/content edit
+      if (typeof body === 'string') {
+        updates.body = body;
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ error: 'No valid fields to update (body or pinned)' });
+      }
+
       const { error: updateError } = await supabase
         .from('patient_notes')
-        .update({ pinned })
+        .update(updates)
         .eq('id', id);
 
       if (updateError) throw updateError;
 
-      return res.status(200).json({ success: true, pinned });
+      return res.status(200).json({ success: true, ...updates });
     } catch (error) {
-      console.error('Note pin toggle error:', error);
+      console.error('Note update error:', error);
       return res.status(500).json({ error: error.message });
     }
   }

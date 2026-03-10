@@ -58,6 +58,21 @@ const VIALS = [
     description: 'Tesamorelin / Ipamorelin combination take-home vial.',
     price: 30000, // $300
   },
+  {
+    name: 'CJC-1295 / Ipamorelin Vial',
+    description: 'CJC-1295 / Ipamorelin combination take-home vial.',
+    price: 30000, // $300
+  },
+  {
+    name: 'AOD-9604 Vial',
+    description: 'AOD-9604 take-home vial for self-administration.',
+    price: 30000, // $300
+  },
+  {
+    name: 'GLOW Vial',
+    description: 'GLOW blend take-home vial (GHK-Cu + BPC-157 + TB-500).',
+    price: 40000, // $400
+  },
 ];
 
 // Sort order base: vials go after peptide (category index 13) → 13000+

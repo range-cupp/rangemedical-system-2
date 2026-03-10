@@ -467,6 +467,24 @@ const PRODUCTS = [
     category: 'vials',
     prices: [{ amount: 30000, nickname: null }],
   },
+  {
+    name: 'CJC-1295 / Ipamorelin Vial',
+    description: 'CJC-1295 / Ipamorelin combination take-home vial.',
+    category: 'vials',
+    prices: [{ amount: 30000, nickname: null }],
+  },
+  {
+    name: 'AOD-9604 Vial',
+    description: 'AOD-9604 take-home vial for self-administration.',
+    category: 'vials',
+    prices: [{ amount: 30000, nickname: null }],
+  },
+  {
+    name: 'GLOW Vial',
+    description: 'GLOW blend take-home vial (GHK-Cu + BPC-157 + TB-500).',
+    category: 'vials',
+    prices: [{ amount: 40000, nickname: null }],
+  },
 
   // ── Lab Panels ──
   {

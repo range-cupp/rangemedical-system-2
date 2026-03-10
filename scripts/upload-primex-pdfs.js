@@ -37,21 +37,20 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 /**
  * Parse filename back to name components.
  * Lastname_Firstname_YYYY-MM-DD.pdf
- * Handles O_Brien → O'Brien
+ * The date (YYYY-MM-DD) is always the LAST underscore-delimited token.
+ * Handles O_Brien → O'Brien (multi-part last names rejoin with apostrophe).
  */
 function parseFilename(filename) {
   const base = filename.replace(/\.pdf$/, '');
   const parts = base.split('_');
-  // Last part is date: YYYY-MM-DD (3 tokens joined by -)
-  const testDate = parts.slice(-3).join('-');
-  // Remaining parts: Lastname then Firstname (each may be one or more tokens)
-  // Convention: exactly Lastname_Firstname_YYYY-MM-DD
-  // Handle: O_Brien_Jay_2025-09-30 → lastName=O'Brien, firstName=Jay
-  const nameParts = parts.slice(0, -3);
-  // The last name token before firstName: Firstname is always the second-to-last name part
-  const firstName = nameParts.slice(-1)[0];
-  const rawLast   = nameParts.slice(0, -1).join("'"); // re-join with apostrophe for names like O'Brien
-  const lastName  = rawLast;
+  // Date is always the last token (contains hyphens, not underscores)
+  const testDate = parts[parts.length - 1];
+  // Everything before the date is name parts
+  const nameParts = parts.slice(0, -1);
+  // firstName is always the last name part; everything before is lastName
+  const firstName = nameParts[nameParts.length - 1];
+  // Re-join multi-part last names with apostrophe (O_Brien → O'Brien)
+  const lastName = nameParts.slice(0, -1).join("'");
   return { lastName, firstName, testDate };
 }
 

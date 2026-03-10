@@ -2,15 +2,16 @@
 // Submit patient weight loss check-in
 // Range Medical
 // CREATED: 2026-01-04
+// UPDATED: 2026-03-10 — Switched from GHL to direct SMS via Blooio/Twilio
 //
 // This endpoint receives patient self-reported data:
 // - Weight
 // - Side effects
 // - Notes
-// It logs to Supabase and syncs to GHL
+// It logs to Supabase and sends SMS notifications directly
 
 import { createClient } from '@supabase/supabase-js';
-import { updateGHLContact, addGHLNote, createGHLTask } from '../../../lib/ghl-sync';
+import { sendSMS } from '../../../lib/send-sms';
 import { buildSideEffectGuidance } from '../../../lib/wl-side-effect-guidance';
 
 const supabase = createClient(
@@ -18,12 +19,18 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Staff phone numbers for check-in notifications
+const STAFF_PHONES = [
+  '+19496900339', // Chris
+  '+19494244679', // Lily
+];
+
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
+
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -34,11 +41,11 @@ export default async function handler(req, res) {
 
   try {
     const { contact_id, weight, side_effects, notes } = req.body;
-    
+
     if (!contact_id) {
       return res.status(400).json({ error: 'Contact ID required' });
     }
-    
+
     if (!weight) {
       return res.status(400).json({ error: 'Weight required' });
     }
@@ -46,14 +53,28 @@ export default async function handler(req, res) {
     const today = new Date().toISOString().split('T')[0];
     const parsedWeight = parseFloat(weight);
 
-    // Find patient
-    const { data: patient, error: patientError } = await supabase
+    // Find patient — support both ghl_contact_id (legacy links) and patient id
+    let patient;
+    const { data: patientByGHL } = await supabase
       .from('patients')
-      .select('id, name, ghl_contact_id')
+      .select('id, name, first_name, phone, ghl_contact_id')
       .eq('ghl_contact_id', contact_id)
+      .limit(1)
       .single();
 
-    if (patientError || !patient) {
+    if (patientByGHL) {
+      patient = patientByGHL;
+    } else {
+      const { data: patientById } = await supabase
+        .from('patients')
+        .select('id, name, first_name, phone, ghl_contact_id')
+        .eq('id', contact_id)
+        .limit(1)
+        .single();
+      patient = patientById;
+    }
+
+    if (!patient) {
       return res.status(404).json({ error: 'Patient not found' });
     }
 
@@ -82,36 +103,33 @@ export default async function handler(req, res) {
     }
 
     // For take-home patients, each check-in = 1 injection used
-    // Increment sessions_used on the protocol
     const newSessionsUsed = (protocol.sessions_used || 0) + 1;
     const totalSessions = protocol.total_sessions || 4;
     const sessionsRemaining = totalSessions - newSessionsUsed;
-    
+
     const { error: updateProtocolError } = await supabase
       .from('protocols')
-      .update({ 
+      .update({
         sessions_used: newSessionsUsed,
         updated_at: new Date().toISOString()
       })
       .eq('id', protocol.id);
-    
+
     if (updateProtocolError) {
       console.error('Error updating protocol sessions:', updateProtocolError);
     }
 
-    // Create log entry in protocol_logs (checkin type for take-home injection tracking)
-    const logEntry = {
-      protocol_id: protocol.id,
-      patient_id: patient.id,
-      log_type: 'checkin',
-      log_date: today,
-      weight: parsedWeight,
-      notes: logNotes
-    };
-
-    const { data: insertedLog, error: logError } = await supabase
+    // Create log entry in protocol_logs
+    const { error: logError } = await supabase
       .from('protocol_logs')
-      .insert(logEntry)
+      .insert({
+        protocol_id: protocol.id,
+        patient_id: patient.id,
+        log_type: 'checkin',
+        log_date: today,
+        weight: parsedWeight,
+        notes: logNotes
+      })
       .select()
       .single();
 
@@ -119,7 +137,7 @@ export default async function handler(req, res) {
       console.error('Error creating protocol log:', logError);
     }
 
-    // Also write to service_logs (single source of truth for all sessions)
+    // Write to service_logs (single source of truth for all sessions)
     const { error: serviceLogError } = await supabase
       .from('service_logs')
       .insert({
@@ -146,108 +164,38 @@ export default async function handler(req, res) {
       weightChange = change < 0 ? `↓ ${Math.abs(change).toFixed(1)} lbs` : `↑ ${change.toFixed(1)} lbs`;
     }
 
-    // Update GHL current weight and injection fields
-    await updateGHLContact(contact_id, {
-      'wl__current_weight': String(parsedWeight),
-      'wl__injections_used': String(newSessionsUsed),
-      'wl__injections_remaining': String(sessionsRemaining)
-    });
+    const isPaymentDue = newSessionsUsed > 0 && newSessionsUsed % 4 === 0;
 
-    // Add note to GHL
-    let ghlNote = `📱 PATIENT WEEKLY CHECK-IN
-
-Date: ${today}
-Weight: ${parsedWeight} lbs`;
-
-    if (weightChange) {
-      ghlNote += ` (${weightChange} from start)`;
-    }
-    
-    ghlNote += `\nInjection: ${newSessionsUsed} of ${totalSessions}`;
-    
-    if (sessionsRemaining <= 0) {
-      ghlNote += ` ✅ PROTOCOL COMPLETE`;
-    } else if (sessionsRemaining === 1) {
-      ghlNote += ` ⚠️ Last injection remaining`;
-    }
+    // ── Staff SMS notifications (direct via Blooio/Twilio) ──
+    let smsMessage = `📱 WL Check-in: ${patient.name}\n\nWeight: ${parsedWeight} lbs`;
+    if (weightChange) smsMessage += ` (${weightChange})`;
+    smsMessage += `\nInjection: ${newSessionsUsed}/${totalSessions}`;
 
     if (side_effects && side_effects.length > 0) {
-      ghlNote += `\n\n⚠️ Side Effects Reported:\n• ${side_effects.join('\n• ')}`;
-    } else {
-      ghlNote += `\n\nNo side effects reported ✓`;
+      smsMessage += `\n⚠️ Side effects: ${side_effects.join(', ')}`;
     }
 
-    if (notes && notes.trim()) {
-      ghlNote += `\n\nPatient Notes: "${notes.trim()}"`;
-    }
-
-    // Add payment reminder to note if this is 4th injection (or multiple of 4)
-    const isPaymentDue = newSessionsUsed > 0 && newSessionsUsed % 4 === 0;
-    
     if (isPaymentDue) {
-      ghlNote += `\n\n💳 PAYMENT DUE - Patient has completed injection #${newSessionsUsed}. Time to renew for next cycle.`;
-      
-      // Create task for payment follow-up
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      
-      await createGHLTask(
-        contact_id,
-        `💳 WL Payment Due - ${patient.name}`,
-        tomorrow.toISOString(),
-        `Patient completed injection #${newSessionsUsed}. Follow up for next month's payment.`
-      );
+      smsMessage += `\n\n💰 PAYMENT DUE`;
     }
 
-    await addGHLNote(contact_id, ghlNote);
-
-    // Send SMS notification to clinic staff when patient completes check-in
-    const ghlApiKey = process.env.GHL_API_KEY;
-    const notifyContactId = process.env.RESEARCH_NOTIFY_CONTACT_ID || 'a2IWAaLOI1kJGJGYMCU2';
-    const nurseLilyContactId = 'tnHRcVjbvZv8A3bAU9Ev';
-
-    if (ghlApiKey) {
-      let smsMessage = `📱 WL Check-in: ${patient.name}\n\nWeight: ${parsedWeight} lbs`;
-      if (weightChange) smsMessage += ` (${weightChange})`;
-      smsMessage += `\nInjection: ${newSessionsUsed}/${totalSessions}`;
-
-      if (side_effects && side_effects.length > 0) {
-        smsMessage += `\n⚠️ Side effects: ${side_effects.join(', ')}`;
-      }
-
-      if (isPaymentDue) {
-        smsMessage += `\n\n💰 PAYMENT DUE`;
-      }
-
-      // Send to all clinic staff recipients
-      const notifyRecipients = [notifyContactId, nurseLilyContactId];
-
-      for (const recipientId of notifyRecipients) {
-        try {
-          await fetch('https://services.leadconnectorhq.com/conversations/messages', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${ghlApiKey}`,
-              'Version': '2021-04-15',
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              type: 'SMS',
-              contactId: recipientId,
-              message: smsMessage
-            })
-          });
-          console.log(`✓ Check-in SMS notification sent to ${recipientId}`);
-        } catch (smsError) {
-          console.error(`SMS notification error (${recipientId}):`, smsError);
-        }
-      }
-    }
-
-    // Send thank-you SMS to patient
-    if (ghlApiKey && contact_id) {
+    for (const phone of STAFF_PHONES) {
       try {
-        const firstName = patient.name ? patient.name.split(' ')[0] : 'there';
+        const result = await sendSMS({ to: phone, message: smsMessage });
+        if (result.success) {
+          console.log(`✓ Check-in SMS sent to ${phone} via ${result.provider}`);
+        } else {
+          console.error(`SMS to ${phone} failed:`, result.error);
+        }
+      } catch (smsError) {
+        console.error(`SMS notification error (${phone}):`, smsError);
+      }
+    }
+
+    // ── Patient thank-you SMS ──
+    if (patient.phone) {
+      try {
+        const firstName = patient.first_name || (patient.name ? patient.name.split(' ')[0] : 'there');
         let thankYouMsg = `Thanks for checking in, ${firstName}! 🎉 Your weight has been logged.`;
 
         if (weightChange) {
@@ -262,23 +210,14 @@ Weight: ${parsedWeight} lbs`;
         }
 
         thankYouMsg += buildSideEffectGuidance(firstName, side_effects);
-
         thankYouMsg += `\n\n- Range Medical`;
 
-        await fetch('https://services.leadconnectorhq.com/conversations/messages', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${ghlApiKey}`,
-            'Version': '2021-04-15',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            type: 'SMS',
-            contactId: contact_id,
-            message: thankYouMsg
-          })
-        });
-        console.log('✓ Thank-you SMS sent to patient');
+        const result = await sendSMS({ to: patient.phone, message: thankYouMsg });
+        if (result.success) {
+          console.log(`✓ Thank-you SMS sent to patient via ${result.provider}`);
+        } else {
+          console.error('Thank-you SMS failed:', result.error);
+        }
       } catch (thankYouError) {
         console.error('Thank-you SMS error:', thankYouError);
       }

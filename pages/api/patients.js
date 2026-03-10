@@ -1,6 +1,6 @@
 // /pages/api/patients.js
 // Simple patients API for dropdowns and search
-// Range Medical - Updated 2026-01-17
+// Range Medical - Updated 2026-03-10
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -8,6 +8,9 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+const SELECT_COLS = 'id, first_name, last_name, name, email, phone, ghl_contact_id';
+const PAGE_SIZE = 1000;
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -17,35 +20,44 @@ export default async function handler(req, res) {
   try {
     const { search } = req.query;
 
-    // Fetch ALL patients — no GHL filter so every patient in the system is searchable
-    let query = supabase
-      .from('patients')
-      .select('id, first_name, last_name, name, email, phone, ghl_contact_id')
-      .order('created_at', { ascending: false })
-      .limit(5000);
+    let patients;
 
-    // If search term provided, add server-side filter for faster results
     if (search && search.length >= 2) {
-      query = supabase
+      // Search mode — filtered results, unlikely to exceed 1000
+      const { data, error } = await supabase
         .from('patients')
-        .select('id, first_name, last_name, name, email, phone, ghl_contact_id')
+        .select(SELECT_COLS)
         .or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`)
-        .limit(5000);
+        .limit(1000);
+
+      if (error) throw error;
+      patients = data || [];
+    } else {
+      // Full list mode — paginate to get ALL patients (Supabase caps at 1000/request)
+      patients = [];
+      let from = 0;
+
+      while (true) {
+        const { data, error } = await supabase
+          .from('patients')
+          .select(SELECT_COLS)
+          .order('created_at', { ascending: false })
+          .range(from, from + PAGE_SIZE - 1);
+
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        patients = patients.concat(data);
+        if (data.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
     }
 
-    const { data: patients, error } = await query;
+    console.log('Patients API returning:', patients.length, 'patients');
 
-    if (error) {
-      console.error('Error fetching patients:', error);
-      return res.status(500).json({ error: error.message });
-    }
-
-    console.log('Patients API returning:', patients?.length || 0, 'patients');
-
-    return res.status(200).json({ 
+    return res.status(200).json({
       success: true,
-      patients: patients || [],
-      total: patients?.length || 0
+      patients,
+      total: patients.length
     });
 
   } catch (error) {

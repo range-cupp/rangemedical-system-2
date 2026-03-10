@@ -207,7 +207,7 @@ export default function CalendarView({ preselectedPatient = null }) {
   // Fetch employees for employee calendar view
   useEffect(() => {
     if (calendarMode !== 'employee') return;
-    fetch('/api/admin/employees')
+    fetch('/api/admin/employees?basic=true')
       .then(r => r.json())
       .then(data => {
         // Filter to employees with calcom_user_id (active providers)

@@ -23,16 +23,14 @@ export default async function handler(req, res) {
 async function handleList(req, res) {
   const { basic } = req.query;
 
-  // Basic list (id, name, is_active) available to any authenticated employee
-  // Used by task assignment, etc. — no permission required beyond being logged in
+  // Basic list (id, name, is_active, calcom_user_id) — no auth required
+  // Used by calendar employee view, task assignment, etc.
+  // Page-level auth handles access control
   if (basic === 'true') {
-    const employee = await requireAuth(req, res);
-    if (!employee) return;
-
     try {
       const { data: employees, error } = await supabase
         .from('employees')
-        .select('id, name, title, is_active')
+        .select('id, name, title, is_active, calcom_user_id')
         .order('name');
 
       if (error) throw error;

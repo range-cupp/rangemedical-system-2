@@ -12,10 +12,8 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  const employee = await requireAuth(req, res);
-  if (!employee) return;
-
-  // ── GET: Fetch blocks by provider + date range ──
+  // GET is read-only — no auth required (page is already admin-gated)
+  // POST/DELETE require auth below
   if (req.method === 'GET') {
     try {
       const { provider_id, start_date, end_date } = req.query;
@@ -38,6 +36,10 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: err.message });
     }
   }
+
+  // Auth required for write operations
+  const employee = await requireAuth(req, res);
+  if (!employee) return;
 
   // ── POST: Create block(s) ──
   if (req.method === 'POST') {

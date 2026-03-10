@@ -442,6 +442,32 @@ const PRODUCTS = [
     ],
   },
 
+  // ── Vials ──
+  {
+    name: 'NAD+ 1000mg Vial',
+    description: 'NAD+ 1000mg take-home vial for self-administration.',
+    category: 'vials',
+    prices: [{ amount: 50000, nickname: null }],
+  },
+  {
+    name: 'BPC-157 / Thymosin-Beta 4 Vial',
+    description: 'BPC-157 / Thymosin-Beta 4 combination take-home vial.',
+    category: 'vials',
+    prices: [{ amount: 40000, nickname: null }],
+  },
+  {
+    name: 'MOTS-c Vial',
+    description: 'MOTS-c take-home vial for self-administration.',
+    category: 'vials',
+    prices: [{ amount: 20000, nickname: null }],
+  },
+  {
+    name: 'Tesamorelin / Ipamorelin Vial',
+    description: 'Tesamorelin / Ipamorelin combination take-home vial.',
+    category: 'vials',
+    prices: [{ amount: 30000, nickname: null }],
+  },
+
   // ── Lab Panels ──
   {
     name: 'Essential Blood Panel — Male',
@@ -497,7 +523,7 @@ const PRODUCTS = [
 const CATEGORY_ORDER = [
   'programs', 'combo_membership', 'hbot', 'red_light', 'hrt', 'weight_loss',
   'iv_therapy', 'specialty_iv', 'injection_standard', 'injection_premium',
-  'injection_pack', 'nad_injection', 'peptide', 'labs', 'regenerative', 'assessment',
+  'injection_pack', 'nad_injection', 'peptide', 'vials', 'labs', 'regenerative', 'assessment',
 ];
 
 // ─────────────────────────────────────────────

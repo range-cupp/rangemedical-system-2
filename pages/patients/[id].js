@@ -40,6 +40,7 @@ import BookingTab from '../../components/BookingTab';
 import LabDashboard from '../../components/labs/LabDashboard';
 import ConversationView from '../../components/ConversationView';
 import { loadStripe } from '@stripe/stripe-js';
+import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
 import POSChargeModal from '../../components/POSChargeModal';
 import SignatureCanvas from '../../components/SignatureCanvas';
 import { PROTOCOL_TYPES } from '../../lib/protocol-types';
@@ -91,6 +92,122 @@ const WL_DRIP_EMAILS = [
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
   : null;
+
+const CARD_ELEMENT_STYLE = {
+  style: {
+    base: {
+      fontSize: '16px',
+      color: '#1a1a1a',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      '::placeholder': { color: '#a0a0a0' },
+    },
+    invalid: { color: '#dc2626' },
+  },
+};
+
+function AddCardForm({ patientId, onCardSaved }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+
+  const handleSaveCard = async () => {
+    if (!stripe || !elements) return;
+    setSaving(true);
+    setError(null);
+    try {
+      // 1. Create SetupIntent on server
+      const setupRes = await fetch('/api/stripe/saved-cards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patient_id: patientId }),
+      });
+      const setupData = await setupRes.json();
+      if (!setupRes.ok) throw new Error(setupData.error || 'Failed to create setup');
+
+      // 2. Confirm card setup with Stripe
+      const cardElement = elements.getElement(CardElement);
+      const { error: stripeError } = await stripe.confirmCardSetup(setupData.client_secret, {
+        payment_method: { card: cardElement },
+      });
+      if (stripeError) throw new Error(stripeError.message);
+
+      // 3. Success
+      setSuccess(true);
+      setShowForm(false);
+      if (onCardSaved) onCardSaved();
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!showForm) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+        <button
+          onClick={() => setShowForm(true)}
+          style={{
+            padding: '10px 20px', fontSize: 13, fontWeight: 600,
+            background: '#1e40af', color: '#fff', border: 'none',
+            borderRadius: 8, cursor: 'pointer',
+          }}
+        >
+          + Add Card
+        </button>
+        {success && <span style={{ color: '#16a34a', fontSize: 13, fontWeight: 500 }}>Card saved successfully!</span>}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      marginTop: 8, padding: 16, background: '#f9fafb',
+      borderRadius: 8, border: '1px solid #e5e7eb',
+    }}>
+      <div style={{ marginBottom: 12, fontSize: 14, fontWeight: 600, color: '#374151' }}>
+        Add New Card
+      </div>
+      <div style={{
+        padding: '12px', background: '#fff', border: '1px solid #d1d5db',
+        borderRadius: 8, marginBottom: 12,
+      }}>
+        <CardElement options={CARD_ELEMENT_STYLE} />
+      </div>
+      {error && (
+        <div style={{ color: '#dc2626', fontSize: 13, marginBottom: 8 }}>{error}</div>
+      )}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button
+          onClick={handleSaveCard}
+          disabled={saving || !stripe}
+          style={{
+            padding: '10px 20px', fontSize: 13, fontWeight: 600,
+            background: saving ? '#9ca3af' : '#16a34a', color: '#fff',
+            border: 'none', borderRadius: 8,
+            cursor: saving ? 'default' : 'pointer',
+          }}
+        >
+          {saving ? 'Saving...' : 'Save Card'}
+        </button>
+        <button
+          onClick={() => { setShowForm(false); setError(null); }}
+          style={{
+            padding: '10px 20px', fontSize: 13, fontWeight: 500,
+            background: '#fff', color: '#374151', border: '1px solid #d1d5db',
+            borderRadius: 8, cursor: 'pointer',
+          }}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function PatientProfile() {
   const router = useRouter();
@@ -208,6 +325,10 @@ export default function PatientProfile() {
 
   // Payments sub-tab state
   const [paymentsSubTab, setPaymentsSubTab] = useState('invoices');
+
+  // Saved cards state
+  const [savedCards, setSavedCards] = useState([]);
+  const [loadingSavedCards, setLoadingSavedCards] = useState(false);
 
   // Form states
   const [selectedNotification, setSelectedNotification] = useState(null);
@@ -360,6 +481,12 @@ export default function PatientProfile() {
         setInvoices(data.invoices || []);
         setStats(data.stats || {});
 
+        // Fetch saved cards (non-blocking)
+        fetch(`/api/stripe/saved-cards?patient_id=${id}`)
+          .then(r => r.json())
+          .then(d => setSavedCards(d.cards || []))
+          .catch(() => {});
+
         // Compute HRT lab schedules for active HRT protocols
         const allProtos = [...(data.activeProtocols || []), ...(data.completedProtocols || [])];
         const hrtProtos = allProtos.filter(p => isHRTProtocol(p.program_type) && p.start_date);
@@ -386,6 +513,36 @@ export default function PatientProfile() {
       console.error('Error fetching patient:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSavedCards = async () => {
+    if (!id) return;
+    try {
+      setLoadingSavedCards(true);
+      const res = await fetch(`/api/stripe/saved-cards?patient_id=${id}`);
+      const data = await res.json();
+      setSavedCards(data.cards || []);
+    } catch (err) {
+      console.error('Error fetching saved cards:', err);
+    } finally {
+      setLoadingSavedCards(false);
+    }
+  };
+
+  const handleRemoveCard = async (paymentMethodId) => {
+    if (!confirm('Remove this card from file?')) return;
+    try {
+      const res = await fetch('/api/stripe/saved-cards', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payment_method_id: paymentMethodId }),
+      });
+      if (res.ok) {
+        setSavedCards(prev => prev.filter(c => c.id !== paymentMethodId));
+      }
+    } catch (err) {
+      console.error('Error removing card:', err);
     }
   };
 
@@ -1470,6 +1627,15 @@ export default function PatientProfile() {
                       color: blooioOptIn ? '#166534' : '#92400e',
                     }}>
                       {blooioOptIn ? 'Blooio: Active' : 'Blooio: Pending'}
+                    </span>
+                  )}
+                  {savedCards.length > 0 && (
+                    <span className="blooio-badge" style={{
+                      backgroundColor: '#dbeafe',
+                      color: '#1e40af',
+                      cursor: 'pointer',
+                    }} onClick={() => { setActiveTab('payments'); setPaymentsSubTab('cards'); }}>
+                      💳 {savedCards[0].brand.toUpperCase()} ····{savedCards[0].last4}
                     </span>
                   )}
                 </div>
@@ -3638,6 +3804,7 @@ export default function PatientProfile() {
                 {[
                   { key: 'invoices', label: 'Invoices' },
                   { key: 'purchases', label: 'Purchases' },
+                  { key: 'cards', label: `Payment Methods${savedCards.length > 0 ? ` (${savedCards.length})` : ''}` },
                 ].map(tab => (
                   <button
                     key={tab.key}
@@ -3729,6 +3896,59 @@ export default function PatientProfile() {
                           </div>
                         </div>
                       ))}
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {/* Payment Methods (Cards) Sub-tab */}
+              {paymentsSubTab === 'cards' && (
+                <section className="card">
+                  <div className="card-header">
+                    <h3>Payment Methods</h3>
+                  </div>
+
+                  {/* Saved Cards List */}
+                  {savedCards.length > 0 ? (
+                    <div style={{ padding: '0 16px 16px' }}>
+                      {savedCards.map(card => (
+                        <div key={card.id} style={{
+                          display: 'flex', alignItems: 'center', gap: 12,
+                          padding: '12px 16px', background: '#f9fafb', borderRadius: 8,
+                          marginTop: 8, border: '1px solid #e5e7eb',
+                        }}>
+                          <span style={{ fontSize: 20 }}>💳</span>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, fontSize: 14, color: '#1a1a1a' }}>
+                              {card.brand.toUpperCase()} ···· {card.last4}
+                            </div>
+                            <div style={{ fontSize: 12, color: '#6b7280' }}>
+                              Expires {String(card.exp_month).padStart(2, '0')}/{card.exp_year}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleRemoveCard(card.id)}
+                            style={{
+                              padding: '6px 12px', fontSize: 12, fontWeight: 500,
+                              background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6,
+                              color: '#dc2626', cursor: 'pointer',
+                            }}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="empty">No cards on file</div>
+                  )}
+
+                  {/* Add Card Section */}
+                  {stripePromise && (
+                    <div style={{ padding: '0 16px 16px' }}>
+                      <Elements stripe={stripePromise}>
+                        <AddCardForm patientId={id} onCardSaved={() => fetchSavedCards()} />
+                      </Elements>
                     </div>
                   )}
                 </section>

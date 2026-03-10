@@ -70,13 +70,19 @@ export default function ProviderSchedulePage() {
   const [editSchedule, setEditSchedule] = useState(null);
   const [daySettings, setDaySettings] = useState({});
 
-  // Override modal
+  // Override/Block modal
   const [overrideProvider, setOverrideProvider] = useState(null);
   const [overrideSchedule, setOverrideSchedule] = useState(null);
   const [overrideDate, setOverrideDate] = useState('');
-  const [overrideType, setOverrideType] = useState('custom'); // 'custom' or 'unavailable'
+  const [overrideEndDate, setOverrideEndDate] = useState('');
+  const [overrideType, setOverrideType] = useState('unavailable'); // 'custom' or 'unavailable'
   const [overrideStart, setOverrideStart] = useState('09:00');
   const [overrideEnd, setOverrideEnd] = useState('18:00');
+  const [blockReason, setBlockReason] = useState('');
+  const [blockReasonNote, setBlockReasonNote] = useState('');
+
+  // Schedule blocks from DB
+  const [scheduleBlocks, setScheduleBlocks] = useState([]);
 
   const authHeaders = useCallback(() => ({
     Authorization: `Bearer ${session?.access_token}`,
@@ -100,9 +106,23 @@ export default function ProviderSchedulePage() {
     }
   }, [authHeaders]);
 
+  const fetchScheduleBlocks = useCallback(async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const res = await fetch(`/api/schedule-blocks?start_date=${today}`, { headers: authHeaders() });
+      const data = await res.json();
+      if (data.success) setScheduleBlocks(data.blocks || []);
+    } catch (err) {
+      console.error('Error fetching schedule blocks:', err);
+    }
+  }, [authHeaders]);
+
   useEffect(() => {
-    if (session) fetchProviders();
-  }, [session, fetchProviders]);
+    if (session) {
+      fetchProviders();
+      fetchScheduleBlocks();
+    }
+  }, [session, fetchProviders, fetchScheduleBlocks]);
 
   const showSuccess = (msg) => {
     setSuccessMsg(msg);
@@ -162,41 +182,52 @@ export default function ProviderSchedulePage() {
     }
   };
 
-  // Open override modal for a specific schedule
+  // Open block modal for a specific schedule
   const openOverrideModal = (provider, schedule) => {
     setOverrideProvider(provider);
     setOverrideSchedule(schedule);
     setOverrideDate('');
-    setOverrideType('custom');
+    setOverrideEndDate('');
+    setOverrideType('unavailable');
     setOverrideStart('09:00');
     setOverrideEnd('18:00');
+    setBlockReason('');
+    setBlockReasonNote('');
   };
 
-  // Save override
+  // Generate date array from start → end
+  const getDateRange = (start, end) => {
+    const dates = [];
+    const current = new Date(start + 'T00:00:00');
+    const last = new Date((end || start) + 'T00:00:00');
+    while (current <= last) {
+      dates.push(current.toISOString().split('T')[0]);
+      current.setDate(current.getDate() + 1);
+    }
+    return dates;
+  };
+
+  // Save block via schedule-blocks API
   const saveOverride = async () => {
     if (!overrideProvider || !overrideSchedule || !overrideDate) return;
 
     setSaving(true);
     try {
-      const existingOverrides = overrideSchedule.overrides || [];
-      // Remove any existing override for the same date
-      const filtered = existingOverrides.filter(o => o.date !== overrideDate);
+      const dates = getDateRange(overrideDate, overrideEndDate || overrideDate);
 
-      const newOverride = { date: overrideDate };
-      if (overrideType === 'custom') {
-        newOverride.startTime = overrideStart;
-        newOverride.endTime = overrideEnd;
-      }
-      // If 'unavailable', no startTime/endTime = blocked
-
-      filtered.push(newOverride);
-
-      const res = await fetch(`/api/provider-schedules/${overrideProvider.userId}`, {
-        method: 'PATCH',
+      const res = await fetch('/api/schedule-blocks', {
+        method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({
-          scheduleId: overrideSchedule.id,
-          overrides: filtered,
+          provider_id: overrideProvider.userId,
+          provider_name: overrideProvider.name,
+          block_type: overrideType === 'custom' ? 'time_range' : 'full_day',
+          dates,
+          start_time: overrideType === 'custom' ? overrideStart : null,
+          end_time: overrideType === 'custom' ? overrideEnd : null,
+          reason: blockReason || null,
+          reason_note: blockReasonNote || null,
+          schedule_id: overrideSchedule.id,
         }),
       });
       const data = await res.json();
@@ -204,18 +235,44 @@ export default function ProviderSchedulePage() {
         setOverrideProvider(null);
         setOverrideSchedule(null);
         fetchProviders();
-        showSuccess(`Override added for ${overrideProvider.name}`);
+        fetchScheduleBlocks();
+        const dayCount = dates.length;
+        showSuccess(`${dayCount} day${dayCount > 1 ? 's' : ''} blocked for ${overrideProvider.name}`);
       } else {
-        setError(data.error || 'Failed to add override');
+        setError(data.error || 'Failed to add block');
       }
     } catch (err) {
-      setError('Failed to add override');
+      setError('Failed to add block');
     } finally {
       setSaving(false);
     }
   };
 
-  // Remove override
+  // Remove block (from schedule_blocks DB + Cal.com sync)
+  const removeBlock = async (blockId, provider, schedule) => {
+    if (!window.confirm('Remove this block?')) return;
+
+    try {
+      const res = await fetch('/api/schedule-blocks', {
+        method: 'DELETE',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          block_id: blockId,
+          schedule_id: schedule?.id,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchProviders();
+        fetchScheduleBlocks();
+        showSuccess('Block removed');
+      }
+    } catch (err) {
+      setError('Failed to remove block');
+    }
+  };
+
+  // Remove legacy override (Cal.com only, no DB block)
   const removeOverride = async (provider, schedule, dateToRemove) => {
     if (!window.confirm(`Remove override for ${formatDate(dateToRemove)}?`)) return;
 
@@ -324,7 +381,7 @@ export default function ProviderSchedulePage() {
                               Edit Hours
                             </button>
                             <button onClick={() => openOverrideModal(provider, schedule)} style={pageStyles.actionBtnOutline}>
-                              Add Override
+                              Block Schedule
                             </button>
                           </div>
                         )}
@@ -349,32 +406,59 @@ export default function ProviderSchedulePage() {
                         })}
                       </div>
 
-                      {/* Overrides */}
-                      {futureOverrides.length > 0 && (
-                        <div style={pageStyles.overridesSection}>
-                          <div style={pageStyles.overridesTitle}>
-                            Overrides ({futureOverrides.length})
-                          </div>
-                          {futureOverrides.map((override, oidx) => (
-                            <div key={oidx} style={pageStyles.overrideRow}>
-                              <span style={pageStyles.overrideDate}>{formatDate(override.date)}</span>
-                              <span style={pageStyles.overrideTime}>
-                                {override.startTime && override.endTime
-                                  ? `${formatTime12(override.startTime)} – ${formatTime12(override.endTime)}`
-                                  : 'Unavailable'}
-                              </span>
-                              {canManageSchedules && (
-                                <button
-                                  onClick={() => removeOverride(provider, schedule, override.date)}
-                                  style={pageStyles.removeBtn}
-                                >
-                                  ✕
-                                </button>
-                              )}
+                      {/* Schedule Blocks from DB */}
+                      {(() => {
+                        const providerBlocks = scheduleBlocks.filter(b => b.provider_id === provider.userId);
+                        const combined = [
+                          ...providerBlocks.map(b => ({ ...b, source: 'block' })),
+                          ...futureOverrides
+                            .filter(o => !providerBlocks.some(b => b.date === o.date))
+                            .map(o => ({ ...o, source: 'legacy' })),
+                        ].sort((a, b) => a.date.localeCompare(b.date));
+
+                        return combined.length > 0 && (
+                          <div style={pageStyles.overridesSection}>
+                            <div style={pageStyles.overridesTitle}>
+                              Schedule Blocks ({combined.length})
                             </div>
-                          ))}
-                        </div>
-                      )}
+                            {combined.map((item, oidx) => (
+                              <div key={oidx} style={{
+                                ...pageStyles.overrideRow,
+                                background: item.block_type === 'full_day' || !item.startTime ? '#fee2e2' : '#fef9c3',
+                              }}>
+                                <span style={pageStyles.overrideDate}>{formatDate(item.date)}</span>
+                                <span style={pageStyles.overrideTime}>
+                                  {item.block_type === 'time_range' && item.start_time && item.end_time
+                                    ? `${formatTime12(item.start_time)} – ${formatTime12(item.end_time)}`
+                                    : item.startTime && item.endTime
+                                    ? `${formatTime12(item.startTime)} – ${formatTime12(item.endTime)}`
+                                    : 'Full Day Off'}
+                                </span>
+                                {item.reason && (
+                                  <span style={{
+                                    fontSize: 11, fontWeight: 600,
+                                    background: '#f3f4f6', color: '#374151',
+                                    padding: '2px 8px', borderRadius: 10,
+                                  }}>
+                                    {item.reason}{item.reason_note ? `: ${item.reason_note}` : ''}
+                                  </span>
+                                )}
+                                {canManageSchedules && (
+                                  <button
+                                    onClick={() => item.source === 'block'
+                                      ? removeBlock(item.id, provider, schedule)
+                                      : removeOverride(provider, schedule, item.date)
+                                    }
+                                    style={pageStyles.removeBtn}
+                                  >
+                                    ✕
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })}
@@ -387,7 +471,7 @@ export default function ProviderSchedulePage() {
                       Edit Hours
                     </button>
                     <button onClick={() => openOverrideModal(provider, schedules[0])} style={pageStyles.actionBtnOutline}>
-                      Add Override
+                      Block Schedule
                     </button>
                   </div>
                 )}
@@ -478,13 +562,13 @@ export default function ProviderSchedulePage() {
         </div>
       )}
 
-      {/* Add Override Modal */}
+      {/* Block Schedule Modal */}
       {overrideProvider && overrideSchedule && (
         <div style={sharedStyles.modalOverlay} onClick={() => { setOverrideProvider(null); setOverrideSchedule(null); }}>
-          <div style={{ ...sharedStyles.modal, maxWidth: '440px' }} onClick={e => e.stopPropagation()}>
+          <div style={{ ...sharedStyles.modal, maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
             <div style={sharedStyles.modalHeader}>
               <div>
-                <h2 style={sharedStyles.modalTitle}>Add Override — {overrideProvider.name}</h2>
+                <h2 style={sharedStyles.modalTitle}>Block Schedule — {overrideProvider.name}</h2>
                 {overrideLocation && (
                   <span style={{
                     fontSize: '13px',
@@ -503,65 +587,110 @@ export default function ProviderSchedulePage() {
             </div>
             <div style={sharedStyles.modalBody}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+                {/* Date Range */}
                 <div>
-                  <label style={sharedStyles.label}>Date</label>
+                  <label style={sharedStyles.label}>Start Date</label>
                   <input
                     type="date"
                     value={overrideDate}
-                    onChange={e => setOverrideDate(e.target.value)}
+                    onChange={e => { setOverrideDate(e.target.value); if (!overrideEndDate || e.target.value > overrideEndDate) setOverrideEndDate(e.target.value); }}
                     style={sharedStyles.input}
                     min={new Date().toISOString().split('T')[0]}
                   />
                 </div>
-
                 <div>
-                  <label style={{ ...pageStyles.radioLabel, marginBottom: '8px', display: 'block' }}>
-                    <input
-                      type="radio"
-                      name="overrideType"
-                      value="custom"
-                      checked={overrideType === 'custom'}
-                      onChange={() => setOverrideType('custom')}
-                      style={{ marginRight: '8px' }}
-                    />
-                    Custom hours
-                  </label>
+                  <label style={sharedStyles.label}>End Date <span style={{ color: '#9ca3af', fontWeight: 400 }}>(same day for single block)</span></label>
+                  <input
+                    type="date"
+                    value={overrideEndDate || overrideDate}
+                    onChange={e => setOverrideEndDate(e.target.value)}
+                    style={sharedStyles.input}
+                    min={overrideDate || new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+
+                {/* Block Type */}
+                <div>
+                  <label style={{ ...sharedStyles.label, marginBottom: 8 }}>Block Type</label>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button
+                      onClick={() => setOverrideType('unavailable')}
+                      style={{
+                        flex: 1, padding: '10px 0', border: '1px solid',
+                        borderColor: overrideType === 'unavailable' ? '#dc2626' : '#d1d5db',
+                        borderRadius: 8,
+                        background: overrideType === 'unavailable' ? '#fef2f2' : '#fff',
+                        color: overrideType === 'unavailable' ? '#dc2626' : '#374151',
+                        fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                      }}
+                    >
+                      Full Day Off
+                    </button>
+                    <button
+                      onClick={() => setOverrideType('custom')}
+                      style={{
+                        flex: 1, padding: '10px 0', border: '1px solid',
+                        borderColor: overrideType === 'custom' ? '#1e40af' : '#d1d5db',
+                        borderRadius: 8,
+                        background: overrideType === 'custom' ? '#eff6ff' : '#fff',
+                        color: overrideType === 'custom' ? '#1e40af' : '#374151',
+                        fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                      }}
+                    >
+                      Block Specific Hours
+                    </button>
+                  </div>
                   {overrideType === 'custom' && (
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginLeft: '24px', marginBottom: '12px' }}>
-                      <input
-                        type="time"
-                        value={overrideStart}
-                        onChange={e => setOverrideStart(e.target.value)}
-                        style={pageStyles.timeInput}
-                      />
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '10px' }}>
+                      <input type="time" value={overrideStart} onChange={e => setOverrideStart(e.target.value)} style={pageStyles.timeInput} />
                       <span style={{ color: '#999' }}>to</span>
-                      <input
-                        type="time"
-                        value={overrideEnd}
-                        onChange={e => setOverrideEnd(e.target.value)}
-                        style={pageStyles.timeInput}
-                      />
+                      <input type="time" value={overrideEnd} onChange={e => setOverrideEnd(e.target.value)} style={pageStyles.timeInput} />
                     </div>
                   )}
-
-                  <label style={pageStyles.radioLabel}>
-                    <input
-                      type="radio"
-                      name="overrideType"
-                      value="unavailable"
-                      checked={overrideType === 'unavailable'}
-                      onChange={() => setOverrideType('unavailable')}
-                      style={{ marginRight: '8px' }}
-                    />
-                    Unavailable (full day off)
-                  </label>
                 </div>
+
+                {/* Reason */}
+                <div>
+                  <label style={sharedStyles.label}>Reason</label>
+                  <select value={blockReason} onChange={e => setBlockReason(e.target.value)} style={sharedStyles.input}>
+                    <option value="">Select reason (optional)</option>
+                    <option value="Lunch">Lunch</option>
+                    <option value="Meeting">Meeting</option>
+                    <option value="PTO">PTO / Vacation</option>
+                    <option value="Training">Training</option>
+                    <option value="Personal">Personal</option>
+                    <option value="Holiday">Holiday</option>
+                    <option value="Sick">Sick Day</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                {/* Reason Note */}
+                {blockReason && (
+                  <div>
+                    <label style={sharedStyles.label}>Note <span style={{ color: '#9ca3af', fontWeight: 400 }}>(optional)</span></label>
+                    <input type="text" value={blockReasonNote} onChange={e => setBlockReasonNote(e.target.value)} placeholder="e.g. Family vacation, team meeting..." style={sharedStyles.input} />
+                  </div>
+                )}
+
+                {/* Bulk summary */}
+                {overrideDate && overrideEndDate && overrideEndDate > overrideDate && (
+                  <div style={{
+                    padding: '10px 14px', background: '#f0f9ff', borderRadius: 8,
+                    border: '1px solid #bae6fd', fontSize: 13, color: '#0369a1',
+                  }}>
+                    This will block <strong>{getDateRange(overrideDate, overrideEndDate).length} days</strong> from {formatDate(overrideDate)} to {formatDate(overrideEndDate)}
+                  </div>
+                )}
               </div>
             </div>
             <div style={sharedStyles.modalFooter}>
               <button onClick={() => { setOverrideProvider(null); setOverrideSchedule(null); }} style={sharedStyles.btnSecondary}>Cancel</button>
-              <button onClick={saveOverride} disabled={saving || !overrideDate} style={sharedStyles.btnPrimary}>
-                {saving ? 'Saving...' : 'Add Override'}
+              <button onClick={saveOverride} disabled={saving || !overrideDate} style={{ ...sharedStyles.btnPrimary, background: '#dc2626' }}>
+                {saving ? 'Saving...' : overrideEndDate && overrideEndDate > overrideDate
+                  ? `Block ${getDateRange(overrideDate, overrideEndDate).length} Days`
+                  : 'Block Schedule'}
               </button>
             </div>
           </div>

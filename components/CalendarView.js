@@ -122,6 +122,13 @@ export default function CalendarView({ preselectedPatient = null }) {
   // Renewal tracking for patients with appointments
   const [renewalMap, setRenewalMap] = useState({}); // patient_id -> [renewals]
 
+  // Schedule blocks for calendar overlay
+  const [calendarBlocks, setCalendarBlocks] = useState([]);
+
+  // Employee calendar view toggle
+  const [calendarMode, setCalendarMode] = useState('service'); // 'service' or 'employee'
+  const [employees, setEmployees] = useState([]);
+
   // Fetch appointments
   const fetchAppointments = useCallback(async () => {
     setLoading(true);
@@ -173,6 +180,44 @@ export default function CalendarView({ preselectedPatient = null }) {
       })
       .catch(err => console.error('Renewal fetch error:', err));
   }, [appointments]);
+
+  // Fetch schedule blocks for calendar overlays
+  useEffect(() => {
+    let startDate, endDate;
+    if (viewMode === 'day') {
+      startDate = formatDateISO(currentDate);
+      endDate = startDate;
+    } else if (viewMode === 'week') {
+      const ws = getWeekStart(currentDate);
+      const we = new Date(ws); we.setDate(we.getDate() + 6);
+      startDate = formatDateISO(ws);
+      endDate = formatDateISO(we);
+    } else {
+      const ms = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      const me = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+      startDate = formatDateISO(ms);
+      endDate = formatDateISO(me);
+    }
+    fetch(`/api/schedule-blocks?start_date=${startDate}&end_date=${endDate}`)
+      .then(r => r.json())
+      .then(d => setCalendarBlocks(d.blocks || []))
+      .catch(() => setCalendarBlocks([]));
+  }, [viewMode, currentDate]);
+
+  // Fetch employees for employee calendar view
+  useEffect(() => {
+    if (calendarMode !== 'employee') return;
+    fetch('/api/admin/employees')
+      .then(r => r.json())
+      .then(data => {
+        // Filter to employees with calcom_user_id (active providers)
+        const active = (data.employees || [])
+          .filter(e => e.calcom_user_id && e.is_active !== false)
+          .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        setEmployees(active);
+      })
+      .catch(() => setEmployees([]));
+  }, [calendarMode]);
 
   // Close popover on outside click
   useEffect(() => {
@@ -859,6 +904,68 @@ export default function CalendarView({ preselectedPatient = null }) {
             </div>
           );
         })}
+        {/* Schedule block overlays */}
+        {calendarBlocks
+          .filter(b => b.date === formatDateISO(currentDate))
+          .map(block => {
+            if (block.block_type === 'full_day') {
+              // Full day: overlay entire grid
+              return (
+                <div
+                  key={block.id}
+                  style={{
+                    position: 'absolute', top: 0, bottom: 0,
+                    left: '75px', right: '10px',
+                    background: 'repeating-linear-gradient(135deg, transparent, transparent 10px, rgba(220,38,38,0.06) 10px, rgba(220,38,38,0.06) 20px)',
+                    borderLeft: '3px solid #dc2626',
+                    pointerEvents: 'none', zIndex: 1,
+                  }}
+                >
+                  <div style={{
+                    position: 'sticky', top: 8, fontSize: 11, fontWeight: 600,
+                    color: '#dc2626', background: '#fee2e2', padding: '3px 8px',
+                    borderRadius: 6, display: 'inline-block', marginLeft: 8, marginTop: 8,
+                  }}>
+                    {block.provider_name} — {block.reason || 'Day Off'}
+                    {block.reason_note ? ` (${block.reason_note})` : ''}
+                  </div>
+                </div>
+              );
+            }
+            // Time-range block
+            if (block.start_time && block.end_time) {
+              const [sh, sm] = block.start_time.split(':').map(Number);
+              const [eh, em] = block.end_time.split(':').map(Number);
+              const startH = sh + sm / 60;
+              const endH = eh + em / 60;
+              const bTop = (startH - 6) * 60;
+              const bHeight = (endH - startH) * 60;
+              if (bTop < 0 || startH > 20) return null;
+              return (
+                <div
+                  key={block.id}
+                  style={{
+                    position: 'absolute',
+                    top: `${bTop}px`, height: `${bHeight}px`,
+                    left: '75px', right: '10px',
+                    background: 'repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(220,38,38,0.08) 8px, rgba(220,38,38,0.08) 16px)',
+                    borderLeft: '3px solid #dc2626',
+                    pointerEvents: 'none', zIndex: 1,
+                    borderRadius: 4,
+                  }}
+                >
+                  <div style={{
+                    fontSize: 11, fontWeight: 600, color: '#dc2626',
+                    background: '#fee2e2', padding: '2px 6px',
+                    borderRadius: 4, display: 'inline-block', marginLeft: 6, marginTop: 2,
+                  }}>
+                    {block.provider_name} — {block.reason || 'Blocked'}
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })}
         {/* Current time line */}
         {showTimeLine && (() => {
           const nowHour = now.getHours() + now.getMinutes() / 60;
@@ -898,6 +1005,17 @@ export default function CalendarView({ preselectedPatient = null }) {
                 <span style={styles.weekDayNum}>{day.getDate()}</span>
               </div>
               <div style={styles.weekDayBody}>
+                {/* Block indicators */}
+                {calendarBlocks.filter(b => b.date === dayStr).length > 0 && (
+                  <div style={{
+                    fontSize: '10px', fontWeight: 600, color: '#dc2626',
+                    background: '#fee2e2', padding: '2px 6px', borderRadius: 4,
+                    marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4,
+                  }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />
+                    {calendarBlocks.filter(b => b.date === dayStr).map(b => b.provider_name).filter((v, i, a) => a.indexOf(v) === i).join(', ')} blocked
+                  </div>
+                )}
                 {dayAppts.map(appt => (
                   <div
                     key={appt.id}
@@ -923,7 +1041,7 @@ export default function CalendarView({ preselectedPatient = null }) {
                     )}
                   </div>
                 ))}
-                {dayAppts.length === 0 && (
+                {dayAppts.length === 0 && calendarBlocks.filter(b => b.date === dayStr).length === 0 && (
                   <div style={{ fontSize: '11px', color: '#ccc', padding: '8px 4px' }}>No appts</div>
                 )}
               </div>
@@ -1010,9 +1128,167 @@ export default function CalendarView({ preselectedPatient = null }) {
                 {remaining > 0 && (
                   <div style={{ fontSize: '10px', color: '#888', paddingLeft: '4px', marginTop: '1px' }}>+{remaining} more</div>
                 )}
+                {calendarBlocks.filter(b => b.date === dayStr).length > 0 && (
+                  <div style={{
+                    fontSize: '10px', color: '#dc2626', fontWeight: 600,
+                    padding: '0 4px', display: 'flex', alignItems: 'center', gap: 3,
+                  }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />
+                    Blocked
+                  </div>
+                )}
               </div>
             );
           })}
+        </div>
+      </div>
+    );
+  };
+
+  // ===================== EMPLOYEE DAY VIEW =====================
+  const renderEmployeeDayView = () => {
+    const dayStr = formatDateISO(currentDate);
+    const dayAppts = appointments.filter(a =>
+      formatDateISO(new Date(a.start_time)) === dayStr
+    );
+    const dayBlocks = calendarBlocks.filter(b => b.date === dayStr);
+    const now = new Date();
+    const showTimeLine = isToday(currentDate);
+
+    // Build columns — one per employee with calcom_user_id
+    const cols = employees.length > 0 ? employees : [];
+
+    if (cols.length === 0) {
+      return (
+        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#888' }}>
+          No employees with Cal.com integration found.
+        </div>
+      );
+    }
+
+    const colWidth = `${100 / cols.length}%`;
+
+    return (
+      <div style={{ position: 'relative', minHeight: `${HOURS.length * 60}px` }}>
+        {/* Employee column headers */}
+        <div style={{
+          display: 'flex', borderBottom: '2px solid #e5e7eb',
+          position: 'sticky', top: 0, background: '#fff', zIndex: 10,
+          marginLeft: '75px',
+        }}>
+          {cols.map(emp => (
+            <div key={emp.id} style={{
+              width: colWidth, textAlign: 'center', padding: '10px 4px',
+              fontWeight: 700, fontSize: 13, color: '#1a1a1a',
+              borderRight: '1px solid #f3f4f6',
+            }}>
+              {emp.name?.split(' ')[0] || emp.name}
+            </div>
+          ))}
+        </div>
+
+        {/* Hour rows */}
+        <div style={{ position: 'relative', minHeight: `${HOURS.length * 60}px` }}>
+          {HOURS.map(hour => (
+            <div key={hour} style={styles.hourRow}>
+              <div style={styles.hourLabel}>
+                {hour > 12 ? hour - 12 : hour} {hour >= 12 ? 'PM' : 'AM'}
+              </div>
+              <div style={{ ...styles.hourCell, display: 'flex' }}>
+                {cols.map(emp => (
+                  <div key={emp.id} style={{
+                    width: colWidth, borderRight: '1px solid #f3f4f6', minHeight: '60px',
+                  }} />
+                ))}
+              </div>
+            </div>
+          ))}
+
+          {/* Appointments per employee column */}
+          {cols.map((emp, colIdx) => {
+            const empName = emp.name?.toLowerCase();
+            const empAppts = dayAppts.filter(a =>
+              a.provider?.toLowerCase().includes(empName) ||
+              a.provider?.toLowerCase().includes(emp.name?.split(' ')[0]?.toLowerCase())
+            );
+            const empBlocks = dayBlocks.filter(b =>
+              b.provider_name?.toLowerCase().includes(empName) ||
+              b.provider_id === emp.calcom_user_id
+            );
+
+            const colLeft = 75 + (colIdx * ((window?.innerWidth || 1200) - 75 - 10) / cols.length);
+
+            return (
+              <div key={emp.id}>
+                {/* Block overlays for this employee */}
+                {empBlocks.map(block => {
+                  if (block.block_type === 'full_day') {
+                    return (
+                      <div key={`block-${block.id}`} style={{
+                        position: 'absolute', top: 0, bottom: 0,
+                        left: `calc(75px + (100% - 85px) * ${colIdx / cols.length})`,
+                        width: `calc((100% - 85px) * ${1 / cols.length})`,
+                        background: 'repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(220,38,38,0.07) 8px, rgba(220,38,38,0.07) 16px)',
+                        borderLeft: '2px solid #dc2626',
+                        pointerEvents: 'none', zIndex: 1,
+                      }}>
+                        <div style={{
+                          fontSize: 10, fontWeight: 600, color: '#dc2626',
+                          background: '#fee2e2', padding: '2px 6px', borderRadius: 4,
+                          display: 'inline-block', marginLeft: 4, marginTop: 4,
+                        }}>
+                          {block.reason || 'Off'}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
+
+                {/* Appointments */}
+                {empAppts.map(appt => {
+                  const start = new Date(appt.start_time);
+                  const startHour = start.getHours() + start.getMinutes() / 60;
+                  const top = (startHour - 6) * 60;
+                  const height = Math.max(appt.duration_minutes || 30, 20);
+                  if (top < 0 || startHour > 20) return null;
+                  const catStyle = getApptStyle(appt);
+
+                  return (
+                    <div
+                      key={appt.id}
+                      onClick={(e) => { e.stopPropagation(); setSelectedAppt(appt); }}
+                      style={{
+                        ...styles.apptBlock,
+                        ...catStyle,
+                        top: `${top}px`,
+                        height: `${height}px`,
+                        left: `calc(75px + (100% - 85px) * ${colIdx / cols.length} + 3px)`,
+                        width: `calc((100% - 85px) * ${1 / cols.length} - 6px)`,
+                        right: 'auto',
+                      }}
+                    >
+                      <div style={styles.apptBlockName}>{appt.patient_name}</div>
+                      {height >= 35 && <div style={styles.apptBlockService}>{appt.service_name}</div>}
+                      {height >= 50 && (
+                        <div style={styles.apptBlockTime}>
+                          {formatTime(appt.start_time)}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+
+          {/* Current time line */}
+          {showTimeLine && (() => {
+            const nowHour = now.getHours() + now.getMinutes() / 60;
+            if (nowHour < 6 || nowHour > 20) return null;
+            const top = (nowHour - 6) * 60;
+            return <div style={{ ...styles.timeLine, top: `${top}px` }} />;
+          })()}
         </div>
       </div>
     );
@@ -1953,19 +2229,49 @@ export default function CalendarView({ preselectedPatient = null }) {
       <div style={styles.rightPanel} className="cal-right">
         {/* View toggle + navigation */}
         <div style={styles.calHeader}>
-          <div style={styles.viewToggle}>
-            {['day', 'week', 'month'].map(mode => (
-              <button
-                key={mode}
-                onClick={() => setViewMode(mode)}
-                style={{
-                  ...styles.viewBtn,
-                  ...(viewMode === mode ? styles.viewBtnActive : {}),
-                }}
-              >
-                {mode.charAt(0).toUpperCase() + mode.slice(1)}
-              </button>
-            ))}
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div style={styles.viewToggle}>
+              {['day', 'week', 'month'].map(mode => (
+                <button
+                  key={mode}
+                  onClick={() => setViewMode(mode)}
+                  style={{
+                    ...styles.viewBtn,
+                    ...(viewMode === mode ? styles.viewBtnActive : {}),
+                  }}
+                >
+                  {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                </button>
+              ))}
+            </div>
+            {viewMode === 'day' && (
+              <div style={{
+                display: 'flex', borderRadius: 8, overflow: 'hidden',
+                border: '1px solid #d1d5db',
+              }}>
+                <button
+                  onClick={() => setCalendarMode('service')}
+                  style={{
+                    padding: '5px 12px', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer',
+                    background: calendarMode === 'service' ? '#111' : '#fff',
+                    color: calendarMode === 'service' ? '#fff' : '#374151',
+                  }}
+                >
+                  By Service
+                </button>
+                <button
+                  onClick={() => setCalendarMode('employee')}
+                  style={{
+                    padding: '5px 12px', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer',
+                    borderLeft: '1px solid #d1d5db',
+                    background: calendarMode === 'employee' ? '#111' : '#fff',
+                    color: calendarMode === 'employee' ? '#fff' : '#374151',
+                  }}
+                >
+                  By Employee
+                </button>
+              </div>
+            )}
           </div>
           <div style={styles.navRow}>
             <button onClick={() => navigate(-1)} style={styles.navBtn}>&lt;</button>
@@ -1986,7 +2292,8 @@ export default function CalendarView({ preselectedPatient = null }) {
         {/* Calendar content */}
         <div style={styles.calBody} className="cal-body">
           {loading && <div style={styles.loadingOverlay}>Loading...</div>}
-          {viewMode === 'day' && renderDayView()}
+          {viewMode === 'day' && calendarMode === 'service' && renderDayView()}
+          {viewMode === 'day' && calendarMode === 'employee' && renderEmployeeDayView()}
           {viewMode === 'week' && renderWeekView()}
           {viewMode === 'month' && renderMonthView()}
         </div>

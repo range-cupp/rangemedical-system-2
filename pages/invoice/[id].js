@@ -177,7 +177,9 @@ export default function InvoicePaymentPage() {
 
   // Create payment intent once invoice is loaded
   useEffect(() => {
-    if (!invoice || invoice.status !== 'pending' || clientSecret || success) return;
+    // Allow payment for both 'pending' (just created) and 'sent' (delivered to patient) invoices
+    const payableStatuses = ['pending', 'sent'];
+    if (!invoice || !payableStatuses.includes(invoice.status) || clientSecret || success) return;
 
     const itemNames = Array.isArray(invoice.items)
       ? invoice.items.map(i => i.name).join(', ')

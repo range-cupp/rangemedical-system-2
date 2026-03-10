@@ -2309,7 +2309,7 @@ export default function PatientProfile() {
                                       const rows = [];
                                       // Check for missed weeks between entries
                                       if (i > 0) {
-                                        const prevDate = new Date(protocolLogs[i - 1].entry_date + 'T00:00:00');
+                                        const prevDate = new Date(wlLogs[i - 1].entry_date + 'T00:00:00');
                                         const curDate = new Date(log.entry_date + 'T00:00:00');
                                         const daysBetween = Math.round((curDate - prevDate) / (1000 * 60 * 60 * 24));
                                         const missedWeeks = Math.floor(daysBetween / 7) - 1;
@@ -2324,7 +2324,7 @@ export default function PatientProfile() {
                                           );
                                         }
                                       }
-                                      const prevWeight = i > 0 && protocolLogs[i - 1].weight ? parseFloat(protocolLogs[i - 1].weight) : null;
+                                      const prevWeight = i > 0 && wlLogs[i - 1].weight ? parseFloat(wlLogs[i - 1].weight) : null;
                                       const curWeight = log.weight ? parseFloat(log.weight) : null;
                                       const delta = prevWeight && curWeight ? (curWeight - prevWeight).toFixed(1) : null;
                                       rows.push(

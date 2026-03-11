@@ -248,6 +248,7 @@ export default function PatientProfile() {
   const [commsLog, setCommsLog] = useState([]);
   const [allPurchases, setAllPurchases] = useState([]);
   const [invoices, setInvoices] = useState([]);
+  const [subscriptions, setSubscriptions] = useState([]);
   const [stats, setStats] = useState({});
   const [hrtLabSchedules, setHrtLabSchedules] = useState({});
   const [cycleInfo, setCycleInfo] = useState(null);
@@ -483,6 +484,7 @@ export default function PatientProfile() {
         setCommsLog(data.commsLog || []);
         setAllPurchases(data.allPurchases || []);
         setInvoices(data.invoices || []);
+        setSubscriptions(data.subscriptions || []);
         setStats(data.stats || {});
 
         // Fetch saved cards (non-blocking)
@@ -1946,6 +1948,70 @@ export default function PatientProfile() {
           {/* Overview Tab */}
           {activeTab === 'overview' && (
             <>
+              {/* Active Subscriptions */}
+              {subscriptions.length > 0 && (
+                <section className="card" style={{ marginBottom: '16px' }}>
+                  <div className="card-header">
+                    <h3>Subscriptions</h3>
+                  </div>
+                  <div style={{ padding: '0 16px 16px' }}>
+                    {subscriptions.filter(s => s.status === 'active' || s.status === 'past_due' || s.status === 'trialing').map(sub => (
+                      <div key={sub.id} style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '12px 14px', marginBottom: '8px',
+                        background: '#f8fafc', borderRadius: '8px',
+                        border: sub.status === 'past_due' ? '1px solid #fca5a5' : '1px solid #e2e8f0'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <span style={{
+                            display: 'inline-block', padding: '3px 10px', borderRadius: '4px',
+                            fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px',
+                            background: sub.service_category === 'hrt' ? '#dbeafe' :
+                              sub.service_category === 'weight_loss' ? '#fef3c7' :
+                              sub.service_category === 'rlt' ? '#fce7f3' :
+                              sub.service_category === 'hbot' ? '#d1fae5' : '#e2e8f0',
+                            color: sub.service_category === 'hrt' ? '#1e40af' :
+                              sub.service_category === 'weight_loss' ? '#92400e' :
+                              sub.service_category === 'rlt' ? '#9d174d' :
+                              sub.service_category === 'hbot' ? '#065f46' : '#475569'
+                          }}>
+                            {sub.service_category || 'Subscription'}
+                          </span>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: '14px' }}>{sub.description || 'Monthly Subscription'}</div>
+                            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                              Since {new Date(sub.started_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              {sub.cancel_at_period_end && <span style={{ color: '#ef4444', marginLeft: '8px' }}>• Cancels at period end</span>}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontWeight: 700, fontSize: '16px', color: '#0f172a' }}>
+                            ${(sub.amount_cents / 100).toFixed(0)}<span style={{ fontSize: '12px', fontWeight: 400, color: '#64748b' }}>/{sub.interval}</span>
+                          </div>
+                          <div style={{
+                            fontSize: '11px', fontWeight: 600, marginTop: '2px',
+                            color: sub.status === 'active' ? '#16a34a' : sub.status === 'past_due' ? '#ef4444' : '#64748b'
+                          }}>
+                            {sub.status === 'active' ? '● Active' : sub.status === 'past_due' ? '● Past Due' : sub.status}
+                          </div>
+                          {sub.current_period_end && (
+                            <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '1px' }}>
+                              Renews {new Date(sub.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {subscriptions.filter(s => s.status === 'canceled').length > 0 && (
+                      <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
+                        {subscriptions.filter(s => s.status === 'canceled').length} canceled subscription{subscriptions.filter(s => s.status === 'canceled').length > 1 ? 's' : ''}
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
+
               {/* Active Protocols Summary */}
               <section className="card">
                 <div className="card-header">

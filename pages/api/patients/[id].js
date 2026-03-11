@@ -547,6 +547,13 @@ export default async function handler(req, res) {
         .eq('patient_id', id)
         .order('created_at', { ascending: false });
 
+      // ===== Subscriptions =====
+      const { data: subscriptions } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('patient_id', id)
+        .order('started_at', { ascending: false });
+
       // ===== Get patient notes =====
       let patientNotes = null;
       const { data: notesData, error: notesErr } = await supabase
@@ -712,6 +719,7 @@ export default async function handler(req, res) {
         commsLog: commsLog || [],
         allPurchases: allPurchases || [],
         invoices: invoices || [],
+        subscriptions: subscriptions || [],
         stats
       });
 

@@ -457,6 +457,73 @@ export default async function handler(req, res) {
     }
   }
 
+  // Sync subscription status on any subscription-related event
+  if (event.type === 'invoice.paid' || event.type === 'customer.subscription.updated' ||
+      event.type === 'customer.subscription.deleted' || event.type === 'customer.subscription.created') {
+    try {
+      let subId = null;
+      if (event.type.startsWith('customer.subscription.')) {
+        subId = event.data.object.id;
+      } else if (event.data.object.subscription) {
+        subId = event.data.object.subscription;
+      }
+
+      if (subId) {
+        const sub = event.type === 'customer.subscription.deleted'
+          ? event.data.object
+          : await stripe.subscriptions.retrieve(subId);
+
+        const item = sub.items?.data?.[0];
+        const price = item?.price;
+        const customerId = sub.customer;
+
+        // Find patient by stripe_customer_id
+        const { data: patient } = await supabase
+          .from('patients')
+          .select('id')
+          .eq('stripe_customer_id', customerId)
+          .maybeSingle();
+
+        if (patient) {
+          const record = {
+            patient_id: patient.id,
+            stripe_subscription_id: sub.id,
+            stripe_customer_id: customerId,
+            status: sub.status,
+            amount_cents: price?.unit_amount || 0,
+            currency: price?.currency || 'usd',
+            interval: price?.recurring?.interval || 'month',
+            interval_count: price?.recurring?.interval_count || 1,
+            description: price?.nickname || sub.description || '',
+            current_period_start: sub.current_period_start ? new Date(sub.current_period_start * 1000).toISOString() : null,
+            current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
+            cancel_at_period_end: sub.cancel_at_period_end || false,
+            canceled_at: sub.canceled_at ? new Date(sub.canceled_at * 1000).toISOString() : null,
+            updated_at: new Date().toISOString(),
+          };
+
+          // Upsert by stripe_subscription_id
+          const { data: existing } = await supabase
+            .from('subscriptions')
+            .select('id')
+            .eq('stripe_subscription_id', sub.id)
+            .maybeSingle();
+
+          if (existing) {
+            await supabase.from('subscriptions').update(record).eq('stripe_subscription_id', sub.id);
+          } else {
+            record.started_at = sub.start_date ? new Date(sub.start_date * 1000).toISOString() : (sub.created ? new Date(sub.created * 1000).toISOString() : null);
+            record.metadata = sub.metadata || {};
+            await supabase.from('subscriptions').insert(record);
+          }
+          console.log(`Subscription synced: ${sub.id} → ${sub.status}`);
+        }
+      }
+    } catch (err) {
+      console.error('Error syncing subscription:', err.message);
+    }
+  }
+
   // Always return 200 to acknowledge receipt (prevents Stripe retries)
   return res.status(200).json({ received: true });
 }

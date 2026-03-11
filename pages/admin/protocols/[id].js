@@ -2016,11 +2016,11 @@ export default function ProtocolDetail() {
               </div>
             )}
 
-            {/* Clinical Notes */}
+            {/* Notes */}
             {!isEditing && (
               <div style={styles.card}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px 8px' }}>
-                  <h2 style={{ ...styles.cardTitle, padding: 0, margin: 0 }}>Clinical Notes ({clinicalNotes.length})</h2>
+                  <h2 style={{ ...styles.cardTitle, padding: 0, margin: 0 }}>Notes ({clinicalNotes.length})</h2>
                   <button
                     onClick={() => setShowAddClinicalNote(true)}
                     style={{
@@ -2040,7 +2040,7 @@ export default function ProtocolDetail() {
                       value={clinicalNoteInput}
                       onChange={e => setClinicalNoteInput(e.target.value)}
                       rows={4}
-                      placeholder="Type clinical note..."
+                      placeholder="Type note..."
                       style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, lineHeight: 1.6, fontFamily: 'inherit', resize: 'vertical', minHeight: 80, boxSizing: 'border-box' }}
                     />
                     <div style={{ display: 'flex', gap: 8, marginTop: 8, justifyContent: 'space-between' }}>
@@ -2083,7 +2083,7 @@ export default function ProtocolDetail() {
                 <div style={{ padding: '0 20px 16px' }}>
                   {clinicalNotes.length === 0 && !showAddClinicalNote ? (
                     <div style={{ padding: '20px 0', textAlign: 'center', color: '#9ca3af', fontSize: 14 }}>
-                      No clinical notes yet
+                      No notes yet
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

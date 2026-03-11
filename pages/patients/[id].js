@@ -3513,11 +3513,11 @@ export default function PatientProfile() {
             <>
               <section className="card">
                 <div className="card-header">
-                  <h3>Clinical Notes ({notes.length})</h3>
+                  <h3>Notes ({notes.length})</h3>
                   <button className="btn-primary-sm" onClick={() => setShowAddNoteModal(true)}>+ Add Note</button>
                 </div>
                 {notes.length === 0 ? (
-                  <div className="empty">No clinical notes yet</div>
+                  <div className="empty">No notes yet</div>
                 ) : (
                   <div className="notes-list">
                     {notes.map(note => (
@@ -4155,7 +4155,7 @@ export default function PatientProfile() {
           <div className="modal-overlay" onClick={() => { setShowAddNoteModal(false); stopDictation(); }}>
             <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 640 }}>
               <div className="modal-header">
-                <h3>Add Clinical Note</h3>
+                <h3>Add Note</h3>
                 <button onClick={() => { setShowAddNoteModal(false); stopDictation(); setNoteInput(''); setNoteFormatted(''); }} className="close-btn">×</button>
               </div>
               <div className="modal-body">

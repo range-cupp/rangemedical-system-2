@@ -18,7 +18,7 @@ function getCategory(programType) {
   const t = programType.toLowerCase();
   if (t.includes('hrt')) return 'hrt';
   if (t.includes('weight_loss') || t.includes('weight loss')) return 'weight_loss';
-  if (t.includes('peptide')) return 'peptide';
+  if (t.includes('peptide') || t.includes('recovery') || t.includes('bpc') || t.includes('month_program') || t.includes('jumpstart') || t.includes('maintenance_4week') || t.includes('gh_peptide')) return 'peptide';
   if (t.includes('iv') || t === 'iv_therapy') return 'iv';
   if (t.includes('hbot')) return 'hbot';
   if (t.includes('rlt') || t.includes('red_light')) return 'rlt';

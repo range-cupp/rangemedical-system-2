@@ -115,7 +115,7 @@ export default async function handler(req, res) {
         .from('protocols')
         .select('id, patient_name, program_name, program_type, start_date, end_date, duration_days, injections_completed, access_token')
         .eq('status', 'active')
-        .in('program_type', ['recovery_jumpstart_10day', 'month_program_30day', 'maintenance_4week', 'injection_clinic', 'jumpstart_10day', 'recovery_10day', 'month_30day'])
+        .in('program_type', ['peptide', 'gh_peptide', 'peptide_vial', 'recovery_jumpstart_10day', 'month_program_30day', 'maintenance_4week', 'injection_clinic', 'jumpstart_10day', 'recovery_10day', 'month_30day'])
         .order('end_date', { ascending: true, nullsFirst: false })
         .limit(15),
       

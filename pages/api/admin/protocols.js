@@ -36,11 +36,30 @@ export default async function handler(req, res) {
 
     // Validate required fields - only patient_name and program_type are truly required
     if (!patient_name || !program_type) {
-      return res.status(400).json({ 
-        error: 'Missing required fields', 
+      return res.status(400).json({
+        error: 'Missing required fields',
         details: 'patient_name and program_type are required',
         received: { patient_name: !!patient_name, program_type: !!program_type }
       });
+    }
+
+    // ===== DUPLICATE PREVENTION =====
+    // If creating from a purchase, check if that purchase already has a protocol linked
+    // This prevents double-creation when auto-protocol (from POS) runs AND user manually creates
+    if (purchase_id) {
+      const { data: existingPurchase } = await supabase
+        .from('purchases')
+        .select('id, protocol_id, protocol_created')
+        .eq('id', purchase_id)
+        .single();
+
+      if (existingPurchase?.protocol_id) {
+        return res.status(409).json({
+          error: 'Protocol already exists for this purchase',
+          details: `Purchase already linked to protocol ${existingPurchase.protocol_id}. Use "View Protocol" instead.`,
+          existing_protocol_id: existingPurchase.protocol_id
+        });
+      }
     }
 
     // Generate a placeholder ghl_contact_id if not provided (for old/manual entries)
@@ -182,6 +201,8 @@ export default async function handler(req, res) {
       status: status || 'active',
       access_token: accessToken,
       sessions_used: 0,
+      num_vials: body.num_vials ? parseInt(body.num_vials) : null,
+      doses_per_vial: body.doses_per_vial ? parseInt(body.doses_per_vial) : null,
       cycle_start_date: cycleStartDate,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -389,6 +410,8 @@ export default async function handler(req, res) {
       selected_dose: b.selected_dose || b.dose_amount,
       frequency: b.frequency || b.dose_frequency,
       delivery_method: b.delivery_method || b.injection_location,
+      num_vials: b.num_vials !== undefined ? (b.num_vials ? parseInt(b.num_vials) : null) : undefined,
+      doses_per_vial: b.doses_per_vial !== undefined ? (b.doses_per_vial ? parseInt(b.doses_per_vial) : null) : undefined,
       updated_at: new Date().toISOString()
     };
 

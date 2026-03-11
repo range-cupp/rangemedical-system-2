@@ -17,7 +17,7 @@ function calculateRemaining(protocol) {
   const deliveryMethod = (protocol.delivery_method || '').toLowerCase();
   const isWeightLoss = programType.includes('weight') || programType.includes('wl') || programType.includes('glp');
   const isHRT = programType.includes('hrt') || programType.includes('testosterone') || programType.includes('hormone');
-  const isPeptide = programType.includes('peptide') || programType.includes('bpc') || programType.includes('recovery');
+  const isPeptide = programType.includes('peptide') || programType.includes('bpc') || programType.includes('recovery') || programType.includes('month_program') || programType.includes('jumpstart') || programType.includes('maintenance_4week') || programType.includes('gh_peptide');
   const isTakeHome = deliveryMethod.includes('take') || deliveryMethod.includes('home');
   const isInClinic = deliveryMethod.includes('clinic');
 
@@ -164,7 +164,7 @@ function getProtocolCategory(protocol) {
   if (programType.includes('weight') || programType.includes('glp') || programType.includes('tirzepatide') || programType.includes('semaglutide')) {
     return 'weight_loss';
   }
-  if (programType.includes('peptide') || programType.includes('bpc') || programType.includes('tb-500') || programType.includes('recovery')) {
+  if (programType.includes('peptide') || programType.includes('bpc') || programType.includes('tb-500') || programType.includes('recovery') || programType.includes('month_program') || programType.includes('jumpstart') || programType.includes('maintenance_4week') || programType.includes('gh_peptide')) {
     return 'peptide';
   }
   if (programType.includes('iv') || programType.includes('infusion') || programType.includes('nad')) {

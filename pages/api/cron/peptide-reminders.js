@@ -1,12 +1,11 @@
 // /pages/api/cron/peptide-reminders.js
-// Daily cron for recovery peptide protocols
+// Daily cron for peptide protocols
 // Runs at 8:00 AM PST (0 16 * * * UTC) — handles:
-//   1. Weekly check-ins (every 7 days) with check-in form link
+//   1. Weekly check-ins — ONE text per patient per week (consolidated across all peptide protocols)
 //   2. Protocol ending alert (internal system alert for staff follow-up)
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
-import { isRecoveryPeptide } from '../../../lib/protocol-config';
 import { logComm } from '../../../lib/comms-log';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { hasBlooioOptIn, queuePendingLinkMessage, isBlooioProvider } from '../../../lib/blooio-optin';
@@ -85,7 +84,8 @@ export default async function handler(req, res) {
   const results = { sent: [], skipped: [], errors: [], alerts: [] };
 
   try {
-    // Get all active recovery peptide protocols with reminders enabled
+    // Get all active peptide protocols with reminders enabled
+    // No medication filter — if staff enabled reminders, it should get them
     const { data: protocols, error: protocolsError } = await supabase
       .from('protocols')
       .select(`
@@ -119,15 +119,13 @@ export default async function handler(req, res) {
       throw new Error('Protocols query error: ' + protocolsError.message);
     }
 
-    // Filter to only recovery peptides
-    const recoveryProtocols = (protocols || []).filter(p => isRecoveryPeptide(p.medication));
-    console.log(`Found ${recoveryProtocols.length} active recovery peptide protocols with reminders enabled`);
+    const allProtocols = protocols || [];
+    console.log(`Found ${allProtocols.length} active peptide protocols with reminders enabled`);
 
     // Get all existing logs for these protocols to check for double-sends
-    // Build log_type list dynamically — we need peptide_weekly_checkin_1 through _N
-    const protocolIds = recoveryProtocols.map(p => p.id);
+    const protocolIds = allProtocols.map(p => p.id);
     const checkinLogTypes = [];
-    for (let w = 1; w <= 12; w++) {
+    for (let w = 1; w <= 20; w++) {
       checkinLogTypes.push(`peptide_weekly_checkin_${w}`);
     }
 
@@ -142,120 +140,153 @@ export default async function handler(req, res) {
     // Build a lookup set: "protocolId:logType"
     const logSet = new Set((existingLogs || []).map(l => `${l.protocol_id}:${l.log_type}`));
 
-    for (const protocol of recoveryProtocols) {
-      const patient = protocol.patients;
+    // -------------------------------------------------------
+    // Group protocols by patient_id for consolidated check-ins
+    // One text per patient per week, regardless of protocol count
+    // -------------------------------------------------------
+    const byPatient = {};
+    for (const protocol of allProtocols) {
+      const pid = protocol.patient_id;
+      if (!byPatient[pid]) byPatient[pid] = [];
+      byPatient[pid].push(protocol);
+    }
+
+    for (const [patientId, patientProtocols] of Object.entries(byPatient)) {
+      const patient = patientProtocols[0].patients;
       const firstName = patient.first_name || (patient.name ? patient.name.split(' ')[0] : 'there');
       const ghlContactId = patient.ghl_contact_id;
-      const days = daysSince(protocol.start_date);
-      const duration = protocolDuration(protocol.start_date, protocol.end_date);
-      const totalWeeks = Math.floor(duration / 7);
 
       // -------------------------------------------------------
-      // 1. WEEKLY CHECK-IN: fires every 7 days (with 2-day catch-up window)
+      // 1. WEEKLY CHECK-IN: Consolidated — one text per patient
+      //    Collect all protocols that are due, send ONE SMS, log each
       // -------------------------------------------------------
-      if (totalWeeks >= 1) {
-        let sentThisRun = false;
+      const dueProtocols = []; // { protocol, weekNum, logType }
+
+      for (const protocol of patientProtocols) {
+        const days = daysSince(protocol.start_date);
+        const duration = protocolDuration(protocol.start_date, protocol.end_date);
+        const totalWeeks = Math.floor(duration / 7);
+
+        if (totalWeeks < 1) continue;
 
         for (let weekNum = 1; weekNum <= totalWeeks; weekNum++) {
           const targetDay = weekNum * 7;
 
-          // 2-day catch-up window: fire on targetDay, targetDay+1, or targetDay+2
+          // 2-day catch-up window
           if (days >= targetDay && days <= targetDay + 2) {
             const logType = `peptide_weekly_checkin_${weekNum}`;
             const logKey = `${protocol.id}:${logType}`;
 
             if (!logSet.has(logKey)) {
-              const phone = normalizePhone(patient.phone);
-              if (!phone) {
-                results.skipped.push({ patient: patient.name, protocolId: protocol.id, type: `weekly_checkin_${weekNum}`, reason: 'No phone number' });
-                break;
-              }
-              const checkinUrl = `${BASE_URL}/peptide-checkin.html?contact_id=${ghlContactId || patient.id}`;
-              const message = `Hi ${firstName}! Time for your recovery peptide check-in. Takes 30 seconds:\n\n${checkinUrl}\n\n- Range Medical`;
+              dueProtocols.push({ protocol, weekNum, logType, logKey, totalWeeks });
+            }
+            break; // Only one check-in per protocol per run
+          }
+        }
+      }
 
-              // Blooio two-step: if first contact, send link-free version + queue link message
-              if (isBlooioProvider() && !(await hasBlooioOptIn(phone))) {
-                const optInMessage = `Hi ${firstName}! Time for your recovery peptide check-in. Reply YES to get your check-in link. - Range Medical`;
-                const optInResult = await sendSMS({ to: phone, message: optInMessage });
-                if (optInResult.success) {
-                  await queuePendingLinkMessage({
-                    phone,
-                    message,
-                    messageType: logType,
-                    patientId: patient.id,
-                    patientName: patient.name,
-                  });
-                  await logSent(protocol.id, patient.id, logType, optInMessage);
-                  await logComm({ channel: 'sms', messageType: 'blooio_optin_request', message: optInMessage, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name, recipient: phone, twilioMessageSid: optInResult.messageSid });
-                  logSet.add(logKey);
-                  results.sent.push({ patient: patient.name, protocolId: protocol.id, type: `weekly_checkin_${weekNum}_of_${totalWeeks}`, twoStep: true });
-                } else {
-                  results.errors.push({ patient: patient.name, protocolId: protocol.id, type: `weekly_checkin_${weekNum}`, error: optInResult.error });
-                }
-                sentThisRun = true;
-                break;
-              }
+      // If any protocols are due, send ONE text for this patient
+      if (dueProtocols.length > 0) {
+        const phone = normalizePhone(patient.phone);
+        if (!phone) {
+          for (const dp of dueProtocols) {
+            results.skipped.push({ patient: patient.name, protocolId: dp.protocol.id, type: `weekly_checkin_${dp.weekNum}`, reason: 'No phone number' });
+          }
+          // Still process ending alerts below
+        } else {
+          const checkinUrl = `${BASE_URL}/peptide-checkin.html?contact_id=${ghlContactId || patientId}`;
+          const message = `Hi ${firstName}! Time for your peptide check-in. Takes 30 seconds:\n\n${checkinUrl}\n\n- Range Medical`;
 
-              const smsResult = await sendSMS({ to: phone, message });
-              if (smsResult.success) {
-                await logSent(protocol.id, patient.id, logType, message);
-                await logComm({ channel: 'sms', messageType: logType, message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name, recipient: phone, twilioMessageSid: smsResult.messageSid });
-                logSet.add(logKey);
-                results.sent.push({ patient: patient.name, protocolId: protocol.id, type: `weekly_checkin_${weekNum}_of_${totalWeeks}` });
-              } else {
-                await logComm({ channel: 'sms', messageType: logType, message, source: 'peptide-reminders', patientId: patient.id, protocolId: protocol.id, ghlContactId, patientName: patient.name, recipient: phone, status: 'error', errorMessage: smsResult.error });
-                results.errors.push({ patient: patient.name, protocolId: protocol.id, type: `weekly_checkin_${weekNum}`, error: smsResult.error });
+          // Blooio two-step: if first contact, send link-free version + queue link message
+          const needsBlooioOptIn = isBlooioProvider() && !(await hasBlooioOptIn(phone));
+
+          if (needsBlooioOptIn) {
+            const optInMessage = `Hi ${firstName}! Time for your peptide check-in. Reply YES to get your check-in link. - Range Medical`;
+            const optInResult = await sendSMS({ to: phone, message: optInMessage });
+            if (optInResult.success) {
+              await queuePendingLinkMessage({
+                phone,
+                message,
+                messageType: 'peptide_weekly_checkin',
+                patientId,
+                patientName: patient.name,
+              });
+              // Log for each due protocol
+              for (const dp of dueProtocols) {
+                await logSent(dp.protocol.id, patientId, dp.logType, optInMessage);
+                logSet.add(dp.logKey);
+                results.sent.push({ patient: patient.name, protocolId: dp.protocol.id, type: `weekly_checkin_${dp.weekNum}_of_${dp.totalWeeks}`, twoStep: true, consolidated: dueProtocols.length > 1 });
               }
-              sentThisRun = true;
-              break; // Only one text per protocol per run
+              await logComm({ channel: 'sms', messageType: 'blooio_optin_request', message: optInMessage, source: 'peptide-reminders', patientId, ghlContactId, patientName: patient.name, recipient: phone, twilioMessageSid: optInResult.messageSid });
+            } else {
+              for (const dp of dueProtocols) {
+                results.errors.push({ patient: patient.name, protocolId: dp.protocol.id, type: `weekly_checkin_${dp.weekNum}`, error: optInResult.error });
+              }
+            }
+          } else {
+            const smsResult = await sendSMS({ to: phone, message });
+            if (smsResult.success) {
+              // Log for each due protocol so per-protocol dedup still works
+              for (const dp of dueProtocols) {
+                await logSent(dp.protocol.id, patientId, dp.logType, message);
+                await logComm({ channel: 'sms', messageType: dp.logType, message, source: 'peptide-reminders', patientId, protocolId: dp.protocol.id, ghlContactId, patientName: patient.name, recipient: phone, twilioMessageSid: smsResult.messageSid });
+                logSet.add(dp.logKey);
+                results.sent.push({ patient: patient.name, protocolId: dp.protocol.id, type: `weekly_checkin_${dp.weekNum}_of_${dp.totalWeeks}`, consolidated: dueProtocols.length > 1 });
+              }
+            } else {
+              for (const dp of dueProtocols) {
+                await logComm({ channel: 'sms', messageType: dp.logType, message, source: 'peptide-reminders', patientId, protocolId: dp.protocol.id, ghlContactId, patientName: patient.name, recipient: phone, status: 'error', errorMessage: smsResult.error });
+                results.errors.push({ patient: patient.name, protocolId: dp.protocol.id, type: `weekly_checkin_${dp.weekNum}`, error: smsResult.error });
+              }
             }
           }
         }
-
-        if (sentThisRun) continue;
       }
 
       // -------------------------------------------------------
       // 2. PROTOCOL ENDING ALERT: within 3 days of end_date
       //    Creates an internal system alert for staff follow-up
+      //    (stays per-protocol — these are staff alerts, not patient texts)
       // -------------------------------------------------------
-      const remaining = daysUntilEnd(protocol.end_date);
-      if (remaining >= 0 && remaining <= 3) {
-        // Check if an active protocol_ending alert already exists for this protocol
-        const { data: existingAlert } = await supabase
-          .from('alerts')
-          .select('id')
-          .eq('patient_id', patient.id)
-          .eq('alert_type', 'protocol_ending')
-          .eq('status', 'active')
-          .limit(1)
-          .maybeSingle();
-
-        if (!existingAlert) {
-          const endDateFormatted = new Date(protocol.end_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-          const alertMessage = `${patient.name} — ${protocol.medication} protocol ends ${endDateFormatted}`;
-
-          const { error: alertError } = await supabase
+      for (const protocol of patientProtocols) {
+        const remaining = daysUntilEnd(protocol.end_date);
+        if (remaining >= 0 && remaining <= 3) {
+          // Check if an active protocol_ending alert already exists for this protocol
+          const { data: existingAlert } = await supabase
             .from('alerts')
-            .insert({
-              patient_id: patient.id,
-              alert_type: 'protocol_ending',
-              message: alertMessage,
-              severity: 'medium',
-              status: 'active',
-              trigger_data: {
-                protocol_id: protocol.id,
-                medication: protocol.medication,
-                end_date: protocol.end_date,
-                days_remaining: remaining
-              }
-            });
+            .select('id')
+            .eq('patient_id', patientId)
+            .eq('alert_type', 'protocol_ending')
+            .eq('status', 'active')
+            .limit(1)
+            .maybeSingle();
 
-          if (!alertError) {
-            results.alerts.push({ patient: patient.name, protocolId: protocol.id, daysRemaining: remaining });
-            console.log(`Alert created: ${alertMessage}`);
-          } else {
-            console.error('Failed to create protocol ending alert:', alertError);
+          if (!existingAlert) {
+            const endDateFormatted = new Date(protocol.end_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const alertMessage = `${patient.name} — ${protocol.medication} protocol ends ${endDateFormatted}`;
+
+            const { error: alertError } = await supabase
+              .from('alerts')
+              .insert({
+                patient_id: patientId,
+                alert_type: 'protocol_ending',
+                message: alertMessage,
+                severity: 'medium',
+                status: 'active',
+                trigger_data: {
+                  protocol_id: protocol.id,
+                  medication: protocol.medication,
+                  end_date: protocol.end_date,
+                  days_remaining: remaining
+                }
+              });
+
+            if (!alertError) {
+              results.alerts.push({ patient: patient.name, protocolId: protocol.id, daysRemaining: remaining });
+              console.log(`Alert created: ${alertMessage}`);
+            } else {
+              console.error('Failed to create protocol ending alert:', alertError);
+            }
           }
         }
       }
@@ -265,7 +296,8 @@ export default async function handler(req, res) {
       success: true,
       timestamp: new Date().toISOString(),
       summary: {
-        totalProtocols: recoveryProtocols.length,
+        totalProtocols: allProtocols.length,
+        uniquePatients: Object.keys(byPatient).length,
         sent: results.sent.length,
         skipped: results.skipped.length,
         errors: results.errors.length,

@@ -27,7 +27,10 @@ function getPurchaseActionType(purchase) {
     item.includes('pack') ||
     item.includes('membership') ||
     /\d+[\s-]?session/i.test(item) ||
-    /\d+[\s-]?pack/i.test(item)
+    /\d+[\s-]?pack/i.test(item) ||
+    /x\d{2,}/i.test(item) ||                  // "x12", "x6", etc.
+    /\d+[\s-]?x[\s-]?\d+/i.test(item) ||      // "100mg x 12" pattern
+    (purchase.quantity && purchase.quantity > 1) // quantity > 1 means multi-pack
   );
   if (isPackOrMulti) return 'protocol';
 

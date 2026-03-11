@@ -10,6 +10,8 @@ import { WL_DRIP_EMAILS, personalizeEmail } from '../../../lib/wl-drip-emails';
 import { isRecoveryPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, isGHPeptide, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS, getCycleConfig, isWeightLossType, isHRTType } from '../../../lib/protocol-config';
 import { logComm } from '../../../lib/comms-log';
 import { calculateNextExpectedDate } from '../../../lib/auto-protocol';
+import { sendSMS, normalizePhone } from '../../../lib/send-sms';
+import { isInQuietHours } from '../../../lib/quiet-hours';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -52,6 +54,17 @@ function getGuideUrl(programType, programName, medicationName, patientGender) {
 
   // Combo membership
   if (name.includes('combo')) return '/combo-membership-guide';
+
+  // Peptide vials — match medication/program name to guide page
+  if (programType === 'peptide') {
+    if (name.includes('nad') || med.includes('nad')) return '/nad-guide';
+    if (name.includes('bpc') || name.includes('tb4') || name.includes('thymosin') || med.includes('bpc') || med.includes('tb4')) return '/bpc-tb4-guide';
+    if (name.includes('mots') || med.includes('mots')) return '/mots-c-guide';
+    if (name.includes('tesamorelin') || name.includes('tesam') || med.includes('tesamorelin')) return '/tesamorelin-ipamorelin';
+    if (name.includes('cjc') || med.includes('cjc')) return '/cjc-ipamorelin-guide';
+    if (name.includes('aod') || med.includes('aod')) return '/aod-9604';
+    if (name.includes('glow') || med.includes('glow')) return '/glow-guide';
+  }
 
   // The Blu
   if (med.includes('blu') || name.includes('blu')) return '/the-blu-guide';
@@ -143,6 +156,7 @@ export default async function handler(req, res) {
       wlDuration,
       // Peptide vial specific fields
       numVials,
+      dosesPerVial,
       peptideDurationDays,
       // Weight loss specific fields
       wlMedication,
@@ -323,8 +337,36 @@ export default async function handler(req, res) {
         endDate = start.toISOString().split('T')[0];
       }
 
-      // For peptide templates, override end_date with peptideDurationDays
-      if (programType === 'peptide' && peptideDurationDays && startDate) {
+      // For peptide templates with vial data, compute total_sessions and duration from vials
+      if (programType === 'peptide' && numVials && dosesPerVial && startDate) {
+        const totalDoses = parseInt(numVials) * parseInt(dosesPerVial);
+        finalTotalSessions = totalDoses;
+
+        // Calculate duration based on frequency
+        const freq = frequency || template?.frequency || 'Daily';
+        let durationDays;
+        if (freq === '5 on / 2 off') {
+          durationDays = Math.ceil(totalDoses * 7 / 5);
+        } else if (freq === 'Every other day') {
+          durationDays = totalDoses * 2;
+        } else if (freq === '2x per week') {
+          durationDays = Math.ceil(totalDoses / 2 * 7);
+        } else if (freq === '3x per week') {
+          durationDays = Math.ceil(totalDoses / 3 * 7);
+        } else if (freq === 'Weekly') {
+          durationDays = totalDoses * 7;
+        } else if (freq === '2x daily') {
+          durationDays = Math.ceil(totalDoses / 2);
+        } else {
+          durationDays = totalDoses; // Daily or default
+        }
+
+        const start = new Date(startDate);
+        start.setDate(start.getDate() + durationDays);
+        endDate = start.toISOString().split('T')[0];
+      }
+      // Fallback: use peptideDurationDays if provided without vial data
+      else if (programType === 'peptide' && peptideDurationDays && startDate) {
         const start = new Date(startDate);
         start.setDate(start.getDate() + peptideDurationDays);
         endDate = start.toISOString().split('T')[0];
@@ -525,7 +567,8 @@ export default async function handler(req, res) {
         status: programType === 'labs' ? 'blood_draw_complete' : (isSingle ? 'completed' : 'active'),
         notes: notes,
         // Peptide vial specific fields
-        num_vials: numVials || null,
+        num_vials: numVials ? parseInt(numVials) : null,
+        doses_per_vial: dosesPerVial ? parseInt(dosesPerVial) : null,
         // Weight loss specific fields
         pickup_frequency: pickupFrequencyDays || null,
         injection_frequency: injectionFrequencyDays || null,
@@ -758,11 +801,11 @@ export default async function handler(req, res) {
     // ============================================
     // SEND PEPTIDE GUIDE SMS (recovery peptides only)
     // Skip if patient has already received the guide before (any previous protocol)
+    // Uses direct SMS — not GHL. Respects quiet hours.
     // ============================================
     let peptideGuideSent = false;
-    if (programType === 'peptide' && isRecoveryPeptide(medicationName) && finalGhlContactId) {
+    if (programType === 'peptide' && isRecoveryPeptide(medicationName)) {
       try {
-        // Check if this patient has already received the peptide guide
         const { data: existingGuide } = await supabase
           .from('protocol_logs')
           .select('id')
@@ -772,62 +815,32 @@ export default async function handler(req, res) {
 
         if (existingGuide && existingGuide.length > 0) {
           console.log('Peptide guide already sent to patient', finalPatientId, '- skipping');
-          peptideGuideSent = false;
+        } else if (!isInQuietHours()) {
+          const { data: patientData } = await supabase
+            .from('patients')
+            .select('first_name, name, phone')
+            .eq('id', finalPatientId)
+            .single();
+
+          const pepPhone = patientData?.phone ? normalizePhone(patientData.phone) : null;
+          if (pepPhone) {
+            const firstName = patientData?.first_name || (patientData?.name ? patientData.name.split(' ')[0] : 'there');
+            const guideMessage = `Hi ${firstName}! Here's your guide to your recovery peptide protocol: https://www.range-medical.com/bpc-tb4-guide - Range Medical`;
+
+            const smsResult = await sendSMS({ to: pepPhone, message: guideMessage });
+            if (smsResult.success) {
+              await supabase.from('protocols').update({ peptide_guide_sent: true }).eq('id', protocol.id);
+              await supabase.from('protocol_logs').insert({ protocol_id: protocol.id, patient_id: finalPatientId, log_type: 'peptide_guide_sent', log_date: new Date().toISOString().split('T')[0], notes: guideMessage });
+              await logComm({ channel: 'sms', messageType: 'peptide_guide_sent', message: guideMessage, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, patientName, provider: smsResult.provider });
+              peptideGuideSent = true;
+              console.log('Peptide guide SMS sent via', smsResult.provider, 'to', pepPhone);
+            } else {
+              console.error('Peptide guide SMS error:', smsResult.error);
+            }
+          }
         } else {
-
-        // Look up patient first name
-        const { data: patientData } = await supabase
-          .from('patients')
-          .select('first_name, name')
-          .eq('id', finalPatientId)
-          .single();
-
-        const firstName = patientData?.first_name || (patientData?.name ? patientData.name.split(' ')[0] : 'there');
-
-        const guideMessage = `Hi ${firstName}! Here's your guide to your recovery peptide protocol: https://www.range-medical.com/bpc-tb4-guide - Range Medical`;
-
-        const smsRes = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${process.env.GHL_API_KEY}`,
-            'Content-Type': 'application/json',
-            'Version': '2021-04-15'
-          },
-          body: JSON.stringify({
-            type: 'SMS',
-            contactId: finalGhlContactId,
-            message: guideMessage
-          })
-        });
-
-        const smsData = await smsRes.json();
-
-        if (smsRes.ok) {
-          // Mark guide sent on protocol
-          await supabase
-            .from('protocols')
-            .update({ peptide_guide_sent: true })
-            .eq('id', protocol.id);
-
-          // Log to protocol_logs to prevent double-sends
-          await supabase.from('protocol_logs').insert({
-            protocol_id: protocol.id,
-            patient_id: finalPatientId,
-            log_type: 'peptide_guide_sent',
-            log_date: new Date().toISOString().split('T')[0],
-            notes: guideMessage
-          });
-
-          await logComm({ channel: 'sms', messageType: 'peptide_guide_sent', message: guideMessage, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, ghlContactId: finalGhlContactId, patientName });
-
-          peptideGuideSent = true;
-          console.log('Peptide guide SMS sent to', finalGhlContactId);
-        } else {
-          console.error('Peptide guide SMS error:', smsData);
-          await logComm({ channel: 'sms', messageType: 'peptide_guide_sent', message: guideMessage, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, ghlContactId: finalGhlContactId, patientName, status: 'error', errorMessage: smsData?.message || 'SMS failed' });
+          console.log('Peptide guide SMS skipped (quiet hours) for patient', finalPatientId);
         }
-
-        } // end else (guide not previously sent)
       } catch (guideError) {
         console.error('Peptide guide SMS error (non-fatal):', guideError);
       }
@@ -886,14 +899,13 @@ export default async function handler(req, res) {
 
     // ============================================
     // SEND SKIN PEPTIDE GUIDE SMS (GLOW protocols only, not KLOW)
-    // Skip if patient has already received the skin guide before
+    // Uses direct SMS — not GHL. Respects quiet hours.
     // ============================================
     let skinGuideSent = false;
     const isSkinPeptide = (name) => name && name.toLowerCase().includes('glow') && !name.toLowerCase().includes('klow');
 
-    if (programType === 'peptide' && isSkinPeptide(medicationName) && finalGhlContactId) {
+    if (programType === 'peptide' && isSkinPeptide(medicationName)) {
       try {
-        // Check if this patient has already received the skin peptide guide
         const { data: existingSkinGuide } = await supabase
           .from('protocol_logs')
           .select('id')
@@ -903,62 +915,32 @@ export default async function handler(req, res) {
 
         if (existingSkinGuide && existingSkinGuide.length > 0) {
           console.log('Skin peptide guide already sent to patient', finalPatientId, '- skipping');
-          skinGuideSent = false;
+        } else if (!isInQuietHours()) {
+          const { data: skinPatientData } = await supabase
+            .from('patients')
+            .select('first_name, name, phone')
+            .eq('id', finalPatientId)
+            .single();
+
+          const skinPhone = skinPatientData?.phone ? normalizePhone(skinPatientData.phone) : null;
+          if (skinPhone) {
+            const skinFirstName = skinPatientData?.first_name || (skinPatientData?.name ? skinPatientData.name.split(' ')[0] : 'there');
+            const skinGuideMessage = `Hi ${skinFirstName}! Here's your guide to your GLOW peptide protocol: https://www.range-medical.com/glow-guide - Range Medical`;
+
+            const smsResult = await sendSMS({ to: skinPhone, message: skinGuideMessage });
+            if (smsResult.success) {
+              await supabase.from('protocols').update({ peptide_guide_sent: true }).eq('id', protocol.id);
+              await supabase.from('protocol_logs').insert({ protocol_id: protocol.id, patient_id: finalPatientId, log_type: 'skin_guide_sent', log_date: new Date().toISOString().split('T')[0], notes: skinGuideMessage });
+              await logComm({ channel: 'sms', messageType: 'skin_guide_sent', message: skinGuideMessage, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, patientName, provider: smsResult.provider });
+              skinGuideSent = true;
+              console.log('Skin peptide guide SMS sent via', smsResult.provider, 'to', skinPhone);
+            } else {
+              console.error('Skin peptide guide SMS error:', smsResult.error);
+            }
+          }
         } else {
-
-        // Look up patient first name
-        const { data: skinPatientData } = await supabase
-          .from('patients')
-          .select('first_name, name')
-          .eq('id', finalPatientId)
-          .single();
-
-        const skinFirstName = skinPatientData?.first_name || (skinPatientData?.name ? skinPatientData.name.split(' ')[0] : 'there');
-
-        const skinGuideMessage = `Hi ${skinFirstName}! Here's your guide to your GLOW peptide protocol: https://www.range-medical.com/glow-guide - Range Medical`;
-
-        const skinSmsRes = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${process.env.GHL_API_KEY}`,
-            'Content-Type': 'application/json',
-            'Version': '2021-04-15'
-          },
-          body: JSON.stringify({
-            type: 'SMS',
-            contactId: finalGhlContactId,
-            message: skinGuideMessage
-          })
-        });
-
-        const skinSmsData = await skinSmsRes.json();
-
-        if (skinSmsRes.ok) {
-          // Mark guide sent on protocol
-          await supabase
-            .from('protocols')
-            .update({ peptide_guide_sent: true })
-            .eq('id', protocol.id);
-
-          // Log to protocol_logs to prevent double-sends
-          await supabase.from('protocol_logs').insert({
-            protocol_id: protocol.id,
-            patient_id: finalPatientId,
-            log_type: 'skin_guide_sent',
-            log_date: new Date().toISOString().split('T')[0],
-            notes: skinGuideMessage
-          });
-
-          await logComm({ channel: 'sms', messageType: 'skin_guide_sent', message: skinGuideMessage, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, ghlContactId: finalGhlContactId, patientName });
-
-          skinGuideSent = true;
-          console.log('Skin peptide guide SMS sent to', finalGhlContactId);
-        } else {
-          console.error('Skin peptide guide SMS error:', skinSmsData);
-          await logComm({ channel: 'sms', messageType: 'skin_guide_sent', message: skinGuideMessage, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, ghlContactId: finalGhlContactId, patientName, status: 'error', errorMessage: skinSmsData?.message || 'SMS failed' });
+          console.log('Skin peptide guide SMS skipped (quiet hours) for patient', finalPatientId);
         }
-
-        } // end else (skin guide not previously sent)
       } catch (skinGuideError) {
         console.error('Skin peptide guide SMS error (non-fatal):', skinGuideError);
       }
@@ -1018,88 +1000,79 @@ export default async function handler(req, res) {
     // ============================================
     // SEND GUIDE SMS (all protocol types)
     // One guide per type per patient — deduped via protocol_logs
+    // Respects quiet hours (8am-8pm Pacific)
+    // Uses direct SMS (Blooio/Twilio) — not GHL
     // ============================================
     let guideSent = false;
 
-    if (finalGhlContactId) {
-      try {
-        // Look up patient gender for lab guides
-        let patientGender = null;
-        if (programType === 'labs') {
-          const { data: genderData } = await supabase
-            .from('patients')
-            .select('gender')
-            .eq('id', finalPatientId)
-            .single();
-          patientGender = genderData?.gender || null;
-        }
+    try {
+      // Look up patient gender for lab guides + phone for SMS
+      const { data: guidePatientData } = await supabase
+        .from('patients')
+        .select('first_name, name, phone, gender')
+        .eq('id', finalPatientId)
+        .single();
 
-        const guideSlug = getGuideUrl(programType, programName, medicationName, patientGender);
+      const patientGender = guidePatientData?.gender || null;
+      const patientPhone = guidePatientData?.phone ? normalizePhone(guidePatientData.phone) : null;
 
-        if (guideSlug) {
-          const guideLogType = `guide_sent_${guideSlug.replace(/^\//, '')}`;
+      const guideSlug = getGuideUrl(programType, programName, medicationName, patientGender);
 
-          // Check if this patient has already received this specific guide
-          const { data: existingGuide } = await supabase
-            .from('protocol_logs')
-            .select('id')
-            .eq('patient_id', finalPatientId)
-            .eq('log_type', guideLogType)
-            .limit(1);
+      if (guideSlug && patientPhone) {
+        const guideLogType = `guide_sent_${guideSlug.replace(/^\//, '')}`;
 
-          if (existingGuide && existingGuide.length > 0) {
-            console.log(`Guide ${guideSlug} already sent to patient ${finalPatientId} - skipping`);
-          } else {
-            // Look up patient first name
-            const { data: guidePatientData } = await supabase
-              .from('patients')
-              .select('first_name, name')
-              .eq('id', finalPatientId)
-              .single();
+        // Check if this patient has already received this specific guide
+        const { data: existingGuide } = await supabase
+          .from('protocol_logs')
+          .select('id')
+          .eq('patient_id', finalPatientId)
+          .eq('log_type', guideLogType)
+          .limit(1);
 
-            const guideFirstName = guidePatientData?.first_name || (guidePatientData?.name ? guidePatientData.name.split(' ')[0] : 'there');
-            const guideUrl = `https://www.range-medical.com${guideSlug}`;
-            const guideMessage = `Hi ${guideFirstName}! Here's your guide: ${guideUrl} - Range Medical`;
+        if (existingGuide && existingGuide.length > 0) {
+          console.log(`Guide ${guideSlug} already sent to patient ${finalPatientId} - skipping`);
+        } else if (isInQuietHours()) {
+          // Outside 8am-8pm Pacific — log but don't send
+          console.log(`Guide ${guideSlug} skipped (quiet hours) for patient ${finalPatientId}`);
+          // Still log it to prevent double-sends on next protocol creation
+          const guideFirstName = guidePatientData?.first_name || (guidePatientData?.name ? guidePatientData.name.split(' ')[0] : 'there');
+          const guideUrl = `https://www.range-medical.com${guideSlug}`;
+          const guideMessage = `Hi ${guideFirstName}! Here's your guide: ${guideUrl} - Range Medical`;
+          await supabase.from('protocol_logs').insert({
+            protocol_id: protocol.id,
+            patient_id: finalPatientId,
+            log_type: guideLogType,
+            log_date: new Date().toISOString().split('T')[0],
+            notes: `[QUEUED - quiet hours] ${guideMessage}`
+          });
+        } else {
+          const guideFirstName = guidePatientData?.first_name || (guidePatientData?.name ? guidePatientData.name.split(' ')[0] : 'there');
+          const guideUrl = `https://www.range-medical.com${guideSlug}`;
+          const guideMessage = `Hi ${guideFirstName}! Here's your guide: ${guideUrl} - Range Medical`;
 
-            const guideSmsRes = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${process.env.GHL_API_KEY}`,
-                'Content-Type': 'application/json',
-                'Version': '2021-04-15'
-              },
-              body: JSON.stringify({
-                type: 'SMS',
-                contactId: finalGhlContactId,
-                message: guideMessage
-              })
+          const smsResult = await sendSMS({ to: patientPhone, message: guideMessage });
+
+          if (smsResult.success) {
+            await supabase.from('protocol_logs').insert({
+              protocol_id: protocol.id,
+              patient_id: finalPatientId,
+              log_type: guideLogType,
+              log_date: new Date().toISOString().split('T')[0],
+              notes: guideMessage
             });
 
-            const guideSmsData = await guideSmsRes.json();
+            await logComm({ channel: 'sms', messageType: guideLogType, message: guideMessage, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, patientName, provider: smsResult.provider });
 
-            if (guideSmsRes.ok) {
-              // Log to protocol_logs to prevent double-sends
-              await supabase.from('protocol_logs').insert({
-                protocol_id: protocol.id,
-                patient_id: finalPatientId,
-                log_type: guideLogType,
-                log_date: new Date().toISOString().split('T')[0],
-                notes: guideMessage
-              });
-
-              await logComm({ channel: 'sms', messageType: guideLogType, message: guideMessage, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, ghlContactId: finalGhlContactId, patientName });
-
-              guideSent = true;
-              console.log(`Guide SMS (${guideSlug}) sent to`, finalGhlContactId);
-            } else {
-              console.error('Guide SMS error:', guideSmsData);
-              await logComm({ channel: 'sms', messageType: guideLogType, message: guideMessage, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, ghlContactId: finalGhlContactId, patientName, status: 'error', errorMessage: guideSmsData?.message || 'SMS failed' });
-            }
+            guideSent = true;
+            console.log(`Guide SMS (${guideSlug}) sent via ${smsResult.provider} to ${patientPhone}`);
+          } else {
+            console.error('Guide SMS error:', smsResult.error);
+            await logComm({ channel: 'sms', messageType: guideLogType, message: guideMessage, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, patientName, status: 'error', errorMessage: smsResult.error || 'SMS failed' });
           }
         }
-      } catch (guideError) {
-        console.error('Guide SMS error (non-fatal):', guideError);
       }
+    } catch (guideError) {
+      console.error('Guide SMS error (non-fatal):', guideError);
     }
 
     // ============================================

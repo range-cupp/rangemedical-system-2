@@ -1077,20 +1077,38 @@ export default function PatientProfile() {
       // Helper to convert empty strings to null for dates
       const dateOrNull = (val) => val && val.trim() !== '' ? val : null;
 
+      // For HRT: auto-derive frequency from injections_per_week (single source of truth)
+      let derivedFrequency = editForm.frequency || null;
+      let derivedDosePerInjection = editForm.dosePerInjection ? parseFloat(editForm.dosePerInjection) : null;
+
+      if (selectedProtocol.category === 'hrt') {
+        const ipw = parseInt(editForm.injectionsPerWeek);
+        if (ipw === 1) derivedFrequency = 'Weekly';
+        else if (ipw === 2) derivedFrequency = '2x per week';
+        else if (ipw === 3) derivedFrequency = '3x per week';
+        else if (ipw === 7) derivedFrequency = 'Daily';
+
+        // Auto-derive dose_per_injection from selected_dose (e.g., "0.4ml/80mg" → 0.4)
+        if (editForm.selectedDose) {
+          const mlMatch = editForm.selectedDose.match(/^(\d+\.?\d*)ml/i);
+          if (mlMatch) derivedDosePerInjection = parseFloat(mlMatch[1]);
+        }
+      }
+
       const res = await fetch(`/api/protocols/${selectedProtocol.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           medication: editForm.medication || null,
           selected_dose: editForm.selectedDose || null,
-          frequency: editForm.frequency || null,
+          frequency: derivedFrequency,
           start_date: dateOrNull(editForm.startDate),
           end_date: dateOrNull(editForm.endDate),
           status: editForm.status,
           notes: editForm.notes || null,
           sessions_used: editForm.sessionsUsed,
-          // HRT vial-specific fields
-          dose_per_injection: editForm.dosePerInjection ? parseFloat(editForm.dosePerInjection) : null,
+          // HRT vial-specific fields (dose_per_injection auto-derived from selected_dose for HRT)
+          dose_per_injection: derivedDosePerInjection,
           injections_per_week: editForm.injectionsPerWeek ? parseInt(editForm.injectionsPerWeek) : null,
           vial_size: editForm.vialSize ? parseFloat(editForm.vialSize) : null,
           supply_type: editForm.supplyType || null,
@@ -4516,6 +4534,15 @@ export default function PatientProfile() {
                         </optgroup>
                       </select>
                     </div>
+                    <div className="form-group">
+                      <label>Injections/Week</label>
+                      <select value={editForm.injectionsPerWeek} onChange={e => setEditForm({...editForm, injectionsPerWeek: e.target.value})}>
+                        <option value="1">1x per week</option>
+                        <option value="2">2x per week</option>
+                        <option value="3">3x per week</option>
+                        <option value="7">7x per week (daily)</option>
+                      </select>
+                    </div>
                   </>
                 )}
 
@@ -4577,40 +4604,23 @@ export default function PatientProfile() {
                   </div>
                 )}
 
-                {/* Frequency - Full options from config */}
-                <div className="form-group">
-                  <label>Frequency</label>
-                  <select value={editForm.frequency} onChange={e => setEditForm({...editForm, frequency: e.target.value})}>
-                    <option value="">Select...</option>
-                    {FREQUENCY_OPTIONS.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                </div>
+                {/* Frequency - Full options from config (hidden for HRT — Injections/Week is the source of truth) */}
+                {selectedProtocol.category !== 'hrt' && (
+                  <div className="form-group">
+                    <label>Frequency</label>
+                    <select value={editForm.frequency} onChange={e => setEditForm({...editForm, frequency: e.target.value})}>
+                      <option value="">Select...</option>
+                      {FREQUENCY_OPTIONS.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
-                {/* HRT Vial Tracking Fields - show for HRT protocols */}
+                {/* HRT Supply Tracking - only Supply Type and Last Refill (dose & frequency are in main section above) */}
                 {selectedProtocol.category === 'hrt' && (
                   <>
                     <div className="form-section-label">HRT Supply Tracking</div>
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label>Dose per Injection (ml)</label>
-                        <select value={editForm.dosePerInjection} onChange={e => setEditForm({...editForm, dosePerInjection: e.target.value})}>
-                          <option value="">Select...</option>
-                          {TESTOSTERONE_DOSES.male.map(d => (
-                            <option key={d.value} value={d.value.split('/')[0]}>{d.label}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="form-group">
-                        <label>Injections/Week</label>
-                        <select value={editForm.injectionsPerWeek} onChange={e => setEditForm({...editForm, injectionsPerWeek: e.target.value})}>
-                          <option value="1">1x per week</option>
-                          <option value="2">2x per week</option>
-                          <option value="7">7x per week (daily)</option>
-                        </select>
-                      </div>
-                    </div>
                     <div className="form-row">
                       <div className="form-group">
                         <label>Supply Type</label>

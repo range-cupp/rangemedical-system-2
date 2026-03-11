@@ -800,11 +800,13 @@ export default function ProtocolDetail() {
         if (form.supplyType) saveData.supply_type = form.supplyType;
         if (form.scheduledDays && form.scheduledDays.length > 0) {
           saveData.scheduled_days = form.scheduledDays;
-          // Auto-derive frequency from scheduled_days
+          // Auto-derive frequency and injections_per_week from scheduled_days (single source of truth)
           const numDays = form.scheduledDays.length;
-          if (numDays === 7) saveData.frequency = 'daily';
-          else if (numDays === 3) saveData.frequency = '3x_weekly';
-          else saveData.frequency = '2x_weekly';
+          if (numDays === 7) saveData.frequency = 'Daily';
+          else if (numDays === 3) saveData.frequency = '3x per week';
+          else if (numDays === 1) saveData.frequency = 'Weekly';
+          else saveData.frequency = '2x per week';
+          saveData.injections_per_week = numDays;
           // Auto-derive hrt_reminder_schedule from scheduled_days
           const days = form.scheduledDays.map(d => d.toLowerCase());
           if (numDays === 7) {
@@ -814,6 +816,11 @@ export default function ProtocolDetail() {
           } else if (days.includes('tuesday') && days.includes('friday') && numDays === 2) {
             saveData.hrt_reminder_schedule = 'tue_fri';
           }
+        }
+        // Auto-derive dose_per_injection from dosage (e.g., "0.4ml/80mg" → 0.4)
+        if (form.dosage) {
+          const mlMatch = form.dosage.match(/^(\d+\.?\d*)ml/i);
+          if (mlMatch) saveData.dose_per_injection = parseFloat(mlMatch[1]);
         }
       }
 

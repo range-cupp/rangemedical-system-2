@@ -1,13 +1,10 @@
 // /pages/staff-chat.js
 // Range Medical Staff Chat — natural language interface to the CRM
-// Mobile-optimized. Accessible at app.range-medical.com/staff-chat
-// Add to iPhone home screen for app-like experience.
+// Embedded inside AdminLayout so the sidebar stays visible at all times.
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import Head from 'next/head';
-import { useRouter } from 'next/router';
 import { useAuth } from '../components/AuthProvider';
-import { supabase } from '../lib/supabase';
+import AdminLayout from '../components/AdminLayout';
 
 // ── Suggested quick-action prompts ──────────────────────────────
 const SUGGESTIONS = [
@@ -72,22 +69,13 @@ function TypingIndicator() {
 }
 
 export default function StaffChat() {
-  const { employee, session, loading } = useAuth();
-  const router = useRouter();
+  const { employee, session } = useAuth();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
-  const [error, setError] = useState('');
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const hasGreeted = useRef(false);
-
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!loading && !employee) {
-      router.push('/admin');
-    }
-  }, [loading, employee, router]);
 
   // Greet on first load
   useEffect(() => {
@@ -109,15 +97,18 @@ export default function StaffChat() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, sending]);
 
+  // Focus input on load
+  useEffect(() => {
+    setTimeout(() => inputRef.current?.focus(), 150);
+  }, []);
+
   const sendMessage = useCallback(async (text) => {
     const messageText = (text || input).trim();
     if (!messageText || sending) return;
 
     setInput('');
-    setError('');
     setSending(true);
 
-    // Add user message immediately
     setMessages((prev) => [...prev, {
       role: 'user',
       content: messageText,
@@ -139,9 +130,7 @@ export default function StaffChat() {
 
       const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || 'Request failed');
-      }
+      if (!res.ok) throw new Error(data.error || 'Request failed');
 
       setMessages((prev) => [...prev, {
         role: 'bot',
@@ -160,7 +149,6 @@ export default function StaffChat() {
     }
   }, [input, sending, session]);
 
-  // Send on Enter (not Shift+Enter)
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -168,44 +156,43 @@ export default function StaffChat() {
     }
   };
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <div style={{ color: '#9ca3af', fontSize: 14 }}>Loading...</div>
-      </div>
-    );
-  }
+  const clearChat = () => {
+    hasGreeted.current = false;
+    setMessages([]);
+    setTimeout(() => {
+      hasGreeted.current = true;
+      setMessages([{
+        role: 'bot',
+        content: `Chat cleared. What can I help you with?`,
+        id: Date.now(),
+      }]);
+    }, 50);
+  };
 
-  if (!employee) return null;
+  const firstUserMsg = messages.filter((m) => m.role === 'user').length === 0;
 
   return (
-    <>
-      <Head>
-        <title>Staff Chat — Range Medical</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="RM Chat" />
-        <style>{`
-          @keyframes bounce {
-            0%, 60%, 100% { transform: translateY(0); }
-            30% { transform: translateY(-5px); }
-          }
-          * { box-sizing: border-box; }
-          body { margin: 0; padding: 0; background: #fff; }
-          textarea { resize: none; font-family: inherit; }
-          textarea:focus { outline: none; }
-        `}</style>
-      </Head>
+    <AdminLayout title="Assistant" hideHeader={true}>
+      <style>{`
+        @keyframes bounce {
+          0%, 60%, 100% { transform: translateY(0); }
+          30% { transform: translateY(-5px); }
+        }
+        textarea:focus { outline: none; }
+      `}</style>
 
+      {/* Chat container — fills the AdminLayout main area */}
       <div style={{
         display: 'flex',
         flexDirection: 'column',
-        height: '100dvh',
-        maxWidth: 640,
+        height: 'calc(100vh - 48px)',
+        maxWidth: 680,
         margin: '0 auto',
         background: '#fff',
-        position: 'relative',
+        borderRadius: 16,
+        border: '1px solid #e5e7eb',
+        overflow: 'hidden',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
       }}>
 
         {/* ── Header ── */}
@@ -215,44 +202,21 @@ export default function StaffChat() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: '#fff',
-          position: 'sticky',
-          top: 0,
-          zIndex: 10,
           flexShrink: 0,
+          background: '#fff',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button
-              onClick={() => router.push('/admin/command-center')}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                padding: '4px 8px 4px 0', color: '#6b7280', fontSize: 14,
-              }}
-            >
-              ← Back
-            </button>
-            <div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#111', lineHeight: 1.2 }}>
-                Range Assistant
-              </div>
-              <div style={{ fontSize: 12, color: '#6b7280' }}>
-                {employee.name} · {employee.title || 'Staff'}
-              </div>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#111', lineHeight: 1.2 }}>
+              Range Assistant
             </div>
+            {employee && (
+              <div style={{ fontSize: 12, color: '#6b7280' }}>
+                {employee.name}{employee.title ? ` · ${employee.title}` : ''}
+              </div>
+            )}
           </div>
           <button
-            onClick={() => {
-              hasGreeted.current = false;
-              setMessages([]);
-              setTimeout(() => {
-                hasGreeted.current = true;
-                setMessages([{
-                  role: 'bot',
-                  content: `Chat cleared. What can I help you with?`,
-                  id: Date.now(),
-                }]);
-              }, 50);
-            }}
+            onClick={clearChat}
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
               color: '#9ca3af', fontSize: 13, padding: '4px 0',
@@ -277,7 +241,7 @@ export default function StaffChat() {
         </div>
 
         {/* ── Quick suggestions (only before first user message) ── */}
-        {messages.filter((m) => m.role === 'user').length === 0 && (
+        {firstUserMsg && (
           <div style={{
             padding: '0 8px 8px',
             display: 'flex',
@@ -324,7 +288,6 @@ export default function StaffChat() {
           alignItems: 'flex-end',
           background: '#fff',
           flexShrink: 0,
-          paddingBottom: 'max(10px, env(safe-area-inset-bottom))',
         }}>
           <textarea
             ref={inputRef}
@@ -344,6 +307,8 @@ export default function StaffChat() {
               color: '#111',
               maxHeight: 120,
               overflowY: 'auto',
+              resize: 'none',
+              fontFamily: 'inherit',
             }}
             onInput={(e) => {
               e.target.style.height = 'auto';
@@ -380,6 +345,6 @@ export default function StaffChat() {
         </div>
 
       </div>
-    </>
+    </AdminLayout>
   );
 }

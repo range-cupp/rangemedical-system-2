@@ -34,7 +34,7 @@ import {
   findMatchingPeptide,
   getDoseOptions
 } from '../../lib/protocol-config';
-import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../lib/hrt-lab-schedule';
+import { getHRTLabSchedule, matchDrawsToLogs, buildAdaptiveHRTSchedule, isHRTProtocol } from '../../lib/hrt-lab-schedule';
 import { isRecoveryPeptide, isGHPeptide } from '../../lib/protocol-config';
 import BookingTab from '../../components/BookingTab';
 import LabDashboard from '../../components/labs/LabDashboard';
@@ -491,7 +491,9 @@ export default function PatientProfile() {
           .then(d => setSavedCards(d.cards || []))
           .catch(() => {});
 
-        // Compute HRT lab schedules for active HRT protocols
+        // Compute ADAPTIVE HRT lab schedules for HRT protocols
+        // Each draw's target date is calculated from the actual previous lab date,
+        // not a fixed schedule — so if someone gets labs late, the next draw shifts forward.
         const allProtos = [...(data.activeProtocols || []), ...(data.completedProtocols || [])];
         const hrtProtos = allProtos.filter(p => isHRTProtocol(p.program_type) && p.start_date);
         if (hrtProtos.length > 0) {
@@ -502,12 +504,11 @@ export default function PatientProfile() {
               const protoData = await protoRes.json();
               const bloodDrawLogs = (protoData.activityLogs || []).filter(l => l.log_type === 'blood_draw');
               const firstFollowup = protoData.protocol?.first_followup_weeks || p.first_followup_weeks || 8;
-              const schedule = getHRTLabSchedule(p.start_date, firstFollowup);
-              schedules[p.id] = matchDrawsToLogs(schedule, bloodDrawLogs, data.labs || [], data.labProtocols || []);
+              schedules[p.id] = buildAdaptiveHRTSchedule(p.start_date, firstFollowup, bloodDrawLogs, data.labs || [], data.labProtocols || []);
             } catch {
               const firstFollowup = p.first_followup_weeks || 8;
               const schedule = getHRTLabSchedule(p.start_date, firstFollowup);
-              schedules[p.id] = schedule.map(s => ({ ...s, status: 'upcoming', completedDate: null }));
+              schedules[p.id] = schedule.map(s => ({ ...s, status: 'upcoming', completedDate: null, logId: null }));
             }
           }
           setHrtLabSchedules(schedules);
@@ -643,18 +644,17 @@ export default function PatientProfile() {
     setActiveProtocols(prev => updateProtoList(prev));
     setCompletedProtocols(prev => updateProtoList(prev));
 
-    // Recompute the lab schedule locally
+    // Recompute the adaptive lab schedule locally
     const updatedProto = { ...proto, first_followup_weeks: newWeeks };
     try {
       const protoRes = await fetch(`/api/protocols/${protocolId}`);
       const protoData = await protoRes.json();
       const bloodDrawLogs = (protoData.activityLogs || []).filter(l => l.log_type === 'blood_draw');
-      const schedule = getHRTLabSchedule(updatedProto.start_date, newWeeks);
-      const matched = matchDrawsToLogs(schedule, bloodDrawLogs, labs || [], labProtocols || []);
-      setHrtLabSchedules(prev => ({ ...prev, [protocolId]: matched }));
+      const adaptive = buildAdaptiveHRTSchedule(updatedProto.start_date, newWeeks, bloodDrawLogs, labs || [], labProtocols || []);
+      setHrtLabSchedules(prev => ({ ...prev, [protocolId]: adaptive }));
     } catch {
       const schedule = getHRTLabSchedule(updatedProto.start_date, newWeeks);
-      setHrtLabSchedules(prev => ({ ...prev, [protocolId]: schedule.map(s => ({ ...s, status: 'upcoming', completedDate: null })) }));
+      setHrtLabSchedules(prev => ({ ...prev, [protocolId]: schedule.map(s => ({ ...s, status: 'upcoming', completedDate: null, logId: null })) }));
     }
 
     // Persist to database (may fail if column doesn't exist yet — that's OK)

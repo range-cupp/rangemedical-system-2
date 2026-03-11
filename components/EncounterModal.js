@@ -254,379 +254,567 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
     return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
-  const statusColors = {
-    scheduled: { bg: '#dbeafe', color: '#1e40af' },
-    confirmed: { bg: '#d1fae5', color: '#065f46' },
-    checked_in: { bg: '#fef9c3', color: '#854d0e' },
-    in_progress: { bg: '#e0e7ff', color: '#3730a3' },
-    completed: { bg: '#d1fae5', color: '#065f46' },
-    cancelled: { bg: '#fee2e2', color: '#991b1b' },
-    no_show: { bg: '#fee2e2', color: '#991b1b' },
-    draft: { bg: '#f3f4f6', color: '#374151' },
-    signed: { bg: '#d1fae5', color: '#065f46' },
+  const statusConfig = {
+    scheduled: { bg: '#dbeafe', color: '#1e40af', label: 'Scheduled' },
+    confirmed: { bg: '#d1fae5', color: '#065f46', label: 'Confirmed' },
+    checked_in: { bg: '#fef9c3', color: '#854d0e', label: 'Checked In' },
+    in_progress: { bg: '#e0e7ff', color: '#3730a3', label: 'In Progress' },
+    completed: { bg: '#d1fae5', color: '#065f46', label: 'Completed' },
+    cancelled: { bg: '#fee2e2', color: '#991b1b', label: 'Cancelled' },
+    no_show: { bg: '#fee2e2', color: '#991b1b', label: 'No Show' },
   };
 
-  const s = statusColors;
+  const sc = statusConfig[status] || { bg: '#f3f4f6', color: '#374151', label: status };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 780, maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
-        {/* Header */}
-        <div className="modal-header" style={{ borderBottom: '1px solid #e5e7eb' }}>
-          <div>
-            <h3 style={{ margin: 0 }}>Encounter</h3>
-            <div style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}>
-              {appointment?.service_name || appointment?.appointment_title || 'Appointment'} — {formatDate(appointment?.start_time)}
+    <>
+      <style jsx>{`
+        .enc-overlay {
+          position: fixed; inset: 0; z-index: 1000;
+          background: rgba(0, 0, 0, 0.5);
+          backdrop-filter: blur(4px);
+          display: flex; align-items: center; justify-content: center;
+          animation: encFadeIn 0.2s ease-out;
+        }
+        @keyframes encFadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes encSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes encPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .enc-modal {
+          background: #fff; border-radius: 16px; width: 95vw; max-width: 800px;
+          max-height: 92vh; display: flex; flex-direction: column;
+          box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+          animation: encSlideUp 0.25s ease-out;
+          overflow: hidden;
+        }
+        .enc-header {
+          padding: 20px 24px 16px; display: flex; align-items: flex-start; justify-content: space-between;
+          border-bottom: 1px solid #f0f0f0;
+        }
+        .enc-title { font-size: 20px; font-weight: 700; color: #111; margin: 0; letter-spacing: -0.3px; }
+        .enc-subtitle { font-size: 13px; color: #6b7280; margin-top: 3px; }
+        .enc-close {
+          width: 32px; height: 32px; border-radius: 8px; border: none; background: #f3f4f6;
+          font-size: 18px; color: #6b7280; cursor: pointer; display: flex; align-items: center; justify-content: center;
+          transition: all 0.15s;
+        }
+        .enc-close:hover { background: #e5e7eb; color: #111; }
+        .enc-details {
+          padding: 12px 24px; background: #fafbfc; border-bottom: 1px solid #f0f0f0;
+          display: flex; gap: 20px; align-items: center; flex-wrap: wrap;
+        }
+        .enc-detail-item { font-size: 13px; color: #6b7280; display: flex; align-items: center; gap: 6px; }
+        .enc-detail-label { font-weight: 600; color: #374151; }
+        .enc-status-badge {
+          padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;
+          letter-spacing: 0.02em; text-transform: capitalize;
+        }
+        .enc-template-badge {
+          padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+          background: #f3f0ff; color: #6d28d9; letter-spacing: 0.02em;
+        }
+        .enc-tabs {
+          display: flex; gap: 0; padding: 0 24px; border-bottom: 1px solid #f0f0f0; background: #fff;
+        }
+        .enc-tab {
+          padding: 12px 20px; font-size: 13px; font-weight: 600; border: none; background: none;
+          cursor: pointer; position: relative; color: #9ca3af; transition: color 0.15s;
+        }
+        .enc-tab:hover { color: #6b7280; }
+        .enc-tab.active { color: #111; }
+        .enc-tab.active::after {
+          content: ''; position: absolute; bottom: -1px; left: 12px; right: 12px;
+          height: 2px; background: #111; border-radius: 2px 2px 0 0;
+        }
+        .enc-tab-count {
+          margin-left: 6px; font-size: 11px; padding: 1px 7px; border-radius: 10px;
+          font-weight: 700; background: #f3f4f6; color: #6b7280;
+        }
+        .enc-tab.active .enc-tab-count { background: #111; color: #fff; }
+        .enc-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+
+        /* Note cards */
+        .enc-note-card {
+          margin-bottom: 12px; padding: 16px 18px; border: 1px solid #eee; border-radius: 10px;
+          background: #fff; transition: box-shadow 0.15s;
+        }
+        .enc-note-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .enc-note-card.addendum { background: #fffef5; border-color: #fde68a; }
+        .enc-note-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .enc-note-meta { font-size: 12px; color: #9ca3af; display: flex; align-items: center; gap: 8px; }
+        .enc-note-body { white-space: pre-wrap; font-size: 14px; line-height: 1.7; color: #1f2937; }
+        .enc-note-actions { display: flex; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid #f5f5f5; }
+
+        /* Badges */
+        .badge-signed { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; background: #ecfdf5; color: #059669; }
+        .badge-draft { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; background: #f3f4f6; color: #6b7280; }
+        .badge-addendum { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; background: #fef3c7; color: #b45309; }
+
+        /* Buttons */
+        .enc-btn {
+          padding: 7px 14px; font-size: 13px; font-weight: 600; border-radius: 8px;
+          border: none; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .enc-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .enc-btn-primary { background: #111; color: #fff; }
+        .enc-btn-primary:hover:not(:disabled) { background: #333; }
+        .enc-btn-secondary { background: #fff; color: #374151; border: 1px solid #d1d5db; }
+        .enc-btn-secondary:hover:not(:disabled) { background: #f9fafb; border-color: #9ca3af; }
+        .enc-btn-sign { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+        .enc-btn-sign:hover { background: #d1fae5; }
+        .enc-btn-ghost { background: none; color: #6b7280; border: 1px solid #e5e7eb; }
+        .enc-btn-ghost:hover { background: #f9fafb; color: #374151; }
+        .enc-btn-ai {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: #fff; border: none;
+        }
+        .enc-btn-ai:hover:not(:disabled) { opacity: 0.9; }
+        .enc-btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
+
+        /* Note form */
+        .enc-form-card {
+          margin-top: 16px; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px;
+          background: #fafbfc;
+        }
+        .enc-form-title {
+          font-size: 15px; font-weight: 700; color: #111; margin: 0 0 16px;
+          display: flex; justify-content: space-between; align-items: center;
+        }
+        .enc-form-label { font-size: 12px; font-weight: 600; color: #6b7280; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+        /* Note type pills */
+        .enc-type-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+        .enc-type-pill {
+          padding: 6px 14px; font-size: 12px; font-weight: 600; border-radius: 20px;
+          border: 1.5px solid #e5e7eb; background: #fff; color: #6b7280;
+          cursor: pointer; transition: all 0.15s;
+        }
+        .enc-type-pill:hover { border-color: #9ca3af; color: #374151; }
+        .enc-type-pill.active {
+          background: #111; color: #fff; border-color: #111;
+        }
+
+        /* Quick notes */
+        .enc-quick-notes { display: flex; gap: 6px; flex-wrap: wrap; }
+        .enc-quick-note {
+          padding: 4px 12px; font-size: 12px; border-radius: 16px;
+          border: 1px solid #e5e7eb; background: #fff; color: #374151;
+          cursor: pointer; transition: all 0.15s;
+        }
+        .enc-quick-note:hover { background: #f0f0f0; border-color: #d1d5db; }
+
+        /* Textarea */
+        .enc-textarea-wrap { position: relative; margin-bottom: 14px; }
+        .enc-textarea {
+          width: 100%; min-height: 180px; resize: vertical; font-family: inherit; font-size: 14px;
+          line-height: 1.7; padding: 14px 50px 14px 16px; border-radius: 10px;
+          border: 1.5px solid #e5e7eb; background: #fff; color: #111;
+          transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .enc-textarea:focus {
+          outline: none; border-color: #111; box-shadow: 0 0 0 3px rgba(0,0,0,0.06);
+        }
+        .enc-textarea::placeholder { color: #c5c5c5; }
+        .enc-mic-btn {
+          position: absolute; right: 12px; top: 12px; width: 34px; height: 34px;
+          border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center;
+          font-size: 16px; cursor: pointer; transition: all 0.15s;
+        }
+        .enc-mic-btn.idle { background: #f3f4f6; color: #6b7280; }
+        .enc-mic-btn.idle:hover { background: #e5e7eb; }
+        .enc-mic-btn.recording { background: #dc2626; color: #fff; animation: encPulse 1.5s infinite; }
+        .enc-recording-bar {
+          display: flex; align-items: center; gap: 8px; padding: 8px 14px; margin: -10px 0 14px;
+          background: #fef2f2; border-radius: 8px; font-size: 13px; color: #dc2626; font-weight: 500;
+        }
+        .enc-recording-dot { width: 8px; height: 8px; border-radius: 50%; background: #dc2626; animation: encPulse 1s infinite; }
+
+        /* Action row */
+        .enc-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        .enc-actions-right { display: flex; gap: 8px; }
+
+        /* Empty state */
+        .enc-empty { text-align: center; padding: 40px 20px; }
+        .enc-empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.3; }
+        .enc-empty-text { font-size: 14px; color: #9ca3af; margin-bottom: 16px; }
+
+        /* Addendum inline */
+        .enc-addendum-form {
+          margin-top: 14px; padding: 14px; background: #fffef5; border-radius: 8px; border: 1px solid #fde68a;
+        }
+        .enc-addendum-label { font-size: 12px; font-weight: 600; color: #b45309; margin-bottom: 8px; }
+        .enc-addendum-textarea {
+          width: 100%; resize: vertical; font-family: inherit; font-size: 14px; line-height: 1.6;
+          padding: 10px 14px; border-radius: 8px; border: 1.5px solid #fde68a; background: #fff; min-height: 80px;
+        }
+        .enc-addendum-textarea:focus { outline: none; border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.1); }
+        .enc-addendum-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+        /* Rx section */
+        .enc-rx-card {
+          margin-bottom: 10px; padding: 14px 16px; border: 1px solid #eee; border-radius: 10px;
+          background: #fff; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+        }
+        .enc-rx-name { font-size: 14px; font-weight: 600; color: #111; }
+        .enc-rx-detail { font-size: 13px; color: #6b7280; margin-top: 2px; }
+        .enc-rx-meta { font-size: 12px; color: #9ca3af; margin-top: 4px; display: flex; gap: 12px; flex-wrap: wrap; }
+        .enc-rx-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .enc-rx-form-grid .form-group label { font-size: 12px; font-weight: 600; color: #6b7280; display: block; margin-bottom: 4px; }
+        .enc-rx-form-grid .form-group input,
+        .enc-rx-form-grid .form-group select {
+          width: 100%; padding: 8px 12px; font-size: 13px; border: 1.5px solid #e5e7eb; border-radius: 8px;
+          font-family: inherit; transition: border-color 0.15s;
+        }
+        .enc-rx-form-grid .form-group input:focus,
+        .enc-rx-form-grid .form-group select:focus {
+          outline: none; border-color: #111; box-shadow: 0 0 0 3px rgba(0,0,0,0.06);
+        }
+        .enc-warning-bar {
+          display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+          background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px;
+          font-size: 13px; color: #92400e; margin-bottom: 16px;
+        }
+        .enc-controlled-alert {
+          margin-top: 10px; padding: 10px 14px; background: #fef2f2; border-radius: 8px;
+          border: 1px solid #fecaca; font-size: 12px; color: #991b1b;
+          display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        }
+      `}</style>
+
+      <div className="enc-overlay" onClick={onClose}>
+        <div className="enc-modal" onClick={e => e.stopPropagation()}>
+          {/* Header */}
+          <div className="enc-header">
+            <div>
+              <h3 className="enc-title">Encounter</h3>
+              <div className="enc-subtitle">
+                {appointment?.service_name || appointment?.appointment_title || 'Appointment'} — {formatDate(appointment?.start_time)}
+              </div>
             </div>
+            <button onClick={onClose} className="enc-close">×</button>
           </div>
-          <button onClick={onClose} className="close-btn">×</button>
-        </div>
 
-        {/* Appointment Details Bar */}
-        <div style={{ padding: '12px 24px', background: '#f9fafb', borderBottom: '1px solid #e5e7eb', display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', fontSize: 13 }}>
-          {appointment?.provider && <span><strong>Provider:</strong> {appointment.provider}</span>}
-          {appointment?.location && <span><strong>Location:</strong> {appointment.location}</span>}
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <strong>Status:</strong>
-            <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600, background: s[status]?.bg || '#f3f4f6', color: s[status]?.color || '#374151' }}>
-              {status}
-            </span>
-          </span>
-          {template.label !== 'General' && (
-            <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600, background: '#ede9fe', color: '#5b21b6' }}>
-              {template.label}
-            </span>
-          )}
-        </div>
+          {/* Appointment Details Bar */}
+          <div className="enc-details">
+            {appointment?.provider && (
+              <div className="enc-detail-item">
+                <span className="enc-detail-label">Provider</span>
+                <span>{appointment.provider}</span>
+              </div>
+            )}
+            {appointment?.location && (
+              <div className="enc-detail-item">
+                <span className="enc-detail-label">Location</span>
+                <span>{appointment.location}</span>
+              </div>
+            )}
+            <div className="enc-detail-item">
+              <span className="enc-status-badge" style={{ background: sc.bg, color: sc.color }}>
+                {sc.label}
+              </span>
+            </div>
+            {template.label !== 'General' && (
+              <span className="enc-template-badge">{template.label}</span>
+            )}
+          </div>
 
-        {/* Section Tabs */}
-        <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', padding: '0 24px' }}>
-          {[
-            { key: 'notes', label: 'Encounter Notes', count: encounterNotes.length },
-            { key: 'prescriptions', label: 'Prescriptions', count: prescriptions.length },
-          ].map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveSection(tab.key)}
-              style={{
-                padding: '10px 16px', fontSize: 13, fontWeight: 600, border: 'none', background: 'none', cursor: 'pointer',
-                borderBottom: activeSection === tab.key ? '2px solid #111' : '2px solid transparent',
-                color: activeSection === tab.key ? '#111' : '#6b7280',
-              }}
-            >
-              {tab.label}{tab.count > 0 && <span style={{ marginLeft: 6, fontSize: 11, padding: '1px 6px', borderRadius: 10, background: '#e5e7eb', color: '#374151' }}>{tab.count}</span>}
-            </button>
-          ))}
-        </div>
+          {/* Section Tabs */}
+          <div className="enc-tabs">
+            {[
+              { key: 'notes', label: 'Encounter Notes', count: encounterNotes.length },
+              { key: 'prescriptions', label: 'Prescriptions', count: prescriptions.length },
+            ].map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveSection(tab.key)}
+                className={`enc-tab${activeSection === tab.key ? ' active' : ''}`}
+              >
+                {tab.label}
+                {tab.count > 0 && <span className="enc-tab-count">{tab.count}</span>}
+              </button>
+            ))}
+          </div>
 
-        {/* Scrollable Content */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
-          {/* ===== NOTES SECTION ===== */}
-          {activeSection === 'notes' && (
-            <>
-              {loadingNotes ? (
-                <div style={{ textAlign: 'center', padding: 24, color: '#9ca3af' }}>Loading notes...</div>
-              ) : encounterNotes.length === 0 && !showNoteForm ? (
-                <div style={{ textAlign: 'center', padding: 32, color: '#9ca3af' }}>
-                  <div style={{ fontSize: 24, marginBottom: 8, opacity: 0.4 }}>📝</div>
-                  <div>No encounter notes yet</div>
-                  <button onClick={() => setShowNoteForm(true)} className="btn-primary" style={{ marginTop: 12 }}>
-                    + Add Encounter Note
-                  </button>
-                </div>
-              ) : (
-                <>
-                  {/* Existing notes */}
-                  {encounterNotes.map(note => (
-                    <div key={note.id} style={{ marginBottom: 16, padding: 16, border: '1px solid #e5e7eb', borderRadius: 8, background: note.source === 'addendum' ? '#fefce8' : '#fff' }}>
-                      {/* Note header */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                        <div style={{ fontSize: 12, color: '#6b7280' }}>
-                          {formatShortDate(note.note_date || note.created_at)}
-                          {note.created_by && ` — ${note.created_by}`}
-                          {note.source === 'addendum' && <span style={{ marginLeft: 8, padding: '1px 6px', borderRadius: 4, fontSize: 11, fontWeight: 600, background: '#fef3c7', color: '#92400e' }}>Addendum</span>}
-                        </div>
-                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                          <span style={{
-                            padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
-                            background: note.status === 'signed' ? '#d1fae5' : '#f3f4f6',
-                            color: note.status === 'signed' ? '#065f46' : '#6b7280',
-                          }}>
-                            {note.status === 'signed' ? `✓ Signed${note.signed_by ? ` by ${note.signed_by}` : ''}` : 'Draft'}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Note body */}
-                      <div style={{ whiteSpace: 'pre-wrap', fontSize: 14, lineHeight: 1.6, color: '#111' }}>
-                        {note.body}
-                      </div>
-
-                      {/* Note actions */}
-                      <div style={{ display: 'flex', gap: 8, marginTop: 12, borderTop: '1px solid #f3f4f6', paddingTop: 8 }}>
-                        {note.status !== 'signed' && note.created_by === currentUser && (
-                          <button onClick={() => handleSignNote(note.id)} style={{ fontSize: 12, padding: '4px 10px', border: '1px solid #10b981', borderRadius: 4, background: '#ecfdf5', color: '#065f46', cursor: 'pointer', fontWeight: 600 }}>
-                            ✍ Sign & Lock
-                          </button>
-                        )}
-                        {note.status === 'signed' && (
-                          <button onClick={() => { setAddendumParentId(note.id); }} style={{ fontSize: 12, padding: '4px 10px', border: '1px solid #e5e7eb', borderRadius: 4, background: '#fff', color: '#374151', cursor: 'pointer' }}>
-                            + Add Addendum
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Addendum form inline */}
-                      {addendumParentId === note.id && (
-                        <div style={{ marginTop: 12, padding: 12, background: '#fffbeb', borderRadius: 6, border: '1px solid #fde68a' }}>
-                          <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6, color: '#92400e' }}>Addendum to signed note:</div>
-                          <textarea
-                            value={addendumInput}
-                            onChange={e => setAddendumInput(e.target.value)}
-                            rows={3}
-                            placeholder="Type addendum..."
-                            style={{ width: '100%', resize: 'vertical', fontSize: 14, lineHeight: 1.6, fontFamily: 'inherit', padding: 8, borderRadius: 4, border: '1px solid #e5e7eb' }}
-                          />
-                          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                            <button onClick={handleSaveAddendum} disabled={!addendumInput.trim() || addendumSaving} className="btn-primary" style={{ fontSize: 12, padding: '4px 12px', opacity: (!addendumInput.trim() || addendumSaving) ? 0.5 : 1 }}>
-                              {addendumSaving ? 'Saving...' : 'Save Addendum'}
-                            </button>
-                            <button onClick={() => { setAddendumParentId(null); setAddendumInput(''); }} className="btn-secondary" style={{ fontSize: 12, padding: '4px 12px' }}>
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-
-                  {/* Add note button */}
-                  {!showNoteForm && (
-                    <button onClick={() => setShowNoteForm(true)} className="btn-primary" style={{ marginTop: 8 }}>
+          {/* Scrollable Content */}
+          <div className="enc-body">
+            {/* ===== NOTES SECTION ===== */}
+            {activeSection === 'notes' && (
+              <>
+                {loadingNotes ? (
+                  <div className="enc-empty">
+                    <div style={{ color: '#9ca3af', fontSize: 14 }}>Loading notes...</div>
+                  </div>
+                ) : encounterNotes.length === 0 && !showNoteForm ? (
+                  <div className="enc-empty">
+                    <div className="enc-empty-icon">📋</div>
+                    <div className="enc-empty-text">No encounter notes yet</div>
+                    <button onClick={() => setShowNoteForm(true)} className="enc-btn enc-btn-primary">
                       + Add Encounter Note
                     </button>
-                  )}
-                </>
-              )}
-
-              {/* Note creation form */}
-              {showNoteForm && (
-                <div style={{ marginTop: 16, padding: 16, border: '1px solid #e5e7eb', borderRadius: 8, background: '#fafafa' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <h4 style={{ margin: 0, fontSize: 14 }}>New Encounter Note</h4>
-                    <button onClick={() => { setShowNoteForm(false); setNoteInput(''); stopDictation(); }} style={{ border: 'none', background: 'none', fontSize: 18, cursor: 'pointer', color: '#9ca3af' }}>×</button>
                   </div>
+                ) : (
+                  <>
+                    {/* Existing notes */}
+                    {encounterNotes.map(note => (
+                      <div key={note.id} className={`enc-note-card${note.source === 'addendum' ? ' addendum' : ''}`}>
+                        <div className="enc-note-header">
+                          <div className="enc-note-meta">
+                            <span>{formatShortDate(note.note_date || note.created_at)}</span>
+                            {note.created_by && <span style={{ color: '#6b7280' }}>by {note.created_by}</span>}
+                            {note.source === 'addendum' && <span className="badge-addendum">Addendum</span>}
+                          </div>
+                          <span className={note.status === 'signed' ? 'badge-signed' : 'badge-draft'}>
+                            {note.status === 'signed'
+                              ? `✓ Signed${note.signed_by ? ` by ${note.signed_by}` : ''}`
+                              : 'Draft'}
+                          </span>
+                        </div>
 
-                  {/* Note type selector */}
-                  <div style={{ marginBottom: 12 }}>
-                    <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4, color: '#374151' }}>Note Type</label>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {Object.entries(NOTE_TYPES).map(([key, type]) => (
-                        <button
-                          key={key}
-                          onClick={() => setNoteType(key)}
-                          style={{
-                            padding: '4px 10px', fontSize: 12, borderRadius: 4, cursor: 'pointer', border: '1px solid',
-                            background: noteType === key ? '#111' : '#fff',
-                            color: noteType === key ? '#fff' : '#374151',
-                            borderColor: noteType === key ? '#111' : '#d1d5db',
-                            fontWeight: noteType === key ? 600 : 400,
-                          }}
-                        >
-                          {type.label}
-                        </button>
-                      ))}
+                        <div className="enc-note-body">{note.body}</div>
+
+                        <div className="enc-note-actions">
+                          {note.status !== 'signed' && note.created_by === currentUser && (
+                            <button onClick={() => handleSignNote(note.id)} className="enc-btn enc-btn-sign enc-btn-sm">
+                              ✍ Sign & Lock
+                            </button>
+                          )}
+                          {note.status === 'signed' && (
+                            <button onClick={() => setAddendumParentId(note.id)} className="enc-btn enc-btn-ghost enc-btn-sm">
+                              + Add Addendum
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Addendum form inline */}
+                        {addendumParentId === note.id && (
+                          <div className="enc-addendum-form">
+                            <div className="enc-addendum-label">Addendum to signed note</div>
+                            <textarea
+                              value={addendumInput}
+                              onChange={e => setAddendumInput(e.target.value)}
+                              rows={3}
+                              placeholder="Type addendum..."
+                              className="enc-addendum-textarea"
+                            />
+                            <div className="enc-addendum-actions">
+                              <button onClick={handleSaveAddendum} disabled={!addendumInput.trim() || addendumSaving} className="enc-btn enc-btn-primary enc-btn-sm">
+                                {addendumSaving ? 'Saving...' : 'Save Addendum'}
+                              </button>
+                              <button onClick={() => { setAddendumParentId(null); setAddendumInput(''); }} className="enc-btn enc-btn-secondary enc-btn-sm">
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+
+                    {/* Add note button */}
+                    {!showNoteForm && (
+                      <button onClick={() => setShowNoteForm(true)} className="enc-btn enc-btn-primary" style={{ marginTop: 8 }}>
+                        + Add Encounter Note
+                      </button>
+                    )}
+                  </>
+                )}
+
+                {/* Note creation form */}
+                {showNoteForm && (
+                  <div className="enc-form-card">
+                    <div className="enc-form-title">
+                      <span>New Encounter Note</span>
+                      <button onClick={() => { setShowNoteForm(false); setNoteInput(''); stopDictation(); }} className="enc-close" style={{ width: 28, height: 28, fontSize: 16 }}>×</button>
                     </div>
-                    <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>{NOTE_TYPES[noteType]?.description}</div>
-                  </div>
 
-                  {/* Quick notes */}
-                  {template.quickNotes && template.quickNotes.length > 0 && (
-                    <div style={{ marginBottom: 12 }}>
-                      <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4, color: '#374151' }}>Quick Notes</label>
-                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                        {template.quickNotes.map((qn, i) => (
+                    {/* Note type selector */}
+                    <div style={{ marginBottom: 16 }}>
+                      <div className="enc-form-label">Note Type</div>
+                      <div className="enc-type-pills">
+                        {Object.entries(NOTE_TYPES).map(([key, type]) => (
                           <button
-                            key={i}
-                            onClick={() => setNoteInput(prev => prev + (prev ? '\n' : '') + qn)}
-                            style={{ padding: '3px 8px', fontSize: 11, borderRadius: 12, border: '1px solid #d1d5db', background: '#fff', color: '#374151', cursor: 'pointer' }}
+                            key={key}
+                            onClick={() => setNoteType(key)}
+                            className={`enc-type-pill${noteType === key ? ' active' : ''}`}
                           >
-                            {qn}
+                            {type.label}
                           </button>
                         ))}
                       </div>
+                      <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 6 }}>{NOTE_TYPES[noteType]?.description}</div>
                     </div>
-                  )}
 
-                  {/* Textarea with dictation */}
-                  <div style={{ position: 'relative', marginBottom: 12 }}>
-                    <textarea
-                      value={noteInput}
-                      onChange={e => setNoteInput(e.target.value)}
-                      rows={8}
-                      placeholder="Type your encounter note here, or click the microphone to dictate..."
-                      style={{ width: '100%', resize: 'vertical', paddingRight: 50, fontFamily: 'inherit', fontSize: 14, lineHeight: 1.6, padding: '10px 50px 10px 10px', borderRadius: 6, border: '1px solid #d1d5db' }}
-                    />
-                    <button
-                      onClick={toggleDictation}
-                      type="button"
-                      style={{
-                        position: 'absolute', right: 10, top: 10,
-                        background: isRecording ? '#dc2626' : '#f3f4f6',
-                        color: isRecording ? '#fff' : '#374151',
-                        border: 'none', borderRadius: '50%',
-                        width: 36, height: 36, fontSize: 18,
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        animation: isRecording ? 'pulse 1.5s infinite' : 'none',
-                      }}
-                      title={isRecording ? 'Stop dictation' : 'Start dictation'}
-                    >
-                      🎤
+                    {/* Quick notes */}
+                    {template.quickNotes && template.quickNotes.length > 0 && (
+                      <div style={{ marginBottom: 16 }}>
+                        <div className="enc-form-label">Quick Notes</div>
+                        <div className="enc-quick-notes">
+                          {template.quickNotes.map((qn, i) => (
+                            <button key={i} onClick={() => setNoteInput(prev => prev + (prev ? '\n' : '') + qn)} className="enc-quick-note">
+                              + {qn}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Textarea with dictation */}
+                    <div className="enc-textarea-wrap">
+                      <textarea
+                        value={noteInput}
+                        onChange={e => setNoteInput(e.target.value)}
+                        placeholder="Type your encounter note here, or click the microphone to dictate..."
+                        className="enc-textarea"
+                      />
+                      <button onClick={toggleDictation} type="button" className={`enc-mic-btn ${isRecording ? 'recording' : 'idle'}`} title={isRecording ? 'Stop dictation' : 'Start dictation'}>
+                        🎤
+                      </button>
+                    </div>
+                    {isRecording && (
+                      <div className="enc-recording-bar">
+                        <span className="enc-recording-dot" />
+                        Recording — Click microphone to stop
+                      </div>
+                    )}
+
+                    {/* Action buttons */}
+                    <div className="enc-actions">
+                      <button onClick={handleFormat} disabled={!noteInput.trim() || noteFormatting} className="enc-btn enc-btn-ai">
+                        {noteFormatting ? 'Formatting...' : '✨ Format with AI'}
+                      </button>
+                      <div className="enc-actions-right">
+                        <button onClick={() => { setShowNoteForm(false); setNoteInput(''); stopDictation(); }} className="enc-btn enc-btn-secondary">Cancel</button>
+                        <button onClick={handleSaveNote} disabled={!noteInput.trim() || noteSaving} className="enc-btn enc-btn-primary">
+                          {noteSaving ? 'Saving...' : 'Save as Draft'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* ===== PRESCRIPTIONS SECTION (Scaffolding) ===== */}
+            {activeSection === 'prescriptions' && (
+              <>
+                <div className="enc-warning-bar">
+                  <span>⚠️</span>
+                  <span>e-Prescribing is not yet active. Prescriptions saved here are drafts only.</span>
+                </div>
+
+                {prescriptions.length === 0 && !showRxForm ? (
+                  <div className="enc-empty">
+                    <div className="enc-empty-icon">💊</div>
+                    <div className="enc-empty-text">No prescriptions for this encounter</div>
+                    <button onClick={() => setShowRxForm(true)} className="enc-btn enc-btn-primary">
+                      + Add Prescription
                     </button>
                   </div>
-                  {isRecording && (
-                    <div style={{ fontSize: 13, color: '#dc2626', marginTop: -8, marginBottom: 8, fontWeight: 500 }}>
-                      ● Recording... Click microphone to stop
-                    </div>
-                  )}
+                ) : (
+                  <>
+                    {prescriptions.map(rx => (
+                      <div key={rx.id} className="enc-rx-card">
+                        <div style={{ flex: 1 }}>
+                          <div className="enc-rx-name">
+                            {rx.medication_name}
+                            {rx.strength && <span style={{ fontWeight: 400, color: '#6b7280', marginLeft: 6 }}>{rx.strength}</span>}
+                            {rx.form && <span style={{ fontWeight: 400, color: '#9ca3af', marginLeft: 6 }}>({rx.form})</span>}
+                          </div>
+                          {rx.sig && <div className="enc-rx-detail">Sig: {rx.sig}</div>}
+                          <div className="enc-rx-meta">
+                            {rx.quantity && <span>Qty: {rx.quantity}</span>}
+                            {rx.refills > 0 && <span>Refills: {rx.refills}</span>}
+                            {rx.days_supply && <span>Days: {rx.days_supply}</span>}
+                            {rx.is_controlled && <span style={{ color: '#dc2626' }}>Schedule {rx.schedule || 'N/A'}</span>}
+                          </div>
+                        </div>
+                        <span className="badge-draft">Draft</span>
+                      </div>
+                    ))}
+                    {!showRxForm && (
+                      <button onClick={() => setShowRxForm(true)} className="enc-btn enc-btn-primary" style={{ marginTop: 8 }}>
+                        + Add Prescription
+                      </button>
+                    )}
+                  </>
+                )}
 
-                  {/* Action buttons */}
-                  <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>
-                    <button onClick={handleFormat} disabled={!noteInput.trim() || noteFormatting} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: (!noteInput.trim() || noteFormatting) ? 0.5 : 1 }}>
-                      {noteFormatting ? 'Formatting...' : '✨ Format with AI'}
-                    </button>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button onClick={() => { setShowNoteForm(false); setNoteInput(''); stopDictation(); }} className="btn-secondary">Cancel</button>
-                      <button onClick={handleSaveNote} disabled={!noteInput.trim() || noteSaving} className="btn-primary" style={{ opacity: (!noteInput.trim() || noteSaving) ? 0.5 : 1 }}>
-                        {noteSaving ? 'Saving...' : 'Save as Draft'}
+                {/* Rx Form */}
+                {showRxForm && (
+                  <div className="enc-form-card">
+                    <div className="enc-form-title">
+                      <span>New Prescription (Draft)</span>
+                      <button onClick={() => setShowRxForm(false)} className="enc-close" style={{ width: 28, height: 28, fontSize: 16 }}>×</button>
+                    </div>
+                    <div className="enc-rx-form-grid">
+                      <div className="form-group">
+                        <label>Medication Name *</label>
+                        <input type="text" value={rxForm.medication_name} onChange={e => setRxForm(p => ({ ...p, medication_name: e.target.value }))} placeholder="e.g., Testosterone Cypionate" />
+                      </div>
+                      <div className="form-group">
+                        <label>Strength</label>
+                        <input type="text" value={rxForm.strength} onChange={e => setRxForm(p => ({ ...p, strength: e.target.value }))} placeholder="e.g., 200mg/mL" />
+                      </div>
+                      <div className="form-group">
+                        <label>Form</label>
+                        <select value={rxForm.form} onChange={e => setRxForm(p => ({ ...p, form: e.target.value }))}>
+                          <option value="">Select...</option>
+                          <option value="injection">Injection</option>
+                          <option value="tablet">Tablet</option>
+                          <option value="capsule">Capsule</option>
+                          <option value="cream">Cream</option>
+                          <option value="patch">Patch</option>
+                          <option value="sublingual">Sublingual</option>
+                          <option value="nasal">Nasal Spray</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label>Quantity</label>
+                        <input type="text" value={rxForm.quantity} onChange={e => setRxForm(p => ({ ...p, quantity: e.target.value }))} placeholder="e.g., 1 vial, 30 tablets" />
+                      </div>
+                      <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                        <label>Sig (Directions)</label>
+                        <input type="text" value={rxForm.sig} onChange={e => setRxForm(p => ({ ...p, sig: e.target.value }))} placeholder="e.g., Inject 0.5mL IM weekly" />
+                      </div>
+                      <div className="form-group">
+                        <label>Refills</label>
+                        <input type="number" value={rxForm.refills} onChange={e => setRxForm(p => ({ ...p, refills: parseInt(e.target.value) || 0 }))} min={0} />
+                      </div>
+                      <div className="form-group">
+                        <label>Days Supply</label>
+                        <input type="number" value={rxForm.days_supply} onChange={e => setRxForm(p => ({ ...p, days_supply: e.target.value }))} placeholder="e.g., 30" />
+                      </div>
+                      <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                          <input type="checkbox" checked={rxForm.is_controlled} onChange={e => setRxForm(p => ({ ...p, is_controlled: e.target.checked }))} style={{ width: 16, height: 16 }} />
+                          Controlled Substance
+                        </label>
+                        {rxForm.is_controlled && (
+                          <div className="enc-controlled-alert">
+                            <span>⚠️ CURES check required before prescribing controlled substances</span>
+                            <select value={rxForm.schedule} onChange={e => setRxForm(p => ({ ...p, schedule: e.target.value }))} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #fecaca', fontSize: 12 }}>
+                              <option value="">Schedule...</option>
+                              <option value="II">Schedule II</option>
+                              <option value="III">Schedule III</option>
+                              <option value="IV">Schedule IV</option>
+                              <option value="V">Schedule V</option>
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 20, justifyContent: 'flex-end' }}>
+                      <button onClick={() => setShowRxForm(false)} className="enc-btn enc-btn-secondary">Cancel</button>
+                      <button onClick={handleSaveRx} disabled={!rxForm.medication_name.trim() || rxSaving} className="enc-btn enc-btn-primary">
+                        {rxSaving ? 'Saving...' : 'Save Draft Rx'}
                       </button>
                     </div>
                   </div>
-                </div>
-              )}
-            </>
-          )}
-
-          {/* ===== PRESCRIPTIONS SECTION (Scaffolding) ===== */}
-          {activeSection === 'prescriptions' && (
-            <>
-              <div style={{ padding: '8px 12px', marginBottom: 16, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, fontSize: 12, color: '#92400e' }}>
-                ⚠️ e-Prescribing is not yet active. Prescriptions saved here are drafts only.
-              </div>
-
-              {prescriptions.length === 0 && !showRxForm ? (
-                <div style={{ textAlign: 'center', padding: 32, color: '#9ca3af' }}>
-                  <div style={{ fontSize: 24, marginBottom: 8, opacity: 0.4 }}>💊</div>
-                  <div>No prescriptions for this encounter</div>
-                  <button onClick={() => setShowRxForm(true)} className="btn-primary" style={{ marginTop: 12 }}>
-                    + Add Prescription
-                  </button>
-                </div>
-              ) : (
-                <>
-                  {prescriptions.map(rx => (
-                    <div key={rx.id} style={{ marginBottom: 12, padding: 14, border: '1px solid #e5e7eb', borderRadius: 8, background: '#fff' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <strong style={{ fontSize: 14 }}>{rx.medication_name}</strong>
-                          {rx.strength && <span style={{ color: '#6b7280', marginLeft: 6 }}>{rx.strength}</span>}
-                          {rx.form && <span style={{ color: '#6b7280', marginLeft: 6 }}>({rx.form})</span>}
-                        </div>
-                        <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600, background: '#f3f4f6', color: '#6b7280' }}>
-                          Draft
-                        </span>
-                      </div>
-                      {rx.sig && <div style={{ fontSize: 13, color: '#374151', marginTop: 4 }}>Sig: {rx.sig}</div>}
-                      <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 4 }}>
-                        {rx.quantity && `Qty: ${rx.quantity}`}
-                        {rx.refills > 0 && ` • Refills: ${rx.refills}`}
-                        {rx.days_supply && ` • Days: ${rx.days_supply}`}
-                        {rx.is_controlled && ` • Schedule ${rx.schedule || 'N/A'}`}
-                      </div>
-                    </div>
-                  ))}
-                  {!showRxForm && (
-                    <button onClick={() => setShowRxForm(true)} className="btn-primary" style={{ marginTop: 8 }}>
-                      + Add Prescription
-                    </button>
-                  )}
-                </>
-              )}
-
-              {/* Rx Form */}
-              {showRxForm && (
-                <div style={{ marginTop: 16, padding: 16, border: '1px solid #e5e7eb', borderRadius: 8, background: '#fafafa' }}>
-                  <h4 style={{ margin: '0 0 12px', fontSize: 14 }}>New Prescription (Draft)</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                    <div className="form-group">
-                      <label>Medication Name *</label>
-                      <input type="text" value={rxForm.medication_name} onChange={e => setRxForm(p => ({ ...p, medication_name: e.target.value }))} placeholder="e.g., Testosterone Cypionate" />
-                    </div>
-                    <div className="form-group">
-                      <label>Strength</label>
-                      <input type="text" value={rxForm.strength} onChange={e => setRxForm(p => ({ ...p, strength: e.target.value }))} placeholder="e.g., 200mg/mL" />
-                    </div>
-                    <div className="form-group">
-                      <label>Form</label>
-                      <select value={rxForm.form} onChange={e => setRxForm(p => ({ ...p, form: e.target.value }))}>
-                        <option value="">Select...</option>
-                        <option value="injection">Injection</option>
-                        <option value="tablet">Tablet</option>
-                        <option value="capsule">Capsule</option>
-                        <option value="cream">Cream</option>
-                        <option value="patch">Patch</option>
-                        <option value="sublingual">Sublingual</option>
-                        <option value="nasal">Nasal Spray</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label>Quantity</label>
-                      <input type="text" value={rxForm.quantity} onChange={e => setRxForm(p => ({ ...p, quantity: e.target.value }))} placeholder="e.g., 1 vial, 30 tablets" />
-                    </div>
-                    <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                      <label>Sig (Directions)</label>
-                      <input type="text" value={rxForm.sig} onChange={e => setRxForm(p => ({ ...p, sig: e.target.value }))} placeholder="e.g., Inject 0.5mL IM weekly" />
-                    </div>
-                    <div className="form-group">
-                      <label>Refills</label>
-                      <input type="number" value={rxForm.refills} onChange={e => setRxForm(p => ({ ...p, refills: parseInt(e.target.value) || 0 }))} min={0} />
-                    </div>
-                    <div className="form-group">
-                      <label>Days Supply</label>
-                      <input type="number" value={rxForm.days_supply} onChange={e => setRxForm(p => ({ ...p, days_supply: e.target.value }))} placeholder="e.g., 30" />
-                    </div>
-                    <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                        <input type="checkbox" checked={rxForm.is_controlled} onChange={e => setRxForm(p => ({ ...p, is_controlled: e.target.checked }))} />
-                        Controlled Substance
-                      </label>
-                      {rxForm.is_controlled && (
-                        <div style={{ marginTop: 8, padding: 8, background: '#fef2f2', borderRadius: 4, border: '1px solid #fecaca', fontSize: 12, color: '#991b1b' }}>
-                          ⚠️ CURES check required before prescribing controlled substances
-                          <select value={rxForm.schedule} onChange={e => setRxForm(p => ({ ...p, schedule: e.target.value }))} style={{ marginLeft: 8 }}>
-                            <option value="">Schedule...</option>
-                            <option value="II">Schedule II</option>
-                            <option value="III">Schedule III</option>
-                            <option value="IV">Schedule IV</option>
-                            <option value="V">Schedule V</option>
-                          </select>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' }}>
-                    <button onClick={() => setShowRxForm(false)} className="btn-secondary">Cancel</button>
-                    <button onClick={handleSaveRx} disabled={!rxForm.medication_name.trim() || rxSaving} className="btn-primary" style={{ opacity: (!rxForm.medication_name.trim() || rxSaving) ? 0.5 : 1 }}>
-                      {rxSaving ? 'Saving...' : 'Save Draft Rx'}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

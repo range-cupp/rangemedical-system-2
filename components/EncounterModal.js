@@ -42,6 +42,26 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
   const [rxForm, setRxForm] = useState({ medication_name: '', strength: '', form: '', quantity: '', sig: '', refills: 0, days_supply: '', is_controlled: false, schedule: '', category: '' });
   const [rxSaving, setRxSaving] = useState(false);
 
+  // Delete state
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteAppointment = async () => {
+    if (!appointment?.id) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/appointments/${appointment.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        onRefresh();
+        onClose();
+      }
+    } catch (err) {
+      console.error('Delete appointment error:', err);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   // Active section
   const [activeSection, setActiveSection] = useState('notes');
 
@@ -527,7 +547,35 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                 {appointment?.service_name || appointment?.appointment_title || 'Appointment'} — {formatDate(appointment?.start_time)}
               </div>
             </div>
-            <button onClick={onClose} className="enc-close">×</button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {!confirmDelete ? (
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  title="Delete appointment"
+                  style={{ padding: '4px 10px', fontSize: '12px', fontWeight: 600, border: '1px solid #fca5a5', borderRadius: '6px', background: '#fff', color: '#dc2626', cursor: 'pointer' }}
+                >
+                  Delete
+                </button>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '12px', color: '#dc2626', fontWeight: 500 }}>Delete?</span>
+                  <button
+                    onClick={handleDeleteAppointment}
+                    disabled={deleting}
+                    style={{ padding: '4px 10px', fontSize: '12px', fontWeight: 600, border: 'none', borderRadius: '6px', background: '#dc2626', color: '#fff', cursor: 'pointer' }}
+                  >
+                    {deleting ? '...' : 'Yes'}
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(false)}
+                    style={{ padding: '4px 10px', fontSize: '12px', fontWeight: 600, border: '1px solid #d1d5db', borderRadius: '6px', background: '#fff', color: '#374151', cursor: 'pointer' }}
+                  >
+                    No
+                  </button>
+                </div>
+              )}
+              <button onClick={onClose} className="enc-close">×</button>
+            </div>
           </div>
 
           {/* Appointment Details Bar */}

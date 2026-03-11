@@ -98,7 +98,10 @@ export default function PatientPortal() {
 
   const totalDays = protocol.total_sessions || protocol.duration_days || 10;
   const currentDay = calculateCurrentDay(protocol.start_date);
-  const isComplete = currentDay > totalDays;
+  const isWeightLoss = /weight.?loss|semaglutide|tirzepatide|retatrutide/i.test(
+    `${protocol.program_type || ''} ${protocol.program_name || ''}`
+  );
+  const isComplete = !isWeightLoss && currentDay > totalDays;
   const isNotStarted = currentDay < 1;
   const daysRemaining = totalDays - currentDay;
 
@@ -125,45 +128,47 @@ export default function PatientPortal() {
         </div>
 
         {/* Big Day Display */}
-        <div style={styles.dayCard}>
-          {isComplete ? (
-            <>
-              <div style={styles.completeIcon}>🎉</div>
-              <div style={styles.completeText}>Protocol Complete!</div>
-              <p style={styles.completeSubtext}>
-                Great job finishing your {totalDays}-day protocol
-              </p>
-            </>
-          ) : isNotStarted ? (
-            <>
-              <div style={styles.dayLabel}>STARTS</div>
-              <div style={styles.startDate}>{formatDate(protocol.start_date)}</div>
-              <p style={styles.daySubtext}>{totalDays}-day protocol</p>
-            </>
-          ) : (
-            <>
-              <div style={styles.dayLabel}>TODAY IS</div>
-              <div style={styles.dayDisplay}>
-                <span style={styles.dayText}>Day</span>
-                <span style={styles.currentDay}>{currentDay}</span>
-                <span style={styles.ofText}>of {totalDays}</span>
-              </div>
-              <p style={styles.daySubtext}>
-                {daysRemaining === 0 ? 'Last day!' : `${daysRemaining} days remaining`}
-              </p>
-            </>
-          )}
-        </div>
+        {!isWeightLoss && (
+          <div style={styles.dayCard}>
+            {isComplete ? (
+              <>
+                <div style={styles.completeIcon}>🎉</div>
+                <div style={styles.completeText}>Protocol Complete!</div>
+                <p style={styles.completeSubtext}>
+                  Great job finishing your {totalDays}-day protocol
+                </p>
+              </>
+            ) : isNotStarted ? (
+              <>
+                <div style={styles.dayLabel}>STARTS</div>
+                <div style={styles.startDate}>{formatDate(protocol.start_date)}</div>
+                <p style={styles.daySubtext}>{totalDays}-day protocol</p>
+              </>
+            ) : (
+              <>
+                <div style={styles.dayLabel}>TODAY IS</div>
+                <div style={styles.dayDisplay}>
+                  <span style={styles.dayText}>Day</span>
+                  <span style={styles.currentDay}>{currentDay}</span>
+                  <span style={styles.ofText}>of {totalDays}</span>
+                </div>
+                <p style={styles.daySubtext}>
+                  {daysRemaining === 0 ? 'Last day!' : `${daysRemaining} days remaining`}
+                </p>
+              </>
+            )}
+          </div>
+        )}
 
-        {/* Progress Bar */}
-        {!isNotStarted && (
+        {/* Progress Bar (non-weight-loss only) */}
+        {!isWeightLoss && !isNotStarted && (
           <div style={styles.progressSection}>
             <div style={styles.progressBar}>
-              <div 
-                style={{ 
-                  ...styles.progressFill, 
-                  width: `${Math.min(100, (currentDay / totalDays) * 100)}%` 
-                }} 
+              <div
+                style={{
+                  ...styles.progressFill,
+                  width: `${Math.min(100, (currentDay / totalDays) * 100)}%`
+                }}
               />
             </div>
             <div style={styles.progressLabels}>
@@ -217,8 +222,8 @@ export default function PatientPortal() {
           );
         })()}
 
-        {/* Calendar */}
-        {!isComplete && !isNotStarted && (
+        {/* Calendar (non-weight-loss only) */}
+        {!isWeightLoss && !isComplete && !isNotStarted && (
           <div style={styles.calendarSection}>
             <h2 style={styles.sectionTitle}>Your Calendar</h2>
             <div style={styles.calendarGrid}>
@@ -248,8 +253,8 @@ export default function PatientPortal() {
           </div>
         )}
 
-        {/* Protocol Info */}
-        <div style={styles.infoSection}>
+        {/* Protocol Info (non-weight-loss only) */}
+        {!isWeightLoss && <div style={styles.infoSection}>
           <h2 style={styles.sectionTitle}>Your Protocol</h2>
           
           {protocol.primary_peptide && (
@@ -287,7 +292,7 @@ export default function PatientPortal() {
             <span style={styles.infoLabel}>Ends</span>
             <span style={styles.infoValue}>{formatDate(protocol.end_date)}</span>
           </div>
-        </div>
+        </div>}
 
         {/* Special Instructions */}
         {protocol.special_instructions && (

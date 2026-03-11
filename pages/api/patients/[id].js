@@ -271,12 +271,12 @@ export default async function handler(req, res) {
         .eq('status', 'pending')
         .order('order_date', { ascending: false });
 
-      // Get lab results
+      // Get lab results (from main labs table — used for HRT schedule matching)
       const { data: labs } = await supabase
-        .from('patient_labs')
-        .select('*')
+        .from('labs')
+        .select('id, patient_id, test_date, lab_type, panel_type, lab_provider, status, completed_date, results_received_date')
         .eq('patient_id', id)
-        .order('collection_date', { ascending: false });
+        .order('test_date', { ascending: false });
 
       // Get pending purchases — a purchase is pending if no protocol has been linked
       // Check BOTH protocol_created flag AND protocol_id (belt and suspenders)

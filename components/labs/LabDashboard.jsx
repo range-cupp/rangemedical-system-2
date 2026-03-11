@@ -43,20 +43,27 @@ export default function LabDashboard({ patientId, patientGender, embedded }) {
 
   // Load results when selected lab changes
   useEffect(() => {
-    if (!selectedLabId || !patientGender) return;
+    if (!selectedLabId) return;
 
     // Find the selected order to get all lab_ids for this date group
     const selectedOrder = labOrders.find(o => o.id === selectedLabId);
     const labIds = selectedOrder?.lab_ids || [selectedLabId];
 
-    fetch(`/api/labs/results?lab_ids=${labIds.join(',')}&gender=${encodeURIComponent(patientGender)}`)
+    const genderParam = patientGender ? `&gender=${encodeURIComponent(patientGender)}` : '';
+    fetch(`/api/labs/results?lab_ids=${labIds.join(',')}${genderParam}`)
       .then(r => r.json())
       .then(data => {
         if (data.success) {
           setResults(data.results);
+        } else {
+          console.error('Results API error:', data.error);
+          setResults([]);
         }
       })
-      .catch(err => console.error('Results fetch error:', err));
+      .catch(err => {
+        console.error('Results fetch error:', err);
+        setResults([]);
+      });
   }, [selectedLabId, patientGender, labOrders]);
 
   // Load all lab results for compare view (lazy, on first toggle to compare)

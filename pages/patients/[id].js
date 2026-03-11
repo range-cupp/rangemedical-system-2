@@ -2249,14 +2249,14 @@ export default function PatientProfile() {
             <>
               <section className="card">
                 <div className="card-header">
-                  <h3>Active Protocols ({activeProtocols.length})</h3>
+                  <h3>Protocols ({activeProtocols.length + completedProtocols.length})</h3>
                   <button onClick={() => openAssignModal()} className="btn-primary-sm">+ Add Protocol</button>
                 </div>
-                {activeProtocols.length === 0 ? (
-                  <div className="empty">No active protocols</div>
+                {activeProtocols.length === 0 && completedProtocols.length === 0 ? (
+                  <div className="empty">No protocols</div>
                 ) : (
                   <div className="protocol-list">
-                    {activeProtocols.map(protocol => {
+                    {[...activeProtocols, ...completedProtocols].map(protocol => {
                       const cat = getCategoryStyle(protocol.category);
                       const isExpanded = expandedProtocols[protocol.id];
                       const isWeightLoss = protocol.category === 'weight_loss';
@@ -2274,10 +2274,11 @@ export default function PatientProfile() {
                       const pLogs = getProtocolLogsForId(protocol.id);
 
                       return (
-                        <div key={protocol.id} className="protocol-card">
+                        <div key={protocol.id} className="protocol-card" style={protocol.status === 'completed' ? { opacity: 0.7 } : {}}>
                           <div className="protocol-card-header">
                             <span className="protocol-badge" style={{ background: cat.bg, color: cat.text }}>{cat.label}</span>
                             <span className="protocol-name">{protocol.program_name || protocol.medication}</span>
+                            {protocol.status === 'completed' && <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', background: '#f3f4f6', padding: '2px 8px', borderRadius: '4px' }}>✓ Completed</span>}
                             {protocol.delivery_method === 'in_clinic' && <span className="clinic-badge">In-Clinic</span>}
                           </div>
                           <div className="protocol-details">
@@ -2909,34 +2910,6 @@ export default function PatientProfile() {
                               </div>
                             );
                           })()}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </section>
-
-              <section className="card">
-                <div className="card-header">
-                  <h3>Completed Protocols ({completedProtocols.length})</h3>
-                </div>
-                {completedProtocols.length === 0 ? (
-                  <div className="empty">No completed protocols</div>
-                ) : (
-                  <div className="protocol-list">
-                    {completedProtocols.map(protocol => {
-                      const cat = getCategoryStyle(protocol.category);
-                      return (
-                        <div key={protocol.id} className="protocol-card completed">
-                          <div className="protocol-card-header">
-                            <span className="protocol-badge" style={{ background: cat.bg, color: cat.text }}>{cat.label}</span>
-                            <span className="protocol-name">{protocol.program_name || protocol.medication}</span>
-                          </div>
-                          <div className="protocol-dates">{formatShortDate(protocol.start_date)} → {formatShortDate(protocol.end_date)}</div>
-                          <div className="protocol-footer">
-                            <span className="status-complete">✓ Complete</span>
-                            <button onClick={() => openEditModal(protocol)} className="btn-text">View</button>
-                          </div>
                         </div>
                       );
                     })}

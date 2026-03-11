@@ -297,6 +297,8 @@ export default function PatientProfile() {
   const [showEditPurchaseModal, setShowEditPurchaseModal] = useState(false);
   const [editingPurchase, setEditingPurchase] = useState(null);
   const [editPurchaseForm, setEditPurchaseForm] = useState({ product_name: '', amount_paid: '', stripe_subscription_id: '', notes: '' });
+  const [confirmDeletePurchase, setConfirmDeletePurchase] = useState(false);
+  const [deletingPurchase, setDeletingPurchase] = useState(false);
 
   // Log Entry modal state
   const [showLogEntryModal, setShowLogEntryModal] = useState(false);
@@ -883,6 +885,7 @@ export default function PatientProfile() {
       stripe_subscription_id: purchase.stripe_subscription_id || '',
       notes: purchase.notes || '',
     });
+    setConfirmDeletePurchase(false);
     setShowEditPurchaseModal(true);
   };
 
@@ -910,6 +913,25 @@ export default function PatientProfile() {
       }
     } catch (error) {
       console.error('Error updating purchase:', error);
+    }
+  };
+
+  const handleDeletePurchase = async () => {
+    if (!editingPurchase?.id) return;
+    setDeletingPurchase(true);
+    try {
+      const res = await fetch(`/api/purchases/${editingPurchase.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setShowEditPurchaseModal(false);
+        setConfirmDeletePurchase(false);
+        fetchPatient();
+      } else {
+        alert('Failed to delete purchase');
+      }
+    } catch (err) {
+      console.error('Error deleting purchase:', err);
+    } finally {
+      setDeletingPurchase(false);
     }
   };
 
@@ -4142,9 +4164,28 @@ export default function PatientProfile() {
                   />
                 </div>
               </div>
-              <div className="modal-footer">
-                <button onClick={() => setShowEditPurchaseModal(false)} className="btn-secondary">Cancel</button>
-                <button onClick={handleEditPurchase} className="btn-primary">Save</button>
+              <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
+                <div>
+                  {!confirmDeletePurchase ? (
+                    <button onClick={() => setConfirmDeletePurchase(true)} style={{ padding: '8px 14px', fontSize: '13px', fontWeight: 600, border: '1px solid #fca5a5', borderRadius: '6px', background: '#fff', color: '#dc2626', cursor: 'pointer' }}>
+                      Delete
+                    </button>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '13px', color: '#dc2626', fontWeight: 500 }}>Delete this purchase?</span>
+                      <button onClick={handleDeletePurchase} disabled={deletingPurchase} style={{ padding: '6px 12px', fontSize: '13px', fontWeight: 600, border: 'none', borderRadius: '6px', background: '#dc2626', color: '#fff', cursor: 'pointer' }}>
+                        {deletingPurchase ? '...' : 'Yes'}
+                      </button>
+                      <button onClick={() => setConfirmDeletePurchase(false)} style={{ padding: '6px 12px', fontSize: '13px', fontWeight: 600, border: '1px solid #d1d5db', borderRadius: '6px', background: '#fff', color: '#374151', cursor: 'pointer' }}>
+                        No
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => setShowEditPurchaseModal(false)} className="btn-secondary">Cancel</button>
+                  <button onClick={handleEditPurchase} className="btn-primary">Save</button>
+                </div>
               </div>
             </div>
           </div>

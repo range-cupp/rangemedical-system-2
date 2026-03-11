@@ -1130,6 +1130,7 @@ export default function CommandCenter() {
       purchaseItem: purchaseToUse?.item_name || null,
       // Peptide vial specific fields
       numVials: '',
+      dosesPerVial: '',
       reconstitutionMl: '',
       peptideDose: '',
       // Weight loss specific fields
@@ -1619,6 +1620,7 @@ export default function CommandCenter() {
             isWeightLoss: isWeightLossTemplate(),
             // Peptide vial specific fields
             numVials: assignForm.numVials ? parseInt(assignForm.numVials) : null,
+            dosesPerVial: assignForm.dosesPerVial ? parseInt(assignForm.dosesPerVial) : null,
             reconstitutionMl: assignForm.reconstitutionMl || null,
             peptideDose: assignForm.peptideDose || null,
             peptideDurationDays: assignForm.numVials && assignForm.reconstitutionMl && assignForm.peptideDose && assignForm.frequency
@@ -1779,7 +1781,9 @@ export default function CommandCenter() {
       selected_dose: protocol.selected_dose || '',
       delivery_method: protocol.delivery_method || '',
       status: protocol.status || 'active',
-      notes: protocol.notes || ''
+      notes: protocol.notes || '',
+      num_vials: protocol.num_vials || '',
+      doses_per_vial: protocol.doses_per_vial || ''
     });
     setShowEditModal(true);
   };
@@ -1817,7 +1821,10 @@ export default function CommandCenter() {
           hrt_followup_date: editingProtocol.hrt_followup_date || null,
           hrt_reminders_enabled: editingProtocol.hrt_reminders_enabled || false,
           hrt_reminder_schedule: editingProtocol.hrt_reminder_schedule || null,
-          secondary_medication: editingProtocol.secondary_medication || null
+          secondary_medication: editingProtocol.secondary_medication || null,
+          // Peptide vial fields
+          num_vials: editingProtocol.num_vials ? parseInt(editingProtocol.num_vials) : null,
+          doses_per_vial: editingProtocol.doses_per_vial ? parseInt(editingProtocol.doses_per_vial) : null
         })
       });
 
@@ -2360,7 +2367,35 @@ export default function CommandCenter() {
                           </span>
                         </div>
                       )}
-                      {protocolDetailPanel.protocol.total_sessions > 0 && !(['peptide', 'weight_loss'].includes(protocolDetailPanel.protocol.program_type) && protocolDetailPanel.protocol.delivery_method === 'take_home') && (
+                      {/* Vial-based peptide protocol tracking */}
+                      {protocolDetailPanel.protocol.program_type === 'peptide' && protocolDetailPanel.protocol.doses_per_vial > 0 && (
+                        (() => {
+                          const p = protocolDetailPanel.protocol;
+                          const sessionsUsed = p.sessions_used || 0;
+                          const dpv = p.doses_per_vial;
+                          const numVials = p.num_vials || 1;
+                          const totalDoses = numVials * dpv;
+                          const currentVial = Math.min(Math.floor(sessionsUsed / dpv) + 1, numVials);
+                          const dosesInCurrentVial = sessionsUsed - ((currentVial - 1) * dpv);
+                          return (
+                            <>
+                              <div style={styles.protocolDetailItem}>
+                                <span style={styles.protocolDetailLabel}>Vial Progress</span>
+                                <span style={styles.protocolDetailValue}>
+                                  Vial {currentVial} of {numVials} — {dosesInCurrentVial}/{dpv} doses used
+                                </span>
+                              </div>
+                              <div style={styles.protocolDetailItem}>
+                                <span style={styles.protocolDetailLabel}>Total Injections</span>
+                                <span style={styles.protocolDetailValue}>
+                                  {sessionsUsed} / {totalDoses}
+                                </span>
+                              </div>
+                            </>
+                          );
+                        })()
+                      )}
+                      {protocolDetailPanel.protocol.total_sessions > 0 && !(protocolDetailPanel.protocol.program_type === 'peptide' && protocolDetailPanel.protocol.doses_per_vial > 0) && !(['peptide', 'weight_loss'].includes(protocolDetailPanel.protocol.program_type) && protocolDetailPanel.protocol.delivery_method === 'take_home') && (
                         protocolDetailPanel.protocol.program_type === 'injection' && protocolDetailPanel.protocol.delivery_method === 'take_home' ? (
                           <>
                             <div style={styles.protocolDetailItem}>
@@ -3221,7 +3256,7 @@ export default function CommandCenter() {
                   value={assignForm.templateId}
                   onChange={e => {
                     const newTemplateId = e.target.value;
-                    const resetForm = {...assignForm, templateId: newTemplateId, peptideId: '', selectedDose: '', wlMedication: '', pickupFrequency: '', injectionDay: '', checkinReminderEnabled: false, frequency: '', deliveryMethod: '', ivType: '', hrtType: 'male', hrtReminderSchedule: 'mon_thu', hrtRemindersEnabled: true, followupDate: '', supplyType: 'prefilled', hrtQuantity: 8, membershipFrequency: '', hrtSecondaryMedication: ''};
+                    const resetForm = {...assignForm, templateId: newTemplateId, peptideId: '', selectedDose: '', wlMedication: '', pickupFrequency: '', injectionDay: '', checkinReminderEnabled: false, frequency: '', deliveryMethod: '', ivType: '', hrtType: 'male', hrtReminderSchedule: 'mon_thu', hrtRemindersEnabled: true, followupDate: '', supplyType: 'prefilled', hrtQuantity: 8, membershipFrequency: '', hrtSecondaryMedication: '', dosesPerVial: '', numVials: ''};
                     // Auto-detect membership frequency from template name
                     if (newTemplateId) {
                       let selectedTpl = null;
@@ -3799,6 +3834,19 @@ export default function CommandCenter() {
                     </div>
 
                     <div style={styles.modalFormGroup}>
+                      <label style={styles.formLabel}>Injections per Vial *</label>
+                      <input
+                        type="number"
+                        value={assignForm.dosesPerVial || ''}
+                        onChange={e => setAssignForm({...assignForm, dosesPerVial: e.target.value})}
+                        style={styles.formInput}
+                        placeholder="e.g. 10"
+                        min="1"
+                        max="100"
+                      />
+                    </div>
+
+                    <div style={styles.modalFormGroup}>
                       <label style={styles.formLabel}>Reconstitution Volume *</label>
                       <select
                         value={assignForm.reconstitutionMl || ''}
@@ -3826,8 +3874,8 @@ export default function CommandCenter() {
                       </select>
                     </div>
 
-                    {/* Show calculated injection info */}
-                    {assignForm.numVials && assignForm.reconstitutionMl && assignForm.peptideDose && assignForm.frequency && (
+                    {/* Show calculated injection info — either from dosesPerVial or reconstitution math */}
+                    {assignForm.numVials && assignForm.frequency && (assignForm.dosesPerVial || (assignForm.reconstitutionMl && assignForm.peptideDose)) && (
                       <div style={{ padding: '0 24px', marginBottom: '12px' }}>
                         <div style={{
                           padding: '12px',
@@ -3838,20 +3886,50 @@ export default function CommandCenter() {
                           color: '#1E40AF'
                         }}>
                           {(() => {
-                            const info = calculatePeptideVialInfo(
-                              assignForm.numVials,
-                              assignForm.reconstitutionMl,
-                              parseInt(assignForm.peptideDose),
-                              assignForm.frequency
-                            );
-                            if (!info) return 'Unable to calculate';
+                            // Use dosesPerVial directly if provided, otherwise calculate from reconstitution
+                            let dpv, totalDoses, injectionInfo;
+                            if (assignForm.dosesPerVial) {
+                              dpv = parseInt(assignForm.dosesPerVial);
+                              totalDoses = dpv * parseInt(assignForm.numVials);
+                            }
+                            if (assignForm.reconstitutionMl && assignForm.peptideDose) {
+                              injectionInfo = calculatePeptideVialInfo(
+                                assignForm.numVials,
+                                assignForm.reconstitutionMl,
+                                parseInt(assignForm.peptideDose),
+                                assignForm.frequency
+                              );
+                              if (!dpv && injectionInfo) {
+                                dpv = injectionInfo.dosesPerVial;
+                                totalDoses = injectionInfo.totalDoses;
+                              }
+                            }
+                            if (!dpv) return 'Unable to calculate';
+
+                            // Calculate duration based on frequency
+                            const freq = (assignForm.frequency || '').toLowerCase();
+                            let durationDays;
+                            if (freq.includes('5 on') || freq.includes('5on')) {
+                              durationDays = Math.ceil(totalDoses / 5) * 7;
+                            } else if (freq.includes('every other') || freq.includes('eod')) {
+                              durationDays = totalDoses * 2;
+                            } else if (freq.includes('2x daily')) {
+                              durationDays = Math.floor(totalDoses / 2);
+                            } else {
+                              durationDays = totalDoses; // daily
+                            }
+
+                            const endDate = new Date(new Date(assignForm.startDate).getTime() + durationDays * 24 * 60 * 60 * 1000);
                             return (
                               <>
-                                <div><strong>💉 Injection Amount:</strong> {info.injectionMl}ml ({info.injectionUnits} units)</div>
-                                <div style={{ marginTop: '6px' }}><strong>📦 Doses per vial:</strong> {info.dosesPerVial}</div>
-                                <div style={{ marginTop: '6px' }}><strong>📅 Total Duration:</strong> {info.durationDays} days</div>
+                                {injectionInfo && (
+                                  <div><strong>💉 Injection Amount:</strong> {injectionInfo.injectionMl}ml ({injectionInfo.injectionUnits} units)</div>
+                                )}
+                                <div style={injectionInfo ? { marginTop: '6px' } : {}}><strong>📦 Injections per vial:</strong> {dpv}</div>
+                                <div style={{ marginTop: '6px' }}><strong>💊 Total injections:</strong> {totalDoses} ({assignForm.numVials} vial{parseInt(assignForm.numVials) > 1 ? 's' : ''} × {dpv})</div>
+                                <div style={{ marginTop: '6px' }}><strong>📅 Duration:</strong> {durationDays} days</div>
                                 <div style={{ marginTop: '6px', color: '#059669' }}>
-                                  <strong>🔄 Refill needed:</strong> {new Date(new Date(assignForm.startDate).getTime() + info.durationDays * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                  <strong>🔄 Protocol ends:</strong> {endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                 </div>
                               </>
                             );
@@ -4605,9 +4683,55 @@ export default function CommandCenter() {
                 />
               </div>
 
+              {/* Peptide vial fields */}
+              {editingProtocol.program_type === 'peptide' && (
+                <>
+                  <div style={styles.modalFormGroup}>
+                    <label style={styles.formLabel}>Number of Vials</label>
+                    <input
+                      type="number"
+                      value={editingProtocol.num_vials || ''}
+                      onChange={e => {
+                        const nv = e.target.value;
+                        const updates = { ...editingProtocol, num_vials: nv };
+                        // Auto-recalculate total_sessions if doses_per_vial is set
+                        if (nv && editingProtocol.doses_per_vial) {
+                          updates.total_sessions = parseInt(nv) * parseInt(editingProtocol.doses_per_vial);
+                        }
+                        setEditingProtocol(updates);
+                      }}
+                      style={styles.formInput}
+                      min="1"
+                      placeholder="e.g. 2"
+                    />
+                  </div>
+
+                  <div style={styles.modalFormGroup}>
+                    <label style={styles.formLabel}>Injections per Vial</label>
+                    <input
+                      type="number"
+                      value={editingProtocol.doses_per_vial || ''}
+                      onChange={e => {
+                        const dpv = e.target.value;
+                        const updates = { ...editingProtocol, doses_per_vial: dpv };
+                        // Auto-recalculate total_sessions if num_vials is set
+                        if (dpv && editingProtocol.num_vials) {
+                          updates.total_sessions = parseInt(editingProtocol.num_vials) * parseInt(dpv);
+                        }
+                        setEditingProtocol(updates);
+                      }}
+                      style={styles.formInput}
+                      min="1"
+                      placeholder="e.g. 10"
+                    />
+                  </div>
+                </>
+              )}
+
               {/* Sessions - only show for HBOT, RLT, IV, Injection, and In-Clinic Weight Loss/HRT/Peptide */}
               {(['hbot', 'rlt', 'iv', 'injection'].includes(editingProtocol.program_type) ||
-                (['weight_loss', 'hrt', 'peptide'].includes(editingProtocol.program_type) && editingProtocol.delivery_method === 'in_clinic')) && (
+                editingProtocol.program_type === 'peptide' ||
+                (['weight_loss', 'hrt'].includes(editingProtocol.program_type) && editingProtocol.delivery_method === 'in_clinic')) && (
                 <>
                   <div style={styles.modalFormGroup}>
                     <label style={styles.formLabel}>

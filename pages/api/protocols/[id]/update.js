@@ -47,7 +47,10 @@ export default async function handler(req, res) {
       injections_per_week,
       hrt_followup_date,
       hrt_reminders_enabled,
-      hrt_reminder_schedule
+      hrt_reminder_schedule,
+      // Peptide vial fields
+      num_vials,
+      doses_per_vial
     } = req.body;
 
     const updateData = {};
@@ -80,6 +83,9 @@ export default async function handler(req, res) {
     if (hrt_followup_date !== undefined) updateData.hrt_followup_date = hrt_followup_date || null;
     if (hrt_reminders_enabled !== undefined) updateData.hrt_reminders_enabled = hrt_reminders_enabled;
     if (hrt_reminder_schedule !== undefined) updateData.hrt_reminder_schedule = hrt_reminder_schedule || null;
+    // Peptide vial fields
+    if (num_vials !== undefined) updateData.num_vials = num_vials ? parseInt(num_vials) : null;
+    if (doses_per_vial !== undefined) updateData.doses_per_vial = doses_per_vial ? parseInt(doses_per_vial) : null;
 
     // Add updated timestamp
     updateData.updated_at = new Date().toISOString();

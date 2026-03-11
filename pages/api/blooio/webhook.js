@@ -79,6 +79,18 @@ async function handleInboundMessage(body) {
 
   console.log(`Inbound iMessage/SMS from ${senderPhone}: ${messageText}`);
 
+  // DEBUG: Log every inbound at the very top to confirm Blooio is delivering
+  await supabase.from('comms_log').insert({
+    channel: 'sms',
+    message_type: 'webhook_debug',
+    message: `[DEBUG] from=${senderPhone} | text=${messageText} | body=${JSON.stringify(body).slice(0, 200)}`,
+    source: 'blooio/webhook(debug)',
+    status: 'received',
+    recipient: senderPhone,
+    direction: 'inbound',
+    provider: 'blooio',
+  }).catch(() => {});
+
   // ================================================================
   // STAFF BOT: Check if sender is a staff member — route to bot if so
   // ================================================================

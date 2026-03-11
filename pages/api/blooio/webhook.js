@@ -7,6 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { sendBlooioMessage } from '../../../lib/blooio';
 import { getPendingMessages, markPendingMessageSent } from '../../../lib/blooio-optin';
+import { identifyStaff, handleStaffMessage } from '../../../lib/staff-bot';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -77,6 +78,63 @@ async function handleInboundMessage(body) {
   const messageId = body.message_id || body.id || null;
 
   console.log(`Inbound iMessage/SMS from ${senderPhone}: ${messageText}`);
+
+  // ================================================================
+  // STAFF BOT: Check if sender is a staff member — route to bot if so
+  // ================================================================
+  if (senderPhone && messageText) {
+    const staffMember = await identifyStaff(senderPhone);
+
+    if (staffMember) {
+      console.log(`Staff message from ${staffMember.name} (${senderPhone}): ${messageText}`);
+
+      // Log inbound staff message to comms_log
+      const inboundRow = {
+        channel: 'sms',
+        message_type: 'staff_bot_inbound',
+        message: messageText,
+        source: 'blooio/webhook(staff-bot)',
+        status: 'received',
+        recipient: senderPhone,
+        direction: 'inbound',
+        provider: 'blooio',
+        patient_name: staffMember.name,
+      };
+      if (messageId) inboundRow.twilio_message_sid = messageId;
+      await supabase.from('comms_log').insert(inboundRow).catch(() => {});
+
+      // Process through staff bot and get response
+      let botResponse;
+      try {
+        botResponse = await handleStaffMessage(messageText, staffMember);
+      } catch (err) {
+        console.error('Staff bot error:', err);
+        botResponse = 'Sorry, something went wrong. Please try again or contact IT.';
+      }
+
+      // Send bot response back to staff member
+      const sendResult = await sendBlooioMessage({ to: senderPhone, message: botResponse });
+
+      // Log outbound bot response to comms_log
+      const outboundRow = {
+        channel: 'sms',
+        message_type: 'staff_bot_response',
+        message: botResponse,
+        source: 'blooio/webhook(staff-bot)',
+        status: sendResult.success ? 'sent' : 'error',
+        error_message: sendResult.error || null,
+        recipient: senderPhone,
+        direction: 'outbound',
+        provider: 'blooio',
+        patient_name: staffMember.name,
+      };
+      if (sendResult.messageSid) outboundRow.twilio_message_sid = sendResult.messageSid;
+      await supabase.from('comms_log').insert(outboundRow).catch(() => {});
+
+      // Staff message handled — do not continue to patient flow
+      return;
+    }
+  }
 
   // Try to match sender to a patient by phone
   let patient = null;

@@ -254,45 +254,47 @@ export default function PatientPortal() {
         )}
 
         {/* Protocol Info (non-weight-loss only) */}
-        {!isWeightLoss && <div style={styles.infoSection}>
-          <h2 style={styles.sectionTitle}>Your Protocol</h2>
-          
-          {protocol.primary_peptide && (
+        {!isWeightLoss && (
+          <div style={styles.infoSection}>
+            <h2 style={styles.sectionTitle}>Your Protocol</h2>
+
+            {protocol.primary_peptide && (
+              <div style={styles.infoRow}>
+                <span style={styles.infoLabel}>Medication</span>
+                <span style={styles.infoValue}>{protocol.primary_peptide}</span>
+              </div>
+            )}
+
+            {protocol.dose_amount && (
+              <div style={styles.infoRow}>
+                <span style={styles.infoLabel}>Dosage</span>
+                <span style={styles.infoValue}>{protocol.dose_amount}</span>
+              </div>
+            )}
+
+            {protocol.dose_frequency && (
+              <div style={styles.infoRow}>
+                <span style={styles.infoLabel}>Frequency</span>
+                <span style={styles.infoValue}>{formatFrequency(protocol.dose_frequency)}</span>
+              </div>
+            )}
+
             <div style={styles.infoRow}>
-              <span style={styles.infoLabel}>Medication</span>
-              <span style={styles.infoValue}>{protocol.primary_peptide}</span>
+              <span style={styles.infoLabel}>Duration</span>
+              <span style={styles.infoValue}>{totalDays} days</span>
             </div>
-          )}
-          
-          {protocol.dose_amount && (
+
             <div style={styles.infoRow}>
-              <span style={styles.infoLabel}>Dosage</span>
-              <span style={styles.infoValue}>{protocol.dose_amount}</span>
+              <span style={styles.infoLabel}>Started</span>
+              <span style={styles.infoValue}>{formatDate(protocol.start_date)}</span>
             </div>
-          )}
-          
-          {protocol.dose_frequency && (
+
             <div style={styles.infoRow}>
-              <span style={styles.infoLabel}>Frequency</span>
-              <span style={styles.infoValue}>{formatFrequency(protocol.dose_frequency)}</span>
+              <span style={styles.infoLabel}>Ends</span>
+              <span style={styles.infoValue}>{formatDate(protocol.end_date)}</span>
             </div>
-          )}
-          
-          <div style={styles.infoRow}>
-            <span style={styles.infoLabel}>Duration</span>
-            <span style={styles.infoValue}>{totalDays} days</span>
           </div>
-          
-          <div style={styles.infoRow}>
-            <span style={styles.infoLabel}>Started</span>
-            <span style={styles.infoValue}>{formatDate(protocol.start_date)}</span>
-          </div>
-          
-          <div style={styles.infoRow}>
-            <span style={styles.infoLabel}>Ends</span>
-            <span style={styles.infoValue}>{formatDate(protocol.end_date)}</span>
-          </div>
-        </div>}
+        )}
 
         {/* Special Instructions */}
         {protocol.special_instructions && (
@@ -310,7 +312,7 @@ export default function PatientPortal() {
 
         {/* Footer */}
         <footer style={styles.footer}>
-          <p>© Range Medical Costa Mesa</p>
+          <p>© Range Medical Newport Beach</p>
         </footer>
       </div>
 

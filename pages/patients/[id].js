@@ -5243,11 +5243,12 @@ export default function PatientProfile() {
           </>
         )}
 
-        {/* Past Encounters Quick View */}
+        {/* Quick View — Encounters + Protocols */}
         {showQuickView && (
           <EncounterQuickView
             appointments={appointments}
             notes={notes}
+            protocols={[...activeProtocols, ...completedProtocols]}
             onClose={() => setShowQuickView(false)}
             onOpenEncounter={(apt) => {
               setShowQuickView(false);

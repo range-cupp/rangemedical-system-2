@@ -193,7 +193,7 @@ const TEMPLATES = [
       },
       {
         label: 'Directions',
-        message: 'We\'re located at 1401 Avocado Ave, Suite 603, Newport Beach, CA 92660. There\'s plenty of free parking in the building lot. See you soon!',
+        message: 'We\'re located at 1901 West Cliff Drive, Suite 10, Newport Beach, CA 92660. There\'s plenty of free parking in the building lot. See you soon!',
       },
       {
         label: 'Custom Message',

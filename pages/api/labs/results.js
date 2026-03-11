@@ -27,20 +27,36 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { lab_id, gender } = req.query;
-    if (!lab_id) {
-      return res.status(400).json({ success: false, error: 'lab_id required' });
+    const { lab_id, lab_ids, gender } = req.query;
+    const ids = lab_ids ? lab_ids.split(',') : lab_id ? [lab_id] : [];
+    if (ids.length === 0) {
+      return res.status(400).json({ success: false, error: 'lab_id or lab_ids required' });
     }
 
-    // Fetch the lab row
-    const { data: lab, error: labError } = await supabase
+    // Fetch lab row(s) — merge multiple into one combined result
+    const { data: labs, error: labError } = await supabase
       .from('labs')
       .select('*')
-      .eq('id', lab_id)
-      .single();
+      .in('id', ids);
 
     if (labError) throw labError;
-    if (!lab) return res.status(404).json({ success: false, error: 'Lab not found' });
+    if (!labs || labs.length === 0) return res.status(404).json({ success: false, error: 'Lab not found' });
+
+    // Merge all lab rows into one combined object (prefer non-null values)
+    const lab = {};
+    for (const row of labs) {
+      for (const [key, value] of Object.entries(row)) {
+        if (value !== null && value !== undefined) {
+          lab[key] = value;
+        }
+      }
+    }
+    // Use the first lab's metadata
+    lab.id = labs[0].id;
+    lab.test_date = labs[0].test_date;
+    lab.lab_type = labs[0].lab_type;
+    lab.panel_type = labs.map(l => l.panel_type).filter(Boolean).join(', ');
+    lab.lab_provider = labs[0].lab_provider;
 
     // Fetch reference ranges for gender
     let rangesQuery = supabase.from('lab_reference_ranges').select('*');

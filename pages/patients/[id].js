@@ -3035,7 +3035,7 @@ export default function PatientProfile() {
                         </div>
                         <div className="doc-actions">
                           {doc.url && <button onClick={() => openPdfViewer(doc.url, doc.file_name || 'Lab Document')} className="btn-secondary-sm">View</button>}
-                          <button onClick={() => handleDeleteDocument(doc.id)} className="btn-text danger">×</button>
+                          {doc.source !== 'labs' && <button onClick={() => handleDeleteDocument(doc.id)} className="btn-text danger">×</button>}
                         </div>
                       </div>
                     ))}

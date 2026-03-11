@@ -45,7 +45,11 @@ export default function LabDashboard({ patientId, patientGender, embedded }) {
   useEffect(() => {
     if (!selectedLabId || !patientGender) return;
 
-    fetch(`/api/labs/results?lab_id=${selectedLabId}&gender=${encodeURIComponent(patientGender)}`)
+    // Find the selected order to get all lab_ids for this date group
+    const selectedOrder = labOrders.find(o => o.id === selectedLabId);
+    const labIds = selectedOrder?.lab_ids || [selectedLabId];
+
+    fetch(`/api/labs/results?lab_ids=${labIds.join(',')}&gender=${encodeURIComponent(patientGender)}`)
       .then(r => r.json())
       .then(data => {
         if (data.success) {
@@ -53,7 +57,7 @@ export default function LabDashboard({ patientId, patientGender, embedded }) {
         }
       })
       .catch(err => console.error('Results fetch error:', err));
-  }, [selectedLabId, patientGender]);
+  }, [selectedLabId, patientGender, labOrders]);
 
   // Load all lab results for compare view (lazy, on first toggle to compare)
   const loadHistory = useCallback(() => {

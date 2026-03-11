@@ -17,7 +17,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      // Get all documents for this patient
+      // Get manually uploaded documents
       const { data: documents, error } = await supabase
         .from('lab_documents')
         .select('*')
@@ -43,7 +43,26 @@ export default async function handler(req, res) {
         })
       );
 
-      return res.status(200).json({ documents: documentsWithUrls });
+      // Also fetch Primex lab PDFs from the labs table
+      const { data: labsWithPdf } = await supabase
+        .from('labs')
+        .select('id, test_date, lab_type, panel_type, lab_provider, pdf_url')
+        .eq('patient_id', patientId)
+        .not('pdf_url', 'is', null)
+        .order('test_date', { ascending: false });
+
+      const primexDocs = (labsWithPdf || []).map(lab => ({
+        id: `lab-${lab.id}`,
+        patient_id: patientId,
+        file_name: `${lab.lab_provider || 'Lab'} Results - ${lab.test_date}`,
+        lab_type: lab.lab_provider || lab.lab_type || 'Lab',
+        panel_type: lab.panel_type || '',
+        collection_date: lab.test_date,
+        url: lab.pdf_url,
+        source: 'labs',
+      }));
+
+      return res.status(200).json({ documents: [...documentsWithUrls, ...primexDocs] });
 
     } catch (error) {
       console.error('Error:', error);

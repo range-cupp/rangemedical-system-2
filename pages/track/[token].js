@@ -448,16 +448,21 @@ export default function PatientTracker() {
     const progress = Math.round((completedCount / totalDays) * 100);
     
     // Find applicable milestone
+    const cat = getQuestionnaireCategory(protocol?.program_type, protocol?.program_name);
+    const wlProtocol = cat === 'weight_loss';
     for (const milestone of MILESTONES) {
+      // Skip 100% completion milestone for weight loss (ongoing protocols)
+      if (wlProtocol && milestone.percent === 100) continue;
+
       const key = milestone.day ? `day_${milestone.day}` : `percent_${milestone.percent}`;
-      
+
       if (celebratedMilestones.includes(key)) continue;
-      
+
       if (milestone.day && completedCount === milestone.day) {
         celebrateMilestone(milestone, key);
         return;
       }
-      
+
       if (milestone.percent && progress >= milestone.percent) {
         celebrateMilestone(milestone, key);
         return;
@@ -1256,7 +1261,7 @@ export default function PatientTracker() {
   const totalInjections = injectionDays.length;
   const completedCount = completedDays.length;
   const injectionProgress = totalInjections > 0 ? Math.round((completedCount / totalInjections) * 100) : 0;
-  const isComplete = injectionProgress >= 100;
+  const isComplete = !isWeightLoss && injectionProgress >= 100;
 
   return (
     <>

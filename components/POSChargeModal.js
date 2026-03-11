@@ -10,7 +10,7 @@ import { formatPrice } from '../lib/pos-pricing';
 const CATEGORY_ORDER = [
   'programs', 'combo_membership', 'hbot', 'red_light', 'hrt', 'weight_loss',
   'iv_therapy', 'specialty_iv', 'injection_standard', 'injection_premium',
-  'injection_pack', 'nad_injection', 'peptide', 'vials', 'labs', 'assessment', 'gift_card', 'custom',
+  'injection_pack', 'nad_injection', 'peptide', 'vials', 'labs', 'assessment', 'other', 'gift_card', 'custom',
 ];
 const CATEGORY_LABELS = {
   programs: 'Programs',
@@ -29,6 +29,7 @@ const CATEGORY_LABELS = {
   vials: 'Vials',
   labs: 'Lab Panels',
   assessment: 'Assessment',
+  other: 'Other',
   gift_card: 'Gift Cards',
   custom: 'Custom',
 };

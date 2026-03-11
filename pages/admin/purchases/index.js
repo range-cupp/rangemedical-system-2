@@ -282,6 +282,8 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
     if ((purchaseItemLower.includes('hyperbaric') || purchaseItemLower.includes('hbot')) && purchaseItemLower.includes('membership')) return 'hbot_membership';
     if ((purchaseItemLower.includes('red light') || purchaseItemLower.includes('rlt')) && purchaseItemLower.includes('membership')) return 'rlt_membership';
     if (purchaseCat === 'combo_membership') return 'combo_membership';
+    // Peptide vials: detect from item name or category
+    if (purchaseItemLower.includes('vial') || purchaseCat === 'vials') return 'peptide_vial';
     // HRT: distinguish male vs female from purchase name
     if (purchaseCat === 'hrt' || purchaseItemLower.includes('hrt') || purchaseItemLower.includes('testosterone')) {
       if (purchaseItemLower.includes('female')) return 'hrt_female';
@@ -304,9 +306,22 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
     return typeof firstInjection === 'object' ? firstInjection.value : (firstInjection || 4);
   };
 
+  // Auto-detect medication from vial purchase name
+  const detectVialMedication = () => {
+    if (!purchaseItemLower.includes('vial')) return '';
+    if (purchaseItemLower.includes('nad')) return 'NAD+ 1000mg';
+    if (purchaseItemLower.includes('bpc') || purchaseItemLower.includes('tb4') || purchaseItemLower.includes('thymosin')) return 'BPC-157 / Thymosin Beta-4';
+    if (purchaseItemLower.includes('mots')) return 'MOTS-c';
+    if (purchaseItemLower.includes('tesamorelin')) return 'Tesamorelin / Ipamorelin';
+    if (purchaseItemLower.includes('cjc')) return 'CJC-1295 / Ipamorelin';
+    if (purchaseItemLower.includes('aod')) return 'AOD-9604';
+    if (purchaseItemLower.includes('glow')) return 'GLOW (GHK-Cu / Thymosin Beta-4)';
+    return '';
+  };
+
   const [form, setForm] = useState({
     protocolType: initialType,
-    medication: '',
+    medication: initialType === 'peptide_vial' ? detectVialMedication() : '',
     dosage: '',
     dosageNotes: '',
     frequency: PROTOCOL_TYPES[initialType]?.frequencies?.[0]?.value || 'daily',
@@ -315,6 +330,8 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
     duration: PROTOCOL_TYPES[initialType]?.durations?.[0]?.value || 10,
     totalSessions: PROTOCOL_TYPES[initialType]?.sessions?.[0] || 1,
     totalInjections: getInitialInjections(),
+    numVials: 1,
+    dosesPerVial: 10,
     notes: ''
   });
 
@@ -378,7 +395,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
   // Fetch 90-day cycle info for recovery/GH peptide protocols
   useEffect(() => {
     if (!patient?.id) return;
-    const isPeptideType = form.protocolType === 'peptide' || form.protocolType === 'gh_peptide';
+    const isPeptideType = form.protocolType === 'peptide' || form.protocolType === 'gh_peptide' || form.protocolType === 'peptide_vial';
     if (!isPeptideType) { setCycleInfo(null); return; }
     const cycleType = form.protocolType === 'gh_peptide' ? 'gh' : 'recovery';
     fetch(`/api/protocols/cycle-info?patientId=${patient.id}&cycleType=${cycleType}`)
@@ -392,6 +409,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
   const isInjectionBased = !!selectedType?.injections;
   const isOngoing = selectedType?.ongoing;
   const hasDosageNotes = selectedType?.hasDosageNotes;
+  const isVialBased = !!selectedType?.vialBased;
 
   // Calculate if this new protocol would exceed the 90-day cycle limit
   const cycleWarning = (() => {
@@ -426,7 +444,9 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
       deliveryMethod: typeConfig?.deliveryMethods?.[0]?.value || 'take_home',
       duration: typeConfig?.durations?.[0]?.value || 10,
       totalSessions: typeConfig?.sessions?.[0] || 1,
-      totalInjections: injectionValue || 4
+      totalInjections: injectionValue || 4,
+      numVials: typeConfig?.vialBased ? 1 : prev.numVials,
+      dosesPerVial: typeConfig?.vialBased ? (typeConfig.defaultDosesPerVial || 10) : prev.dosesPerVial
     }));
   };
 
@@ -536,6 +556,10 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
       const buildProtocolName = () => {
         const type = form.protocolType;
         if (type === 'peptide') return `${form.duration}-Day Recovery Protocol`;
+        if (type === 'peptide_vial') {
+          const totalDoses = parseInt(form.numVials) * parseInt(form.dosesPerVial);
+          return `${form.medication || 'Peptide Vial'} (${form.numVials} vial${parseInt(form.numVials) > 1 ? 's' : ''} · ${totalDoses} doses)`;
+        }
         if (type === 'hrt_male') return 'HRT Protocol (Male)';
         if (type === 'hrt_female') return 'HRT Protocol (Female)';
         if (type.startsWith('weight_loss')) return `Weight Loss - ${form.medication} ${form.dosage} (${form.totalInjections} injections)`;
@@ -552,6 +576,21 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
       const calculateEndDate = () => {
         if (isOngoing) return null;
         if (isSessionBased && !form.startDate) return null;
+        if (isVialBased) {
+          const totalDoses = parseInt(form.numVials) * parseInt(form.dosesPerVial);
+          const freq = (form.frequency || '').toLowerCase();
+          let durationDays;
+          if (freq.includes('5on') || freq === '5on2off') {
+            durationDays = Math.ceil(totalDoses / 5) * 7;
+          } else if (freq === 'eod' || freq.includes('every other')) {
+            durationDays = totalDoses * 2;
+          } else {
+            durationDays = totalDoses; // daily
+          }
+          const start = new Date(form.startDate + 'T12:00:00');
+          start.setDate(start.getDate() + durationDays);
+          return start.toISOString().split('T')[0];
+        }
         if (isInjectionBased) {
           // Weekly injections: 4 injections = ~28 days
           const start = new Date(form.startDate);
@@ -566,6 +605,13 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
 
       // Calculate duration_days based on protocol type
       const getDurationDays = () => {
+        if (isVialBased) {
+          const totalDoses = parseInt(form.numVials) * parseInt(form.dosesPerVial);
+          const freq = (form.frequency || '').toLowerCase();
+          if (freq.includes('5on') || freq === '5on2off') return Math.ceil(totalDoses / 5) * 7;
+          if (freq === 'eod' || freq.includes('every other')) return totalDoses * 2;
+          return totalDoses;
+        }
         if (isInjectionBased) return parseInt(form.totalInjections) * 7; // Weekly injections
         if (isSessionBased) return parseInt(form.totalSessions);
         if (isOngoing) return 30;
@@ -574,6 +620,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
 
       // Calculate total_sessions based on protocol type
       const getTotalSessions = () => {
+        if (isVialBased) return parseInt(form.numVials) * parseInt(form.dosesPerVial);
         if (isInjectionBased) return parseInt(form.totalInjections);
         if (isSessionBased) return parseInt(form.totalSessions);
         if (isOngoing) return null;
@@ -593,12 +640,16 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
         medication: form.medication,
         selected_dose: form.dosage || form.dosageNotes || '',
         frequency: form.frequency,
-        delivery_method: form.deliveryMethod,
+        delivery_method: isVialBased ? 'take_home' : form.deliveryMethod,
         start_date: form.startDate,
         total_sessions: getTotalSessions(),
         end_date: calculateEndDate(),
         notes: form.dosageNotes ? `Dosage: ${form.dosageNotes}${form.notes ? '\n' + form.notes : ''}` : form.notes,
-        status: 'active'
+        status: 'active',
+        ...(isVialBased ? {
+          num_vials: parseInt(form.numVials),
+          doses_per_vial: parseInt(form.dosesPerVial)
+        } : {})
       };
 
       const res = await fetch('/api/admin/protocols', {
@@ -661,7 +712,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
           </div>
 
           {/* 90-Day Cycle Warning */}
-          {cycleWarning && (form.protocolType === 'peptide' || form.protocolType === 'gh_peptide') && (
+          {cycleWarning && (form.protocolType === 'peptide' || form.protocolType === 'gh_peptide' || form.protocolType === 'peptide_vial') && (
             <div style={{
               padding: '10px 14px',
               borderRadius: '8px',
@@ -956,8 +1007,106 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
             </div>
           )}
 
-          {/* Schedule (protocols only — not lab or membership modes) */}
-          {!isLabMode && !isMembershipMode && (
+          {/* Vial Configuration (peptide vials only) */}
+          {!isLabMode && !isMembershipMode && isVialBased && (
+            <div style={modalStyles.section}>
+              <h3 style={modalStyles.sectionTitle}>Vial Configuration</h3>
+              <div style={modalStyles.grid}>
+                <div style={modalStyles.field}>
+                  <label style={modalStyles.label}>Number of Vials</label>
+                  <select
+                    value={form.numVials}
+                    onChange={e => setForm({ ...form, numVials: parseInt(e.target.value) })}
+                    style={modalStyles.select}
+                  >
+                    {(selectedType?.vialOptions || [1, 2, 3, 4]).map(n => (
+                      <option key={n} value={n}>{n} vial{n > 1 ? 's' : ''}</option>
+                    ))}
+                  </select>
+                </div>
+                <div style={modalStyles.field}>
+                  <label style={modalStyles.label}>Injections per Vial</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={form.dosesPerVial}
+                    onChange={e => setForm({ ...form, dosesPerVial: parseInt(e.target.value) || 10 })}
+                    style={modalStyles.input}
+                  />
+                </div>
+                <div style={modalStyles.field}>
+                  <label style={modalStyles.label}>Frequency</label>
+                  <select
+                    value={form.frequency}
+                    onChange={e => setForm({ ...form, frequency: e.target.value })}
+                    style={modalStyles.select}
+                  >
+                    {selectedType?.frequencies?.map(f => (
+                      <option key={f.value} value={f.value}>{f.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div style={modalStyles.field}>
+                  <label style={modalStyles.label}>Start Date</label>
+                  <input
+                    type="date"
+                    value={form.startDate}
+                    onChange={e => setForm({ ...form, startDate: e.target.value })}
+                    style={modalStyles.input}
+                  />
+                </div>
+              </div>
+              {/* Vial summary */}
+              {(() => {
+                const totalDoses = parseInt(form.numVials) * parseInt(form.dosesPerVial);
+                const freq = (form.frequency || '').toLowerCase();
+                let durationDays;
+                let freqLabel;
+                if (freq.includes('5on') || freq === '5on2off') {
+                  durationDays = Math.ceil(totalDoses / 5) * 7;
+                  freqLabel = '5 on / 2 off';
+                } else if (freq === 'eod' || freq.includes('every other')) {
+                  durationDays = totalDoses * 2;
+                  freqLabel = 'every other day';
+                } else {
+                  durationDays = totalDoses;
+                  freqLabel = 'daily';
+                }
+                const endDate = new Date(form.startDate + 'T12:00:00');
+                endDate.setDate(endDate.getDate() + durationDays);
+                return (
+                  <div style={{
+                    marginTop: '12px',
+                    padding: '12px 16px',
+                    background: '#f0f9ff',
+                    borderRadius: '8px',
+                    border: '1px solid #bae6fd',
+                    display: 'flex',
+                    gap: '24px'
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '22px', fontWeight: 700, color: '#0369a1' }}>{totalDoses}</div>
+                      <div style={{ fontSize: '11px', color: '#6b7280' }}>Total injections</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '22px', fontWeight: 700, color: '#0369a1' }}>{durationDays}</div>
+                      <div style={{ fontSize: '11px', color: '#6b7280' }}>Days ({freqLabel})</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: '#0369a1', marginTop: '4px' }}>
+                        {endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#6b7280' }}>Estimated end</div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* Schedule (protocols only — not lab, membership, or vial modes) */}
+          {!isLabMode && !isMembershipMode && !isVialBased && (
             <div style={modalStyles.section}>
               <h3 style={modalStyles.sectionTitle}>Schedule</h3>
               <div style={modalStyles.grid}>

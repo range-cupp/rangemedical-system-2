@@ -300,6 +300,12 @@ export default function PatientProfile() {
   const [confirmDeletePurchase, setConfirmDeletePurchase] = useState(false);
   const [deletingPurchase, setDeletingPurchase] = useState(false);
 
+  // Edit injection modal state
+  const [editInjectionModal, setEditInjectionModal] = useState(null);
+  const [editInjectionForm, setEditInjectionForm] = useState({ entry_date: '', dosage: '', weight: '', notes: '' });
+  const [editInjectionSaving, setEditInjectionSaving] = useState(false);
+  const [confirmDeleteInjection, setConfirmDeleteInjection] = useState(false);
+
   // Log Entry modal state
   const [showLogEntryModal, setShowLogEntryModal] = useState(false);
   const [logEntryProtocol, setLogEntryProtocol] = useState(null);
@@ -932,6 +938,60 @@ export default function PatientProfile() {
       console.error('Error deleting purchase:', err);
     } finally {
       setDeletingPurchase(false);
+    }
+  };
+
+  const openEditInjection = (log) => {
+    setEditInjectionModal(log);
+    setEditInjectionForm({
+      entry_date: log.entry_date || '',
+      dosage: log.dosage || '',
+      weight: log.weight || '',
+      notes: log.notes || '',
+    });
+    setConfirmDeleteInjection(false);
+  };
+
+  const handleEditInjection = async () => {
+    if (!editInjectionModal?.id) return;
+    setEditInjectionSaving(true);
+    try {
+      const res = await fetch(`/api/service-log?id=${editInjectionModal.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          entry_date: editInjectionForm.entry_date,
+          dosage: editInjectionForm.dosage,
+          weight: editInjectionForm.weight || null,
+          medication: editInjectionModal.medication,
+          notes: editInjectionForm.notes || null,
+        }),
+      });
+      if (res.ok) {
+        setEditInjectionModal(null);
+        fetchPatient();
+      }
+    } catch (err) {
+      console.error('Error updating injection:', err);
+    } finally {
+      setEditInjectionSaving(false);
+    }
+  };
+
+  const handleDeleteInjection = async () => {
+    if (!editInjectionModal?.id) return;
+    setEditInjectionSaving(true);
+    try {
+      const res = await fetch(`/api/service-log?id=${editInjectionModal.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setEditInjectionModal(null);
+        setConfirmDeleteInjection(false);
+        fetchPatient();
+      }
+    } catch (err) {
+      console.error('Error deleting injection:', err);
+    } finally {
+      setEditInjectionSaving(false);
     }
   };
 
@@ -2743,7 +2803,7 @@ export default function PatientProfile() {
                                       const curWeight = log.weight ? parseFloat(log.weight) : null;
                                       const delta = prevWeight && curWeight ? (curWeight - prevWeight).toFixed(1) : null;
                                       rows.push(
-                                        <tr key={log.entry_date + i}>
+                                        <tr key={log.id || log.entry_date + i} style={{ cursor: 'pointer' }} onClick={() => openEditInjection(log)} title="Click to edit">
                                           <td>{formatShortDate(log.entry_date)}</td>
                                           <td>{log.dosage || '—'}</td>
                                           <td>{log.weight ? `${log.weight} lbs` : '—'}</td>
@@ -4185,6 +4245,59 @@ export default function PatientProfile() {
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button onClick={() => setShowEditPurchaseModal(false)} className="btn-secondary">Cancel</button>
                   <button onClick={handleEditPurchase} className="btn-primary">Save</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Injection Modal */}
+        {editInjectionModal && (
+          <div className="modal-overlay" onClick={() => setEditInjectionModal(null)}>
+            <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
+              <div className="modal-header">
+                <h3>Edit Injection</h3>
+                <button onClick={() => setEditInjectionModal(null)} className="close-btn">&times;</button>
+              </div>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Date</label>
+                  <input type="date" value={editInjectionForm.entry_date} onChange={e => setEditInjectionForm({ ...editInjectionForm, entry_date: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label>Dose</label>
+                  <input type="text" value={editInjectionForm.dosage} onChange={e => setEditInjectionForm({ ...editInjectionForm, dosage: e.target.value })} placeholder="e.g. 4mg" />
+                </div>
+                <div className="form-group">
+                  <label>Weight (lbs)</label>
+                  <input type="number" step="0.1" value={editInjectionForm.weight} onChange={e => setEditInjectionForm({ ...editInjectionForm, weight: e.target.value })} placeholder="Optional" />
+                </div>
+                <div className="form-group">
+                  <label>Notes</label>
+                  <textarea value={editInjectionForm.notes} onChange={e => setEditInjectionForm({ ...editInjectionForm, notes: e.target.value })} rows={2} placeholder="Optional notes..." />
+                </div>
+              </div>
+              <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
+                <div>
+                  {!confirmDeleteInjection ? (
+                    <button onClick={() => setConfirmDeleteInjection(true)} style={{ padding: '8px 14px', fontSize: '13px', fontWeight: 600, border: '1px solid #fca5a5', borderRadius: '6px', background: '#fff', color: '#dc2626', cursor: 'pointer' }}>
+                      Delete
+                    </button>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '13px', color: '#dc2626', fontWeight: 500 }}>Delete?</span>
+                      <button onClick={handleDeleteInjection} disabled={editInjectionSaving} style={{ padding: '6px 12px', fontSize: '13px', fontWeight: 600, border: 'none', borderRadius: '6px', background: '#dc2626', color: '#fff', cursor: 'pointer' }}>
+                        {editInjectionSaving ? '...' : 'Yes'}
+                      </button>
+                      <button onClick={() => setConfirmDeleteInjection(false)} style={{ padding: '6px 12px', fontSize: '13px', fontWeight: 600, border: '1px solid #d1d5db', borderRadius: '6px', background: '#fff', color: '#374151', cursor: 'pointer' }}>
+                        No
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => setEditInjectionModal(null)} className="btn-secondary">Cancel</button>
+                  <button onClick={handleEditInjection} disabled={editInjectionSaving} className="btn-primary">{editInjectionSaving ? 'Saving...' : 'Save'}</button>
                 </div>
               </div>
             </div>

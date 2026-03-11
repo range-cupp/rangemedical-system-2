@@ -42,6 +42,7 @@ import ConversationView from '../../components/ConversationView';
 import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
 import POSChargeModal from '../../components/POSChargeModal';
+import EncounterModal from '../../components/EncounterModal';
 import SignatureCanvas from '../../components/SignatureCanvas';
 import { PROTOCOL_TYPES } from '../../lib/protocol-types';
 
@@ -283,6 +284,7 @@ export default function PatientProfile() {
   const [showIntakeModal, setShowIntakeModal] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showChargeModal, setShowChargeModal] = useState(false);
+  const [generatingChart, setGeneratingChart] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletePreview, setDeletePreview] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -1651,6 +1653,29 @@ export default function PatientProfile() {
               <div className="actions-cta">
                 <button onClick={() => setShowBookingModal(true)} className="action-btn action-btn-primary">Book</button>
                 <button onClick={() => setShowChargeModal(true)} className="action-btn action-btn-charge">Charge</button>
+                <button
+                  onClick={async () => {
+                    setGeneratingChart(true);
+                    try {
+                      const res = await fetch(`/api/patients/${patient.id}/chart-pdf`);
+                      if (!res.ok) throw new Error('Failed to generate chart');
+                      const blob = await res.blob();
+                      const url = URL.createObjectURL(blob);
+                      window.open(url, '_blank');
+                    } catch (err) {
+                      console.error('Chart PDF error:', err);
+                      alert('Failed to generate chart PDF');
+                    } finally {
+                      setGeneratingChart(false);
+                    }
+                  }}
+                  disabled={generatingChart}
+                  className="action-btn"
+                  style={{ background: generatingChart ? '#9CA3AF' : '#1F2937', color: '#fff', border: 'none', cursor: generatingChart ? 'wait' : 'pointer', font: 'inherit', padding: '6px 12px', borderRadius: '6px' }}
+                  title="Print full patient chart"
+                >
+                  {generatingChart ? 'Generating...' : 'Print Chart'}
+                </button>
               </div>
               <button onClick={handleDeletePatient} className="action-btn action-btn-delete" title="Delete patient">Del</button>
             </div>
@@ -3325,9 +3350,16 @@ export default function PatientProfile() {
                               <span className="apt-title">{apt.appointment_title}</span>
                             )}
                           </div>
-                          <span className="apt-status" style={{ background: statusStyle.bg, color: statusStyle.text }}>
-                            {displayStatus.replace('_', ' ')}
-                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            {apt.encounter_note_count > 0 && (
+                              <span style={{ padding: '2px 6px', borderRadius: 4, fontSize: 11, fontWeight: 600, background: '#ede9fe', color: '#5b21b6' }}>
+                                📝 {apt.encounter_note_count}
+                              </span>
+                            )}
+                            <span className="apt-status" style={{ background: statusStyle.bg, color: statusStyle.text }}>
+                              {displayStatus.replace('_', ' ')}
+                            </span>
+                          </div>
                         </div>
                       );
                     })}
@@ -3414,11 +3446,20 @@ export default function PatientProfile() {
                             {note.created_by && <span style={{ fontWeight: 400, marginLeft: 8 }}>by {note.created_by}</span>}
                             <span style={{
                               marginLeft: 8, fontSize: 11, padding: '2px 8px', borderRadius: 4, fontWeight: 500,
-                              background: note.source === 'protocol' ? '#f3e8ff' : note.source === 'manual' ? '#dbeafe' : '#f3f4f6',
-                              color: note.source === 'protocol' ? '#7c3aed' : note.source === 'manual' ? '#1e40af' : '#6b7280',
+                              background: note.source === 'encounter' ? '#fef3c7' : note.source === 'addendum' ? '#fef3c7' : note.source === 'protocol' ? '#f3e8ff' : note.source === 'manual' ? '#dbeafe' : '#f3f4f6',
+                              color: note.source === 'encounter' ? '#92400e' : note.source === 'addendum' ? '#92400e' : note.source === 'protocol' ? '#7c3aed' : note.source === 'manual' ? '#1e40af' : '#6b7280',
                             }}>
-                              {note.source === 'protocol' ? 'Protocol Note' : note.source === 'manual' ? 'Staff Note' : 'GHL Import'}
+                              {note.source === 'encounter' ? 'Encounter' : note.source === 'addendum' ? 'Addendum' : note.source === 'protocol' ? 'Protocol Note' : note.source === 'manual' ? 'Staff Note' : 'GHL Import'}
                             </span>
+                            {note.status && (
+                              <span style={{
+                                marginLeft: 6, fontSize: 11, padding: '2px 8px', borderRadius: 4, fontWeight: 500,
+                                background: note.status === 'signed' ? '#d1fae5' : '#f3f4f6',
+                                color: note.status === 'signed' ? '#065f46' : '#6b7280',
+                              }}>
+                                {note.status === 'signed' ? '✓ Signed' : 'Draft'}
+                              </span>
+                            )}
                             {note.protocol_name && (
                               <span
                                 style={{
@@ -5192,91 +5233,14 @@ export default function PatientProfile() {
           </>
         )}
 
-        {/* Appointment Edit Modal */}
+        {/* Encounter Modal (replaces old Appointment Edit Modal) */}
         {editingAppointment && (
-          <div className="modal-overlay" onClick={() => setEditingAppointment(null)}>
-            <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
-              <div className="modal-header">
-                <h3>Edit Appointment</h3>
-                <button onClick={() => setEditingAppointment(null)} className="close-btn">&times;</button>
-              </div>
-              <div className="modal-body">
-                <div style={{ marginBottom: 12, padding: '8px 12px', background: '#f9fafb', borderRadius: 6, fontSize: 13, color: '#6b7280' }}>
-                  <strong style={{ color: '#111827' }}>{editingAppointment.calendar_name || 'Appointment'}</strong>
-                  {' — '}
-                  {new Date(editingAppointment.start_time).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' })}
-                  {' at '}
-                  {new Date(editingAppointment.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Los_Angeles' })}
-                </div>
-                <div className="form-group">
-                  <label>Status</label>
-                  <select value={aptEditStatus} onChange={e => setAptEditStatus(e.target.value)}>
-                    <option value="scheduled">Scheduled</option>
-                    <option value="confirmed">Confirmed</option>
-                    <option value="showed">Showed</option>
-                    <option value="completed">Completed</option>
-                    <option value="no_show">No Show</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Category / Label</label>
-                  <input
-                    type="text"
-                    value={aptEditCategory}
-                    onChange={e => setAptEditCategory(e.target.value)}
-                    placeholder="e.g. IV Therapy, Follow-up, Consultation"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Notes</label>
-                  <textarea
-                    value={aptEditNotes}
-                    onChange={e => setAptEditNotes(e.target.value)}
-                    rows={3}
-                    placeholder="Optional notes..."
-                  />
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button onClick={() => setEditingAppointment(null)} className="btn-secondary">Cancel</button>
-                <button
-                  disabled={savingApt}
-                  className="btn-primary"
-                  onClick={async () => {
-                    setSavingApt(true);
-                    try {
-                      const table = editingAppointment._table || 'clinic_appointments';
-                      const res = await fetch('/api/appointments/update', {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          id: editingAppointment.id,
-                          table,
-                          status: aptEditStatus,
-                          notes: aptEditNotes,
-                          category: aptEditCategory
-                        })
-                      });
-                      if (res.ok) {
-                        fetchPatient();
-                        setEditingAppointment(null);
-                      } else {
-                        const err = await res.json();
-                        alert('Error saving: ' + (err.error || 'Unknown error'));
-                      }
-                    } catch (err) {
-                      alert('Error saving appointment');
-                    } finally {
-                      setSavingApt(false);
-                    }
-                  }}
-                >
-                  {savingApt ? 'Saving...' : 'Save'}
-                </button>
-              </div>
-            </div>
-          </div>
+          <EncounterModal
+            appointment={{ ...editingAppointment, patient_id: patient?.id }}
+            currentUser={session?.user?.user_metadata?.full_name || session?.user?.email || 'Staff'}
+            onClose={() => setEditingAppointment(null)}
+            onRefresh={fetchPatient}
+          />
         )}
 
         {/* PDF Slide-Out Viewer */}

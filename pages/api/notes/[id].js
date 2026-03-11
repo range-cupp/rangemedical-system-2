@@ -17,6 +17,28 @@ export default async function handler(req, res) {
 
   if (req.method === 'DELETE') {
     try {
+      // Fetch note to check authorship and signed status
+      const { data: note, error: fetchError } = await supabase
+        .from('patient_notes')
+        .select('id, created_by, status')
+        .eq('id', id)
+        .single();
+
+      if (fetchError || !note) {
+        return res.status(404).json({ error: 'Note not found' });
+      }
+
+      // Cannot delete signed notes
+      if (note.status === 'signed') {
+        return res.status(403).json({ error: 'Cannot delete a signed note. Add an addendum instead.' });
+      }
+
+      // Authorship check (if created_by is set and requester provided)
+      const { requesting_user } = req.body || {};
+      if (note.created_by && requesting_user && note.created_by !== requesting_user) {
+        return res.status(403).json({ error: 'Only the note author can delete this note' });
+      }
+
       const { error } = await supabase
         .from('patient_notes')
         .delete()
@@ -34,15 +56,26 @@ export default async function handler(req, res) {
     try {
       const { pinned, body } = req.body;
 
-      // Get the note to find its patient_id
+      // Get the note to find its patient_id, authorship, and status
       const { data: note, error: fetchError } = await supabase
         .from('patient_notes')
-        .select('id, patient_id')
+        .select('id, patient_id, created_by, status')
         .eq('id', id)
         .single();
 
       if (fetchError || !note) {
         return res.status(404).json({ error: 'Note not found' });
+      }
+
+      // Cannot edit signed notes (except for pinning)
+      if (note.status === 'signed' && typeof body === 'string') {
+        return res.status(403).json({ error: 'Cannot edit a signed note. Add an addendum instead.' });
+      }
+
+      // Authorship check for content edits
+      const { requesting_user } = req.body;
+      if (typeof body === 'string' && note.created_by && requesting_user && note.created_by !== requesting_user) {
+        return res.status(403).json({ error: 'Only the note author can edit this note' });
       }
 
       // Build update object

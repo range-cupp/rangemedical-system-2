@@ -551,7 +551,7 @@ export default async function handler(req, res) {
       let patientNotes = null;
       const { data: notesData, error: notesErr } = await supabase
         .from('patient_notes')
-        .select('id, body, raw_input, note_date, source, created_by, created_at, pinned, protocol_id, protocol_name')
+        .select('id, body, raw_input, note_date, source, created_by, created_at, pinned, protocol_id, protocol_name, appointment_id, encounter_service, signed_by, signed_at, status, parent_note_id')
         .eq('patient_id', id)
         .order('note_date', { ascending: false });
       if (notesErr) {
@@ -565,6 +565,14 @@ export default async function handler(req, res) {
       } else {
         patientNotes = notesData;
       }
+
+      // Build encounter note counts per appointment
+      const encounterNoteCounts = {};
+      (patientNotes || []).forEach(n => {
+        if (n.appointment_id) {
+          encounterNoteCounts[n.appointment_id] = (encounterNoteCounts[n.appointment_id] || 0) + 1;
+        }
+      });
 
       // ===== NEW: Get clinic appointments =====
       let appointments = [];
@@ -633,7 +641,10 @@ export default async function handler(req, res) {
         }
       }
       merged.sort((a, b) => new Date(b.start_time) - new Date(a.start_time));
-      appointments = merged;
+      appointments = merged.map(a => ({
+        ...a,
+        encounter_note_count: encounterNoteCounts[a.id] || 0,
+      }));
 
       // Extract demographics from intake if patient record is missing them
       let intakeDemographics = null;

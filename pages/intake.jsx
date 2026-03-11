@@ -867,6 +867,7 @@ export default function IntakeForm() {
                 <div className="form-group">
                   <label htmlFor="howHeardOther">Please specify <span className="required">*</span></label>
                   <input type="text" id="howHeardOther" name="howHeardOther" placeholder="How did you hear about us?" />
+                  <span className="field-error" id="howHeardOtherError">Please specify how you heard about us</span>
                 </div>
               </div>
 
@@ -874,6 +875,7 @@ export default function IntakeForm() {
                 <div className="form-group">
                   <label htmlFor="howHeardFriend">Who is the friend or family member? <span className="required">*</span></label>
                   <input type="text" id="howHeardFriend" name="howHeardFriend" placeholder="Enter their name" />
+                  <span className="field-error" id="howHeardFriendError">Please enter their name</span>
                 </div>
               </div>
             </div>
@@ -1482,6 +1484,30 @@ export default function IntakeForm() {
                   </div>
                 </div>
               </div>
+
+              {/* Family History — GLP-1 / Weight Loss Medication Screening */}
+              <div className="condition-category" style={{backgroundColor: '#fff7ed', borderLeft: '4px solid #f97316', marginTop: '1rem'}}>
+                <h3 style={{color: '#c2410c', marginBottom: '0.5rem'}}>🧬 Family History — Weight Loss Medication Screening</h3>
+                <p style={{fontSize: '0.875rem', color: '#7c2d12', marginBottom: '1rem', lineHeight: 1.5}}>
+                  Do you, your parents, or siblings have a personal or family history of any of the following?
+                  <br /><em style={{fontWeight: 500}}>Check all that apply — this is required for GLP-1 / weight loss medications.</em>
+                </p>
+                <div style={{display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '0.75rem'}}>
+                  <label style={{display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontWeight: 500}}>
+                    <input type="checkbox" id="familyHistory_MTC" name="familyHistory_MTC" value="Medullary Thyroid Cancer (MTC)" style={{width: '18px', height: '18px', cursor: 'pointer'}} />
+                    Medullary Thyroid Cancer (MTC)
+                  </label>
+                  <label style={{display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontWeight: 500}}>
+                    <input type="checkbox" id="familyHistory_MEN2" name="familyHistory_MEN2" value="Multiple Endocrine Neoplasia Type 2 (MEN2)" style={{width: '18px', height: '18px', cursor: 'pointer'}} />
+                    Multiple Endocrine Neoplasia Type 2 (MEN2)
+                  </label>
+                  <label style={{display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontWeight: 500, paddingTop: '0.5rem', borderTop: '1px solid #fed7aa'}}>
+                    <input type="checkbox" id="familyHistory_none" name="familyHistory_none" value="None of these" style={{width: '18px', height: '18px', cursor: 'pointer'}} />
+                    None of these apply to me or my immediate family
+                  </label>
+                </div>
+                <span className="field-error" id="familyHistoryScreeningError">Please select at least one option above</span>
+              </div>
             </div>
 
             {/* Medications & Allergies */}
@@ -1559,6 +1585,30 @@ export default function IntakeForm() {
                       <span className="field-error" id="allergiesListError">Please list your allergies</span>
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Emergency Contact */}
+            <div className="section">
+              <h2 className="section-title">Emergency Contact</h2>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="emergencyContactName">Emergency Contact Name <span className="required">*</span></label>
+                  <input type="text" id="emergencyContactName" name="emergencyContactName" placeholder="Full name" required />
+                  <span className="field-error" id="emergencyContactNameError">Emergency contact name is required</span>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="emergencyContactRelationship">Relationship <span className="required">*</span></label>
+                  <input type="text" id="emergencyContactRelationship" name="emergencyContactRelationship" placeholder="e.g., Spouse, Parent, Sibling, Friend" required />
+                  <span className="field-error" id="emergencyContactRelationshipError">Relationship is required</span>
+                </div>
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="emergencyContactPhone">Emergency Contact Phone <span className="required">*</span></label>
+                  <input type="tel" id="emergencyContactPhone" name="emergencyContactPhone" placeholder="(949) 000-0000" required />
+                  <span className="field-error" id="emergencyContactPhoneError">Emergency contact phone is required</span>
                 </div>
               </div>
             </div>
@@ -1901,7 +1951,15 @@ function initializeForm() {
       addLabelValue('Guardian Name: ', formData.guardianName);
       addLabelValue('Relationship: ', formData.guardianRelationship);
     }
-    
+
+    // Emergency Contact
+    if (formData.emergencyContactName) {
+      addSection('EMERGENCY CONTACT');
+      addLabelValue('Name: ', formData.emergencyContactName);
+      addLabelValue('Relationship: ', formData.emergencyContactRelationship);
+      addLabelValue('Phone: ', formData.emergencyContactPhone);
+    }
+
     // Health Concerns
     addSection('HEALTH CONCERNS');
     addLabelValue('Currently Injured: ', formData.injured);
@@ -1960,6 +2018,12 @@ function initializeForm() {
       }
     });
     
+    // Family History Screening
+    if (formData.familyHistoryScreening) {
+      addSection('FAMILY HISTORY — WEIGHT LOSS MEDICATION SCREENING');
+      addLabelValue('Personal/Family History: ', formData.familyHistoryScreening);
+    }
+
     // Medications
     addSection('MEDICATIONS & ALLERGIES');
     addLabelValue('On HRT: ', formData.onHRT);
@@ -2042,6 +2106,30 @@ function initializeForm() {
     howHeardOtherField.classList.toggle('visible', howHeardSelect.value === 'Other');
     howHeardFriendField.classList.toggle('visible', howHeardSelect.value === 'Friend or Family Member');
   });
+
+  // Family history "None of these" mutual exclusivity
+  const familyHistoryNone = document.getElementById('familyHistory_none');
+  const familyHistoryConditions = ['familyHistory_MTC', 'familyHistory_MEN2'];
+  if (familyHistoryNone) {
+    familyHistoryNone.addEventListener('change', () => {
+      if (familyHistoryNone.checked) {
+        familyHistoryConditions.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.checked = false;
+        });
+      }
+      document.getElementById('familyHistoryScreeningError').classList.remove('visible');
+    });
+    familyHistoryConditions.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('change', () => {
+          if (el.checked) familyHistoryNone.checked = false;
+          document.getElementById('familyHistoryScreeningError').classList.remove('visible');
+        });
+      }
+    });
+  }
 
   document.querySelectorAll('input[name="injured"]').forEach(radio => {
     radio.addEventListener('change', () => {
@@ -2210,6 +2298,14 @@ function initializeForm() {
     validateField('country', 'countryError', 'Country');
     validateField('howHeardAboutUs', 'howHeardAboutUsError', 'How did you hear about us');
 
+    const howHeardVal = document.getElementById('howHeardAboutUs')?.value;
+    if (howHeardVal === 'Friend or Family Member') {
+      validateField('howHeardFriend', 'howHeardFriendError', 'Friend or Family Member Name');
+    }
+    if (howHeardVal === 'Other') {
+      validateField('howHeardOther', 'howHeardOtherError', 'How Did You Hear (Other)');
+    }
+
     validateRadio('injured', 'injuredError', 'Are you dealing with an injury?');
     validateRadio('interestedInOptimization', 'interestedInOptimizationError', 'Interested in energy & optimization?');
     validateRadio('hasPCP', 'hasPCPError', 'Do you have a Primary Care Physician?');
@@ -2281,6 +2377,19 @@ function initializeForm() {
     if (isMinor && isMinor.value === 'Yes') {
       validateField('guardianName', 'guardianNameError', 'Parent/Guardian Name');
       validateField('guardianRelationship', 'guardianRelationshipError', 'Relationship to Patient');
+    }
+
+    // Emergency contact validation
+    validateField('emergencyContactName', 'emergencyContactNameError', 'Emergency Contact Name');
+    validateField('emergencyContactRelationship', 'emergencyContactRelationshipError', 'Emergency Contact Relationship');
+    validateField('emergencyContactPhone', 'emergencyContactPhoneError', 'Emergency Contact Phone');
+
+    // Family history screening validation
+    const familyHistoryChecked = document.querySelectorAll('input[name^="familyHistory_"]:checked').length > 0;
+    if (!familyHistoryChecked) {
+      document.getElementById('familyHistoryScreeningError').classList.add('visible');
+      hasErrors = true;
+      missingFields.push('Family History Screening (please select at least one option)');
     }
 
     // Photo ID validation
@@ -2394,9 +2503,11 @@ function initializeForm() {
         state: getValue('state'),
         postalCode: getValue('postalCode'),
         country: getValue('country'),
-        howHeardAboutUs: getValue('howHeardAboutUs') === 'Other' 
-          ? `Other: ${getValue('howHeardOther')}` 
-          : getValue('howHeardAboutUs'),
+        howHeardAboutUs: getValue('howHeardAboutUs') === 'Other'
+          ? `Other: ${getValue('howHeardOther')}`
+          : getValue('howHeardAboutUs') === 'Friend or Family Member' && getValue('howHeardFriend')
+            ? `Friend or Family Member: ${getValue('howHeardFriend')}`
+            : getValue('howHeardAboutUs'),
         injured: getRadio('injured'),
         injuryDescription: getValue('injuryDescription'),
         injuryLocation: getValue('injuryLocation'),
@@ -2420,6 +2531,17 @@ function initializeForm() {
         isMinor: getRadio('isMinor'),
         guardianName: getValue('guardianName'),
         guardianRelationship: getValue('guardianRelationship'),
+        emergencyContactName: getValue('emergencyContactName'),
+        emergencyContactRelationship: getValue('emergencyContactRelationship'),
+        emergencyContactPhone: getValue('emergencyContactPhone'),
+        familyHistoryScreening: (() => {
+          const selected = [];
+          ['MTC', 'MEN2', 'none'].forEach(key => {
+            const el = document.getElementById(`familyHistory_${key}`);
+            if (el && el.checked) selected.push(el.value);
+          });
+          return selected.length > 0 ? selected.join('; ') : 'Not answered';
+        })(),
         signatureDate: getValue('signatureDate'),
         signatureData: signatureData,
         consent: true,

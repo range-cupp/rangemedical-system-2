@@ -43,6 +43,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
 import POSChargeModal from '../../components/POSChargeModal';
 import EncounterModal from '../../components/EncounterModal';
+import EncounterQuickView from '../../components/EncounterQuickView';
 import SignatureCanvas from '../../components/SignatureCanvas';
 import { PROTOCOL_TYPES } from '../../lib/protocol-types';
 
@@ -285,6 +286,7 @@ export default function PatientProfile() {
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showChargeModal, setShowChargeModal] = useState(false);
   const [generatingChart, setGeneratingChart] = useState(false);
+  const [showQuickView, setShowQuickView] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletePreview, setDeletePreview] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -1649,6 +1651,14 @@ export default function PatientProfile() {
                 {patient.phone && <a href={`tel:${patient.phone}`} className="action-btn" title="Call patient">Call</a>}
                 {patient.email && <button onClick={() => setEmailModalOpen(true)} className="action-btn" title="Send email" style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', color: 'inherit', padding: 0 }}>Email</button>}
                 {ghlLink && <a href={ghlLink} target="_blank" rel="noopener noreferrer" className="action-btn" title="Open in GoHighLevel">GHL</a>}
+                {(() => {
+                  const encounterCount = (appointments || []).filter(a => new Date(a.start_time) < new Date() && (a.encounter_note_count || 0) > 0).length;
+                  return encounterCount > 0 ? (
+                    <button onClick={() => setShowQuickView(true)} className="action-btn" title="Quick view of past encounters" style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', color: '#6d28d9', padding: 0, fontWeight: 600 }}>
+                      Encounters <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 10, background: '#ede9fe', color: '#6d28d9', fontWeight: 700, marginLeft: 3 }}>{encounterCount}</span>
+                    </button>
+                  ) : null;
+                })()}
               </div>
               <div className="actions-cta">
                 <button onClick={() => setShowBookingModal(true)} className="action-btn action-btn-primary">Book</button>
@@ -5231,6 +5241,19 @@ export default function PatientProfile() {
               </div>
             </div>
           </>
+        )}
+
+        {/* Past Encounters Quick View */}
+        {showQuickView && (
+          <EncounterQuickView
+            appointments={appointments}
+            notes={notes}
+            onClose={() => setShowQuickView(false)}
+            onOpenEncounter={(apt) => {
+              setShowQuickView(false);
+              setEditingAppointment(apt);
+            }}
+          />
         )}
 
         {/* Encounter Modal (replaces old Appointment Edit Modal) */}

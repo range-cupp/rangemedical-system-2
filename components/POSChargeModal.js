@@ -67,6 +67,9 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   const [discountType, setDiscountType] = useState('none'); // 'none' | 'percent' | 'dollar'
   const [discountValue, setDiscountValue] = useState('');
 
+  // Shipping state (in dollars, converted to cents for charge)
+  const [shippingAmount, setShippingAmount] = useState('');
+
   // Payment state
   const [savedCards, setSavedCards] = useState([]);
   const [selectedCard, setSelectedCard] = useState(null);
@@ -409,8 +412,13 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     return cartItems.reduce((sum, item) => sum + getItemDiscountCents(item), 0);
   }
 
+  function getShippingCents() {
+    const val = parseFloat(shippingAmount);
+    return isNaN(val) || val <= 0 ? 0 : Math.round(val * 100);
+  }
+
   function getChargeAmount() {
-    return Math.max(getBaseAmount() - getDiscountCents(), 0);
+    return Math.max(getBaseAmount() - getDiscountCents(), 0) + getShippingCents();
   }
 
   function getChargeDescription() {
@@ -506,6 +514,8 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   }
 
   async function recordPurchases(extraFields) {
+    const shippingCents = getShippingCents();
+
     // Custom charge — single record (receipt sent by record-purchase)
     if (activeCategory === 'custom') {
       const amount = getChargeAmount();
@@ -525,6 +535,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           service_category: activeCategory,
           service_name: customDescription,
           quantity: 1,
+          shipping: shippingCents,
           ...discountData,
           ...extraFields,
         }),
@@ -533,6 +544,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     }
 
     // Cart items — one record per item, one consolidated receipt for all
+    let shippingApplied = false;
     const purchaseIds = [];
     for (const item of cartItems) {
       const qty = item.quantity || 1;
@@ -544,6 +556,10 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       const discountSuffix = item.itemDiscountType === 'percent'
         ? `${item.itemDiscountValue}% off`
         : `$${item.itemDiscountValue} off`;
+
+      // Apply shipping to first item only
+      const itemShipping = !shippingApplied && shippingCents > 0 ? shippingCents : 0;
+      shippingApplied = true;
 
       const res = await fetch('/api/stripe/record-purchase', {
         method: 'POST',
@@ -558,6 +574,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           quantity: qty,
           delivery_method: item.delivery_method || null,
           duration_days: item.duration_days || null,
+          shipping: itemShipping,
           skip_receipt: true, // consolidated receipt sent below
           ...(itemDiscountAmt > 0 ? {
             discount_type: item.itemDiscountType,
@@ -583,6 +600,8 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
 
   // Like recordPurchases but returns the first purchase record (used for gift card linking)
   async function recordPurchasesWithReturn(extraFields) {
+    const shippingCents = getShippingCents();
+
     if (activeCategory === 'custom') {
       const amount = getChargeAmount();
       const desc = getChargeDescription();
@@ -601,6 +620,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           service_category: activeCategory,
           service_name: customDescription,
           quantity: 1,
+          shipping: shippingCents,
           ...discountData,
           ...extraFields,
         }),
@@ -609,6 +629,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     }
 
     let firstPurchase = null;
+    let shippingApplied = false;
     const purchaseIds = [];
     for (const item of cartItems) {
       const qty = item.quantity || 1;
@@ -619,6 +640,9 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       const discountSuffix = item.itemDiscountType === 'percent'
         ? `${item.itemDiscountValue}% off`
         : `$${item.itemDiscountValue} off`;
+
+      const itemShipping = !shippingApplied && shippingCents > 0 ? shippingCents : 0;
+      shippingApplied = true;
 
       const res = await fetch('/api/stripe/record-purchase', {
         method: 'POST',
@@ -631,6 +655,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           service_category: item.category,
           service_name: item.name,
           quantity: qty,
+          shipping: itemShipping,
           skip_receipt: cartItems.length > 1,
           ...(itemDiscountAmt > 0 ? {
             discount_type: item.itemDiscountType,
@@ -1807,6 +1832,25 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                     <strong>{formatPrice(finalAmount)}{isRecurring() ? '/mo' : ''}</strong>
                   </div>
                 </>
+              )}
+            </div>
+
+            {/* Shipping */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 16px' }}>
+              <span style={{ fontSize: '13px', color: '#666', whiteSpace: 'nowrap' }}>Shipping $</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={shippingAmount}
+                onChange={e => setShippingAmount(e.target.value)}
+                placeholder="0.00"
+                style={{ width: '90px', padding: '6px 10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px' }}
+              />
+              {getShippingCents() > 0 && (
+                <span style={{ fontSize: '12px', color: '#888' }}>
+                  Total w/ shipping: <strong>{formatPrice(finalAmount)}</strong>
+                </span>
               )}
             </div>
 

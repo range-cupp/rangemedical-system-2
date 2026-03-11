@@ -50,13 +50,17 @@ export default async function handler(req, res) {
 
     // Determine event type from payload
     // Blooio sends different payloads for messages vs status updates
-    const eventType = body.type || body.event_type || (body.text ? 'message' : 'status');
+    // KEY: Status updates may include `text` (original message content) but have NO `from`/`sender`.
+    // Real inbound messages ALWAYS have a sender phone number.
+    const hasSender = !!(body.from || body.sender || body.chat_id);
+    const hasExplicitType = body.type || body.event_type;
+    const eventType = hasExplicitType || (hasSender && body.text ? 'message' : 'status');
 
-    if (eventType === 'message' || body.text) {
-      // INBOUND MESSAGE
+    if ((eventType === 'message' || body.text) && hasSender) {
+      // INBOUND MESSAGE — must have a sender phone
       await handleInboundMessage(body);
-    } else if (eventType === 'status' || body.message_id) {
-      // DELIVERY STATUS UPDATE
+    } else if (eventType === 'status' || body.message_id || !hasSender) {
+      // DELIVERY STATUS UPDATE (or text with no sender = status echo)
       await handleStatusUpdate(body);
     } else {
       console.log('Blooio webhook: unrecognized event type:', JSON.stringify(body).substring(0, 200));
@@ -78,18 +82,6 @@ async function handleInboundMessage(body) {
   const messageId = body.message_id || body.id || null;
 
   console.log(`Inbound iMessage/SMS from ${senderPhone}: ${messageText}`);
-
-  // DEBUG: Log every inbound at the very top to confirm Blooio is delivering
-  await supabase.from('comms_log').insert({
-    channel: 'sms',
-    message_type: 'webhook_debug',
-    message: `[DEBUG] from=${senderPhone} | text=${messageText} | body=${JSON.stringify(body).slice(0, 200)}`,
-    source: 'blooio/webhook(debug)',
-    status: 'received',
-    recipient: senderPhone,
-    direction: 'inbound',
-    provider: 'blooio',
-  }).catch(() => {});
 
   // ================================================================
   // STAFF BOT: Check if sender is a staff member — route to bot if so

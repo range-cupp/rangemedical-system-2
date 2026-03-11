@@ -230,7 +230,7 @@ export default async function handler(req, res) {
         const normalizedEmail = intakeRecord.email.toLowerCase().trim();
         const { data: patientMatch } = await supabase
           .from('patients')
-          .select('id, date_of_birth, gender, address, city, state, zip_code, preferred_name')
+          .select('id, date_of_birth, gender, address, city, state, zip_code, preferred_name, referral_source')
           .eq('email', normalizedEmail)
           .maybeSingle();
 
@@ -243,6 +243,8 @@ export default async function handler(req, res) {
           if (!patientMatch.state && intakeRecord.state) demoUpdates.state = intakeRecord.state;
           if (!patientMatch.zip_code && intakeRecord.postal_code) demoUpdates.zip_code = intakeRecord.postal_code;
           if (!patientMatch.preferred_name && intakeRecord.preferred_name) demoUpdates.preferred_name = intakeRecord.preferred_name;
+          // Always update referral_source from intake (intake is the authoritative source)
+          if (intakeRecord.how_heard) demoUpdates.referral_source = intakeRecord.how_heard;
 
           if (Object.keys(demoUpdates).length > 0) {
             await supabase.from('patients').update(demoUpdates).eq('id', patientMatch.id);
@@ -272,6 +274,7 @@ export default async function handler(req, res) {
             city: intakeRecord.city || null,
             state: intakeRecord.state || null,
             zip_code: intakeRecord.postal_code || null,
+            referral_source: intakeRecord.how_heard || null,
           };
 
           const { data: newPatient, error: createErr } = await supabase

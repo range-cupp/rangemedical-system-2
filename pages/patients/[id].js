@@ -1337,6 +1337,7 @@ export default function PatientProfile() {
       city: patient.city || '',
       state: patient.state || '',
       zip_code: patient.zip_code || '',
+      referral_source: patient.referral_source || intakeDemographics?.how_heard || '',
     });
     setEditingPatient(true);
   };
@@ -1754,6 +1755,16 @@ export default function PatientProfile() {
                     )}
                   </div>
                   <div className="demo-item">
+                    <label>Referred By / How Heard</label>
+                    {patient.referral_source ? (
+                      <span>{patient.referral_source}</span>
+                    ) : intakeDemographics?.how_heard ? (
+                      <span>{intakeDemographics.how_heard} <span className="from-intake">(from intake)</span></span>
+                    ) : (
+                      <span>—</span>
+                    )}
+                  </div>
+                  <div className="demo-item">
                     <label>Phone</label>
                     <span>{patient.phone ? formatPhone(patient.phone) : '—'}</span>
                   </div>
@@ -1820,6 +1831,10 @@ export default function PatientProfile() {
                   <div className="edit-field">
                     <label>Zip</label>
                     <input type="text" value={patientEditForm.zip_code} onChange={e => setPatientEditForm(f => ({ ...f, zip_code: e.target.value }))} />
+                  </div>
+                  <div className="edit-field edit-field-full">
+                    <label>Referred By / How Heard</label>
+                    <input type="text" value={patientEditForm.referral_source} onChange={e => setPatientEditForm(f => ({ ...f, referral_source: e.target.value }))} placeholder="e.g., Friend or Family Member: Jane Smith, Instagram" />
                   </div>
                 </div>
               )}

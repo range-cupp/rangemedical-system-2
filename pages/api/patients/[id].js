@@ -308,7 +308,7 @@ export default async function handler(req, res) {
 
       // ===== NEW: Get intake forms =====
       let intakes = [];
-      const intakeFields = 'id, first_name, last_name, email, phone, date_of_birth, gender, preferred_name, submitted_at, pdf_url, symptoms, photo_id_url, signature_url, patient_id, ghl_contact_id';
+      const intakeFields = 'id, first_name, last_name, email, phone, date_of_birth, gender, preferred_name, submitted_at, pdf_url, symptoms, photo_id_url, signature_url, patient_id, ghl_contact_id, how_heard, street_address, city, state, postal_code';
 
       // Try by patient_id first
       const { data: intakesByPatientId } = await supabase
@@ -650,8 +650,8 @@ export default async function handler(req, res) {
       let intakeDemographics = null;
       const firstIntake = intakes?.[0];
       if (firstIntake) {
-        const hasMissingDemographics = !patient.date_of_birth || !patient.gender || !patient.first_name || !patient.last_name || !patient.preferred_name;
-        if (hasMissingDemographics) {
+        const hasMissingDemographics = !patient.date_of_birth || !patient.gender || !patient.first_name || !patient.last_name || !patient.preferred_name || !patient.address;
+        if (hasMissingDemographics || firstIntake.how_heard) {
           intakeDemographics = {
             date_of_birth: firstIntake.date_of_birth,
             gender: firstIntake.gender,
@@ -659,7 +659,12 @@ export default async function handler(req, res) {
             last_name: firstIntake.last_name,
             phone: firstIntake.phone,
             email: firstIntake.email,
-            preferred_name: firstIntake.preferred_name || null
+            preferred_name: firstIntake.preferred_name || null,
+            how_heard: firstIntake.how_heard || null,
+            street_address: firstIntake.street_address || null,
+            city: firstIntake.city || null,
+            state: firstIntake.state || null,
+            postal_code: firstIntake.postal_code || null,
           };
         }
       }

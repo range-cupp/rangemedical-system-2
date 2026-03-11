@@ -4,8 +4,9 @@
 // Range Medical System
 
 import { useState, useEffect } from 'react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, FileText } from 'lucide-react';
 import { sharedStyles } from './AdminLayout';
+import TemplateMessages from './TemplateMessages';
 
 export default function SMSComposeModal({
   isOpen,
@@ -19,6 +20,7 @@ export default function SMSComposeModal({
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
   const [formatting, setFormatting] = useState(false);
+  const [showSnippets, setShowSnippets] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
 
@@ -29,8 +31,16 @@ export default function SMSComposeModal({
       setSending(false);
       setSent(false);
       setError('');
+      setShowSnippets(false);
     }
   }, [isOpen, recipientPhone]);
+
+  const handleSnippetSelect = (templateText) => {
+    const firstName = (recipientName || patientName || '').split(' ')[0] || 'there';
+    const populated = templateText.replace(/\{\{name\}\}/g, firstName);
+    setBody(populated);
+    setShowSnippets(false);
+  };
 
   const handleFormat = async () => {
     if (!body.trim()) {
@@ -148,31 +158,63 @@ export default function SMSComposeModal({
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <label style={sharedStyles.label}>Message</label>
-                    <button
-                      type="button"
-                      onClick={handleFormat}
-                      disabled={formatting || !body.trim()}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        padding: '4px 10px',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        color: formatting ? '#9ca3af' : '#7c3aed',
-                        background: formatting ? '#f3f4f6' : '#f5f3ff',
-                        border: '1px solid',
-                        borderColor: formatting ? '#e5e7eb' : '#ddd6fe',
-                        borderRadius: '6px',
-                        cursor: formatting || !body.trim() ? 'not-allowed' : 'pointer',
-                        opacity: !body.trim() ? 0.5 : 1,
-                        marginBottom: '6px',
-                      }}
-                    >
-                      <Sparkles size={13} />
-                      {formatting ? 'Formatting...' : 'AI Format'}
-                    </button>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setShowSnippets(!showSnippets)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          padding: '4px 10px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          color: showSnippets ? '#1d4ed8' : '#374151',
+                          background: showSnippets ? '#dbeafe' : '#f3f4f6',
+                          border: '1px solid',
+                          borderColor: showSnippets ? '#93c5fd' : '#d1d5db',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          marginBottom: '6px',
+                        }}
+                      >
+                        <FileText size={13} />
+                        Snippets
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleFormat}
+                        disabled={formatting || !body.trim()}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          padding: '4px 10px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          color: formatting ? '#9ca3af' : '#7c3aed',
+                          background: formatting ? '#f3f4f6' : '#f5f3ff',
+                          border: '1px solid',
+                          borderColor: formatting ? '#e5e7eb' : '#ddd6fe',
+                          borderRadius: '6px',
+                          cursor: formatting || !body.trim() ? 'not-allowed' : 'pointer',
+                          opacity: !body.trim() ? 0.5 : 1,
+                          marginBottom: '6px',
+                        }}
+                      >
+                        <Sparkles size={13} />
+                        {formatting ? 'Formatting...' : 'AI Format'}
+                      </button>
+                    </div>
                   </div>
+                  {showSnippets && (
+                    <div style={{ marginBottom: '8px', border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
+                      <TemplateMessages
+                        onSelect={handleSnippetSelect}
+                        onClose={() => setShowSnippets(false)}
+                      />
+                    </div>
+                  )}
                   <textarea
                     value={body}
                     onChange={e => setBody(e.target.value)}

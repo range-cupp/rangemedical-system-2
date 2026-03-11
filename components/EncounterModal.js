@@ -16,6 +16,11 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef(null);
 
+  // Edit draft state
+  const [editingNoteId, setEditingNoteId] = useState(null);
+  const [editNoteInput, setEditNoteInput] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+
   // Addendum state
   const [addendumParentId, setAddendumParentId] = useState(null);
   const [addendumInput, setAddendumInput] = useState('');
@@ -180,6 +185,32 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
       }
     } catch (err) {
       console.error('Sign error:', err);
+    }
+  };
+
+  // Edit draft note
+  const handleEditSave = async () => {
+    if (!editNoteInput.trim() || !editingNoteId) return;
+    setEditSaving(true);
+    try {
+      const res = await fetch(`/api/notes/${editingNoteId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body: editNoteInput, requesting_user: currentUser }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEncounterNotes(prev => prev.map(n => n.id === editingNoteId ? { ...n, body: editNoteInput } : n));
+        setEditingNoteId(null);
+        setEditNoteInput('');
+        if (onRefresh) onRefresh();
+      } else {
+        alert(data.error || 'Failed to save edit');
+      }
+    } catch (err) {
+      console.error('Edit save error:', err);
+    } finally {
+      setEditSaving(false);
     }
   };
 
@@ -569,20 +600,48 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                           </span>
                         </div>
 
-                        <div className="enc-note-body">{note.body}</div>
+                        {/* Note body — editable if this is the draft being edited */}
+                        {editingNoteId === note.id ? (
+                          <div>
+                            <textarea
+                              value={editNoteInput}
+                              onChange={e => setEditNoteInput(e.target.value)}
+                              className="enc-textarea"
+                              style={{ minHeight: 120 }}
+                            />
+                            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                              <button onClick={handleEditSave} disabled={!editNoteInput.trim() || editSaving} className="enc-btn enc-btn-primary enc-btn-sm">
+                                {editSaving ? 'Saving...' : 'Save Changes'}
+                              </button>
+                              <button onClick={() => { setEditingNoteId(null); setEditNoteInput(''); }} className="enc-btn enc-btn-secondary enc-btn-sm">
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="enc-note-body">{note.body}</div>
+                        )}
 
-                        <div className="enc-note-actions">
-                          {note.status !== 'signed' && note.created_by === currentUser && (
-                            <button onClick={() => handleSignNote(note.id)} className="enc-btn enc-btn-sign enc-btn-sm">
-                              ✍ Sign & Lock
-                            </button>
-                          )}
-                          {note.status === 'signed' && (
-                            <button onClick={() => setAddendumParentId(note.id)} className="enc-btn enc-btn-ghost enc-btn-sm">
-                              + Add Addendum
-                            </button>
-                          )}
-                        </div>
+                        {/* Note actions — hide while editing */}
+                        {editingNoteId !== note.id && (
+                          <div className="enc-note-actions">
+                            {note.status !== 'signed' && note.created_by === currentUser && (
+                              <>
+                                <button onClick={() => { setEditingNoteId(note.id); setEditNoteInput(note.body); }} className="enc-btn enc-btn-secondary enc-btn-sm">
+                                  ✏️ Edit
+                                </button>
+                                <button onClick={() => handleSignNote(note.id)} className="enc-btn enc-btn-sign enc-btn-sm">
+                                  ✍ Sign & Lock
+                                </button>
+                              </>
+                            )}
+                            {note.status === 'signed' && (
+                              <button onClick={() => setAddendumParentId(note.id)} className="enc-btn enc-btn-ghost enc-btn-sm">
+                                + Add Addendum
+                              </button>
+                            )}
+                          </div>
+                        )}
 
                         {/* Addendum form inline */}
                         {addendumParentId === note.id && (

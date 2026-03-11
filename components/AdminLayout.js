@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { useAuth } from './AuthProvider';
+import StaffChatPanel from './StaffChatPanel';
 
 // SMS notification sound — two-tone "ding-ding" (880Hz + 1100Hz)
 function playNotificationSound() {
@@ -559,6 +560,9 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
           </main>
         </div>
       </div>
+
+      {/* Floating staff chat — available on every admin page */}
+      <StaffChatPanel />
     </>
   );
 }

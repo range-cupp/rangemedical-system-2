@@ -89,7 +89,8 @@ export default async function handler(req, res) {
       quantity,
       category,
       source,
-      purchase_date
+      purchase_date,
+      shipping
     } = req.body;
 
     if (!patient_name || !item_name) {
@@ -111,6 +112,7 @@ export default async function handler(req, res) {
           category: category || 'Other',
           source: source || 'manual',
           purchase_date: purchase_date || new Date().toISOString().split('T')[0],
+          shipping: shipping || 0,
           created_at: new Date().toISOString()
         })
         .select()

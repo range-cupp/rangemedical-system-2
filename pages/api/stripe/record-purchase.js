@@ -136,6 +136,7 @@ export default async function handler(req, res) {
       skip_receipt,
       delivery_method,
       duration_days,
+      shipping,
     } = req.body;
 
     if (!patient_id || (amount === undefined || amount === null)) {
@@ -170,6 +171,7 @@ export default async function handler(req, res) {
       payment_method: payment_method || 'stripe',
       source: 'stripe_pos',
       purchase_date: new Date().toISOString().split('T')[0],
+      shipping: shipping || 0,
     };
 
     // Add discount fields if present

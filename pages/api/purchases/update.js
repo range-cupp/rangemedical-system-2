@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     }
 
     // Only allow specific fields to be updated
-    const allowedFields = ['protocol_created', 'protocol_id', 'notes'];
+    const allowedFields = ['protocol_created', 'protocol_id', 'notes', 'shipping'];
     const sanitizedUpdates = {};
     
     for (const field of allowedFields) {

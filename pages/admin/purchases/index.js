@@ -52,6 +52,8 @@ export default function PurchasesPage() {
   const [createModal, setCreateModal] = useState(null);
   const [addToExistingModal, setAddToExistingModal] = useState(null);
   const [logSessionModal, setLogSessionModal] = useState(null);
+  const [editingShipping, setEditingShipping] = useState(null);
+  const [shippingValue, setShippingValue] = useState('');
 
   useEffect(() => {
     fetchPurchases();
@@ -69,6 +71,23 @@ export default function PurchasesPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const saveShipping = async (purchaseId) => {
+    const val = parseFloat(shippingValue) || 0;
+    try {
+      const res = await fetch('/api/purchases/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: purchaseId, shipping: val })
+      });
+      if (res.ok) {
+        setPurchases(prev => prev.map(p => p.id === purchaseId ? { ...p, shipping: val } : p));
+      }
+    } catch (err) {
+      console.error('Error saving shipping:', err);
+    }
+    setEditingShipping(null);
   };
 
   // Filter purchases
@@ -160,6 +179,7 @@ export default function PurchasesPage() {
                     <th style={styles.th}>Item</th>
                     <th style={styles.th}>Category</th>
                     <th style={styles.th}>Amount</th>
+                    <th style={styles.th}>Shipping</th>
                     <th style={styles.th}>Protocol</th>
                   </tr>
                 </thead>
@@ -182,6 +202,29 @@ export default function PurchasesPage() {
                       </td>
                       <td style={styles.td}>
                         <span style={styles.amount}>${purchase.amount}</span>
+                      </td>
+                      <td style={styles.td}>
+                        {editingShipping === purchase.id ? (
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={shippingValue}
+                            onChange={e => setShippingValue(e.target.value)}
+                            onBlur={() => saveShipping(purchase.id)}
+                            onKeyDown={e => { if (e.key === 'Enter') saveShipping(purchase.id); if (e.key === 'Escape') setEditingShipping(null); }}
+                            autoFocus
+                            style={{ width: '70px', padding: '4px 6px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '13px', textAlign: 'right' }}
+                          />
+                        ) : (
+                          <span
+                            onClick={() => { setEditingShipping(purchase.id); setShippingValue(purchase.shipping || 0); }}
+                            style={{ cursor: 'pointer', color: parseFloat(purchase.shipping) > 0 ? '#111827' : '#9ca3af', fontSize: '13px' }}
+                            title="Click to edit shipping"
+                          >
+                            ${parseFloat(purchase.shipping || 0).toFixed(2)}
+                          </span>
+                        )}
                       </td>
                       <td style={styles.td}>
                         {purchase.protocol_id ? (

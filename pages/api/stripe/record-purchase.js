@@ -198,18 +198,20 @@ export default async function handler(req, res) {
       );
     }
 
-    // Fire-and-forget auto-protocol creation/extension
+    // Auto-create/extend protocol and link to purchase before responding
     if (service_category && service_name) {
-      autoCreateOrExtendProtocol({
-        patientId: patient_id,
-        serviceCategory: service_category,
-        serviceName: service_name,
-        purchaseId: data.id,
-        deliveryMethod: delivery_method || null,
-        durationDays: duration_days || null,
-      }).catch(err =>
-        console.error('Auto-protocol failed:', err)
-      );
+      try {
+        await autoCreateOrExtendProtocol({
+          patientId: patient_id,
+          serviceCategory: service_category,
+          serviceName: service_name,
+          purchaseId: data.id,
+          deliveryMethod: delivery_method || null,
+          durationDays: duration_days || null,
+        });
+      } catch (err) {
+        console.error('Auto-protocol failed:', err);
+      }
     }
 
     return res.status(200).json({ purchase: data });

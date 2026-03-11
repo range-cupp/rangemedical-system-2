@@ -268,6 +268,7 @@ export default function PurchasesPage() {
 function CreateProtocolModal({ purchase, onClose, onSuccess }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [existingProtocolId, setExistingProtocolId] = useState(null);
   const [patient, setPatient] = useState(null);
   const [patientLoading, setPatientLoading] = useState(true);
   const [cycleInfo, setCycleInfo] = useState(null);
@@ -531,6 +532,11 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
             body: JSON.stringify(protocolData)
           });
 
+          if (res.status === 409) {
+            const data = await res.json().catch(() => ({}));
+            setExistingProtocolId(data.existing_protocol_id || null);
+            throw new Error('Protocol already created for this purchase');
+          }
           if (!res.ok) {
             let errorMsg = 'Failed to create protocol';
             try { const data = await res.json(); errorMsg = data.details || data.error || errorMsg; } catch (e) {}
@@ -661,6 +667,14 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
         body: JSON.stringify(protocolData)
       });
 
+      if (res.status === 409) {
+        const data = await res.json().catch(() => ({}));
+        setExistingProtocolId(data.existing_protocol_id || null);
+        setError('Protocol already created for this purchase');
+        setSaving(false);
+        return;
+      }
+
       if (!res.ok) {
         let errorMsg = 'Failed to create protocol';
         try {
@@ -690,7 +704,18 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
         </div>
 
         <div style={modalStyles.body}>
-          {error && <div style={modalStyles.error}>{error}</div>}
+          {error && (
+            <div style={modalStyles.error}>
+              {error}
+              {existingProtocolId && (
+                <div style={{ marginTop: '8px' }}>
+                  <Link href={`/admin/protocols/${existingProtocolId}`} style={{ color: '#3b82f6', textDecoration: 'underline', fontWeight: 600 }}>
+                    View Existing Protocol →
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Patient (read-only from patients table) */}
           <div style={modalStyles.section}>

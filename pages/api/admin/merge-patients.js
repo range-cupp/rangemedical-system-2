@@ -25,6 +25,7 @@ const SIMPLE_FK_TABLES = [
   'protocol_logs',
   'injection_logs',
   'weight_logs',
+  'weight_log',
   'protocol_follow_up_labs',
   'appointment_logs',
   'hrt_memberships',
@@ -43,6 +44,13 @@ const SIMPLE_FK_TABLES = [
   'journey_events',
   'notification_queue',
   'purchase_notifications',
+  'checkin_reminders_log',
+  'form_bundles',
+  'session_usage',
+  'pending_link_messages',
+  '_archive_protocols',
+  'lab_results',
+  'prescriptions',
 ];
 
 // Group B: Tables with denormalized patient fields that need updating
@@ -52,6 +60,7 @@ function getDenormalizedTables(displayName, finalEmail, finalPhone, finalGhlCont
     invoices: { patient_name: displayName, patient_email: finalEmail },
     purchases: { ghl_contact_id: finalGhlContactId },
     clinic_appointments: { patient_name: displayName, ghl_contact_id: finalGhlContactId },
+    appointments: { patient_name: displayName, patient_phone: finalPhone },
     comms_log: { ghl_contact_id: finalGhlContactId },
     lab_journeys: {
       patient_name: displayName,
@@ -61,6 +70,12 @@ function getDenormalizedTables(displayName, finalEmail, finalPhone, finalGhlCont
     },
   };
 }
+
+// Group C: Tables with non-standard FK column names (not patient_id)
+const CUSTOM_FK_TABLES = [
+  { table: 'gift_card_redemptions', column: 'redeemed_by_patient_id' },
+  { table: 'gift_cards', column: 'buyer_patient_id' },
+];
 
 // Helper: safely update a table, skip if it doesn't exist
 async function safeUpdate(table, updateObj, filterCol, filterVal) {
@@ -147,6 +162,11 @@ export default async function handler(req, res) {
     const recordCounts = {};
     for (const table of uniqueTables) {
       const count = await safeCount(table, 'patient_id', duplicateId);
+      if (count > 0) recordCounts[table] = count;
+    }
+    // Count custom FK tables (non-standard column names)
+    for (const { table, column } of CUSTOM_FK_TABLES) {
+      const count = await safeCount(table, column, duplicateId);
       if (count > 0) recordCounts[table] = count;
     }
 
@@ -251,6 +271,16 @@ export default async function handler(req, res) {
     // --- Phase 2: Reassign Group A tables (simple patient_id) ---
     for (const table of SIMPLE_FK_TABLES) {
       const result = await safeUpdate(table, { patient_id: primaryId }, 'patient_id', duplicateId);
+      if (result.error) {
+        errors.push({ table, error: result.error });
+      } else if (result.count > 0) {
+        moved[table] = result.count;
+      }
+    }
+
+    // --- Phase 2b: Reassign Group C tables (custom FK column names) ---
+    for (const { table, column } of CUSTOM_FK_TABLES) {
+      const result = await safeUpdate(table, { [column]: primaryId }, column, duplicateId);
       if (result.error) {
         errors.push({ table, error: result.error });
       } else if (result.count > 0) {

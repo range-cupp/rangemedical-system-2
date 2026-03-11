@@ -47,13 +47,20 @@ export default async function handler(req, res) {
         .delete()
         .eq('appointment_id', id);
 
+      // Try deleting from both appointment tables (appointments + clinic_appointments)
       const { error } = await supabase
         .from('appointments')
         .delete()
         .eq('id', id);
 
-      if (error) {
-        console.error('Delete appointment error:', error);
+      const { error: clinicError } = await supabase
+        .from('clinic_appointments')
+        .delete()
+        .eq('id', id);
+
+      // Only fail if both tables errored
+      if (error && clinicError) {
+        console.error('Delete appointment error:', error, clinicError);
         return res.status(500).json({ error: error.message });
       }
 

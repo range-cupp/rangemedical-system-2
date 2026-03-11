@@ -4,7 +4,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { NOTE_TYPES, ENCOUNTER_TEMPLATES, getTemplateForService } from '../lib/encounter-templates';
 
+// Users allowed to create/edit/sign encounter notes
+const NOTE_AUTHORS = ['burgess@range-medical.com', 'lily@range-medical.com', 'evan@range-medical.com'];
+
 export default function EncounterModal({ appointment, currentUser, onClose, onRefresh }) {
+  // Check if current user can author notes
+  const canAuthorNotes = NOTE_AUTHORS.some(email => currentUser?.toLowerCase()?.includes(email));
+
   // Notes state
   const [encounterNotes, setEncounterNotes] = useState([]);
   const [loadingNotes, setLoadingNotes] = useState(true);
@@ -578,9 +584,11 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                   <div className="enc-empty">
                     <div className="enc-empty-icon">📋</div>
                     <div className="enc-empty-text">No encounter notes yet</div>
-                    <button onClick={() => setShowNoteForm(true)} className="enc-btn enc-btn-primary">
-                      + Add Encounter Note
-                    </button>
+                    {canAuthorNotes && (
+                      <button onClick={() => setShowNoteForm(true)} className="enc-btn enc-btn-primary">
+                        + Add Encounter Note
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <>
@@ -622,8 +630,8 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                           <div className="enc-note-body">{note.body}</div>
                         )}
 
-                        {/* Note actions — hide while editing */}
-                        {editingNoteId !== note.id && (
+                        {/* Note actions — hide while editing, only for authorized users */}
+                        {editingNoteId !== note.id && canAuthorNotes && (
                           <div className="enc-note-actions">
                             {note.status !== 'signed' && note.created_by === currentUser && (
                               <>
@@ -668,7 +676,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                     ))}
 
                     {/* Add note button */}
-                    {!showNoteForm && (
+                    {!showNoteForm && canAuthorNotes && (
                       <button onClick={() => setShowNoteForm(true)} className="enc-btn enc-btn-primary" style={{ marginTop: 8 }}>
                         + Add Encounter Note
                       </button>
@@ -677,7 +685,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                 )}
 
                 {/* Note creation form */}
-                {showNoteForm && (
+                {showNoteForm && canAuthorNotes && (
                   <div className="enc-form-card">
                     <div className="enc-form-title">
                       <span>New Encounter Note</span>

@@ -90,6 +90,18 @@ const SPECIALTY_IV_TYPES = [
 // HELPERS
 // ============================================
 
+// Map slug prefix to appointment service_category for override bookings
+function getServiceCategory(slug) {
+  if (!slug) return 'other';
+  if (slug.includes('blood-draw') || slug.includes('lab-review')) return 'lab';
+  if (slug.includes('injection') || slug === 'range-injections') return 'injection';
+  if (slug === 'hbot') return 'hbot';
+  if (slug === 'red-light-therapy') return 'rlt';
+  if (slug.includes('iv') || slug.includes('vitamin-c')) return 'iv';
+  if (slug.includes('consultation')) return 'consultation';
+  return 'other';
+}
+
 function groupServicesByCategory(eventTypes) {
   const slugMap = {};
   eventTypes.forEach(et => { slugMap[et.slug] = et; });
@@ -115,6 +127,8 @@ export default function BookingTab({ preselectedPatient = null }) {
   const [selectedProvider, setSelectedProvider] = useState(null); // { userId, name, username, email }
   const [selectedDate, setSelectedDate] = useState(getTodayDate());
   const [selectedSlot, setSelectedSlot] = useState(null);
+  const [useCustomTime, setUseCustomTime] = useState(false);
+  const [customTime, setCustomTime] = useState('');
   const [notes, setNotes] = useState('');
   const [booking, setBooking] = useState(false);
 
@@ -339,6 +353,8 @@ export default function BookingTab({ preselectedPatient = null }) {
   const handleDateChange = (newDate) => {
     setSelectedDate(newDate);
     setSelectedSlot(null);
+    setUseCustomTime(false);
+    setCustomTime('');
     if (selectedService) {
       fetchSlots(selectedService.id, newDate, selectedProvider?.username || null);
     }
@@ -356,39 +372,74 @@ export default function BookingTab({ preselectedPatient = null }) {
   // ============================================
 
   const handleBook = async () => {
-    if (!selectedPatient || !selectedService || !selectedSlot) return;
+    if (!selectedPatient || !selectedService) return;
+    if (!useCustomTime && !selectedSlot) return;
+    if (useCustomTime && !customTime) return;
     setBooking(true);
     try {
       const serviceDetails = getServiceDetailsForBooking();
       const detailsSummary = getServiceDetailsSummary();
       const fullNotes = [notes, detailsSummary].filter(Boolean).join(' | ');
 
-      const res = await fetch('/api/bookings/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventTypeId: selectedService.id,
-          start: selectedSlot.start,
-          patientId: selectedPatient.id,
-          patientName: selectedPatient.name,
-          patientEmail: selectedPatient.email,
-          patientPhone: selectedPatient.phone,
-          serviceName: selectedService.title,
-          serviceSlug: selectedService.slug,
-          durationMinutes: selectedService.length,
-          notes: fullNotes,
-          serviceDetails,
-          hostUserId: selectedProvider?.userId !== 'any' ? (selectedProvider?.userId || null) : null,
-          hostName: selectedProvider?.userId !== 'any' ? (selectedProvider?.name || null) : null,
-        })
-      });
+      let res;
+
+      if (useCustomTime) {
+        // Override: bypass Cal.com, book directly in appointments table
+        const duration = selectedService.length || 30;
+        const startDT = new Date(`${selectedDate}T${customTime}:00`);
+        const endDT = new Date(startDT.getTime() + duration * 60000);
+
+        res = await fetch('/api/appointments/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            patient_id: selectedPatient.id,
+            patient_name: selectedPatient.name,
+            patient_phone: selectedPatient.phone,
+            service_name: selectedService.title,
+            service_category: getServiceCategory(selectedService.slug),
+            provider: selectedProvider?.userId !== 'any' ? (selectedProvider?.name || null) : null,
+            start_time: startDT.toISOString(),
+            end_time: endDT.toISOString(),
+            duration_minutes: duration,
+            location: 'Range Medical — Newport Beach',
+            notes: fullNotes || null,
+            created_by: 'patient_profile',
+            send_notification: true,
+          })
+        });
+      } else {
+        // Normal: route through Cal.com
+        res = await fetch('/api/bookings/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            eventTypeId: selectedService.id,
+            start: selectedSlot.start,
+            patientId: selectedPatient.id,
+            patientName: selectedPatient.name,
+            patientEmail: selectedPatient.email,
+            patientPhone: selectedPatient.phone,
+            serviceName: selectedService.title,
+            serviceSlug: selectedService.slug,
+            durationMinutes: selectedService.length,
+            notes: fullNotes,
+            serviceDetails,
+            hostUserId: selectedProvider?.userId !== 'any' ? (selectedProvider?.userId || null) : null,
+            hostName: selectedProvider?.userId !== 'any' ? (selectedProvider?.name || null) : null,
+          })
+        });
+      }
+
       const json = await res.json();
-      if (json.success) {
+      if (json.success || json.appointment) {
         setStep(1);
         setSelectedPatient(null);
         setSelectedService(null);
         setSelectedProvider(null);
         setSelectedSlot(null);
+        setUseCustomTime(false);
+        setCustomTime('');
         setNotes('');
         setSelectedDate(getTodayDate());
         setInjectionTier('');
@@ -830,26 +881,74 @@ export default function BookingTab({ preselectedPatient = null }) {
               </div>
               <div style={styles.dateLabel}>{formatDateLong(selectedDate)}</div>
 
-              <label style={{ ...styles.label, marginTop: '16px' }}>Available Times</label>
-              {loadingSlots ? (
-                <div style={styles.loadingText}>Loading available times...</div>
-              ) : (
-                <div style={styles.slotsGrid}>
-                  {getSlotsList(slots).length === 0 ? (
-                    <div style={styles.noSlots}>No available times for this date</div>
+              {!useCustomTime && (
+                <>
+                  <label style={{ ...styles.label, marginTop: '16px' }}>Available Times</label>
+                  {loadingSlots ? (
+                    <div style={styles.loadingText}>Loading available times...</div>
                   ) : (
-                    getSlotsList(slots).map((slot, i) => (
-                      <button
-                        key={i}
-                        style={{
-                          ...styles.slotBtn,
-                          ...(selectedSlot?.start === slot.start ? styles.slotBtnSelected : {})
-                        }}
-                        onClick={() => { setSelectedSlot(slot); setStep(4); }}
-                      >
-                        {formatTime(slot.start)}
-                      </button>
-                    ))
+                    <div style={styles.slotsGrid}>
+                      {getSlotsList(slots).length === 0 ? (
+                        <div style={styles.noSlots}>No available times for this date</div>
+                      ) : (
+                        getSlotsList(slots).map((slot, i) => (
+                          <button
+                            key={i}
+                            style={{
+                              ...styles.slotBtn,
+                              ...(selectedSlot?.start === slot.start ? styles.slotBtnSelected : {})
+                            }}
+                            onClick={() => { setSelectedSlot(slot); setStep(4); }}
+                          >
+                            {formatTime(slot.start)}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Override availability toggle */}
+              {!useCustomTime && !loadingSlots && (
+                <div style={{ textAlign: 'center', marginTop: '12px' }}>
+                  <button
+                    onClick={() => { setUseCustomTime(true); setSelectedSlot(null); }}
+                    style={{ background: 'none', border: 'none', color: '#6b7280', fontSize: '13px', cursor: 'pointer', textDecoration: 'underline' }}
+                  >
+                    Use custom time (override availability)
+                  </button>
+                </div>
+              )}
+
+              {/* Custom time picker */}
+              {useCustomTime && (
+                <div style={{ marginTop: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <label style={styles.label}>Custom Time</label>
+                    <button
+                      onClick={() => { setUseCustomTime(false); setCustomTime(''); }}
+                      style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '13px', cursor: 'pointer' }}
+                    >
+                      Back to available times
+                    </button>
+                  </div>
+                  <input
+                    type="time"
+                    value={customTime}
+                    onChange={(e) => setCustomTime(e.target.value)}
+                    style={{ ...styles.dateInput, width: '100%' }}
+                  />
+                  <p style={{ fontSize: '11px', color: '#92400e', marginTop: '6px', marginBottom: 0 }}>
+                    This will override availability and may double-book the provider.
+                  </p>
+                  {customTime && (
+                    <button
+                      style={{ ...styles.slotBtn, ...styles.slotBtnSelected, marginTop: '12px', width: '100%' }}
+                      onClick={() => setStep(4)}
+                    >
+                      Continue with {new Date(`2000-01-01T${customTime}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                    </button>
                   )}
                 </div>
               )}
@@ -891,8 +990,18 @@ export default function BookingTab({ preselectedPatient = null }) {
                 </div>
                 <div style={styles.summaryRow}>
                   <span style={styles.summaryLabel}>Time</span>
-                  <span style={styles.summaryValue}>{formatTime(selectedSlot?.start)}</span>
+                  <span style={styles.summaryValue}>
+                    {useCustomTime
+                      ? new Date(`2000-01-01T${customTime}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+                      : formatTime(selectedSlot?.start)}
+                  </span>
                 </div>
+                {useCustomTime && (
+                  <div style={{ ...styles.summaryRow, background: '#fffbeb' }}>
+                    <span style={{ ...styles.summaryLabel, color: '#92400e' }}>Override</span>
+                    <span style={{ ...styles.summaryValue, color: '#92400e', fontSize: '12px' }}>Bypassing Cal.com availability</span>
+                  </div>
+                )}
               </div>
 
               <label style={{ ...styles.label, marginTop: '16px' }}>Notes (optional)</label>

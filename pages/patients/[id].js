@@ -308,6 +308,9 @@ export default function PatientProfile() {
   const [addCreditSaving, setAddCreditSaving] = useState(false);
   const [creditBalanceCents, setCreditBalanceCents] = useState(0);
   const [creditBalanceLoaded, setCreditBalanceLoaded] = useState(false);
+  const [creditHistory, setCreditHistory] = useState([]);
+  const [creditHistoryLoading, setCreditHistoryLoading] = useState(false);
+  const [deletingCreditId, setDeletingCreditId] = useState(null);
 
   // Edit injection modal state
   const [editInjectionModal, setEditInjectionModal] = useState(null);
@@ -563,9 +566,31 @@ export default function PatientProfile() {
         const data = await res.json();
         setCreditBalanceCents(data.balance_cents || 0);
         setCreditBalanceLoaded(true);
+        setCreditHistory(data.history || []);
       }
     } catch (err) {
       console.error('Error fetching credit balance:', err);
+    }
+  };
+
+  const handleDeleteCreditEntry = async (entryId) => {
+    if (!confirm('Remove this credit entry? The balance will be recalculated.')) return;
+    setDeletingCreditId(entryId);
+    try {
+      const res = await fetch(`/api/credits/${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entry_id: entryId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete credit entry');
+      setCreditBalanceCents(data.new_balance_cents);
+      setCreditBalanceLoaded(true);
+      setCreditHistory(prev => prev.filter(e => e.id !== entryId));
+    } catch (err) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setDeletingCreditId(null);
     }
   };
 
@@ -5130,98 +5155,141 @@ export default function PatientProfile() {
         {/* ==================== ADD CREDIT MODAL ==================== */}
         {showAddCreditModal && (
           <div className="modal-overlay" onClick={() => { setShowAddCreditModal(false); setAddCreditAmount(''); setAddCreditNote(''); setAddCreditReason('manual'); }}>
-            <div className="modal" style={{ maxWidth: 420 }} onClick={e => e.stopPropagation()}>
+            <div className="modal" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
               <div className="modal-header">
-                <h3>Add Account Credit</h3>
+                <h3>Account Credit</h3>
                 <button onClick={() => { setShowAddCreditModal(false); setAddCreditAmount(''); setAddCreditNote(''); setAddCreditReason('manual'); }} className="close-btn">&times;</button>
               </div>
               <div className="modal-body">
-                {creditBalanceCents > 0 && (
-                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 14, color: '#166534' }}>
-                    Current balance: <strong>${(creditBalanceCents / 100).toFixed(2)}</strong>
+                {/* Balance banner */}
+                <div style={{ background: creditBalanceCents > 0 ? '#f0fdf4' : '#f9fafb', border: `1px solid ${creditBalanceCents > 0 ? '#bbf7d0' : '#e5e7eb'}`, borderRadius: 8, padding: '10px 14px', marginBottom: 20, fontSize: 14, color: creditBalanceCents > 0 ? '#166534' : '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>Current balance</span>
+                  <strong style={{ fontSize: 16 }}>${(creditBalanceCents / 100).toFixed(2)}</strong>
+                </div>
+
+                {/* Add credit form */}
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 12, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Add Credit</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                    <div>
+                      <label style={{ display: 'block', fontWeight: 600, marginBottom: 6, fontSize: 13 }}>Amount ($)</label>
+                      <input
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={addCreditAmount}
+                        onChange={e => setAddCreditAmount(e.target.value)}
+                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 15, boxSizing: 'border-box' }}
+                        autoFocus
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontWeight: 600, marginBottom: 6, fontSize: 13 }}>Reason</label>
+                      <select
+                        value={addCreditReason}
+                        onChange={e => setAddCreditReason(e.target.value)}
+                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+                      >
+                        <option value="manual">Manual adjustment</option>
+                        <option value="gift">Gift</option>
+                        <option value="refund">Refund / credit</option>
+                        <option value="loyalty">Loyalty reward</option>
+                        <option value="promotion">Promotion</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={{ display: 'block', fontWeight: 600, marginBottom: 6, fontSize: 13 }}>Note (optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Gift from JP Perarie"
+                      value={addCreditNote}
+                      onChange={e => setAddCreditNote(e.target.value)}
+                      style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                    <button
+                      onClick={() => { setShowAddCreditModal(false); setAddCreditAmount(''); setAddCreditNote(''); setAddCreditReason('manual'); }}
+                      style={{ padding: '8px 18px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer', fontWeight: 500 }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      disabled={addCreditSaving || !addCreditAmount || isNaN(Number(addCreditAmount)) || Number(addCreditAmount) <= 0}
+                      onClick={async () => {
+                        setAddCreditSaving(true);
+                        try {
+                          const res = await fetch('/api/credits/add', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              patient_id: patient.id,
+                              amount_dollars: addCreditAmount,
+                              reason: addCreditReason,
+                              description: addCreditNote || null,
+                              created_by: 'admin',
+                            }),
+                          });
+                          const data = await res.json();
+                          if (!res.ok) throw new Error(data.error || 'Failed to add credit');
+                          setCreditBalanceCents(data.new_balance_cents);
+                          setCreditBalanceLoaded(true);
+                          // Refresh history
+                          const hRes = await fetch(`/api/credits/${id}`);
+                          if (hRes.ok) { const hData = await hRes.json(); setCreditHistory(hData.history || []); }
+                          setAddCreditAmount('');
+                          setAddCreditNote('');
+                          setAddCreditReason('manual');
+                        } catch (err) {
+                          alert(`Error: ${err.message}`);
+                        } finally {
+                          setAddCreditSaving(false);
+                        }
+                      }}
+                      style={{ padding: '8px 20px', borderRadius: 6, border: 'none', background: addCreditSaving ? '#9ca3af' : '#166534', color: '#fff', cursor: addCreditSaving ? 'not-allowed' : 'pointer', fontWeight: 600 }}
+                    >
+                      {addCreditSaving ? 'Adding…' : 'Add Credit'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Credit history */}
+                {creditHistory.length > 0 && (
+                  <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 16 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 10, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Credit History</div>
+                    <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+                      {creditHistory.map(entry => {
+                        const isPositive = entry.amount_cents > 0;
+                        const dateStr = entry.created_at ? new Date(entry.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+                        const amtStr = (isPositive ? '+' : '') + '$' + (Math.abs(entry.amount_cents) / 100).toFixed(2);
+                        const label = entry.description || entry.reason || (entry.type === 'use' ? 'Applied at checkout' : 'Credit added');
+                        return (
+                          <div key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid #f3f4f6' }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 500, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
+                              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{dateStr} · {entry.type === 'use' ? 'used' : entry.reason || 'added'}</div>
+                            </div>
+                            <div style={{ fontWeight: 700, fontSize: 14, color: isPositive ? '#16a34a' : '#dc2626', flexShrink: 0 }}>{amtStr}</div>
+                            {/* Only allow deleting 'add' entries; 'use' entries are locked to purchase records */}
+                            {entry.type === 'add' && (
+                              <button
+                                onClick={() => handleDeleteCreditEntry(entry.id)}
+                                disabled={deletingCreditId === entry.id}
+                                title="Remove this credit entry"
+                                style={{ background: 'none', border: 'none', cursor: deletingCreditId === entry.id ? 'not-allowed' : 'pointer', color: '#dc2626', fontSize: 16, lineHeight: 1, padding: '2px 4px', opacity: deletingCreditId === entry.id ? 0.4 : 1, flexShrink: 0 }}
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
-                <div className="form-group" style={{ marginBottom: 16 }}>
-                  <label style={{ display: 'block', fontWeight: 600, marginBottom: 6, fontSize: 13 }}>Amount ($)</label>
-                  <input
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={addCreditAmount}
-                    onChange={e => setAddCreditAmount(e.target.value)}
-                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 15, boxSizing: 'border-box' }}
-                    autoFocus
-                  />
-                </div>
-                <div className="form-group" style={{ marginBottom: 16 }}>
-                  <label style={{ display: 'block', fontWeight: 600, marginBottom: 6, fontSize: 13 }}>Reason</label>
-                  <select
-                    value={addCreditReason}
-                    onChange={e => setAddCreditReason(e.target.value)}
-                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
-                  >
-                    <option value="manual">Manual adjustment</option>
-                    <option value="gift">Gift</option>
-                    <option value="refund">Refund / credit</option>
-                    <option value="loyalty">Loyalty reward</option>
-                    <option value="promotion">Promotion</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-                <div className="form-group" style={{ marginBottom: 20 }}>
-                  <label style={{ display: 'block', fontWeight: 600, marginBottom: 6, fontSize: 13 }}>Note (optional)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Gift from JP Perarie"
-                    value={addCreditNote}
-                    onChange={e => setAddCreditNote(e.target.value)}
-                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                  <button
-                    onClick={() => { setShowAddCreditModal(false); setAddCreditAmount(''); setAddCreditNote(''); setAddCreditReason('manual'); }}
-                    style={{ padding: '8px 18px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer', fontWeight: 500 }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    disabled={addCreditSaving || !addCreditAmount || isNaN(Number(addCreditAmount)) || Number(addCreditAmount) <= 0}
-                    onClick={async () => {
-                      setAddCreditSaving(true);
-                      try {
-                        const res = await fetch('/api/credits/add', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            patient_id: patient.id,
-                            amount_dollars: addCreditAmount,
-                            reason: addCreditReason,
-                            description: addCreditNote || null,
-                            created_by: 'admin',
-                          }),
-                        });
-                        const data = await res.json();
-                        if (!res.ok) throw new Error(data.error || 'Failed to add credit');
-                        setCreditBalanceCents(data.new_balance_cents);
-                        setCreditBalanceLoaded(true);
-                        setShowAddCreditModal(false);
-                        setAddCreditAmount('');
-                        setAddCreditNote('');
-                        setAddCreditReason('manual');
-                        alert(`✅ $${Number(addCreditAmount).toFixed(2)} credit added. New balance: $${data.new_balance_dollars}`);
-                      } catch (err) {
-                        alert(`Error: ${err.message}`);
-                      } finally {
-                        setAddCreditSaving(false);
-                      }
-                    }}
-                    style={{ padding: '8px 20px', borderRadius: 6, border: 'none', background: addCreditSaving ? '#9ca3af' : '#166534', color: '#fff', cursor: addCreditSaving ? 'not-allowed' : 'pointer', fontWeight: 600 }}
-                  >
-                    {addCreditSaving ? 'Adding…' : 'Add Credit'}
-                  </button>
-                </div>
               </div>
             </div>
           </div>

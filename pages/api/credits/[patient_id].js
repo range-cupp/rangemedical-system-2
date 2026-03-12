@@ -12,8 +12,51 @@ const supabase = createClient(
 export default async function handler(req, res) {
   const { patient_id } = req.query;
 
-  if (req.method !== 'GET') {
+  if (!['GET', 'DELETE'].includes(req.method)) {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // DELETE — remove a specific credit entry and recalculate balance
+  if (req.method === 'DELETE') {
+    const { entry_id } = req.body;
+    if (!patient_id || !entry_id) {
+      return res.status(400).json({ error: 'patient_id and entry_id are required' });
+    }
+
+    // Delete the entry (verify it belongs to this patient)
+    const { error: deleteError } = await supabase
+      .from('patient_credits')
+      .delete()
+      .eq('id', entry_id)
+      .eq('patient_id', patient_id);
+
+    if (deleteError) {
+      console.error('[credits/delete] delete error:', deleteError);
+      return res.status(500).json({ error: 'Failed to delete credit entry' });
+    }
+
+    // Recalculate balance from remaining ledger entries
+    const { data: remaining } = await supabase
+      .from('patient_credits')
+      .select('amount_cents')
+      .eq('patient_id', patient_id);
+
+    const newBalance = (remaining || []).reduce((acc, r) => acc + r.amount_cents, 0);
+
+    const { error: updateError } = await supabase
+      .from('patients')
+      .update({ account_credit_cents: newBalance })
+      .eq('id', patient_id);
+
+    if (updateError) {
+      console.error('[credits/delete] balance update error:', updateError);
+    }
+
+    return res.status(200).json({
+      success: true,
+      new_balance_cents: newBalance,
+      new_balance_dollars: (newBalance / 100).toFixed(2),
+    });
   }
 
   if (!patient_id) {

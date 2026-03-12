@@ -32,7 +32,7 @@ export default function AppPatientDetail() {
     setLoading(true);
     try {
       const [pRes, prRes, logRes] = await Promise.all([
-        fetch(`/api/patient/${id}`),
+        fetch(`/api/patients/${id}`),
         fetch(`/api/protocols?patient_id=${id}&status=active`),
         fetch(`/api/service-log?patient_id=${id}&limit=5`),
       ]);

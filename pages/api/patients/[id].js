@@ -534,24 +534,15 @@ export default async function handler(req, res) {
         .limit(200);
 
       // ===== V2: All purchases (not just pending) =====
-      // Try by patient_id first, fallback to ghl_contact_id
-      let allPurchases = [];
-      const { data: purchasesByPid } = await supabase
+      // Single query: match by patient_id OR ghl_contact_id
+      const purchaseFilter = patient.ghl_contact_id
+        ? `patient_id.eq.${id},ghl_contact_id.eq.${patient.ghl_contact_id}`
+        : `patient_id.eq.${id}`;
+      const { data: allPurchases } = await supabase
         .from('purchases')
         .select('*')
-        .eq('patient_id', id)
+        .or(purchaseFilter)
         .order('purchase_date', { ascending: false });
-
-      if (purchasesByPid && purchasesByPid.length > 0) {
-        allPurchases = purchasesByPid;
-      } else if (patient.ghl_contact_id) {
-        const { data: purchasesByGhl } = await supabase
-          .from('purchases')
-          .select('*')
-          .eq('ghl_contact_id', patient.ghl_contact_id)
-          .order('purchase_date', { ascending: false });
-        allPurchases = purchasesByGhl || [];
-      }
 
       // ===== V2: Invoices =====
       const { data: invoices } = await supabase

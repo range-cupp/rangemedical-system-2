@@ -2836,6 +2836,7 @@ export default function PatientProfile() {
                                       <th>Dose</th>
                                       <th>Weight</th>
                                       <th>Change</th>
+                                      <th style={{ width: 40 }}></th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -2853,7 +2854,7 @@ export default function PatientProfile() {
                                           rows.push(
                                             <tr key={'missed-' + i + '-' + m} style={{ background: '#fef2f2' }}>
                                               <td style={{ color: '#dc2626' }}>{formatShortDate(missedDate.toISOString().split('T')[0])}</td>
-                                              <td colSpan={3} style={{ color: '#dc2626', fontStyle: 'italic', textAlign: 'center' }}>Missed</td>
+                                              <td colSpan={4} style={{ color: '#dc2626', fontStyle: 'italic', textAlign: 'center' }}>Missed</td>
                                             </tr>
                                           );
                                         }
@@ -2862,12 +2863,15 @@ export default function PatientProfile() {
                                       const curWeight = log.weight ? parseFloat(log.weight) : null;
                                       const delta = prevWeight && curWeight ? (curWeight - prevWeight).toFixed(1) : null;
                                       rows.push(
-                                        <tr key={log.id || log.entry_date + i} style={{ cursor: 'pointer' }} onClick={() => openEditInjection(log)} title="Click to edit">
+                                        <tr key={log.id || log.entry_date + i} className="wl-editable-row" onClick={() => openEditInjection(log)} title="Click to edit">
                                           <td>{formatShortDate(log.entry_date)}</td>
                                           <td>{log.dosage || '—'}</td>
                                           <td>{log.weight ? `${log.weight} lbs` : '—'}</td>
                                           <td style={{ color: delta && parseFloat(delta) < 0 ? '#16a34a' : delta && parseFloat(delta) > 0 ? '#dc2626' : '#666' }}>
                                             {delta ? (parseFloat(delta) > 0 ? `+${delta}` : delta) + ' lbs' : i === 0 ? '—' : '—'}
+                                          </td>
+                                          <td style={{ textAlign: 'center' }}>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
                                           </td>
                                         </tr>
                                       );
@@ -6363,6 +6367,16 @@ export default function PatientProfile() {
         }
         .wl-table tr:last-child td {
           border-bottom: none;
+        }
+        .wl-editable-row {
+          cursor: pointer;
+          transition: background 0.15s;
+        }
+        .wl-editable-row:hover {
+          background: #f0f9ff;
+        }
+        .wl-editable-row:hover svg {
+          stroke: #1e40af;
         }
 
         /* Protocol Expand — inline trackers */

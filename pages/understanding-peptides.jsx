@@ -8,6 +8,8 @@ import { useEffect, useState } from 'react';
 
 export default function UnderstandingPeptides() {
   const [openFaq, setOpenFaq] = useState(null);
+  const [openSyringe, setOpenSyringe] = useState(null);
+  const [openVial, setOpenVial] = useState(null);
 
   // Scroll-based animations
   useEffect(() => {
@@ -49,49 +51,64 @@ export default function UnderstandingPeptides() {
       name: 'BPC-157',
       pathway: 'recovery',
       desc: 'Tissue repair, gut healing, and anti-inflammatory support. Our most popular recovery peptide.',
-      durations: '10, 20, and 30-day protocols available'
+      durations: '10, 20, and 30-day protocols available',
+      benefits: ['Accelerates tissue and wound healing', 'Supports gut lining repair and digestive health', 'Reduces inflammation in joints and muscles', 'Promotes tendon, ligament, and bone recovery', 'May protect against NSAID-related gut damage']
     },
     {
       name: 'BPC-157 + Thymosin Beta-4',
       pathway: 'recovery',
       desc: 'Enhanced healing combo — BPC-157 for tissue repair paired with TB-4 for systemic recovery and flexibility.',
-      durations: '10, 20, and 30-day protocols available'
+      durations: '10, 20, and 30-day protocols available',
+      benefits: ['Synergistic tissue repair — faster than either peptide alone', 'Supports blood vessel formation at injury sites', 'Reduces scar tissue and fibrosis', 'Promotes flexibility and range of motion', 'Ideal for post-surgical and chronic injury recovery']
     },
     {
       name: 'GHK-Cu',
       pathway: 'recovery',
       desc: 'Copper peptide for skin regeneration, wound healing, and collagen production.',
-      durations: '30-day protocols available'
+      durations: '30-day protocols available',
+      benefits: ['Stimulates collagen and elastin production', 'Supports skin firmness and reduces fine lines', 'Promotes wound healing and tissue remodeling', 'Antioxidant properties protect against skin damage', 'May support hair follicle health and growth']
     },
     {
       name: 'GLOW Blend (GHK-Cu + BPC-157 + TB-500)',
       pathway: 'recovery',
       desc: 'Skin health, hair vitality, and tissue repair through a synergistic peptide combination.',
-      durations: '30-day protocols available'
+      durations: '30-day protocols available',
+      benefits: ['Comprehensive skin rejuvenation from within', 'Supports hair thickness and vitality', 'Combines tissue repair with collagen production', 'Anti-inflammatory and antioxidant support', 'Addresses skin, hair, and healing in one protocol']
     },
     {
       name: 'MOTS-C',
       pathway: 'optimization',
       desc: 'Mitochondrial peptide that enhances cellular energy, metabolism, and anti-aging pathways.',
-      durations: '20-day protocols available'
+      durations: '20-day protocols available',
+      benefits: ['Activates AMPK pathway for metabolic regulation', 'Enhances mitochondrial function and energy production', 'Supports healthy blood sugar metabolism', 'May improve exercise capacity and endurance', 'Anti-aging benefits at the cellular level']
+    },
+    {
+      name: '2X Blend (CJC-1295 / Ipamorelin)',
+      pathway: 'optimization',
+      desc: 'Sustained growth hormone release for fat loss, recovery, and anti-aging support.',
+      durations: '30-day protocols available at multiple dosage levels',
+      benefits: ['Extended GH release through CJC-1295\'s long half-life', 'Supports fat loss while preserving lean muscle', 'Improves sleep quality and overnight recovery', 'Promotes collagen production and skin health', 'Well-tolerated with minimal side effects']
     },
     {
       name: '2X Blend (Tesamorelin / Ipamorelin)',
       pathway: 'optimization',
       desc: 'Growth hormone secretagogue blend for fat loss, recovery, and body composition.',
-      durations: '30-day protocols available at multiple dosage levels'
+      durations: '30-day protocols available at multiple dosage levels',
+      benefits: ['Stimulates natural growth hormone release', 'Supports reduction of visceral (belly) fat', 'Improves sleep quality and recovery', 'Promotes lean muscle maintenance', 'Does not suppress your body\'s natural GH production']
     },
     {
       name: '3X Blend (Tesamorelin / MGF / Ipamorelin)',
       pathway: 'optimization',
       desc: 'Triple GH blend adding MGF for enhanced muscle recovery and growth factor support.',
-      durations: '30-day protocols available at multiple dosage levels'
+      durations: '30-day protocols available at multiple dosage levels',
+      benefits: ['Everything in the 2X Blend plus MGF muscle support', 'Enhanced muscle recovery and repair after exercise', 'Supports satellite cell activation for muscle growth', 'Better body composition and strength gains', 'Ideal for active individuals and athletes']
     },
     {
       name: '4X Blend (GHRP-2 / Tesamorelin / MGF / Ipamorelin)',
       pathway: 'optimization',
       desc: 'Our most comprehensive GH secretagogue blend for maximum recovery, growth, and cognition support.',
-      durations: '30-day protocols available at multiple dosage levels'
+      durations: '30-day protocols available at multiple dosage levels',
+      benefits: ['Most potent GH-releasing combination we offer', 'Comprehensive fat loss and body composition support', 'Enhanced cognitive function and mental clarity', 'Deep sleep improvement and overnight recovery', 'Addresses performance, recovery, and longevity together']
     }
   ];
 
@@ -103,14 +120,14 @@ export default function UnderstandingPeptides() {
       labNote: 'No labs required',
       labColor: '#10b981',
       products: [
-        { name: 'BPC-157', desc: 'Tissue repair, gut healing, and joint support' },
-        { name: 'TB-500', desc: 'Systemic healing, tissue repair, and reduced inflammation' },
-        { name: 'BPC-157 / Thymosin-Beta 4', desc: 'Enhanced healing combo for accelerated recovery' },
-        { name: 'KPV', desc: 'Anti-inflammatory peptide supporting gut and immune health' },
-        { name: 'GHK-Cu (Copper Peptide)', desc: 'Skin regeneration, wound healing, and collagen support' },
-        { name: 'KLOW Blend (GHK-Cu, KPV, BPC-157, TB-500)', desc: 'Skin health, pigmentation balance, hair vitality, and tissue repair' },
-        { name: 'LL-37', desc: 'Antimicrobial peptide with immune-boosting properties' },
-        { name: 'GLOW (GHK-Cu + BPC-157 + TB-500)', desc: 'Skin health and tissue repair through synergistic peptide signaling' }
+        { name: 'BPC-157', desc: 'Tissue repair, gut healing, and joint support', benefits: ['Accelerates wound and tissue healing', 'Protects and repairs the gut lining', 'Reduces joint and muscle inflammation', 'Supports tendon and ligament recovery'] },
+        { name: 'TB-500', desc: 'Systemic healing, tissue repair, and reduced inflammation', benefits: ['Promotes systemic tissue repair throughout the body', 'Increases flexibility and reduces stiffness', 'Supports blood vessel growth at injury sites', 'Reduces chronic inflammation'] },
+        { name: 'BPC-157 / Thymosin-Beta 4', desc: 'Enhanced healing combo for accelerated recovery', benefits: ['Dual-action healing for faster results', 'Addresses both local and systemic inflammation', 'Ideal for stubborn injuries and post-surgery', 'Promotes new blood vessel and tissue formation'] },
+        { name: 'KPV', desc: 'Anti-inflammatory peptide supporting gut and immune health', benefits: ['Potent anti-inflammatory without immunosuppression', 'Supports gut barrier integrity', 'May help with inflammatory skin conditions', 'Supports overall immune balance'] },
+        { name: 'GHK-Cu (Copper Peptide)', desc: 'Skin regeneration, wound healing, and collagen support', benefits: ['Stimulates collagen and elastin synthesis', 'Promotes wound healing and scar reduction', 'Antioxidant protection for skin', 'Supports hair follicle health'] },
+        { name: 'KLOW Blend (GHK-Cu, KPV, BPC-157, TB-500)', desc: 'Skin health, pigmentation balance, hair vitality, and tissue repair', benefits: ['Four-peptide blend for comprehensive skin and hair support', 'Addresses pigmentation and skin tone evenness', 'Anti-inflammatory and tissue-repairing properties', 'Supports hair thickness and vitality'] },
+        { name: 'LL-37', desc: 'Antimicrobial peptide with immune-boosting properties', benefits: ['Natural antimicrobial defense peptide', 'Supports the body\'s innate immune response', 'May help with chronic infections and biofilms', 'Promotes wound healing in infected tissue'] },
+        { name: 'GLOW (GHK-Cu + BPC-157 + TB-500)', desc: 'Skin health and tissue repair through synergistic peptide signaling', benefits: ['Collagen production plus tissue repair', 'Rejuvenates skin from the inside out', 'Supports hair growth and skin firmness', 'Anti-aging benefits combined with healing'] }
       ]
     },
     {
@@ -119,10 +136,10 @@ export default function UnderstandingPeptides() {
       labNote: 'Labs optional',
       labColor: '#f59e0b',
       products: [
-        { name: 'MOTS-C', desc: 'Cellular energy, metabolism, and anti-aging support' },
-        { name: 'Epitalon', desc: 'Telomere regulation, sleep cycle support, and longevity' },
-        { name: 'SS-31', desc: 'Mitochondrial-targeted peptide for cellular energy and recovery' },
-        { name: 'NAD+ 1000mg', desc: 'Cellular repair, energy production, and neuroprotection' }
+        { name: 'MOTS-C', desc: 'Cellular energy, metabolism, and anti-aging support', benefits: ['Activates AMPK for metabolic optimization', 'Enhances mitochondrial energy production', 'Supports healthy blood sugar levels', 'May improve exercise endurance and capacity'] },
+        { name: 'Epitalon', desc: 'Telomere regulation, sleep cycle support, and longevity', benefits: ['Stimulates telomerase to support telomere length', 'May improve circadian rhythm and sleep quality', 'Antioxidant properties at the cellular level', 'One of the most studied longevity peptides'] },
+        { name: 'SS-31', desc: 'Mitochondrial-targeted peptide for cellular energy and recovery', benefits: ['Directly targets and protects mitochondrial membranes', 'Reduces oxidative stress at the cellular level', 'Supports energy production in aging cells', 'May improve cardiac and skeletal muscle function'] },
+        { name: 'NAD+ 1000mg', desc: 'Cellular repair, energy production, and neuroprotection', benefits: ['Replenishes NAD+ levels that decline with age', 'Supports DNA repair and cellular maintenance', 'Enhances mental clarity and cognitive function', 'Boosts energy production at the mitochondrial level'] }
       ]
     },
     {
@@ -131,13 +148,13 @@ export default function UnderstandingPeptides() {
       labNote: 'Labs required',
       labColor: '#3b82f6',
       products: [
-        { name: 'AOD-9604', desc: 'Fat-burning peptide fragment without affecting blood sugar' },
-        { name: 'Tesamorelin', desc: 'Reduces visceral fat and enhances growth hormone release' },
-        { name: 'CJC-1295 / Ipamorelin', desc: 'GH secretagogue duo for fat loss and lean mass' },
-        { name: 'Tesamorelin / Ipamorelin', desc: 'Potent GH blend for body composition and recovery' },
-        { name: '2X Blend (Tesamorelin / Ipamorelin)', desc: 'Synergistic GH-boosting blend' },
-        { name: '3X Blend (Tesamorelin / MGF / Ipamorelin)', desc: 'Triple blend for recovery, growth, and cognition' },
-        { name: '4X Blend (GHRP-2 / Tesamorelin / MGF / Ipamorelin)', desc: 'Comprehensive GH blend for maximum support' }
+        { name: 'AOD-9604', desc: 'Fat-burning peptide fragment without affecting blood sugar', benefits: ['Stimulates fat breakdown (lipolysis)', 'Does not affect blood sugar or growth', 'Targets stubborn body fat', 'Well-studied fragment of human growth hormone'] },
+        { name: 'Tesamorelin', desc: 'Reduces visceral fat and enhances growth hormone release', benefits: ['FDA-studied for visceral fat reduction', 'Stimulates natural GH release from the pituitary', 'Supports reduction of dangerous belly fat', 'Does not cause GH-related side effects at proper doses'] },
+        { name: 'CJC-1295 / Ipamorelin', desc: 'GH secretagogue duo for fat loss and lean mass', benefits: ['Sustained GH release over extended periods', 'Supports fat loss while preserving lean muscle', 'Improves sleep quality and recovery', 'Well-tolerated with minimal side effects'] },
+        { name: 'Tesamorelin / Ipamorelin', desc: 'Potent GH blend for body composition and recovery', benefits: ['Combines two proven GH-releasing peptides', 'Enhanced visceral fat reduction', 'Supports lean body composition', 'Promotes deeper sleep and recovery'] },
+        { name: '2X Blend (Tesamorelin / Ipamorelin)', desc: 'Synergistic GH-boosting blend', benefits: ['Optimized ratio for GH secretion', 'Fat loss and body composition support', 'Improved sleep and recovery', 'Natural GH pathway — no suppression'] },
+        { name: '3X Blend (Tesamorelin / MGF / Ipamorelin)', desc: 'Triple blend for recovery, growth, and cognition', benefits: ['Adds MGF for muscle repair and growth', 'Enhanced athletic recovery', 'Cognitive and mental clarity benefits', 'Comprehensive body composition protocol'] },
+        { name: '4X Blend (GHRP-2 / Tesamorelin / MGF / Ipamorelin)', desc: 'Comprehensive GH blend for maximum support', benefits: ['Our most complete GH-releasing blend', 'Addresses fat loss, muscle, cognition, and recovery', 'GHRP-2 adds potent GH pulse stimulation', 'Best for those seeking maximum optimization'] }
       ]
     }
   ];
@@ -371,13 +388,25 @@ export default function UnderstandingPeptides() {
 
             <div className="pm-syringe-grid pm-animate">
               {syringeProtocols.map((protocol, i) => (
-                <div key={i} className="pm-syringe-card">
+                <div key={i} className={`pm-syringe-card ${openSyringe === i ? 'pm-syringe-open' : ''}`}>
                   <div className="pm-syringe-badge" style={{ background: protocol.pathway === 'recovery' ? '#10b981' : '#3b82f6' }}>
                     {protocol.pathway === 'recovery' ? 'No Labs' : 'Labs Required'}
                   </div>
-                  <h4 className="pm-syringe-name">{protocol.name}</h4>
-                  <p className="pm-syringe-desc">{protocol.desc}</p>
-                  <div className="pm-syringe-duration">{protocol.durations}</div>
+                  <button className="pm-syringe-header" onClick={() => setOpenSyringe(openSyringe === i ? null : i)}>
+                    <div>
+                      <h4 className="pm-syringe-name">{protocol.name}</h4>
+                      <p className="pm-syringe-desc">{protocol.desc}</p>
+                      <div className="pm-syringe-duration">{protocol.durations}</div>
+                    </div>
+                    <svg className="pm-syringe-chevron" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d={openSyringe === i ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'} />
+                    </svg>
+                  </button>
+                  <div className="pm-syringe-benefits">
+                    <ul>
+                      {protocol.benefits.map((b, j) => <li key={j}>{b}</li>)}
+                    </ul>
+                  </div>
                 </div>
               ))}
             </div>
@@ -403,12 +432,27 @@ export default function UnderstandingPeptides() {
                   <span className="pm-vial-lab-badge" style={{ background: cat.labColor }}>{cat.labNote}</span>
                 </div>
                 <div className="pm-vial-grid">
-                  {cat.products.map((product, j) => (
-                    <div key={j} className="pm-vial-item">
-                      <div className="pm-vial-name">{product.name}</div>
-                      <div className="pm-vial-desc">{product.desc}</div>
-                    </div>
-                  ))}
+                  {cat.products.map((product, j) => {
+                    const vialKey = `${cat.id}-${j}`;
+                    return (
+                      <div key={j} className={`pm-vial-item ${openVial === vialKey ? 'pm-vial-open' : ''}`}>
+                        <button className="pm-vial-header" onClick={() => setOpenVial(openVial === vialKey ? null : vialKey)}>
+                          <div>
+                            <div className="pm-vial-name">{product.name}</div>
+                            <div className="pm-vial-desc">{product.desc}</div>
+                          </div>
+                          <svg className="pm-vial-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d={openVial === vialKey ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6'} />
+                          </svg>
+                        </button>
+                        <div className="pm-vial-benefits">
+                          <ul>
+                            {product.benefits.map((b, k) => <li key={k}>{b}</li>)}
+                          </ul>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -834,6 +878,31 @@ export default function UnderstandingPeptides() {
           margin-bottom: 0.875rem;
         }
 
+        .pm-syringe-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          width: 100%;
+          background: none;
+          border: none;
+          cursor: pointer;
+          text-align: left;
+          padding: 0;
+          font-family: inherit;
+          gap: 1rem;
+        }
+
+        .pm-syringe-chevron {
+          flex-shrink: 0;
+          color: rgba(255, 255, 255, 0.4);
+          margin-top: 0.25rem;
+          transition: transform 0.2s;
+        }
+
+        .pm-syringe-open .pm-syringe-chevron {
+          transform: rotate(180deg);
+        }
+
         .pm-syringe-name {
           font-size: 1.0625rem;
           font-weight: 700;
@@ -854,6 +923,42 @@ export default function UnderstandingPeptides() {
           color: rgba(255, 255, 255, 0.35);
           text-transform: uppercase;
           letter-spacing: 0.04em;
+        }
+
+        .pm-syringe-benefits {
+          max-height: 0;
+          overflow: hidden;
+          transition: max-height 0.3s ease, margin 0.3s ease;
+          margin-top: 0;
+        }
+
+        .pm-syringe-open .pm-syringe-benefits {
+          max-height: 300px;
+          margin-top: 1rem;
+        }
+
+        .pm-syringe-benefits ul {
+          list-style: none;
+          padding: 0.75rem 0 0;
+          margin: 0;
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .pm-syringe-benefits li {
+          font-size: 0.8125rem;
+          color: rgba(255, 255, 255, 0.6);
+          padding: 0.3rem 0 0.3rem 1.25rem;
+          position: relative;
+          line-height: 1.5;
+        }
+
+        .pm-syringe-benefits li::before {
+          content: '✓';
+          position: absolute;
+          left: 0;
+          color: #10b981;
+          font-weight: 700;
+          font-size: 0.75rem;
         }
 
         /* ===== VIAL CATEGORIES ===== */
@@ -901,6 +1006,31 @@ export default function UnderstandingPeptides() {
           border-color: #000000;
         }
 
+        .pm-vial-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          width: 100%;
+          background: none;
+          border: none;
+          cursor: pointer;
+          text-align: left;
+          padding: 0;
+          font-family: inherit;
+          gap: 0.75rem;
+        }
+
+        .pm-vial-chevron {
+          flex-shrink: 0;
+          color: #a3a3a3;
+          margin-top: 0.125rem;
+          transition: transform 0.2s;
+        }
+
+        .pm-vial-open .pm-vial-chevron {
+          transform: rotate(180deg);
+        }
+
         .pm-vial-name {
           font-size: 0.9375rem;
           font-weight: 700;
@@ -912,6 +1042,42 @@ export default function UnderstandingPeptides() {
           font-size: 0.8125rem;
           line-height: 1.5;
           color: #737373;
+        }
+
+        .pm-vial-benefits {
+          max-height: 0;
+          overflow: hidden;
+          transition: max-height 0.3s ease, margin 0.3s ease;
+          margin-top: 0;
+        }
+
+        .pm-vial-open .pm-vial-benefits {
+          max-height: 250px;
+          margin-top: 0.75rem;
+        }
+
+        .pm-vial-benefits ul {
+          list-style: none;
+          padding: 0.625rem 0 0;
+          margin: 0;
+          border-top: 1px solid #f0f0f0;
+        }
+
+        .pm-vial-benefits li {
+          font-size: 0.8125rem;
+          color: #525252;
+          padding: 0.25rem 0 0.25rem 1.25rem;
+          position: relative;
+          line-height: 1.5;
+        }
+
+        .pm-vial-benefits li::before {
+          content: '✓';
+          position: absolute;
+          left: 0;
+          color: #10b981;
+          font-weight: 700;
+          font-size: 0.75rem;
         }
 
         /* ===== COMPARISON ===== */
@@ -1087,7 +1253,7 @@ export default function UnderstandingPeptides() {
           font-weight: 700;
           letter-spacing: 0.1em;
           text-transform: uppercase;
-          color: rgba(255, 255, 255, 0.25);
+          color: rgba(255, 255, 255, 0.6);
         }
 
         .pm-cta-phone {

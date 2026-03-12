@@ -238,6 +238,35 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Could not determine patient' });
     }
 
+    // ============================================
+    // GUARD: If purchase already has a linked protocol, return it (prevent double-assign)
+    // ============================================
+    if (purchaseId) {
+      const { data: existingPurchase } = await supabase
+        .from('purchases')
+        .select('protocol_id, protocol_created')
+        .eq('id', purchaseId)
+        .single();
+
+      if (existingPurchase?.protocol_id) {
+        const { data: existingProtocol } = await supabase
+          .from('protocols')
+          .select('*')
+          .eq('id', existingPurchase.protocol_id)
+          .single();
+
+        if (existingProtocol) {
+          console.log(`Assign guard: Purchase ${purchaseId} already linked to protocol ${existingPurchase.protocol_id}. Returning existing.`);
+          return res.status(200).json({
+            success: true,
+            linkedToExisting: true,
+            protocol: existingProtocol,
+            message: `Purchase already has a linked protocol`
+          });
+        }
+      }
+    }
+
     let template = null;
     let programName = '';
     let programType = '';
@@ -467,12 +496,11 @@ export default async function handler(req, res) {
     }
 
     // ============================================
-    // DUPLICATE PREVENTION — For take-home HRT/weight_loss/peptide,
-    // check if an active protocol already exists. If so, extend it
-    // instead of creating a duplicate.
+    // DUPLICATE PREVENTION — Check ALL program types for existing active
+    // protocol with same medication. For take-home HRT/WL/peptide, extend
+    // the protocol. For others, just return existing (no duplicate).
     // ============================================
-    const takeHomeTypes = ['hrt', 'weight_loss', 'peptide'];
-    if (takeHomeTypes.includes(programType) && deliveryMethod !== 'in_clinic') {
+    {
       const { data: existingProtocols } = await supabase
         .from('protocols')
         .select('*')
@@ -483,68 +511,97 @@ export default async function handler(req, res) {
       // Find a matching protocol (same medication if specified)
       const matchingProtocol = (existingProtocols || []).find(p => {
         if (medicationName && p.medication) {
-          return p.medication.toLowerCase() === medicationName.toLowerCase();
+          // Normalize: "BPC-157 + Thymosin Beta-4" should match "BPC-157/TB4 (Thymosin Beta 4)"
+          const intakeMed = medicationName.toLowerCase().replace(/[^a-z0-9]/g, '');
+          const existingMed = p.medication.toLowerCase().replace(/[^a-z0-9]/g, '');
+          return intakeMed === existingMed || intakeMed.includes(existingMed) || existingMed.includes(intakeMed);
         }
         return true; // If no medication specified, match any active protocol of this type
       });
 
       if (matchingProtocol) {
-        console.log(`Duplicate prevention: Found existing active ${programType} protocol ${matchingProtocol.id} for patient ${finalPatientId}. Extending instead of creating new.`);
+        const takeHomeTypes = ['hrt', 'weight_loss', 'peptide'];
+        const shouldExtend = takeHomeTypes.includes(programType) && deliveryMethod !== 'in_clinic';
 
-        // Calculate new end date (extend by 30 days)
-        const currentEndDate = matchingProtocol.end_date ? new Date(matchingProtocol.end_date + 'T12:00:00') : new Date();
-        const today = new Date();
-        const startFrom = currentEndDate < today ? today : currentEndDate;
-        const newEnd = new Date(startFrom);
-        newEnd.setDate(newEnd.getDate() + 30);
-        const newEndDate = newEnd.toISOString().split('T')[0];
+        if (shouldExtend) {
+          console.log(`Duplicate prevention: Found existing active ${programType} protocol ${matchingProtocol.id} for patient ${finalPatientId}. Extending instead of creating new.`);
 
-        // Extend the existing protocol
-        const { data: updatedProtocol, error: updateError } = await supabase
-          .from('protocols')
-          .update({
-            end_date: newEndDate,
-            last_payment_date: new Date().toISOString().split('T')[0],
-            status: 'active',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', matchingProtocol.id)
-          .select()
-          .single();
+          // Calculate new end date (extend by 30 days)
+          const currentEndDate = matchingProtocol.end_date ? new Date(matchingProtocol.end_date + 'T12:00:00') : new Date();
+          const today = new Date();
+          const startFrom = currentEndDate < today ? today : currentEndDate;
+          const newEnd = new Date(startFrom);
+          newEnd.setDate(newEnd.getDate() + 30);
+          const newEndDate = newEnd.toISOString().split('T')[0];
 
-        if (updateError) {
-          console.error('Error extending existing protocol:', updateError);
-          throw updateError;
-        }
-
-        // Link purchase to existing protocol
-        if (purchaseId) {
-          await supabase
-            .from('purchases')
+          // Extend the existing protocol
+          const { data: updatedProtocol, error: updateError } = await supabase
+            .from('protocols')
             .update({
-              protocol_id: matchingProtocol.id,
-              protocol_created: true
+              end_date: newEndDate,
+              last_payment_date: new Date().toISOString().split('T')[0],
+              status: 'active',
+              updated_at: new Date().toISOString()
             })
-            .eq('id', purchaseId);
-        }
+            .eq('id', matchingProtocol.id)
+            .select()
+            .single();
 
-        // Create a payment log entry
-        await supabase
-          .from('protocol_logs')
-          .insert({
-            protocol_id: matchingProtocol.id,
-            patient_id: finalPatientId,
-            log_type: 'payment',
-            log_date: new Date().toISOString().split('T')[0],
-            notes: `Monthly payment recorded (auto-linked from purchase). New end date: ${newEndDate}`
+          if (updateError) {
+            console.error('Error extending existing protocol:', updateError);
+            throw updateError;
+          }
+
+          // Link purchase to existing protocol
+          if (purchaseId) {
+            await supabase
+              .from('purchases')
+              .update({
+                protocol_id: matchingProtocol.id,
+                protocol_created: true
+              })
+              .eq('id', purchaseId);
+          }
+
+          // Create a payment log entry
+          await supabase
+            .from('protocol_logs')
+            .insert({
+              protocol_id: matchingProtocol.id,
+              patient_id: finalPatientId,
+              log_type: 'payment',
+              log_date: new Date().toISOString().split('T')[0],
+              notes: `Monthly payment recorded (auto-linked from purchase). New end date: ${newEndDate}`
+            });
+
+          return res.status(200).json({
+            success: true,
+            linkedToExisting: true,
+            protocol: updatedProtocol,
+            message: `Linked to existing ${programType} protocol and extended end date to ${newEndDate}`
           });
+        } else {
+          // Non-extendable types (IV, HBOT, RLT, injection packs, labs) —
+          // Don't create a duplicate, link purchase to existing and return it
+          console.log(`Duplicate prevention: Found existing active ${programType} protocol ${matchingProtocol.id} for patient ${finalPatientId}. Returning existing instead of creating duplicate.`);
 
-        return res.status(200).json({
-          success: true,
-          linkedToExisting: true,
-          protocol: updatedProtocol,
-          message: `Linked to existing ${programType} protocol and extended end date to ${newEndDate}`
-        });
+          if (purchaseId) {
+            await supabase
+              .from('purchases')
+              .update({
+                protocol_id: matchingProtocol.id,
+                protocol_created: true
+              })
+              .eq('id', purchaseId);
+          }
+
+          return res.status(200).json({
+            success: true,
+            linkedToExisting: true,
+            protocol: matchingProtocol,
+            message: `Linked to existing ${programType} protocol (duplicate prevented)`
+          });
+        }
       }
     }
 

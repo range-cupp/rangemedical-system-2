@@ -1056,7 +1056,7 @@ export default function PatientProfile() {
     setLogEntryProtocol({ ...protocol, svcCat });
     setLogEntryType(defaultType);
     setLogEntryDate(today);
-    setLogForm({ hrt_type: hrtType, medication: protocol.medication || '', dosage: protocol.selected_dose || '', custom_dosage: '', weight: '', quantity: 1, delivery_method: '', duration: protocol.category === 'rlt' ? 20 : 60, notes: '' });
+    setLogForm({ hrt_type: hrtType, medication: protocol.medication || '', dosage: protocol.current_dose || protocol.selected_dose || protocol.starting_dose || '', custom_dosage: '', weight: '', quantity: 1, delivery_method: '', duration: protocol.category === 'rlt' ? 20 : 60, notes: '' });
     setLogDispensing({ administered_by: '', lot_number: '', expiration_date: '' });
     setLogSignature(null);
     setShowLogEntryModal(true);
@@ -2485,7 +2485,7 @@ export default function PatientProfile() {
                       const cat = getCategoryStyle(protocol.category);
                       const isExpanded = expandedProtocols[protocol.id];
                       const isWeightLoss = protocol.category === 'weight_loss';
-                      const wlLogs = isWeightLoss ? weightLossLogs.filter(l => !protocol.id || l) : [];
+                      const wlLogs = isWeightLoss ? weightLossLogs.filter(l => l.protocol_id === protocol.id || !l.protocol_id) : [];
                       const chartData = wlLogs.filter(l => l.weight).map(l => ({
                         date: new Date(l.entry_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
                         weight: parseFloat(l.weight),

@@ -500,7 +500,7 @@ export default async function handler(req, res) {
       // ===== Weight loss service logs (for progress chart) =====
       const { data: weightLossLogs } = await supabase
         .from('service_logs')
-        .select('id, entry_date, medication, dosage, weight, notes')
+        .select('id, protocol_id, entry_date, medication, dosage, weight, notes')
         .eq('patient_id', id)
         .eq('category', 'weight_loss')
         .order('entry_date', { ascending: true });

@@ -64,8 +64,80 @@ export default async function handler(req, res) {
       const total = totalCount || allPurchases.length;
       const revenue = allPurchases.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
 
+      // Fetch active protocols for patients with unlinked purchases
+      // This prevents showing "Create" when a protocol already exists
+      let activeProtocolsByPatient = {};
+      try {
+        const unlinkedWithPatientId = allPurchases.filter(p => !p.protocol_id && !p.session_logged && p.patient_id);
+        const patientIds = [...new Set(unlinkedWithPatientId.map(p => p.patient_id))];
+
+        if (patientIds.length > 0) {
+          // Batch in chunks of 100 to avoid query limits
+          for (let i = 0; i < patientIds.length; i += 100) {
+            const batch = patientIds.slice(i, i + 100);
+            const { data: protocols } = await supabase
+              .from('protocols')
+              .select('id, patient_id, patient_name, program_type, program_name, medication, status')
+              .in('patient_id', batch)
+              .eq('status', 'active');
+
+            if (protocols) {
+              for (const p of protocols) {
+                if (!activeProtocolsByPatient[p.patient_id]) {
+                  activeProtocolsByPatient[p.patient_id] = [];
+                }
+                activeProtocolsByPatient[p.patient_id].push({
+                  id: p.id,
+                  program_type: p.program_type,
+                  program_name: p.program_name,
+                  medication: p.medication,
+                });
+              }
+            }
+          }
+        }
+
+        // Also handle purchases without patient_id but with patient_name
+        const unlinkedNoPatientId = allPurchases.filter(p => !p.protocol_id && !p.session_logged && !p.patient_id && p.patient_name);
+        const patientNames = [...new Set(unlinkedNoPatientId.map(p => p.patient_name.toLowerCase().trim()))];
+
+        if (patientNames.length > 0) {
+          for (let i = 0; i < patientNames.length; i += 50) {
+            const batch = patientNames.slice(i, i + 50);
+            // Query protocols by patient_name for purchases without patient_id
+            for (const name of batch) {
+              const { data: protocols } = await supabase
+                .from('protocols')
+                .select('id, patient_id, patient_name, program_type, program_name, medication, status')
+                .ilike('patient_name', name)
+                .eq('status', 'active');
+
+              if (protocols && protocols.length > 0) {
+                // Store under a name-based key prefixed with 'name:'
+                const key = `name:${name}`;
+                if (!activeProtocolsByPatient[key]) {
+                  activeProtocolsByPatient[key] = [];
+                }
+                for (const p of protocols) {
+                  activeProtocolsByPatient[key].push({
+                    id: p.id,
+                    program_type: p.program_type,
+                    program_name: p.program_name,
+                    medication: p.medication,
+                  });
+                }
+              }
+            }
+          }
+        }
+      } catch (protocolErr) {
+        console.error('Protocol matching error (non-fatal):', protocolErr);
+        // Non-fatal — page still works, just without matching
+      }
+
       return res.status(200).json({
         purchases: allPurchases,
+        activeProtocolsByPatient,
         total,
         revenue
       });

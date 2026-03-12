@@ -2,7 +2,7 @@
 // Purchases - Clean UI with Protocol Creation
 // Range Medical
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import AdminLayout from '../../../components/AdminLayout';
 import { PROTOCOL_TYPES, CATEGORY_TO_TYPE, getDBProgramType } from '../../../lib/protocol-types';
@@ -44,6 +44,60 @@ function getPurchaseActionType(purchase) {
   return 'protocol';
 }
 
+// Find a matching active protocol for an unlinked purchase
+// Returns the matched protocol object or null
+function findMatchingProtocol(purchase, activeProtocolsByPatient) {
+  if (!activeProtocolsByPatient) return null;
+
+  // Try by patient_id first, then by normalized patient_name
+  let protocols = null;
+  if (purchase.patient_id && activeProtocolsByPatient[purchase.patient_id]) {
+    protocols = activeProtocolsByPatient[purchase.patient_id];
+  } else if (purchase.patient_name) {
+    const nameKey = `name:${purchase.patient_name.toLowerCase().trim()}`;
+    if (activeProtocolsByPatient[nameKey]) {
+      protocols = activeProtocolsByPatient[nameKey];
+    }
+  }
+  if (!protocols || protocols.length === 0) return null;
+
+  const cat = (purchase.category || '').toLowerCase();
+  const item = (purchase.item_name || '').toLowerCase();
+
+  // Map purchase categories to matching protocol program_types
+  const categoryToTypes = {
+    'peptide': ['peptide', 'gh_peptide', 'peptide_vial', 'recovery_jumpstart_10day', 'month_program_30day', 'maintenance_4week'],
+    'hrt': ['hrt_male', 'hrt_female', 'hrt_male_membership', 'hrt_female_membership'],
+    'weight_loss': ['weight_loss_program', 'weight_loss_semaglutide', 'weight_loss_tirzepatide', 'weight_loss_retatrutide'],
+    'combo_membership': ['hbot', 'red_light', 'hbot_sessions', 'red_light_sessions', 'combo_membership'],
+    'injection_pack': ['injection_pack', 'injection', 'single_injection'],
+    'iv_therapy': ['iv_therapy'],
+    'specialty_iv': ['iv_therapy'],
+    'hbot': ['hbot', 'hbot_sessions'],
+    'red_light': ['red_light', 'red_light_sessions'],
+    'nad_injection': ['nad_injection'],
+  };
+
+  const matchTypes = categoryToTypes[cat];
+  if (!matchTypes) return null;
+
+  // Try medication-specific match first (more precise)
+  let match = protocols.find(p => {
+    if (!matchTypes.includes(p.program_type)) return false;
+    if (!p.medication || !item) return false;
+    const med = p.medication.toLowerCase();
+    // Check if the purchase item mentions the protocol's medication
+    return item.includes(med.split(' / ')[0]) || item.includes(med.split(' + ')[0]) || med.includes(item.split(' — ')[0]);
+  });
+
+  // Fall back to category-only match
+  if (!match) {
+    match = protocols.find(p => matchTypes.includes(p.program_type));
+  }
+
+  return match || null;
+}
+
 export default function PurchasesPage() {
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -54,10 +108,39 @@ export default function PurchasesPage() {
   const [logSessionModal, setLogSessionModal] = useState(null);
   const [editingShipping, setEditingShipping] = useState(null);
   const [shippingValue, setShippingValue] = useState('');
+  const [activeProtocolsByPatient, setActiveProtocolsByPatient] = useState({});
+  const autoLinkedRef = useRef(new Set());
 
   useEffect(() => {
     fetchPurchases();
   }, []);
+
+  // Auto-link unlinked purchases to matching active protocols (background, one-time per purchase)
+  useEffect(() => {
+    if (!purchases.length || !Object.keys(activeProtocolsByPatient).length) return;
+
+    purchases.forEach(async (purchase) => {
+      if (purchase.protocol_id || purchase.session_logged) return;
+      if (autoLinkedRef.current.has(purchase.id)) return;
+      if (getPurchaseActionType(purchase) !== 'protocol') return;
+
+      const match = findMatchingProtocol(purchase, activeProtocolsByPatient);
+      if (!match) return;
+
+      // Mark as processed to prevent re-processing
+      autoLinkedRef.current.add(purchase.id);
+
+      try {
+        await fetch(`/api/admin/purchases/${purchase.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ protocol_id: match.id, protocol_created: true })
+        });
+      } catch (err) {
+        console.error('Auto-link error:', err);
+      }
+    });
+  }, [purchases, activeProtocolsByPatient]);
 
   const fetchPurchases = async () => {
     try {
@@ -65,6 +148,7 @@ export default function PurchasesPage() {
       if (res.ok) {
         const data = await res.json();
         setPurchases(data.purchases || data || []);
+        setActiveProtocolsByPatient(data.activeProtocolsByPatient || {});
       }
     } catch (err) {
       console.error('Error:', err);
@@ -92,10 +176,11 @@ export default function PurchasesPage() {
 
   // Filter purchases
   const filtered = purchases.filter(p => {
-    // Status filter
-    if (filter === 'unassigned' && p.protocol_id) return false;
-    if (filter === 'assigned' && !p.protocol_id) return false;
-    
+    // Status filter — treat matched protocols same as assigned
+    const hasProtocol = p.protocol_id || (getPurchaseActionType(p) === 'protocol' && findMatchingProtocol(p, activeProtocolsByPatient));
+    if (filter === 'unassigned' && hasProtocol) return false;
+    if (filter === 'assigned' && !hasProtocol) return false;
+
     // Search filter
     if (search) {
       const s = search.toLowerCase();
@@ -108,11 +193,18 @@ export default function PurchasesPage() {
   });
 
   // Sort by date (newest first)
-  const sorted = [...filtered].sort((a, b) => 
+  const sorted = [...filtered].sort((a, b) =>
     new Date(b.payment_date || b.purchase_date || b.created_at || 0) - new Date(a.payment_date || a.purchase_date || a.created_at || 0)
   );
 
-  const unassignedCount = purchases.filter(p => !p.protocol_id && !p.session_logged && getPurchaseActionType(p) !== 'product').length;
+  const unassignedCount = purchases.filter(p => {
+    if (p.protocol_id || p.session_logged) return false;
+    const actionType = getPurchaseActionType(p);
+    if (actionType === 'product') return false;
+    // Don't count as unassigned if there's a matching active protocol
+    if (actionType === 'protocol' && findMatchingProtocol(p, activeProtocolsByPatient)) return false;
+    return true;
+  }).length;
   const totalCount = purchases.length;
   const totalRevenue = purchases.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
 
@@ -237,6 +329,15 @@ export default function PurchasesPage() {
                           const actionType = getPurchaseActionType(purchase);
                           const cat = (purchase.category || '').toLowerCase();
                           if (actionType === 'protocol') {
+                            // Check if patient already has a matching active protocol
+                            const matchedProtocol = findMatchingProtocol(purchase, activeProtocolsByPatient);
+                            if (matchedProtocol) {
+                              return (
+                                <Link href={`/admin/protocols/${matchedProtocol.id}`} style={styles.protocolLink}>
+                                  View Protocol →
+                                </Link>
+                              );
+                            }
                             return (
                               <div style={{ display: 'flex', gap: '6px' }}>
                                 <button onClick={() => setCreateModal(purchase)} style={styles.createBtn}>

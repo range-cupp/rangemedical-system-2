@@ -64,7 +64,7 @@ export default async function handler(req, res) {
       amount: 25000, // $250.00
       currency: 'usd',
       customer: customerId,
-      description: 'Range Assessment — Injury & Recovery',
+      description: 'In-Clinic Visit — Injury & Recovery (applied toward treatment)',
       metadata: {
         lead_id: leadId,
         assessment_path: 'injury',

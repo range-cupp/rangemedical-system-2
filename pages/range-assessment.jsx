@@ -68,7 +68,7 @@ function AssessmentPaymentForm({ onSuccess, leadId }) {
     <form onSubmit={handleSubmit}>
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', fontSize: '1rem', color: '#171717' }}>
-          <span>Range Assessment — Injury & Recovery</span>
+          <span>In-Clinic Visit — Injury & Recovery</span>
           <span style={{ fontWeight: 700 }}>$250</span>
         </div>
         <div style={{ borderTop: '2px solid #eee', paddingTop: 12, display: 'flex', justifyContent: 'space-between', fontSize: '1.125rem', fontWeight: 700, color: '#171717' }}>
@@ -79,7 +79,7 @@ function AssessmentPaymentForm({ onSuccess, leadId }) {
 
       <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '0.875rem 1rem', marginBottom: 24 }}>
         <p style={{ margin: 0, fontSize: '0.875rem', color: '#166534' }}>
-          This fee goes toward any treatment protocol you choose.
+          This $250 goes directly toward your treatment protocol.
         </p>
       </div>
 
@@ -766,12 +766,15 @@ export default function RangeAssessment() {
                 <>
                   {bookingResult && (
                     <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
-                      <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717', margin: '0 0 0.75rem' }}>Your Appointment</h3>
+                      <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717', margin: '0 0 0.75rem' }}>Your In-Clinic Visit</h3>
                       <p style={{ fontSize: '1rem', color: '#171717', fontWeight: 600, margin: '0 0 0.5rem' }}>
                         {formatBookingTime(bookingResult.start)}
                       </p>
+                      <p style={{ fontSize: '0.9375rem', color: '#525252', lineHeight: 1.6, margin: '0 0 0.5rem' }}>
+                        We'll go over your treatment options in person based on your assessment answers. Your $250 goes directly toward whichever protocol you choose.
+                      </p>
                       <p style={{ fontSize: '0.9375rem', color: '#525252', lineHeight: 1.6, margin: '0 0 1rem' }}>
-                        We've texted a medical intake form to your phone. Please complete it before your visit — it takes about 5 minutes.
+                        We've texted a short medical intake form to your phone — please complete it before your visit so we're ready to go.
                       </p>
                       <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '0.875rem 1rem' }}>
                         <p style={{ margin: 0, fontSize: '0.875rem', color: '#166534' }}>
@@ -867,7 +870,7 @@ export default function RangeAssessment() {
     return (
       <Layout>
         <Head>
-          <title>Assessment Payment | Range Medical</title>
+          <title>Book Your Visit | Range Medical</title>
           <meta name="robots" content="noindex, nofollow" />
         </Head>
         <div className="ra-page">
@@ -877,7 +880,7 @@ export default function RangeAssessment() {
                 <p style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#737373', marginBottom: '0.5rem' }}>Step 2 of 3</p>
                 <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#171717', margin: '0 0 0.5rem' }}>Payment</h1>
                 <p style={{ fontSize: '0.9375rem', color: '#525252', margin: 0 }}>
-                  Secure your assessment appointment
+                  Book your in-clinic visit to start treatment
                 </p>
               </div>
 
@@ -940,7 +943,7 @@ export default function RangeAssessment() {
     return (
       <Layout>
         <Head>
-          <title>Schedule Your Assessment | Range Medical</title>
+          <title>Book Your Visit | Range Medical</title>
           <meta name="robots" content="noindex, nofollow" />
         </Head>
         <div className="ra-page">
@@ -950,7 +953,7 @@ export default function RangeAssessment() {
                 <p style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#737373', marginBottom: '0.5rem' }}>Step 3 of 3</p>
                 <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#171717', margin: '0 0 0.5rem' }}>Pick a Time</h1>
                 <p style={{ fontSize: '0.9375rem', color: '#525252', margin: 0 }}>
-                  Choose a day and time for your 30-minute assessment
+                  Choose a day and time for your in-clinic visit
                 </p>
               </div>
 
@@ -1134,7 +1137,7 @@ export default function RangeAssessment() {
             </div>
             <h1>Thank You, {formData.firstName}</h1>
             <p className="inj-res-intro">
-              Based on what you've shared about your {locationLabel.toLowerCase()} injury, there are treatment options that may be worth exploring. Please complete the medical intake form below so our provider can review your information and discuss the best approach for you.
+              Based on what you've shared about your {locationLabel.toLowerCase()} injury, there are treatment options that may be worth exploring. Book an in-clinic visit below so our provider can go over the best approach for you in person.
             </p>
           </div>
         </section>
@@ -1236,9 +1239,9 @@ export default function RangeAssessment() {
 
             {/* Next Step */}
             <div className="inj-res-next-card">
-              <h3>Next Step: Pay & Schedule Your Assessment</h3>
+              <h3>Next Step: Book Your In-Clinic Visit</h3>
               <p>
-                Your assessment is <strong>$250</strong> and goes toward any treatment protocol you choose. After payment, you'll pick a time that works for you, and we'll text you a medical intake form to complete before your visit.
+                Based on your answers, we'll go over your treatment options in person — including peptide protocols like the BPC-157 / TB-4 10-day program. Your <strong>$250</strong> visit fee goes directly toward whichever protocol you choose.
               </p>
               <button
                 className="inj-res-cta"
@@ -1250,10 +1253,10 @@ export default function RangeAssessment() {
                 }}
                 style={{ border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
               >
-                Continue to Payment — $250
+                Book Visit — $250
               </button>
               <p style={{ fontSize: '0.85rem', color: '#a3a3a3', marginTop: '0.75rem' }}>
-                This fee goes toward any treatment protocol you choose.
+                This $250 goes directly toward your treatment protocol.
               </p>
               <p className="inj-res-contact">
                 Questions? Call us at <a href="tel:9499973988">(949) 997-3988</a>
@@ -2085,7 +2088,7 @@ export default function RangeAssessment() {
                 <p className="ra-step-desc">
                   {selectedPath === 'energy'
                     ? "Answer a few questions and we'll show you exactly which lab markers matter for your situation."
-                    : "This short assessment helps us understand your situation. After completing it, you'll continue to our medical intake form."
+                    : "This short assessment helps us understand your situation so we can recommend the best treatment options for you."
                   }
                 </p>
 

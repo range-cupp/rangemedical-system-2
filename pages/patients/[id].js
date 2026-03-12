@@ -2362,50 +2362,6 @@ export default function PatientProfile() {
                 )}
               </section>
 
-              {/* Payment Renewal Alerts */}
-              {(() => {
-                const renewalProtocols = activeProtocols.filter(p => {
-                  if (p.total_sessions > 0) {
-                    const remaining = p.total_sessions - (p.sessions_used || 0);
-                    return remaining <= 2;
-                  }
-                  if (p.days_remaining !== null && p.days_remaining !== undefined) {
-                    return p.days_remaining <= 7;
-                  }
-                  return false;
-                });
-                if (renewalProtocols.length === 0) return null;
-                return (
-                  <div style={{ marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {renewalProtocols.map(p => {
-                      const sessionsUsed = p.sessions_used || 0;
-                      const remaining = p.total_sessions ? (p.total_sessions - sessionsUsed) : p.days_remaining;
-                      const isDue = p.total_sessions ? remaining <= 0 : (p.days_remaining !== null && p.days_remaining <= 0);
-                      return (
-                        <div key={p.id} style={{
-                          padding: '10px 14px', borderRadius: '8px',
-                          background: isDue ? '#fee2e2' : '#fef3c7',
-                          border: `1px solid ${isDue ? '#fecaca' : '#fde68a'}`,
-                          display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px'
-                        }}>
-                          <span style={{ fontSize: '15px' }}>💰</span>
-                          <span style={{ fontWeight: 600, color: isDue ? '#dc2626' : '#92400e' }}>
-                            {isDue ? 'Payment Due' : 'Payment Upcoming'}
-                          </span>
-                          <span style={{ color: '#374151' }}>—</span>
-                          <span style={{ color: '#374151' }}>{p.program_name}:</span>
-                          <span style={{ fontWeight: 500, color: isDue ? '#dc2626' : '#92400e' }}>
-                            {p.total_sessions
-                              ? (remaining <= 0 ? 'no injections remaining' : `${remaining} injection${remaining === 1 ? '' : 's'} remaining`)
-                              : `${p.days_remaining}d left`}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
-
               {/* Lab Pipeline Status — compact banner */}
               {labProtocols.filter(lp => lp.status !== 'consult_complete').length > 0 && (() => {
                 const activeLab = labProtocols.find(lp => lp.status !== 'consult_complete');

@@ -2545,7 +2545,8 @@ function initializeForm() {
         signatureDate: getValue('signatureDate'),
         signatureData: signatureData,
         consent: true,
-        submittedAt: new Date().toISOString()
+        submittedAt: new Date().toISOString(),
+        bundleToken: new URLSearchParams(window.location.search).get('bundle') || null
       };
 
       // 3. Generate PDF

@@ -223,58 +223,113 @@ export default async function handler(req, res) {
     console.log('✅ Photo ID saved:', data.photo_id_url ? 'YES' : 'NO');
     console.log('✅ Signature saved:', data.signature_url ? 'YES' : 'NO');
 
-    // Push demographics to patient profile (single source of truth)
-    // Also creates patient if one doesn't exist
-    if (intakeRecord.email) {
-      try {
-        const normalizedEmail = intakeRecord.email.toLowerCase().trim();
-        const { data: patientMatch } = await supabase
-          .from('patients')
-          .select('id, date_of_birth, gender, address, city, state, zip_code, preferred_name, referral_source')
-          .eq('email', normalizedEmail)
+    // ===== Link intake to patient =====
+    // Priority: 1) bundle token  2) email match  3) phone match  4) create new
+    try {
+      let linkedPatientId = null;
+
+      const cap = str => str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : '';
+      const capFirst = cap(intakeRecord.first_name);
+      const capLast  = cap(intakeRecord.last_name);
+
+      // Build demographics update object from intake data
+      const buildDemoUpdates = (existing) => {
+        const u = {};
+        if (!existing.date_of_birth && intakeRecord.date_of_birth) u.date_of_birth = intakeRecord.date_of_birth;
+        if (!existing.gender && intakeRecord.gender) u.gender = intakeRecord.gender;
+        if (!existing.address && intakeRecord.street_address) u.address = intakeRecord.street_address;
+        if (!existing.city && intakeRecord.city) u.city = intakeRecord.city;
+        if (!existing.state && intakeRecord.state) u.state = intakeRecord.state;
+        if (!existing.zip_code && intakeRecord.postal_code) u.zip_code = intakeRecord.postal_code;
+        if (capFirst || capLast) {
+          u.first_name = capFirst || existing.first_name || '';
+          u.last_name  = capLast  || existing.last_name  || '';
+          u.name = `${u.first_name} ${u.last_name}`.trim();
+        }
+        if (intakeRecord.preferred_name) u.preferred_name = intakeRecord.preferred_name;
+        if (intakeRecord.how_heard) u.referral_source = intakeRecord.how_heard;
+        return u;
+      };
+
+      // --- Tier 1: Bundle token → patient_id or patient_phone ---
+      const bundleToken = formData.bundleToken;
+      if (bundleToken) {
+        const { data: bundle } = await supabase
+          .from('form_bundles')
+          .select('patient_id, patient_phone, ghl_contact_id')
+          .eq('token', bundleToken)
           .maybeSingle();
 
-        if (patientMatch) {
-          const demoUpdates = {};
-          if (!patientMatch.date_of_birth && intakeRecord.date_of_birth) demoUpdates.date_of_birth = intakeRecord.date_of_birth;
-          if (!patientMatch.gender && intakeRecord.gender) demoUpdates.gender = intakeRecord.gender;
-          if (!patientMatch.address && intakeRecord.street_address) demoUpdates.address = intakeRecord.street_address;
-          if (!patientMatch.city && intakeRecord.city) demoUpdates.city = intakeRecord.city;
-          if (!patientMatch.state && intakeRecord.state) demoUpdates.state = intakeRecord.state;
-          if (!patientMatch.zip_code && intakeRecord.postal_code) demoUpdates.zip_code = intakeRecord.postal_code;
-          // Always update name from intake — intake is the authoritative source for legal name
-          // (e.g. patient is "Ted Baker" in GHL but fills out form as "Theodore Baker")
-          if (intakeRecord.first_name || intakeRecord.last_name) {
-            const capFirst = intakeRecord.first_name
-              ? intakeRecord.first_name.charAt(0).toUpperCase() + intakeRecord.first_name.slice(1).toLowerCase()
-              : patientMatch.first_name || '';
-            const capLast = intakeRecord.last_name
-              ? intakeRecord.last_name.charAt(0).toUpperCase() + intakeRecord.last_name.slice(1).toLowerCase()
-              : patientMatch.last_name || '';
-            demoUpdates.first_name = capFirst;
-            demoUpdates.last_name = capLast;
-            demoUpdates.name = `${capFirst} ${capLast}`.trim();
+        if (bundle?.patient_id) {
+          const { data: bp } = await supabase
+            .from('patients')
+            .select('id, first_name, last_name, date_of_birth, gender, address, city, state, zip_code, preferred_name, referral_source')
+            .eq('id', bundle.patient_id)
+            .maybeSingle();
+          if (bp) {
+            const u = buildDemoUpdates(bp);
+            if (Object.keys(u).length > 0) await supabase.from('patients').update(u).eq('id', bp.id);
+            linkedPatientId = bp.id;
+            console.log(`Intake linked via bundle patient_id: ${linkedPatientId}`);
           }
-          // Always update preferred_name and referral_source from intake
-          if (intakeRecord.preferred_name) demoUpdates.preferred_name = intakeRecord.preferred_name;
-          if (intakeRecord.how_heard) demoUpdates.referral_source = intakeRecord.how_heard;
+        }
 
-          if (Object.keys(demoUpdates).length > 0) {
-            await supabase.from('patients').update(demoUpdates).eq('id', patientMatch.id);
-            console.log(`Updated patient ${patientMatch.id} demographics from intake:`, Object.keys(demoUpdates).join(', '));
+        if (!linkedPatientId && bundle?.patient_phone) {
+          const last10 = bundle.patient_phone.replace(/\D/g, '').slice(-10);
+          const { data: pp } = await supabase
+            .from('patients')
+            .select('id, first_name, last_name, date_of_birth, gender, address, city, state, zip_code, preferred_name, referral_source')
+            .ilike('phone', `%${last10}`)
+            .maybeSingle();
+          if (pp) {
+            const u = buildDemoUpdates(pp);
+            if (Object.keys(u).length > 0) await supabase.from('patients').update(u).eq('id', pp.id);
+            linkedPatientId = pp.id;
+            console.log(`Intake linked via bundle phone: ${linkedPatientId}`);
           }
-          // Link intake to patient
-          await supabase.from('intakes').update({ patient_id: patientMatch.id }).eq('id', data.id);
-        } else {
-          // No patient record exists — create one
-          const capFirst = intakeRecord.first_name
-            ? intakeRecord.first_name.charAt(0).toUpperCase() + intakeRecord.first_name.slice(1).toLowerCase()
-            : '';
-          const capLast = intakeRecord.last_name
-            ? intakeRecord.last_name.charAt(0).toUpperCase() + intakeRecord.last_name.slice(1).toLowerCase()
-            : '';
+        }
+      }
 
-          const newPatientData = {
+      // --- Tier 2: Email match ---
+      if (!linkedPatientId && intakeRecord.email) {
+        const normalizedEmail = intakeRecord.email.toLowerCase().trim();
+        const { data: ep } = await supabase
+          .from('patients')
+          .select('id, first_name, last_name, date_of_birth, gender, address, city, state, zip_code, preferred_name, referral_source')
+          .eq('email', normalizedEmail)
+          .maybeSingle();
+        if (ep) {
+          const u = buildDemoUpdates(ep);
+          if (Object.keys(u).length > 0) await supabase.from('patients').update(u).eq('id', ep.id);
+          linkedPatientId = ep.id;
+          console.log(`Intake linked via email: ${linkedPatientId}`);
+        }
+      }
+
+      // --- Tier 3: Phone match ---
+      if (!linkedPatientId && intakeRecord.phone) {
+        const last10 = intakeRecord.phone.replace(/\D/g, '').slice(-10);
+        if (last10.length === 10) {
+          const { data: pp } = await supabase
+            .from('patients')
+            .select('id, first_name, last_name, date_of_birth, gender, address, city, state, zip_code, preferred_name, referral_source')
+            .ilike('phone', `%${last10}`)
+            .maybeSingle();
+          if (pp) {
+            const u = buildDemoUpdates(pp);
+            if (Object.keys(u).length > 0) await supabase.from('patients').update(u).eq('id', pp.id);
+            linkedPatientId = pp.id;
+            console.log(`Intake linked via phone: ${linkedPatientId}`);
+          }
+        }
+      }
+
+      // --- Tier 4: Create new patient (requires email) ---
+      if (!linkedPatientId && intakeRecord.email) {
+        const normalizedEmail = intakeRecord.email.toLowerCase().trim();
+        const { data: np, error: createErr } = await supabase
+          .from('patients')
+          .insert({
             first_name: capFirst,
             last_name: capLast,
             name: `${capFirst} ${capLast}`.trim(),
@@ -288,25 +343,26 @@ export default async function handler(req, res) {
             state: intakeRecord.state || null,
             zip_code: intakeRecord.postal_code || null,
             referral_source: intakeRecord.how_heard || null,
-          };
-
-          const { data: newPatient, error: createErr } = await supabase
-            .from('patients')
-            .insert(newPatientData)
-            .select('id')
-            .single();
-
-          if (createErr) {
-            console.error('Patient creation from intake error:', createErr);
-          } else {
-            // Link intake to new patient
-            await supabase.from('intakes').update({ patient_id: newPatient.id }).eq('id', data.id);
-            console.log(`Intake: created new patient ${newPatient.id} for ${capFirst} ${capLast} (${normalizedEmail})`);
-          }
+          })
+          .select('id')
+          .single();
+        if (createErr) {
+          console.error('Patient creation from intake error:', createErr);
+        } else {
+          linkedPatientId = np.id;
+          console.log(`Intake: created new patient ${linkedPatientId} (${capFirst} ${capLast} / ${normalizedEmail})`);
         }
-      } catch (demoErr) {
-        console.error('Demographics push error:', demoErr);
       }
+
+      if (linkedPatientId) {
+        await supabase.from('intakes').update({ patient_id: linkedPatientId }).eq('id', data.id);
+        console.log(`✅ Intake ${data.id} linked to patient ${linkedPatientId}`);
+      } else {
+        console.warn(`⚠️ Intake ${data.id} could not be linked to any patient`);
+      }
+
+    } catch (demoErr) {
+      console.error('Patient linking error:', demoErr);
     }
 
     return res.status(200).json({

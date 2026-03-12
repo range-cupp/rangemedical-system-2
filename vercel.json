@@ -56,6 +56,10 @@
     {
       "path": "/api/cron/wl-daily-report",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/iv-followup",
+      "schedule": "0 18 * * *"
     }
   ]
 }

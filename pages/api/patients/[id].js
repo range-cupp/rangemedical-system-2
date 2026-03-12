@@ -208,7 +208,7 @@ export default async function handler(req, res) {
         .from('protocols')
         .select('*')
         .eq('patient_id', id)
-        .order('start_date', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (protocolsError) {
         console.error('Error fetching protocols:', protocolsError);

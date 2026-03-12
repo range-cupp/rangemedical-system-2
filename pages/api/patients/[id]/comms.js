@@ -26,11 +26,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Build filter for both data query and count query
+    // Build filter for both data query and count query.
+    // IMPORTANT: When patient_id is available, query by patient_id only.
+    // Do NOT use .or() with a formatted phone number (e.g. "(949) 539-5023") —
+    // PostgREST parses the .or() filter string literally, and parentheses in the
+    // phone value are interpreted as grouping syntax, breaking the query silently.
+    // If phone-only fallback is needed (truly orphaned messages), we handle it
+    // separately below rather than in a combined OR.
     const buildFilter = (q) => {
-      if (id && id !== '_' && phone) {
-        q = q.or(`patient_id.eq.${id},recipient.eq.${phone}`);
-      } else if (id && id !== '_') {
+      if (id && id !== '_') {
         q = q.eq('patient_id', id);
       } else if (phone) {
         q = q.eq('recipient', phone);
@@ -55,8 +59,36 @@ export default async function handler(req, res) {
 
     if (error) throw error;
 
+    // When querying by patient_id, also fetch any "orphaned" messages stored before
+    // the patient was linked (patient_id=null, but recipient matches patient's phone).
+    // This covers messages logged before the patient record existed.
+    let allComms = comms || [];
+    if (id && id !== '_' && phone && offset === 0) {
+      // Normalize phone to last 10 digits for a safe ilike match
+      const digits = phone.replace(/\D/g, '').slice(-10);
+      if (digits.length >= 7) {
+        const { data: orphaned } = await supabase
+          .from('comms_log')
+          .select('id, channel, message_type, message, status, error_message, recipient, subject, direction, source, created_at')
+          .is('patient_id', null)
+          .ilike('recipient', `%${digits}`)
+          .order('created_at', { ascending: false })
+          .limit(limit);
+
+        if (orphaned && orphaned.length > 0) {
+          const existingIds = new Set(allComms.map(m => m.id));
+          const newOrphans = orphaned.filter(m => !existingIds.has(m.id));
+          if (newOrphans.length > 0) {
+            allComms = [...allComms, ...newOrphans]
+              .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+              .slice(0, limit);
+          }
+        }
+      }
+    }
+
     return res.status(200).json({
-      comms: comms || [],
+      comms: allComms,
       total: totalCount || 0,
       offset,
       limit,

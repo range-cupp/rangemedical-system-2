@@ -45,6 +45,7 @@ import POSChargeModal from '../../components/POSChargeModal';
 import EncounterModal from '../../components/EncounterModal';
 import EncounterQuickView from '../../components/EncounterQuickView';
 import SignatureCanvas from '../../components/SignatureCanvas';
+import CycleProgressCard from '../../components/CycleProgressCard';
 import { PROTOCOL_TYPES } from '../../lib/protocol-types';
 
 // Map protocol.category → service-log category
@@ -347,6 +348,13 @@ export default function PatientProfile() {
   const [sendProgressMethod, setSendProgressMethod] = useState('both');
   const [sendingProgress, setSendingProgress] = useState(false);
   const [sendProgressResult, setSendProgressResult] = useState(null);
+
+  // Merge Protocol modal state
+  const [mergeSource, setMergeSource] = useState(null);   // protocol being merged away
+  const [mergeTarget, setMergeTarget] = useState(null);   // protocol that survives
+  const [showMergeModal, setShowMergeModal] = useState(false);
+  const [merging, setMerging] = useState(false);
+  const [mergeError, setMergeError] = useState('');
 
   // Payments sub-tab state
   const [paymentsSubTab, setPaymentsSubTab] = useState('invoices');
@@ -1280,6 +1288,30 @@ export default function PatientProfile() {
       }
     } catch (error) {
       console.error('Error deleting protocol:', error);
+    }
+  };
+
+  // Merge Protocol handler
+  const handleMergeProtocol = async () => {
+    if (!mergeSource || !mergeTarget) return;
+    setMerging(true);
+    setMergeError('');
+    try {
+      const res = await fetch('/api/protocols/merge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sourceId: mergeSource.id, targetId: mergeTarget.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Merge failed');
+      setShowMergeModal(false);
+      setMergeSource(null);
+      setMergeTarget(null);
+      fetchPatient(); // reload all protocols
+    } catch (err) {
+      setMergeError(err.message);
+    } finally {
+      setMerging(false);
     }
   };
 
@@ -2536,6 +2568,29 @@ export default function PatientProfile() {
                                 >{isExpanded ? 'Hide Details' : 'View Details'}</button>
                               )}
                               <button onClick={() => openEditModal(protocol)} className="btn-secondary-sm">Edit</button>
+                              {/* Merge button — only show when there are other protocols of the same category */}
+                              {protocol.status === 'active' && (() => {
+                                const allProtos = [...activeProtocols, ...completedProtocols];
+                                const mergeTargets = allProtos.filter(p =>
+                                  p.id !== protocol.id &&
+                                  p.category === protocol.category &&
+                                  p.status !== 'merged' &&
+                                  p.status !== 'cancelled'
+                                );
+                                if (mergeTargets.length === 0) return null;
+                                return (
+                                  <button
+                                    onClick={() => {
+                                      setMergeSource(protocol);
+                                      setMergeTarget(mergeTargets[0]);
+                                      setMergeError('');
+                                      setShowMergeModal(true);
+                                    }}
+                                    style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                                    title="Merge this protocol into another"
+                                  >Merge</button>
+                                );
+                              })()}
                             </div>
                           </div>
 
@@ -3082,6 +3137,8 @@ export default function PatientProfile() {
                                     )}
                                   </div>
                                 )}
+                                {/* 90-Day Cycle Progress */}
+                                <CycleProgressCard protocol={protocol} />
                               </div>
                             );
                           })()}
@@ -5368,6 +5425,99 @@ export default function PatientProfile() {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* ==================== MERGE PROTOCOL MODAL ==================== */}
+        {showMergeModal && mergeSource && (
+          <div className="modal-overlay" onClick={() => { if (!merging) { setShowMergeModal(false); setMergeError(''); } }}>
+            <div className="modal" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Merge Protocol</h3>
+                <button onClick={() => { setShowMergeModal(false); setMergeError(''); }} className="close-btn" disabled={merging}>&times;</button>
+              </div>
+              <div style={{ padding: '20px' }}>
+                <p style={{ marginBottom: 16, fontSize: 14, color: '#374151' }}>
+                  Merge <strong>{mergeSource.program_name || mergeSource.medication}</strong> into another protocol.
+                  The injection count will roll over, and the surviving protocol will use the earliest start date.
+                </p>
+
+                {/* Source protocol summary */}
+                <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 8, padding: '10px 14px', marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#92400e', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Will be closed (merged away)</div>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>{mergeSource.program_name || mergeSource.medication}</div>
+                  <div style={{ fontSize: 13, color: '#666', marginTop: 2 }}>
+                    {mergeSource.selected_dose && <span>{mergeSource.selected_dose} · </span>}
+                    Started {mergeSource.start_date ? new Date(mergeSource.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                    {' · '}{mergeSource.sessions_used || 0} injections logged
+                  </div>
+                </div>
+
+                {/* Target selector */}
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                  Merge into (surviving protocol):
+                </label>
+                <select
+                  value={mergeTarget?.id || ''}
+                  onChange={e => {
+                    const all = [...activeProtocols, ...completedProtocols];
+                    const chosen = all.find(p => p.id === e.target.value);
+                    setMergeTarget(chosen || null);
+                  }}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, marginBottom: 16, background: '#fff' }}
+                  disabled={merging}
+                >
+                  {[...activeProtocols, ...completedProtocols]
+                    .filter(p => p.id !== mergeSource.id && p.category === mergeSource.category && p.status !== 'merged' && p.status !== 'cancelled')
+                    .map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.program_name || p.medication}
+                        {p.selected_dose ? ` · ${p.selected_dose}` : ''}
+                        {' · '}Started {p.start_date ? new Date(p.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                        {' · '}{p.sessions_used || 0} injections
+                      </option>
+                    ))}
+                </select>
+
+                {/* Preview */}
+                {mergeTarget && (
+                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 14px', marginBottom: 16 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#166534', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Surviving protocol (after merge)</div>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{mergeTarget.program_name || mergeTarget.medication}</div>
+                    <div style={{ fontSize: 13, color: '#444', marginTop: 2 }}>
+                      Combined injections: <strong>{(mergeSource.sessions_used || 0) + (mergeTarget.sessions_used || 0)}</strong>
+                      {' · '}Start date: <strong>
+                        {(() => {
+                          const s = mergeSource.start_date ? new Date(mergeSource.start_date + 'T12:00:00') : null;
+                          const t = mergeTarget.start_date ? new Date(mergeTarget.start_date + 'T12:00:00') : null;
+                          const earliest = s && t ? (s < t ? mergeSource.start_date : mergeTarget.start_date) : (mergeSource.start_date || mergeTarget.start_date);
+                          return earliest ? new Date(earliest + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+                        })()}
+                      </strong>
+                    </div>
+                  </div>
+                )}
+
+                {mergeError && (
+                  <div style={{ background: '#fee2e2', color: '#dc2626', borderRadius: 6, padding: '8px 12px', fontSize: 13, marginBottom: 12 }}>
+                    {mergeError}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => { setShowMergeModal(false); setMergeError(''); }}
+                    disabled={merging}
+                    style={{ padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: 6, background: '#fff', cursor: 'pointer', fontSize: 14 }}
+                  >Cancel</button>
+                  <button
+                    onClick={handleMergeProtocol}
+                    disabled={merging || !mergeTarget}
+                    style={{ padding: '8px 20px', background: merging ? '#9ca3af' : '#f59e0b', color: '#fff', border: 'none', borderRadius: 6, cursor: merging ? 'not-allowed' : 'pointer', fontSize: 14, fontWeight: 600 }}
+                  >{merging ? 'Merging...' : 'Merge Protocol'}</button>
+                </div>
+              </div>
             </div>
           </div>
         )}

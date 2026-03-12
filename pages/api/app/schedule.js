@@ -58,8 +58,8 @@ export default async function handler(req, res) {
   }
 
   return res.status(200).json({
-    start_date: startDate,
-    end_date: endDate,
+    start_date: startOfTodayPT.toISOString(),
+    end_date: endTs.toISOString(),
     appointments: appointments || [],
     grouped,
   });

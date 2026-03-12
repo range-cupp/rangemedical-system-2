@@ -1,5 +1,5 @@
 // /pages/api/app/messages.js
-// GET: conversation list (most recent per patient) + full thread for a patient
+// GET: conversation list (most recent SMS per patient) + full thread for a patient
 // POST: send SMS via existing send-sms infrastructure
 // Range Medical Employee App
 // comms_log columns: id, patient_id, channel, message, direction, status,
@@ -15,20 +15,21 @@ const supabase = createClient(
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
-    const { patient_id, limit = '40' } = req.query;
+    const { patient_id, limit = '60' } = req.query;
 
     if (patient_id) {
-      // Full thread for a specific patient
+      // Full SMS thread for a specific patient
       const { data: messages, error } = await supabase
         .from('comms_log')
         .select('id, patient_id, direction, message, created_at, status, channel, read_at, sent_by_employee_name')
         .eq('patient_id', patient_id)
+        .eq('channel', 'sms')
         .order('created_at', { ascending: false })
         .limit(Number(limit));
 
       if (error) return res.status(500).json({ error: 'Failed to load messages' });
 
-      // Mark inbound messages as read (set read_at)
+      // Mark inbound messages as read
       await supabase
         .from('comms_log')
         .update({ read_at: new Date().toISOString() })
@@ -36,7 +37,6 @@ export default async function handler(req, res) {
         .eq('direction', 'inbound')
         .is('read_at', null);
 
-      // Normalize for client: expose `body` and `sent_at` as aliases
       const normalized = (messages || []).reverse().map(m => ({
         ...m,
         body: m.message,
@@ -46,7 +46,8 @@ export default async function handler(req, res) {
       return res.status(200).json({ messages: normalized });
     }
 
-    // Conversation list — most recent message per unique patient (last 50 convos)
+    // Conversation list — most recent SMS per unique patient
+    // Filter to SMS only so emails/calls don't crowd out real conversations
     const { data: recent, error } = await supabase
       .from('comms_log')
       .select(`
@@ -56,10 +57,12 @@ export default async function handler(req, res) {
         message,
         created_at,
         read_at,
+        recipient,
         patients(id, first_name, last_name, phone)
       `)
+      .eq('channel', 'sms')
       .order('created_at', { ascending: false })
-      .limit(200);
+      .limit(500);
 
     if (error) return res.status(500).json({ error: 'Failed to load conversations' });
 
@@ -69,12 +72,11 @@ export default async function handler(req, res) {
     for (const msg of recent || []) {
       if (!msg.patient_id || seen.has(msg.patient_id)) continue;
       seen.add(msg.patient_id);
-      // Normalize field names for client
       conversations.push({ ...msg, body: msg.message, sent_at: msg.created_at });
-      if (conversations.length >= 50) break;
+      if (conversations.length >= 100) break;
     }
 
-    // Count unread (inbound with no read_at) per patient
+    // Count unread inbound SMS per patient
     const patientIds = conversations.map(c => c.patient_id).filter(Boolean);
     let unreadMap = {};
     if (patientIds.length > 0) {
@@ -82,6 +84,7 @@ export default async function handler(req, res) {
         .from('comms_log')
         .select('patient_id')
         .in('patient_id', patientIds)
+        .eq('channel', 'sms')
         .eq('direction', 'inbound')
         .is('read_at', null);
       for (const row of unread || []) {
@@ -112,7 +115,7 @@ export default async function handler(req, res) {
         await supabase.from('comms_log').insert({
           patient_id,
           direction: 'outbound',
-          channel: result.provider || 'sms',
+          channel: 'sms',
           message,
           status: result.success ? 'sent' : 'failed',
           source: 'staff_app',

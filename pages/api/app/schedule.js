@@ -12,11 +12,16 @@ const supabase = createClient(
 export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { date, days = '3' } = req.query;
-  const startDate = date || new Date().toISOString().split('T')[0];
-  const endDate = new Date(new Date(startDate).getTime() + Number(days) * 24 * 60 * 60 * 1000)
-    .toISOString()
-    .split('T')[0];
+  const { date, days = '7' } = req.query;
+  // Use Pacific time (-07:00 / -08:00). Use a wide window (start of today PT → end of window PT)
+  // by querying ±1 day around the requested range to avoid any UTC offset edge cases
+  const daysNum = Math.min(30, Math.max(1, Number(days)));
+  const now = new Date();
+  // Start: beginning of today in PT (UTC-8 worst case = subtract 8 hours then floor to day)
+  const startOfTodayPT = new Date(now);
+  startOfTodayPT.setUTCHours(8, 0, 0, 0); // 8:00 UTC = midnight PT (UTC-8)
+  if (now < startOfTodayPT) startOfTodayPT.setUTCDate(startOfTodayPT.getUTCDate() - 1);
+  const endTs = new Date(startOfTodayPT.getTime() + daysNum * 24 * 60 * 60 * 1000);
 
   // Pull from local appointments table (synced from Cal.com via webhook)
   const { data: appointments, error } = await supabase
@@ -34,9 +39,9 @@ export default async function handler(req, res) {
       provider_id,
       patients(id, first_name, last_name, phone, email)
     `)
-    .gte('start_time', `${startDate}T00:00:00.000Z`)
-    .lte('start_time', `${endDate}T23:59:59.999Z`)
-    .in('status', ['accepted', 'pending'])
+    .gte('start_time', startOfTodayPT.toISOString())
+    .lte('start_time', endTs.toISOString())
+    .in('status', ['scheduled', 'confirmed', 'rescheduled', 'checked_in'])
     .order('start_time', { ascending: true });
 
   if (error) {

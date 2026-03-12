@@ -16,11 +16,16 @@ export default function AppPatients() {
   const debounceRef = useRef(null);
 
   useEffect(() => {
-    // Load recently viewed from localStorage
+    // Load recently viewed from localStorage as instant placeholder
     try {
       const r = JSON.parse(localStorage.getItem('recent_patients') || '[]');
-      setRecent(r.slice(0, 6));
+      if (r.length) setRecent(r.slice(0, 6));
     } catch {}
+    // Fetch recently active patients from DB (last 30 days of appointments)
+    fetch('/api/app/patients-search?recent=true')
+      .then(r => r.json())
+      .then(d => { if (d.patients?.length) setRecent(d.patients); })
+      .catch(() => {});
     setTimeout(() => searchRef.current?.focus(), 400);
   }, []);
 
@@ -144,7 +149,7 @@ export default function AppPatients() {
 
         {showRecent && (
           <div style={{ padding: '12px 16px 4px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#94a3b8' }}>
-            Recently Viewed
+            Recent Patients
           </div>
         )}
 

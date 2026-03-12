@@ -54,8 +54,6 @@ export default function GiftEssentialPanel() {
       title="A Gift for Michele Douglas | Range Medical"
       description="You've been gifted an Essential Lab Panel at Range Medical, Newport Beach."
     >
-
-    >
       <Head>
         <meta name="robots" content="noindex" />
       </Head>

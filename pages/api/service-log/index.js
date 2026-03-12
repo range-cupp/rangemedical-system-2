@@ -827,19 +827,6 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
         }
       }
 
-      // For weight loss pickups: extend total_sessions by the number of injections picked up.
-      // quantity = weeks of supply = number of weekly injections being dispensed.
-      // This keeps total_sessions = total injections dispensed lifetime, so payment_due
-      // only triggers when the patient has actually used all dispensed injections.
-      if (isWeightLossType(category) && quantity) {
-        const { data: currentProto } = await supabase
-          .from('protocols')
-          .select('total_sessions')
-          .eq('id', protocol.id)
-          .single();
-        const currentTotal = currentProto?.total_sessions || 0;
-        updateData.total_sessions = currentTotal + parseInt(quantity);
-      }
     }
 
     const { error: updateError } = await supabase

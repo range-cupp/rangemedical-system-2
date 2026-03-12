@@ -42,28 +42,18 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Failed to add credit' });
   }
 
-  // Bump cached balance on the patient row (atomic increment)
-  const { data: patient, error: updateError } = await supabase
+  // Recalculate cached balance from ledger (sum all entries for this patient)
+  const { data: allEntries } = await supabase
+    .from('patient_credits')
+    .select('amount_cents')
+    .eq('patient_id', patient_id);
+
+  const total = (allEntries || []).reduce((acc, r) => acc + r.amount_cents, 0);
+
+  await supabase
     .from('patients')
-    .update({ account_credit_cents: supabase.raw(`account_credit_cents + ${amount_cents}`) })
-    .eq('id', patient_id)
-    .select('id, first_name, last_name, account_credit_cents')
-    .single();
-
-  // Fallback: recalculate balance from ledger if raw() not supported
-  if (updateError) {
-    const { data: sum } = await supabase
-      .from('patient_credits')
-      .select('amount_cents')
-      .eq('patient_id', patient_id);
-
-    const total = (sum || []).reduce((acc, r) => acc + r.amount_cents, 0);
-
-    await supabase
-      .from('patients')
-      .update({ account_credit_cents: total })
-      .eq('id', patient_id);
-  }
+    .update({ account_credit_cents: total })
+    .eq('id', patient_id);
 
   // Return updated balance
   const { data: updated } = await supabase

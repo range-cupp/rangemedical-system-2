@@ -23,6 +23,7 @@ const SERVICE_SHEETS = [
   { id: 'redlight', name: 'Red Light Therapy', price: 'Varies', file: 'range_medical_redlight.pdf' },
   { id: 'exosome', name: 'Exosome Therapy', price: 'Varies', file: 'range_medical_exosome.pdf' },
   { id: 'prp', name: 'PRP', price: 'Varies', file: 'range_medical_prp.pdf' },
+  { id: 'gi_stool', name: 'GI Effects Stool Test', price: '$999', file: 'range_medical_gi_stool.pdf' },
 ];
 
 const LAB_PANELS = [

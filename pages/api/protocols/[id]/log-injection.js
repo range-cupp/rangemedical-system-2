@@ -277,7 +277,7 @@ export default async function handler(req, res) {
     }
   }
 
-  const { log_date, weight, dose, side_effects, notes, delivery_method, blood_pressure, missed } = req.body;
+  const { log_date, weight, dose, side_effects, notes, delivery_method, blood_pressure, missed, force } = req.body;
 
   if (!id) {
     return res.status(400).json({ error: 'Protocol ID required' });
@@ -288,6 +288,25 @@ export default async function handler(req, res) {
   }
 
   try {
+    // ── Duplicate check (skip if missed or force:true) ──
+    if (!force && !missed) {
+      const { data: existingPL } = await supabase
+        .from('protocol_logs')
+        .select('id, log_date, log_type')
+        .eq('protocol_id', id)
+        .eq('log_date', log_date)
+        .in('log_type', ['checkin', 'injection'])
+        .limit(1);
+
+      if (existingPL && existingPL.length > 0) {
+        return res.status(409).json({
+          success: false,
+          duplicate: true,
+          message: `An injection was already logged for this protocol on ${log_date}. Log another anyway?`
+        });
+      }
+    }
+
     // Get protocol with patient info
     const { data: protocol, error: fetchError } = await supabase
       .from('protocols')

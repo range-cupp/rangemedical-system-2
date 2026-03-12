@@ -167,6 +167,7 @@ export default function ServiceLogContent() {
 
   const [submitting, setSubmitting] = useState(false);
   const [showPFReminder, setShowPFReminder] = useState(false);
+  const [duplicateWarning, setDuplicateWarning] = useState(null); // { messages: [], pendingPayloads: [] }
 
   // Pending EMR entries
   const [pendingEMR, setPendingEMR] = useState([]);
@@ -527,6 +528,7 @@ export default function ServiceLogContent() {
     setSubmitting(true);
     const results = [];
     const errors = [];
+    const duplicatePayloads = [];
 
     for (const item of visitItems) {
       try {
@@ -653,7 +655,10 @@ export default function ServiceLogContent() {
         });
 
         const data = await res.json();
-        if (data.success) {
+        if (res.status === 409 && data.duplicate) {
+          // Duplicate detected — collect for confirmation, don't count as error
+          duplicatePayloads.push({ payload, message: data.message, item });
+        } else if (data.success) {
           results.push({ item, success: true, data });
           // Warn if protocol update failed silently
           if (data.protocol_update && !data.protocol_update.updated && !data.protocol_update.created) {
@@ -669,8 +674,19 @@ export default function ServiceLogContent() {
 
     setSubmitting(false);
 
+    // If duplicates were detected, surface the confirmation modal
+    if (duplicatePayloads.length > 0) {
+      setDuplicateWarning({
+        messages: duplicatePayloads.map(d => d.message),
+        pendingPayloads: duplicatePayloads.map(d => d.payload),
+        alreadyLogged: results.length,
+      });
+      // Still refresh the view for any items that did get logged
+      if (results.length > 0) fetchLogs();
+      return;
+    }
+
     if (errors.length === 0) {
-      const patientName = selectedPatient.displayName;
       closeModal();
       fetchLogs();
       // Re-fetch protocols so UI reflects updated next_expected_date
@@ -685,6 +701,46 @@ export default function ServiceLogContent() {
       if (results.length > 0) {
         fetchLogs();
       }
+    }
+  };
+
+  // Force-submit items that were flagged as duplicates, after user confirmation
+  const handleForceSubmit = async () => {
+    if (!duplicateWarning) return;
+    setSubmitting(true);
+    const results = [];
+    const errors = [];
+
+    for (const payload of duplicateWarning.pendingPayloads) {
+      try {
+        const res = await fetch('/api/service-log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...payload, force: true })
+        });
+        const data = await res.json();
+        if (data.success) {
+          results.push({ success: true, data });
+        } else {
+          errors.push({ error: data.error });
+        }
+      } catch (err) {
+        errors.push({ error: err.message });
+      }
+    }
+
+    setSubmitting(false);
+    setDuplicateWarning(null);
+
+    if (errors.length === 0) {
+      closeModal();
+      fetchLogs();
+      if (selectedPatient) fetchPatientProtocols(selectedPatient.id);
+      setShowPFReminder(true);
+      setTimeout(() => setShowPFReminder(false), 8000);
+    } else {
+      alert(`Logged ${results.length} service(s), ${errors.length} error(s):\n${errors.map(e => e.error).join('\n')}`);
+      if (results.length > 0) fetchLogs();
     }
   };
 
@@ -789,6 +845,65 @@ export default function ServiceLogContent() {
             <strong>Don't forget:</strong> Log this service in Practice Fusion as well for the clinical record.
           </div>
           <button onClick={() => setShowPFReminder(false)} style={slcStyles.pfDismiss}>×</button>
+        </div>
+      )}
+
+      {/* Duplicate Warning Modal */}
+      {duplicateWarning && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div style={{
+            background: '#fff', borderRadius: 12, padding: 28, maxWidth: 460, width: '90%',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.25)'
+          }}>
+            <div style={{ fontSize: 24, marginBottom: 8 }}>⚠️</div>
+            <h3 style={{ margin: '0 0 12px', fontSize: 17, color: '#1e293b' }}>Duplicate Entry Detected</h3>
+            <div style={{ marginBottom: 16 }}>
+              {duplicateWarning.messages.map((msg, i) => (
+                <div key={i} style={{
+                  background: '#fef3c7', border: '1px solid #f59e0b',
+                  borderRadius: 8, padding: '10px 14px', marginBottom: 8,
+                  fontSize: 14, color: '#92400e'
+                }}>
+                  {msg}
+                </div>
+              ))}
+            </div>
+            {duplicateWarning.alreadyLogged > 0 && (
+              <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 16px' }}>
+                {duplicateWarning.alreadyLogged} other service(s) were logged successfully.
+              </p>
+            )}
+            <p style={{ fontSize: 14, color: '#374151', margin: '0 0 20px' }}>
+              Do you want to log this again anyway?
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setDuplicateWarning(null)}
+                style={{
+                  padding: '9px 20px', borderRadius: 7, border: '1px solid #d1d5db',
+                  background: '#fff', cursor: 'pointer', fontWeight: 500, fontSize: 14
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleForceSubmit}
+                disabled={submitting}
+                style={{
+                  padding: '9px 20px', borderRadius: 7, border: 'none',
+                  background: '#dc2626', color: '#fff',
+                  cursor: submitting ? 'not-allowed' : 'pointer',
+                  fontWeight: 600, fontSize: 14
+                }}
+              >
+                {submitting ? 'Logging…' : 'Log Anyway'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

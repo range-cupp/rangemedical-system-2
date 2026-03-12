@@ -447,25 +447,35 @@ export default function ProtocolDetail() {
     }
   };
 
-  const handleLogInjection = async () => {
+  const handleLogInjection = async (force = false) => {
     if (!logModal) return;
     setLogSaving(true);
     try {
+      const body = {
+        log_date: logModal.date,
+        weight: logForm.weight ? parseFloat(logForm.weight) : null,
+        dose: logForm.missed ? null : (logForm.dose || null),
+        notes: logForm.notes || null,
+        delivery_method: logForm.missed ? null : (logForm.deliveryMethod || 'take_home'),
+        side_effects: logForm.missed ? null : (logForm.sideEffects.length > 0 ? logForm.sideEffects : null),
+        blood_pressure: !logForm.missed && logForm.deliveryMethod === 'in_clinic' && logForm.bloodPressure ? logForm.bloodPressure : null,
+        missed: logForm.missed || false,
+      };
+      if (force) body.force = true;
+
       const res = await fetch(`/api/protocols/${id}/log-injection`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          log_date: logModal.date,
-          weight: logForm.weight ? parseFloat(logForm.weight) : null,
-          dose: logForm.missed ? null : (logForm.dose || null),
-          notes: logForm.notes || null,
-          delivery_method: logForm.missed ? null : (logForm.deliveryMethod || 'take_home'),
-          side_effects: logForm.missed ? null : (logForm.sideEffects.length > 0 ? logForm.sideEffects : null),
-          blood_pressure: !logForm.missed && logForm.deliveryMethod === 'in_clinic' && logForm.bloodPressure ? logForm.bloodPressure : null,
-          missed: logForm.missed || false,
-        }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
+      if (res.status === 409 && data.duplicate) {
+        setLogSaving(false);
+        if (window.confirm(data.message + '\n\nLog it anyway?')) {
+          return handleLogInjection(true); // Re-submit with force
+        }
+        return;
+      }
       if (!res.ok) throw new Error(data.error || 'Failed to log injection');
       setSuccess(logForm.missed ? `Injection #${data.injection_number} — missed check-in logged` : `Injection #${data.injection_number} logged`);
       setLogModal(null);
@@ -487,21 +497,38 @@ export default function ProtocolDetail() {
       const lastDose = injectionLogs.length > 0
         ? (injectionLogs[0].dosage || (injectionLogs[0].notes || '').match(/Dose:\s*([^|]+)/)?.[1]?.trim())
         : null;
+      const quickBody = {
+        log_date: dateStr,
+        weight: null,
+        dose: lastDose || protocol?.selected_dose || null,
+        notes: null,
+        delivery_method: 'take_home',
+        side_effects: null,
+        blood_pressure: null,
+        missed: false,
+      };
       const res = await fetch(`/api/protocols/${id}/log-injection`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          log_date: dateStr,
-          weight: null,
-          dose: lastDose || protocol?.selected_dose || null,
-          notes: null,
-          delivery_method: 'take_home',
-          side_effects: null,
-          blood_pressure: null,
-          missed: false,
-        }),
+        body: JSON.stringify(quickBody),
       });
       const data = await res.json();
+      if (res.status === 409 && data.duplicate) {
+        setLogSaving(false);
+        if (window.confirm(data.message + '\n\nLog it anyway?')) {
+          // Re-submit with force
+          const forceRes = await fetch(`/api/protocols/${id}/log-injection`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...quickBody, force: true }),
+          });
+          const forceData = await forceRes.json();
+          if (!forceRes.ok) throw new Error(forceData.error || 'Failed to log injection');
+          setSuccess(`Injection #${forceData.injection_number} marked complete`);
+          fetchProtocol();
+        }
+        return;
+      }
       if (!res.ok) throw new Error(data.error || 'Failed to log injection');
       setSuccess(`Injection #${data.injection_number} marked complete`);
       fetchProtocol();
@@ -513,6 +540,7 @@ export default function ProtocolDetail() {
   };
 
   // Quick-missed: mark next injection as missed check-in with one click
+  // (missed injections skip duplicate check — always allowed)
   const handleQuickMissed = async (injectionDate) => {
     setLogSaving(true);
     try {

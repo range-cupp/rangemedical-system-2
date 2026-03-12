@@ -219,6 +219,34 @@ async function handlePost(req, res) {
     // 1. Create the log entry
     // Session-based services default to 'session' type; others default to 'injection'
     const resolvedEntryType = entry_type || (['hbot', 'iv_therapy', 'red_light'].includes(category) ? 'session' : 'injection');
+
+    // ── Duplicate check ──
+    // Only check injection/session/pickup entries (not misc). Skip if force:true.
+    if (!req.body.force && ['injection', 'session', 'pickup'].includes(resolvedEntryType)) {
+      let dupQuery = supabase
+        .from('service_logs')
+        .select('id, entry_date, category, entry_type, medication')
+        .eq('patient_id', patient_id)
+        .eq('entry_date', logDate)
+        .eq('category', category)
+        .eq('entry_type', resolvedEntryType);
+
+      // For typed entries, also match on medication so different meds on the same day aren't flagged
+      if (medication && ['injection', 'pickup'].includes(resolvedEntryType)) {
+        dupQuery = dupQuery.eq('medication', medication);
+      }
+
+      const { data: existingEntries } = await dupQuery.limit(3);
+
+      if (existingEntries && existingEntries.length > 0) {
+        return res.status(409).json({
+          success: false,
+          duplicate: true,
+          existing: existingEntries,
+          message: `A ${resolvedEntryType} for this patient was already logged on ${logDate}${medication ? ` (${medication})` : ''}.`
+        });
+      }
+    }
     const logData = {
       patient_id,
       category,

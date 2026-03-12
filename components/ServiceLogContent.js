@@ -169,10 +169,6 @@ export default function ServiceLogContent() {
   const [showPFReminder, setShowPFReminder] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState(null); // { messages: [], pendingPayloads: [] }
 
-  // Pending EMR entries
-  const [pendingEMR, setPendingEMR] = useState([]);
-  const [emrDismissing, setEmrDismissing] = useState(null);
-
   // Dispensing & signature state
   const [dispensingData, setDispensingData] = useState({
     administered_by: '',
@@ -189,37 +185,7 @@ export default function ServiceLogContent() {
   useEffect(() => {
     fetchLogs();
     fetchPatients();
-    fetchPendingEMR();
   }, [viewCategory]);
-
-  const fetchPendingEMR = async () => {
-    try {
-      const res = await fetch('/api/service-log/emr-status');
-      if (res.ok) {
-        const data = await res.json();
-        setPendingEMR(data.pending || []);
-      }
-    } catch (err) {
-      console.error('Error fetching pending EMR:', err);
-    }
-  };
-
-  const markEMREntered = async (logId) => {
-    setEmrDismissing(logId);
-    try {
-      const res = await fetch('/api/service-log/emr-status', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: logId, emr_entered: true })
-      });
-      if (res.ok) {
-        setPendingEMR(prev => prev.filter(p => p.id !== logId));
-      }
-    } catch (err) {
-      console.error('Error marking EMR entered:', err);
-    }
-    setEmrDismissing(null);
-  };
 
   const fetchLogs = async () => {
     setLoading(true);
@@ -903,58 +869,6 @@ export default function ServiceLogContent() {
                 {submitting ? 'Logging…' : 'Log Anyway'}
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Pending EMR Entries Banner */}
-      {pendingEMR.length > 0 && (
-        <div style={{
-          margin: '0 0 16px', padding: '16px', borderRadius: '10px',
-          background: '#fef3c7', border: '1px solid #f59e0b40'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-            <span style={{ fontSize: '18px' }}>🏥</span>
-            <strong style={{ fontSize: '14px', color: '#92400e' }}>
-              Pending EMR Entry ({pendingEMR.length})
-            </strong>
-            <span style={{ fontSize: '12px', color: '#b45309' }}>
-              — Weight loss check-ins to enter in Practice Fusion
-            </span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {pendingEMR.map(entry => {
-              const patientName = entry.patients?.first_name && entry.patients?.last_name
-                ? `${entry.patients.first_name} ${entry.patients.last_name}`
-                : entry.patients?.name || 'Unknown';
-              const entryDate = entry.entry_date
-                ? new Date(entry.entry_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                : '';
-              return (
-                <div key={entry.id} style={{
-                  display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px',
-                  background: '#fff', borderRadius: '8px', border: '1px solid #fde68a'
-                }}>
-                  <span style={{ fontWeight: '600', color: '#374151', minWidth: '140px' }}>{patientName}</span>
-                  <span style={{ fontSize: '13px', color: '#6b7280' }}>{entryDate}</span>
-                  {entry.weight && <span style={{ fontSize: '13px', color: '#6b7280' }}>⚖️ {entry.weight} lbs</span>}
-                  {entry.medication && <span style={{ fontSize: '13px', color: '#6b7280' }}>💊 {entry.medication}</span>}
-                  {entry.dosage && <span style={{ fontSize: '13px', color: '#6b7280' }}>{entry.dosage}</span>}
-                  {entry.notes && <span style={{ fontSize: '12px', color: '#9ca3af', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{entry.notes}</span>}
-                  <button
-                    onClick={() => markEMREntered(entry.id)}
-                    disabled={emrDismissing === entry.id}
-                    style={{
-                      marginLeft: 'auto', padding: '4px 12px', borderRadius: '6px',
-                      border: '1px solid #22c55e', background: '#f0fdf4', color: '#15803d',
-                      fontSize: '12px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {emrDismissing === entry.id ? '...' : '✓ Entered in EMR'}
-                  </button>
-                </div>
-              );
-            })}
           </div>
         </div>
       )}

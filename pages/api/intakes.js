@@ -242,8 +242,21 @@ export default async function handler(req, res) {
           if (!patientMatch.city && intakeRecord.city) demoUpdates.city = intakeRecord.city;
           if (!patientMatch.state && intakeRecord.state) demoUpdates.state = intakeRecord.state;
           if (!patientMatch.zip_code && intakeRecord.postal_code) demoUpdates.zip_code = intakeRecord.postal_code;
-          if (!patientMatch.preferred_name && intakeRecord.preferred_name) demoUpdates.preferred_name = intakeRecord.preferred_name;
-          // Always update referral_source from intake (intake is the authoritative source)
+          // Always update name from intake — intake is the authoritative source for legal name
+          // (e.g. patient is "Ted Baker" in GHL but fills out form as "Theodore Baker")
+          if (intakeRecord.first_name || intakeRecord.last_name) {
+            const capFirst = intakeRecord.first_name
+              ? intakeRecord.first_name.charAt(0).toUpperCase() + intakeRecord.first_name.slice(1).toLowerCase()
+              : patientMatch.first_name || '';
+            const capLast = intakeRecord.last_name
+              ? intakeRecord.last_name.charAt(0).toUpperCase() + intakeRecord.last_name.slice(1).toLowerCase()
+              : patientMatch.last_name || '';
+            demoUpdates.first_name = capFirst;
+            demoUpdates.last_name = capLast;
+            demoUpdates.name = `${capFirst} ${capLast}`.trim();
+          }
+          // Always update preferred_name and referral_source from intake
+          if (intakeRecord.preferred_name) demoUpdates.preferred_name = intakeRecord.preferred_name;
           if (intakeRecord.how_heard) demoUpdates.referral_source = intakeRecord.how_heard;
 
           if (Object.keys(demoUpdates).length > 0) {

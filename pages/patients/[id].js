@@ -1903,6 +1903,81 @@ export default function PatientProfile() {
             </button>
           </div>
 
+          {/* Medical Alerts */}
+          {(() => {
+            // Pull medical data from the most recent intake
+            const intake = intakes && intakes.length > 0 ? intakes[0] : null;
+            if (!intake) return null;
+
+            // Resolve allergies from whichever field is populated
+            let allergyText = null;
+            const noKnownAllergies = intake.no_known_allergies ||
+              (intake.allergies && typeof intake.allergies === 'object' && intake.allergies.none === true);
+            if (!noKnownAllergies) {
+              allergyText = intake.known_allergies_text ||
+                (intake.allergies && typeof intake.allergies === 'object' ? intake.allergies.text : null) ||
+                (typeof intake.allergies === 'string' ? intake.allergies : null) ||
+                null;
+            }
+
+            // Medications
+            const medsText = intake.current_medications_text || intake.current_medications || null;
+
+            // Medical conditions
+            const conditionsText = intake.medical_conditions || null;
+
+            // Surgical history
+            const surgicalText = intake.surgical_history || null;
+
+            const hasAlerts = allergyText || medsText || conditionsText || surgicalText || noKnownAllergies;
+            if (!hasAlerts) return null;
+
+            const chipStyle = {
+              display: 'inline-flex', alignItems: 'center', gap: '5px',
+              padding: '3px 10px', borderRadius: '20px', fontSize: '12px',
+              fontWeight: 500, whiteSpace: 'nowrap', maxWidth: '100%',
+              overflow: 'hidden', textOverflow: 'ellipsis',
+            };
+
+            return (
+              <div style={{
+                padding: '8px 16px 10px',
+                borderTop: '1px solid #f3f4f6',
+                display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center',
+              }}>
+                {allergyText && (
+                  <span style={{ ...chipStyle, background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca' }}>
+                    <span style={{ fontSize: '13px' }}>⚠️</span>
+                    <strong>Allergies:</strong> {allergyText}
+                  </span>
+                )}
+                {noKnownAllergies && !allergyText && (
+                  <span style={{ ...chipStyle, background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }}>
+                    <span style={{ fontSize: '13px' }}>✓</span> No Known Allergies
+                  </span>
+                )}
+                {medsText && (
+                  <span style={{ ...chipStyle, background: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe' }}>
+                    <span style={{ fontSize: '13px' }}>💊</span>
+                    <strong>Meds:</strong> {medsText}
+                  </span>
+                )}
+                {conditionsText && (
+                  <span style={{ ...chipStyle, background: '#fefce8', color: '#854d0e', border: '1px solid #fde68a' }}>
+                    <span style={{ fontSize: '13px' }}>🏥</span>
+                    <strong>Conditions:</strong> {conditionsText}
+                  </span>
+                )}
+                {surgicalText && (
+                  <span style={{ ...chipStyle, background: '#faf5ff', color: '#6b21a8', border: '1px solid #e9d5ff' }}>
+                    <span style={{ fontSize: '13px' }}>🔪</span>
+                    <strong>Surgical:</strong> {surgicalText}
+                  </span>
+                )}
+              </div>
+            );
+          })()}
+
           {/* Demographics */}
           {(showDemographics || editingPatient) && (
             <div className="demographics-section">

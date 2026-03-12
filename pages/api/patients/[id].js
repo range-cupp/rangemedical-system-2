@@ -308,7 +308,7 @@ export default async function handler(req, res) {
 
       // ===== NEW: Get intake forms =====
       let intakes = [];
-      const intakeFields = 'id, first_name, last_name, email, phone, date_of_birth, gender, preferred_name, submitted_at, pdf_url, symptoms, photo_id_url, signature_url, patient_id, ghl_contact_id, how_heard, street_address, city, state, postal_code';
+      const intakeFields = 'id, first_name, last_name, email, phone, date_of_birth, gender, preferred_name, submitted_at, pdf_url, symptoms, photo_id_url, signature_url, patient_id, ghl_contact_id, how_heard, street_address, city, state, postal_code, allergies, known_allergies_text, no_known_allergies, has_allergies, current_medications_text, current_medications, medical_conditions, surgical_history, emergency_contact_name, emergency_contact_phone, emergency_contact_relationship';
 
       // Try by patient_id first
       const { data: intakesByPatientId } = await supabase

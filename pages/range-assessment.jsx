@@ -4,6 +4,117 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import MedicalIntakeForm from '../components/assessment/MedicalIntakeForm';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
+
+const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+  : null;
+
+// Cal.com event type ID for Range Assessment appointments
+// Set via env var, or hardcode here after creating the event type in Cal.com
+const ASSESSMENT_EVENT_TYPE_ID = process.env.NEXT_PUBLIC_ASSESSMENT_EVENT_TYPE_ID
+  ? parseInt(process.env.NEXT_PUBLIC_ASSESSMENT_EVENT_TYPE_ID)
+  : null;
+
+// Inner component for Stripe payment form (must be inside <Elements> wrapper)
+function AssessmentPaymentForm({ onSuccess, leadId }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [processing, setProcessing] = useState(false);
+  const [payError, setPayError] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+
+    setProcessing(true);
+    setPayError(null);
+
+    try {
+      const baseUrl = window.location.origin;
+      const returnUrl = `${baseUrl}/range-assessment?payment_complete=true`;
+
+      const { error: stripeError, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        confirmParams: { return_url: returnUrl },
+        redirect: 'if_required',
+      });
+
+      if (stripeError) {
+        throw new Error(stripeError.message);
+      }
+
+      if (paymentIntent && paymentIntent.status === 'succeeded') {
+        // Confirm payment on our backend
+        await fetch('/api/assessment/confirm-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            leadId,
+            paymentIntentId: paymentIntent.id,
+          }),
+        });
+        onSuccess();
+      }
+    } catch (err) {
+      setPayError(err.message);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', fontSize: '1rem', color: '#171717' }}>
+          <span>Range Assessment — Injury & Recovery</span>
+          <span style={{ fontWeight: 700 }}>$250</span>
+        </div>
+        <div style={{ borderTop: '2px solid #eee', paddingTop: 12, display: 'flex', justifyContent: 'space-between', fontSize: '1.125rem', fontWeight: 700, color: '#171717' }}>
+          <span>Total</span>
+          <span>$250.00</span>
+        </div>
+      </div>
+
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '0.875rem 1rem', marginBottom: 24 }}>
+        <p style={{ margin: 0, fontSize: '0.875rem', color: '#166534' }}>
+          This fee goes toward any treatment protocol you choose.
+        </p>
+      </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <PaymentElement options={{ layout: 'tabs' }} />
+      </div>
+
+      {payError && (
+        <p style={{ color: '#dc2626', fontSize: '0.8125rem', marginBottom: 12, padding: '8px 12px', background: '#fef2f2', borderRadius: 6 }}>
+          {payError}
+        </p>
+      )}
+
+      <button
+        type="submit"
+        disabled={!stripe || processing}
+        style={{
+          width: '100%',
+          padding: '1rem',
+          background: '#000',
+          color: '#fff',
+          border: 'none',
+          borderRadius: 10,
+          fontSize: '1rem',
+          fontWeight: 600,
+          cursor: processing ? 'default' : 'pointer',
+          opacity: processing ? 0.7 : 1,
+          fontFamily: 'inherit',
+        }}
+      >
+        {processing ? 'Processing...' : 'Pay $250'}
+      </button>
+    </form>
+  );
+}
 
 // Biomarker mapping - which markers are relevant for each symptom/goal
 const biomarkerMapping = {
@@ -132,6 +243,18 @@ export default function RangeAssessment() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [isCompletingIntake, setIsCompletingIntake] = useState(false);
   const [leadId, setLeadId] = useState(null);
+
+  // Payment & scheduling state (injury path)
+  const [clientSecret, setClientSecret] = useState(null);
+  const [showPayment, setShowPayment] = useState(false);
+  const [showScheduling, setShowScheduling] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState({});
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [isBooking, setIsBooking] = useState(false);
+  const [bookingResult, setBookingResult] = useState(null);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+
   const [intakeData, setIntakeData] = useState({
     // Personal Details
     dob: '',
@@ -475,6 +598,146 @@ export default function RangeAssessment() {
     return { bpcBenefits, tb4Benefits };
   };
 
+  // Initialize Stripe PaymentIntent for assessment
+  const initializePayment = async () => {
+    try {
+      const response = await fetch('/api/assessment/payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadId,
+          email: formData.email,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phone: formData.phone,
+        }),
+      });
+      const data = await response.json();
+      if (data.clientSecret) {
+        setClientSecret(data.clientSecret);
+      } else {
+        setError('Could not initialize payment. Please call (949) 997-3988.');
+      }
+    } catch (err) {
+      console.error('Payment init error:', err);
+      setError('Could not initialize payment. Please call (949) 997-3988.');
+    }
+  };
+
+  // Fetch available slots for a date
+  const fetchSlots = async (date) => {
+    if (!ASSESSMENT_EVENT_TYPE_ID) {
+      setError('Scheduling is not configured yet. Please call (949) 997-3988 to book.');
+      return;
+    }
+    setSlotsLoading(true);
+    try {
+      const response = await fetch(`/api/bookings/slots?eventTypeId=${ASSESSMENT_EVENT_TYPE_ID}&date=${date}`);
+      const data = await response.json();
+      if (data.success && data.slots) {
+        // Apply 2-hour buffer — filter out slots within 2 hours of now
+        const twoHoursFromNow = new Date(Date.now() + 2 * 60 * 60 * 1000);
+        const filtered = {};
+        Object.entries(data.slots).forEach(([dateKey, dateSlots]) => {
+          const validSlots = dateSlots.filter(slot => new Date(slot.time) >= twoHoursFromNow);
+          if (validSlots.length > 0) {
+            filtered[dateKey] = validSlots;
+          }
+        });
+        setAvailableSlots(filtered);
+      } else {
+        setAvailableSlots({});
+      }
+    } catch (err) {
+      console.error('Fetch slots error:', err);
+      setAvailableSlots({});
+    } finally {
+      setSlotsLoading(false);
+    }
+  };
+
+  // Book assessment appointment
+  const handleBooking = async () => {
+    if (!selectedSlot) return;
+    setIsBooking(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/assessment/book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadId,
+          eventTypeId: ASSESSMENT_EVENT_TYPE_ID,
+          start: selectedSlot.time,
+          patientName: `${formData.firstName} ${formData.lastName}`,
+          patientEmail: formData.email,
+          patientPhone: formData.phone,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Booking failed');
+      }
+
+      setBookingResult(data.booking);
+      setShowScheduling(false);
+      setShowConfirmation(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      setError(err.message || 'Could not book appointment. Please call (949) 997-3988.');
+    } finally {
+      setIsBooking(false);
+    }
+  };
+
+  // Generate next 14 days for date picker (skip Sundays)
+  const getAvailableDates = () => {
+    const dates = [];
+    const today = new Date();
+    for (let i = 0; i < 21 && dates.length < 14; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      if (d.getDay() !== 0) { // Skip Sunday
+        dates.push(d);
+      }
+    }
+    return dates;
+  };
+
+  // Format time for display (Pacific)
+  const formatSlotTime = (isoString) => {
+    return new Date(isoString).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone: 'America/Los_Angeles',
+    });
+  };
+
+  // Format date for display
+  const formatDateShort = (date) => {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  // Format booking time for confirmation
+  const formatBookingTime = (isoString) => {
+    if (!isoString) return '';
+    return new Date(isoString).toLocaleString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone: 'America/Los_Angeles',
+    }) + ' PT';
+  };
+
   // Confirmation screen (both paths)
   if (showConfirmation) {
     return (
@@ -500,12 +763,32 @@ export default function RangeAssessment() {
               </p>
 
               {selectedPath === 'injury' ? (
-                <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
-                  <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717', margin: '0 0 0.75rem' }}>What Happens Next</h3>
-                  <p style={{ fontSize: '0.9375rem', color: '#525252', lineHeight: 1.6, margin: 0 }}>
-                    Our team will review your information and reach out to schedule your consultation. We'll create a personalized peptide protocol based on your assessment and medical history.
-                  </p>
-                </div>
+                <>
+                  {bookingResult && (
+                    <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
+                      <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717', margin: '0 0 0.75rem' }}>Your Appointment</h3>
+                      <p style={{ fontSize: '1rem', color: '#171717', fontWeight: 600, margin: '0 0 0.5rem' }}>
+                        {formatBookingTime(bookingResult.start)}
+                      </p>
+                      <p style={{ fontSize: '0.9375rem', color: '#525252', lineHeight: 1.6, margin: '0 0 1rem' }}>
+                        We've texted a medical intake form to your phone. Please complete it before your visit — it takes about 5 minutes.
+                      </p>
+                      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '0.875rem 1rem' }}>
+                        <p style={{ margin: 0, fontSize: '0.875rem', color: '#166534' }}>
+                          Didn't get the text? Check your messages at {formData.phone} or call us at (949) 997-3988.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {!bookingResult && (
+                    <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
+                      <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717', margin: '0 0 0.75rem' }}>What Happens Next</h3>
+                      <p style={{ fontSize: '0.9375rem', color: '#525252', lineHeight: 1.6, margin: 0 }}>
+                        Our team will review your information and reach out to schedule your consultation. We'll create a personalized peptide protocol based on your assessment and medical history.
+                      </p>
+                    </div>
+                  )}
+                </>
               ) : (
                 <>
                   <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
@@ -574,6 +857,225 @@ export default function RangeAssessment() {
           error={error}
           patientName={formData.firstName}
         />
+        <style jsx>{styles}</style>
+      </Layout>
+    );
+  }
+
+  // Payment screen (injury path)
+  if (showPayment) {
+    return (
+      <Layout>
+        <Head>
+          <title>Assessment Payment | Range Medical</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Head>
+        <div className="ra-page">
+          <section style={{ padding: '3rem 1.5rem', minHeight: '60vh' }}>
+            <div style={{ maxWidth: 480, margin: '0 auto' }}>
+              <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                <p style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#737373', marginBottom: '0.5rem' }}>Step 2 of 3</p>
+                <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#171717', margin: '0 0 0.5rem' }}>Payment</h1>
+                <p style={{ fontSize: '0.9375rem', color: '#525252', margin: 0 }}>
+                  Secure your assessment appointment
+                </p>
+              </div>
+
+              {stripePromise && clientSecret ? (
+                <Elements
+                  stripe={stripePromise}
+                  options={{
+                    clientSecret,
+                    appearance: {
+                      theme: 'stripe',
+                      variables: {
+                        colorPrimary: '#000000',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                        borderRadius: '8px',
+                      },
+                    },
+                  }}
+                >
+                  <AssessmentPaymentForm
+                    leadId={leadId}
+                    onSuccess={() => {
+                      setShowPayment(false);
+                      setShowScheduling(true);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                  />
+                </Elements>
+              ) : error ? (
+                <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                  <p style={{ fontSize: '48px', marginBottom: 16 }}>⚠️</p>
+                  <p style={{ color: '#dc2626', fontSize: '0.875rem', marginBottom: 12 }}>{error}</p>
+                  <p style={{ color: '#888', fontSize: '0.8125rem' }}>
+                    If this issue persists, please call <strong>(949) 997-3988</strong>.
+                  </p>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                  <p style={{ color: '#888', fontSize: '0.875rem' }}>Loading payment options...</p>
+                </div>
+              )}
+
+              <p style={{ textAlign: 'center', fontSize: '0.8125rem', color: '#a3a3a3', marginTop: '1.5rem' }}>
+                Questions? Call <a href="tel:9499973988" style={{ color: '#737373' }}>(949) 997-3988</a>
+              </p>
+            </div>
+          </section>
+        </div>
+        <style jsx>{styles}</style>
+      </Layout>
+    );
+  }
+
+  // Scheduling screen (injury path)
+  if (showScheduling) {
+    const dates = getAvailableDates();
+    const slotsForDate = selectedDate
+      ? availableSlots[selectedDate.toISOString().split('T')[0]] || []
+      : [];
+
+    return (
+      <Layout>
+        <Head>
+          <title>Schedule Your Assessment | Range Medical</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Head>
+        <div className="ra-page">
+          <section style={{ padding: '3rem 1.5rem', minHeight: '60vh' }}>
+            <div style={{ maxWidth: 560, margin: '0 auto' }}>
+              <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                <p style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#737373', marginBottom: '0.5rem' }}>Step 3 of 3</p>
+                <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#171717', margin: '0 0 0.5rem' }}>Pick a Time</h1>
+                <p style={{ fontSize: '0.9375rem', color: '#525252', margin: 0 }}>
+                  Choose a day and time for your 30-minute assessment
+                </p>
+              </div>
+
+              {/* Date picker */}
+              <div style={{ marginBottom: '2rem' }}>
+                <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#525252', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Select a Date</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {dates.map((d) => {
+                    const isSelected = selectedDate && d.toDateString() === selectedDate.toDateString();
+                    const dateStr = d.toISOString().split('T')[0];
+                    const isToday = d.toDateString() === new Date().toDateString();
+                    return (
+                      <button
+                        key={dateStr}
+                        onClick={() => {
+                          setSelectedDate(d);
+                          setSelectedSlot(null);
+                          setAvailableSlots({});
+                          fetchSlots(dateStr);
+                        }}
+                        style={{
+                          padding: '0.625rem 1rem',
+                          borderRadius: 8,
+                          border: isSelected ? '2px solid #000' : '1px solid #e5e5e5',
+                          background: isSelected ? '#000' : '#fff',
+                          color: isSelected ? '#fff' : '#171717',
+                          fontSize: '0.8125rem',
+                          fontWeight: isSelected ? 600 : 400,
+                          cursor: 'pointer',
+                          fontFamily: 'inherit',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {isToday ? 'Today' : formatDateShort(d)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Time slots */}
+              {selectedDate && (
+                <div style={{ marginBottom: '2rem' }}>
+                  <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#525252', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Available Times — {formatDateShort(selectedDate)}
+                  </p>
+
+                  {slotsLoading ? (
+                    <p style={{ color: '#888', fontSize: '0.875rem', padding: '1rem 0' }}>Loading available times...</p>
+                  ) : slotsForDate.length > 0 ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '0.5rem' }}>
+                      {slotsForDate.map((slot) => {
+                        const isSelected = selectedSlot && selectedSlot.time === slot.time;
+                        return (
+                          <button
+                            key={slot.time}
+                            onClick={() => setSelectedSlot(slot)}
+                            style={{
+                              padding: '0.75rem 0.5rem',
+                              borderRadius: 8,
+                              border: isSelected ? '2px solid #000' : '1px solid #e5e5e5',
+                              background: isSelected ? '#000' : '#fff',
+                              color: isSelected ? '#fff' : '#171717',
+                              fontSize: '0.9375rem',
+                              fontWeight: isSelected ? 600 : 400,
+                              cursor: 'pointer',
+                              fontFamily: 'inherit',
+                            }}
+                          >
+                            {formatSlotTime(slot.time)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div style={{ background: '#fafafa', borderRadius: 8, padding: '1.25rem', textAlign: 'center' }}>
+                      <p style={{ color: '#737373', fontSize: '0.875rem', margin: 0 }}>
+                        No available times on this date. Please try another day.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Booking confirmation */}
+              {selectedSlot && (
+                <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.5rem', marginBottom: '1.5rem' }}>
+                  <p style={{ fontSize: '0.875rem', color: '#525252', margin: '0 0 0.25rem' }}>Your appointment:</p>
+                  <p style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717', margin: '0 0 1rem' }}>
+                    {formatDateShort(selectedDate)} at {formatSlotTime(selectedSlot.time)} PT
+                  </p>
+                  <button
+                    onClick={handleBooking}
+                    disabled={isBooking}
+                    style={{
+                      width: '100%',
+                      padding: '1rem',
+                      background: '#000',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 10,
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      cursor: isBooking ? 'default' : 'pointer',
+                      opacity: isBooking ? 0.7 : 1,
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    {isBooking ? 'Booking...' : 'Confirm Booking'}
+                  </button>
+                </div>
+              )}
+
+              {error && (
+                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '0.875rem 1rem', marginBottom: '1rem' }}>
+                  <p style={{ margin: 0, fontSize: '0.875rem', color: '#dc2626' }}>{error}</p>
+                </div>
+              )}
+
+              <p style={{ textAlign: 'center', fontSize: '0.8125rem', color: '#a3a3a3', marginTop: '1rem' }}>
+                Questions? Call <a href="tel:9499973988" style={{ color: '#737373' }}>(949) 997-3988</a>
+              </p>
+            </div>
+          </section>
+        </div>
         <style jsx>{styles}</style>
       </Layout>
     );
@@ -734,21 +1236,25 @@ export default function RangeAssessment() {
 
             {/* Next Step */}
             <div className="inj-res-next-card">
-              <h3>Next Step: Complete Your Medical Intake</h3>
+              <h3>Next Step: Pay & Schedule Your Assessment</h3>
               <p>
-                To learn more about your options, please complete your medical intake form. It takes about 5 minutes, and our provider will use this information to determine the best course of action for your situation.
+                Your assessment is <strong>$250</strong> and goes toward any treatment protocol you choose. After payment, you'll pick a time that works for you, and we'll text you a medical intake form to complete before your visit.
               </p>
               <button
                 className="inj-res-cta"
                 onClick={() => {
                   setShowInjuryResults(false);
-                  setShowInjuryIntake(true);
+                  setShowPayment(true);
+                  initializePayment();
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 style={{ border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
               >
-                Continue to Medical Intake
+                Continue to Payment — $250
               </button>
+              <p style={{ fontSize: '0.85rem', color: '#a3a3a3', marginTop: '0.75rem' }}>
+                This fee goes toward any treatment protocol you choose.
+              </p>
               <p className="inj-res-contact">
                 Questions? Call us at <a href="tel:9499973988">(949) 997-3988</a>
               </p>

@@ -12,6 +12,7 @@ const SYMPTOM_CONTENT = {
     icon: '🤢',
     explanation: 'Nausea is one of the most common side effects of GLP-1 medications. It happens because the medication slows down how quickly your stomach empties, which is actually part of how it helps you feel full longer. Your body is adjusting to this new pace of digestion.',
     tips: [
+      { title: 'Start with carbs at breakfast', detail: 'The morning after your injection, try having a carb-friendly breakfast — toast, oatmeal, crackers, or a banana. Carbs are easier on the stomach and can help settle nausea first thing.' },
       { title: 'Eat smaller, more frequent meals', detail: 'Instead of 3 large meals, try 5-6 smaller ones throughout the day. This keeps your stomach from getting too full.' },
       { title: 'Avoid greasy and fried foods', detail: 'High-fat foods are harder to digest and can make nausea worse. Stick to lean proteins, vegetables, and simple carbs when nausea is at its peak.' },
       { title: 'Try ginger or peppermint tea', detail: 'Both are natural stomach settlers. Keep ginger chews or peppermint tea bags on hand for when nausea hits.' },
@@ -64,7 +65,7 @@ const SYMPTOM_CONTENT = {
     callUs: 'If you experience severe stomach pain, pain that radiates to your back, or notice blood in your stool or vomit, contact us immediately.',
     reassurance: 'Indigestion typically resolves as your body adjusts to the medication and you find the right portion sizes. Most patients see improvement within 2-3 weeks.',
   },
-  'injection site pain': {
+  'injection-site-pain': {
     title: 'Managing Injection Site Discomfort',
     icon: '💉',
     explanation: 'Some soreness, redness, or mild swelling at the injection site is normal and usually goes away within a day or two. This is your body\'s natural response to the injection.',
@@ -82,9 +83,9 @@ const SYMPTOM_CONTENT = {
 
 // Normalize symptom strings to match SYMPTOM_CONTENT keys
 function normalizeSymptom(s) {
-  const trimmed = s.trim().toLowerCase();
+  const trimmed = s.trim().toLowerCase().replace(/\s+/g, '-');
   // Handle "injection site pain" and "injection_site_pain" variants
-  if (trimmed.includes('injection')) return 'injection site pain';
+  if (trimmed.includes('injection')) return 'injection-site-pain';
   return trimmed;
 }
 
@@ -106,10 +107,10 @@ export default function WLSupportPage() {
     >
       {/* Hero */}
       <section className="wl-hero">
-        <div className="container">
-          <span className="hero-badge">Weight Loss Support</span>
+        <div className="wl-hero-inner">
+          <span className="wl-hero-badge">Weight Loss Support</span>
           <h1>{hasSymptoms ? 'Tips to Help You Feel Better' : 'Your Weight Loss Support Guide'}</h1>
-          <p className="hero-sub">
+          <p className="wl-hero-sub">
             {hasSymptoms
               ? 'Based on what you shared in your check-in, here are some things that can help.'
               : 'Tips and strategies for your weight loss journey. You\'re doing great.'
@@ -126,30 +127,30 @@ export default function WLSupportPage() {
           const isGray = index % 2 === 1;
 
           return (
-            <section key={symptom} className={`section ${isGray ? 'section-gray' : ''}`}>
-              <div className="container">
-                <div className="symptom-header">
-                  <span className="symptom-icon">{content.icon}</span>
-                  <h2 className="section-title">{content.title}</h2>
+            <section key={symptom} className={`wl-section ${isGray ? 'wl-section-gray' : ''}`}>
+              <div className="wl-section-inner">
+                <div className="wl-symptom-header">
+                  <span className="wl-symptom-icon">{content.icon}</span>
+                  <h2>{content.title}</h2>
                 </div>
 
-                <p className="explanation">{content.explanation}</p>
+                <p className="wl-explanation">{content.explanation}</p>
 
-                <div className="tips-grid">
+                <div className="wl-tips-grid">
                   {content.tips.map((tip, i) => (
-                    <div key={i} className="tip-card">
+                    <div key={i} className="wl-tip-card">
                       <h3>{tip.title}</h3>
                       <p>{tip.detail}</p>
                     </div>
                   ))}
                 </div>
 
-                <div className="reassurance-box">
-                  <p className="reassurance">{content.reassurance}</p>
+                <div className="wl-reassurance-box">
+                  <p>{content.reassurance}</p>
                 </div>
 
-                <div className="callus-box">
-                  <h4>When to Contact Us</h4>
+                <div className="wl-callus-box">
+                  <strong>When to Contact Us</strong>
                   <p>{content.callUs}</p>
                 </div>
               </div>
@@ -158,34 +159,34 @@ export default function WLSupportPage() {
         })
       ) : (
         /* General tips when no specific symptoms */
-        <section className="section">
-          <div className="container">
-            <div className="section-kicker">General Tips</div>
-            <h2 className="section-title">Staying on Track</h2>
-            <p className="section-subtitle">A few things that help every patient on their weight loss journey.</p>
+        <section className="wl-section">
+          <div className="wl-section-inner">
+            <div className="wl-kicker">General Tips</div>
+            <h2>Staying on Track</h2>
+            <p className="wl-section-sub">A few things that help every patient on their weight loss journey.</p>
 
-            <div className="tips-grid">
-              <div className="tip-card">
+            <div className="wl-tips-grid">
+              <div className="wl-tip-card">
                 <h3>Stay Hydrated</h3>
                 <p>Aim for at least 64 oz of water per day. Proper hydration supports your metabolism, energy levels, and helps your body process the medication effectively.</p>
               </div>
-              <div className="tip-card">
+              <div className="wl-tip-card">
                 <h3>Prioritize Protein</h3>
                 <p>20-30g of protein per meal helps preserve muscle mass as you lose weight and keeps you feeling full. Think chicken, fish, eggs, Greek yogurt, and legumes.</p>
               </div>
-              <div className="tip-card">
+              <div className="wl-tip-card">
                 <h3>Keep Moving</h3>
                 <p>You don't need intense workouts. A daily 20-30 minute walk supports your metabolism, improves mood, and helps with digestion.</p>
               </div>
-              <div className="tip-card">
+              <div className="wl-tip-card">
                 <h3>Get Quality Sleep</h3>
                 <p>7-8 hours of sleep per night supports weight loss, hormone balance, and recovery. Poor sleep can increase cravings and slow progress.</p>
               </div>
-              <div className="tip-card">
+              <div className="wl-tip-card">
                 <h3>Be Patient With Yourself</h3>
                 <p>Weight loss isn't always linear. Some weeks you'll lose more, some weeks less. Trust the process and focus on how you feel, not just the number on the scale.</p>
               </div>
-              <div className="tip-card">
+              <div className="wl-tip-card">
                 <h3>Track Your Progress</h3>
                 <p>Your weekly check-ins help us monitor your progress and adjust your plan if needed. Keep them up — they make a real difference in your results.</p>
               </div>
@@ -195,250 +196,264 @@ export default function WLSupportPage() {
       )}
 
       {/* CTA */}
-      <section className="final-cta">
-        <div className="container">
+      <section className="wl-cta">
+        <div className="wl-cta-inner">
           <h2>Still Have Questions?</h2>
-          <p className="cta-sub">Our team is here to help. Don't hesitate to reach out if you need anything at all.</p>
-          <div className="cta-buttons">
-            <a href="tel:+19499973988" className="btn-white">Call (949) 997-3988</a>
-            <a href="sms:+19499973988" className="btn-outline-white">Text Us</a>
+          <p>Our team is here to help. Don't hesitate to reach out if you need anything at all.</p>
+          <div className="wl-cta-buttons">
+            <a href="tel:+19499973988" className="wl-btn-primary">Call (949) 997-3988</a>
+            <a href="sms:+19499973988" className="wl-btn-outline">Text Us</a>
           </div>
         </div>
       </section>
 
       <style jsx>{`
+        /* ── Hero ── */
         .wl-hero {
-          background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
-          color: #fff;
-          padding: 4rem 1.5rem 3rem;
+          background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
+          padding: 3.5rem 1.5rem 3rem;
           text-align: center;
         }
-        .wl-hero .container {
+        .wl-hero-inner {
           max-width: 700px;
           margin: 0 auto;
         }
-        .hero-badge {
+        .wl-hero-badge {
           display: inline-block;
-          background: rgba(255, 255, 255, 0.1);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          color: #a3e635;
-          font-size: 0.8rem;
-          font-weight: 600;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          padding: 6px 16px;
+          background: #000000;
+          color: #ffffff;
+          padding: 0.5rem 1rem;
           border-radius: 100px;
+          font-size: 0.8125rem;
+          font-weight: 600;
           margin-bottom: 1.25rem;
         }
         .wl-hero h1 {
-          font-size: 2.2rem;
+          font-size: 2.75rem;
           font-weight: 700;
+          color: #171717;
+          line-height: 1.15;
+          letter-spacing: -0.02em;
           margin: 0 0 1rem;
-          line-height: 1.2;
         }
-        .hero-sub {
-          font-size: 1.1rem;
-          color: rgba(255, 255, 255, 0.7);
+        .wl-hero-sub {
+          font-size: 1.0625rem;
+          color: #525252;
           max-width: 550px;
           margin: 0 auto;
-          line-height: 1.6;
+          line-height: 1.7;
         }
 
-        .section {
-          padding: 3rem 1.5rem;
+        /* ── Sections ── */
+        .wl-section {
+          padding: 3.5rem 1.5rem;
         }
-        .section-gray {
-          background: #f8f9fa;
+        .wl-section-gray {
+          background: #fafafa;
         }
-        .section .container {
+        .wl-section-inner {
           max-width: 800px;
           margin: 0 auto;
         }
+        .wl-kicker {
+          font-size: 0.75rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          color: #737373;
+          margin-bottom: 0.5rem;
+        }
+        .wl-section h2 {
+          font-size: 2rem;
+          font-weight: 700;
+          color: #171717;
+          letter-spacing: -0.02em;
+          margin: 0 0 0.75rem;
+        }
+        .wl-section-sub {
+          font-size: 1rem;
+          color: #525252;
+          line-height: 1.7;
+          margin: 0 0 2rem;
+        }
 
-        .symptom-header {
+        /* ── Symptom Header ── */
+        .wl-symptom-header {
           display: flex;
           align-items: center;
           gap: 12px;
           margin-bottom: 1rem;
         }
-        .symptom-icon {
+        .wl-symptom-icon {
           font-size: 2rem;
         }
-        .section-title {
-          font-size: 1.6rem;
-          font-weight: 700;
-          color: #111;
-          margin: 0;
-        }
-        .section-kicker {
-          text-transform: uppercase;
-          font-size: 0.75rem;
-          font-weight: 700;
-          letter-spacing: 0.1em;
-          color: #16a34a;
-          margin-bottom: 0.75rem;
-        }
-        .section-subtitle {
-          font-size: 1.05rem;
-          color: #555;
-          margin: 0.5rem 0 2rem;
-          line-height: 1.6;
-        }
 
-        .explanation {
+        .wl-explanation {
           font-size: 1rem;
-          color: #444;
+          color: #525252;
           line-height: 1.7;
           margin-bottom: 2rem;
         }
 
-        .tips-grid {
+        /* ── Tips Grid ── */
+        .wl-tips-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 16px;
+          gap: 1.5rem;
           margin-bottom: 2rem;
         }
-        .tip-card {
-          background: #fff;
-          border: 1px solid #e5e7eb;
+        .wl-tip-card {
+          background: #ffffff;
+          border: 1px solid #e5e5e5;
           border-radius: 12px;
-          padding: 20px;
+          padding: 1.75rem;
+          transition: all 0.2s ease;
         }
-        .section-gray .tip-card {
-          background: #fff;
+        .wl-tip-card:hover {
+          border-color: #000000;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          transform: translateY(-2px);
         }
-        .tip-card h3 {
-          font-size: 0.95rem;
-          font-weight: 600;
-          color: #111;
-          margin: 0 0 8px;
-        }
-        .tip-card p {
-          font-size: 0.9rem;
-          color: #555;
-          line-height: 1.6;
-          margin: 0;
-        }
-
-        .reassurance-box {
-          background: #f0fdf4;
-          border: 1px solid #bbf7d0;
-          border-radius: 10px;
-          padding: 16px 20px;
-          margin-bottom: 16px;
-        }
-        .reassurance {
-          font-size: 0.95rem;
-          color: #166534;
-          line-height: 1.6;
-          margin: 0;
-        }
-
-        .callus-box {
-          background: #fefce8;
-          border: 1px solid #fde68a;
-          border-radius: 10px;
-          padding: 16px 20px;
-        }
-        .callus-box h4 {
-          font-size: 0.85rem;
+        .wl-tip-card h3 {
+          font-size: 1rem;
           font-weight: 700;
-          color: #92400e;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          margin: 0 0 6px;
+          color: #171717;
+          margin: 0 0 0.5rem;
         }
-        .callus-box p {
-          font-size: 0.9rem;
-          color: #78350f;
-          line-height: 1.6;
+        .wl-tip-card p {
+          font-size: 0.9375rem;
+          color: #525252;
+          line-height: 1.7;
           margin: 0;
         }
 
-        .final-cta {
-          background: #000;
-          color: #fff;
+        /* ── Reassurance Box ── */
+        .wl-reassurance-box {
+          background: #ffffff;
+          border-left: 4px solid #000000;
+          padding: 1.25rem 1.5rem;
+          margin-bottom: 1.25rem;
+          border-radius: 0 8px 8px 0;
+        }
+        .wl-reassurance-box p {
+          font-size: 0.9375rem;
+          color: #525252;
+          line-height: 1.7;
+          margin: 0;
+        }
+
+        /* ── When to Call Us ── */
+        .wl-callus-box {
+          background: #fafafa;
+          border: 1px solid #e5e5e5;
+          border-radius: 8px;
+          padding: 1.25rem 1.5rem;
+        }
+        .wl-callus-box strong {
+          display: block;
+          font-size: 0.75rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: #737373;
+          margin-bottom: 0.5rem;
+        }
+        .wl-callus-box p {
+          font-size: 0.9375rem;
+          color: #525252;
+          line-height: 1.7;
+          margin: 0;
+        }
+
+        /* ── CTA Section ── */
+        .wl-cta {
+          background: #000000;
+          color: #ffffff;
           padding: 3.5rem 1.5rem;
           text-align: center;
         }
-        .final-cta .container {
+        .wl-cta-inner {
           max-width: 600px;
           margin: 0 auto;
         }
-        .final-cta h2 {
-          font-size: 1.8rem;
+        .wl-cta h2 {
+          font-size: 2rem;
           font-weight: 700;
+          letter-spacing: -0.02em;
           margin: 0 0 0.75rem;
         }
-        .cta-sub {
+        .wl-cta p {
           color: rgba(255, 255, 255, 0.6);
           font-size: 1rem;
+          line-height: 1.7;
           margin: 0 0 2rem;
-          line-height: 1.6;
         }
-        .cta-buttons {
+        .wl-cta-buttons {
           display: flex;
           gap: 12px;
           justify-content: center;
           flex-wrap: wrap;
         }
-        .btn-white {
+        .wl-btn-primary {
           display: inline-block;
-          background: #fff;
-          color: #000;
-          font-weight: 600;
-          font-size: 1rem;
-          padding: 14px 28px;
-          border-radius: 10px;
+          background: #ffffff;
+          color: #000000;
+          padding: 0.875rem 1.75rem;
+          border-radius: 8px;
           text-decoration: none;
-          transition: opacity 0.2s;
+          font-weight: 600;
+          font-size: 0.9375rem;
+          transition: all 0.2s;
         }
-        .btn-white:hover {
-          opacity: 0.9;
+        .wl-btn-primary:hover {
+          background: #f5f5f5;
+          transform: translateY(-1px);
         }
-        .btn-outline-white {
+        .wl-btn-outline {
           display: inline-block;
           background: transparent;
-          color: #fff;
-          font-weight: 600;
-          font-size: 1rem;
-          padding: 14px 28px;
-          border-radius: 10px;
-          border: 2px solid rgba(255, 255, 255, 0.3);
+          color: #ffffff;
+          padding: 0.875rem 1.75rem;
+          border-radius: 8px;
+          border: 2px solid #ffffff;
           text-decoration: none;
-          transition: border-color 0.2s;
+          font-weight: 600;
+          font-size: 0.9375rem;
+          transition: all 0.2s;
         }
-        .btn-outline-white:hover {
-          border-color: rgba(255, 255, 255, 0.6);
+        .wl-btn-outline:hover {
+          background: #ffffff;
+          color: #000000;
         }
 
+        /* ── Responsive ── */
         @media (max-width: 768px) {
           .wl-hero {
             padding: 3rem 1.25rem 2.5rem;
           }
           .wl-hero h1 {
-            font-size: 1.75rem;
+            font-size: 1.875rem;
           }
-          .hero-sub {
+          .wl-hero-sub {
             font-size: 1rem;
           }
-          .section {
+          .wl-section {
             padding: 2.5rem 1.25rem;
           }
-          .section-title {
-            font-size: 1.35rem;
-          }
-          .tips-grid {
-            grid-template-columns: 1fr;
-          }
-          .final-cta h2 {
+          .wl-section h2 {
             font-size: 1.5rem;
           }
-          .cta-buttons {
+          .wl-tips-grid {
+            grid-template-columns: 1fr;
+          }
+          .wl-cta h2 {
+            font-size: 1.5rem;
+          }
+          .wl-cta-buttons {
             flex-direction: column;
             align-items: center;
           }
-          .btn-white, .btn-outline-white {
+          .wl-btn-primary, .wl-btn-outline {
             width: 100%;
             max-width: 280px;
             text-align: center;

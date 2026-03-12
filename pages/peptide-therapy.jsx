@@ -461,6 +461,24 @@ export default function PeptideTherapy() {
           </div>
         </section>
 
+        {/* Understanding Peptides Link */}
+        <section className="pep-section pep-peptide-guide">
+          <div className="pep-container">
+            <div className="pep-animate">
+              <Link href="/understanding-peptides" className="pep-guide-card">
+                <div className="pep-guide-content">
+                  <div className="pep-guide-kicker">Deep Dive</div>
+                  <h3 className="pep-guide-title">Understanding Peptides</h3>
+                  <p className="pep-guide-desc">See our full peptide guide — pre-filled syringe protocols, vial options, which peptides need labs, and how our guided process works.</p>
+                </div>
+                <svg className="pep-guide-arrow" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
+          </div>
+        </section>
+
         {/* CTA */}
         <section className="pep-section pep-section-inverted pep-cta-section">
           <div className="pep-container">
@@ -983,6 +1001,68 @@ export default function PeptideTherapy() {
           color: #525252;
           line-height: 1.7;
           margin: 0;
+        }
+
+        /* Understanding Peptides Guide Link */
+        .pep-peptide-guide {
+          padding: 0 1.5rem 3rem;
+        }
+
+        .pep-guide-card {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 2rem 2.5rem;
+          border-radius: 12px;
+          border: 1px solid #e5e5e5;
+          background: #fafafa;
+          text-decoration: none;
+          transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+          gap: 1.5rem;
+        }
+
+        .pep-guide-card:hover {
+          border-color: #000000;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          transform: translateY(-2px);
+        }
+
+        .pep-guide-content {
+          flex: 1;
+        }
+
+        .pep-guide-kicker {
+          font-size: 0.6875rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: #3b82f6;
+          margin-bottom: 0.5rem;
+        }
+
+        .pep-guide-title {
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: #171717;
+          margin-bottom: 0.375rem;
+        }
+
+        .pep-guide-desc {
+          font-size: 0.875rem;
+          color: #525252;
+          line-height: 1.6;
+          margin: 0;
+        }
+
+        .pep-guide-arrow {
+          flex-shrink: 0;
+          color: #a3a3a3;
+          transition: color 0.2s ease, transform 0.2s ease;
+        }
+
+        .pep-guide-card:hover .pep-guide-arrow {
+          color: #000000;
+          transform: translateX(4px);
         }
 
         /* CTA Section */

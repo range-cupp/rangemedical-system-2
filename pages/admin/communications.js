@@ -48,97 +48,23 @@ export default function CommunicationsPage() {
   // Fetch patients who have recent SMS activity
   const fetchRecentPatients = async () => {
     try {
-      const res = await fetch('/api/admin/comms-log?channel=sms&limit=200');
+      // Use dedicated conversations endpoint — fetches 500 rows server-side so
+      // no messages are missed due to client-side pagination limits
+      const res = await fetch('/api/admin/conversations?days=60&limit=150');
       const data = await res.json();
-      const logs = data.logs || data.comms || [];
+      const convos = data.conversations || [];
 
-      // Group by patient, get most recent message per patient
-      // Also track unread count per patient (inbound + read_at IS NULL)
-      const patientMap = {};
-      const unreadCounts = {};
-      // Track phone → key mappings so we can merge duplicates
-      const phoneToKeys = {};
-
-      for (const log of logs) {
-        const key = log.patient_id || (log.ghl_contact_id ? `ghl_${log.ghl_contact_id}` : null) || (log.recipient ? `phone_${log.recipient}` : null);
-        if (!key) continue;
-
-        // Track phone-to-key mapping for merging (normalize to last 10 digits)
-        if (log.recipient) {
-          const normalizedPhone = log.recipient.replace(/\D/g, '').slice(-10);
-          if (normalizedPhone.length === 10) {
-            if (!phoneToKeys[normalizedPhone]) phoneToKeys[normalizedPhone] = new Set();
-            phoneToKeys[normalizedPhone].add(key);
-          }
-        }
-
-        // Count unread inbound messages per patient
-        if (log.direction === 'inbound' && !log.read_at) {
-          unreadCounts[key] = (unreadCounts[key] || 0) + 1;
-        }
-
-        if (!patientMap[key] || new Date(log.created_at) > new Date(patientMap[key].lastMessage)) {
-          patientMap[key] = {
-            id: log.patient_id || null,
-            ghl_contact_id: log.ghl_contact_id || null,
-            name: log.patient_name || log.recipient || 'Unknown',
-            lastMessage: log.created_at,
-            lastPreview: (log.message || '').substring(0, 80),
-            direction: log.direction || (log.message_type === 'inbound_sms' ? 'inbound' : 'outbound'),
-            recipient: log.recipient || null,
-          };
-        }
-      }
-
-      // Merge conversations that share the same phone number
-      // (e.g., messages sent before patient was linked vs after)
-      for (const [, keys] of Object.entries(phoneToKeys)) {
-        if (keys.size <= 1) continue;
-        const keyArr = Array.from(keys);
-        // Prefer the key with a patient_id (UUID), then ghl_, then phone_
-        const preferredKey = keyArr.find(k => !k.startsWith('phone_') && !k.startsWith('ghl_'))
-          || keyArr.find(k => k.startsWith('ghl_'))
-          || keyArr[0];
-
-        for (const key of keyArr) {
-          if (key === preferredKey) continue;
-          const other = patientMap[key];
-          const preferred = patientMap[preferredKey];
-          if (!other || !preferred) continue;
-
-          // Keep the most recent message
-          if (new Date(other.lastMessage) > new Date(preferred.lastMessage)) {
-            preferred.lastMessage = other.lastMessage;
-            preferred.lastPreview = other.lastPreview;
-            preferred.direction = other.direction;
-          }
-          // Prefer a real name over a raw phone number
-          if ((!preferred.name || preferred.name === preferred.recipient) && other.name && other.name !== other.recipient) {
-            preferred.name = other.name;
-          }
-          // Keep patient_id / ghl_contact_id if either has it
-          if (!preferred.id && other.id) preferred.id = other.id;
-          if (!preferred.ghl_contact_id && other.ghl_contact_id) preferred.ghl_contact_id = other.ghl_contact_id;
-          if (!preferred.recipient && other.recipient) preferred.recipient = other.recipient;
-          // Merge unread counts
-          unreadCounts[preferredKey] = (unreadCounts[preferredKey] || 0) + (unreadCounts[key] || 0);
-          // Remove the duplicate entry
-          delete patientMap[key];
-          delete unreadCounts[key];
-        }
-      }
-
-      // Add unread counts to patient objects
-      for (const key of Object.keys(patientMap)) {
-        patientMap[key].unreadCount = unreadCounts[key] || 0;
-      }
-
-      // Sort: patients with unread messages first, then by most recent
-      const sorted = Object.values(patientMap).sort((a, b) => {
-        if (a.unreadCount > 0 && b.unreadCount === 0) return -1;
-        if (a.unreadCount === 0 && b.unreadCount > 0) return 1;
-        return new Date(b.lastMessage) - new Date(a.lastMessage);
-      });
+      // Normalize field names to match what the UI expects
+      const sorted = convos.map(c => ({
+        id: c.patient_id || null,
+        ghl_contact_id: c.ghl_contact_id || null,
+        name: c.patient_name || c.recipient || 'Unknown',
+        lastMessage: c.last_message_at,
+        lastPreview: (c.last_message || '').substring(0, 80),
+        direction: c.last_direction,
+        recipient: c.recipient || null,
+        unreadCount: c.unread_count || 0,
+      }));
 
       setPatients(sorted);
     } catch (err) {

@@ -2111,27 +2111,6 @@ export default function PatientProfile() {
           )}
         </header>
 
-        {/* Pending Purchases Alert */}
-        {pendingNotifications.length > 0 && (
-          <section className="pending-section">
-            <h2>Pending Purchases ({pendingNotifications.length})</h2>
-            <div className="pending-list">
-              {pendingNotifications.map(notif => (
-                <div key={notif.id} className="pending-card">
-                  <div className="pending-info">
-                    <strong>{notif.product_name}</strong>
-                    <span>${notif.amount_paid?.toFixed(2)} • {formatShortDate(notif.purchase_date)}</span>
-                  </div>
-                  <div className="pending-actions">
-                    <button onClick={() => openAssignModal(notif)} className="btn-primary-sm">Assign Protocol</button>
-                    <button onClick={() => handleDismissNotification(notif.id)} className="btn-secondary-sm">Dismiss</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
         {/* Pinned Note */}
         {pinnedNote && (
           <section style={{

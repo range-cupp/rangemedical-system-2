@@ -51,8 +51,10 @@ export default function GiftEssentialPanel() {
 
   return (
     <Layout
-      title="A Gift for Michelle Douglas | Range Medical"
+      title="A Gift for Michele Douglas | Range Medical"
       description="You've been gifted an Essential Lab Panel at Range Medical, Newport Beach."
+    >
+
     >
       <Head>
         <meta name="robots" content="noindex" />
@@ -63,7 +65,7 @@ export default function GiftEssentialPanel() {
         <div className="container">
           <div className="gift-hero-inner">
             <div className="hero-badge">🎁 A Gift For You</div>
-            <h1>Michelle,</h1>
+            <h1>Michele,</h1>
             <p className="hero-sub">
               JP Perarie has gifted you a Range Medical <strong>Essential Lab Panel</strong> — a comprehensive look at the hormones, thyroid, metabolic markers, and health indicators that shape how you feel every single day.
             </p>
@@ -216,7 +218,7 @@ export default function GiftEssentialPanel() {
       <section className="final-cta">
         <div className="container">
           <span className="cta-step">Your gift is ready</span>
-          <h2>Ready to Get Started, Michelle?</h2>
+          <h2>Ready to Get Started, Michele?</h2>
           <p>Your Essential Panel is fully covered as a gift from JP. Just give us a call to schedule your blood draw at our Newport Beach location.</p>
           <a href="tel:+19499973988" className="btn-white">
             Call (949) 997-3988

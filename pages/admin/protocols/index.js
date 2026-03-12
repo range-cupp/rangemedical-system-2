@@ -221,8 +221,8 @@ export default function ProtocolsPage() {
                           </span>
                         </td>
                         <td style={{ ...styles.td, textAlign: 'right' }}>
-                          <Link href={`/admin/protocols/${r.protocol_id}`} style={styles.viewBtn}>
-                            View
+                          <Link href={`/patients/${r.patient_id}`} style={styles.viewBtn}>
+                            View Patient
                           </Link>
                         </td>
                       </tr>
@@ -363,11 +363,8 @@ export default function ProtocolsPage() {
                         </td>
                         <td style={{ ...styles.td, textAlign: 'right' }}>
                           <div style={styles.actionGroup}>
-                            <Link href={`/admin/protocols/${protocol.id}`} style={styles.viewBtn}>
-                              View
-                            </Link>
-                            <Link href={`/admin/protocols/${protocol.id}?edit=true`} style={styles.editBtn}>
-                              Edit
+                            <Link href={`/patients/${protocol.patient_id}`} style={styles.viewBtn}>
+                              View Patient
                             </Link>
                             <button
                               onClick={() => setDeleteTarget(protocol)}

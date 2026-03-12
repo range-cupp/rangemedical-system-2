@@ -320,8 +320,8 @@ export default function PurchasesPage() {
                       </td>
                       <td style={styles.td}>
                         {purchase.protocol_id ? (
-                          <Link href={`/admin/protocols/${purchase.protocol_id}`} style={styles.protocolLink}>
-                            View Protocol →
+                          <Link href={`/patients/${purchase.patient_id}`} style={styles.protocolLink}>
+                            View Patient →
                           </Link>
                         ) : purchase.session_logged ? (
                           <span style={styles.sessionLoggedBadge}>✓ Logged</span>
@@ -333,8 +333,8 @@ export default function PurchasesPage() {
                             const matchedProtocol = findMatchingProtocol(purchase, activeProtocolsByPatient);
                             if (matchedProtocol) {
                               return (
-                                <Link href={`/admin/protocols/${matchedProtocol.id}`} style={styles.protocolLink}>
-                                  View Protocol →
+                                <Link href={`/patients/${purchase.patient_id}`} style={styles.protocolLink}>
+                                  View Patient →
                                 </Link>
                               );
                             }
@@ -853,8 +853,8 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
               {error}
               {existingProtocolId && (
                 <div style={{ marginTop: '8px' }}>
-                  <Link href={`/admin/protocols/${existingProtocolId}`} style={{ color: '#3b82f6', textDecoration: 'underline', fontWeight: 600 }}>
-                    View Existing Protocol →
+                  <Link href={`/patients/${purchase.patient_id}`} style={{ color: '#3b82f6', textDecoration: 'underline', fontWeight: 600 }}>
+                    View Patient →
                   </Link>
                 </div>
               )}

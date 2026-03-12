@@ -137,7 +137,7 @@ export default function NewProtocol() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create protocol');
 
-      router.push(`/admin/protocols/${data.protocol.id}`);
+      router.push(`/patients/${patient_id || data.protocol.patient_id}`);
     } catch (err) {
       setError(err.message);
     } finally {

@@ -578,11 +578,11 @@ export default function EncounterQuickView({ appointments, notes, protocols, onC
 
                     <div className="eqv-detail-footer">
                       <Link
-                        href={`/admin/protocols/${activeProtocol.id}`}
+                        href={`/patients/${activeProtocol.patient_id}`}
                         className="eqv-btn eqv-btn-primary"
                         onClick={onClose}
                       >
-                        Open Protocol →
+                        View Patient →
                       </Link>
                     </div>
                   </div>

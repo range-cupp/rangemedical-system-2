@@ -325,16 +325,10 @@ export default function ProtocolSlidePanel({ isOpen, onClose, protocolId, cardDa
 
         {/* Footer */}
         <div style={panelStyles.footer}>
-          <Link
-            href={`/admin/protocols/${protocolId}`}
-            style={panelStyles.footerBtnPrimary}
-          >
-            View Full Details
-          </Link>
           {patientId && (
             <Link
               href={`/patients/${patientId}`}
-              style={panelStyles.footerBtnSecondary}
+              style={panelStyles.footerBtnPrimary}
             >
               View Patient
             </Link>

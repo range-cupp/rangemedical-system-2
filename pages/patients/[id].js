@@ -3749,14 +3749,7 @@ export default function PatientProfile() {
                                 style={{
                                   marginLeft: 6, fontSize: 11, padding: '2px 8px', borderRadius: 4, fontWeight: 500,
                                   background: '#f0f9ff', color: '#0369a1',
-                                  cursor: note.protocol_id ? 'pointer' : 'default',
                                 }}
-                                onClick={() => {
-                                  if (note.protocol_id) {
-                                    window.open(`/admin/protocols/${note.protocol_id}`, '_blank');
-                                  }
-                                }}
-                                title={note.protocol_id ? 'View protocol' : ''}
                               >
                                 {note.protocol_name}
                               </span>

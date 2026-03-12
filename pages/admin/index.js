@@ -361,7 +361,7 @@ export default function Dashboard() {
                             </div>
                           </td>
                           <td style={styles.td}>
-                            <Link href={`/admin/protocols/${p.id}`} style={styles.viewBtn}>
+                            <Link href={`/patients/${p.patient_id}`} style={styles.viewBtn}>
                               View
                             </Link>
                           </td>

@@ -258,7 +258,7 @@ export default function WeightLossTracker() {
                       onClick={(e) => {
                         // Don't navigate if clicking a link (patient name)
                         if (e.target.closest('a')) return;
-                        router.push(`/admin/protocols/${p.id}`);
+                        router.push(`/patients/${p.patient_id}`);
                       }}
                     >
                       {/* Status */}

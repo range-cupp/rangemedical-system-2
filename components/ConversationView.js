@@ -213,8 +213,13 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   };
 
   const handleTemplateSelect = (templateText) => {
-    const firstName = (patientName || '').split(' ')[0] || 'there';
-    const populated = templateText.replace(/\{\{name\}\}/g, firstName);
+    const fullName = patientName || '';
+    const firstName = fullName.split(' ')[0] || 'there';
+    const lastName = fullName.split(' ').slice(1).join(' ') || '';
+    const populated = templateText
+      .replace(/\{\{name\}\}/g, firstName)
+      .replace(/\{\{first_name\}\}/g, firstName)
+      .replace(/\{\{last_name\}\}/g, lastName);
     setNewMessage(populated);
     setShowTemplates(false);
   };

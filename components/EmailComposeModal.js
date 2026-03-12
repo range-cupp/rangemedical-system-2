@@ -72,8 +72,13 @@ export default function EmailComposeModal({
   };
 
   const handleSnippetSelect = (templateText) => {
-    const firstName = (recipientName || patientName || '').split(' ')[0] || 'there';
-    const populated = templateText.replace(/\{\{name\}\}/g, firstName);
+    const fullName = recipientName || patientName || '';
+    const firstName = fullName.split(' ')[0] || 'there';
+    const lastName = fullName.split(' ').slice(1).join(' ') || '';
+    const populated = templateText
+      .replace(/\{\{name\}\}/g, firstName)
+      .replace(/\{\{first_name\}\}/g, firstName)
+      .replace(/\{\{last_name\}\}/g, lastName);
     setBody(populated);
     setShowSnippets(false);
   };

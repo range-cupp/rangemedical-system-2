@@ -7,13 +7,14 @@ import Head from 'next/head';
 import AppLayout from '../../components/AppLayout';
 
 const LINKS = [
-  { icon: '📊', label: 'Full Admin Dashboard', href: '/admin', external: true },
-  { icon: '🧪', label: 'Labs', href: '/admin/labs', external: true },
-  { icon: '⚖️', label: 'Weight Loss', href: '/admin/weight-loss', external: true },
-  { icon: '💳', label: 'Payments', href: '/admin/payments', external: true },
-  { icon: '📋', label: 'Full Service Log', href: '/admin/service-log', external: true },
-  { icon: '📝', label: 'Tasks', href: '/admin/tasks', external: true },
-  { icon: '📤', label: 'Send Forms', href: '/admin/send-forms', external: true },
+  { icon: '📞', label: 'Calls',              href: '/app/calls',           external: false },
+  { icon: '📊', label: 'Full Admin Dashboard', href: '/admin',               external: true },
+  { icon: '🧪', label: 'Labs',               href: '/admin/labs',           external: true },
+  { icon: '⚖️', label: 'Weight Loss',         href: '/admin/weight-loss',    external: true },
+  { icon: '💳', label: 'Payments',            href: '/admin/payments',       external: true },
+  { icon: '📋', label: 'Full Service Log',    href: '/admin/service-log',    external: true },
+  { icon: '📝', label: 'Tasks',               href: '/admin/tasks',          external: true },
+  { icon: '📤', label: 'Send Forms',          href: '/admin/send-forms',     external: true },
 ];
 
 export default function AppMore() {

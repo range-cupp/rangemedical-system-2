@@ -4,6 +4,8 @@
 
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
+import useVoiceCall, { CALL_STATE } from '../hooks/useVoiceCall';
+import AppCallBar from './AppCallBar';
 
 const TABS = [
   { id: 'today',       label: 'Today',     href: '/app',              icon: TabIconToday },
@@ -13,7 +15,7 @@ const TABS = [
   { id: 'more',        label: 'More',      href: '/app/more',         icon: TabIconMore },
 ];
 
-export default function AppLayout({ title, children, unreadMessages = 0 }) {
+export default function AppLayout({ title, children, unreadMessages = 0, voiceHook }) {
   const router = useRouter();
   const [staff, setStaff] = useState(null);
 
@@ -29,6 +31,10 @@ export default function AppLayout({ title, children, unreadMessages = 0 }) {
       router.replace('/app/login');
     }
   }, [router]);
+
+  // Use passed voice hook or create a local one (for pages that don't pass one in)
+  const localVoice = useVoiceCall({ staffName: staff?.name });
+  const voice = voiceHook || localVoice;
 
   // Determine active tab
   const path = router.pathname;
@@ -260,6 +266,19 @@ export default function AppLayout({ title, children, unreadMessages = 0 }) {
         <div className="app-content">
           {children}
         </div>
+
+        {/* Floating call bar (above tab bar) */}
+        <AppCallBar
+          callState={voice.callState}
+          callInfo={voice.callInfo}
+          muted={voice.muted}
+          onHangUp={voice.hangUp}
+          onToggleMute={voice.toggleMute}
+          formatDuration={voice.formatDuration}
+          incomingCall={voice.incomingCall}
+          onAnswer={voice.answer}
+          onReject={voice.reject}
+        />
 
         {/* Bottom tabs */}
         <nav className="app-tabs">

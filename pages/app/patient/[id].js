@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import AppLayout from '../../../components/AppLayout';
+import useVoiceCall, { CALL_STATE } from '../../../hooks/useVoiceCall';
 
 export default function AppPatientDetail() {
   const router = useRouter();
@@ -13,6 +14,14 @@ export default function AppPatientDetail() {
   const [protocols, setProtocols] = useState([]);
   const [recentLogs, setRecentLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [staff, setStaff] = useState(null);
+
+  useEffect(() => {
+    const session = localStorage.getItem('staff_session');
+    if (session) try { setStaff(JSON.parse(session)); } catch {}
+  }, []);
+
+  const voice = useVoiceCall({ staffName: staff?.name });
 
   useEffect(() => {
     if (!id) return;
@@ -58,7 +67,7 @@ export default function AppPatientDetail() {
         <link rel="manifest" href="/site.webmanifest" />
       </Head>
 
-      <AppLayout title={patient ? `${patient.first_name} ${patient.last_name}` : 'Patient'}>
+      <AppLayout title={patient ? `${patient.first_name} ${patient.last_name}` : 'Patient'} voiceHook={voice}>
         {loading ? (
           <div className="app-spinner" />
         ) : !patient ? (
@@ -68,12 +77,16 @@ export default function AppPatientDetail() {
             {/* Action row */}
             <div style={{ display: 'flex', gap: 8, padding: '16px 16px 0' }}>
               {patient.phone && (
-                <a
-                  href={`tel:${patient.phone}`}
-                  style={{ flex: 1, background: '#dbeafe', color: '#1d4ed8', borderRadius: 10, padding: '12px 8px', textAlign: 'center', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}
+                <button
+                  onClick={async () => {
+                    await voice.initDevice();
+                    voice.call({ to: patient.phone, name: `${patient.first_name} ${patient.last_name}` });
+                  }}
+                  disabled={voice.isActive}
+                  style={{ flex: 1, background: voice.isActive ? '#e2e8f0' : '#dbeafe', color: voice.isActive ? '#94a3b8' : '#1d4ed8', borderRadius: 10, padding: '12px 8px', textAlign: 'center', border: 'none', cursor: voice.isActive ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 700 }}
                 >
-                  📞 Call
-                </a>
+                  {voice.isActive ? '📞 On call…' : '📞 Call'}
+                </button>
               )}
               <button
                 onClick={() => router.push(`/app/messages?patient_id=${id}`)}

@@ -2591,7 +2591,7 @@ export default function PatientProfile() {
                   <div className="empty">No protocols</div>
                 ) : (
                   <div className="protocol-list">
-                    {[...activeProtocols, ...completedProtocols].filter(p => p.status !== 'merged').map(protocol => {
+                    {[...activeProtocols, ...completedProtocols].filter(p => p.status !== 'merged').sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).map(protocol => {
                       const cat = getCategoryStyle(protocol.category);
                       const isExpanded = expandedProtocols[protocol.id];
                       const isWeightLoss = protocol.category === 'weight_loss';

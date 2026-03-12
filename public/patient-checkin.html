@@ -451,6 +451,17 @@
         if (res.ok && result.success) {
           formScreen.style.display = 'none';
           successScreen.style.display = 'block';
+
+          // If side effects were selected (not just "None"), redirect to support page
+          const realSymptoms = sideEffects.filter(s => s !== 'None' && !s.startsWith('Other'));
+          if (realSymptoms.length > 0) {
+            const symptomParams = realSymptoms
+              .map(s => s.toLowerCase().replace(/\s+/g, '-'))
+              .join(',');
+            setTimeout(() => {
+              window.location.href = '/wl-support?s=' + encodeURIComponent(symptomParams);
+            }, 2000);
+          }
         } else {
           errorMsg.textContent = result.error || 'Something went wrong. Please try again.';
           errorMsg.style.display = 'block';

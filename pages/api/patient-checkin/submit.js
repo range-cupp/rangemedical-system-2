@@ -12,7 +12,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { sendSMS } from '../../../lib/send-sms';
-import { buildSideEffectGuidance } from '../../../lib/wl-side-effect-guidance';
+// Side effect guidance now lives on the support page at /wl-support
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -209,8 +209,16 @@ export default async function handler(req, res) {
           thankYouMsg += `\n\nYou have 1 injection remaining in this cycle.`;
         }
 
-        thankYouMsg += buildSideEffectGuidance(firstName, side_effects);
-        thankYouMsg += `\n\n- Range Medical`;
+        // If they reported side effects, include link to support page
+        const realSymptoms = (side_effects || []).filter(s => s !== 'None' && !s.startsWith('Other'));
+        if (realSymptoms.length > 0) {
+          const symptomParams = realSymptoms
+            .map(s => s.toLowerCase().replace(/\s+/g, '-'))
+            .join(',');
+          thankYouMsg += `\n\nWe put together some tips for what you're experiencing:\nhttps://app.range-medical.com/wl-support?s=${symptomParams}`;
+        }
+
+        thankYouMsg += `\n\nQuestions? Call us at (949) 997-3988.\n\n- Range Medical`;
 
         const result = await sendSMS({ to: patient.phone, message: thankYouMsg });
         if (result.success) {

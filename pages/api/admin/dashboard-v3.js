@@ -17,12 +17,15 @@ export default async function handler(req, res) {
 
   try {
     // Run all database queries in parallel (server-side, no browser connection limit)
+    const LAB_STAGES = ['draw_scheduled', 'blood_draw_complete', 'results_received', 'provider_reviewed', 'consult_scheduled', 'consult_complete'];
+
     const [
       protocolsResult,
       purchasesResult,
       appointmentsResult,
       commsResult,
       invoicesResult,
+      labPipelineResult,
     ] = await Promise.all([
       // Active protocols with patient info (for recent list + renewal alerts)
       supabase
@@ -67,6 +70,14 @@ export default async function handler(req, res) {
         .select('id, status, total_cents, paid_at, created_at')
         .order('created_at', { ascending: false })
         .limit(50),
+
+      // Lab pipeline protocols (all active lab stages)
+      supabase
+        .from('protocols')
+        .select('id, patient_id, program_name, program_type, medication, status, notes, start_date, created_at, updated_at, delivery_method, patients(id, name, first_name, last_name, phone)')
+        .eq('program_type', 'labs')
+        .in('status', LAB_STAGES)
+        .order('created_at', { ascending: true }),
     ]);
 
     // Process protocols
@@ -104,6 +115,27 @@ export default async function handler(req, res) {
       return false;
     });
 
+    // Lab pipeline processing
+    const labProtocols = (labPipelineResult.data || []).map(p => {
+      const pat = p.patients;
+      const patientName = pat
+        ? (pat.first_name && pat.last_name ? `${pat.first_name} ${pat.last_name}` : pat.name || 'Unknown')
+        : 'Unknown';
+      return { ...p, patient_name: patientName, patient_phone: pat?.phone || null, patients: undefined };
+    });
+
+    const labPipeline = {
+      counts: {},
+      cards: {},
+      total: 0,
+    };
+    for (const stage of LAB_STAGES) {
+      const stageItems = labProtocols.filter(p => p.status === stage);
+      labPipeline.counts[stage] = stageItems.length;
+      labPipeline.cards[stage] = stageItems.slice(0, 8); // top 8 per stage for dashboard
+    }
+    labPipeline.total = labProtocols.length;
+
     return res.status(200).json({
       stats: {
         activeProtocols: activeProtocols.length,
@@ -112,7 +144,9 @@ export default async function handler(req, res) {
         todayAppointments: (appointmentsResult.data || []).length,
         monthlyRevenue,
         pendingInvoices,
+        activeLabs: labPipeline.total,
       },
+      labPipeline,
       recentProtocols: activeProtocols.slice(0, 8),
       todayAppointments: (appointmentsResult.data || []).slice(0, 6),
       recentComms: (commsResult.data || []).slice(0, 5),

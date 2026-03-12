@@ -1335,11 +1335,12 @@ export default function PatientProfile() {
 
   // Lab pipeline stage advancement
   const LAB_STAGES = [
-    { id: 'blood_draw_complete', label: 'Blood Draw Complete', color: '#f59e0b', icon: '🩸' },
-    { id: 'results_received', label: 'Results Received', color: '#8b5cf6', icon: '📋' },
-    { id: 'provider_reviewed', label: 'Provider Reviewed', color: '#10b981', icon: '👨‍⚕️' },
-    { id: 'consult_scheduled', label: 'Consult Scheduled', color: '#6366f1', icon: '🗓️' },
-    { id: 'consult_complete', label: 'Consult Complete', color: '#3b82f6', icon: '✅' }
+    { id: 'draw_scheduled', label: 'Scheduled', color: '#94a3b8', icon: '📅' },
+    { id: 'blood_draw_complete', label: 'Blood Draw', color: '#f59e0b', icon: '🩸' },
+    { id: 'results_received', label: 'Results In', color: '#8b5cf6', icon: '📋' },
+    { id: 'provider_reviewed', label: 'Reviewed', color: '#10b981', icon: '👨‍⚕️' },
+    { id: 'consult_scheduled', label: 'Consult', color: '#6366f1', icon: '🗓️' },
+    { id: 'consult_complete', label: 'Complete', color: '#3b82f6', icon: '✅' }
   ];
 
   const handleLabStageAdvance = async (protocolId, newStage) => {
@@ -3278,153 +3279,240 @@ export default function PatientProfile() {
             </>
           )}
 
-          {/* Labs Tab */}
+          {/* Labs Tab — Redesigned */}
           {activeTab === 'labs' && (
             <>
-              {/* Lab Pipeline Status */}
-              {labProtocols.length > 0 && (
-                <section className="card">
-                  <div className="card-header">
-                    <h3>Lab Pipeline</h3>
-                  </div>
-                  <div style={{ padding: '12px 16px' }}>
-                    {labProtocols.filter(lp => lp.status !== 'consult_complete').map(lp => {
-                      const stage = LAB_STAGES.find(s => s.id === lp.status) || LAB_STAGES[0];
-                      const stageIdx = LAB_STAGES.findIndex(s => s.id === lp.status);
-                      const nextStage = stageIdx < LAB_STAGES.length - 1 ? LAB_STAGES[stageIdx + 1] : null;
-                      const panelType = lp.medication || 'Essential';
-                      const labType = lp.delivery_method === 'follow_up' ? 'Follow-up' : 'New Patient';
-                      const panelColor = panelType === 'Elite' ? { bg: '#fdf2f8', text: '#9d174d' } : { bg: '#f0f9ff', text: '#0369a1' };
-                      const drawDateObj2 = lp.start_date ? new Date(lp.start_date + 'T12:00:00') : null;
-                      const drawDate = drawDateObj2 ? drawDateObj2.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(drawDateObj2.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) }) : '-';
-                      return (
-                        <div key={lp.id} style={{
-                          padding: '14px 16px',
-                          borderRadius: '10px',
-                          border: '1px solid #e5e7eb',
-                          marginBottom: '10px',
-                          background: '#fff'
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                            <span style={{
-                              display: 'inline-flex', alignItems: 'center', gap: '6px',
-                              padding: '4px 10px', borderRadius: '6px',
-                              backgroundColor: stage.color, color: '#fff',
-                              fontSize: '12px', fontWeight: '600'
-                            }}>
-                              {stage.icon} {stage.label}
-                            </span>
-                            <span style={{
-                              fontSize: '11px', padding: '3px 8px', borderRadius: '4px',
-                              backgroundColor: panelColor.bg, color: panelColor.text, fontWeight: '600'
-                            }}>{panelType}</span>
-                            <span style={{
-                              fontSize: '11px', padding: '3px 8px', borderRadius: '4px',
-                              backgroundColor: '#f3f4f6', color: '#374151', fontWeight: '500'
-                            }}>{labType}</span>
-                            <span style={{ fontSize: '12px', color: '#6b7280' }}>Draw: {drawDate}</span>
-                          </div>
-                          {lp.notes && (
-                            <div style={{
-                              padding: '4px 8px', backgroundColor: '#fef3c7', borderRadius: '4px',
-                              fontSize: '11px', color: '#92400e', fontStyle: 'italic', marginBottom: '8px'
-                            }}>{lp.notes}</div>
-                          )}
-                          {/* Stage progress bar */}
-                          <div style={{ display: 'flex', gap: '3px', marginBottom: '10px' }}>
-                            {LAB_STAGES.map((s, i) => (
-                              <div key={s.id} style={{
-                                flex: 1, height: '4px', borderRadius: '2px',
-                                backgroundColor: i <= stageIdx ? stage.color : '#e5e7eb'
-                              }} />
-                            ))}
-                          </div>
-                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                            {nextStage && (
-                              <button
-                                onClick={() => handleLabStageAdvance(lp.id, nextStage.id)}
-                                style={{
-                                  flex: 1, padding: '8px', border: 'none', borderRadius: '6px',
-                                  backgroundColor: '#2563eb', color: '#fff', cursor: 'pointer',
-                                  fontWeight: '500', fontSize: '12px'
-                                }}
-                              >
-                                → {nextStage.label}
-                              </button>
-                            )}
-                            <select
-                              onChange={(e) => { if (e.target.value) { handleLabStageAdvance(lp.id, e.target.value); e.target.value = ''; } }}
-                              defaultValue=""
-                              style={{
-                                padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: '6px',
-                                backgroundColor: '#fff', cursor: 'pointer', fontSize: '12px', color: '#6b7280'
-                              }}
-                            >
-                              <option value="" disabled>Move to...</option>
-                              {LAB_STAGES.filter(s => s.id !== lp.status).map(s => (
-                                <option key={s.id} value={s.id}>{s.icon} {s.label}</option>
-                              ))}
-                            </select>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {/* Completed labs */}
-                    {labProtocols.filter(lp => lp.status === 'consult_complete').length > 0 && (
-                      <div style={{ marginTop: '8px' }}>
-                        <div style={{ fontSize: '12px', fontWeight: '600', color: '#9ca3af', marginBottom: '6px' }}>
-                          Completed ({labProtocols.filter(lp => lp.status === 'consult_complete').length})
-                        </div>
-                        {labProtocols.filter(lp => lp.status === 'consult_complete').map(lp => {
-                          const panelType = lp.medication || 'Essential';
-                          const labType = lp.delivery_method === 'follow_up' ? 'Follow-up' : 'New Patient';
-                          const drawDateObj3 = lp.start_date ? new Date(lp.start_date + 'T12:00:00') : null;
-                          const drawDate = drawDateObj3 ? drawDateObj3.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(drawDateObj3.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) }) : '-';
-                          return (
-                            <div key={lp.id} style={{
-                              padding: '10px 12px', borderRadius: '8px', border: '1px solid #e5e7eb',
-                              marginBottom: '6px', background: '#f9fafb', opacity: 0.7
-                            }}>
-                              <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                                ✅ {panelType} • {labType} • Draw: {drawDate}
-                              </span>
-                            </div>
-                          );
-                        })}
+              {/* Lab Pipeline — Progress Tracker */}
+              {labProtocols.filter(lp => lp.status !== 'consult_complete').map(lp => {
+                const stageIdx = LAB_STAGES.findIndex(s => s.id === lp.status);
+                const nextStage = stageIdx < LAB_STAGES.length - 1 ? LAB_STAGES[stageIdx + 1] : null;
+                const panelType = lp.medication || 'Essential';
+                const isElite = panelType.toLowerCase() === 'elite';
+                const labType = lp.delivery_method === 'follow_up' ? 'Follow-up' : 'New Patient';
+                const drawDateObj = lp.start_date ? new Date(lp.start_date + 'T12:00:00') : null;
+                const drawDate = drawDateObj ? drawDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(drawDateObj.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) }) : '-';
+                const daysInStage = lp.updated_at ? Math.floor((new Date() - new Date(lp.updated_at)) / (1000 * 60 * 60 * 24)) : 0;
+
+                return (
+                  <div key={lp.id} style={{
+                    background: '#fff', borderRadius: 12, border: '1px solid #e5e5e5',
+                    padding: '20px 24px', marginBottom: 16,
+                  }}>
+                    {/* Header row */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: '#000' }}>Lab Order</span>
+                        <span style={{
+                          padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
+                          background: isElite ? '#f0fdf4' : '#f5f5f5',
+                          color: isElite ? '#15803d' : '#525252',
+                        }}>{panelType}</span>
+                        <span style={{
+                          padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 500,
+                          background: '#f5f5f5', color: '#525252',
+                        }}>{labType}</span>
                       </div>
-                    )}
+                      <span style={{ fontSize: 12, color: '#737373' }}>Draw: {drawDate}</span>
+                    </div>
+
+                    {/* Step tracker */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 16 }}>
+                      {LAB_STAGES.map((stage, i) => {
+                        const isComplete = i < stageIdx;
+                        const isCurrent = i === stageIdx;
+                        const isFuture = i > stageIdx;
+                        return (
+                          <div key={stage.id} style={{
+                            flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative',
+                          }}>
+                            {/* Connector line */}
+                            {i > 0 && (
+                              <div style={{
+                                position: 'absolute', top: 10, right: '50%', width: '100%', height: 2,
+                                background: isComplete || isCurrent ? '#000' : '#e5e5e5',
+                                zIndex: 0,
+                              }} />
+                            )}
+                            {/* Dot */}
+                            <div style={{
+                              width: isCurrent ? 22 : 20, height: isCurrent ? 22 : 20,
+                              borderRadius: '50%', zIndex: 1,
+                              background: isComplete ? '#000' : isCurrent ? '#000' : '#e5e5e5',
+                              border: isCurrent ? '3px solid #000' : 'none',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                              {isComplete && (
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                              )}
+                              {isCurrent && (
+                                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff' }} />
+                              )}
+                            </div>
+                            {/* Label */}
+                            <span style={{
+                              fontSize: 10, fontWeight: isCurrent ? 700 : 500,
+                              color: isFuture ? '#a3a3a3' : '#000',
+                              marginTop: 6, textAlign: 'center',
+                              textTransform: 'uppercase', letterSpacing: '0.02em',
+                            }}>{stage.label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Current stage info + actions */}
+                    <div style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      background: '#fafafa', borderRadius: 8, padding: '10px 14px',
+                    }}>
+                      <div>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: '#000' }}>
+                          {LAB_STAGES[stageIdx]?.label || 'Unknown'}
+                        </span>
+                        {daysInStage > 0 && (
+                          <span style={{
+                            fontSize: 11, marginLeft: 8,
+                            color: daysInStage >= 7 ? '#dc2626' : daysInStage >= 3 ? '#d97706' : '#737373',
+                            fontWeight: 600,
+                          }}>{daysInStage} day{daysInStage !== 1 ? 's' : ''}</span>
+                        )}
+                        {lp.notes && (
+                          <div style={{ fontSize: 11, color: '#737373', marginTop: 2 }}>{lp.notes}</div>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        {nextStage && (
+                          <button
+                            onClick={() => handleLabStageAdvance(lp.id, nextStage.id)}
+                            style={{
+                              padding: '7px 16px', border: 'none', borderRadius: 6,
+                              background: '#000', color: '#fff', cursor: 'pointer',
+                              fontWeight: 600, fontSize: 12,
+                            }}
+                          >
+                            Advance to {nextStage.label}
+                          </button>
+                        )}
+                        <select
+                          onChange={(e) => { if (e.target.value) { handleLabStageAdvance(lp.id, e.target.value); e.target.value = ''; } }}
+                          defaultValue=""
+                          style={{
+                            padding: '7px 10px', border: '1px solid #e5e5e5', borderRadius: 6,
+                            background: '#fff', cursor: 'pointer', fontSize: 12, color: '#737373',
+                          }}
+                        >
+                          <option value="" disabled>Move to...</option>
+                          {LAB_STAGES.filter(s => s.id !== lp.status).map(s => (
+                            <option key={s.id} value={s.id}>{s.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
                   </div>
-                </section>
+                );
+              })}
+
+              {/* Completed lab orders — collapsed */}
+              {labProtocols.filter(lp => lp.status === 'consult_complete').length > 0 && (
+                <div style={{
+                  background: '#fff', borderRadius: 12, border: '1px solid #e5e5e5',
+                  padding: '14px 20px', marginBottom: 16,
+                }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#a3a3a3', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 8 }}>
+                    Completed ({labProtocols.filter(lp => lp.status === 'consult_complete').length})
+                  </div>
+                  {labProtocols.filter(lp => lp.status === 'consult_complete').map(lp => {
+                    const panelType = lp.medication || 'Essential';
+                    const labType = lp.delivery_method === 'follow_up' ? 'Follow-up' : 'New Patient';
+                    const drawDateObj = lp.start_date ? new Date(lp.start_date + 'T12:00:00') : null;
+                    const drawDate = drawDateObj ? drawDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(drawDateObj.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) }) : '-';
+                    return (
+                      <div key={lp.id} style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '8px 0', borderBottom: '1px solid #f5f5f5',
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                          <span style={{ fontSize: 13, fontWeight: 500, color: '#525252' }}>{panelType} Panel</span>
+                          <span style={{ fontSize: 11, color: '#a3a3a3' }}>{labType}</span>
+                        </div>
+                        <span style={{ fontSize: 12, color: '#a3a3a3' }}>{drawDate}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
 
-              <section className="card">
-                <div className="card-header">
-                  <h3>Lab Documents</h3>
-                  <button onClick={() => setShowUploadModal(true)} className="btn-primary-sm">+ Upload PDF</button>
+              {/* No active labs message */}
+              {labProtocols.length === 0 && (
+                <div style={{
+                  background: '#fff', borderRadius: 12, border: '1px solid #e5e5e5',
+                  padding: '32px 24px', textAlign: 'center', marginBottom: 16,
+                }}>
+                  <div style={{ fontSize: 14, color: '#a3a3a3' }}>No lab orders yet</div>
+                </div>
+              )}
+
+              {/* Lab Documents — Card Grid */}
+              <div style={{
+                background: '#fff', borderRadius: 12, border: '1px solid #e5e5e5',
+                padding: '20px 24px', marginBottom: 16,
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: '#000' }}>Lab Documents</span>
+                  <button onClick={() => setShowUploadModal(true)} style={{
+                    padding: '6px 14px', background: '#000', color: '#fff', border: 'none',
+                    borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  }}>Upload PDF</button>
                 </div>
                 {loadingDocs ? (
-                  <div className="empty">Loading documents...</div>
+                  <div style={{ padding: '20px 0', textAlign: 'center', color: '#a3a3a3', fontSize: 13 }}>Loading...</div>
                 ) : labDocuments.length === 0 ? (
-                  <div className="empty">No lab documents uploaded yet</div>
+                  <div style={{ padding: '20px 0', textAlign: 'center', color: '#a3a3a3', fontSize: 13 }}>No lab documents uploaded yet</div>
                 ) : (
-                  <div className="doc-list">
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
                     {labDocuments.map(doc => (
-                      <div key={doc.id} className="doc-row">
-                        <span className="doc-icon">📄</span>
-                        <div className="doc-info">
-                          <strong>{doc.file_name}</strong>
-                          <span>{doc.lab_type || 'Lab'} • {doc.panel_type} • {formatShortDate(doc.collection_date)}</span>
+                      <div key={doc.id} style={{
+                        border: '1px solid #e5e5e5', borderRadius: 8, padding: '12px 14px',
+                        background: '#fafafa', display: 'flex', flexDirection: 'column', gap: 6,
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#737373" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                          </svg>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#000', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {doc.file_name}
+                          </span>
                         </div>
-                        <div className="doc-actions">
-                          {doc.url && <button onClick={() => openPdfViewer(doc.url, doc.file_name || 'Lab Document')} className="btn-secondary-sm">View</button>}
-                          {doc.source !== 'labs' && <button onClick={() => handleDeleteDocument(doc.id)} className="btn-text danger">×</button>}
+                        <div style={{ fontSize: 11, color: '#737373' }}>
+                          {doc.lab_type || 'Lab'} {doc.panel_type ? `· ${doc.panel_type}` : ''} {doc.collection_date ? `· ${formatShortDate(doc.collection_date)}` : ''}
+                        </div>
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          {doc.url && (
+                            <button onClick={() => openPdfViewer(doc.url, doc.file_name || 'Lab Document')} style={{
+                              flex: 1, padding: '5px 0', background: '#fff', border: '1px solid #e5e5e5',
+                              borderRadius: 4, fontSize: 11, fontWeight: 500, cursor: 'pointer', color: '#000',
+                            }}>View</button>
+                          )}
+                          {doc.source !== 'labs' && (
+                            <button onClick={() => handleDeleteDocument(doc.id)} style={{
+                              padding: '5px 10px', background: '#fff', border: '1px solid #e5e5e5',
+                              borderRadius: 4, fontSize: 11, color: '#dc2626', cursor: 'pointer',
+                            }}>×</button>
+                          )}
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
-              </section>
+              </div>
 
+              {/* Lab Results Viewer */}
               <LabDashboard
                 patientId={patient.id}
                 patientGender={patient.gender || intakeDemographics?.gender}

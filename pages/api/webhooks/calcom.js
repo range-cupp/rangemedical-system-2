@@ -421,10 +421,84 @@ async function logAppointmentAction(patientId, slug, action, serviceDetails) {
 }
 
 async function updateLabJourney(patientId, slug) {
-  // Map slug to lab pipeline stage
-  const stageMap = {
-    'new-patient-blood-draw': 'blood_drawn',
-    'follow-up-blood-draw': 'blood_drawn',
+  const isBloodDraw = ['new-patient-blood-draw', 'follow-up-blood-draw'].includes(slug);
+  const isLabReview = ['initial-lab-review', 'follow-up-lab-review', 'initial-lab-review-telemedicine', 'follow-up-lab-review-telemedicine', 'follow-up-lab-review-phone'].includes(slug);
+
+  if (!isBloodDraw && !isLabReview) return;
+
+  const LAB_PIPELINE_STAGES = ['draw_scheduled', 'blood_draw_complete', 'results_received', 'provider_reviewed', 'consult_scheduled', 'consult_complete'];
+
+  if (isBloodDraw) {
+    // Blood draw appointment booked → create lab protocol at draw_scheduled (if none exists)
+    const isFollowUp = slug === 'follow-up-blood-draw';
+    const labType = isFollowUp ? 'follow_up' : 'new_patient';
+
+    // Check for existing active lab protocol for this patient
+    const { data: existingLab } = await supabase
+      .from('protocols')
+      .select('id, status')
+      .eq('patient_id', patientId)
+      .eq('program_type', 'labs')
+      .in('status', LAB_PIPELINE_STAGES.filter(s => s !== 'consult_complete'))
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (!existingLab) {
+      // No active lab protocol — create one at draw_scheduled
+      const programName = `${isFollowUp ? 'Follow-up' : 'New Patient'} Labs`;
+      const today = new Date().toISOString().split('T')[0];
+
+      const { data: newLab, error: insertErr } = await supabase
+        .from('protocols')
+        .insert({
+          patient_id: patientId,
+          program_name: programName,
+          program_type: 'labs',
+          delivery_method: labType,
+          status: 'draw_scheduled',
+          start_date: today,
+          notes: 'Auto-created from Cal.com blood draw appointment'
+        })
+        .select()
+        .single();
+
+      if (insertErr) {
+        console.error('Auto-create lab protocol error:', insertErr);
+      } else {
+        console.log(`✓ Lab protocol auto-created: patient ${patientId}, protocol ${newLab.id} at draw_scheduled`);
+      }
+    } else {
+      console.log(`Lab protocol already exists for patient ${patientId}: ${existingLab.id} at ${existingLab.status}`);
+    }
+  }
+
+  if (isLabReview) {
+    // Lab review appointment booked → advance to consult_scheduled if at provider_reviewed
+    const { data: labProto } = await supabase
+      .from('protocols')
+      .select('id, status')
+      .eq('patient_id', patientId)
+      .eq('program_type', 'labs')
+      .eq('status', 'provider_reviewed')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (labProto) {
+      await supabase
+        .from('protocols')
+        .update({ status: 'consult_scheduled', updated_at: new Date().toISOString() })
+        .eq('id', labProto.id);
+
+      console.log(`✓ Lab protocol advanced to consult_scheduled: patient ${patientId}, protocol ${labProto.id}`);
+    }
+  }
+
+  // Legacy: also update labs table if it has matching records
+  const legacyStageMap = {
+    'new-patient-blood-draw': 'collected',
+    'follow-up-blood-draw': 'collected',
     'initial-lab-review': 'reviewed',
     'follow-up-lab-review': 'reviewed',
     'initial-lab-review-telemedicine': 'reviewed',
@@ -432,27 +506,24 @@ async function updateLabJourney(patientId, slug) {
     'follow-up-lab-review-phone': 'reviewed',
   };
 
-  const stage = stageMap[slug];
-  if (!stage) return;
-
-  // Find active lab record for this patient and update stage
-  const { data: lab } = await supabase
-    .from('labs')
-    .select('id, status')
-    .eq('patient_id', patientId)
-    .in('status', ['ordered', 'collected', 'results_in'])
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single();
-
-  if (lab) {
-    const newStatus = stage === 'blood_drawn' ? 'collected' : 'reviewed';
-    await supabase
+  const legacyStatus = legacyStageMap[slug];
+  if (legacyStatus) {
+    const { data: lab } = await supabase
       .from('labs')
-      .update({ status: newStatus, updated_at: new Date().toISOString() })
-      .eq('id', lab.id);
+      .select('id, status')
+      .eq('patient_id', patientId)
+      .in('status', ['ordered', 'collected', 'results_in'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
 
-    console.log(`Lab journey updated: patient ${patientId}, lab ${lab.id} -> ${newStatus}`);
+    if (lab) {
+      await supabase
+        .from('labs')
+        .update({ status: legacyStatus, updated_at: new Date().toISOString() })
+        .eq('id', lab.id);
+      console.log(`Legacy lab updated: patient ${patientId}, lab ${lab.id} -> ${legacyStatus}`);
+    }
   }
 }
 

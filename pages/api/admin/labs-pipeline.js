@@ -349,10 +349,10 @@ async function deleteLabProtocol(req, res) {
   }
 }
 
-// POST: Manually create a lab protocol
+// POST: Create a lab protocol (or advance existing draw_scheduled protocol)
 async function createLabProtocol(req, res) {
   try {
-    const { patientId, patientName, panelType, labType, bloodDrawDate, notes } = req.body;
+    const { patientId, patientName, panelType, labType, bloodDrawDate, notes, advanceExisting } = req.body;
 
     if (!patientName && !patientId) {
       return res.status(400).json({ error: 'patientName or patientId required' });
@@ -388,6 +388,44 @@ async function createLabProtocol(req, res) {
       if (patients && patients.length > 0) {
         resolvedPatientId = patients[0].id;
         resolvedPatientName = patients[0].name;
+      }
+    }
+
+    // Check if patient already has an active lab protocol at draw_scheduled (from Cal.com auto-create)
+    // If so, advance it to blood_draw_complete instead of creating a new one
+    if (resolvedPatientId) {
+      const { data: existingDrawScheduled } = await supabase
+        .from('protocols')
+        .select('id, status')
+        .eq('patient_id', resolvedPatientId)
+        .eq('program_type', 'labs')
+        .eq('status', 'draw_scheduled')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (existingDrawScheduled) {
+        // Advance existing protocol instead of creating new
+        const { data: advanced, error: advErr } = await supabase
+          .from('protocols')
+          .update({
+            status: 'blood_draw_complete',
+            medication: panel === 'elite' ? 'Elite' : 'Essential',
+            delivery_method: type,
+            start_date: bloodDrawDate || new Date().toISOString().split('T')[0],
+            notes: notes ? `${notes}` : existingDrawScheduled.notes || null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingDrawScheduled.id)
+          .select('*, patients(id, name, first_name, last_name, email, phone)')
+          .single();
+
+        if (advErr) {
+          return res.status(400).json({ error: advErr.message });
+        }
+
+        console.log(`✓ Lab protocol advanced from draw_scheduled to blood_draw_complete: ${existingDrawScheduled.id}`);
+        return res.status(200).json({ success: true, data: advanced, advanced: true });
       }
     }
 

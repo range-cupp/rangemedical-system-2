@@ -35,8 +35,7 @@ export default async function handler(req, res) {
 
   const message =
     `Hi ${firstName}! ${giftFrom} has gifted you a ${giftLabel} at Range Medical in Newport Beach (valued at $350). ` +
-    `Here's everything you need to know and how to redeem it: ${url} ` +
-    `Call or text us at (949) 997-3988 to schedule. 🎁`;
+    `Here's everything you need to know and how to redeem it: ${url} 🎁`;
 
   const result = await sendSMS({ to: phone, message });
 

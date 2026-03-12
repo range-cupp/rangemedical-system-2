@@ -4093,10 +4093,10 @@ export default function PatientProfile() {
                               </span>
                             )}
                             <span className="payment-status" style={{
-                              background: purchase.protocol_assigned ? '#dcfce7' : '#fef3c7',
-                              color: purchase.protocol_assigned ? '#166534' : '#92400e'
+                              background: purchase.protocol_created ? '#dcfce7' : '#fef3c7',
+                              color: purchase.protocol_created ? '#166534' : '#92400e'
                             }}>
-                              {purchase.protocol_assigned ? 'assigned' : 'pending'}
+                              {purchase.protocol_created ? 'protocol set' : 'no protocol'}
                             </span>
                           </div>
                         </div>

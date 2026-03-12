@@ -34,20 +34,48 @@ export default async function handler(req, res) {
 
     console.log(`Inbound SMS from ${From}: ${Body}`);
 
-    // Try to match the sender to a patient by phone
+    // Try to match the sender to a patient by phone.
+    // Phones may be stored in many formats: +19495395023, (949) 539-5023, 9495395023, etc.
+    // Pass 1: fast DB query — catches E.164 (+1...) and plain-digit formats
+    // Pass 2: JS-side normalization fallback — strips non-digits from stored values
+    //         and compares last 10 digits, catching (949) 539-5023 style storage
     let patient = null;
     if (From) {
       const normalizedFrom = From.replace(/\D/g, '').slice(-10);
 
-      // Try exact phone match
+      // Pass 1: DB-level match (E.164 and digit-only formats)
       const { data: phoneMatch } = await supabase
         .from('patients')
         .select('id, name, first_name, last_name, phone, ghl_contact_id')
-        .or(`phone.ilike.%${normalizedFrom}`)
+        .or(`phone.ilike.%${normalizedFrom},phone.eq.+1${normalizedFrom},phone.eq.${normalizedFrom}`)
         .limit(1)
         .maybeSingle();
 
-      patient = phoneMatch;
+      patient = phoneMatch || null;
+
+      // Pass 2: JS normalization fallback — handles (949) 539-5023 stored format
+      if (!patient && normalizedFrom.length === 10) {
+        const areaCode = normalizedFrom.substring(0, 3);
+        const { data: candidates } = await supabase
+          .from('patients')
+          .select('id, name, first_name, last_name, phone, ghl_contact_id')
+          .ilike('phone', `%${areaCode}%`)
+          .limit(200);
+
+        if (candidates?.length) {
+          const found = candidates.find(p => {
+            const digits = (p.phone || '').replace(/\D/g, '').slice(-10);
+            return digits === normalizedFrom;
+          });
+          patient = found || null;
+        }
+      }
+
+      if (patient) {
+        console.log(`Inbound SMS matched to patient: ${patient.first_name} ${patient.last_name} (${patient.id})`);
+      } else {
+        console.warn(`Inbound SMS from ${From} — no matching patient found`);
+      }
     }
 
     // Store in comms_log

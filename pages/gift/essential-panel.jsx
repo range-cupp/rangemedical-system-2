@@ -1,632 +1,490 @@
+import Layout from '../../components/Layout';
 import Head from 'next/head';
-import Link from 'next/link';
 
 export default function GiftEssentialPanel() {
-  const biomarkers = [
+
+  // Exact biomarker data from lab-panels.jsx — women's Essential Panel
+  const womenEssential = [
+    { name: "Estradiol", desc: "The primary estrogen hormone. Key for reproductive health, bone density, mood, and energy. Out-of-range levels are one of the most common reasons women feel off." },
+    { name: "Progesterone", desc: "Balances estrogen and supports mood, sleep, and reproductive health. Low progesterone often shows up as anxiety, poor sleep, and PMS symptoms." },
+    { name: "Testosterone, Total", desc: "Your overall testosterone production. Women need it too — low levels cause fatigue, low libido, muscle loss, and mood changes." },
+    { name: "Testosterone, Free", desc: "The testosterone actually available for your body to use. More clinically relevant than total testosterone alone." },
+    { name: "FSH", desc: "Follicle-stimulating hormone. Helps assess fertility, menopause status, and pituitary function." },
+    { name: "LH", desc: "Luteinizing hormone. Works with FSH to regulate reproductive function and hormone production." },
+    { name: "SHBG", desc: "Sex hormone binding globulin — affects how much of your hormones are actually available to your body. High SHBG can make your hormones functionally low even when numbers look normal." },
+    { name: "TSH", desc: "Thyroid-stimulating hormone. The first-line thyroid test — but it doesn't tell the whole story on its own, which is why we run it alongside T3 and T4." },
+    { name: "T3, Free", desc: "The active thyroid hormone your cells actually use. Low T3 causes fatigue, weight gain, and brain fog even when TSH looks normal on a standard checkup." },
+    { name: "T4, Total", desc: "The main hormone your thyroid produces. Your body converts T4 into active T3. Helps assess overall thyroid output." },
+    { name: "TPO Antibodies", desc: "Detects autoimmune thyroid disease (Hashimoto's). Often elevated years before thyroid numbers go abnormal — catching it early matters." },
+    { name: "Complete Metabolic Panel (CMP)", desc: "14 markers covering blood sugar, kidney function, liver health, and electrolytes. The foundation — tells us how your body is processing everything you put into it." },
+    { name: "Lipid Panel", desc: "Measures cholesterol and triglycerides. Essential for cardiovascular risk — and cholesterol is also the raw building block for all your hormones." },
+    { name: "HbA1c", desc: "Your 3-month blood sugar average. A single glucose reading is a snapshot. HbA1c shows the trend — whether blood sugar has been spiking in ways that explain fatigue and mental fog." },
+    { name: "Insulin, Fasting", desc: "Reveals how well your body manages blood sugar. High fasting insulin is an early warning sign of metabolic dysfunction, often years before HbA1c changes." },
+    { name: "CBC with Differential", desc: "A complete count of red cells, white cells, and platelets. Detects anemia, immune issues, and blood disorders. Anemia alone explains a massive amount of chronic fatigue in women." },
+    { name: "Vitamin D, 25-OH", desc: "Critical for immune function, mood, bone health, and hormone production. Deficiency is extremely common — even in Southern California, most people don't absorb enough from sunlight alone." },
+  ];
+
+  const groups = [
     {
-      category: 'Hormones',
+      label: 'Hormones',
       icon: '⚡',
-      color: '#7c3aed',
-      bg: '#f5f3ff',
-      markers: [
-        {
-          name: 'Estradiol (E2)',
-          what: 'Your primary estrogen.',
-          why: 'Regulates energy, mood, bone density, and libido. Low or imbalanced estradiol is one of the most common reasons women feel off — anxious, tired, or just not like themselves.',
-        },
-        {
-          name: 'Progesterone',
-          what: 'Your calming, balancing hormone.',
-          why: 'Works alongside estrogen to regulate your cycle, sleep quality, and mood. Low progesterone often shows up as anxiety, poor sleep, and PMS-type symptoms even outside your cycle.',
-        },
-        {
-          name: 'Total & Free Testosterone',
-          what: 'Yes — women need testosterone too.',
-          why: 'Drives motivation, confidence, muscle tone, and libido. Many women are surprised to find this is the missing piece behind low drive and energy.',
-        },
-        {
-          name: 'SHBG (Sex Hormone Binding Globulin)',
-          what: 'The protein that "ties up" your hormones.',
-          why: 'High SHBG means your body has hormones available but can\'t use them — like having money in a locked account. This number puts your other hormone levels in context.',
-        },
-      ],
+      markers: ["Estradiol", "Progesterone", "Testosterone, Total", "Testosterone, Free", "FSH", "LH", "SHBG"],
     },
     {
-      category: 'Thyroid',
+      label: 'Thyroid',
       icon: '🦋',
-      color: '#0369a1',
-      bg: '#f0f9ff',
-      markers: [
-        {
-          name: 'TSH (Thyroid Stimulating Hormone)',
-          what: 'Your brain\'s signal to your thyroid.',
-          why: 'When TSH is out of range, your metabolism slows down or speeds up unexpectedly. It\'s one of the first places to look when energy, weight, or mood feels off — and it\'s routinely missed at standard checkups.',
-        },
-        {
-          name: 'Free T4',
-          what: 'The hormone your thyroid produces.',
-          why: 'T4 is the raw material your body converts into active thyroid hormone. Seeing this alongside TSH gives us a much fuller picture of whether your thyroid is actually doing its job.',
-        },
-      ],
+      markers: ["TSH", "T3, Free", "T4, Total", "TPO Antibodies"],
     },
     {
-      category: 'Metabolic',
+      label: 'Metabolic',
       icon: '🔥',
-      color: '#b45309',
-      bg: '#fffbeb',
-      markers: [
-        {
-          name: 'Comprehensive Metabolic Panel (CMP)',
-          what: '14 markers covering blood sugar, kidney function, liver health, and electrolytes.',
-          why: 'This is the foundation. It tells us how your body is processing everything you put into it — and whether organs are under stress you might not feel yet.',
-        },
-        {
-          name: 'Lipid Panel',
-          what: 'Cholesterol — total, HDL, LDL, and triglycerides.',
-          why: 'Not just a heart health check. Cholesterol is the building block for all your hormones. Imbalances here affect energy, recovery, and how well your body produces the hormones it needs.',
-        },
-        {
-          name: 'HbA1c',
-          what: 'Your 3-month blood sugar average.',
-          why: 'A single glucose reading is a snapshot. HbA1c shows the trend — whether your blood sugar has been spiking and crashing in ways that explain fatigue, cravings, and mental fog.',
-        },
-      ],
+      markers: ["Complete Metabolic Panel (CMP)", "Lipid Panel", "HbA1c", "Insulin, Fasting"],
     },
     {
-      category: 'General Health',
+      label: 'General Health',
       icon: '🩺',
-      color: '#065f46',
-      bg: '#f0fdf4',
-      markers: [
-        {
-          name: 'CBC with Differential',
-          what: 'A complete count of your blood cells.',
-          why: 'Tells us about your immune function, whether you\'re anemic, and how your bone marrow is working. Anemia alone explains a massive amount of chronic fatigue that gets overlooked.',
-        },
-        {
-          name: 'Vitamin D',
-          what: 'More hormone than vitamin — critical for nearly everything.',
-          why: 'Vitamin D deficiency affects immunity, mood, bone health, and even cancer risk. It\'s extremely common in Southern California despite the sunshine — most people don\'t absorb it efficiently from sunlight alone.',
-        },
-        {
-          name: 'Ferritin',
-          what: 'Your iron storage marker.',
-          why: 'You can have "normal" iron levels on a basic test and still have critically low ferritin — which causes hair loss, exhaustion, and exercise intolerance. This is one of the most underdiagnosed issues in women.',
-        },
-      ],
+      markers: ["CBC with Differential", "Vitamin D, 25-OH"],
     },
   ];
 
+  const markerMap = Object.fromEntries(womenEssential.map(m => [m.name, m.desc]));
+
   return (
-    <>
+    <Layout
+      title="A Gift for Michelle Douglas | Range Medical"
+      description="You've been gifted an Essential Lab Panel at Range Medical, Newport Beach."
+    >
       <Head>
-        <title>A Gift for Michelle Douglas | Range Medical</title>
-        <meta name="description" content="You've been gifted an Essential Lab Panel from Range Medical." />
         <meta name="robots" content="noindex" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
       </Head>
 
-      <div style={styles.page}>
-
-        {/* ── GIFT REVEAL HERO ── */}
-        <section style={styles.hero}>
-          <div style={styles.heroInner}>
-            <div style={styles.giftBadge}>🎁 A Gift For You</div>
-            <h1 style={styles.heroName}>Michelle,</h1>
-            <p style={styles.heroSubtitle}>
-              JP Peray has gifted you a Range Medical <strong>Essential Lab Panel</strong> — a comprehensive look at the hormones, thyroid, metabolism, and health markers that shape how you feel every day.
+      {/* ── GIFT HERO ── */}
+      <section className="gift-hero">
+        <div className="container">
+          <div className="gift-hero-inner">
+            <div className="hero-badge">🎁 A Gift For You</div>
+            <h1>Michelle,</h1>
+            <p className="hero-sub">
+              JP Perarie has gifted you a Range Medical <strong>Essential Lab Panel</strong> — a comprehensive look at the hormones, thyroid, metabolic markers, and health indicators that shape how you feel every single day.
             </p>
-            <div style={styles.giftCard}>
-              <div style={styles.giftCardTop}>
-                <span style={styles.giftCardFrom}>From</span>
-                <span style={styles.giftCardName}>JP Peray</span>
-              </div>
-              <div style={styles.giftCardDivider} />
-              <div style={styles.giftCardBottom}>
-                <div style={styles.giftCardItem}>
-                  <span style={styles.giftCardLabel}>Gift</span>
-                  <span style={styles.giftCardValue}>Essential Lab Panel</span>
+          </div>
+        </div>
+      </section>
+
+      {/* ── GIFT CARD ── */}
+      <section className="section">
+        <div className="container">
+          <div className="gift-card-wrap">
+            <div className="offer-card featured gift-card-display">
+              <div className="offer-badge">Gifted — Ready to Redeem</div>
+              <div className="gift-card-row">
+                <div>
+                  <div className="gift-card-label">From</div>
+                  <div className="gift-card-name">JP Perarie</div>
                 </div>
-                <div style={styles.giftCardItem}>
-                  <span style={styles.giftCardLabel}>Value</span>
-                  <span style={styles.giftCardValue}>$350</span>
+                <div className="gift-card-divider" />
+                <div>
+                  <div className="gift-card-label">Gift</div>
+                  <div className="gift-card-value">Essential Lab Panel</div>
                 </div>
-                <div style={styles.giftCardItem}>
-                  <span style={styles.giftCardLabel}>Status</span>
-                  <span style={{ ...styles.giftCardValue, color: '#16a34a', fontWeight: 600 }}>✓ Ready to Redeem</span>
+                <div className="gift-card-divider" />
+                <div>
+                  <div className="gift-card-label">Value</div>
+                  <div className="gift-card-value">$350</div>
+                </div>
+                <div className="gift-card-divider" />
+                <div>
+                  <div className="gift-card-label">Location</div>
+                  <div className="gift-card-value">Newport Beach, CA</div>
                 </div>
               </div>
             </div>
-            <p style={styles.heroCta}>
-              Call or text us at <a href="tel:+19499973988" style={styles.heroLink}>(949) 997-3988</a> to schedule your blood draw — we'll handle the rest.
-            </p>
+
+            <div className="gift-redeem-note">
+              <p>
+                To schedule your blood draw, call or text us at{' '}
+                <a href="tel:+19499973988"><strong>(949) 997-3988</strong></a>.
+                Your panel is covered in full — just mention JP's gift when you call.
+              </p>
+            </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* ── WHAT THIS IS ── */}
-        <section style={styles.section}>
-          <div style={styles.container}>
-            <div style={styles.sectionKicker}>What You're Getting</div>
-            <h2 style={styles.sectionTitle}>More Than a Blood Test</h2>
-            <p style={styles.sectionSubtitle}>
-              Most annual physicals run a basic metabolic panel and call it done. The Range Essential Panel goes significantly deeper — specifically designed to surface the things that make you feel <em>off</em> but never show up on standard labs.
-            </p>
+      {/* ── HOW IT WORKS ── */}
+      <section className="section section-gray">
+        <div className="container">
+          <p className="section-kicker">How It Works</p>
+          <h2 className="section-title">Four Steps to Your Results</h2>
+          <p className="section-subtitle">
+            From scheduling to sitting down with a provider to go through your numbers — here's what to expect.
+          </p>
 
-            <div style={styles.processGrid}>
+          <div className="process-steps">
+            <div className="process-step">
+              <div className="step-number">1</div>
+              <h4>Book Your Draw</h4>
+              <p>Call or text (949) 997-3988. We'll get you scheduled at our Newport Beach office. Let us know JP sent you.</p>
+            </div>
+            <div className="process-step">
+              <div className="step-number">2</div>
+              <h4>Quick Blood Draw</h4>
+              <p>About 15 minutes on-site. We recommend fasting 10–12 hours beforehand for the most accurate results. Water is fine.</p>
+            </div>
+            <div className="process-step">
+              <div className="step-number">3</div>
+              <h4>Results in 3–5 Days</h4>
+              <p>Your provider reviews every marker before your consultation. Nothing gets glossed over or left unexplained.</p>
+            </div>
+            <div className="process-step">
+              <div className="step-number">4</div>
+              <h4>Provider Review</h4>
+              <p>We explain what's off, why it matters, and what your options are. Plain language — no confusing lab printouts.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── BIOMARKERS ── */}
+      <section className="section">
+        <div className="container">
+          <p className="section-kicker">The Panel</p>
+          <h2 className="section-title">What We're Testing — and Why It Matters</h2>
+          <p className="section-subtitle">
+            Your Essential Panel includes {womenEssential.length} biomarkers across four categories. Here's what each one is measuring and what it can tell us about how you're feeling.
+          </p>
+
+          <div className="biomarker-categories">
+            {groups.map((group) => (
+              <div key={group.label} className="biomarker-group">
+                <div className="biomarker-group-header">
+                  <span className="biomarker-group-icon">{group.icon}</span>
+                  <h3 className="biomarker-group-title">{group.label}</h3>
+                  <span className="biomarker-group-count">{group.markers.length} markers</span>
+                </div>
+                <div className="biomarker-list">
+                  {group.markers.map((name) => (
+                    <div key={name} className="biomarker-item">
+                      <div className="biomarker-name">{name}</div>
+                      <p className="biomarker-desc">{markerMap[name]}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── ABOUT RANGE ── */}
+      <section className="section section-gray">
+        <div className="container">
+          <div className="about-gift-grid">
+            <div>
+              <p className="section-kicker" style={{ textAlign: 'left' }}>About Range Medical</p>
+              <h2 style={{ letterSpacing: '-0.02em', marginBottom: '1rem', fontSize: '1.75rem' }}>
+                Medicine That Goes Beyond the Checkup
+              </h2>
+              <p>
+                Range Medical is a regenerative medicine clinic in Newport Beach focused on helping people optimize how they feel — not just avoid disease. We specialize in hormone optimization, lab-guided care, IV therapy, peptide protocols, and more.
+              </p>
+              <p style={{ marginTop: '1rem' }}>
+                When you come in for your lab draw, you'll work with licensed providers who actually take the time to explain your results and build a plan around them. No 7-minute appointments. No "your labs are normal" when you clearly don't feel normal.
+              </p>
+            </div>
+            <div className="about-detail-cards">
               {[
-                { num: '1', title: 'Book Your Draw', desc: 'Call or text (949) 997-3988. We\'ll get you scheduled at our Newport Beach office.' },
-                { num: '2', title: 'Quick Blood Draw', desc: 'About 15 minutes on-site. Fasting recommended for 10–12 hours beforehand for the most accurate results.' },
-                { num: '3', title: 'Results in 3–5 Days', desc: 'Your provider reviews every marker before your consultation — nothing gets glossed over.' },
-                { num: '4', title: 'Provider Review', desc: 'We explain what\'s off, why it matters, and what your options are. No guessing, no confusing lab printouts.' },
-              ].map((step) => (
-                <div key={step.num} style={styles.processStep}>
-                  <div style={styles.stepNum}>{step.num}</div>
-                  <h4 style={styles.stepTitle}>{step.title}</h4>
-                  <p style={styles.stepDesc}>{step.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ── BIOMARKERS ── */}
-        <section style={{ ...styles.section, background: '#fafafa' }}>
-          <div style={styles.container}>
-            <div style={styles.sectionKicker}>The Panel</div>
-            <h2 style={styles.sectionTitle}>What We're Testing — and Why It Matters to You</h2>
-            <p style={styles.sectionSubtitle}>
-              Every marker below has a reason it's on this panel. Here's what we're looking at, and what it's actually telling us about how you feel.
-            </p>
-
-            <div style={styles.categoryGrid}>
-              {biomarkers.map((cat) => (
-                <div key={cat.category} style={{ ...styles.categoryCard, borderTopColor: cat.color }}>
-                  <div style={styles.categoryHeader}>
-                    <span style={styles.categoryIcon}>{cat.icon}</span>
-                    <h3 style={{ ...styles.categoryTitle, color: cat.color }}>{cat.category}</h3>
-                  </div>
-                  <div style={styles.markerList}>
-                    {cat.markers.map((marker) => (
-                      <div key={marker.name} style={styles.markerItem}>
-                        <div style={styles.markerName}>{marker.name}</div>
-                        <div style={styles.markerWhat}>{marker.what}</div>
-                        <div style={styles.markerWhy}>{marker.why}</div>
-                      </div>
-                    ))}
+                { icon: '📍', label: 'Location', value: '1901 Westcliff Dr. Suite 10, Newport Beach, CA 92660' },
+                { icon: '📞', label: 'Call or Text', value: '(949) 997-3988' },
+                { icon: '⏱️', label: 'Blood Draw Time', value: '~15 minutes on-site' },
+                { icon: '📋', label: 'Results', value: '3–5 business days' },
+              ].map((d) => (
+                <div key={d.label} className="detail-card">
+                  <span className="detail-card-icon">{d.icon}</span>
+                  <div>
+                    <div className="detail-card-label">{d.label}</div>
+                    <div className="detail-card-value">{d.value}</div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* ── ABOUT RANGE ── */}
-        <section style={styles.section}>
-          <div style={styles.container}>
-            <div style={styles.aboutGrid}>
-              <div>
-                <div style={styles.sectionKicker}>About Range Medical</div>
-                <h2 style={{ ...styles.sectionTitle, textAlign: 'left' }}>Medicine That Goes Beyond the Checkup</h2>
-                <p style={styles.aboutText}>
-                  Range Medical is a regenerative medicine clinic in Newport Beach focused on helping people optimize how they feel — not just avoid disease. We specialize in hormone optimization, lab-guided care, IV therapy, peptide protocols, and more.
-                </p>
-                <p style={styles.aboutText}>
-                  When you come in for your lab draw, you'll work with licensed providers who will actually take the time to explain your results and build a plan around them. No 7-minute appointments. No "your labs are normal" when you clearly don't feel normal.
-                </p>
-              </div>
-              <div style={styles.aboutDetails}>
-                <div style={styles.detailCard}>
-                  <div style={styles.detailIcon}>📍</div>
-                  <div>
-                    <div style={styles.detailLabel}>Location</div>
-                    <div style={styles.detailValue}>Newport Beach, CA</div>
-                  </div>
-                </div>
-                <div style={styles.detailCard}>
-                  <div style={styles.detailIcon}>📞</div>
-                  <div>
-                    <div style={styles.detailLabel}>Call or Text</div>
-                    <div style={styles.detailValue}>(949) 997-3988</div>
-                  </div>
-                </div>
-                <div style={styles.detailCard}>
-                  <div style={styles.detailIcon}>⏱️</div>
-                  <div>
-                    <div style={styles.detailLabel}>Blood Draw Time</div>
-                    <div style={styles.detailValue}>~15 minutes on-site</div>
-                  </div>
-                </div>
-                <div style={styles.detailCard}>
-                  <div style={styles.detailIcon}>📋</div>
-                  <div>
-                    <div style={styles.detailLabel}>Results</div>
-                    <div style={styles.detailValue}>3–5 business days</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+      {/* ── FINAL CTA ── */}
+      <section className="final-cta">
+        <div className="container">
+          <span className="cta-step">Your gift is ready</span>
+          <h2>Ready to Get Started, Michelle?</h2>
+          <p>Your Essential Panel is fully covered as a gift from JP. Just give us a call to schedule your blood draw at our Newport Beach location.</p>
+          <a href="tel:+19499973988" className="btn-white">
+            Call (949) 997-3988
+          </a>
+          <p className="cta-secondary">
+            Prefer to text? Same number. We typically respond within a few hours during business hours.
+          </p>
+        </div>
+      </section>
 
-        {/* ── CTA ── */}
-        <section style={styles.finalCta}>
-          <div style={styles.container}>
-            <h2 style={styles.ctaTitle}>Ready to Get Started, Michelle?</h2>
-            <p style={styles.ctaSubtitle}>
-              Your Essential Panel is fully covered as a gift from JP. Just give us a call to schedule your blood draw at our Newport Beach location.
-            </p>
-            <a href="tel:+19499973988" style={styles.ctaButton}>
-              📞 Call (949) 997-3988
-            </a>
-            <p style={styles.ctaNote}>
-              Prefer to text? That works too — same number. We typically respond within a few hours during business hours.
-            </p>
-          </div>
-        </section>
+      <style jsx>{`
+        /* ── Gift Hero ── */
+        .gift-hero {
+          background: linear-gradient(135deg, #0a0a0a 0%, #1c1c2e 60%, #0a0a0a 100%);
+          padding: 5rem 1.5rem 4rem;
+          text-align: center;
+        }
 
-        {/* ── FOOTER ── */}
-        <footer style={styles.footer}>
-          <div style={styles.container}>
-            <div style={styles.footerInner}>
-              <span style={styles.footerBrand}>Range Medical</span>
-              <span style={styles.footerSep}>·</span>
-              <a href="tel:+19499973988" style={styles.footerLink}>(949) 997-3988</a>
-              <span style={styles.footerSep}>·</span>
-              <a href="https://www.range-medical.com" style={styles.footerLink}>range-medical.com</a>
-            </div>
-          </div>
-        </footer>
+        .gift-hero-inner {
+          max-width: 680px;
+          margin: 0 auto;
+        }
 
-      </div>
-    </>
+        .gift-hero h1 {
+          color: #ffffff;
+          font-size: clamp(2.5rem, 6vw, 3.75rem);
+          margin: 1rem 0 1.25rem;
+        }
+
+        .gift-hero .hero-badge {
+          display: inline-block;
+          background: rgba(255,255,255,0.12);
+          border: 1px solid rgba(255,255,255,0.2);
+          color: #ffffff;
+          padding: 0.5rem 1.25rem;
+          border-radius: 100px;
+          font-size: 0.875rem;
+          font-weight: 600;
+          letter-spacing: 0.02em;
+        }
+
+        .gift-hero .hero-sub {
+          color: rgba(255,255,255,0.75);
+          font-size: 1.125rem;
+          max-width: 580px;
+          margin: 0 auto;
+          line-height: 1.75;
+        }
+
+        .gift-hero .hero-sub strong {
+          color: #ffffff;
+        }
+
+        /* ── Gift Card Display ── */
+        .gift-card-wrap {
+          max-width: 760px;
+          margin: 0 auto;
+        }
+
+        .gift-card-display {
+          padding: 2.5rem;
+          margin-top: 0.75rem;
+        }
+
+        .gift-card-row {
+          display: flex;
+          gap: 2rem;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+
+        .gift-card-label {
+          font-size: 0.75rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: #a3a3a3;
+          margin-bottom: 0.3rem;
+        }
+
+        .gift-card-name {
+          font-size: 1.375rem;
+          font-weight: 700;
+          color: #171717;
+        }
+
+        .gift-card-value {
+          font-size: 1.125rem;
+          font-weight: 600;
+          color: #171717;
+        }
+
+        .gift-card-divider {
+          width: 1px;
+          height: 48px;
+          background: #e5e5e5;
+          flex-shrink: 0;
+        }
+
+        .gift-redeem-note {
+          margin-top: 1.25rem;
+          text-align: center;
+        }
+
+        .gift-redeem-note p {
+          font-size: 1rem;
+          color: #525252;
+        }
+
+        .gift-redeem-note a {
+          color: #171717;
+        }
+
+        /* ── Biomarkers ── */
+        .biomarker-categories {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.5rem;
+        }
+
+        .biomarker-group {
+          background: #ffffff;
+          border: 1px solid #e5e5e5;
+          border-radius: 16px;
+          padding: 1.75rem;
+        }
+
+        .biomarker-group-header {
+          display: flex;
+          align-items: center;
+          gap: 0.625rem;
+          margin-bottom: 1.5rem;
+          padding-bottom: 1rem;
+          border-bottom: 1px solid #f5f5f5;
+        }
+
+        .biomarker-group-icon {
+          font-size: 1.25rem;
+        }
+
+        .biomarker-group-title {
+          font-size: 0.875rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          color: #171717;
+          margin: 0;
+          flex: 1;
+        }
+
+        .biomarker-group-count {
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: #a3a3a3;
+          background: #f5f5f5;
+          padding: 0.2rem 0.6rem;
+          border-radius: 100px;
+        }
+
+        .biomarker-list {
+          display: flex;
+          flex-direction: column;
+          gap: 1.125rem;
+        }
+
+        .biomarker-item {
+          padding-bottom: 1.125rem;
+          border-bottom: 1px solid #f5f5f5;
+        }
+
+        .biomarker-item:last-child {
+          border-bottom: none;
+          padding-bottom: 0;
+        }
+
+        .biomarker-name {
+          font-size: 0.9375rem;
+          font-weight: 700;
+          color: #171717;
+          margin-bottom: 0.3rem;
+        }
+
+        .biomarker-desc {
+          font-size: 0.875rem;
+          color: #525252;
+          line-height: 1.6;
+          margin: 0;
+        }
+
+        /* ── About Grid ── */
+        .about-gift-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 4rem;
+          align-items: start;
+        }
+
+        .about-gift-grid p {
+          font-size: 1rem;
+          color: #525252;
+          line-height: 1.75;
+        }
+
+        .about-detail-cards {
+          display: flex;
+          flex-direction: column;
+          gap: 0.875rem;
+        }
+
+        .detail-card {
+          display: flex;
+          align-items: flex-start;
+          gap: 1rem;
+          background: #ffffff;
+          border: 1px solid #e5e5e5;
+          border-radius: 12px;
+          padding: 1rem 1.25rem;
+        }
+
+        .detail-card-icon {
+          font-size: 1.375rem;
+          flex-shrink: 0;
+          margin-top: 0.1rem;
+        }
+
+        .detail-card-label {
+          font-size: 0.75rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: #a3a3a3;
+          margin-bottom: 0.25rem;
+        }
+
+        .detail-card-value {
+          font-size: 0.9375rem;
+          font-weight: 600;
+          color: #171717;
+          line-height: 1.4;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+          .gift-hero {
+            padding: 3.5rem 1.5rem 3rem;
+          }
+
+          .gift-card-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1.25rem;
+          }
+
+          .gift-card-divider {
+            width: 100%;
+            height: 1px;
+          }
+
+          .biomarker-categories {
+            grid-template-columns: 1fr;
+          }
+
+          .about-gift-grid {
+            grid-template-columns: 1fr;
+            gap: 2.5rem;
+          }
+        }
+      `}</style>
+    </Layout>
   );
 }
-
-const styles = {
-  page: {
-    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    color: '#171717',
-    lineHeight: 1.6,
-    margin: 0,
-    padding: 0,
-    background: '#ffffff',
-  },
-
-  // ── Hero
-  hero: {
-    background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%)',
-    padding: '5rem 1.5rem',
-    textAlign: 'center',
-  },
-  heroInner: {
-    maxWidth: 680,
-    margin: '0 auto',
-  },
-  giftBadge: {
-    display: 'inline-block',
-    background: 'rgba(255,255,255,0.12)',
-    border: '1px solid rgba(255,255,255,0.2)',
-    color: '#ffffff',
-    padding: '0.5rem 1.25rem',
-    borderRadius: 100,
-    fontSize: '0.875rem',
-    fontWeight: 500,
-    marginBottom: '1.5rem',
-    backdropFilter: 'blur(4px)',
-  },
-  heroName: {
-    fontSize: 'clamp(2.5rem, 6vw, 4rem)',
-    fontWeight: 700,
-    color: '#ffffff',
-    margin: '0 0 1rem',
-    letterSpacing: '-0.02em',
-  },
-  heroSubtitle: {
-    fontSize: '1.125rem',
-    color: 'rgba(255,255,255,0.75)',
-    marginBottom: '2.5rem',
-    lineHeight: 1.7,
-  },
-
-  // ── Gift Card
-  giftCard: {
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.15)',
-    borderRadius: 20,
-    padding: '2rem',
-    marginBottom: '2.5rem',
-    backdropFilter: 'blur(8px)',
-    textAlign: 'left',
-  },
-  giftCardTop: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.75rem',
-    marginBottom: '1.25rem',
-  },
-  giftCardFrom: {
-    fontSize: '0.75rem',
-    fontWeight: 600,
-    textTransform: 'uppercase',
-    letterSpacing: '0.08em',
-    color: 'rgba(255,255,255,0.45)',
-  },
-  giftCardName: {
-    fontSize: '1.375rem',
-    fontWeight: 700,
-    color: '#ffffff',
-  },
-  giftCardDivider: {
-    height: 1,
-    background: 'rgba(255,255,255,0.1)',
-    marginBottom: '1.25rem',
-  },
-  giftCardBottom: {
-    display: 'flex',
-    gap: '2rem',
-    flexWrap: 'wrap',
-  },
-  giftCardItem: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.25rem',
-  },
-  giftCardLabel: {
-    fontSize: '0.75rem',
-    fontWeight: 600,
-    textTransform: 'uppercase',
-    letterSpacing: '0.08em',
-    color: 'rgba(255,255,255,0.45)',
-  },
-  giftCardValue: {
-    fontSize: '1rem',
-    fontWeight: 500,
-    color: '#ffffff',
-  },
-
-  heroCta: {
-    fontSize: '1rem',
-    color: 'rgba(255,255,255,0.65)',
-  },
-  heroLink: {
-    color: '#ffffff',
-    fontWeight: 700,
-    textDecoration: 'none',
-  },
-
-  // ── Sections
-  section: {
-    padding: '5rem 1.5rem',
-    background: '#ffffff',
-  },
-  container: {
-    maxWidth: 1040,
-    margin: '0 auto',
-  },
-  sectionKicker: {
-    fontSize: '0.8125rem',
-    fontWeight: 700,
-    textTransform: 'uppercase',
-    letterSpacing: '0.1em',
-    color: '#a3a3a3',
-    marginBottom: '0.75rem',
-    textAlign: 'center',
-  },
-  sectionTitle: {
-    fontSize: 'clamp(1.75rem, 4vw, 2.5rem)',
-    fontWeight: 700,
-    letterSpacing: '-0.025em',
-    marginBottom: '1rem',
-    textAlign: 'center',
-    lineHeight: 1.2,
-  },
-  sectionSubtitle: {
-    fontSize: '1.0625rem',
-    color: '#525252',
-    maxWidth: 620,
-    margin: '0 auto 3rem',
-    textAlign: 'center',
-    lineHeight: 1.7,
-  },
-
-  // ── Process Steps
-  processGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: '2rem',
-  },
-  processStep: {
-    textAlign: 'center',
-  },
-  stepNum: {
-    width: 48,
-    height: 48,
-    background: '#171717',
-    color: '#ffffff',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontWeight: 700,
-    fontSize: '1.125rem',
-    margin: '0 auto 1rem',
-  },
-  stepTitle: {
-    fontSize: '1rem',
-    fontWeight: 700,
-    marginBottom: '0.5rem',
-  },
-  stepDesc: {
-    fontSize: '0.875rem',
-    color: '#525252',
-    lineHeight: 1.6,
-    margin: 0,
-  },
-
-  // ── Biomarker Categories
-  categoryGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(440px, 1fr))',
-    gap: '1.5rem',
-  },
-  categoryCard: {
-    background: '#ffffff',
-    border: '1px solid #e5e5e5',
-    borderTop: '4px solid #171717',
-    borderRadius: 16,
-    padding: '1.75rem',
-  },
-  categoryHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.625rem',
-    marginBottom: '1.5rem',
-  },
-  categoryIcon: {
-    fontSize: '1.25rem',
-  },
-  categoryTitle: {
-    fontSize: '1rem',
-    fontWeight: 700,
-    textTransform: 'uppercase',
-    letterSpacing: '0.05em',
-    margin: 0,
-  },
-  markerList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1.25rem',
-  },
-  markerItem: {
-    borderBottom: '1px solid #f5f5f5',
-    paddingBottom: '1.25rem',
-  },
-  markerName: {
-    fontSize: '0.9375rem',
-    fontWeight: 700,
-    marginBottom: '0.2rem',
-    color: '#171717',
-  },
-  markerWhat: {
-    fontSize: '0.875rem',
-    color: '#737373',
-    fontStyle: 'italic',
-    marginBottom: '0.4rem',
-  },
-  markerWhy: {
-    fontSize: '0.875rem',
-    color: '#404040',
-    lineHeight: 1.6,
-    margin: 0,
-  },
-
-  // ── About
-  aboutGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '4rem',
-    alignItems: 'start',
-  },
-  aboutText: {
-    fontSize: '1rem',
-    color: '#404040',
-    lineHeight: 1.75,
-    marginBottom: '1rem',
-  },
-  aboutDetails: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '1rem',
-  },
-  detailCard: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '1rem',
-    background: '#fafafa',
-    border: '1px solid #e5e5e5',
-    borderRadius: 12,
-    padding: '1rem 1.25rem',
-  },
-  detailIcon: {
-    fontSize: '1.5rem',
-    flexShrink: 0,
-  },
-  detailLabel: {
-    fontSize: '0.75rem',
-    fontWeight: 600,
-    textTransform: 'uppercase',
-    letterSpacing: '0.08em',
-    color: '#a3a3a3',
-    marginBottom: '0.2rem',
-  },
-  detailValue: {
-    fontSize: '0.9375rem',
-    fontWeight: 600,
-    color: '#171717',
-  },
-
-  // ── Final CTA
-  finalCta: {
-    background: '#0a0a0a',
-    padding: '5rem 1.5rem',
-    textAlign: 'center',
-  },
-  ctaTitle: {
-    fontSize: 'clamp(1.75rem, 4vw, 2.5rem)',
-    fontWeight: 700,
-    color: '#ffffff',
-    letterSpacing: '-0.025em',
-    marginBottom: '1rem',
-    lineHeight: 1.2,
-  },
-  ctaSubtitle: {
-    fontSize: '1.0625rem',
-    color: 'rgba(255,255,255,0.65)',
-    maxWidth: 560,
-    margin: '0 auto 2.5rem',
-    lineHeight: 1.7,
-  },
-  ctaButton: {
-    display: 'inline-block',
-    background: '#ffffff',
-    color: '#0a0a0a',
-    padding: '1rem 2.5rem',
-    borderRadius: 100,
-    fontWeight: 700,
-    fontSize: '1.0625rem',
-    textDecoration: 'none',
-    letterSpacing: '-0.01em',
-    transition: 'opacity 0.2s',
-  },
-  ctaNote: {
-    marginTop: '1.5rem',
-    fontSize: '0.875rem',
-    color: 'rgba(255,255,255,0.45)',
-  },
-
-  // ── Footer
-  footer: {
-    padding: '1.5rem',
-    borderTop: '1px solid #e5e5e5',
-  },
-  footerInner: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.75rem',
-    fontSize: '0.875rem',
-  },
-  footerBrand: {
-    fontWeight: 700,
-    color: '#171717',
-  },
-  footerSep: {
-    color: '#d4d4d4',
-  },
-  footerLink: {
-    color: '#525252',
-    textDecoration: 'none',
-  },
-};

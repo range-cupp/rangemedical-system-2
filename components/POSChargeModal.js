@@ -1998,15 +1998,15 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                               available
                             </span>
                           </div>
-                          {creditBalanceCents < amount ? (
+                          {creditBalanceCents < finalAmount ? (
                             <div style={{ marginTop: '8px', fontSize: '13px', color: '#dc2626' }}>
-                              Insufficient credit. Balance is {formatPrice(creditBalanceCents)} but charge is {formatPrice(amount)}.
+                              Insufficient credit. Balance is {formatPrice(creditBalanceCents)} but charge is {formatPrice(finalAmount)}.
                             </div>
                           ) : (
                             <div style={{ marginTop: '8px', fontSize: '13px', color: '#15803d' }}>
-                              This covers the full charge of {formatPrice(amount)}.
-                              {creditBalanceCents > amount && (
-                                <span> Remaining after: {formatPrice(creditBalanceCents - amount)}</span>
+                              This covers the full charge of {formatPrice(finalAmount)}.
+                              {creditBalanceCents > finalAmount && (
+                                <span> Remaining after: {formatPrice(creditBalanceCents - finalAmount)}</span>
                               )}
                             </div>
                           )}

@@ -90,6 +90,10 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   const [giftCardLookup, setGiftCardLookup] = useState(null); // { id, code, remaining_amount, status }
   const [lookingUpGiftCard, setLookingUpGiftCard] = useState(false);
 
+  // Account credit state
+  const [creditBalanceCents, setCreditBalanceCents] = useState(0);
+  const [loadingCredit, setLoadingCredit] = useState(false);
+
   // Invoice state
   const [showInvoiceSend, setShowInvoiceSend] = useState(false);
   const [invoiceSending, setInvoiceSending] = useState(false);
@@ -146,12 +150,28 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     return () => { if (searchTimeout.current) clearTimeout(searchTimeout.current); };
   }, [patientSearch]);
 
-  // Load saved cards when entering payment step
+  // Load saved cards + credit balance when entering payment step
   useEffect(() => {
     if (step === 'payment' && patient) {
       loadSavedCards();
+      loadCreditBalance();
     }
   }, [step]);
+
+  async function loadCreditBalance() {
+    if (!patient?.id) return;
+    setLoadingCredit(true);
+    try {
+      const res = await fetch(`/api/credits/${patient.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setCreditBalanceCents(data.balance_cents || 0);
+      }
+    } catch (err) {
+      console.error('Load credit balance error:', err);
+    }
+    setLoadingCredit(false);
+  }
 
   async function loadSavedCards() {
     setLoadingCards(true);
@@ -906,6 +926,42 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
         console.error('Gift card redemption error:', error);
         setResultStatus('error');
         setResultMessage(error.message || 'Failed to redeem gift card');
+        setStep('result');
+      }
+      return;
+    }
+
+    // Account credit — deduct from patient's balance, record purchase
+    if (selectedCard === 'account_credit') {
+      if (creditBalanceCents < amount) return;
+      setStep('processing');
+      try {
+        const purchaseData = await recordPurchasesWithReturn({ payment_method: 'account_credit' });
+        const applyRes = await fetch('/api/credits/apply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            patient_id: patient.id,
+            amount_cents: amount,
+            purchase_id: purchaseData?.purchase?.id || null,
+            description: 'Applied at checkout (POS)',
+            created_by: 'pos',
+          }),
+        });
+        const applyData = await applyRes.json();
+        if (!applyRes.ok) throw new Error(applyData.error || 'Failed to apply credit');
+        await createProtocolsForPeptides();
+        const remaining = applyData.new_balance_cents ?? 0;
+        setResultStatus('success');
+        setResultMessage(
+          `Paid ${formatPrice(amount)} with Account Credit\n` +
+          `Remaining credit: ${formatPrice(remaining)}`
+        );
+        setStep('result');
+      } catch (error) {
+        console.error('Account credit error:', error);
+        setResultStatus('error');
+        setResultMessage(error.message || 'Failed to apply account credit');
         setStep('result');
       }
       return;
@@ -1920,6 +1976,46 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                 </div>
 
                 {/* Gift Card Option (not shown when buying a gift card) */}
+                {!isGiftCardPurchase() && creditBalanceCents > 0 && (
+                  <div style={modalStyles.cardList}>
+                    <label style={modalStyles.cardOption}>
+                      <input
+                        type="radio"
+                        name="payment_method"
+                        checked={selectedCard === 'account_credit'}
+                        onChange={() => setSelectedCard('account_credit')}
+                      />
+                      <span>💳 Account Credit</span>
+                    </label>
+                    {selectedCard === 'account_credit' && (
+                      <div style={{ padding: '12px 16px', borderTop: '1px solid #f0f0f0' }}>
+                        <div style={{ padding: '12px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 600, color: '#166534' }}>
+                              Balance: {formatPrice(creditBalanceCents)}
+                            </span>
+                            <span style={{ fontSize: '12px', color: '#15803d', background: '#dcfce7', padding: '2px 8px', borderRadius: '4px' }}>
+                              available
+                            </span>
+                          </div>
+                          {creditBalanceCents < amount ? (
+                            <div style={{ marginTop: '8px', fontSize: '13px', color: '#dc2626' }}>
+                              Insufficient credit. Balance is {formatPrice(creditBalanceCents)} but charge is {formatPrice(amount)}.
+                            </div>
+                          ) : (
+                            <div style={{ marginTop: '8px', fontSize: '13px', color: '#15803d' }}>
+                              This covers the full charge of {formatPrice(amount)}.
+                              {creditBalanceCents > amount && (
+                                <span> Remaining after: {formatPrice(creditBalanceCents - amount)}</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {!isGiftCardPurchase() && (
                   <div style={modalStyles.cardList}>
                     <label style={modalStyles.cardOption}>
@@ -2000,6 +2096,8 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                 disabled={
                   selectedCard === 'gift_card'
                     ? (!giftCardLookup || giftCardLookup.error || giftCardLookup.remaining_amount < finalAmount)
+                    : selectedCard === 'account_credit'
+                    ? (creditBalanceCents < finalAmount)
                     : (selectedCard !== 'cash' && !stripe)
                 }
               >
@@ -2007,6 +2105,8 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                   ? `Record Cash ${formatPrice(finalAmount)}`
                   : selectedCard === 'gift_card'
                   ? `Redeem Gift Card ${formatPrice(finalAmount)}`
+                  : selectedCard === 'account_credit'
+                  ? `Apply Credit ${formatPrice(finalAmount)}`
                   : isRecurring()
                   ? `Subscribe ${formatPrice(finalAmount)}/mo`
                   : `Pay ${formatPrice(finalAmount)}`

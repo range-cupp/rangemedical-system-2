@@ -300,6 +300,15 @@ export default function PatientProfile() {
   const [confirmDeletePurchase, setConfirmDeletePurchase] = useState(false);
   const [deletingPurchase, setDeletingPurchase] = useState(false);
 
+  // Add Credit modal state
+  const [showAddCreditModal, setShowAddCreditModal] = useState(false);
+  const [addCreditAmount, setAddCreditAmount] = useState('');
+  const [addCreditReason, setAddCreditReason] = useState('manual');
+  const [addCreditNote, setAddCreditNote] = useState('');
+  const [addCreditSaving, setAddCreditSaving] = useState(false);
+  const [creditBalanceCents, setCreditBalanceCents] = useState(0);
+  const [creditBalanceLoaded, setCreditBalanceLoaded] = useState(false);
+
   // Edit injection modal state
   const [editInjectionModal, setEditInjectionModal] = useState(null);
   const [editInjectionForm, setEditInjectionForm] = useState({ entry_date: '', dosage: '', weight: '', notes: '' });
@@ -413,6 +422,7 @@ export default function PatientProfile() {
       fetchTemplates();
       fetchPeptides();
       fetchLabDocuments();
+      fetchCreditBalance();
     }
   }, [id]);
 
@@ -542,6 +552,20 @@ export default function PatientProfile() {
       console.error('Error fetching saved cards:', err);
     } finally {
       setLoadingSavedCards(false);
+    }
+  };
+
+  const fetchCreditBalance = async () => {
+    if (!id) return;
+    try {
+      const res = await fetch(`/api/credits/${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setCreditBalanceCents(data.balance_cents || 0);
+        setCreditBalanceLoaded(true);
+      }
+    } catch (err) {
+      console.error('Error fetching credit balance:', err);
     }
   };
 
@@ -1745,6 +1769,15 @@ export default function PatientProfile() {
                       💳 {savedCards[0].brand.toUpperCase()} ····{savedCards[0].last4}
                     </span>
                   )}
+                  {creditBalanceLoaded && creditBalanceCents > 0 && (
+                    <span className="blooio-badge" style={{
+                      backgroundColor: '#dcfce7',
+                      color: '#166534',
+                      cursor: 'pointer',
+                    }} onClick={() => setShowAddCreditModal(true)} title="Account credit balance">
+                      🎁 ${(creditBalanceCents / 100).toFixed(2)} credit
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -1766,6 +1799,7 @@ export default function PatientProfile() {
               <div className="actions-cta">
                 <button onClick={() => setShowBookingModal(true)} className="action-btn action-btn-primary">Book</button>
                 <button onClick={() => setShowChargeModal(true)} className="action-btn action-btn-charge">Charge</button>
+                <button onClick={() => setShowAddCreditModal(true)} className="action-btn" style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0' }} title="Add account credit">+ Credit</button>
                 <button
                   onClick={async () => {
                     setGeneratingChart(true);
@@ -5092,6 +5126,106 @@ export default function PatientProfile() {
           patient={patient}
           stripePromise={stripePromise}
         />
+
+        {/* ==================== ADD CREDIT MODAL ==================== */}
+        {showAddCreditModal && (
+          <div className="modal-overlay" onClick={() => { setShowAddCreditModal(false); setAddCreditAmount(''); setAddCreditNote(''); setAddCreditReason('manual'); }}>
+            <div className="modal" style={{ maxWidth: 420 }} onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Add Account Credit</h3>
+                <button onClick={() => { setShowAddCreditModal(false); setAddCreditAmount(''); setAddCreditNote(''); setAddCreditReason('manual'); }} className="close-btn">&times;</button>
+              </div>
+              <div className="modal-body">
+                {creditBalanceCents > 0 && (
+                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 14, color: '#166534' }}>
+                    Current balance: <strong>${(creditBalanceCents / 100).toFixed(2)}</strong>
+                  </div>
+                )}
+                <div className="form-group" style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', fontWeight: 600, marginBottom: 6, fontSize: 13 }}>Amount ($)</label>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={addCreditAmount}
+                    onChange={e => setAddCreditAmount(e.target.value)}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 15, boxSizing: 'border-box' }}
+                    autoFocus
+                  />
+                </div>
+                <div className="form-group" style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', fontWeight: 600, marginBottom: 6, fontSize: 13 }}>Reason</label>
+                  <select
+                    value={addCreditReason}
+                    onChange={e => setAddCreditReason(e.target.value)}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+                  >
+                    <option value="manual">Manual adjustment</option>
+                    <option value="gift">Gift</option>
+                    <option value="refund">Refund / credit</option>
+                    <option value="loyalty">Loyalty reward</option>
+                    <option value="promotion">Promotion</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div className="form-group" style={{ marginBottom: 20 }}>
+                  <label style={{ display: 'block', fontWeight: 600, marginBottom: 6, fontSize: 13 }}>Note (optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Gift from JP Perarie"
+                    value={addCreditNote}
+                    onChange={e => setAddCreditNote(e.target.value)}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => { setShowAddCreditModal(false); setAddCreditAmount(''); setAddCreditNote(''); setAddCreditReason('manual'); }}
+                    style={{ padding: '8px 18px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer', fontWeight: 500 }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    disabled={addCreditSaving || !addCreditAmount || isNaN(Number(addCreditAmount)) || Number(addCreditAmount) <= 0}
+                    onClick={async () => {
+                      setAddCreditSaving(true);
+                      try {
+                        const res = await fetch('/api/credits/add', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            patient_id: patient.id,
+                            amount_dollars: addCreditAmount,
+                            reason: addCreditReason,
+                            description: addCreditNote || null,
+                            created_by: 'admin',
+                          }),
+                        });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.error || 'Failed to add credit');
+                        setCreditBalanceCents(data.new_balance_cents);
+                        setCreditBalanceLoaded(true);
+                        setShowAddCreditModal(false);
+                        setAddCreditAmount('');
+                        setAddCreditNote('');
+                        setAddCreditReason('manual');
+                        alert(`✅ $${Number(addCreditAmount).toFixed(2)} credit added. New balance: $${data.new_balance_dollars}`);
+                      } catch (err) {
+                        alert(`Error: ${err.message}`);
+                      } finally {
+                        setAddCreditSaving(false);
+                      }
+                    }}
+                    style={{ padding: '8px 20px', borderRadius: 6, border: 'none', background: addCreditSaving ? '#9ca3af' : '#166534', color: '#fff', cursor: addCreditSaving ? 'not-allowed' : 'pointer', fontWeight: 600 }}
+                  >
+                    {addCreditSaving ? 'Adding…' : 'Add Credit'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ==================== SEND PROGRESS MODAL ==================== */}
         {showSendProgressModal && sendProgressProtocol && (

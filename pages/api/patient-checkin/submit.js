@@ -102,23 +102,9 @@ export default async function handler(req, res) {
       logNotes += ` | Notes: ${notes.trim()}`;
     }
 
-    // For take-home patients, each check-in = 1 injection used
-    const newSessionsUsed = (protocol.sessions_used || 0) + 1;
     const totalSessions = protocol.total_sessions || 4;
-    const sessionsRemaining = totalSessions - newSessionsUsed;
 
-    const { error: updateProtocolError } = await supabase
-      .from('protocols')
-      .update({
-        sessions_used: newSessionsUsed,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', protocol.id);
-
-    if (updateProtocolError) {
-      console.error('Error updating protocol sessions:', updateProtocolError);
-    }
-
+    // Write to service_logs first so the recalculate below counts it
     // Create log entry in protocol_logs
     const { error: logError } = await supabase
       .from('protocol_logs')
@@ -157,6 +143,22 @@ export default async function handler(req, res) {
       console.error('Error creating service log:', serviceLogError);
     }
 
+    // Recalculate sessions_used from actual service_logs linked to this protocol
+    // This is the single source of truth — avoids counter drift from manual edits or merges
+    const { data: linkedLogs } = await supabase
+      .from('service_logs')
+      .select('id')
+      .eq('protocol_id', protocol.id)
+      .eq('entry_type', 'injection');
+
+    const newSessionsUsed = linkedLogs ? linkedLogs.length : (protocol.sessions_used || 0) + 1;
+    const sessionsRemaining = totalSessions - newSessionsUsed;
+
+    await supabase
+      .from('protocols')
+      .update({ sessions_used: newSessionsUsed, updated_at: new Date().toISOString() })
+      .eq('id', protocol.id);
+
     // Calculate weight change
     let weightChange = '';
     if (protocol.starting_weight) {
@@ -164,7 +166,8 @@ export default async function handler(req, res) {
       weightChange = change < 0 ? `↓ ${Math.abs(change).toFixed(1)} lbs` : `↑ ${change.toFixed(1)} lbs`;
     }
 
-    const isPaymentDue = newSessionsUsed > 0 && newSessionsUsed % 4 === 0;
+    // Payment due when 2 or fewer injections remain (gives advance notice)
+    const isPaymentDue = sessionsRemaining <= 2;
 
     // ── Staff SMS notifications (direct via Blooio/Twilio) ──
     let smsMessage = `📱 WL Check-in: ${patient.name}\n\nWeight: ${parsedWeight} lbs`;

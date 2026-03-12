@@ -2340,7 +2340,9 @@ export default function PatientProfile() {
                           <span style={{ color: '#374151' }}>—</span>
                           <span style={{ color: '#374151' }}>{p.program_name}:</span>
                           <span style={{ fontWeight: 500, color: isDue ? '#dc2626' : '#92400e' }}>
-                            {p.total_sessions ? `${sessionsUsed} of ${p.total_sessions} sessions used` : `${p.days_remaining}d left`}
+                            {p.total_sessions
+                              ? (remaining <= 0 ? 'no injections remaining' : `${remaining} injection${remaining === 1 ? '' : 's'} remaining`)
+                              : `${p.days_remaining}d left`}
                           </span>
                         </div>
                       );

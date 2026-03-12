@@ -2506,18 +2506,22 @@ export default function PatientProfile() {
             <>
               <section className="card">
                 <div className="card-header">
-                  <h3>Protocols ({activeProtocols.length + completedProtocols.length})</h3>
+                  <h3>Protocols ({activeProtocols.length + completedProtocols.filter(p => p.status !== 'merged').length})</h3>
                   <button onClick={() => openAssignModal()} className="btn-primary-sm">+ Add Protocol</button>
                 </div>
-                {activeProtocols.length === 0 && completedProtocols.length === 0 ? (
+                {activeProtocols.length === 0 && completedProtocols.filter(p => p.status !== 'merged').length === 0 ? (
                   <div className="empty">No protocols</div>
                 ) : (
                   <div className="protocol-list">
-                    {[...activeProtocols, ...completedProtocols].map(protocol => {
+                    {[...activeProtocols, ...completedProtocols].filter(p => p.status !== 'merged').map(protocol => {
                       const cat = getCategoryStyle(protocol.category);
                       const isExpanded = expandedProtocols[protocol.id];
                       const isWeightLoss = protocol.category === 'weight_loss';
-                      const wlLogs = isWeightLoss ? weightLossLogs.filter(l => l.protocol_id === protocol.id || !l.protocol_id) : [];
+                      const wlLogs = isWeightLoss
+                        ? weightLossLogs
+                            .filter(l => l.protocol_id === protocol.id || !l.protocol_id)
+                            .sort((a, b) => new Date(a.entry_date) - new Date(b.entry_date))
+                        : [];
                       const chartData = wlLogs.filter(l => l.weight).map(l => ({
                         date: new Date(l.entry_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
                         weight: parseFloat(l.weight),
@@ -2882,11 +2886,12 @@ export default function PatientProfile() {
                                 </div>
                               )}
 
-                              {/* Injection History Table */}
+                              {/* Injection Schedule Table — full slot view */}
                               <div className="wl-history">
                                 <table className="wl-table">
                                   <thead>
                                     <tr>
+                                      <th style={{ width: 28, color: '#9ca3af' }}>#</th>
                                       <th>Date</th>
                                       <th>Dose</th>
                                       <th>Weight</th>
@@ -2895,43 +2900,109 @@ export default function PatientProfile() {
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {wlLogs.flatMap((log, i) => {
-                                      const rows = [];
-                                      // Check for missed weeks between entries
-                                      if (i > 0) {
-                                        const prevDate = new Date(wlLogs[i - 1].entry_date + 'T00:00:00');
-                                        const curDate = new Date(log.entry_date + 'T00:00:00');
-                                        const daysBetween = Math.round((curDate - prevDate) / (1000 * 60 * 60 * 24));
-                                        const missedWeeks = Math.floor(daysBetween / 7) - 1;
-                                        for (let m = 1; m <= missedWeeks; m++) {
-                                          const missedDate = new Date(prevDate);
-                                          missedDate.setDate(missedDate.getDate() + (m * 7));
-                                          rows.push(
-                                            <tr key={'missed-' + i + '-' + m} style={{ background: '#fef2f2' }}>
-                                              <td style={{ color: '#dc2626' }}>{formatShortDate(missedDate.toISOString().split('T')[0])}</td>
-                                              <td colSpan={4} style={{ color: '#dc2626', fontStyle: 'italic', textAlign: 'center' }}>Missed</td>
+                                    {(() => {
+                                      const totalSlots = protocol.total_sessions;
+                                      const startStr = protocol.start_date;
+                                      const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+                                      const todayDate = new Date(todayStr + 'T12:00:00');
+
+                                      // If no schedule defined, fall back to simple list of actual logs
+                                      if (!totalSlots || !startStr) {
+                                        return wlLogs.map((log, i) => {
+                                          const prevWeight = i > 0 && wlLogs[i - 1].weight ? parseFloat(wlLogs[i - 1].weight) : null;
+                                          const curWeight = log.weight ? parseFloat(log.weight) : null;
+                                          const delta = prevWeight && curWeight ? (curWeight - prevWeight).toFixed(1) : null;
+                                          return (
+                                            <tr key={log.id} className="wl-editable-row" onClick={() => openEditInjection(log)} title="Click to edit">
+                                              <td style={{ color: '#9ca3af', fontSize: 12 }}>{i + 1}</td>
+                                              <td>{formatShortDate(log.entry_date)}</td>
+                                              <td>{log.dosage || '—'}</td>
+                                              <td>{log.weight ? `${log.weight} lbs` : '—'}</td>
+                                              <td style={{ color: delta && parseFloat(delta) < 0 ? '#16a34a' : delta && parseFloat(delta) > 0 ? '#dc2626' : '#666' }}>{delta ? (parseFloat(delta) > 0 ? `+${delta}` : delta) + ' lbs' : '—'}</td>
+                                              <td style={{ textAlign: 'center' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></td>
+                                            </tr>
+                                          );
+                                        });
+                                      }
+
+                                      // Build full slot schedule
+                                      const freqLower = (protocol.frequency || '').toLowerCase();
+                                      const intervalDays = freqLower.includes('bi') ? 14 : 7;
+                                      const startDate = new Date(startStr + 'T12:00:00');
+                                      const usedIds = new Set();
+
+                                      const slots = Array.from({ length: totalSlots }, (_, i) => {
+                                        const expDate = new Date(startDate);
+                                        expDate.setDate(expDate.getDate() + i * intervalDays);
+                                        const expStr = expDate.toISOString().split('T')[0];
+                                        const matchLog = wlLogs.find(l => {
+                                          if (usedIds.has(l.id)) return false;
+                                          const d = new Date(l.entry_date + 'T12:00:00');
+                                          return Math.abs(d - expDate) <= 4 * 24 * 60 * 60 * 1000;
+                                        });
+                                        if (matchLog) usedIds.add(matchLog.id);
+                                        return { num: i + 1, expDate, expStr, log: matchLog || null, isFuture: expDate > todayDate };
+                                      });
+
+                                      const rows = slots.map(slot => {
+                                        if (slot.log) {
+                                          const prevSlot = slots.slice(0, slot.num - 1).reverse().find(s => s.log);
+                                          const prevWeight = prevSlot?.log?.weight ? parseFloat(prevSlot.log.weight) : null;
+                                          const curWeight = slot.log.weight ? parseFloat(slot.log.weight) : null;
+                                          const delta = prevWeight && curWeight ? (curWeight - prevWeight).toFixed(1) : null;
+                                          return (
+                                            <tr key={slot.log.id} className="wl-editable-row" onClick={() => openEditInjection(slot.log)} title="Click to edit or delete">
+                                              <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
+                                              <td>{formatShortDate(slot.log.entry_date)}</td>
+                                              <td>{slot.log.dosage || '—'}</td>
+                                              <td>{slot.log.weight ? `${slot.log.weight} lbs` : '—'}</td>
+                                              <td style={{ color: delta && parseFloat(delta) < 0 ? '#16a34a' : delta && parseFloat(delta) > 0 ? '#dc2626' : '#666' }}>{delta ? (parseFloat(delta) > 0 ? `+${delta}` : delta) + ' lbs' : '—'}</td>
+                                              <td style={{ textAlign: 'center' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></td>
+                                            </tr>
+                                          );
+                                        } else if (!slot.isFuture) {
+                                          return (
+                                            <tr key={'missed-' + slot.num} style={{ background: '#fef2f2', cursor: 'pointer' }}
+                                              onClick={() => { openLogEntryModal(protocol, null); setLogEntryDate(slot.expStr); }}
+                                              title="Click to log this injection">
+                                              <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
+                                              <td style={{ color: '#dc2626' }}>{formatShortDate(slot.expStr)}</td>
+                                              <td colSpan={3} style={{ color: '#dc2626', fontStyle: 'italic' }}>Missed — click to add</td>
+                                              <td style={{ textAlign: 'center', color: '#dc2626', fontWeight: 700, fontSize: 16 }}>+</td>
+                                            </tr>
+                                          );
+                                        } else {
+                                          return (
+                                            <tr key={'future-' + slot.num} style={{ opacity: 0.35 }}>
+                                              <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
+                                              <td style={{ color: '#9ca3af' }}>{formatShortDate(slot.expStr)}</td>
+                                              <td colSpan={3} style={{ color: '#9ca3af', fontStyle: 'italic' }}>Upcoming</td>
+                                              <td></td>
                                             </tr>
                                           );
                                         }
-                                      }
-                                      const prevWeight = i > 0 && wlLogs[i - 1].weight ? parseFloat(wlLogs[i - 1].weight) : null;
-                                      const curWeight = log.weight ? parseFloat(log.weight) : null;
-                                      const delta = prevWeight && curWeight ? (curWeight - prevWeight).toFixed(1) : null;
-                                      rows.push(
-                                        <tr key={log.id || log.entry_date + i} className="wl-editable-row" onClick={() => openEditInjection(log)} title="Click to edit">
-                                          <td>{formatShortDate(log.entry_date)}</td>
-                                          <td>{log.dosage || '—'}</td>
-                                          <td>{log.weight ? `${log.weight} lbs` : '—'}</td>
-                                          <td style={{ color: delta && parseFloat(delta) < 0 ? '#16a34a' : delta && parseFloat(delta) > 0 ? '#dc2626' : '#666' }}>
-                                            {delta ? (parseFloat(delta) > 0 ? `+${delta}` : delta) + ' lbs' : i === 0 ? '—' : '—'}
-                                          </td>
-                                          <td style={{ textAlign: 'center' }}>
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
-                                          </td>
-                                        </tr>
-                                      );
+                                      });
+
+                                      // Append any unmatched logs (don't fall in any expected slot)
+                                      wlLogs.filter(l => !usedIds.has(l.id)).forEach((log, i) => {
+                                        const prevSlot = slots.filter(s => s.log).reverse()[0];
+                                        const prevWeight = prevSlot?.log?.weight ? parseFloat(prevSlot.log.weight) : null;
+                                        const curWeight = log.weight ? parseFloat(log.weight) : null;
+                                        const delta = prevWeight && curWeight ? (curWeight - prevWeight).toFixed(1) : null;
+                                        rows.push(
+                                          <tr key={'extra-' + log.id} className="wl-editable-row" onClick={() => openEditInjection(log)} title="Click to edit or delete">
+                                            <td style={{ color: '#9ca3af', fontSize: 12 }}>+</td>
+                                            <td>{formatShortDate(log.entry_date)}</td>
+                                            <td>{log.dosage || '—'}</td>
+                                            <td>{log.weight ? `${log.weight} lbs` : '—'}</td>
+                                            <td style={{ color: delta && parseFloat(delta) < 0 ? '#16a34a' : delta && parseFloat(delta) > 0 ? '#dc2626' : '#666' }}>{delta ? (parseFloat(delta) > 0 ? `+${delta}` : delta) + ' lbs' : '—'}</td>
+                                            <td style={{ textAlign: 'center' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></td>
+                                          </tr>
+                                        );
+                                      });
+
                                       return rows;
-                                    })}
+                                    })()}
                                   </tbody>
                                 </table>
                               </div>

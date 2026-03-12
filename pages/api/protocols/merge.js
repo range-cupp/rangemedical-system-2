@@ -132,7 +132,28 @@ export default async function handler(req, res) {
       .update({ protocol_id: targetId })
       .eq('protocol_id', sourceId);
 
-    console.log(`[merge] Protocol ${sourceId} merged into ${targetId}. Combined sessions: ${combinedSessions}`);
+    // 6. Re-link service_logs from source → target (fixes weight loss injection history)
+    await supabase
+      .from('service_logs')
+      .update({ protocol_id: targetId })
+      .eq('protocol_id', sourceId);
+
+    // 7. Recalculate sessions_used on target from actual service_logs count
+    const { data: svcLogs } = await supabase
+      .from('service_logs')
+      .select('id')
+      .eq('protocol_id', targetId)
+      .neq('entry_type', 'pickup')
+      .neq('entry_type', 'med_pickup');
+
+    const recalcSessions = svcLogs ? svcLogs.length : combinedSessions;
+
+    await supabase
+      .from('protocols')
+      .update({ sessions_used: recalcSessions, updated_at: new Date().toISOString() })
+      .eq('id', targetId);
+
+    console.log(`[merge] Protocol ${sourceId} merged into ${targetId}. Combined sessions: ${combinedSessions}, recalculated from service_logs: ${recalcSessions}`);
 
     return res.status(200).json({
       success: true,

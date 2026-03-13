@@ -165,7 +165,7 @@ async function handleInboundMessage(body) {
         .from('patients')
         .select('id, name, first_name, last_name, phone, ghl_contact_id')
         .ilike('phone', `%${areaCode}%`)
-        .limit(200);
+        .limit(500);
 
       if (candidates?.length) {
         const found = candidates.find(p => {

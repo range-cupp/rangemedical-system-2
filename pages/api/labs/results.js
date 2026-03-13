@@ -77,10 +77,10 @@ export default async function handler(req, res) {
       const meta = biomarkerMap[key];
       const range = rangesMap[key] || {};
 
-      const refLow = range.ref_low ?? range.reference_low ?? null;
-      const refHigh = range.ref_high ?? range.reference_high ?? null;
-      const optLow = range.optimal_low ?? null;
-      const optHigh = range.optimal_high ?? null;
+      const refLow = range.min_value ?? range.ref_low ?? range.reference_low ?? null;
+      const refHigh = range.max_value ?? range.ref_high ?? range.reference_high ?? null;
+      const optLow = range.optimal_min ?? range.optimal_low ?? null;
+      const optHigh = range.optimal_max ?? range.optimal_high ?? null;
 
       results.push({
         biomarker_key: key,

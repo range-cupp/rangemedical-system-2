@@ -1149,6 +1149,20 @@ export default function PatientProfile() {
       if (data.success) {
         setShowLogEntryModal(false);
         fetchPatient();
+      } else if (data.duplicate) {
+        // Duplicate entry detected — ask user if they want to force
+        const forceIt = confirm(`This entry was already logged for today. Log another entry anyway?`);
+        if (forceIt) {
+          payload.force = true;
+          const res2 = await fetch('/api/service-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+          const data2 = await res2.json();
+          if (data2.success) {
+            setShowLogEntryModal(false);
+            fetchPatient();
+          } else {
+            alert('Error: ' + (data2.error || 'Failed to log entry'));
+          }
+        }
       } else {
         alert('Error: ' + (data.error || 'Failed to log entry'));
       }

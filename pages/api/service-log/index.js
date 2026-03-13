@@ -239,11 +239,13 @@ async function handlePost(req, res) {
       const { data: existingEntries } = await dupQuery.limit(3);
 
       if (existingEntries && existingEntries.length > 0) {
+        const dupMsg = `A ${resolvedEntryType} for this patient was already logged on ${logDate}${medication ? ` (${medication})` : ''}. Use force:true to log anyway.`;
         return res.status(409).json({
           success: false,
           duplicate: true,
           existing: existingEntries,
-          message: `A ${resolvedEntryType} for this patient was already logged on ${logDate}${medication ? ` (${medication})` : ''}.`
+          error: dupMsg,
+          message: dupMsg
         });
       }
     }

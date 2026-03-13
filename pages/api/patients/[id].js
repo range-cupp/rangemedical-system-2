@@ -511,7 +511,7 @@ export default async function handler(req, res) {
       if (protocolIds.length > 0) {
         const { data: pLogs } = await supabase
           .from('protocol_logs')
-          .select('id, protocol_id, log_type, log_date, weight, dosage, notes, created_at')
+          .select('id, protocol_id, log_type, log_date, weight, dose, notes, created_at')
           .in('protocol_id', protocolIds)
           .order('log_date', { ascending: true });
         protocolLogs = pLogs || [];

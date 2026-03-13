@@ -254,8 +254,6 @@ export default function PatientProfile() {
   const [subscriptions, setSubscriptions] = useState([]);
   const [medications, setMedications] = useState([]);
   const [prescriptions, setPrescriptions] = useState([]);
-  const [profilePhoto, setProfilePhoto] = useState(null);
-  const [extractingPhoto, setExtractingPhoto] = useState(false);
   const [stats, setStats] = useState({});
   const [hrtLabSchedules, setHrtLabSchedules] = useState({});
   const [cycleInfo, setCycleInfo] = useState(null);
@@ -522,7 +520,6 @@ export default function PatientProfile() {
         setSubscriptions(data.subscriptions || []);
         setMedications(data.medications || []);
         setPrescriptions(data.prescriptions || []);
-        setProfilePhoto(data.patient.profile_photo_url || null);
         setStats(data.stats || {});
 
         // Fetch saved cards (non-blocking)
@@ -886,30 +883,6 @@ export default function PatientProfile() {
       return `${fullName} ("${patient.preferred_name}")`;
     }
     return fullName;
-  };
-
-  // Extract face from photo ID using AI
-  const handleExtractPhoto = async () => {
-    const photoIdUrl = intakes.find(i => i.photo_id_url)?.photo_id_url;
-    if (!photoIdUrl) return;
-    setExtractingPhoto(true);
-    try {
-      const res = await fetch('/api/patients/extract-photo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ patient_id: id, photo_id_url: photoIdUrl }),
-      });
-      const data = await res.json();
-      if (data.success && data.profile_photo_url) {
-        setProfilePhoto(data.profile_photo_url);
-      } else {
-        console.error('Photo extraction failed:', data.error);
-      }
-    } catch (err) {
-      console.error('Photo extraction error:', err);
-    } finally {
-      setExtractingPhoto(false);
-    }
   };
 
   const getCategoryStyle = (category) => CATEGORY_COLORS[category] || CATEGORY_COLORS.other;
@@ -1891,27 +1864,20 @@ export default function PatientProfile() {
                   router.push('/admin/patients');
                 }
               }} className="back-btn"><span className="back-arrow">←</span><span className="back-text">Back</span></button>
-              {/* Patient Avatar */}
-              <div className="patient-avatar-wrapper">
-                {profilePhoto ? (
-                  <img src={profilePhoto} alt="" className="patient-avatar" onClick={() => {
-                    const photoIdUrl = intakes.find(i => i.photo_id_url)?.photo_id_url;
-                    if (photoIdUrl) openPdfViewer(photoIdUrl, 'Photo ID');
-                  }} style={{ cursor: intakes.find(i => i.photo_id_url) ? 'pointer' : 'default' }} />
-                ) : extractingPhoto ? (
-                  <div className="patient-avatar patient-avatar-loading">
-                    <span className="avatar-spinner"></span>
-                  </div>
-                ) : intakes.find(i => i.photo_id_url) ? (
-                  <button className="patient-avatar patient-avatar-extract" onClick={handleExtractPhoto} title="Extract photo from ID">
-                    <span style={{ fontSize: 18 }}>📷</span>
-                  </button>
-                ) : (
-                  <div className="patient-avatar patient-avatar-initials">
-                    {(patient?.first_name?.[0] || patient?.name?.[0] || '?').toUpperCase()}
-                  </div>
-                )}
-              </div>
+              {/* Photo ID Badge */}
+              {intakes.find(i => i.photo_id_url) ? (
+                <button className="photo-id-badge" onClick={() => {
+                  const photoIdUrl = intakes.find(i => i.photo_id_url)?.photo_id_url;
+                  if (photoIdUrl) openPdfViewer(photoIdUrl, 'Photo ID');
+                }} title="View Photo ID">
+                  <span className="photo-id-icon">🪪</span>
+                  <span className="photo-id-label">Photo ID</span>
+                </button>
+              ) : (
+                <div className="photo-id-badge photo-id-empty">
+                  <span className="photo-id-initials">{(patient?.first_name?.[0] || patient?.name?.[0] || '?').toUpperCase()}</span>
+                </div>
+              )}
               <div className="header-identity">
                 <h1>{getPatientDisplayName()}</h1>
                 <div className="contact-row">
@@ -6640,56 +6606,55 @@ export default function PatientProfile() {
           gap: 12px;
           min-width: 0;
         }
-        .patient-avatar-wrapper {
+        .photo-id-badge {
           flex-shrink: 0;
-          margin-top: 1px;
-        }
-        .patient-avatar {
           width: 52px;
           height: 52px;
           border-radius: 50%;
-          object-fit: cover;
-          border: 2px solid #e2e8f0;
           display: flex;
+          flex-direction: column;
           align-items: center;
           justify-content: center;
+          background: #f8fafc;
+          border: 2px solid #e2e8f0;
+          cursor: pointer;
           transition: all 0.15s;
+          gap: 1px;
+          padding: 0;
+          font-family: inherit;
         }
-        .patient-avatar:hover {
+        .photo-id-badge:hover {
           border-color: #94a3b8;
-          box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.15);
+          background: #f1f5f9;
+          box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.12);
         }
-        .patient-avatar-initials {
+        .photo-id-icon {
+          font-size: 16px;
+          line-height: 1;
+        }
+        .photo-id-label {
+          font-size: 8px;
+          font-weight: 600;
+          color: #64748b;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+          line-height: 1;
+        }
+        .photo-id-empty {
           background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
-          color: #4338ca;
+          border-color: #c7d2fe;
+          cursor: default;
+        }
+        .photo-id-empty:hover {
+          border-color: #c7d2fe;
+          background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+          box-shadow: none;
+        }
+        .photo-id-initials {
           font-size: 20px;
           font-weight: 700;
-          border: 2px solid #c7d2fe;
-        }
-        .patient-avatar-extract {
-          background: #f8fafc;
-          border: 2px dashed #cbd5e1;
-          cursor: pointer;
-          padding: 0;
-        }
-        .patient-avatar-extract:hover {
-          background: #f1f5f9;
-          border-color: #94a3b8;
-        }
-        .patient-avatar-loading {
-          background: #f1f5f9;
-          border: 2px solid #e2e8f0;
-        }
-        .avatar-spinner {
-          width: 20px;
-          height: 20px;
-          border: 2px solid #e2e8f0;
-          border-top-color: #6366f1;
-          border-radius: 50%;
-          animation: avatarSpin 0.8s linear infinite;
-        }
-        @keyframes avatarSpin {
-          to { transform: rotate(360deg); }
+          color: #4338ca;
+          line-height: 1;
         }
         .back-btn {
           background: none;

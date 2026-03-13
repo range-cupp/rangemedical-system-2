@@ -252,6 +252,8 @@ export default function PatientProfile() {
   const [allPurchases, setAllPurchases] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [subscriptions, setSubscriptions] = useState([]);
+  const [medications, setMedications] = useState([]);
+  const [prescriptions, setPrescriptions] = useState([]);
   const [stats, setStats] = useState({});
   const [hrtLabSchedules, setHrtLabSchedules] = useState({});
   const [cycleInfo, setCycleInfo] = useState(null);
@@ -516,6 +518,8 @@ export default function PatientProfile() {
         setAllPurchases(data.allPurchases || []);
         setInvoices(data.invoices || []);
         setSubscriptions(data.subscriptions || []);
+        setMedications(data.medications || []);
+        setPrescriptions(data.prescriptions || []);
         setStats(data.stats || {});
 
         // Fetch saved cards (non-blocking)
@@ -1903,8 +1907,8 @@ export default function PatientProfile() {
                 {(() => {
                   const encounterCount = (appointments || []).filter(a => new Date(a.start_time) < new Date() && (a.encounter_note_count || 0) > 0).length;
                   return encounterCount > 0 ? (
-                    <button onClick={() => setShowQuickView(true)} className="action-btn" title="Quick view of past encounters" style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', color: '#6d28d9', padding: 0, fontWeight: 600 }}>
-                      Encounters <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 10, background: '#ede9fe', color: '#6d28d9', fontWeight: 700, marginLeft: 3 }}>{encounterCount}</span>
+                    <button onClick={() => setShowQuickView(true)} className="action-btn" title="Quick view of encounters & protocols" style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', color: '#6d28d9', padding: 0, fontWeight: 600 }}>
+                      Quick View <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 10, background: '#ede9fe', color: '#6d28d9', fontWeight: 700, marginLeft: 3 }}>{encounterCount}</span>
                     </button>
                   ) : null;
                 })()}
@@ -2237,18 +2241,34 @@ export default function PatientProfile() {
         )}
 
         {/* Tab Navigation */}
-        <nav className="tabs">
-          <button className={activeTab === 'overview' ? 'active' : ''} onClick={() => setActiveTab('overview')}>Overview</button>
-          <button className={activeTab === 'protocols' ? 'active' : ''} onClick={() => setActiveTab('protocols')}>Protocols{stats.activeCount > 0 && <span className="tab-count">{stats.activeCount}</span>}</button>
-          <button className={activeTab === 'timeline' ? 'active' : ''} onClick={() => { setActiveTab('timeline'); if (timeline.length === 0) fetchTimeline(); }}>Timeline</button>
-          <button className={activeTab === 'labs' ? 'active' : ''} onClick={() => setActiveTab('labs')}>Labs</button>
-          <button className={activeTab === 'appointments' ? 'active' : ''} onClick={() => setActiveTab('appointments')}>Visits{(appointments.length + serviceLogs.length) > 0 && <span className="tab-count">{appointments.length + serviceLogs.length}</span>}</button>
-          <button className={activeTab === 'intakes' ? 'active' : ''} onClick={() => setActiveTab('intakes')}>Docs{(intakes.length + consents.length + medicalDocuments.length + assessments.length) > 0 && <span className="tab-count">{intakes.length + consents.length + medicalDocuments.length + assessments.length}</span>}</button>
-          <button className={activeTab === 'notes' ? 'active' : ''} onClick={() => setActiveTab('notes')}>Notes{notes.length > 0 && <span className="tab-count">{notes.length}</span>}</button>
-          <button className={activeTab === 'tasks' ? 'active' : ''} onClick={() => setActiveTab('tasks')}>Tasks{patientTasks.filter(t => t.status === 'pending').length > 0 && <span className="tab-count">{patientTasks.filter(t => t.status === 'pending').length}</span>}</button>
-          <button className={activeTab === 'symptoms' ? 'active' : ''} onClick={() => setActiveTab('symptoms')}>Symptoms{questionnaireResponses.length > 0 && <span className="tab-count">{questionnaireResponses.length}</span>}</button>
-          <button className={activeTab === 'payments' ? 'active' : ''} onClick={() => setActiveTab('payments')}>Payments</button>
-          <button className={activeTab === 'communications' ? 'active' : ''} onClick={() => setActiveTab('communications')}>Comms</button>
+        <nav className="px-tabs">
+          {[
+            { key: 'overview', label: 'Overview', icon: '📋' },
+            { key: 'protocols', label: 'Protocols', icon: '💊', count: stats.activeCount || 0 },
+            { key: 'medications', label: 'Medications', icon: '💉', count: (medications.length + prescriptions.length) || 0 },
+            { key: 'labs', label: 'Labs', icon: '🔬' },
+            { key: 'appointments', label: 'Visits', icon: '📅', count: (appointments.length + serviceLogs.length) || 0 },
+            { key: 'timeline', label: 'Timeline', icon: '📊' },
+            { key: 'notes', label: 'Notes', icon: '📝', count: notes.length || 0 },
+            { key: 'intakes', label: 'Docs', icon: '📄', count: (intakes.length + consents.length + medicalDocuments.length + assessments.length) || 0 },
+            { key: 'tasks', label: 'Tasks', icon: '✅', count: patientTasks.filter(t => t.status === 'pending').length || 0 },
+            { key: 'symptoms', label: 'Symptoms', icon: '🩺', count: questionnaireResponses.length || 0 },
+            { key: 'payments', label: 'Payments', icon: '💳' },
+            { key: 'communications', label: 'Comms', icon: '💬' },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              className={activeTab === tab.key ? 'active' : ''}
+              onClick={() => {
+                setActiveTab(tab.key);
+                if (tab.key === 'timeline' && timeline.length === 0) fetchTimeline();
+              }}
+            >
+              <span className="px-tab-icon">{tab.icon}</span>
+              <span className="px-tab-label">{tab.label}</span>
+              {tab.count > 0 && <span className="px-tab-count">{tab.count}</span>}
+            </button>
+          ))}
         </nav>
 
         {/* Tab Content */}
@@ -2696,6 +2716,136 @@ export default function PatientProfile() {
                           <span>{formatDate(intake.submitted_at)}</span>
                         </div>
                         <span className="intake-arrow">→</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
+          )}
+
+          {/* Medications Tab */}
+          {activeTab === 'medications' && (
+            <>
+              {/* Active Medications */}
+              <section className="card">
+                <div className="card-header">
+                  <h3>Active Medications ({medications.filter(m => m.is_active).length})</h3>
+                </div>
+                {medications.filter(m => m.is_active).length === 0 ? (
+                  <div className="empty">No active medications</div>
+                ) : (
+                  <div style={{ padding: '0 16px 12px' }}>
+                    {medications.filter(m => m.is_active).map(med => (
+                      <div key={med.id} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                        padding: '12px 14px', marginBottom: '8px',
+                        background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0',
+                      }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600, fontSize: '14px', color: '#0f172a' }}>
+                            {med.medication_name || med.trade_name || med.generic_name}
+                          </div>
+                          {med.strength && (
+                            <div style={{ fontSize: '13px', color: '#475569', marginTop: '2px' }}>{med.strength}{med.form ? ` · ${med.form}` : ''}</div>
+                          )}
+                          {med.sig && (
+                            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px', fontStyle: 'italic' }}>Sig: {med.sig}</div>
+                          )}
+                          <div style={{ display: 'flex', gap: '12px', marginTop: '6px', flexWrap: 'wrap' }}>
+                            {med.start_date && (
+                              <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                                Started {new Date(med.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </span>
+                            )}
+                            {med.source && (
+                              <span style={{ fontSize: '11px', color: '#94a3b8' }}>Source: {med.source}</span>
+                            )}
+                          </div>
+                        </div>
+                        <span style={{
+                          padding: '3px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 600,
+                          background: '#dcfce7', color: '#166534', whiteSpace: 'nowrap',
+                        }}>Active</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {/* Prescriptions */}
+              <section className="card">
+                <div className="card-header">
+                  <h3>Prescriptions ({prescriptions.length})</h3>
+                </div>
+                {prescriptions.length === 0 ? (
+                  <div className="empty">No prescriptions on file</div>
+                ) : (
+                  <div style={{ padding: '0 16px 12px' }}>
+                    {prescriptions.map(rx => (
+                      <div key={rx.id} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                        padding: '12px 14px', marginBottom: '8px',
+                        background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0',
+                      }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600, fontSize: '14px', color: '#0f172a' }}>
+                            {rx.medication_name}
+                            {rx.strength && <span style={{ fontWeight: 400, color: '#475569' }}> {rx.strength}</span>}
+                          </div>
+                          {rx.sig && (
+                            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px', fontStyle: 'italic' }}>Sig: {rx.sig}</div>
+                          )}
+                          <div style={{ display: 'flex', gap: '12px', marginTop: '6px', flexWrap: 'wrap' }}>
+                            {rx.quantity && <span style={{ fontSize: '11px', color: '#64748b' }}>Qty: {rx.quantity}</span>}
+                            {rx.refills > 0 && <span style={{ fontSize: '11px', color: '#64748b' }}>Refills: {rx.refills}</span>}
+                            {rx.days_supply && <span style={{ fontSize: '11px', color: '#64748b' }}>{rx.days_supply}-day supply</span>}
+                            {rx.created_by && <span style={{ fontSize: '11px', color: '#94a3b8' }}>by {rx.created_by.split('@')[0]}</span>}
+                            <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                              {new Date(rx.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </span>
+                          </div>
+                          {rx.is_controlled && (
+                            <div style={{ marginTop: '6px', padding: '3px 8px', display: 'inline-block', borderRadius: '4px', background: '#fef2f2', border: '1px solid #fecaca', fontSize: '11px', fontWeight: 600, color: '#dc2626' }}>
+                              ⚠ Controlled{rx.schedule ? ` (${rx.schedule})` : ''}
+                            </div>
+                          )}
+                        </div>
+                        <span style={{
+                          padding: '3px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap',
+                          background: rx.status === 'signed' ? '#dcfce7' : rx.status === 'sent' ? '#dbeafe' : '#f3f4f6',
+                          color: rx.status === 'signed' ? '#166534' : rx.status === 'sent' ? '#1e40af' : '#6b7280',
+                        }}>{rx.status || 'draft'}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {/* Discontinued Medications */}
+              {medications.filter(m => !m.is_active).length > 0 && (
+                <section className="card">
+                  <div className="card-header">
+                    <h3 style={{ color: '#94a3b8' }}>Discontinued ({medications.filter(m => !m.is_active).length})</h3>
+                  </div>
+                  <div style={{ padding: '0 16px 12px' }}>
+                    {medications.filter(m => !m.is_active).map(med => (
+                      <div key={med.id} style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                        padding: '10px 14px', marginBottom: '6px',
+                        background: '#fafafa', borderRadius: '8px', border: '1px solid #f1f5f9', opacity: 0.7,
+                      }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 500, fontSize: '13px', color: '#64748b', textDecoration: 'line-through' }}>
+                            {med.medication_name || med.trade_name || med.generic_name}
+                            {med.strength && <span> {med.strength}</span>}
+                          </div>
+                          <div style={{ display: 'flex', gap: '12px', marginTop: '4px', flexWrap: 'wrap' }}>
+                            {med.stop_date && <span style={{ fontSize: '11px', color: '#94a3b8' }}>Stopped {new Date(med.stop_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>}
+                            {med.discontinued_reason && <span style={{ fontSize: '11px', color: '#94a3b8' }}>{med.discontinued_reason}</span>}
+                          </div>
+                        </div>
+                        <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, background: '#f3f4f6', color: '#94a3b8', whiteSpace: 'nowrap' }}>Discontinued</span>
                       </div>
                     ))}
                   </div>
@@ -6702,52 +6852,61 @@ export default function PatientProfile() {
         .pending-info span { font-size: 13px; color: #666; }
         .pending-actions { display: flex; gap: 8px; }
 
-        /* Tabs */
-        .tabs {
+        /* Tabs — Epic-style */
+        .px-tabs {
           display: flex;
-          gap: 0;
+          gap: 2px;
           margin-bottom: 20px;
-          border-bottom: 1px solid #e5e7eb;
+          background: #f1f5f9;
+          border-radius: 10px;
+          padding: 3px;
           overflow-x: auto;
           -webkit-overflow-scrolling: touch;
           scrollbar-width: none;
         }
-        .tabs::-webkit-scrollbar { display: none; }
-        .tabs button {
-          padding: 10px 14px;
+        .px-tabs::-webkit-scrollbar { display: none; }
+        .px-tabs button {
+          padding: 8px 12px;
           border: none;
           background: none;
-          font-size: 13px;
+          font-size: 12px;
           font-weight: 500;
-          color: #9ca3af;
+          color: #64748b;
           cursor: pointer;
-          border-bottom: 2px solid transparent;
-          margin-bottom: -1px;
+          border-radius: 7px;
           white-space: nowrap;
-          transition: color 0.15s;
+          transition: all 0.15s;
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 5px;
           flex-shrink: 0;
         }
-        .tabs button:hover { color: #374151; }
-        .tabs button.active {
-          color: #111;
-          border-bottom-color: #2563eb;
+        .px-tabs button:hover { background: rgba(255,255,255,0.6); color: #334155; }
+        .px-tabs button.active {
+          background: #fff;
+          color: #0f172a;
           font-weight: 600;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
-        .tab-count {
+        .px-tab-icon {
+          font-size: 13px;
+          line-height: 1;
+        }
+        .px-tab-label {
+          line-height: 1;
+        }
+        .px-tab-count {
           font-size: 10px;
-          font-weight: 600;
-          background: #f3f4f6;
-          color: #6b7280;
+          font-weight: 700;
+          background: #e2e8f0;
+          color: #475569;
           padding: 1px 6px;
           border-radius: 10px;
           min-width: 18px;
           text-align: center;
-          line-height: 1.4;
+          line-height: 1.5;
         }
-        .tabs button.active .tab-count {
+        .px-tabs button.active .px-tab-count {
           background: #dbeafe;
           color: #2563eb;
         }
@@ -7819,7 +7978,7 @@ export default function PatientProfile() {
           .demographics-grid { grid-template-columns: repeat(2, 1fr); }
           .demographics-edit-grid { grid-template-columns: repeat(2, 1fr); }
           .demographics-preview { gap: 8px; font-size: 11px; }
-          .tabs button { padding: 10px 12px; font-size: 12px; }
+          .px-tabs button { padding: 7px 10px; font-size: 11px; }
           .pending-card { flex-direction: column; gap: 12px; align-items: flex-start; }
           .protocol-row { flex-direction: column; align-items: flex-start; gap: 8px; }
           .intake-detail-grid { grid-template-columns: 1fr; }
@@ -7841,8 +8000,9 @@ export default function PatientProfile() {
           .demographics-edit-grid { grid-template-columns: 1fr; }
           .demographics-preview { flex-direction: column; gap: 2px; }
           .demographics-preview span + span::before { display: none; }
-          .tabs button { padding: 8px 10px; font-size: 12px; }
-          .tab-count { font-size: 9px; padding: 1px 5px; }
+          .px-tabs button { padding: 6px 8px; font-size: 10px; gap: 3px; }
+          .px-tab-icon { font-size: 12px; }
+          .px-tab-count { font-size: 9px; padding: 1px 4px; }
           .card-header { padding: 12px 14px; }
           .pending-actions { width: 100%; }
           .pending-actions button { flex: 1; }

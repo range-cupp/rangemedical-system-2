@@ -558,6 +558,21 @@ export default async function handler(req, res) {
         .eq('patient_id', id)
         .order('started_at', { ascending: false });
 
+      // ===== Medications (PF import + manual) =====
+      const { data: medications } = await supabase
+        .from('patient_medications')
+        .select('*')
+        .eq('patient_id', id)
+        .order('is_active', { ascending: false })
+        .order('medication_name', { ascending: true });
+
+      // ===== Prescriptions =====
+      const { data: prescriptions } = await supabase
+        .from('prescriptions')
+        .select('*')
+        .eq('patient_id', id)
+        .order('created_at', { ascending: false });
+
       // ===== Get patient notes =====
       let patientNotes = null;
       const { data: notesData, error: notesErr } = await supabase
@@ -724,6 +739,8 @@ export default async function handler(req, res) {
         allPurchases: allPurchases || [],
         invoices: invoices || [],
         subscriptions: subscriptions || [],
+        medications: medications || [],
+        prescriptions: prescriptions || [],
         stats
       });
 

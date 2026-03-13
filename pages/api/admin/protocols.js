@@ -3,6 +3,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { isRecoveryPeptide, isGHPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS } from '../../../lib/protocol-config';
 import { getHRTLabSchedule, isHRTProtocol } from '../../../lib/hrt-lab-schedule';
+import { findDuplicateProtocol } from '../../../lib/duplicate-prevention';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -58,6 +59,36 @@ export default async function handler(req, res) {
           error: 'Protocol already exists for this purchase',
           details: `Purchase already linked to protocol ${existingPurchase.protocol_id}. Use "View Protocol" instead.`,
           existing_protocol_id: existingPurchase.protocol_id
+        });
+      }
+    }
+
+    // Guard 2: Check for existing active protocol with same type + medication
+    // Resolve patient_id first for the check
+    let preCheckPatientId = patient_id;
+    if (!preCheckPatientId && ghl_contact_id) {
+      const { data: preCheckPatient } = await supabase
+        .from('patients')
+        .select('id')
+        .eq('ghl_contact_id', ghl_contact_id)
+        .maybeSingle();
+      if (preCheckPatient) preCheckPatientId = preCheckPatient.id;
+    }
+
+    if (preCheckPatientId) {
+      const existingProtocol = await findDuplicateProtocol(preCheckPatientId, program_type, medication);
+      if (existingProtocol) {
+        // Link purchase to existing protocol if applicable
+        if (purchase_id) {
+          await supabase.from('purchases').update({
+            protocol_id: existingProtocol.id,
+            protocol_created: true
+          }).eq('id', purchase_id);
+        }
+        return res.status(409).json({
+          error: 'Active protocol already exists',
+          details: `Patient already has an active ${program_type} protocol (${existingProtocol.medication || existingProtocol.program_name}). Use the existing protocol instead.`,
+          existing_protocol_id: existingProtocol.id
         });
       }
     }

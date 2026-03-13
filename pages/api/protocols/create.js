@@ -4,6 +4,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { isWeightLossType, isHRTType } from '../../../lib/protocol-config';
+import { findDuplicateProtocol, findProtocolForPurchase } from '../../../lib/duplicate-prevention';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -41,6 +42,38 @@ export default async function handler(req, res) {
 
     if (!program_type) {
       return res.status(400).json({ error: 'Protocol type is required' });
+    }
+
+    // ===== DUPLICATE PREVENTION =====
+    // Guard 1: If linked to a purchase that already has a protocol, return it
+    if (purchase_id) {
+      const existingProtocolId = await findProtocolForPurchase(purchase_id);
+      if (existingProtocolId) {
+        return res.status(409).json({
+          error: 'Protocol already exists for this purchase',
+          details: `Purchase already linked to protocol ${existingProtocolId}. Use "View Protocol" instead.`,
+          existing_protocol_id: existingProtocolId
+        });
+      }
+    }
+
+    // Guard 2: Check for existing active protocol with same type + medication
+    if (patient_id) {
+      const existingProtocol = await findDuplicateProtocol(patient_id, program_type, medication);
+      if (existingProtocol) {
+        // Link purchase to existing protocol if applicable
+        if (purchase_id) {
+          await supabase.from('purchases').update({
+            protocol_id: existingProtocol.id,
+            protocol_created: true
+          }).eq('id', purchase_id);
+        }
+        return res.status(409).json({
+          error: 'Active protocol already exists',
+          details: `Patient already has an active ${program_type} protocol (${existingProtocol.medication || existingProtocol.program_name}). Use the existing protocol instead.`,
+          existing_protocol_id: existingProtocol.id
+        });
+      }
     }
 
     // Calculate end date based on protocol type

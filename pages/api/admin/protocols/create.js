@@ -5,6 +5,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { logComm } from '../../../../lib/comms-log';
 import { isWeightLossType, isHRTType } from '../../../../lib/protocol-config';
+import { findDuplicateProtocol } from '../../../../lib/duplicate-prevention';
 import crypto from 'crypto';
 
 const supabase = createClient(
@@ -70,6 +71,19 @@ export default async function handler(req, res) {
 
     if (!protocolType || !patientName || !startDate) {
       return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // ===== DUPLICATE PREVENTION =====
+    // Check for existing active protocol with same type + medication
+    if (patient_id) {
+      const existingProtocol = await findDuplicateProtocol(patient_id, protocolType, medication);
+      if (existingProtocol) {
+        return res.status(409).json({
+          error: 'Active protocol already exists',
+          details: `Patient already has an active ${protocolType} protocol (${existingProtocol.medication || existingProtocol.program_name}). Use the existing protocol instead.`,
+          existing_protocol_id: existingProtocol.id
+        });
+      }
     }
 
     const config = PROTOCOL_CONFIGS[protocolType] || {};

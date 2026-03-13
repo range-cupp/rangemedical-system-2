@@ -520,10 +520,10 @@ export default async function handler(req, res) {
       // ===== V2: All service logs (for timeline + visits tab) =====
       const { data: serviceLogs } = await supabase
         .from('service_logs')
-        .select('id, category, entry_type, entry_date, medication, dosage, quantity, administered_by, notes, created_at')
+        .select('id, category, entry_type, entry_date, medication, dosage, quantity, administered_by, notes, created_at, protocol_id')
         .eq('patient_id', id)
         .order('entry_date', { ascending: false })
-        .limit(100);
+        .limit(200);
 
       // ===== V2: Communications log =====
       const { data: commsLog } = await supabase

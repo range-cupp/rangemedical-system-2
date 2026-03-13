@@ -825,6 +825,39 @@ export default function PatientProfile() {
     return date.toLocaleDateString('en-US', opts);
   };
 
+  // Get session dates for a protocol from service logs
+  // Returns an array where index 0 = session 1 date, index 1 = session 2 date, etc.
+  const getSessionDates = (protocol) => {
+    if (!serviceLogs || !protocol) return [];
+    const category = protocol.category || protocol.program_type;
+    // Match logs: prefer protocol_id match, fall back to category + date range
+    const matchingLogs = serviceLogs
+      .filter(log => {
+        // Must be a session or injection entry
+        if (!['session', 'injection'].includes(log.entry_type)) return false;
+        // Exact protocol_id match
+        if (log.protocol_id && log.protocol_id === protocol.id) return true;
+        // Fallback: match by category (map program_type to category)
+        const catMap = { hbot: 'hbot', rlt: 'red_light', red_light: 'red_light', iv: 'iv_therapy', iv_therapy: 'iv_therapy', injection: 'injection', vitamin: 'vitamin' };
+        const logCat = catMap[log.category] || log.category;
+        const protoCat = catMap[category] || category;
+        if (logCat !== protoCat) return false;
+        // If no protocol_id, only match if log falls within protocol date range
+        if (protocol.start_date && log.entry_date < protocol.start_date) return false;
+        if (protocol.end_date && log.entry_date > protocol.end_date) return false;
+        return true;
+      })
+      .sort((a, b) => a.entry_date.localeCompare(b.entry_date));
+    return matchingLogs.map(log => log.entry_date);
+  };
+
+  // Compact date format for session boxes: "1/12", "2/23", "3/11"
+  const formatBoxDate = (dateStr) => {
+    if (!dateStr) return '';
+    const [, month, day] = dateStr.split('T')[0].split('-');
+    return `${parseInt(month)}/${parseInt(day)}`;
+  };
+
   const formatFileSize = (bytes) => {
     if (!bytes) return '';
     if (bytes < 1024) return bytes + ' B';
@@ -3088,6 +3121,7 @@ export default function PatientProfile() {
                             const totalSessions = protocol.total_sessions || 0;
                             const sessionsUsed = protocol.sessions_used || protocol.sessions_completed || 0;
                             const sessionsRemaining = Math.max(0, totalSessions - sessionsUsed);
+                            const sessionDates = getSessionDates(protocol);
                             return (
                               <div className="protocol-expand">
                                 <div className="px-stats-row">
@@ -3107,11 +3141,12 @@ export default function PatientProfile() {
                                   )}
                                 </div>
                                 {totalSessions > 0 && (
-                                  <div className="px-session-grid">
+                                  <div className="px-session-grid has-dates">
                                     {Array.from({ length: totalSessions }, (_, i) => {
                                       const num = i + 1;
                                       const isUsed = num <= sessionsUsed;
                                       const isNext = num === sessionsUsed + 1 && protocol.status === 'active';
+                                      const sessionDate = sessionDates[i] || null;
                                       return (
                                         <div
                                           key={num}
@@ -3123,7 +3158,8 @@ export default function PatientProfile() {
                                           style={{ cursor: isNext ? 'pointer' : 'default' }}
                                         >
                                           <span className="px-session-num">{num}</span>
-                                          {isUsed && <span className="px-session-check">✓</span>}
+                                          {isUsed && sessionDate && <span className="px-session-date">{formatBoxDate(sessionDate)}</span>}
+                                          {isUsed && !sessionDate && <span className="px-session-check">✓</span>}
                                           {isNext && <span className="px-session-label">NEXT</span>}
                                         </div>
                                       );
@@ -3144,6 +3180,7 @@ export default function PatientProfile() {
                             const totalSessions = protocol.total_sessions || protocol.total_units || 0;
                             const sessionsUsed = protocol.sessions_used || protocol.sessions_completed || 0;
                             const sessionsRemaining = Math.max(0, totalSessions - sessionsUsed);
+                            const sessionDates = getSessionDates(protocol);
                             return (
                               <div className="protocol-expand">
                                 <div className="px-stats-row">
@@ -3157,11 +3194,12 @@ export default function PatientProfile() {
                                   </div>
                                 </div>
                                 {totalSessions > 0 && (
-                                  <div className="px-session-grid">
+                                  <div className="px-session-grid has-dates">
                                     {Array.from({ length: totalSessions }, (_, i) => {
                                       const num = i + 1;
                                       const isUsed = num <= sessionsUsed;
                                       const isNext = num === sessionsUsed + 1 && protocol.status === 'active';
+                                      const sessionDate = sessionDates[i] || null;
                                       return (
                                         <div
                                           key={num}
@@ -3173,7 +3211,8 @@ export default function PatientProfile() {
                                           style={{ cursor: isNext ? 'pointer' : 'default' }}
                                         >
                                           <span className="px-session-num">{num}</span>
-                                          {isUsed && <span className="px-session-check">✓</span>}
+                                          {isUsed && sessionDate && <span className="px-session-date">{formatBoxDate(sessionDate)}</span>}
+                                          {isUsed && !sessionDate && <span className="px-session-check">✓</span>}
                                           {isNext && <span className="px-session-label">NEXT</span>}
                                         </div>
                                       );
@@ -6840,6 +6879,9 @@ export default function PatientProfile() {
           gap: 6px;
           margin-bottom: 10px;
         }
+        .px-session-grid.has-dates {
+          grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+        }
         .px-session-box {
           aspect-ratio: 1;
           display: flex;
@@ -6851,6 +6893,11 @@ export default function PatientProfile() {
           font-weight: 600;
           position: relative;
           user-select: none;
+        }
+        .has-dates .px-session-box {
+          aspect-ratio: auto;
+          padding: 6px 2px;
+          min-height: 48px;
         }
         .px-session-box.used {
           background: #22c55e;
@@ -6878,6 +6925,13 @@ export default function PatientProfile() {
           font-size: 10px;
           line-height: 1;
           margin-top: 1px;
+        }
+        .px-session-date {
+          font-size: 9px;
+          font-weight: 500;
+          line-height: 1;
+          margin-top: 2px;
+          opacity: 0.9;
         }
         .px-session-label {
           font-size: 8px;

@@ -261,6 +261,7 @@ async function handlePost(req, res) {
       supply_type: supply_type || null,
       duration: duration ? parseInt(duration) : null,
       notes: notes || null,
+      protocol_id: protocol_id || null,
       administered_by: administered_by || null,
       lot_number: lot_number || null,
       expiration_date: expiration_date || null,

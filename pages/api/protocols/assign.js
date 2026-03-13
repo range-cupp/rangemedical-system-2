@@ -58,6 +58,8 @@ function getGuideUrl(programType, programName, medicationName, patientGender) {
   // Peptide vials — match medication/program name to guide page
   if (programType === 'peptide') {
     if (name.includes('nad') || med.includes('nad')) return '/nad-guide';
+    // Recovery blend (BPC-157/TB-500/KPV/MGF) — match before generic BPC/TB4
+    if ((med.includes('kpv') || med.includes('mgf') || name.includes('kpv') || name.includes('mgf')) && (med.includes('bpc') || med.includes('tb') || name.includes('bpc') || name.includes('tb'))) return '/recovery-blend-guide';
     if (name.includes('bpc') || name.includes('tb4') || name.includes('thymosin') || med.includes('bpc') || med.includes('tb4')) return '/bpc-tb4-guide';
     if (name.includes('mots') || med.includes('mots')) return '/mots-c-guide';
     if (name.includes('tesamorelin') || name.includes('tesam') || med.includes('tesamorelin')) return '/tesamorelin-ipamorelin';
@@ -882,7 +884,8 @@ export default async function handler(req, res) {
           const pepPhone = patientData?.phone ? normalizePhone(patientData.phone) : null;
           if (pepPhone) {
             const firstName = patientData?.first_name || (patientData?.name ? patientData.name.split(' ')[0] : 'there');
-            const guideMessage = `Hi ${firstName}! Here's your guide to your recovery peptide protocol: https://www.range-medical.com/bpc-tb4-guide - Range Medical`;
+            const pepGuideSlug = getGuideUrl(programType, programName, medicationName) || '/bpc-tb4-guide';
+            const guideMessage = `Hi ${firstName}! Here's your guide to your recovery peptide protocol: https://www.range-medical.com${pepGuideSlug} - Range Medical`;
 
             const smsResult = await sendSMS({ to: pepPhone, message: guideMessage });
             if (smsResult.success) {
@@ -924,7 +927,8 @@ export default async function handler(req, res) {
 
           if (pepEmailPatient?.email) {
             const pepFirstName = pepEmailPatient.first_name || (pepEmailPatient.name ? pepEmailPatient.name.split(' ')[0] : 'there');
-            const pepGuideUrl = 'https://www.range-medical.com/bpc-tb4-guide';
+            const pepGuideSlugEmail = getGuideUrl(programType, programName, medicationName) || '/bpc-tb4-guide';
+            const pepGuideUrl = `https://www.range-medical.com${pepGuideSlugEmail}`;
             const pepEmailHtml = generateGuideEmailHtml({ firstName: pepFirstName, guideName: 'Recovery Peptide', guideUrl: pepGuideUrl });
 
             const resend = new Resend(process.env.RESEND_API_KEY);

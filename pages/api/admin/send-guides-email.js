@@ -11,6 +11,7 @@ const GUIDE_DEFINITIONS = {
   'retatrutide-guide': { name: 'Retatrutide Guide', path: '/retatrutide-guide' },
   'weight-loss-medication-guide-page': { name: 'WL Medication Guide', path: '/weight-loss-medication-guide-page' },
   'bpc-tb4-guide': { name: 'BPC/TB4 Guide', path: '/bpc-tb4-guide' },
+  'recovery-blend-guide': { name: 'Recovery Blend Guide', path: '/recovery-blend-guide' },
   'glow-guide': { name: 'GLOW Guide', path: '/glow-guide' },
   'ghk-cu-guide': { name: 'GHK-Cu Guide', path: '/ghk-cu-guide' },
   '3x-blend-guide': { name: '3x Blend Guide', path: '/3x-blend-guide' },

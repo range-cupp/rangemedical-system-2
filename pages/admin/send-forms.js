@@ -37,6 +37,7 @@ const AVAILABLE_GUIDES = [
   { id: 'retatrutide-guide', name: 'Retatrutide Guide', icon: '⚖️', category: 'weight_loss' },
   { id: 'weight-loss-medication-guide-page', name: 'WL Medication Guide', icon: '⚖️', category: 'weight_loss' },
   { id: 'bpc-tb4-guide', name: 'BPC/TB4 Guide', icon: '🧬', category: 'peptide' },
+  { id: 'recovery-blend-guide', name: 'Recovery Blend Guide', icon: '🧬', category: 'peptide' },
   { id: 'glow-guide', name: 'GLOW Guide', icon: '✨', category: 'peptide' },
   { id: 'ghk-cu-guide', name: 'GHK-Cu Guide', icon: '🧬', category: 'peptide' },
   { id: '3x-blend-guide', name: '3x Blend Guide', icon: '🧬', category: 'peptide' },

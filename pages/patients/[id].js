@@ -2319,35 +2319,117 @@ export default function PatientProfile() {
                 </section>
               )}
 
-              {/* Latest Vitals */}
+              {/* Vitals Flowsheet + Weight Chart (Practice Fusion style) */}
               {vitalsHistory.length > 0 && (() => {
-                const latest = vitalsHistory[0];
                 const fmtHt = (inches) => {
                   if (!inches) return null;
                   const ft = Math.floor(inches / 12);
                   const inn = Math.round(inches % 12);
                   return `${ft}'${inn}"`;
                 };
-                const parts = [];
-                if (latest.height_inches) parts.push(`Ht ${fmtHt(latest.height_inches)}`);
-                if (latest.weight_lbs) parts.push(`Wt ${latest.weight_lbs}`);
-                if (latest.bmi) parts.push(`BMI ${latest.bmi}`);
-                if (latest.bp_systolic && latest.bp_diastolic) parts.push(`BP ${latest.bp_systolic}/${latest.bp_diastolic}`);
-                if (latest.pulse) parts.push(`HR ${latest.pulse}`);
-                if (latest.temperature) parts.push(`Temp ${latest.temperature}°F`);
-                if (latest.respiratory_rate) parts.push(`RR ${latest.respiratory_rate}`);
-                if (latest.o2_saturation) parts.push(`SpO2 ${latest.o2_saturation}%`);
-                if (parts.length === 0) return null;
-                const recordedDate = new Date(latest.recorded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                // Show last 6 encounters (most recent on right, like PF)
+                const displayVitals = vitalsHistory.slice(0, 6).reverse();
+                const vitalRows = [
+                  { label: 'Height', key: 'height_inches', fmt: (v) => fmtHt(v) },
+                  { label: 'Weight', key: 'weight_lbs', fmt: (v) => v ? `${v} lb` : null },
+                  { label: 'BMI', key: 'bmi', fmt: (v) => v ? `${v}` : null },
+                  { label: 'BP', key: 'bp_systolic', fmt: (v, row) => (row.bp_systolic && row.bp_diastolic) ? `${row.bp_systolic}/${row.bp_diastolic}` : null },
+                  { label: 'Temperature', key: 'temperature', fmt: (v) => v ? `${v}°F` : null },
+                  { label: 'Pulse', key: 'pulse', fmt: (v) => v ? `${v}` : null },
+                  { label: 'Respiratory Rate', key: 'respiratory_rate', fmt: (v) => v ? `${v}` : null },
+                  { label: 'O2 Saturation', key: 'o2_saturation', fmt: (v) => v ? `${v}%` : null },
+                ];
+                // Weight chart data (all history, chronological)
+                const weightData = vitalsHistory
+                  .filter(v => v.weight_lbs)
+                  .map(v => ({
+                    date: new Date(v.recorded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                    weight: parseFloat(v.weight_lbs),
+                    fullDate: new Date(v.recorded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                  }))
+                  .reverse();
+
                 return (
                   <section className="card" style={{ marginBottom: '16px' }}>
                     <div className="card-header">
-                      <h3>Latest Vitals</h3>
-                      <span style={{ fontSize: '12px', color: '#94a3b8' }}>{recordedDate}</span>
+                      <h3>Vitals</h3>
+                      <span style={{ fontSize: '12px', color: '#94a3b8' }}>Last {displayVitals.length} encounter{displayVitals.length !== 1 ? 's' : ''}</span>
                     </div>
-                    <div style={{ padding: '0 16px 14px', fontSize: '14px', color: '#334155', lineHeight: '1.6' }}>
-                      {parts.join('  ·  ')}
+
+                    {/* PF-style Flowsheet: dates as columns, vitals as rows */}
+                    <div style={{ overflowX: 'auto', padding: '0 0 8px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '500px' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                            <th style={{ padding: '8px 12px', textAlign: 'left', color: '#64748b', fontWeight: 600, fontSize: '11px', position: 'sticky', left: 0, background: '#fff', zIndex: 1, minWidth: '120px' }}></th>
+                            {displayVitals.map((v, i) => {
+                              const d = new Date(v.recorded_at);
+                              const isLatest = i === displayVitals.length - 1;
+                              return (
+                                <th key={v.id || i} style={{
+                                  padding: '6px 10px', textAlign: 'center', whiteSpace: 'nowrap', fontSize: '11px', fontWeight: 600,
+                                  color: isLatest ? '#1e40af' : '#64748b',
+                                  borderBottom: isLatest ? '2px solid #3b82f6' : undefined,
+                                  minWidth: '80px',
+                                }}>
+                                  <div>{d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' })}</div>
+                                  <div style={{ fontSize: '10px', fontWeight: 400, color: '#94a3b8', marginTop: '1px' }}>
+                                    {d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                  </div>
+                                </th>
+                              );
+                            })}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {vitalRows.map((vr, ri) => (
+                            <tr key={vr.label} style={{ borderBottom: '1px solid #f1f5f9', background: ri % 2 === 0 ? '#fafbfc' : '#fff' }}>
+                              <td style={{
+                                padding: '7px 12px', fontWeight: 600, fontSize: '12px', color: '#475569',
+                                position: 'sticky', left: 0, background: ri % 2 === 0 ? '#fafbfc' : '#fff', zIndex: 1,
+                              }}>
+                                {vr.label}
+                              </td>
+                              {displayVitals.map((v, ci) => {
+                                const val = vr.fmt(v[vr.key], v);
+                                const isLatest = ci === displayVitals.length - 1;
+                                return (
+                                  <td key={v.id || ci} style={{
+                                    padding: '7px 10px', textAlign: 'center', fontSize: '13px',
+                                    color: val ? (isLatest ? '#1e40af' : '#334155') : '#d4d4d8',
+                                    fontWeight: val && isLatest ? 600 : 400,
+                                  }}>
+                                    {val || '—'}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
+
+                    {/* Weight Trend Chart */}
+                    {weightData.length >= 2 && (
+                      <div style={{ padding: '12px 16px 16px' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+                          Weight Trend
+                        </div>
+                        <ResponsiveContainer width="100%" height={180}>
+                          <LineChart data={weightData} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                            <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
+                            <YAxis domain={['auto', 'auto']} tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} unit=" lb" width={55} />
+                            <Tooltip
+                              contentStyle={{ fontSize: '13px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+                              formatter={(value) => [`${value} lb`, 'Weight']}
+                              labelFormatter={(label, payload) => payload?.[0]?.payload?.fullDate || label}
+                            />
+                            <Line type="monotone" dataKey="weight" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
                   </section>
                 );
               })()}
@@ -3856,53 +3938,72 @@ export default function PatientProfile() {
           {/* Visits Tab (Appointments + Sessions) */}
           {activeTab === 'appointments' && (
             <>
-              {/* Vitals Flowsheet */}
-              {vitalsHistory.length > 0 && (
-                <section className="card" style={{ marginBottom: '16px' }}>
-                  <div className="card-header">
-                    <h3>Vitals Flowsheet</h3>
-                    <span style={{ fontSize: '12px', color: '#94a3b8' }}>{vitalsHistory.length} record{vitalsHistory.length !== 1 ? 's' : ''}</span>
-                  </div>
-                  <div style={{ overflowX: 'auto', padding: '0 0 12px' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                      <thead>
-                        <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
-                          {['Date', 'Ht', 'Wt', 'BMI', 'BP', 'HR', 'Temp', 'RR', 'SpO₂'].map(h => (
-                            <th key={h} style={{ padding: '8px 10px', textAlign: 'left', color: '#64748b', fontWeight: 600, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {vitalsHistory.map((v, i) => {
-                          const fmtHt = (inches) => {
-                            if (!inches) return '—';
-                            const ft = Math.floor(inches / 12);
-                            const inn = Math.round(inches % 12);
-                            return `${ft}'${inn}"`;
-                          };
-                          return (
-                            <tr key={v.id || i} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                              <td style={{ padding: '8px 10px', fontWeight: 500, whiteSpace: 'nowrap', color: '#334155' }}>
-                                {new Date(v.recorded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
+              {/* Vitals Flowsheet (PF-style: dates as columns) */}
+              {vitalsHistory.length > 0 && (() => {
+                const fmtHt = (inches) => {
+                  if (!inches) return null;
+                  const ft = Math.floor(inches / 12);
+                  const inn = Math.round(inches % 12);
+                  return `${ft}'${inn}"`;
+                };
+                // Show all vitals history (up to 10 columns)
+                const displayVitals = vitalsHistory.slice(0, 10).reverse();
+                const vitalRows = [
+                  { label: 'Height', key: 'height_inches', fmt: (v) => fmtHt(v) },
+                  { label: 'Weight', key: 'weight_lbs', fmt: (v) => v ? `${v} lb` : null },
+                  { label: 'BMI', key: 'bmi', fmt: (v) => v ? `${v}` : null },
+                  { label: 'BP', key: 'bp_systolic', fmt: (v, row) => (row.bp_systolic && row.bp_diastolic) ? `${row.bp_systolic}/${row.bp_diastolic}` : null },
+                  { label: 'Temperature', key: 'temperature', fmt: (v) => v ? `${v}°F` : null },
+                  { label: 'Pulse', key: 'pulse', fmt: (v) => v ? `${v}` : null },
+                  { label: 'Resp. Rate', key: 'respiratory_rate', fmt: (v) => v ? `${v}` : null },
+                  { label: 'O2 Sat', key: 'o2_saturation', fmt: (v) => v ? `${v}%` : null },
+                ];
+                return (
+                  <section className="card" style={{ marginBottom: '16px' }}>
+                    <div className="card-header">
+                      <h3>Vitals Flowsheet</h3>
+                      <span style={{ fontSize: '12px', color: '#94a3b8' }}>{vitalsHistory.length} record{vitalsHistory.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div style={{ overflowX: 'auto', padding: '0 0 12px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '500px' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                            <th style={{ padding: '8px 12px', textAlign: 'left', color: '#64748b', fontWeight: 600, fontSize: '11px', position: 'sticky', left: 0, background: '#fff', zIndex: 1, minWidth: '100px' }}></th>
+                            {displayVitals.map((v, i) => {
+                              const d = new Date(v.recorded_at);
+                              return (
+                                <th key={v.id || i} style={{ padding: '6px 10px', textAlign: 'center', whiteSpace: 'nowrap', fontSize: '11px', fontWeight: 600, color: '#64748b', minWidth: '75px' }}>
+                                  <div>{d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' })}</div>
+                                  <div style={{ fontSize: '10px', fontWeight: 400, color: '#94a3b8', marginTop: '1px' }}>
+                                    {d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                                  </div>
+                                </th>
+                              );
+                            })}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {vitalRows.map((vr, ri) => (
+                            <tr key={vr.label} style={{ borderBottom: '1px solid #f1f5f9', background: ri % 2 === 0 ? '#fafbfc' : '#fff' }}>
+                              <td style={{ padding: '7px 12px', fontWeight: 600, fontSize: '12px', color: '#475569', position: 'sticky', left: 0, background: ri % 2 === 0 ? '#fafbfc' : '#fff', zIndex: 1 }}>
+                                {vr.label}
                               </td>
-                              <td style={{ padding: '8px 10px', color: v.height_inches ? '#334155' : '#cbd5e1' }}>{fmtHt(v.height_inches)}</td>
-                              <td style={{ padding: '8px 10px', color: v.weight_lbs ? '#334155' : '#cbd5e1' }}>{v.weight_lbs || '—'}</td>
-                              <td style={{ padding: '8px 10px', color: v.bmi ? '#334155' : '#cbd5e1' }}>{v.bmi || '—'}</td>
-                              <td style={{ padding: '8px 10px', color: (v.bp_systolic && v.bp_diastolic) ? '#334155' : '#cbd5e1' }}>
-                                {v.bp_systolic && v.bp_diastolic ? `${v.bp_systolic}/${v.bp_diastolic}` : '—'}
-                              </td>
-                              <td style={{ padding: '8px 10px', color: v.pulse ? '#334155' : '#cbd5e1' }}>{v.pulse || '—'}</td>
-                              <td style={{ padding: '8px 10px', color: v.temperature ? '#334155' : '#cbd5e1' }}>{v.temperature ? `${v.temperature}°` : '—'}</td>
-                              <td style={{ padding: '8px 10px', color: v.respiratory_rate ? '#334155' : '#cbd5e1' }}>{v.respiratory_rate || '—'}</td>
-                              <td style={{ padding: '8px 10px', color: v.o2_saturation ? '#334155' : '#cbd5e1' }}>{v.o2_saturation ? `${v.o2_saturation}%` : '—'}</td>
+                              {displayVitals.map((v, ci) => {
+                                const val = vr.fmt(v[vr.key], v);
+                                return (
+                                  <td key={v.id || ci} style={{ padding: '7px 10px', textAlign: 'center', fontSize: '13px', color: val ? '#334155' : '#d4d4d8' }}>
+                                    {val || '—'}
+                                  </td>
+                                );
+                              })}
                             </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-              )}
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                );
+              })()}
 
               {/* Appointments Section */}
               <section className="card">

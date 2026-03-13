@@ -71,13 +71,13 @@ export default function HBOTGuide() {
               <div className="protocol-price">$185</div>
               <p className="protocol-desc">60 minutes at 2.0 ATA. Try HBOT or use as a one-off session.</p>
             </div>
-            <div className="protocol-card featured">
-              <span className="protocol-badge">Best Value</span>
+            <div className="protocol-card">
               <div className="protocol-days">5-Pack</div>
               <div className="protocol-price">$850</div>
               <p className="protocol-desc">$170/session. Great for building initial momentum.</p>
             </div>
-            <div className="protocol-card">
+            <div className="protocol-card featured">
+              <span className="protocol-badge">Best Value</span>
               <div className="protocol-days">10-Pack</div>
               <div className="protocol-price">$1,600</div>
               <p className="protocol-desc">$160/session. Best pack value for committed protocols.</p>

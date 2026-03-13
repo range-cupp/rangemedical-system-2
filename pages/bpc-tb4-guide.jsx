@@ -107,13 +107,13 @@ export default function BPCTB4Guide() {
               <div className="protocol-price">$250</div>
               <p className="protocol-desc">Starter protocol for recent injuries, flare-ups, or first-time users. Many notice improvement within this window.</p>
             </div>
-            <div className="protocol-card featured">
-              <span className="protocol-badge">Best Value</span>
+            <div className="protocol-card">
               <div className="protocol-days">20-Day</div>
               <div className="protocol-price">$450</div>
               <p className="protocol-desc">Extended healing for moderate injuries. Builds on initial progress with continued support.</p>
             </div>
-            <div className="protocol-card">
+            <div className="protocol-card featured">
+              <span className="protocol-badge">Best Value</span>
               <div className="protocol-days">30-Day</div>
               <div className="protocol-price">$675</div>
               <p className="protocol-desc">Advanced protocol for chronic issues, post-surgery recovery, or athletes in training.</p>

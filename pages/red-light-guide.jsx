@@ -71,13 +71,13 @@ export default function RedLightGuide() {
               <div className="protocol-price">$85</div>
               <p className="protocol-desc">20-minute full-body treatment. Try RLT or use as a one-off session.</p>
             </div>
-            <div className="protocol-card featured">
-              <span className="protocol-badge">Best Value</span>
+            <div className="protocol-card">
               <div className="protocol-days">5-Pack</div>
               <div className="protocol-price">$375</div>
               <p className="protocol-desc">$75/session. Start building consistent benefits.</p>
             </div>
-            <div className="protocol-card">
+            <div className="protocol-card featured">
+              <span className="protocol-badge">Best Value</span>
               <div className="protocol-days">10-Pack</div>
               <div className="protocol-price">$600</div>
               <p className="protocol-desc">$60/session. Best pack value for committed protocols.</p>

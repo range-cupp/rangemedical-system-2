@@ -247,6 +247,7 @@ export default function PatientProfile() {
   const [allProtocolLogs, setAllProtocolLogs] = useState([]);
   const [serviceLogs, setServiceLogs] = useState([]);
   const [vitalsHistory, setVitalsHistory] = useState([]);
+  const [vitalsDisplayCount, setVitalsDisplayCount] = useState(5);
   const [commsLog, setCommsLog] = useState([]);
   const [allPurchases, setAllPurchases] = useState([]);
   const [invoices, setInvoices] = useState([]);
@@ -2327,8 +2328,7 @@ export default function PatientProfile() {
                   const inn = Math.round(inches % 12);
                   return `${ft}'${inn}"`;
                 };
-                // Show last 6 encounters (most recent on right, like PF)
-                const displayVitals = vitalsHistory.slice(0, 6).reverse();
+                const displayVitals = vitalsHistory.slice(0, vitalsDisplayCount).reverse();
                 const vitalRows = [
                   { label: 'Height', key: 'height_inches', fmt: (v) => fmtHt(v) },
                   { label: 'Weight', key: 'weight_lbs', fmt: (v) => v ? `${v} lb` : null },
@@ -2353,12 +2353,26 @@ export default function PatientProfile() {
                   <section className="card" style={{ marginBottom: '16px' }}>
                     <div className="card-header">
                       <h3>Vitals</h3>
-                      <span style={{ fontSize: '12px', color: '#94a3b8' }}>Last {displayVitals.length} encounter{displayVitals.length !== 1 ? 's' : ''}</span>
+                      <select
+                        value={vitalsDisplayCount}
+                        onChange={(e) => setVitalsDisplayCount(parseInt(e.target.value))}
+                        style={{
+                          fontSize: '12px', color: '#64748b', background: '#f8fafc',
+                          border: '1px solid #e2e8f0', borderRadius: '6px', padding: '4px 24px 4px 10px',
+                          fontWeight: 500, cursor: 'pointer', appearance: 'none',
+                          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E")`,
+                          backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center',
+                        }}
+                      >
+                        <option value={1}>Last encounter</option>
+                        <option value={5}>Last 5 encounters</option>
+                        <option value={10}>Last 10 encounters</option>
+                      </select>
                     </div>
 
                     {/* PF-style Flowsheet: dates as columns, vitals as rows */}
                     <div style={{ overflowX: 'auto', padding: '0 0 8px' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '500px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: vitalsDisplayCount <= 1 ? '280px' : '500px' }}>
                         <thead>
                           <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
                             <th style={{ padding: '8px 12px', textAlign: 'left', color: '#64748b', fontWeight: 600, fontSize: '11px', position: 'sticky', left: 0, background: '#fff', zIndex: 1, minWidth: '120px' }}></th>
@@ -2411,7 +2425,7 @@ export default function PatientProfile() {
 
                     {/* Weight Trend Chart */}
                     {weightData.length >= 2 && (
-                      <div style={{ padding: '12px 16px 16px' }}>
+                      <div style={{ padding: '12px 16px 16px', borderTop: '1px solid #f1f5f9' }}>
                         <div style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
                           Weight Trend
                         </div>

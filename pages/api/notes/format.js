@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { raw_text, note_type } = req.body;
+  const { raw_text, note_type, vitals } = req.body;
 
   if (!raw_text || !raw_text.trim()) {
     return res.status(400).json({ error: 'raw_text is required' });
@@ -59,12 +59,34 @@ For GENERAL NOTES (phone calls, follow-ups, reminders, observations, conversatio
 ${BASE_RULES}`;
     }
 
+    // Build user content — prepend vitals if provided (for SOAP OBJECTIVE section)
+    let userContent = raw_text;
+    if (vitals && typeof vitals === 'object') {
+      const vLines = [];
+      if (vitals.height_inches) {
+        const ft = Math.floor(vitals.height_inches / 12);
+        const inc = Math.round(vitals.height_inches % 12);
+        vLines.push(`Height: ${ft}'${inc}"`);
+      }
+      if (vitals.weight_lbs) vLines.push(`Weight: ${vitals.weight_lbs} lbs`);
+      if (vitals.bmi) vLines.push(`BMI: ${vitals.bmi}`);
+      if (vitals.bp_systolic && vitals.bp_diastolic) vLines.push(`BP: ${vitals.bp_systolic}/${vitals.bp_diastolic} mmHg`);
+      if (vitals.pulse) vLines.push(`Pulse: ${vitals.pulse} bpm`);
+      if (vitals.temperature) vLines.push(`Temp: ${vitals.temperature}°F`);
+      if (vitals.respiratory_rate) vLines.push(`RR: ${vitals.respiratory_rate}`);
+      if (vitals.o2_saturation) vLines.push(`SpO2: ${vitals.o2_saturation}%`);
+
+      if (vLines.length > 0) {
+        userContent = `VITALS (include in OBJECTIVE section):\n${vLines.join('\n')}\n\nCLINICAL NOTE:\n${raw_text}`;
+      }
+    }
+
     const message = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 2048,
       system: systemPrompt,
       messages: [
-        { role: 'user', content: raw_text }
+        { role: 'user', content: userContent }
       ],
     });
 

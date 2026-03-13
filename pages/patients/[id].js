@@ -246,6 +246,7 @@ export default function PatientProfile() {
   const [weightLossLogs, setWeightLossLogs] = useState([]);
   const [allProtocolLogs, setAllProtocolLogs] = useState([]);
   const [serviceLogs, setServiceLogs] = useState([]);
+  const [vitalsHistory, setVitalsHistory] = useState([]);
   const [commsLog, setCommsLog] = useState([]);
   const [allPurchases, setAllPurchases] = useState([]);
   const [invoices, setInvoices] = useState([]);
@@ -520,6 +521,12 @@ export default function PatientProfile() {
         fetch(`/api/stripe/saved-cards?patient_id=${id}`)
           .then(r => r.json())
           .then(d => setSavedCards(d.cards || []))
+          .catch(() => {});
+
+        // Fetch vitals history (non-blocking)
+        fetch(`/api/vitals/history?patient_id=${id}`)
+          .then(r => r.json())
+          .then(d => setVitalsHistory(d.vitals || []))
           .catch(() => {});
 
         // Compute ADAPTIVE HRT lab schedules for HRT protocols
@@ -2258,6 +2265,39 @@ export default function PatientProfile() {
                 </section>
               )}
 
+              {/* Latest Vitals */}
+              {vitalsHistory.length > 0 && (() => {
+                const latest = vitalsHistory[0];
+                const fmtHt = (inches) => {
+                  if (!inches) return null;
+                  const ft = Math.floor(inches / 12);
+                  const inn = Math.round(inches % 12);
+                  return `${ft}'${inn}"`;
+                };
+                const parts = [];
+                if (latest.height_inches) parts.push(`Ht ${fmtHt(latest.height_inches)}`);
+                if (latest.weight_lbs) parts.push(`Wt ${latest.weight_lbs}`);
+                if (latest.bmi) parts.push(`BMI ${latest.bmi}`);
+                if (latest.bp_systolic && latest.bp_diastolic) parts.push(`BP ${latest.bp_systolic}/${latest.bp_diastolic}`);
+                if (latest.pulse) parts.push(`HR ${latest.pulse}`);
+                if (latest.temperature) parts.push(`Temp ${latest.temperature}°F`);
+                if (latest.respiratory_rate) parts.push(`RR ${latest.respiratory_rate}`);
+                if (latest.o2_saturation) parts.push(`SpO2 ${latest.o2_saturation}%`);
+                if (parts.length === 0) return null;
+                const recordedDate = new Date(latest.recorded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                return (
+                  <section className="card" style={{ marginBottom: '16px' }}>
+                    <div className="card-header">
+                      <h3>Latest Vitals</h3>
+                      <span style={{ fontSize: '12px', color: '#94a3b8' }}>{recordedDate}</span>
+                    </div>
+                    <div style={{ padding: '0 16px 14px', fontSize: '14px', color: '#334155', lineHeight: '1.6' }}>
+                      {parts.join('  ·  ')}
+                    </div>
+                  </section>
+                );
+              })()}
+
               {/* Active Protocols Summary */}
               <section className="card">
                 <div className="card-header">
@@ -3756,6 +3796,54 @@ export default function PatientProfile() {
           {/* Visits Tab (Appointments + Sessions) */}
           {activeTab === 'appointments' && (
             <>
+              {/* Vitals Flowsheet */}
+              {vitalsHistory.length > 0 && (
+                <section className="card" style={{ marginBottom: '16px' }}>
+                  <div className="card-header">
+                    <h3>Vitals Flowsheet</h3>
+                    <span style={{ fontSize: '12px', color: '#94a3b8' }}>{vitalsHistory.length} record{vitalsHistory.length !== 1 ? 's' : ''}</span>
+                  </div>
+                  <div style={{ overflowX: 'auto', padding: '0 0 12px' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                          {['Date', 'Ht', 'Wt', 'BMI', 'BP', 'HR', 'Temp', 'RR', 'SpO₂'].map(h => (
+                            <th key={h} style={{ padding: '8px 10px', textAlign: 'left', color: '#64748b', fontWeight: 600, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {vitalsHistory.map((v, i) => {
+                          const fmtHt = (inches) => {
+                            if (!inches) return '—';
+                            const ft = Math.floor(inches / 12);
+                            const inn = Math.round(inches % 12);
+                            return `${ft}'${inn}"`;
+                          };
+                          return (
+                            <tr key={v.id || i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <td style={{ padding: '8px 10px', fontWeight: 500, whiteSpace: 'nowrap', color: '#334155' }}>
+                                {new Date(v.recorded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
+                              </td>
+                              <td style={{ padding: '8px 10px', color: v.height_inches ? '#334155' : '#cbd5e1' }}>{fmtHt(v.height_inches)}</td>
+                              <td style={{ padding: '8px 10px', color: v.weight_lbs ? '#334155' : '#cbd5e1' }}>{v.weight_lbs || '—'}</td>
+                              <td style={{ padding: '8px 10px', color: v.bmi ? '#334155' : '#cbd5e1' }}>{v.bmi || '—'}</td>
+                              <td style={{ padding: '8px 10px', color: (v.bp_systolic && v.bp_diastolic) ? '#334155' : '#cbd5e1' }}>
+                                {v.bp_systolic && v.bp_diastolic ? `${v.bp_systolic}/${v.bp_diastolic}` : '—'}
+                              </td>
+                              <td style={{ padding: '8px 10px', color: v.pulse ? '#334155' : '#cbd5e1' }}>{v.pulse || '—'}</td>
+                              <td style={{ padding: '8px 10px', color: v.temperature ? '#334155' : '#cbd5e1' }}>{v.temperature ? `${v.temperature}°` : '—'}</td>
+                              <td style={{ padding: '8px 10px', color: v.respiratory_rate ? '#334155' : '#cbd5e1' }}>{v.respiratory_rate || '—'}</td>
+                              <td style={{ padding: '8px 10px', color: v.o2_saturation ? '#334155' : '#cbd5e1' }}>{v.o2_saturation ? `${v.o2_saturation}%` : '—'}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
+
               {/* Appointments Section */}
               <section className="card">
                 <div className="card-header">

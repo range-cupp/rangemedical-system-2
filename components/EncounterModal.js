@@ -46,6 +46,13 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // Vitals state
+  const [vitals, setVitals] = useState({ height_inches: '', weight_lbs: '', bp_systolic: '', bp_diastolic: '', temperature: '', pulse: '', respiratory_rate: '', o2_saturation: '' });
+  const [vitalsLoading, setVitalsLoading] = useState(true);
+  const [vitalsSaved, setVitalsSaved] = useState(false);
+  const [vitalsExpanded, setVitalsExpanded] = useState(false);
+  const vitalsTimerRef = useRef(null);
+
   const handleDeleteAppointment = async () => {
     if (!appointment?.id) return;
     setDeleting(true);
@@ -98,6 +105,91 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
       .catch(() => {});
   }, [appointment?.id, appointment?.patient_id]);
 
+  // Fetch vitals for this encounter + last known height
+  useEffect(() => {
+    if (!appointment?.id) { setVitalsLoading(false); return; }
+    setVitalsLoading(true);
+    fetch(`/api/vitals/by-appointment?appointment_id=${appointment.id}&patient_id=${appointment.patient_id || ''}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.vitals) {
+          setVitals({
+            height_inches: data.vitals.height_inches ?? '',
+            weight_lbs: data.vitals.weight_lbs ?? '',
+            bp_systolic: data.vitals.bp_systolic ?? '',
+            bp_diastolic: data.vitals.bp_diastolic ?? '',
+            temperature: data.vitals.temperature ?? '',
+            pulse: data.vitals.pulse ?? '',
+            respiratory_rate: data.vitals.respiratory_rate ?? '',
+            o2_saturation: data.vitals.o2_saturation ?? '',
+          });
+          setVitalsExpanded(true);
+        } else if (data.lastHeight) {
+          setVitals(v => ({ ...v, height_inches: data.lastHeight }));
+        }
+        setVitalsLoading(false);
+      })
+      .catch(() => setVitalsLoading(false));
+  }, [appointment?.id, appointment?.patient_id]);
+
+  // Height helpers: parse "5'10" or "70" → inches, inches → display string
+  const parseHeight = (input) => {
+    if (!input && input !== 0) return null;
+    const str = String(input).trim();
+    const ftIn = str.match(/^(\d+)[''′]\s*(\d+)?[""″]?$/);
+    if (ftIn) return parseInt(ftIn[1]) * 12 + (parseInt(ftIn[2]) || 0);
+    const num = parseFloat(str);
+    return isNaN(num) ? null : num;
+  };
+  const formatHeight = (inches) => {
+    if (!inches) return '';
+    const ft = Math.floor(inches / 12);
+    const inc = Math.round(inches % 12);
+    return `${ft}'${inc}"`;
+  };
+  const calcBMI = (hIn, wLbs) => {
+    const h = parseFloat(hIn);
+    const w = parseFloat(wLbs);
+    if (!h || !w || h <= 0) return null;
+    return Math.round((w / (h * h)) * 703 * 10) / 10;
+  };
+
+  // Auto-save vitals (debounced)
+  const saveVitals = (updatedVitals) => {
+    if (vitalsTimerRef.current) clearTimeout(vitalsTimerRef.current);
+    vitalsTimerRef.current = setTimeout(async () => {
+      // Only save if at least one field has a value
+      const vals = Object.values(updatedVitals);
+      const hasData = vals.some(v => v !== '' && v !== null && v !== undefined);
+      if (!hasData || !appointment?.patient_id) return;
+
+      try {
+        const res = await fetch('/api/vitals/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            patient_id: appointment.patient_id,
+            appointment_id: appointment.id,
+            ...updatedVitals,
+            recorded_by: currentUser
+          })
+        });
+        if (res.ok) {
+          setVitalsSaved(true);
+          setTimeout(() => setVitalsSaved(false), 2000);
+        }
+      } catch (e) {
+        console.error('Vitals save error:', e);
+      }
+    }, 1000);
+  };
+
+  const updateVital = (field, value) => {
+    const updated = { ...vitals, [field]: value };
+    setVitals(updated);
+    saveVitals(updated);
+  };
+
   // Dictation handlers
   const startDictation = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -145,10 +237,26 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
     if (!noteInput.trim()) return;
     setNoteFormatting(true);
     try {
+      // Include vitals so AI can place them in OBJECTIVE section of SOAP notes
+      const vitalsPayload = {};
+      if (vitals.height_inches) vitalsPayload.height_inches = vitals.height_inches;
+      if (vitals.weight_lbs) vitalsPayload.weight_lbs = vitals.weight_lbs;
+      if (vitals.height_inches && vitals.weight_lbs) vitalsPayload.bmi = calcBMI(vitals.height_inches, vitals.weight_lbs);
+      if (vitals.bp_systolic) vitalsPayload.bp_systolic = vitals.bp_systolic;
+      if (vitals.bp_diastolic) vitalsPayload.bp_diastolic = vitals.bp_diastolic;
+      if (vitals.temperature) vitalsPayload.temperature = vitals.temperature;
+      if (vitals.pulse) vitalsPayload.pulse = vitals.pulse;
+      if (vitals.respiratory_rate) vitalsPayload.respiratory_rate = vitals.respiratory_rate;
+      if (vitals.o2_saturation) vitalsPayload.o2_saturation = vitals.o2_saturation;
+
       const res = await fetch('/api/notes/format', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ raw_text: noteInput, note_type: noteType }),
+        body: JSON.stringify({
+          raw_text: noteInput,
+          note_type: noteType,
+          vitals: Object.keys(vitalsPayload).length > 0 ? vitalsPayload : undefined
+        }),
       });
       const data = await res.json();
       if (data.formatted) {
@@ -368,6 +476,45 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
         .enc-template-badge {
           padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
           background: #f3f0ff; color: #6d28d9; letter-spacing: 0.02em;
+        }
+        /* Vitals */
+        .enc-vitals {
+          padding: 0; border-bottom: 1px solid #f0f0f0; background: #f8fafc;
+        }
+        .enc-vitals-header {
+          display: flex; align-items: center; gap: 10px; padding: 10px 24px;
+          cursor: pointer; user-select: none;
+        }
+        .enc-vitals-label {
+          font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+          color: #374151; flex-shrink: 0;
+        }
+        .enc-vitals-summary {
+          font-size: 12px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .enc-vitals-toggle {
+          margin-left: auto; font-size: 11px; color: #16a34a; font-weight: 600; flex-shrink: 0;
+        }
+        .enc-vitals-form {
+          display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+          padding: 0 24px 14px;
+        }
+        .enc-vitals-field label {
+          display: block; font-size: 11px; font-weight: 600; color: #6b7280; margin-bottom: 3px;
+        }
+        .enc-vitals-field input {
+          width: 100%; padding: 6px 10px; font-size: 13px; border: 1.5px solid #e5e7eb;
+          border-radius: 6px; font-family: inherit; background: #fff;
+          box-sizing: border-box;
+        }
+        .enc-vitals-field input:focus {
+          outline: none; border-color: #111; box-shadow: 0 0 0 2px rgba(0,0,0,0.06);
+        }
+        .enc-vitals-bmi {
+          font-size: 11px; color: #6b7280; margin-top: 2px;
+        }
+        @media (max-width: 600px) {
+          .enc-vitals-form { grid-template-columns: repeat(2, 1fr); }
         }
         .enc-tabs {
           display: flex; gap: 0; padding: 0 24px; border-bottom: 1px solid #f0f0f0; background: #fff;
@@ -599,6 +746,79 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
             </div>
             {template.label !== 'General' && (
               <span className="enc-template-badge">{template.label}</span>
+            )}
+          </div>
+
+          {/* Vitals Section */}
+          <div className="enc-vitals">
+            <div className="enc-vitals-header" onClick={() => setVitalsExpanded(!vitalsExpanded)}>
+              <span className="enc-vitals-label">Vitals</span>
+              {!vitalsExpanded && !vitalsLoading && (
+                <span className="enc-vitals-summary">
+                  {vitals.height_inches ? `Ht ${formatHeight(vitals.height_inches)}` : ''}
+                  {vitals.weight_lbs ? `${vitals.height_inches ? ' · ' : ''}Wt ${vitals.weight_lbs} lb` : ''}
+                  {(vitals.height_inches && vitals.weight_lbs) ? ` · BMI ${calcBMI(vitals.height_inches, vitals.weight_lbs) || '—'}` : ''}
+                  {(vitals.bp_systolic && vitals.bp_diastolic) ? ` · BP ${vitals.bp_systolic}/${vitals.bp_diastolic}` : ''}
+                  {vitals.pulse ? ` · HR ${vitals.pulse}` : ''}
+                  {vitals.temperature ? ` · ${vitals.temperature}°F` : ''}
+                  {vitals.respiratory_rate ? ` · RR ${vitals.respiratory_rate}` : ''}
+                  {vitals.o2_saturation ? ` · SpO2 ${vitals.o2_saturation}%` : ''}
+                  {!vitals.height_inches && !vitals.weight_lbs && !vitals.bp_systolic && !vitals.pulse ? 'No vitals recorded' : ''}
+                </span>
+              )}
+              <span className="enc-vitals-toggle">{vitalsSaved ? '✓ Saved' : (vitalsExpanded ? '▲' : '▼')}</span>
+            </div>
+            {vitalsExpanded && !vitalsLoading && (
+              <div className="enc-vitals-form">
+                <div className="enc-vitals-field">
+                  <label>Height</label>
+                  <input
+                    type="text"
+                    placeholder={`5'10"`}
+                    value={vitals.height_inches ? formatHeight(vitals.height_inches) : ''}
+                    onChange={e => {
+                      const parsed = parseHeight(e.target.value);
+                      if (parsed !== null) updateVital('height_inches', parsed);
+                      else setVitals(v => ({ ...v, height_inches: '' }));
+                    }}
+                    onBlur={e => {
+                      const parsed = parseHeight(e.target.value);
+                      if (parsed !== null) updateVital('height_inches', parsed);
+                    }}
+                  />
+                </div>
+                <div className="enc-vitals-field">
+                  <label>Weight (lbs)</label>
+                  <input type="number" step="0.1" placeholder="185" value={vitals.weight_lbs} onChange={e => updateVital('weight_lbs', e.target.value)} />
+                  {vitals.height_inches && vitals.weight_lbs && (
+                    <div className="enc-vitals-bmi">BMI: {calcBMI(vitals.height_inches, vitals.weight_lbs) || '—'}</div>
+                  )}
+                </div>
+                <div className="enc-vitals-field enc-vitals-bp">
+                  <label>BP (mmHg)</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <input type="number" placeholder="120" value={vitals.bp_systolic} onChange={e => updateVital('bp_systolic', e.target.value)} style={{ width: '48%' }} />
+                    <span style={{ color: '#9ca3af', fontWeight: 600 }}>/</span>
+                    <input type="number" placeholder="80" value={vitals.bp_diastolic} onChange={e => updateVital('bp_diastolic', e.target.value)} style={{ width: '48%' }} />
+                  </div>
+                </div>
+                <div className="enc-vitals-field">
+                  <label>Temp (°F)</label>
+                  <input type="number" step="0.1" placeholder="98.6" value={vitals.temperature} onChange={e => updateVital('temperature', e.target.value)} />
+                </div>
+                <div className="enc-vitals-field">
+                  <label>Pulse (bpm)</label>
+                  <input type="number" placeholder="72" value={vitals.pulse} onChange={e => updateVital('pulse', e.target.value)} />
+                </div>
+                <div className="enc-vitals-field">
+                  <label>Resp. Rate</label>
+                  <input type="number" placeholder="16" value={vitals.respiratory_rate} onChange={e => updateVital('respiratory_rate', e.target.value)} />
+                </div>
+                <div className="enc-vitals-field">
+                  <label>O2 Sat (%)</label>
+                  <input type="number" step="0.1" placeholder="98" value={vitals.o2_saturation} onChange={e => updateVital('o2_saturation', e.target.value)} />
+                </div>
+              </div>
             )}
           </div>
 

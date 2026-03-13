@@ -147,8 +147,6 @@ export default function ProtocolDetail() {
   const [editWeightValue, setEditWeightValue] = useState('');
   const [editDoseValue, setEditDoseValue] = useState('');
   const [editDateSaving, setEditDateSaving] = useState(false);
-  const [sendingOptin, setSendingOptin] = useState(false);
-  const [optinSent, setOptinSent] = useState(false);
   const [bloodDrawModal, setBloodDrawModal] = useState(null); // { label, status, completedDate, protocolId }
   const [bloodDrawDate, setBloodDrawDate] = useState('');
   const [bloodDrawSaving, setBloodDrawSaving] = useState(false);
@@ -251,17 +249,6 @@ export default function ProtocolDetail() {
         buildCheckinSchedule(enrichedProtocol, effectiveDuration, id);
       } else {
         setCheckinSchedule([]);
-      }
-
-      // Check if opt-in SMS was already sent (for recovery peptides)
-      if (isRecoveryPeptide(enrichedProtocol.medication || enrichedProtocol.primary_peptide)) {
-        try {
-          const logsRes = await fetch(`/api/protocols/${id}`);
-          const logsData = await logsRes.json();
-          const allLogs = logsData.activityLogs || [];
-          const hasSentOptin = allLogs.some(l => l.log_type === 'peptide_checkin_optin_sent');
-          setOptinSent(hasSentOptin);
-        } catch (e) { /* ignore */ }
       }
 
       // Fetch blood draw schedule for HRT protocols
@@ -2236,57 +2223,11 @@ export default function ProtocolDetail() {
                     <a href={`sms:${protocol.patient_phone}`} style={styles.actionBtnSecondary}>💬 Text</a>
                   </>
                 )}
-                {isRecoveryPeptide(protocol?.medication) && (() => {
-                  const remindersEnabled = protocol?.peptide_reminders_enabled === true;
-                  const alreadySent = optinSent;
-
-                  // Opted in — show green status
-                  if (remindersEnabled) {
-                    return (
-                      <div style={{ padding: '10px 14px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '8px', fontSize: '14px', color: '#16A34A', fontWeight: '600', textAlign: 'center' }}>
-                        ✅ Check-in Reminders Enabled
-                      </div>
-                    );
-                  }
-
-                  // Opt-in sent but not yet responded
-                  if (alreadySent) {
-                    return (
-                      <div style={{ padding: '10px 14px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '8px', fontSize: '14px', color: '#92400E', fontWeight: '500', textAlign: 'center' }}>
-                        📱 Opt-in Sent — Awaiting Response
-                      </div>
-                    );
-                  }
-
-                  // Not sent yet — show send button
-                  return (
-                    <button
-                      onClick={async () => {
-                        setSendingOptin(true);
-                        setError('');
-                        try {
-                          const res = await fetch(`/api/admin/protocols/${id}/send-optin`, { method: 'POST' });
-                          const data = await res.json();
-                          if (res.ok) {
-                            setSuccess(data.twoStep
-                              ? 'Opt-in request sent! Link will be delivered when patient replies.'
-                              : 'Opt-in SMS sent!');
-                            setOptinSent(true);
-                          } else {
-                            setError(data.error || 'Failed to send opt-in');
-                          }
-                        } catch (e) {
-                          setError('Failed to send opt-in SMS');
-                        }
-                        setSendingOptin(false);
-                      }}
-                      disabled={sendingOptin}
-                      style={{ ...styles.actionBtnSecondary, border: 'none', cursor: sendingOptin ? 'not-allowed' : 'pointer', opacity: sendingOptin ? 0.6 : 1 }}
-                    >
-                      {sendingOptin ? 'Sending...' : '📱 Send Check-in Opt-in'}
-                    </button>
-                  );
-                })()}
+                {protocol?.program_type === 'peptide' && protocol?.peptide_reminders_enabled === true && (
+                  <div style={{ padding: '10px 14px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '8px', fontSize: '14px', color: '#16A34A', fontWeight: '600', textAlign: 'center' }}>
+                    ✅ Weekly Check-ins Active
+                  </div>
+                )}
                 {isRecoveryPeptide(protocol?.medication) && !protocol?.peptide_guide_sent && (
                   <button
                     onClick={async () => {

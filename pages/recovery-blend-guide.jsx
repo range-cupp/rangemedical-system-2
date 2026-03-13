@@ -409,7 +409,7 @@ export default function RecoveryBlendGuide() {
         }
 
         .info-card li::before {
-          content: "\\2713";
+          content: "✓";
           position: absolute;
           left: 0;
           color: #000000;
@@ -627,7 +627,7 @@ export default function RecoveryBlendGuide() {
         }
 
         .safety-card.warning li::before {
-          content: "\\2715";
+          content: "✕";
           position: absolute;
           left: 0;
           color: #171717;
@@ -635,7 +635,7 @@ export default function RecoveryBlendGuide() {
         }
 
         .safety-card.effects li::before {
-          content: "\\2022";
+          content: "•";
           position: absolute;
           left: 0;
           color: #737373;

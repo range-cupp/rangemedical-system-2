@@ -633,7 +633,7 @@ export default async function handler(req, res) {
         injection_frequency: injectionFrequencyDays || null,
         injection_day: injectionDay || null,
         checkin_reminder_enabled: checkinReminderEnabled || false,
-        peptide_reminders_enabled: (programType === 'peptide' && isRecoveryPeptide(medicationName)) ? true : false,
+        peptide_reminders_enabled: programType === 'peptide' ? true : false,
         // HRT vial-specific fields
         dose_per_injection: dosePerInjection ? parseFloat(dosePerInjection) : null,
         injections_per_week: injectionsPerWeek ? parseInt(injectionsPerWeek) : null,

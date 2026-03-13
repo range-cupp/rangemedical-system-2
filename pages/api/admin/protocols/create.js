@@ -187,7 +187,7 @@ export default async function handler(req, res) {
         followup_labs_due: followupLabsDue,
         
         program_type: protocolType,
-        peptide_reminders_enabled: protocolType === 'peptide' ? false : null,
+        peptide_reminders_enabled: protocolType === 'peptide' ? true : null,
 
         status: 'active',
         access_token: accessToken,
@@ -296,58 +296,8 @@ export default async function handler(req, res) {
       // Don't fail protocol creation over journey issues
     }
 
-    // Send opt-in SMS for peptide protocols (ask patient to agree to weekly check-ins)
-    if (protocolType === 'peptide' && ghl_contact_id && GHL_API_KEY) {
-      const firstName = patientName ? patientName.split(' ')[0] : 'there';
-      const shortCode = accessToken.substring(0, 8);
-      const optinUrl = `${BASE_URL}/optin/${shortCode}`;
-      const optinMessage = `Hi ${firstName}! You've started your recovery peptide protocol at Range Medical. We'd like to send quick weekly check-ins via text to track your progress — just 30 seconds each.\n\nTap here to get started:\n${optinUrl}\n\n- Range Medical`;
-
-      try {
-        const smsRes = await fetch('https://services.leadconnectorhq.com/conversations/messages', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${GHL_API_KEY}`,
-            'Version': '2021-04-15',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            type: 'SMS',
-            contactId: ghl_contact_id,
-            message: optinMessage
-          })
-        });
-
-        if (smsRes.ok) {
-          console.log(`✓ Opt-in SMS sent to ${patientName} (${ghl_contact_id})`);
-
-          // Log the opt-in request
-          await supabase.from('protocol_logs').insert({
-            protocol_id: protocol.id,
-            patient_id: patient_id || null,
-            log_type: 'peptide_checkin_optin_sent',
-            log_date: new Date().toISOString().split('T')[0],
-            notes: `Weekly check-in opt-in SMS sent to patient`
-          });
-
-          await logComm({
-            channel: 'sms',
-            messageType: 'peptide_checkin_optin_request',
-            message: optinMessage,
-            source: 'protocol-create',
-            patientId: patient_id || null,
-            protocolId: protocol.id,
-            ghlContactId: ghl_contact_id,
-            patientName
-          });
-        } else {
-          console.error('Opt-in SMS send failed:', await smsRes.text());
-        }
-      } catch (smsError) {
-        console.error('Opt-in SMS error:', smsError);
-        // Don't fail the protocol creation over SMS issues
-      }
-    }
+    // Weekly check-ins are auto-enabled for all peptide protocols (no opt-in needed)
+    // The peptide-reminders cron job handles sending weekly check-in texts
 
     return res.status(201).json({
       success: true,

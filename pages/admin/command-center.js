@@ -1359,11 +1359,11 @@ export default function CommandCenter() {
     { value: 'Retatrutide', label: 'Retatrutide' }
   ];
 
-  // Generate doses from 0.5mg to 15mg in 0.5mg increments
-  const WEIGHT_LOSS_DOSES = Array.from({ length: 30 }, (_, i) => {
-    const dose = (i + 1) * 0.5;
-    return { value: `${dose}mg`, label: `${dose}mg` };
-  });
+  // Generate dose options from WEIGHT_LOSS_DOSAGES (single source of truth)
+  // Falls back to Tirzepatide doses for non-Semaglutide medications
+  const getWLDoses = (medication) =>
+    (WEIGHT_LOSS_DOSAGES[medication] || WEIGHT_LOSS_DOSAGES['Tirzepatide']).map(d => ({ value: d, label: d }));
+  const WEIGHT_LOSS_DOSES = getWLDoses('Tirzepatide');
 
   const PICKUP_FREQUENCY_OPTIONS = [
     { value: '7', label: 'Weekly (7 days)', days: 7 },
@@ -3983,7 +3983,7 @@ export default function CommandCenter() {
                     style={styles.formSelect}
                   >
                     <option value="">{extendExistingWL ? 'Keep current dose' : 'Select dose...'}</option>
-                    {WEIGHT_LOSS_DOSES.map(dose => (
+                    {getWLDoses(assignForm.wlMedication).map(dose => (
                       <option key={dose.value} value={dose.value}>{dose.label}</option>
                     ))}
                   </select>
@@ -4905,7 +4905,7 @@ export default function CommandCenter() {
                     style={styles.formSelect}
                   >
                     <option value="">Select dose...</option>
-                    {WEIGHT_LOSS_DOSES.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                    {getWLDoses(editingProtocol.medication).map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
                     <option value="Custom">Custom</option>
                   </select>
                 ) : editingProtocol.program_type === 'peptide' ? (

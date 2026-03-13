@@ -92,6 +92,32 @@ const WL_DRIP_EMAILS = [
   { num: 4, subject: 'Exercise' },
 ];
 
+// Send Forms — form definitions & quick-select presets
+const SEND_FORMS_LIST = [
+  { id: 'intake', name: 'Medical Intake', icon: '📋', time: '10 min', required: true },
+  { id: 'hipaa', name: 'HIPAA Privacy Notice', icon: '🔒', time: '3 min', required: true },
+  { id: 'blood-draw', name: 'Blood Draw Consent', icon: '🩸', time: '2 min' },
+  { id: 'hrt', name: 'HRT Consent', icon: '💊', time: '5 min' },
+  { id: 'peptide', name: 'Peptide Consent', icon: '🧬', time: '5 min' },
+  { id: 'iv', name: 'IV/Injection Consent', icon: '💧', time: '5 min' },
+  { id: 'hbot', name: 'HBOT Consent', icon: '🫁', time: '5 min' },
+  { id: 'weight-loss', name: 'Weight Loss Consent', icon: '⚖️', time: '5 min' },
+  { id: 'red-light', name: 'Red Light Therapy', icon: '🔴', time: '5 min' },
+  { id: 'prp', name: 'PRP Consent', icon: '🩸', time: '5 min' },
+  { id: 'exosome-iv', name: 'Exosome IV Consent', icon: '🧬', time: '5 min' },
+];
+const FORM_QUICK_SELECTS = [
+  { label: 'New Patient', forms: ['intake', 'hipaa'] },
+  { label: 'HRT', forms: ['intake', 'hipaa', 'hrt', 'blood-draw'] },
+  { label: 'Weight Loss', forms: ['intake', 'hipaa', 'weight-loss', 'blood-draw'] },
+  { label: 'IV Therapy', forms: ['intake', 'hipaa', 'iv'] },
+  { label: 'Peptides', forms: ['intake', 'hipaa', 'peptide'] },
+  { label: 'HBOT', forms: ['intake', 'hipaa', 'hbot'] },
+  { label: 'Red Light', forms: ['intake', 'hipaa', 'red-light'] },
+  { label: 'PRP', forms: ['intake', 'hipaa', 'prp', 'blood-draw'] },
+  { label: 'Exosome IV', forms: ['intake', 'hipaa', 'exosome-iv'] },
+];
+
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
   : null;
@@ -267,6 +293,14 @@ export default function PatientProfile() {
   const [activeTab, setActiveTab] = useState('overview');
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [expandedProtocols, setExpandedProtocols] = useState({});
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+
+  // Send Forms modal
+  const [showSendFormsModal, setShowSendFormsModal] = useState(false);
+  const [sendFormsSelected, setSendFormsSelected] = useState(new Set());
+  const [sendFormsMethod, setSendFormsMethod] = useState('sms');
+  const [sendFormsLoading, setSendFormsLoading] = useState(false);
+  const [sendFormsResult, setSendFormsResult] = useState(null);
   const [pinnedNoteExpanded, setPinnedNoteExpanded] = useState(false);
 
   // Session log modal (for inline session grids — HBOT, RLT, IV, Injection)
@@ -868,6 +902,68 @@ export default function PatientProfile() {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
+  // Send Forms handler
+  const handleSendForms = async () => {
+    if (sendFormsSelected.size === 0) return;
+    setSendFormsLoading(true);
+    setSendFormsResult(null);
+    try {
+      const sortedForms = [...sendFormsSelected].sort((a, b) => {
+        const order = ['intake', 'hipaa'];
+        const ai = order.indexOf(a), bi = order.indexOf(b);
+        if (ai !== -1 && bi !== -1) return ai - bi;
+        if (ai !== -1) return -1;
+        if (bi !== -1) return 1;
+        return 0;
+      });
+      const firstName = patient?.first_name || patient?.name?.split(' ')[0] || '';
+      const patientName = (patient?.first_name && patient?.last_name) ? `${patient.first_name} ${patient.last_name}` : patient?.name || '';
+
+      if (sendFormsMethod === 'email') {
+        const res = await fetch('/api/admin/send-forms-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: patient.email,
+            firstName,
+            formIds: sortedForms,
+            patientId: id,
+            patientName,
+            ghlContactId: patient.ghl_contact_id || null,
+            patientPhone: patient.phone || null,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to send email');
+        setSendFormsResult({ success: true, message: `${sortedForms.length} form${sortedForms.length > 1 ? 's' : ''} sent via email` });
+      } else {
+        const phone = (patient.phone || '').replace(/\D/g, '');
+        const cleanPhone = phone.length === 11 && phone.startsWith('1') ? phone.slice(1) : phone;
+        const res = await fetch('/api/send-forms-sms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: cleanPhone,
+            firstName,
+            formIds: sortedForms,
+            patientId: id,
+            patientName,
+            ghlContactId: patient.ghl_contact_id || null,
+            patientEmail: patient.email || null,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to send SMS');
+        setSendFormsResult({ success: true, message: data.twoStep ? 'Opt-in request sent — forms will deliver after patient replies' : `${sortedForms.length} form${sortedForms.length > 1 ? 's' : ''} sent via SMS` });
+      }
+    } catch (err) {
+      setSendFormsResult({ success: false, message: err.message });
+    } finally {
+      setSendFormsLoading(false);
+      setTimeout(() => setSendFormsResult(null), 4000);
+    }
   };
 
   const getGhlLink = () => {
@@ -1912,50 +2008,68 @@ export default function PatientProfile() {
                 </div>
               </div>
             </div>
-            <div className="header-actions">
-              <div className="actions-primary">
-                {patient.phone && <button onClick={() => setSmsModalOpen(true)} className="action-btn" title="Send text message" style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', color: 'inherit', padding: 0 }}>SMS</button>}
-                {patient.phone && <a href={`tel:${patient.phone}`} className="action-btn" title="Call patient">Call</a>}
-                {patient.email && <button onClick={() => setEmailModalOpen(true)} className="action-btn" title="Send email" style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', color: 'inherit', padding: 0 }}>Email</button>}
-                {ghlLink && <a href={ghlLink} target="_blank" rel="noopener noreferrer" className="action-btn" title="Open in GoHighLevel">GHL</a>}
-                {(() => {
-                  const encounterCount = (appointments || []).filter(a => new Date(a.start_time) < new Date() && (a.encounter_note_count || 0) > 0).length;
-                  return encounterCount > 0 ? (
-                    <button onClick={() => setShowQuickView(true)} className="action-btn" title="Quick view of encounters & protocols" style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit', color: '#6d28d9', padding: 0, fontWeight: 600 }}>
-                      Quick View <span style={{ fontSize: 11, padding: '1px 6px', borderRadius: 10, background: '#ede9fe', color: '#6d28d9', fontWeight: 700, marginLeft: 3 }}>{encounterCount}</span>
+          </div>
+          {/* Action Toolbar */}
+          <div className="header-toolbar">
+            <div className="toolbar-group">
+              {patient.phone && <button onClick={() => setSmsModalOpen(true)} className="toolbar-btn" title="Send text message">💬 <span className="toolbar-label">SMS</span></button>}
+              {patient.phone && <a href={`tel:${patient.phone}`} className="toolbar-btn" title="Call patient">📞 <span className="toolbar-label">Call</span></a>}
+              {patient.email && <button onClick={() => setEmailModalOpen(true)} className="toolbar-btn" title="Send email">✉️ <span className="toolbar-label">Email</span></button>}
+              <button onClick={() => { setShowSendFormsModal(true); setSendFormsSelected(new Set()); setSendFormsResult(null); }} className="toolbar-btn" title="Send forms">📋 <span className="toolbar-label">Forms</span></button>
+            </div>
+            <div className="toolbar-divider" />
+            <div className="toolbar-group">
+              <button onClick={() => setShowBookingModal(true)} className="toolbar-btn toolbar-btn-blue" title="Book appointment">📅 <span className="toolbar-label">Book</span></button>
+              <button onClick={() => setShowChargeModal(true)} className="toolbar-btn toolbar-btn-green" title="Charge patient">💳 <span className="toolbar-label">Charge</span></button>
+              <button onClick={() => setShowAddCreditModal(true)} className="toolbar-btn toolbar-btn-credit" title="Add account credit">🎁 <span className="toolbar-label">Credit</span></button>
+              <button
+                onClick={async () => {
+                  setGeneratingChart(true);
+                  try {
+                    const res = await fetch(`/api/patients/${patient.id}/chart-pdf`);
+                    if (!res.ok) throw new Error('Failed to generate chart');
+                    const blob = await res.blob();
+                    const url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                  } catch (err) {
+                    console.error('Chart PDF error:', err);
+                    alert('Failed to generate chart PDF');
+                  } finally {
+                    setGeneratingChart(false);
+                  }
+                }}
+                disabled={generatingChart}
+                className="toolbar-btn toolbar-btn-dark"
+                title="Print full patient chart"
+              >
+                🖨️ <span className="toolbar-label">{generatingChart ? 'Generating...' : 'Print'}</span>
+              </button>
+            </div>
+            {(() => {
+              const encounterCount = (appointments || []).filter(a => new Date(a.start_time) < new Date() && (a.encounter_note_count || 0) > 0).length;
+              return encounterCount > 0 ? (
+                <>
+                  <div className="toolbar-divider" />
+                  <div className="toolbar-group">
+                    <button onClick={() => setShowQuickView(true)} className="toolbar-btn toolbar-btn-purple" title="Quick view of encounters & protocols">
+                      ⚡ <span className="toolbar-label">Quick View</span> <span className="toolbar-count">{encounterCount}</span>
                     </button>
-                  ) : null;
-                })()}
-              </div>
-              <div className="actions-cta">
-                <button onClick={() => setShowBookingModal(true)} className="action-btn action-btn-primary">Book</button>
-                <button onClick={() => setShowChargeModal(true)} className="action-btn action-btn-charge">Charge</button>
-                <button onClick={() => setShowAddCreditModal(true)} className="action-btn" style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0' }} title="Add account credit">+ Credit</button>
-                <button
-                  onClick={async () => {
-                    setGeneratingChart(true);
-                    try {
-                      const res = await fetch(`/api/patients/${patient.id}/chart-pdf`);
-                      if (!res.ok) throw new Error('Failed to generate chart');
-                      const blob = await res.blob();
-                      const url = URL.createObjectURL(blob);
-                      window.open(url, '_blank');
-                    } catch (err) {
-                      console.error('Chart PDF error:', err);
-                      alert('Failed to generate chart PDF');
-                    } finally {
-                      setGeneratingChart(false);
-                    }
-                  }}
-                  disabled={generatingChart}
-                  className="action-btn"
-                  style={{ background: generatingChart ? '#9CA3AF' : '#1F2937', color: '#fff', border: 'none', cursor: generatingChart ? 'wait' : 'pointer', font: 'inherit', padding: '6px 12px', borderRadius: '6px' }}
-                  title="Print full patient chart"
-                >
-                  {generatingChart ? 'Generating...' : 'Print Chart'}
-                </button>
-              </div>
-              <button onClick={handleDeletePatient} className="action-btn action-btn-delete" title="Delete patient">Del</button>
+                  </div>
+                </>
+              ) : null;
+            })()}
+            <div className="toolbar-divider" />
+            <div className="toolbar-group" style={{ position: 'relative' }}>
+              <button onClick={() => setShowMoreMenu(!showMoreMenu)} className="toolbar-btn toolbar-btn-more" title="More actions">⋯</button>
+              {showMoreMenu && (
+                <>
+                  <div className="toolbar-dropdown-overlay" onClick={() => setShowMoreMenu(false)} />
+                  <div className="toolbar-dropdown">
+                    {ghlLink && <a href={ghlLink} target="_blank" rel="noopener noreferrer" className="toolbar-dropdown-item" onClick={() => setShowMoreMenu(false)}>🔗 Open in GoHighLevel</a>}
+                    <button className="toolbar-dropdown-item toolbar-dropdown-danger" onClick={() => { setShowMoreMenu(false); handleDeletePatient(); }}>🗑️ Delete Patient</button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -6691,53 +6805,109 @@ export default function PatientProfile() {
           border-radius: 10px;
           font-weight: 600;
         }
-        .header-actions {
+        /* Header Toolbar */
+        .header-toolbar {
           display: flex;
-          gap: 6px;
           align-items: center;
-          flex-shrink: 0;
+          gap: 4px;
+          margin-top: 12px;
+          padding: 4px;
+          background: #f8fafc;
+          border-radius: 10px;
+          border: 1px solid #f1f5f9;
+          flex-wrap: wrap;
         }
-        .actions-primary {
+        .toolbar-group {
           display: flex;
           gap: 2px;
-          background: #f3f4f6;
-          border-radius: 8px;
-          padding: 2px;
+          align-items: center;
         }
-        .actions-cta {
-          display: flex;
+        .toolbar-divider {
+          width: 1px;
+          height: 22px;
+          background: #e2e8f0;
+          margin: 0 4px;
+          flex-shrink: 0;
+        }
+        .toolbar-btn {
+          display: inline-flex;
+          align-items: center;
           gap: 4px;
-        }
-        .action-btn {
-          font-size: 12px;
-          color: #374151;
-          text-decoration: none;
           padding: 6px 10px;
           border: none;
-          border-radius: 6px;
+          border-radius: 7px;
           background: transparent;
+          color: #475569;
+          font-size: 12px;
+          font-weight: 500;
+          font-family: inherit;
           cursor: pointer;
-          font-weight: 600;
           white-space: nowrap;
           line-height: 1;
-          transition: background 0.15s;
+          transition: all 0.15s;
+          text-decoration: none;
         }
-        .action-btn:hover { background: #e5e7eb; }
-        .action-btn-primary {
-          background: #2563eb;
-          color: #fff;
+        .toolbar-btn:hover { background: #e2e8f0; color: #0f172a; }
+        .toolbar-btn-blue { background: #eff6ff; color: #1d4ed8; font-weight: 600; }
+        .toolbar-btn-blue:hover { background: #dbeafe; }
+        .toolbar-btn-green { background: #f0fdf4; color: #16a34a; font-weight: 600; }
+        .toolbar-btn-green:hover { background: #dcfce7; }
+        .toolbar-btn-credit { background: #f0fdf4; color: #166534; }
+        .toolbar-btn-credit:hover { background: #dcfce7; }
+        .toolbar-btn-dark { background: #1e293b; color: #fff; font-weight: 600; }
+        .toolbar-btn-dark:hover { background: #334155; }
+        .toolbar-btn-purple { background: #f5f3ff; color: #6d28d9; font-weight: 600; }
+        .toolbar-btn-purple:hover { background: #ede9fe; }
+        .toolbar-btn-more { padding: 6px 8px; font-size: 16px; font-weight: 700; color: #94a3b8; letter-spacing: 1px; }
+        .toolbar-btn-more:hover { color: #475569; }
+        .toolbar-count {
+          font-size: 10px;
+          padding: 1px 6px;
+          border-radius: 10px;
+          background: #ede9fe;
+          color: #6d28d9;
+          font-weight: 700;
+          margin-left: 2px;
         }
-        .action-btn-primary:hover { background: #1d4ed8; }
-        .action-btn-charge {
-          background: #16a34a;
-          color: #fff;
+        .toolbar-label { pointer-events: none; }
+        .toolbar-dropdown-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 99;
         }
-        .action-btn-charge:hover { background: #15803d; }
-        .action-btn-delete {
-          color: #9ca3af;
-          padding: 6px 8px;
+        .toolbar-dropdown {
+          position: absolute;
+          top: 100%;
+          right: 0;
+          margin-top: 6px;
+          background: #fff;
+          border: 1px solid #e2e8f0;
+          border-radius: 10px;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+          min-width: 200px;
+          z-index: 100;
+          padding: 4px;
+          overflow: hidden;
         }
-        .action-btn-delete:hover { color: #dc2626; background: #fef2f2; }
+        .toolbar-dropdown-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          width: 100%;
+          padding: 10px 14px;
+          border: none;
+          background: none;
+          color: #374151;
+          font-size: 13px;
+          font-family: inherit;
+          cursor: pointer;
+          border-radius: 7px;
+          text-decoration: none;
+          transition: background 0.1s;
+        }
+        .toolbar-dropdown-item:hover { background: #f1f5f9; }
+        .toolbar-dropdown-danger { color: #dc2626; }
+        .toolbar-dropdown-danger:hover { background: #fef2f2; }
         .delete-modal {
           position: fixed;
           top: 50%;
@@ -8030,15 +8200,102 @@ export default function PatientProfile() {
           border: none;
         }
 
+        /* Send Forms Modal */
+        .sf-overlay {
+          position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+          z-index: 10000; display: flex; align-items: center; justify-content: center;
+          padding: 20px;
+        }
+        .sf-modal {
+          background: #fff; border-radius: 16px; width: 100%; max-width: 540px;
+          max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+        }
+        .sf-header {
+          display: flex; justify-content: space-between; align-items: center;
+          padding: 20px 24px 12px; position: sticky; top: 0; background: #fff;
+          border-bottom: 1px solid #f1f5f9; border-radius: 16px 16px 0 0; z-index: 1;
+        }
+        .sf-header h3 { margin: 0; font-size: 16px; font-weight: 700; color: #0f172a; }
+        .sf-close {
+          background: none; border: none; font-size: 18px; color: #94a3b8;
+          cursor: pointer; padding: 4px 8px; border-radius: 6px;
+        }
+        .sf-close:hover { background: #f1f5f9; color: #475569; }
+        .sf-quick-row {
+          display: flex; flex-wrap: wrap; gap: 6px; padding: 16px 24px 8px;
+        }
+        .sf-quick-btn {
+          padding: 5px 12px; border-radius: 20px; border: 1px solid #e2e8f0;
+          background: #fff; color: #475569; font-size: 11px; font-weight: 600;
+          cursor: pointer; transition: all 0.15s; font-family: inherit;
+        }
+        .sf-quick-btn:hover { border-color: #94a3b8; background: #f8fafc; }
+        .sf-quick-btn.active { background: #1e40af; color: #fff; border-color: #1e40af; }
+        .sf-form-grid {
+          display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+          padding: 12px 24px;
+        }
+        .sf-form-card {
+          display: flex; align-items: center; gap: 8px;
+          padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0;
+          background: #fff; cursor: pointer; transition: all 0.15s;
+          font-family: inherit; text-align: left;
+        }
+        .sf-form-card:hover { border-color: #94a3b8; background: #f8fafc; }
+        .sf-form-card.active { border-color: #2563eb; background: #eff6ff; }
+        .sf-form-check {
+          width: 18px; height: 18px; border-radius: 4px; border: 2px solid #d1d5db;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
+          transition: all 0.15s;
+        }
+        .sf-form-card.active .sf-form-check {
+          background: #2563eb; border-color: #2563eb;
+        }
+        .sf-form-icon { font-size: 14px; flex-shrink: 0; }
+        .sf-form-name { font-size: 12px; font-weight: 500; color: #1e293b; flex: 1; }
+        .sf-form-time { font-size: 10px; color: #94a3b8; flex-shrink: 0; }
+        .sf-delivery {
+          display: flex; align-items: center; gap: 12px;
+          padding: 12px 24px;
+        }
+        .sf-toggle {
+          display: flex; background: #f1f5f9; border-radius: 8px; padding: 2px;
+        }
+        .sf-toggle-btn {
+          padding: 6px 14px; border: none; border-radius: 6px;
+          background: transparent; color: #64748b; font-size: 12px;
+          font-weight: 600; cursor: pointer; font-family: inherit;
+          transition: all 0.15s;
+        }
+        .sf-toggle-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .sf-toggle-btn.active { background: #fff; color: #0f172a; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        .sf-delivery-to { font-size: 12px; color: #64748b; }
+        .sf-actions { padding: 12px 24px 20px; display: flex; flex-direction: column; gap: 8px; }
+        .sf-send-btn {
+          width: 100%; padding: 12px; border: none; border-radius: 10px;
+          background: #2563eb; color: #fff; font-size: 14px; font-weight: 600;
+          cursor: pointer; font-family: inherit; transition: all 0.15s;
+        }
+        .sf-send-btn:hover:not(:disabled) { background: #1d4ed8; }
+        .sf-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .sf-result {
+          padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;
+          text-align: center;
+        }
+        .sf-result-ok { background: #f0fdf4; color: #166534; }
+        .sf-result-err { background: #fef2f2; color: #991b1b; }
+
         /* Responsive: Tablet */
         @media (max-width: 768px) {
           .patient-profile { padding: 16px; }
           .header-top { flex-direction: column; gap: 12px; }
           .header-left { width: 100%; }
           .header-identity h1 { font-size: 22px; }
-          .header-actions { width: 100%; flex-wrap: wrap; }
-          .actions-primary { flex: 1; justify-content: center; }
-          .actions-cta { flex: 1; justify-content: center; }
+          .header-toolbar { gap: 3px; }
+          .toolbar-btn { padding: 5px 8px; font-size: 11px; }
+          .toolbar-divider { height: 18px; }
+          .sf-form-grid { grid-template-columns: 1fr; }
           .demographics-grid { grid-template-columns: repeat(2, 1fr); }
           .demographics-edit-grid { grid-template-columns: repeat(2, 1fr); }
           .demographics-preview { gap: 8px; font-size: 11px; }
@@ -8056,10 +8313,10 @@ export default function PatientProfile() {
           .header-identity h1 { font-size: 20px; }
           .back-text { display: none; }
           .contact-row { font-size: 12px; gap: 8px; }
-          .header-actions { gap: 4px; }
-          .actions-primary { gap: 0; padding: 1px; }
-          .action-btn { padding: 5px 8px; font-size: 11px; }
-          .action-btn-delete { padding: 5px 6px; }
+          .header-toolbar { gap: 2px; padding: 3px; }
+          .toolbar-label { display: none; }
+          .toolbar-btn { padding: 6px 8px; }
+          .toolbar-divider { margin: 0 2px; height: 16px; }
           .demographics-grid { grid-template-columns: 1fr; gap: 10px; }
           .demographics-edit-grid { grid-template-columns: 1fr; }
           .demographics-preview { flex-direction: column; gap: 2px; }
@@ -8075,6 +8332,79 @@ export default function PatientProfile() {
           .wl-table th, .wl-table td { padding: 6px 8px; }
         }
       `}</style>
+
+      {/* Send Forms Modal */}
+      {showSendFormsModal && (
+        <div className="sf-overlay" onClick={() => setShowSendFormsModal(false)}>
+          <div className="sf-modal" onClick={e => e.stopPropagation()}>
+            <div className="sf-header">
+              <h3>📋 Send Forms {patient?.first_name ? `to ${patient.first_name}` : ''}</h3>
+              <button className="sf-close" onClick={() => setShowSendFormsModal(false)}>✕</button>
+            </div>
+
+            {/* Quick Selects */}
+            <div className="sf-quick-row">
+              {FORM_QUICK_SELECTS.map(qs => {
+                const isActive = qs.forms.every(f => sendFormsSelected.has(f)) && qs.forms.length === sendFormsSelected.size;
+                return (
+                  <button key={qs.label} className={`sf-quick-btn ${isActive ? 'active' : ''}`}
+                    onClick={() => setSendFormsSelected(new Set(qs.forms))}>
+                    {qs.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Form Grid */}
+            <div className="sf-form-grid">
+              {SEND_FORMS_LIST.map(form => {
+                const checked = sendFormsSelected.has(form.id);
+                return (
+                  <button key={form.id} className={`sf-form-card ${checked ? 'active' : ''}`}
+                    onClick={() => {
+                      const next = new Set(sendFormsSelected);
+                      if (checked) next.delete(form.id); else next.add(form.id);
+                      setSendFormsSelected(next);
+                    }}>
+                    <span className="sf-form-check">{checked ? '✓' : ''}</span>
+                    <span className="sf-form-icon">{form.icon}</span>
+                    <span className="sf-form-name">{form.name}</span>
+                    <span className="sf-form-time">{form.time}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Delivery Method */}
+            <div className="sf-delivery">
+              <div className="sf-toggle">
+                <button className={`sf-toggle-btn ${sendFormsMethod === 'sms' ? 'active' : ''}`} onClick={() => setSendFormsMethod('sms')} disabled={!patient?.phone}>
+                  💬 SMS
+                </button>
+                <button className={`sf-toggle-btn ${sendFormsMethod === 'email' ? 'active' : ''}`} onClick={() => setSendFormsMethod('email')} disabled={!patient?.email}>
+                  ✉️ Email
+                </button>
+              </div>
+              <span className="sf-delivery-to">
+                {sendFormsMethod === 'sms' ? (patient?.phone ? formatPhone(patient.phone) : 'No phone') : (patient?.email || 'No email')}
+              </span>
+            </div>
+
+            {/* Send Button + Result */}
+            <div className="sf-actions">
+              <button className="sf-send-btn" disabled={sendFormsSelected.size === 0 || sendFormsLoading || (sendFormsMethod === 'sms' && !patient?.phone) || (sendFormsMethod === 'email' && !patient?.email)}
+                onClick={handleSendForms}>
+                {sendFormsLoading ? 'Sending...' : `Send ${sendFormsSelected.size} Form${sendFormsSelected.size !== 1 ? 's' : ''} via ${sendFormsMethod === 'sms' ? 'SMS' : 'Email'}`}
+              </button>
+              {sendFormsResult && (
+                <div className={`sf-result ${sendFormsResult.success ? 'sf-result-ok' : 'sf-result-err'}`}>
+                  {sendFormsResult.success ? '✓' : '✕'} {sendFormsResult.message}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Email Compose Modal */}
       <EmailComposeModal

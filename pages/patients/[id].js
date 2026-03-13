@@ -1932,25 +1932,32 @@ export default function PatientProfile() {
 
             // Resolve allergies from whichever field is populated
             let allergyText = null;
-            const noKnownAllergies = intake.no_known_allergies ||
-              (intake.allergies && typeof intake.allergies === 'object' && intake.allergies.none === true);
+            const noKnownAllergies = intake.has_allergies === false;
             if (!noKnownAllergies) {
-              allergyText = intake.known_allergies_text ||
+              allergyText = (typeof intake.allergies === 'string' ? intake.allergies : null) ||
                 (intake.allergies && typeof intake.allergies === 'object' ? intake.allergies.text : null) ||
-                (typeof intake.allergies === 'string' ? intake.allergies : null) ||
+                (intake.allergy_reactions ? `Allergies noted` : null) ||
                 null;
             }
 
             // Medications
-            const medsText = intake.current_medications_text || intake.current_medications || null;
+            const medsText = intake.current_medications || intake.medication_notes || null;
 
-            // Medical conditions
-            const conditionsText = intake.medical_conditions || null;
+            // Medical conditions — parse JSONB object for any "Yes" conditions
+            let conditionsText = null;
+            if (intake.medical_conditions && typeof intake.medical_conditions === 'object') {
+              const activeConditions = Object.values(intake.medical_conditions)
+                .filter(c => c && c.response && c.response !== 'No')
+                .map(c => c.label);
+              if (activeConditions.length > 0) conditionsText = activeConditions.join(', ');
+            } else if (typeof intake.medical_conditions === 'string') {
+              conditionsText = intake.medical_conditions;
+            }
 
-            // Surgical history
-            const surgicalText = intake.surgical_history || null;
+            // HRT status
+            const hrtText = intake.on_hrt ? (intake.hrt_details || 'On HRT') : null;
 
-            const hasAlerts = allergyText || medsText || conditionsText || surgicalText || noKnownAllergies;
+            const hasAlerts = allergyText || medsText || conditionsText || hrtText || noKnownAllergies;
             if (!hasAlerts) return null;
 
             const chipStyle = {
@@ -1989,10 +1996,10 @@ export default function PatientProfile() {
                     <strong>Conditions:</strong> {conditionsText}
                   </span>
                 )}
-                {surgicalText && (
+                {hrtText && (
                   <span style={{ ...chipStyle, background: '#faf5ff', color: '#6b21a8', border: '1px solid #e9d5ff' }}>
-                    <span style={{ fontSize: '13px' }}>🔪</span>
-                    <strong>Surgical:</strong> {surgicalText}
+                    <span style={{ fontSize: '13px' }}>💉</span>
+                    <strong>HRT:</strong> {hrtText}
                   </span>
                 )}
               </div>

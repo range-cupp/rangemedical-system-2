@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
 import { formatPrice } from '../lib/pos-pricing';
+import { findMatchingPeptide, findPeptideInfo } from '../lib/protocol-config';
 
 // Category display order and labels
 const CATEGORY_ORDER = [
@@ -722,8 +723,24 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
 
         // Split base name from dose detail
         const parenMatch = peptidePart.match(/^(.+?)\s*\((.+)\)$/);
-        const medication = parenMatch ? parenMatch[1].trim() : peptidePart;
-        const dosage = parenMatch ? parenMatch[2].trim() : '';
+        const rawMedication = parenMatch ? parenMatch[1].trim() : peptidePart;
+        const dosageStr = parenMatch ? parenMatch[2].trim() : '';
+
+        // Parse dose and injection count: "1mg × 20 inj" → dose="1mg", injections=20
+        let parsedDose = dosageStr;
+        let parsedInjections = null;
+        const doseInjMatch = dosageStr.match(/^([\d.]+\s*m[cg]+g?)\s*[×x]\s*(\d+)\s*inj/i);
+        if (doseInjMatch) {
+          parsedDose = doseInjMatch[1].trim();
+          parsedInjections = parseInt(doseInjMatch[2]);
+        }
+
+        // Fuzzy-match medication to known peptide config
+        const matchedPeptideName = findMatchingPeptide(rawMedication);
+        const peptideInfo = findPeptideInfo(matchedPeptideName);
+
+        // Use peptide config for frequency (e.g., "5 on / 2 off") — don't hardcode "daily"
+        const peptideFrequency = peptideInfo?.frequency || 'Daily';
 
         const today = new Date();
         const startDate = today.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }); // YYYY-MM-DD
@@ -738,12 +755,13 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
             patientName: patient.name,
             patientPhone: patient.phone || '',
             patientEmail: patient.email || '',
-            medication,
-            dosage,
-            frequency: 'daily',
-            deliveryMethod: 'Subcutaneous Injection',
+            medication: matchedPeptideName || rawMedication,
+            dosage: parsedDose,
+            frequency: peptideFrequency,
+            deliveryMethod: 'take_home',
             startDate,
             duration,
+            totalSessions: parsedInjections || undefined,
             notes: `Auto-created from POS purchase: ${item.name}`,
             initial_journey_stage: 'dispensed',
             source: 'pos',

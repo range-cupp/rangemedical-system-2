@@ -4,7 +4,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { logComm } from '../../../../lib/comms-log';
-import { isWeightLossType, isHRTType } from '../../../../lib/protocol-config';
+import { isWeightLossType, isHRTType, isRecoveryPeptide, isGHPeptide } from '../../../../lib/protocol-config';
 import { findDuplicateProtocol } from '../../../../lib/duplicate-prevention';
 import crypto from 'crypto';
 
@@ -95,7 +95,9 @@ export default async function handler(req, res) {
 
     if (protocolType === 'peptide') {
       const days = parseInt(duration) || 10;
-      sessions = days;
+      // Use explicit totalSessions from POS if provided (e.g., 20 inj for 5-on/2-off),
+      // otherwise fall back to calendar days
+      sessions = totalSessions ? parseInt(totalSessions) : days;
       // Twice daily = supply lasts half as long
       const effectiveDays = frequency === '2x_daily' ? Math.ceil(days / 2) : days;
       const end = new Date(startDate);
@@ -137,7 +139,14 @@ export default async function handler(req, res) {
     // Build protocol name
     let protocolName = '';
     if (protocolType === 'peptide') {
-      protocolName = `${duration || 10}-Day Recovery Protocol`;
+      const durationLabel = duration || 10;
+      if (isGHPeptide(medication)) {
+        protocolName = `${durationLabel}-Day GH Protocol`;
+      } else if (isRecoveryPeptide(medication)) {
+        protocolName = `${durationLabel}-Day Recovery Protocol`;
+      } else {
+        protocolName = `${durationLabel}-Day Peptide Protocol`;
+      }
     } else if (isHRTType(protocolType)) {
       protocolName = 'HRT Protocol';
     } else if (isWeightLossType(protocolType)) {

@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import AdminLayout from '../../../components/AdminLayout';
 import { PROTOCOL_TYPES, CATEGORY_TO_TYPE, getDBProgramType } from '../../../lib/protocol-types';
-import { MEMBERSHIP_FREQUENCY_OPTIONS } from '../../../lib/protocol-config';
+import { MEMBERSHIP_FREQUENCY_OPTIONS, isRecoveryPeptide, isGHPeptide } from '../../../lib/protocol-config';
 
 // Classify purchase into action type: 'protocol' | 'session' | 'product'
 function getPurchaseActionType(purchase) {
@@ -708,7 +708,11 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
 
       const buildProtocolName = () => {
         const type = form.protocolType;
-        if (type === 'peptide') return `${form.duration}-Day Recovery Protocol`;
+        if (type === 'peptide') {
+          if (isGHPeptide(form.medication)) return `${form.duration}-Day GH Protocol`;
+          if (isRecoveryPeptide(form.medication)) return `${form.duration}-Day Recovery Protocol`;
+          return `${form.duration}-Day Peptide Protocol`;
+        }
         if (type === 'peptide_vial') {
           const totalDoses = parseInt(form.numVials) * parseInt(form.dosesPerVial);
           return `${form.medication || 'Peptide Vial'} (${form.numVials} vial${parseInt(form.numVials) > 1 ? 's' : ''} · ${totalDoses} doses)`;

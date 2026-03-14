@@ -40,6 +40,67 @@ function formatSupplyInfo(med) {
   return med.program_type?.replace(/_/g, ' ') || '';
 }
 
+// Get supply type options available for dispense based on protocol type
+function getSupplyOptions(med) {
+  const pt = (med.program_type || '').toLowerCase();
+  const supply = (med.supply_type || '').toLowerCase();
+
+  // HRT prefilled — allow choosing 1-week, 2-week, or 4-week
+  if (pt.includes('hrt') && (supply.startsWith('prefilled') || supply === 'in_clinic')) {
+    return [
+      { value: 'prefilled_1week', label: '1-Week Prefilled', days: 7 },
+      { value: 'prefilled_2week', label: '2-Week Prefilled', days: 14 },
+      { value: 'prefilled_4week', label: '4-Week Prefilled', days: 28 },
+    ];
+  }
+
+  // HRT vials — allow choosing different vial sizes
+  if (pt.includes('hrt') && supply.includes('vial')) {
+    return [
+      { value: 'vial_5ml', label: '5ml Vial', days: null },
+      { value: 'vial_10ml', label: '10ml Vial', days: null },
+    ];
+  }
+
+  // Weight loss — allow choosing pickup frequency
+  if (pt.includes('weight_loss')) {
+    return [
+      { value: 'weekly', label: 'Weekly', days: 7 },
+      { value: 'every_2_weeks', label: 'Every 2 Weeks', days: 14 },
+      { value: 'monthly', label: 'Monthly (4 weeks)', days: 28 },
+    ];
+  }
+
+  // No options to change for other types (pellets, oral, peptide)
+  return null;
+}
+
+// Get the refill interval for a selected supply type
+function getIntervalForSupply(supplyValue, med) {
+  const pt = (med.program_type || '').toLowerCase();
+
+  // Prefilled — straightforward
+  const prefillDays = {
+    prefilled_1week: 7, prefilled_1: 7,
+    prefilled_2week: 14,
+    prefilled_4week: 28,
+  };
+  if (prefillDays[supplyValue]) return prefillDays[supplyValue];
+
+  // Weight loss frequency
+  if (supplyValue === 'weekly') return 7;
+  if (supplyValue === 'every_2_weeks') return 14;
+  if (supplyValue === 'monthly') return 28;
+
+  // Vials — use the protocol's existing calculated interval
+  // (already computed server-side based on dose + injection frequency)
+  if (supplyValue === 'vial_5ml' || supplyValue === 'vial_10ml') {
+    return med.refill_interval_days || 28;
+  }
+
+  return med.refill_interval_days || 28;
+}
+
 export default function MedicationsPage() {
   const [medications, setMedications] = useState([]);
   const [stats, setStats] = useState(null);
@@ -51,6 +112,7 @@ export default function MedicationsPage() {
   // Dispense modal state
   const [dispensingProtocol, setDispensingProtocol] = useState(null);
   const [dispenseDate, setDispenseDate] = useState('');
+  const [selectedSupplyType, setSelectedSupplyType] = useState('');
   const [logging, setLogging] = useState(false);
   const [logResult, setLogResult] = useState(null);
 
@@ -76,6 +138,7 @@ export default function MedicationsPage() {
   const openDispenseModal = (med) => {
     setDispensingProtocol(med);
     setDispenseDate(new Date().toISOString().split('T')[0]);
+    setSelectedSupplyType(med.supply_type || '');
     setLogResult(null);
   };
 
@@ -84,6 +147,7 @@ export default function MedicationsPage() {
     setLogging(true);
     setLogResult(null);
     try {
+      const currentInterval = getIntervalForSupply(selectedSupplyType, dispensingProtocol);
       const res = await fetch('/api/admin/dispense', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -92,6 +156,7 @@ export default function MedicationsPage() {
           patient_id: dispensingProtocol.patient_id,
           patient_name: dispensingProtocol.patient_name,
           dispense_date: dispenseDate,
+          refill_interval_days: currentInterval,
         }),
       });
       if (res.status === 409) {
@@ -116,10 +181,15 @@ export default function MedicationsPage() {
     }
   };
 
-  // Compute the preview next refill date
+  // Compute the preview next refill date based on selected supply type
+  const getActiveInterval = () => {
+    if (!dispensingProtocol) return null;
+    return getIntervalForSupply(selectedSupplyType, dispensingProtocol);
+  };
+
   const previewNextRefill = () => {
     if (!dispensingProtocol || !dispenseDate) return null;
-    const interval = dispensingProtocol.refill_interval_days;
+    const interval = getActiveInterval();
     if (!interval) return null;
     const next = new Date(dispenseDate + 'T12:00:00');
     next.setDate(next.getDate() + interval);
@@ -331,19 +401,52 @@ export default function MedicationsPage() {
                 </div>
               )}
 
-              {/* Supply Type + Route */}
-              {dispensingProtocol.supply_type && (
-                <div style={s.fieldRow}>
-                  <div style={s.fieldLabel}>Supply</div>
-                  <div style={s.fieldValue}>{formatSupplyInfo(dispensingProtocol)}</div>
-                </div>
-              )}
+              {/* Supply Type Selector */}
+              {(() => {
+                const options = getSupplyOptions(dispensingProtocol);
+                if (options) {
+                  return (
+                    <div style={{ ...s.fieldRow, flexDirection: 'column', alignItems: 'stretch' }}>
+                      <div style={s.fieldLabel}>Supply Type</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+                        {options.map(opt => (
+                          <button
+                            key={opt.value}
+                            onClick={() => setSelectedSupplyType(opt.value)}
+                            style={{
+                              padding: '8px 16px',
+                              borderRadius: '8px',
+                              fontSize: '13px',
+                              fontWeight: 600,
+                              fontFamily: 'inherit',
+                              cursor: 'pointer',
+                              border: selectedSupplyType === opt.value ? '2px solid #2563eb' : '1px solid #e5e7eb',
+                              background: selectedSupplyType === opt.value ? '#eff6ff' : '#fff',
+                              color: selectedSupplyType === opt.value ? '#2563eb' : '#374151',
+                              transition: 'all 0.15s',
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+                // No selectable options — show static supply info
+                return dispensingProtocol.supply_type ? (
+                  <div style={s.fieldRow}>
+                    <div style={s.fieldLabel}>Supply</div>
+                    <div style={s.fieldValue}>{formatSupplyInfo(dispensingProtocol)}</div>
+                  </div>
+                ) : null;
+              })()}
 
               {/* Refill Cycle */}
               <div style={s.fieldRow}>
                 <div style={s.fieldLabel}>Refill Cycle</div>
                 <div style={{ ...s.fieldValue, color: '#2563eb', fontWeight: 600 }}>
-                  {formatIntervalLabel(dispensingProtocol.refill_interval_days)}
+                  {formatIntervalLabel(getActiveInterval())}
                 </div>
               </div>
 
@@ -367,7 +470,7 @@ export default function MedicationsPage() {
                     {formatDate(previewDate)}
                   </div>
                   <div style={{ fontSize: '12px', color: '#2563eb', marginTop: '2px' }}>
-                    {dispensingProtocol.refill_interval_days} days from {formatDate(dispenseDate)}
+                    {getActiveInterval()} days from {formatDate(dispenseDate)}
                   </div>
                 </div>
               )}

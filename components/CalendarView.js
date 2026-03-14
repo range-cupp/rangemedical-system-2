@@ -93,6 +93,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   const [creating, setCreating] = useState(false);
   const [panelType, setPanelType] = useState(null); // 'essential' | 'elite' for New Patient Blood Draw
   const [useCustomTime, setUseCustomTime] = useState(false); // Override Cal.com availability
+  const [bookingConfirmed, setBookingConfirmed] = useState(null); // { patientName, services, provider, date, time, location } after success
 
   // Cal.com availability state
   const [eventTypesMap, setEventTypesMap] = useState({}); // slug → { id, hosts }
@@ -583,9 +584,22 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
       }
 
       if (res.ok) {
-        resetWizard();
-        setCurrentDate(startDT);
-        setViewMode('day');
+        // Snapshot details for the confirmation screen BEFORE resetting
+        const allSvcs = selectedServices.length > 0 ? selectedServices : (selectedService ? [selectedService] : []);
+        setBookingConfirmed({
+          patientName: isWalkIn ? walkInName : selectedPatient?.name,
+          services: allSvcs,
+          providers: selectedServices.length > 1 ? selectedProviders : { [selectedService?.name]: selectedProvider },
+          location: selectedLocation?.short || 'Newport Beach',
+          date: new Date(apptDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
+          time: formatTimeLabel(apptTime),
+          duration: allSvcs.reduce((s, x) => s + (x.duration || 0), 0) || selectedService?.duration,
+          notificationSent: sendNotification,
+        });
+        if (!wizardOnly) {
+          setCurrentDate(startDT);
+          setViewMode('day');
+        }
         fetchAppointments();
       } else {
         const err = await res.json();
@@ -600,6 +614,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   };
 
   const resetWizard = () => {
+    setBookingConfirmed(null);
     setWizardStep(preselectedPatient ? 1 : 0);
     setSelectedPatient(preselectedPatient || null);
     setPatientSearch('');
@@ -1689,6 +1704,57 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   // ===================== NEW APPOINTMENT WIZARD =====================
   const renderWizard = () => (
     <div style={styles.wizardContainer}>
+
+      {/* ── Booking Confirmed screen ── */}
+      {bookingConfirmed ? (
+        <div style={{ textAlign: 'center', padding: '12px 0' }}>
+          <div style={{ fontSize: '48px', marginBottom: '12px' }}>✅</div>
+          <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#166534', margin: '0 0 4px' }}>Appointment Confirmed</h3>
+          <p style={{ fontSize: '13px', color: '#888', margin: '0 0 20px' }}>
+            {bookingConfirmed.notificationSent ? 'Confirmation sent to patient.' : 'No notification sent.'}
+          </p>
+
+          <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '10px', padding: '16px', textAlign: 'left', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #dcfce7' }}>
+              <span style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Patient</span>
+              <span style={{ fontSize: '13px', color: '#111', fontWeight: '600' }}>{bookingConfirmed.patientName}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #dcfce7' }}>
+              <span style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Service{bookingConfirmed.services.length > 1 ? 's' : ''}</span>
+              <span style={{ fontSize: '13px', color: '#111', textAlign: 'right' }}>
+                {bookingConfirmed.services.map(s => (
+                  <span key={s.name} style={{ display: 'block' }}>
+                    {s.name}
+                    {bookingConfirmed.providers[s.name] && (
+                      <span style={{ fontSize: '11px', color: '#6b7280' }}> · {bookingConfirmed.providers[s.name]?.label}</span>
+                    )}
+                  </span>
+                ))}
+              </span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #dcfce7' }}>
+              <span style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Date</span>
+              <span style={{ fontSize: '13px', color: '#111' }}>{bookingConfirmed.date}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #dcfce7' }}>
+              <span style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Time</span>
+              <span style={{ fontSize: '13px', color: '#111' }}>{bookingConfirmed.time}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
+              <span style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Location</span>
+              <span style={{ fontSize: '13px', color: '#111' }}>📍 {bookingConfirmed.location}</span>
+            </div>
+          </div>
+
+          <button
+            onClick={resetWizard}
+            style={{ ...styles.primaryBtn, width: '100%', background: '#111' }}
+          >
+            + Book Another Appointment
+          </button>
+        </div>
+      ) : (
+      <>
       <h3 style={styles.wizardTitle}>New Appointment</h3>
 
       {/* Step indicators */}
@@ -2458,6 +2524,8 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
         <button onClick={resetWizard} style={{ ...styles.linkBtn, marginTop: '16px', fontSize: '12px', color: '#888' }}>
           Start over
         </button>
+      )}
+      </>
       )}
     </div>
   );

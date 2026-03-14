@@ -399,6 +399,41 @@ const PRODUCTS = [
     prices: [{ amount: 7500, nickname: null }],
   },
 
+  // ── DSIP Sleep Protocol ──
+  {
+    name: 'DSIP Protocol — Phase 1 (250 mcg)',
+    description: 'Delta Sleep-Inducing Peptide, 250 mcg, PRN before bed. Pre-filled syringes. 4-week supply.',
+    category: 'sleep',
+    prices: [
+      { amount: 15000, nickname: null, recurring: true },
+      { amount: 15000, nickname: 'One-Time' },
+    ],
+  },
+  {
+    name: 'DSIP Protocol — Phase 2 (500 mcg)',
+    description: 'Delta Sleep-Inducing Peptide, 500 mcg, PRN before bed. Pre-filled syringes. 4-week supply.',
+    category: 'sleep',
+    prices: [
+      { amount: 20000, nickname: null, recurring: true },
+      { amount: 20000, nickname: 'One-Time' },
+    ],
+  },
+  {
+    name: 'DSIP Protocol — Phase 3 (750 mcg)',
+    description: 'Delta Sleep-Inducing Peptide, 750 mcg, PRN before bed. Pre-filled syringes. 4-week supply.',
+    category: 'sleep',
+    prices: [
+      { amount: 25000, nickname: null, recurring: true },
+      { amount: 25000, nickname: 'One-Time' },
+    ],
+  },
+  {
+    name: 'DSIP Protocol — Full 3-Phase Program',
+    description: 'Complete DSIP sleep optimization program. Phases 1–3 (250 mcg → 500 mcg → 750 mcg). 12-week progressive protocol. Pre-filled syringes included.',
+    category: 'sleep',
+    prices: [{ amount: 60000, nickname: null }],
+  },
+
   // ── Peptide Therapy ──
   {
     name: 'BDNF Peptide Protocol',
@@ -557,7 +592,7 @@ const PRODUCTS = [
 const CATEGORY_ORDER = [
   'programs', 'combo_membership', 'hbot', 'red_light', 'hrt', 'weight_loss',
   'iv_therapy', 'specialty_iv', 'injection_standard', 'injection_premium',
-  'injection_pack', 'nad_injection', 'peptide', 'vials', 'labs', 'regenerative', 'assessment',
+  'injection_pack', 'nad_injection', 'sleep', 'peptide', 'vials', 'labs', 'regenerative', 'assessment',
 ];
 
 // ─────────────────────────────────────────────

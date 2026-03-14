@@ -2,7 +2,7 @@
 // Marks current appointment as rescheduled, creates new one with link
 
 import { createClient } from '@supabase/supabase-js';
-import { logComm } from '../../../../lib/comms-log';
+import { sendAppointmentNotification } from '../../../../lib/appointment-notifications';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -88,11 +88,23 @@ export default async function handler(req, res) {
       metadata: { rescheduled_from: id },
     });
 
-    // Fire-and-forget: send reschedule SMS
+    // Fire-and-forget: send reschedule notification (email + SMS with proper timezone)
     if (oldAppt.patient_id) {
-      sendRescheduleSMS(oldAppt, newAppt).catch(err =>
-        console.error('Reschedule SMS error:', err)
-      );
+      sendAppointmentNotification({
+        type: 'reschedule',
+        patient: {
+          id: oldAppt.patient_id,
+          name: oldAppt.patient_name,
+          phone: oldAppt.patient_phone,
+        },
+        appointment: {
+          serviceName: newAppt.service_name,
+          startTime: newAppt.start_time,
+          endTime: newAppt.end_time,
+          durationMinutes: newAppt.duration_minutes,
+          location: newAppt.location,
+        },
+      }).catch(err => console.error('Reschedule notification error:', err));
     }
 
     return res.status(200).json({ old_appointment: { ...oldAppt, status: 'rescheduled' }, new_appointment: newAppt });
@@ -102,43 +114,3 @@ export default async function handler(req, res) {
   }
 }
 
-async function sendRescheduleSMS(oldAppt, newAppt) {
-  const { data: patient } = await supabase
-    .from('patients')
-    .select('ghl_contact_id, name')
-    .eq('id', oldAppt.patient_id)
-    .single();
-
-  if (!patient?.ghl_contact_id) return;
-
-  const firstName = patient.name.split(' ')[0];
-  const newDate = new Date(newAppt.start_time).toLocaleDateString('en-US', {
-    weekday: 'long', month: 'long', day: 'numeric',
-  });
-  const newTime = new Date(newAppt.start_time).toLocaleTimeString('en-US', {
-    hour: 'numeric', minute: '2-digit',
-  });
-
-  const message = `Hi ${firstName}, your ${newAppt.service_name} appointment has been rescheduled to ${newDate} at ${newTime}. See you at Range Medical!`;
-
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://app.range-medical.com';
-    await fetch(`${baseUrl}/api/ghl/send-sms`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contact_id: patient.ghl_contact_id, message }),
-    });
-
-    await logComm({
-      channel: 'sms',
-      messageType: 'appointment_reschedule',
-      message,
-      source: 'appointments/reschedule',
-      patientId: oldAppt.patient_id,
-      patientName: patient.name,
-      ghlContactId: patient.ghl_contact_id,
-    });
-  } catch (err) {
-    console.error('Reschedule SMS error:', err);
-  }
-}

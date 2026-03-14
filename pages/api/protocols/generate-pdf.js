@@ -13,19 +13,56 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Extract individual peptide/compound names from a medication string
+// e.g., "2X Blend: Sermorelin / Nafarelin" → ["Sermorelin", "Nafarelin", "Sermorelin / Nafarelin"]
+// e.g., "2X Blend: Tesamorelin / Ipamorelin" → ["Tesamorelin", "Ipamorelin", "Tesamorelin / Ipamorelin"]
+function extractPeptideNames(medication) {
+  if (!medication) return [];
+  const names = new Set();
+  names.add(medication); // full name
+
+  // Strip blend prefix: "2X Blend: X / Y" → "X / Y"
+  let clean = medication.replace(/^\d+[Xx]\s*Blend[:\s]*/i, '').trim();
+  if (clean !== medication) names.add(clean);
+
+  // Split on / or , to get individual peptides
+  const parts = clean.split(/\s*[\/,]\s*/).map(p => p.trim()).filter(Boolean);
+  for (const part of parts) {
+    names.add(part);
+  }
+
+  return [...names];
+}
+
 // Fetch or generate cached peptide content
 async function fetchPeptideContent(peptideNames) {
   if (!peptideNames || peptideNames.length === 0) return {};
 
-  // Try to fetch from cache first
+  // Expand medication names to include individual peptide components
+  const allLookupNames = new Set();
+  const nameToMedication = {}; // maps individual peptide → original medication name
+  for (const med of peptideNames) {
+    const extracted = extractPeptideNames(med);
+    for (const name of extracted) {
+      allLookupNames.add(name);
+      if (!nameToMedication[name]) nameToMedication[name] = med;
+    }
+  }
+
+  const lookupArray = [...allLookupNames];
+
+  // Try to fetch from cache first — search for all possible name variants
   const { data: existing } = await supabase
     .from('peptide_content')
     .select('*')
-    .in('peptide_name', peptideNames);
+    .in('peptide_name', lookupArray);
 
   const cachedMap = {};
+  const directHits = new Set();
+
+  // First pass: map exact matches to original medication names
   for (const row of (existing || [])) {
-    cachedMap[row.peptide_name] = {
+    const content = {
       description: row.description,
       administration: row.administration || '',
       expected_benefits: row.expected_benefits || [],
@@ -35,13 +72,22 @@ async function fetchPeptideContent(peptideNames) {
       what_to_expect: row.what_to_expect || [],
       storage_instructions: row.storage_instructions || '',
     };
+
+    // Map this content to the original medication name
+    cachedMap[row.peptide_name] = content;
+    directHits.add(row.peptide_name);
+
+    // Also map back to the original full medication name
+    const origMed = nameToMedication[row.peptide_name];
+    if (origMed && !cachedMap[origMed]) {
+      cachedMap[origMed] = content;
+    }
   }
 
-  // For missing peptides, call the peptide-content API to auto-generate
+  // For original medication names still missing, try to generate content
   const missing = peptideNames.filter(name => !cachedMap[name]);
   if (missing.length > 0) {
     try {
-      // Call our own API endpoint to generate missing content
       const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL
         ? `https://${process.env.VERCEL_URL}`
         : 'http://localhost:3000';

@@ -324,7 +324,7 @@ export default function PatientProfile() {
   const [sessionLogSaving, setSessionLogSaving] = useState(false);
 
   // Slide-out PDF viewer state
-  const [pdfSlideOut, setPdfSlideOut] = useState({ open: false, url: '', title: '' });
+  const [pdfSlideOut, setPdfSlideOut] = useState({ open: false, url: '', title: '', sendable: false, docName: '' });
   const [slideoutWidth, setSlideoutWidth] = useState(70); // percentage
 
   // Template/peptide data for protocol assignment
@@ -2044,7 +2044,7 @@ export default function PatientProfile() {
   };
 
   const closePdfViewer = () => {
-    setPdfSlideOut({ open: false, url: '', title: '' });
+    setPdfSlideOut({ open: false, url: '', title: '', sendable: false, docName: '' });
   };
 
   // Open Protocol PDF modal — pre-select active peptide protocols
@@ -2154,7 +2154,7 @@ export default function PatientProfile() {
     }
   };
 
-  // Save Protocol PDF to chart AND send to patient
+  // Save Protocol PDF to chart, then preview before sending
   const handleSaveAndSendProtocolPdf = async () => {
     const selected = Object.entries(protocolPdfSelections).filter(([, v]) => v.selected);
     if (selected.length === 0) return;
@@ -2185,12 +2185,11 @@ export default function PatientProfile() {
       const data = await res.json();
       // Refresh documents
       if (typeof fetchDocuments === 'function') fetchDocuments();
-      // Close PDF modal and open send modal with the saved URL
+      // Close PDF modal and open slide-out viewer with send button
       setShowProtocolPdfModal(false);
       const docName = data.document_name || (selected.length > 1 ? 'Protocol Plan' : `${selected[0][1].medication} Protocol`);
-      setSendDocModal({ open: true, url: data.pdf_url, name: docName, type: 'protocol_pdf' });
-      setSendDocMethod('both');
-      setSendDocResult(null);
+      setSlideoutWidth(70);
+      setPdfSlideOut({ open: true, url: data.pdf_url, title: docName, sendable: true, docName });
     } catch (err) {
       console.error('Save & send protocol PDF error:', err);
       alert('Failed to save: ' + err.message);
@@ -7538,6 +7537,21 @@ export default function PatientProfile() {
               <div className="slideout-header">
                 <h3>{pdfSlideOut.title}</h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {/* Send to Patient button — shown for any document with a URL */}
+                  {pdfSlideOut.url && !pdfSlideOut.url.startsWith('blob:') && (
+                    <button onClick={() => {
+                      setSendDocModal({ open: true, url: pdfSlideOut.url, name: pdfSlideOut.docName || pdfSlideOut.title, type: 'document' });
+                      setSendDocMethod('both');
+                      setSendDocResult(null);
+                    }} style={{
+                      padding: '5px 14px', fontSize: 12, fontWeight: 600,
+                      background: '#2563eb', color: '#fff', border: 'none',
+                      borderRadius: 6, cursor: 'pointer', marginRight: 6,
+                      display: 'flex', alignItems: 'center', gap: 4,
+                    }}>
+                      Send to Patient
+                    </button>
+                  )}
                   <div style={{ display: 'flex', gap: 2, marginRight: 8 }}>
                     {[30, 50, 70].map(w => (
                       <button key={w} onClick={() => setSlideoutWidth(w)} style={{

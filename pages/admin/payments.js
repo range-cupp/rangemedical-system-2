@@ -36,6 +36,21 @@ export default function PaymentsPage() {
   const [giftCardsLoaded, setGiftCardsLoaded] = useState(false);
   const [giftCardSearch, setGiftCardSearch] = useState('');
   const [giftCardStatusFilter, setGiftCardStatusFilter] = useState('all');
+
+  // Subscriptions state
+  const [allSubscriptions, setAllSubscriptions] = useState([]);
+  const [subsLoading, setSubsLoading] = useState(false);
+  const [subsLoaded, setSubsLoaded] = useState(false);
+  const [subsSearch, setSubsSearch] = useState('');
+  const [subsStatusFilter, setSubsStatusFilter] = useState('all');
+  const [subActionLoading, setSubActionLoading] = useState(null);
+  const [showNewSubModal, setShowNewSubModal] = useState(false);
+  const [newSubPatientSearch, setNewSubPatientSearch] = useState('');
+  const [newSubPatientResults, setNewSubPatientResults] = useState([]);
+  const [newSubPatient, setNewSubPatient] = useState(null);
+  const [newSubForm, setNewSubForm] = useState({ amount: '', interval: 'month', description: '', service_category: 'hrt' });
+  const [creatingSub, setCreatingSub] = useState(false);
+  const [newSubPatientCards, setNewSubPatientCards] = useState([]);
   const [expandedGiftCard, setExpandedGiftCard] = useState(null);
   const [giftCardRedemptions, setGiftCardRedemptions] = useState({});
   const [voidingGiftCardId, setVoidingGiftCardId] = useState(null);
@@ -64,7 +79,135 @@ export default function PaymentsPage() {
     if (tab === 'gift_cards' && !giftCardsLoaded) {
       fetchGiftCards();
     }
+    if (tab === 'subscriptions' && !subsLoaded) {
+      fetchAllSubscriptions();
+    }
   }, [tab]);
+
+  const fetchAllSubscriptions = async () => {
+    setSubsLoading(true);
+    try {
+      const { data, error } = await (await import('../../lib/supabase')).supabase
+        .from('subscriptions')
+        .select('*, patients!inner(id, first_name, last_name, email, stripe_customer_id)')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setAllSubscriptions((data || []).map(s => ({
+        ...s,
+        patient_name: `${s.patients?.first_name || ''} ${s.patients?.last_name || ''}`.trim(),
+        patient_email: s.patients?.email || '',
+        patient_stripe_id: s.patients?.stripe_customer_id || '',
+      })));
+      setSubsLoaded(true);
+    } catch (err) {
+      console.error('Fetch subscriptions error:', err);
+    } finally {
+      setSubsLoading(false);
+    }
+  };
+
+  const handleSubAction = async (subscriptionId, action, paymentMethodId) => {
+    setSubActionLoading(subscriptionId + '_' + action);
+    try {
+      const res = await fetch('/api/stripe/subscription', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription_id: subscriptionId, action, payment_method_id: paymentMethodId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Action failed');
+      alert(data.message || 'Success');
+      fetchAllSubscriptions();
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      setSubActionLoading(null);
+    }
+  };
+
+  const handleCancelSub = async (subscriptionId, immediate) => {
+    const msg = immediate
+      ? 'Cancel this subscription immediately? This cannot be undone.'
+      : 'Cancel at the end of the current billing period?';
+    if (!confirm(msg)) return;
+    setSubActionLoading(subscriptionId + '_cancel');
+    try {
+      if (immediate) {
+        const res = await fetch('/api/stripe/subscription', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subscription_id: subscriptionId }),
+        });
+        if (!res.ok) throw new Error((await res.json()).error || 'Cancel failed');
+        alert('Subscription cancelled');
+      } else {
+        await handleSubAction(subscriptionId, 'cancel_at_period_end');
+        return;
+      }
+      fetchAllSubscriptions();
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      setSubActionLoading(null);
+    }
+  };
+
+  const searchNewSubPatients = async (q) => {
+    setNewSubPatientSearch(q);
+    if (q.length < 2) { setNewSubPatientResults([]); return; }
+    try {
+      const { data } = await (await import('../../lib/supabase')).supabase
+        .from('patients')
+        .select('id, first_name, last_name, email, stripe_customer_id')
+        .or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,email.ilike.%${q}%`)
+        .limit(8);
+      setNewSubPatientResults(data || []);
+    } catch { setNewSubPatientResults([]); }
+  };
+
+  const selectNewSubPatient = async (p) => {
+    setNewSubPatient(p);
+    setNewSubPatientSearch('');
+    setNewSubPatientResults([]);
+    // Load their cards
+    try {
+      const res = await fetch(`/api/stripe/saved-cards?patient_id=${p.id}`);
+      const data = await res.json();
+      setNewSubPatientCards(data.cards || []);
+    } catch { setNewSubPatientCards([]); }
+  };
+
+  const handleCreateNewSub = async () => {
+    if (!newSubPatient) { alert('Select a patient first'); return; }
+    if (!newSubForm.amount || parseFloat(newSubForm.amount) <= 0) { alert('Enter a valid amount'); return; }
+    if (newSubPatientCards.length === 0) { alert('Patient needs a card on file first.'); return; }
+    setCreatingSub(true);
+    try {
+      const res = await fetch('/api/stripe/subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: newSubPatient.id,
+          price_amount: Math.round(parseFloat(newSubForm.amount) * 100),
+          interval: newSubForm.interval,
+          description: newSubForm.description || `${newSubForm.service_category?.toUpperCase() || ''} Subscription`.trim(),
+          service_category: newSubForm.service_category || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create subscription');
+      alert(`Subscription created! Status: ${data.status}`);
+      setShowNewSubModal(false);
+      setNewSubPatient(null);
+      setNewSubForm({ amount: '', interval: 'month', description: '', service_category: 'hrt' });
+      setNewSubPatientCards([]);
+      fetchAllSubscriptions();
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      setCreatingSub(false);
+    }
+  };
 
   const fetchPosServices = async () => {
     setPosServicesLoading(true);
@@ -314,7 +457,7 @@ export default function PaymentsPage() {
       {/* Tab bar + Create button */}
       <div style={styles.topBar}>
         <div style={styles.tabBar}>
-          {['invoices', 'pos', 'products', 'gift_cards'].map(t => (
+          {['invoices', 'pos', 'subscriptions', 'products', 'gift_cards'].map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -323,7 +466,7 @@ export default function PaymentsPage() {
                 ...(tab === t ? styles.tabActive : {})
               }}
             >
-              {t === 'invoices' ? 'Invoices' : t === 'pos' ? 'POS Checkout' : t === 'products' ? 'Products & Services' : 'Gift Cards'}
+              {t === 'invoices' ? 'Invoices' : t === 'pos' ? 'POS Checkout' : t === 'subscriptions' ? 'Subscriptions' : t === 'products' ? 'Products & Services' : 'Gift Cards'}
             </button>
           ))}
         </div>
@@ -944,6 +1087,319 @@ export default function PaymentsPage() {
               )}
             </>
           )}
+        </div>
+      )}
+
+      {/* Subscriptions Tab */}
+      {tab === 'subscriptions' && (
+        <div>
+          {/* Header with Create button */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input
+                type="text"
+                placeholder="Search by patient name..."
+                value={subsSearch}
+                onChange={e => setSubsSearch(e.target.value)}
+                style={styles.searchInput}
+              />
+              <div style={styles.filterPills}>
+                {['all', 'active', 'past_due', 'canceled', 'paused'].map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setSubsStatusFilter(s)}
+                    style={{
+                      ...styles.filterPill,
+                      ...(subsStatusFilter === s ? styles.filterPillActive : {}),
+                    }}
+                  >
+                    {s === 'all' ? 'All' : s === 'past_due' ? 'Past Due' : s.charAt(0).toUpperCase() + s.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => setShowNewSubModal(true)}
+                style={{ ...styles.createBtn }}
+              >
+                + New Subscription
+              </button>
+              <button
+                onClick={fetchAllSubscriptions}
+                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #ddd', background: '#fff', fontSize: 13, cursor: 'pointer' }}
+              >
+                {subsLoading ? 'Loading...' : 'Refresh'}
+              </button>
+            </div>
+          </div>
+
+          {/* Stats row */}
+          {(() => {
+            const active = allSubscriptions.filter(s => s.status === 'active');
+            const pastDue = allSubscriptions.filter(s => s.status === 'past_due');
+            const totalMRR = active.reduce((sum, s) => sum + (s.amount_cents || 0), 0);
+            return (
+              <div style={styles.statsRow}>
+                <div style={styles.stat}>
+                  <div style={styles.statValue}>{allSubscriptions.length}</div>
+                  <div style={styles.statLabel}>Total</div>
+                </div>
+                <div style={styles.stat}>
+                  <div style={{ ...styles.statValue, color: '#166534' }}>{active.length}</div>
+                  <div style={styles.statLabel}>Active</div>
+                </div>
+                <div style={styles.stat}>
+                  <div style={{ ...styles.statValue, color: pastDue.length > 0 ? '#dc2626' : '#666' }}>{pastDue.length}</div>
+                  <div style={styles.statLabel}>Past Due</div>
+                </div>
+                <div style={styles.stat}>
+                  <div style={{ ...styles.statValue, color: '#166534' }}>${(totalMRR / 100).toLocaleString()}</div>
+                  <div style={styles.statLabel}>Monthly Revenue</div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {subsLoading ? (
+            <div style={styles.loading}>Loading subscriptions...</div>
+          ) : (() => {
+            const filtered = allSubscriptions.filter(s => {
+              const matchesSearch = !subsSearch || s.patient_name?.toLowerCase().includes(subsSearch.toLowerCase());
+              const matchesStatus = subsStatusFilter === 'all' ||
+                (subsStatusFilter === 'paused' ? !!s.pause_collection : s.status === subsStatusFilter);
+              return matchesSearch && matchesStatus;
+            });
+            if (filtered.length === 0) return <div style={styles.empty}>No subscriptions found</div>;
+            return (
+              <div style={styles.card}>
+                <table style={styles.table}>
+                  <thead>
+                    <tr>
+                      <th style={styles.th}>Patient</th>
+                      <th style={styles.th}>Description</th>
+                      <th style={styles.th}>Amount</th>
+                      <th style={styles.th}>Status</th>
+                      <th style={styles.th}>Category</th>
+                      <th style={styles.th}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map(sub => {
+                      const isPastDue = sub.status === 'past_due';
+                      const isCanceled = sub.status === 'canceled';
+                      const isPaused = !!sub.pause_collection;
+                      const isCancelingAtEnd = sub.cancel_at_period_end;
+                      const statusColor = isPastDue ? '#dc2626' : isPaused ? '#f59e0b' : isCanceled ? '#6b7280' : isCancelingAtEnd ? '#f59e0b' : '#166534';
+                      const statusBg = isPastDue ? '#fee2e2' : isPaused ? '#fef3c7' : isCanceled ? '#f3f4f6' : isCancelingAtEnd ? '#fef3c7' : '#dcfce7';
+                      const statusLabel = isPastDue ? 'Past Due' : isPaused ? 'Paused' : isCanceled ? 'Canceled' : isCancelingAtEnd ? 'Canceling' : 'Active';
+                      const catColors = { hrt: { bg: '#dbeafe', text: '#1e40af' }, weight_loss: { bg: '#fef3c7', text: '#92400e' }, peptide: { bg: '#e0e7ff', text: '#3730a3' } };
+                      const cat = catColors[sub.service_category] || { bg: '#f3f4f6', text: '#374151' };
+
+                      return (
+                        <tr key={sub.id} style={{ ...styles.tr, background: isPastDue ? '#fef2f2' : 'transparent' }}>
+                          <td style={styles.td}>
+                            <Link href={`/patients/${sub.patient_id}`} style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>
+                              {sub.patient_name || 'Unknown'}
+                            </Link>
+                            <div style={{ fontSize: 11, color: '#94a3b8' }}>{sub.patient_email}</div>
+                          </td>
+                          <td style={styles.td}>{sub.description || '—'}</td>
+                          <td style={{ ...styles.td, fontWeight: 700 }}>
+                            ${((sub.amount_cents || 0) / 100).toFixed(0)}/{sub.interval || 'mo'}
+                          </td>
+                          <td style={styles.td}>
+                            <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700, background: statusBg, color: statusColor }}>
+                              {statusLabel}
+                            </span>
+                          </td>
+                          <td style={styles.td}>
+                            {sub.service_category && (
+                              <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', background: cat.bg, color: cat.text }}>
+                                {sub.service_category}
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ ...styles.td, whiteSpace: 'nowrap' }}>
+                            {!isCanceled && (
+                              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                                {isPastDue && (
+                                  <button
+                                    onClick={() => handleSubAction(sub.stripe_subscription_id, 'retry_payment')}
+                                    disabled={!!subActionLoading}
+                                    style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, borderRadius: 4, background: '#16a34a', color: '#fff', border: 'none', cursor: 'pointer' }}
+                                  >
+                                    Retry
+                                  </button>
+                                )}
+                                {isPaused ? (
+                                  <button
+                                    onClick={() => handleSubAction(sub.stripe_subscription_id, 'resume')}
+                                    disabled={!!subActionLoading}
+                                    style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, borderRadius: 4, background: '#16a34a', color: '#fff', border: 'none', cursor: 'pointer' }}
+                                  >
+                                    Resume
+                                  </button>
+                                ) : !isCancelingAtEnd && (
+                                  <button
+                                    onClick={() => handleSubAction(sub.stripe_subscription_id, 'pause')}
+                                    disabled={!!subActionLoading}
+                                    style={{ padding: '4px 10px', fontSize: 11, borderRadius: 4, background: '#fff', color: '#f59e0b', border: '1px solid #fcd34d', cursor: 'pointer' }}
+                                  >
+                                    Pause
+                                  </button>
+                                )}
+                                {isCancelingAtEnd ? (
+                                  <button
+                                    onClick={() => handleSubAction(sub.stripe_subscription_id, 'undo_cancel')}
+                                    disabled={!!subActionLoading}
+                                    style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, borderRadius: 4, background: '#16a34a', color: '#fff', border: 'none', cursor: 'pointer' }}
+                                  >
+                                    Undo Cancel
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => handleCancelSub(sub.stripe_subscription_id, false)}
+                                    disabled={!!subActionLoading}
+                                    style={{ padding: '4px 10px', fontSize: 11, borderRadius: 4, background: '#fff', color: '#dc2626', border: '1px solid #fca5a5', cursor: 'pointer' }}
+                                  >
+                                    Cancel
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* New Subscription Modal */}
+      {showNewSubModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', borderRadius: 12, padding: 24, width: 480, maxWidth: '90vw' }}>
+            <h3 style={{ margin: '0 0 16px', fontSize: 18 }}>New Subscription</h3>
+
+            {/* Patient search */}
+            {!newSubPatient ? (
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, display: 'block', marginBottom: 4 }}>Patient</label>
+                <input
+                  type="text"
+                  placeholder="Search patient by name or email..."
+                  value={newSubPatientSearch}
+                  onChange={e => searchNewSubPatients(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }}
+                  autoFocus
+                />
+                {newSubPatientResults.length > 0 && (
+                  <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, marginTop: 4, maxHeight: 200, overflow: 'auto' }}>
+                    {newSubPatientResults.map(p => (
+                      <div
+                        key={p.id}
+                        onClick={() => selectNewSubPatient(p)}
+                        style={{ padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f3f4f6', fontSize: 14 }}
+                        onMouseOver={e => e.currentTarget.style.background = '#f9fafb'}
+                        onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <strong>{p.first_name} {p.last_name}</strong>
+                        <span style={{ color: '#94a3b8', marginLeft: 8, fontSize: 12 }}>{p.email}</span>
+                        {!p.stripe_customer_id && <span style={{ color: '#f59e0b', marginLeft: 8, fontSize: 11 }}>No Stripe ID</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ marginBottom: 16, padding: '10px 14px', background: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <strong>{newSubPatient.first_name} {newSubPatient.last_name}</strong>
+                  <span style={{ color: '#64748b', marginLeft: 8, fontSize: 12 }}>{newSubPatient.email}</span>
+                  {newSubPatientCards.length > 0 && (
+                    <span style={{ marginLeft: 8, fontSize: 11, color: '#16a34a' }}>
+                      {newSubPatientCards[0].brand.toUpperCase()} ····{newSubPatientCards[0].last4}
+                    </span>
+                  )}
+                </div>
+                <button onClick={() => { setNewSubPatient(null); setNewSubPatientCards([]); }} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 13 }}>Change</button>
+              </div>
+            )}
+
+            {newSubPatientCards.length === 0 && newSubPatient && (
+              <div style={{ padding: '10px 14px', background: '#fef2f2', borderRadius: 8, border: '1px solid #fecaca', marginBottom: 12, fontSize: 13, color: '#991b1b' }}>
+                No card on file. Add a card on the patient&apos;s profile first.
+              </div>
+            )}
+
+            {/* Subscription details */}
+            <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 3 }}>Amount ($)</label>
+                <input
+                  type="number" step="0.01" min="0" placeholder="250"
+                  value={newSubForm.amount}
+                  onChange={e => setNewSubForm(f => ({ ...f, amount: e.target.value }))}
+                  style={{ width: 100, padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14 }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 3 }}>Interval</label>
+                <select value={newSubForm.interval} onChange={e => setNewSubForm(f => ({ ...f, interval: e.target.value }))}
+                  style={{ padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
+                  <option value="month">Monthly</option>
+                  <option value="year">Yearly</option>
+                  <option value="week">Weekly</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 3 }}>Category</label>
+                <select value={newSubForm.service_category} onChange={e => setNewSubForm(f => ({ ...f, service_category: e.target.value }))}
+                  style={{ padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
+                  <option value="hrt">HRT</option>
+                  <option value="weight_loss">Weight Loss</option>
+                  <option value="peptide">Peptide</option>
+                  <option value="iv">IV</option>
+                  <option value="hbot">HBOT</option>
+                  <option value="rlt">RLT</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 3 }}>Description</label>
+              <input
+                type="text" placeholder="e.g. Male HRT Membership"
+                value={newSubForm.description}
+                onChange={e => setNewSubForm(f => ({ ...f, description: e.target.value }))}
+                style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => { setShowNewSubModal(false); setNewSubPatient(null); setNewSubPatientCards([]); }}
+                style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', fontSize: 13, cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateNewSub}
+                disabled={creatingSub || !newSubPatient || newSubPatientCards.length === 0}
+                style={{
+                  padding: '8px 20px', borderRadius: 6, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  background: (!newSubPatient || newSubPatientCards.length === 0) ? '#d1d5db' : '#16a34a', color: '#fff',
+                }}
+              >
+                {creatingSub ? 'Creating...' : 'Start Subscription'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

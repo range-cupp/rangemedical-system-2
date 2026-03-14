@@ -83,6 +83,7 @@ export default function CalendarView({ preselectedPatient = null }) {
   const [selectedServices, setSelectedServices] = useState([]);      // all selected services for multi-service appointments
   const [selectedServiceGroup, setSelectedServiceGroup] = useState(null);
   const [selectedProvider, setSelectedProvider] = useState(null);
+  const [selectedProviders, setSelectedProviders] = useState({});   // multi-service: { serviceName → providerObj }
   const [selectedLocation, setSelectedLocation] = useState(DEFAULT_LOCATION);
   const [apptDate, setApptDate] = useState('');
   const [apptTime, setApptTime] = useState('');
@@ -424,7 +425,21 @@ export default function CalendarView({ preselectedPatient = null }) {
         setSelectedProvider(providers[0]);
       }
     }
-  }, [wizardStep, selectedService, selectedProvider]);
+    // Multi-service: auto-assign providers where there's only one option
+    if (wizardStep === 3 && selectedServices.length > 1) {
+      setSelectedProviders(prev => {
+        const next = { ...prev };
+        let changed = false;
+        selectedServices.forEach(svc => {
+          if (!next[svc.name]) {
+            const opts = PROVIDERS[svc.category] || PROVIDERS['other'] || [];
+            if (opts.length === 1) { next[svc.name] = opts[0]; changed = true; }
+          }
+        });
+        return changed ? next : prev;
+      });
+    }
+  }, [wizardStep, selectedService, selectedProvider, selectedServices]);
 
   // ===================== Patient Search =====================
   const searchPatients = async (q) => {
@@ -458,8 +473,17 @@ export default function CalendarView({ preselectedPatient = null }) {
         ? allServices.map(s => s.name).join(' + ')
         : (selectedService?.name || '');
       const servicesPayload = allServices.length > 1
-        ? allServices.map(s => ({ name: s.name, category: s.category, duration: s.duration }))
+        ? allServices.map(s => ({
+            name: s.name,
+            category: s.category,
+            duration: s.duration,
+            provider: selectedProviders[s.name]?.label || selectedProviders[s.name]?.name || null,
+          }))
         : null;
+      // For multi-service, the primary provider (for calendar display) is the first service's provider
+      const primaryProviderName = allServices.length > 1
+        ? (selectedProviders[allServices[0].name]?.label || selectedProviders[allServices[0].name]?.name || null)
+        : (selectedProvider?.name || null);
 
       // For multi-service, skip Cal.com (manual booking only)
       const calcomSlug = allServices.length === 1 ? selectedService?.calcomSlug : null;
@@ -512,7 +536,7 @@ export default function CalendarView({ preselectedPatient = null }) {
               patient_phone: patientPhone,
               service_name: displayServiceName,
               service_category: selectedService.category,
-              provider: selectedProvider?.name || null,
+              provider: primaryProviderName,
               start_time: startDT.toISOString(),
               end_time: endDT.toISOString(),
               duration_minutes: duration,
@@ -538,7 +562,7 @@ export default function CalendarView({ preselectedPatient = null }) {
           patient_phone: patientPhone,
           service_name: displayServiceName,
           service_category: selectedService.category,
-          provider: selectedProvider?.name || null,
+          provider: primaryProviderName,
           start_time: startDT.toISOString(),
           end_time: endDT.toISOString(),
           duration_minutes: duration,
@@ -586,6 +610,7 @@ export default function CalendarView({ preselectedPatient = null }) {
     setSelectedServices([]);
     setSelectedServiceGroup(null);
     setSelectedProvider(null);
+    setSelectedProviders({});
     setSelectedLocation(DEFAULT_LOCATION);
     setApptDate('');
     setApptTime('');
@@ -1371,7 +1396,10 @@ export default function CalendarView({ preselectedPatient = null }) {
                   <span>
                     {appt.services.map((s, i) => (
                       <span key={s.name} style={{ display: 'block', fontSize: i === 0 ? '13px' : '12px', color: i === 0 ? '#111' : '#555' }}>
-                        {s.name} <span style={{ fontSize: '11px', color: '#9ca3af' }}>({s.duration} min)</span>
+                        {s.name}
+                        <span style={{ fontSize: '11px', color: '#9ca3af' }}>
+                          {' '}({s.duration} min{s.provider ? ` · ${s.provider}` : ''})
+                        </span>
                       </span>
                     ))}
                   </span>
@@ -1863,13 +1891,24 @@ export default function CalendarView({ preselectedPatient = null }) {
                   setSelectedProvider(null);
                   // If ANY service needs blood-draw panel and panel not yet set, stay on step
                   if (selectedServices.some(s => s.calcomSlug === 'new-patient-blood-draw') && !panelType) return;
-                  // If ANY service needs location (IV), go to location step
-                  if (selectedServices.some(s => LOCATION_ENABLED_CATEGORIES.includes(s.category))) {
-                    setSelectedLocation(DEFAULT_LOCATION);
-                    setWizardStep(2);
+                  if (selectedServices.length > 1) {
+                    // Multi-service: location first (if IV), then per-service provider assignment
+                    if (selectedServices.some(s => LOCATION_ENABLED_CATEGORIES.includes(s.category))) {
+                      setSelectedLocation(DEFAULT_LOCATION);
+                      setWizardStep(2);
+                    } else {
+                      setSelectedLocation(DEFAULT_LOCATION);
+                      setWizardStep(3); // per-service provider assignment
+                    }
                   } else {
-                    setSelectedLocation(DEFAULT_LOCATION);
-                    setWizardStep(4);
+                    // Single-service: existing flow (skip provider step, go to date/time)
+                    if (LOCATION_ENABLED_CATEGORIES.includes(primary.category)) {
+                      setSelectedLocation(DEFAULT_LOCATION);
+                      setWizardStep(2);
+                    } else {
+                      setSelectedLocation(DEFAULT_LOCATION);
+                      setWizardStep(4);
+                    }
                   }
                 }}
                 style={{ ...styles.primaryBtn, width: '100%', background: '#16a34a' }}
@@ -1899,7 +1938,8 @@ export default function CalendarView({ preselectedPatient = null }) {
                 onClick={() => {
                   setSelectedLocation(loc);
                   setSelectedProvider(null);
-                  setWizardStep(4); // Skip provider step — per-provider columns shown in date/time
+                  // Multi-service: go to per-service provider assignment; single: go to date/time
+                  setWizardStep(selectedServices.length > 1 ? 3 : 4);
                 }}
                 style={{
                   ...styles.serviceItem,
@@ -1915,36 +1955,73 @@ export default function CalendarView({ preselectedPatient = null }) {
         </div>
       )}
 
-      {/* Step 3: Provider */}
+      {/* Step 3: Per-Service Provider Assignment (multi-service only) */}
       {wizardStep === 3 && (
         <div>
           <p style={styles.wizardLabel}>
-            {selectedServices.length > 1
-              ? `${selectedServices.map(s => s.name).join(' + ')} — ${selectedServices.reduce((sum, s) => sum + (s.duration || 0), 0)} min total`
-              : `${selectedService?.name} — ${selectedService?.duration} min`}
+            Assign a provider for each service
             {selectedLocation && selectedLocation.id !== 'newport' && (
               <span style={{ fontSize: '12px', color: '#6b7280' }}> · 📍 {selectedLocation.short}</span>
             )}
           </p>
-          <label style={styles.fieldLabel}>Select Provider</label>
-          <div style={styles.serviceList}>
-            {(PROVIDERS[selectedService?.category] || PROVIDERS['other'] || []).map(prov => (
-              <div
-                key={prov.name}
-                onClick={() => { setSelectedProvider(prov); setWizardStep(4); }}
-                style={{
-                  ...styles.serviceItem,
-                  ...(selectedProvider?.name === prov.name ? { background: '#e0e7ff', borderColor: '#3730a3' } : {}),
-                }}
-              >
-                <span style={{ fontWeight: '500' }}>{prov.label}</span>
+
+          {selectedServices.map(svc => {
+            const svcProviders = PROVIDERS[svc.category] || PROVIDERS['other'] || [];
+            const assigned = selectedProviders[svc.name];
+            return (
+              <div key={svc.name} style={{ marginBottom: '18px' }}>
+                <div style={{ fontSize: '13px', fontWeight: '600', color: '#111', marginBottom: '7px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>{svc.name}</span>
+                  <span style={{ fontSize: '11px', color: '#888', fontWeight: '400' }}>{svc.duration} min</span>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {svcProviders.map(prov => (
+                    <button
+                      key={prov.name}
+                      onClick={() => setSelectedProviders(prev => ({ ...prev, [svc.name]: prov }))}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '6px',
+                        border: assigned?.name === prov.name ? '2px solid #3730a3' : '1px solid #e5e5e5',
+                        background: assigned?.name === prov.name ? '#e0e7ff' : '#fff',
+                        color: assigned?.name === prov.name ? '#3730a3' : '#374151',
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                        fontSize: '13px',
+                        fontWeight: assigned?.name === prov.name ? '600' : '400',
+                      }}
+                    >
+                      {prov.label}
+                    </button>
+                  ))}
+                </div>
+                {assigned && (
+                  <div style={{ fontSize: '11px', color: '#16a34a', marginTop: '4px' }}>✓ {assigned.label}</div>
+                )}
               </div>
-            ))}
-          </div>
+            );
+          })}
+
+          {/* Continue once all services have a provider */}
+          {selectedServices.every(s => selectedProviders[s.name]) ? (
+            <button
+              onClick={() => {
+                setSelectedProvider(selectedProviders[selectedServices[0].name]);
+                setWizardStep(4);
+              }}
+              style={{ ...styles.primaryBtn, width: '100%', marginTop: '4px', background: '#16a34a' }}
+            >
+              Continue →
+            </button>
+          ) : (
+            <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '8px', textAlign: 'center' }}>
+              Assign a provider for each service to continue
+            </div>
+          )}
+
           <button onClick={() => {
-            const needsLocation = LOCATION_ENABLED_CATEGORIES.includes(selectedService?.category);
+            const needsLocation = selectedServices.some(s => LOCATION_ENABLED_CATEGORIES.includes(s.category));
             setWizardStep(needsLocation ? 2 : 1);
-            setSelectedProvider(null);
           }} style={{ ...styles.linkBtn, marginTop: '12px' }}>← Back</button>
         </div>
       )}
@@ -2200,8 +2277,12 @@ export default function CalendarView({ preselectedPatient = null }) {
                 Next
               </button>
               <button onClick={() => {
-                const needsLocation = LOCATION_ENABLED_CATEGORIES.includes(selectedService?.category);
-                setWizardStep(needsLocation ? 2 : 1);
+                if (selectedServices.length > 1) {
+                  setWizardStep(3); // back to per-service provider assignment
+                } else {
+                  const needsLocation = LOCATION_ENABLED_CATEGORIES.includes(selectedService?.category);
+                  setWizardStep(needsLocation ? 2 : 1);
+                }
               }} style={styles.linkBtn}>← Back</button>
             </div>
           </div>
@@ -2223,7 +2304,10 @@ export default function CalendarView({ preselectedPatient = null }) {
                   <span>
                     {selectedServices.map((s, i) => (
                       <span key={s.name} style={{ display: 'block', fontSize: i === 0 ? '14px' : '13px', color: i === 0 ? '#111' : '#555' }}>
-                        {s.name} <span style={{ fontSize: '11px', color: '#888' }}>({s.duration} min)</span>
+                        {s.name}
+                        <span style={{ fontSize: '11px', color: '#888' }}> ({s.duration} min
+                          {selectedProviders[s.name] ? ` · ${selectedProviders[s.name].label}` : ''}
+                        )</span>
                       </span>
                     ))}
                   </span>
@@ -2237,8 +2321,18 @@ export default function CalendarView({ preselectedPatient = null }) {
               </div>
             )}
             <div style={styles.confirmRow}>
-              <span style={styles.confirmLabel}>Provider</span>
-              <span>{selectedProvider?.label || 'N/A'}</span>
+              <span style={styles.confirmLabel}>Provider{selectedServices.length > 1 ? 's' : ''}</span>
+              <span>
+                {selectedServices.length > 1 ? (
+                  <span>
+                    {selectedServices.map(s => (
+                      <span key={s.name} style={{ display: 'block', fontSize: '13px' }}>
+                        {selectedProviders[s.name]?.label || '—'} <span style={{ fontSize: '11px', color: '#888' }}>({s.name})</span>
+                      </span>
+                    ))}
+                  </span>
+                ) : (selectedProvider?.label || 'N/A')}
+              </span>
             </div>
             <div style={styles.confirmRow}>
               <span style={styles.confirmLabel}>Duration</span>

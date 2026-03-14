@@ -312,6 +312,12 @@ export default function PatientProfile() {
   const [protocolPdfGenerating, setProtocolPdfGenerating] = useState(false);
   const [protocolPdfSaving, setProtocolPdfSaving] = useState(false);
 
+  // Send Document modal state
+  const [sendDocModal, setSendDocModal] = useState({ open: false, url: '', name: '', type: '' });
+  const [sendDocMethod, setSendDocMethod] = useState('both'); // 'email', 'sms', 'both'
+  const [sendDocLoading, setSendDocLoading] = useState(false);
+  const [sendDocResult, setSendDocResult] = useState(null);
+
   // Session log modal (for inline session grids — HBOT, RLT, IV, Injection)
   const [sessionLogModal, setSessionLogModal] = useState(null);
   const [sessionLogDate, setSessionLogDate] = useState('');
@@ -2145,6 +2151,112 @@ export default function PatientProfile() {
       alert('Failed to save: ' + err.message);
     } finally {
       setProtocolPdfSaving(false);
+    }
+  };
+
+  // Save Protocol PDF to chart AND send to patient
+  const handleSaveAndSendProtocolPdf = async () => {
+    const selected = Object.entries(protocolPdfSelections).filter(([, v]) => v.selected);
+    if (selected.length === 0) return;
+    setProtocolPdfSaving(true);
+    try {
+      const protocols = selected.map(([, v]) => ({
+        medication: v.medication,
+        dose: v.dose,
+        frequency: v.frequency,
+        duration: v.duration,
+        route: v.route,
+        pricePerMonth: v.pricePerMonth || '',
+        phases: v.phases || [],
+      }));
+      const res = await fetch('/api/protocols/generate-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: patient.id,
+          patient_name: `${patient.first_name || ''} ${patient.last_name || ''}`.trim(),
+          protocols,
+          combine: protocolPdfCombine,
+          store: true,
+          plan_date: protocolPdfPlanDate,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to save PDF');
+      const data = await res.json();
+      // Refresh documents
+      if (typeof fetchDocuments === 'function') fetchDocuments();
+      // Close PDF modal and open send modal with the saved URL
+      setShowProtocolPdfModal(false);
+      const docName = data.document_name || (selected.length > 1 ? 'Protocol Plan' : `${selected[0][1].medication} Protocol`);
+      setSendDocModal({ open: true, url: data.pdf_url, name: docName, type: 'protocol_pdf' });
+      setSendDocMethod('both');
+      setSendDocResult(null);
+    } catch (err) {
+      console.error('Save & send protocol PDF error:', err);
+      alert('Failed to save: ' + err.message);
+    } finally {
+      setProtocolPdfSaving(false);
+    }
+  };
+
+  // Send a document to patient via email, SMS, or both
+  const handleSendDocument = async () => {
+    if (!sendDocModal.url || !sendDocModal.name) return;
+    setSendDocLoading(true);
+    setSendDocResult(null);
+    const patientFullName = `${patient.first_name || ''} ${patient.last_name || ''}`.trim();
+    const results = [];
+
+    try {
+      if (sendDocMethod === 'email' || sendDocMethod === 'both') {
+        if (!patient.email) {
+          results.push({ type: 'email', success: false, message: 'No email on file' });
+        } else {
+          const res = await fetch('/api/admin/send-document', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'email',
+              documentUrl: sendDocModal.url,
+              documentName: sendDocModal.name,
+              patientEmail: patient.email,
+              patientName: patientFullName,
+              patientId: patient.id,
+              ghlContactId: patient.ghl_contact_id || null,
+            }),
+          });
+          const data = await res.json();
+          results.push({ type: 'email', success: res.ok, message: data.message || data.error });
+        }
+      }
+
+      if (sendDocMethod === 'sms' || sendDocMethod === 'both') {
+        if (!patient.phone) {
+          results.push({ type: 'sms', success: false, message: 'No phone on file' });
+        } else {
+          const res = await fetch('/api/admin/send-document', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'sms',
+              documentUrl: sendDocModal.url,
+              documentName: sendDocModal.name,
+              patientPhone: patient.phone,
+              patientName: patientFullName,
+              patientId: patient.id,
+              ghlContactId: patient.ghl_contact_id || null,
+            }),
+          });
+          const data = await res.json();
+          results.push({ type: 'sms', success: res.ok, message: data.message || data.error });
+        }
+      }
+
+      setSendDocResult(results);
+    } catch (err) {
+      setSendDocResult([{ type: sendDocMethod, success: false, message: err.message }]);
+    } finally {
+      setSendDocLoading(false);
     }
   };
 
@@ -4449,8 +4561,14 @@ export default function PatientProfile() {
                           <span>{formatDate(doc.uploaded_at)}</span>
                           {doc.uploaded_by && <span>by {doc.uploaded_by}</span>}
                         </div>
-                        <div className="document-actions">
+                        <div className="document-actions" style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                           {doc.document_url && <button onClick={() => openPdfViewer(doc.document_url, doc.document_name || 'Document')} className="btn-secondary-sm">View</button>}
+                          {doc.document_url && (
+                            <button onClick={() => { setSendDocModal({ open: true, url: doc.document_url, name: doc.document_name || 'Document', type: doc.document_type || 'document' }); setSendDocMethod('both'); setSendDocResult(null); }}
+                              className="btn-secondary-sm" style={{ fontSize: 11, padding: '3px 8px' }}>
+                              Send
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -9323,6 +9441,14 @@ export default function PatientProfile() {
                   }}>
                   {protocolPdfSaving ? 'Saving...' : '💾 Save to Chart'}
                 </button>
+                <button onClick={handleSaveAndSendProtocolPdf} disabled={protocolPdfSaving || Object.values(protocolPdfSelections).filter(s => s.selected).length === 0}
+                  style={{
+                    padding: '8px 16px', fontSize: 13, fontWeight: 600,
+                    background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe',
+                    borderRadius: 8, cursor: 'pointer', opacity: protocolPdfSaving ? 0.6 : 1,
+                  }}>
+                  {protocolPdfSaving ? 'Saving...' : '📤 Save & Send'}
+                </button>
                 <button onClick={handleGenerateProtocolPdf} disabled={protocolPdfGenerating || Object.values(protocolPdfSelections).filter(s => s.selected).length === 0}
                   style={{
                     padding: '8px 20px', fontSize: 13, fontWeight: 600,
@@ -9404,6 +9530,118 @@ export default function PatientProfile() {
                 <div className={`sf-result ${sendFormsResult.success ? 'sf-result-ok' : 'sf-result-err'}`}>
                   {sendFormsResult.success ? '✓' : '✕'} {sendFormsResult.message}
                 </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Send Document Modal */}
+      {sendDocModal.open && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 10000
+        }} onClick={() => setSendDocModal({ open: false, url: '', name: '', type: '' })}>
+          <div style={{
+            background: '#fff', borderRadius: 12, width: 440, maxWidth: '90vw',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.3)', overflow: 'hidden',
+          }} onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #e5e7eb' }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: '#111827' }}>Send Document to Patient</h3>
+              <p style={{ margin: '6px 0 0', fontSize: 13, color: '#6b7280' }}>{sendDocModal.name}</p>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: '20px 24px' }}>
+              {/* Patient contact info */}
+              <div style={{ marginBottom: 16, padding: '12px 16px', background: '#f9fafb', borderRadius: 8, fontSize: 13 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ color: '#6b7280' }}>Email:</span>
+                  <span style={{ color: patient?.email ? '#111827' : '#ef4444', fontWeight: 500 }}>
+                    {patient?.email || 'Not on file'}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: '#6b7280' }}>Phone:</span>
+                  <span style={{ color: patient?.phone ? '#111827' : '#ef4444', fontWeight: 500 }}>
+                    {patient?.phone || 'Not on file'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Delivery method toggle */}
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 8, display: 'block' }}>
+                  Send via:
+                </label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {[
+                    { key: 'email', label: 'Email Only', icon: '📧' },
+                    { key: 'sms', label: 'Text Only', icon: '💬' },
+                    { key: 'both', label: 'Both', icon: '📨' },
+                  ].map(opt => (
+                    <button key={opt.key} onClick={() => setSendDocMethod(opt.key)}
+                      style={{
+                        flex: 1, padding: '10px 8px', fontSize: 12, fontWeight: 600,
+                        background: sendDocMethod === opt.key ? '#eff6ff' : '#fff',
+                        color: sendDocMethod === opt.key ? '#2563eb' : '#6b7280',
+                        border: sendDocMethod === opt.key ? '2px solid #3b82f6' : '1px solid #d1d5db',
+                        borderRadius: 8, cursor: 'pointer', textAlign: 'center',
+                        transition: 'all 0.15s ease',
+                      }}>
+                      <span style={{ display: 'block', fontSize: 18, marginBottom: 4 }}>{opt.icon}</span>
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Warnings for missing contact info */}
+              {sendDocMethod !== 'sms' && !patient?.email && (
+                <div style={{ padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, fontSize: 12, color: '#991b1b', marginBottom: 8 }}>
+                  No email address on file for this patient.
+                </div>
+              )}
+              {sendDocMethod !== 'email' && !patient?.phone && (
+                <div style={{ padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, fontSize: 12, color: '#991b1b', marginBottom: 8 }}>
+                  No phone number on file for this patient.
+                </div>
+              )}
+
+              {/* Results */}
+              {sendDocResult && (
+                <div style={{ marginTop: 8 }}>
+                  {sendDocResult.map((r, i) => (
+                    <div key={i} style={{
+                      padding: '8px 12px', borderRadius: 6, fontSize: 13, marginBottom: 4,
+                      background: r.success ? '#f0fdf4' : '#fef2f2',
+                      border: r.success ? '1px solid #bbf7d0' : '1px solid #fecaca',
+                      color: r.success ? '#166534' : '#991b1b',
+                    }}>
+                      {r.success ? '✓' : '✗'} {r.type === 'email' ? 'Email' : 'Text'}: {r.message}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div style={{ padding: '16px 24px', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between' }}>
+              <button onClick={() => setSendDocModal({ open: false, url: '', name: '', type: '' })}
+                style={{ padding: '8px 20px', fontSize: 13, fontWeight: 500, background: '#f3f4f6', color: '#4b5563', border: '1px solid #d1d5db', borderRadius: 8, cursor: 'pointer' }}>
+                {sendDocResult ? 'Done' : 'Cancel'}
+              </button>
+              {!sendDocResult && (
+                <button onClick={handleSendDocument} disabled={sendDocLoading}
+                  style={{
+                    padding: '8px 24px', fontSize: 13, fontWeight: 600,
+                    background: '#2563eb', color: '#fff', border: 'none',
+                    borderRadius: 8, cursor: 'pointer', opacity: sendDocLoading ? 0.6 : 1,
+                  }}>
+                  {sendDocLoading ? 'Sending...' : 'Send Now'}
+                </button>
               )}
             </div>
           </div>

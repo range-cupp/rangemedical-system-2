@@ -65,10 +65,15 @@ export default async function handler(req, res) {
       discountLabel = `$${purchase.discount_amount} off`;
     }
 
-    const amountPaidCents = Math.round(purchase.amount * 100);
+    // Use amount_paid when it's less than amount (discount/partial payment applied).
+    // For multi-item GHL invoices, amount_paid is the invoice total — use per-line amount instead.
+    const rawAmt = parseFloat(purchase.amount) || 0;
+    const rawPaid = parseFloat(purchase.amount_paid);
+    const resolvedPaid = (!isNaN(rawPaid) && rawPaid > 0 && rawPaid < rawAmt) ? rawPaid : rawAmt;
+    const amountPaidCents = Math.round(resolvedPaid * 100);
     const originalAmountCents = purchase.original_amount
-      ? Math.round(purchase.original_amount * 100)
-      : amountPaidCents;
+      ? Math.round(parseFloat(purchase.original_amount) * 100)
+      : (resolvedPaid < rawAmt ? Math.round(rawAmt * 100) : amountPaidCents);
 
     const pdfBytes = await generateReceiptPdf({
       firstName,

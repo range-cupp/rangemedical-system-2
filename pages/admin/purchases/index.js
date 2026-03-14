@@ -8,6 +8,19 @@ import AdminLayout from '../../../components/AdminLayout';
 import { PROTOCOL_TYPES, CATEGORY_TO_TYPE, getDBProgramType } from '../../../lib/protocol-types';
 import { MEMBERSHIP_FREQUENCY_OPTIONS, isRecoveryPeptide, isGHPeptide } from '../../../lib/protocol-config';
 
+// Display the amount the patient actually paid.
+// GHL webhook stores amount_paid as the total invoice payment (duplicated across
+// all line items on multi-item invoices). When amount_paid < amount, a discount or
+// partial payment was applied and amount_paid is the correct figure to show.
+// When amount_paid >= amount (or amount_paid is the invoice total spread across lines),
+// fall back to the per-line amount.
+function displayAmt(purchase) {
+  const amt = parseFloat(purchase.amount) || 0;
+  const paid = parseFloat(purchase.amount_paid);
+  if (!isNaN(paid) && paid > 0 && paid < amt) return paid;
+  return amt;
+}
+
 // Classify purchase into action type: 'protocol' | 'session' | 'product'
 function getPurchaseActionType(purchase) {
   const cat = (purchase.category || '').toLowerCase();
@@ -206,7 +219,7 @@ export default function PurchasesPage() {
     return true;
   }).length;
   const totalCount = purchases.length;
-  const totalRevenue = purchases.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+  const totalRevenue = purchases.reduce((sum, p) => sum + displayAmt(p), 0);
 
   return (
     <AdminLayout title={`Purchases`}>
@@ -293,7 +306,7 @@ export default function PurchasesPage() {
                         <span style={styles.categoryBadge}>{purchase.category || '—'}</span>
                       </td>
                       <td style={styles.td}>
-                        <span style={styles.amount}>${purchase.amount}</span>
+                        <span style={styles.amount}>${displayAmt(purchase).toFixed(2)}</span>
                       </td>
                       <td style={styles.td}>
                         {editingShipping === purchase.id ? (
@@ -846,7 +859,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
         <div style={modalStyles.header}>
           <div>
             <h2 style={modalStyles.title}>Create Protocol</h2>
-            <p style={modalStyles.subtitle}>{purchase.item_name} (${purchase.amount})</p>
+            <p style={modalStyles.subtitle}>{purchase.item_name} (${displayAmt(purchase).toFixed(2)})</p>
           </div>
           <button onClick={onClose} style={modalStyles.closeBtn}>×</button>
         </div>
@@ -1537,7 +1550,7 @@ function AddToExistingModal({ purchase, onClose, onSuccess }) {
         <div style={modalStyles.header}>
           <div>
             <h2 style={modalStyles.title}>Add to Existing Protocol</h2>
-            <p style={modalStyles.subtitle}>{purchase?.item_name} (${purchase?.amount})</p>
+            <p style={modalStyles.subtitle}>{purchase?.item_name} (${purchase ? displayAmt(purchase).toFixed(2) : '0.00'})</p>
           </div>
           <button onClick={onClose} style={modalStyles.closeBtn}>×</button>
         </div>
@@ -1786,7 +1799,7 @@ function LogSessionModal({ purchase, onClose, onSuccess }) {
         <div style={modalStyles.header}>
           <div>
             <h2 style={modalStyles.title}>Log Session</h2>
-            <p style={modalStyles.subtitle}>{purchase.item_name} (${purchase.amount})</p>
+            <p style={modalStyles.subtitle}>{purchase.item_name} (${displayAmt(purchase).toFixed(2)})</p>
           </div>
           <button onClick={onClose} style={modalStyles.closeBtn}>×</button>
         </div>

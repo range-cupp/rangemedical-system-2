@@ -3997,10 +3997,20 @@ export default function PatientProfile() {
 
                           {/* ===== Peptide Expanded ===== */}
                           {protocol.category === 'peptide' && isExpanded && (() => {
-                            // Use calendar days parsed from name (e.g. "10-Day"), fallback to total_sessions for in-clinic
-                            let totalDays = protocol.total_sessions || protocol.total_days || 30;
-                            const nameMatch = (protocol.program_name || '').match(/(\d+)[\s-]*day/i);
-                            if (nameMatch) totalDays = parseInt(nameMatch[1]);
+                            // Calculate total days from start_date → end_date (handles extensions/renewals)
+                            // Fallback to name parsing or total_sessions for legacy protocols
+                            let totalDays = 30;
+                            if (protocol.start_date && protocol.end_date) {
+                              const sp = protocol.start_date.split('-');
+                              const ep = protocol.end_date.split('-');
+                              const startD = new Date(parseInt(sp[0]), parseInt(sp[1]) - 1, parseInt(sp[2]));
+                              const endD = new Date(parseInt(ep[0]), parseInt(ep[1]) - 1, parseInt(ep[2]));
+                              totalDays = Math.max(1, Math.round((endD - startD) / (1000 * 60 * 60 * 24)));
+                            } else {
+                              const nameMatch = (protocol.program_name || '').match(/(\d+)[\s-]*day/i);
+                              if (nameMatch) totalDays = parseInt(nameMatch[1]);
+                              else if (protocol.total_sessions) totalDays = protocol.total_sessions;
+                            }
                             const currentDay = calculateCurrentDay(protocol.start_date);
                             const daysRemaining = currentDay ? Math.max(0, totalDays - currentDay) : totalDays;
                             const medication = protocol.medication || protocol.primary_peptide || '';

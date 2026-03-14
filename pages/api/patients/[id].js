@@ -151,10 +151,17 @@ function calculateRemaining(protocol) {
     const endDate = new Date(protocol.end_date + 'T23:59:59');
     const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
 
-    let totalDays = protocol.total_sessions || 30;
-    const programName = (protocol.program_name || '').toLowerCase();
-    const dayMatch = programName.match(/(\d+)[\s-]*day/i);
-    if (dayMatch) totalDays = parseInt(dayMatch[1]);
+    // Calculate total days from start_date → end_date (handles extensions/renewals correctly)
+    let totalDays = 30;
+    if (protocol.start_date) {
+      const startDate = new Date(protocol.start_date + 'T00:00:00');
+      const endDateCalc = new Date(protocol.end_date + 'T00:00:00');
+      totalDays = Math.max(1, Math.round((endDateCalc - startDate) / (1000 * 60 * 60 * 24)));
+    } else {
+      const programName = (protocol.program_name || '').toLowerCase();
+      const dayMatch = programName.match(/(\d+)[\s-]*day/i);
+      if (dayMatch) totalDays = parseInt(dayMatch[1]);
+    }
 
     const statusText = daysRemaining <= 0 ? 'Renewal due' :
                        daysRemaining <= 3 ? `${daysRemaining}d left!` :

@@ -91,13 +91,16 @@ export default function CommunicationsPage() {
     }
   };
 
-  // Fetch call history from comms_log
+  // Fetch call history from comms_log (syncs from Twilio first)
   const fetchCalls = async (page) => {
     setCallsLoading(true);
     try {
+      // Sync calls from Twilio into comms_log before fetching
+      await fetch('/api/twilio/sync-all-calls', { method: 'POST' }).catch(() => {});
+
       const res = await fetch(`/api/admin/comms-log?channel=call&limit=50&page=${page + 1}`);
       const data = await res.json();
-      const callComms = (data.comms || []).map(c => ({
+      const callComms = (data.logs || []).map(c => ({
         sid: c.id,
         from: c.direction === 'inbound' ? c.recipient : '+19499973988',
         to: c.direction === 'inbound' ? '+19499973988' : c.recipient,

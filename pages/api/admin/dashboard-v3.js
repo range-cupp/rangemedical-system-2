@@ -26,6 +26,7 @@ export default async function handler(req, res) {
       commsResult,
       invoicesResult,
       labPipelineResult,
+      refillsDueResult,
     ] = await Promise.all([
       // Active protocols with patient info (for recent list + renewal alerts)
       supabase
@@ -78,6 +79,21 @@ export default async function handler(req, res) {
         .eq('program_type', 'labs')
         .in('status', LAB_STAGES)
         .order('created_at', { ascending: true }),
+
+      // Refills due — take-home protocols with next_expected_date within 7 days or overdue
+      (() => {
+        const sevenDaysOut = new Date();
+        sevenDaysOut.setDate(sevenDaysOut.getDate() + 7);
+        return supabase
+          .from('protocols')
+          .select('id, patient_id, program_name, program_type, medication, delivery_method, next_expected_date, last_refill_date, supply_type, status, patients(id, name, first_name, last_name, phone)')
+          .eq('status', 'active')
+          .eq('delivery_method', 'take_home')
+          .not('next_expected_date', 'is', null)
+          .lte('next_expected_date', sevenDaysOut.toISOString().split('T')[0])
+          .order('next_expected_date', { ascending: true })
+          .limit(20);
+      })(),
     ]);
 
     // Process protocols
@@ -136,6 +152,26 @@ export default async function handler(req, res) {
     }
     labPipeline.total = labProtocols.length;
 
+    // Refills due processing
+    const todayStr = new Date().toISOString().split('T')[0];
+    const refillsDue = (refillsDueResult.data || []).map(p => {
+      const pat = p.patients;
+      const patientName = pat
+        ? (pat.first_name && pat.last_name ? `${pat.first_name} ${pat.last_name}` : pat.name || 'Unknown')
+        : 'Unknown';
+      const daysUntil = p.next_expected_date
+        ? Math.ceil((new Date(p.next_expected_date + 'T23:59:59') - todayDate) / (1000 * 60 * 60 * 24))
+        : null;
+      return {
+        ...p,
+        patient_name: patientName,
+        patient_phone: pat?.phone || null,
+        patients: undefined,
+        days_until_refill: daysUntil,
+        is_overdue: daysUntil !== null && daysUntil < 0,
+      };
+    });
+
     return res.status(200).json({
       stats: {
         activeProtocols: activeProtocols.length,
@@ -145,12 +181,14 @@ export default async function handler(req, res) {
         monthlyRevenue,
         pendingInvoices,
         activeLabs: labPipeline.total,
+        refillsDueCount: refillsDue.length,
       },
       labPipeline,
       recentProtocols: activeProtocols.slice(0, 8),
       todayAppointments: (appointmentsResult.data || []).slice(0, 6),
       recentComms: (commsResult.data || []).slice(0, 5),
       renewalAlerts: renewals.slice(0, 10),
+      refillsDue,
     });
 
   } catch (error) {

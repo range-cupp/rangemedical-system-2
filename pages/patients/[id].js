@@ -1141,6 +1141,7 @@ export default function PatientProfile() {
     try {
       const template = getSelectedTemplate();
       const isInjection = template?.name?.toLowerCase().includes('injection');
+      const isPeptide = template?.name?.toLowerCase().includes('peptide');
 
       const res = await fetch('/api/protocols/assign', {
         method: 'POST',
@@ -1150,7 +1151,7 @@ export default function PatientProfile() {
           templateId: assignForm.templateId,
           peptideId: assignForm.peptideId,
           selectedDose: isInjection ? assignForm.injectionDose : assignForm.selectedDose,
-          medication: isInjection ? assignForm.injectionMedication : null,
+          medication: isInjection ? assignForm.injectionMedication : (isPeptide ? assignForm.peptideId : null),
           frequency: assignForm.frequency,
           startDate: assignForm.startDate,
           notes: assignForm.notes,
@@ -5932,21 +5933,58 @@ export default function PatientProfile() {
                     {isPeptideTemplate() && (
                       <>
                         <div className="form-group">
-                          <label>Select Peptide</label>
-                          <select value={assignForm.peptideId} onChange={e => setAssignForm({...assignForm, peptideId: e.target.value})}>
+                          <label>Select Peptide *</label>
+                          <select value={assignForm.peptideId} onChange={e => {
+                            const peptideName = e.target.value;
+                            const peptideInfo = PEPTIDE_OPTIONS.flatMap(g => g.options).find(o => o.value === peptideName);
+                            setAssignForm({
+                              ...assignForm,
+                              peptideId: peptideName,
+                              selectedDose: peptideInfo?.startingDose || '',
+                              frequency: peptideInfo?.frequency || assignForm.frequency
+                            });
+                          }}>
                             <option value="">Select peptide...</option>
-                            {peptides.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            {PEPTIDE_OPTIONS.map(group => (
+                              <optgroup key={group.group} label={group.group}>
+                                {group.options.map(opt => (
+                                  <option key={opt.value} value={opt.value}>{opt.value}</option>
+                                ))}
+                              </optgroup>
+                            ))}
                           </select>
                         </div>
-                        {getSelectedPeptide()?.dose_options?.length > 0 && (
-                          <div className="form-group">
-                            <label>Dose</label>
-                            <select value={assignForm.selectedDose} onChange={e => setAssignForm({...assignForm, selectedDose: e.target.value})}>
-                              <option value="">Select dose...</option>
-                              {getSelectedPeptide().dose_options.map(dose => <option key={dose} value={dose}>{dose}</option>)}
-                            </select>
-                          </div>
-                        )}
+                        {assignForm.peptideId && (() => {
+                          const peptideInfo = PEPTIDE_OPTIONS.flatMap(g => g.options).find(o => o.value === assignForm.peptideId);
+                          if (!peptideInfo) return null;
+                          const hasDoseList = peptideInfo.doses?.length > 0;
+                          return (
+                            <>
+                              <div className="form-group">
+                                <label>Dose</label>
+                                {hasDoseList ? (
+                                  <select value={assignForm.selectedDose} onChange={e => setAssignForm({...assignForm, selectedDose: e.target.value})}>
+                                    <option value="">Select dose...</option>
+                                    {peptideInfo.doses.map(dose => <option key={dose} value={dose}>{dose}</option>)}
+                                  </select>
+                                ) : (
+                                  <select value={assignForm.selectedDose} onChange={e => setAssignForm({...assignForm, selectedDose: e.target.value})}>
+                                    <option value="">Select dose...</option>
+                                    <option value={peptideInfo.startingDose}>{peptideInfo.startingDose} (starting)</option>
+                                    {peptideInfo.maxDose !== peptideInfo.startingDose && (
+                                      <option value={peptideInfo.maxDose}>{peptideInfo.maxDose} (max)</option>
+                                    )}
+                                  </select>
+                                )}
+                              </div>
+                              <div style={{ padding: '8px 10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12, color: '#475569', marginBottom: 12 }}>
+                                <strong>Dosing:</strong> {peptideInfo.startingDose} → {peptideInfo.maxDose} &nbsp;|&nbsp;
+                                <strong>Frequency:</strong> {peptideInfo.frequency}
+                                {peptideInfo.notes && <> &nbsp;|&nbsp; {peptideInfo.notes}</>}
+                              </div>
+                            </>
+                          );
+                        })()}
                       </>
                     )}
 

@@ -1,5 +1,5 @@
 // /pages/api/admin/mark-read.js
-// Mark inbound SMS messages as read
+// Mark inbound messages as read (all channels: SMS, email, calls)
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
@@ -24,12 +24,11 @@ export default async function handler(req, res) {
     const now = new Date().toISOString();
 
     if (all) {
-      // Mark ALL unread inbound SMS as read
+      // Mark ALL unread inbound messages as read (all channels)
       const { data, error } = await supabase
         .from('comms_log')
         .update({ read_at: now })
         .eq('direction', 'inbound')
-        .eq('channel', 'sms')
         .is('read_at', null)
         .select('id');
 
@@ -44,12 +43,11 @@ export default async function handler(req, res) {
       });
     }
 
-    // Mark specific patient's inbound SMS as read
+    // Mark specific patient's inbound messages as read (all channels)
     const { data, error } = await supabase
       .from('comms_log')
       .update({ read_at: now })
       .eq('direction', 'inbound')
-      .eq('channel', 'sms')
       .eq('patient_id', patientId)
       .is('read_at', null)
       .select('id');

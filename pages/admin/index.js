@@ -23,6 +23,7 @@ export default function Dashboard() {
   const [recentComms, setRecentComms] = useState([]);
   const [consentAlerts, setConsentAlerts] = useState([]);
   const [renewalAlerts, setRenewalAlerts] = useState([]);
+  const [refillsDue, setRefillsDue] = useState([]);
   const [loading, setLoading] = useState(true);
   const [advancing, setAdvancing] = useState(null);
 
@@ -50,6 +51,7 @@ export default function Dashboard() {
         return { ...p, sessionsUsed, sessionsRemaining, isDue, statusLabel: p.total_sessions ? `${sessionsUsed} of ${p.total_sessions} sessions` : `${daysLeft}d left` };
       });
       setRenewalAlerts(renewals);
+      setRefillsDue(data.refillsDue || []);
     } catch (err) {
       console.error('Dashboard error:', err);
     } finally {
@@ -329,6 +331,43 @@ export default function Dashboard() {
                     </span>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {refillsDue.length > 0 && (
+            <div style={{
+              background: '#EFF6FF', border: '1px solid #60A5FA', borderRadius: 12,
+              padding: '16px 20px', marginBottom: 24,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <strong style={{ fontSize: 14, color: '#1E40AF' }}>
+                  {refillsDue.length} Medication Refill{refillsDue.length !== 1 ? 's' : ''} Due
+                </strong>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {refillsDue.map((r) => {
+                  const isOverdue = r.is_overdue;
+                  const label = isOverdue
+                    ? `${Math.abs(r.days_until_refill)}d overdue`
+                    : r.days_until_refill === 0 ? 'Today' : `${r.days_until_refill}d`;
+                  return (
+                    <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+                      <span style={{
+                        background: isOverdue ? '#FEE2E2' : '#DBEAFE',
+                        color: isOverdue ? '#DC2626' : '#1D4ED8',
+                        padding: '1px 8px', borderRadius: 8, fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
+                      }}>{isOverdue ? 'OVERDUE' : 'DUE SOON'}</span>
+                      <Link href={`/patients/${r.patient_id}`} style={{ fontWeight: 500, color: '#111', textDecoration: 'none' }}>
+                        {r.patient_name}
+                      </Link>
+                      <span style={{ color: '#6B7280' }}>— {r.medication || r.program_name}</span>
+                      <span style={{ color: isOverdue ? '#DC2626' : '#1D4ED8', fontWeight: 500 }}>
+                        ({label})
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

@@ -4,7 +4,10 @@
 // Range Medical System V2
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import TemplateMessages from './TemplateMessages';
+
+const CalendarView = dynamic(() => import('./CalendarView'), { ssr: false });
 
 export default function ConversationView({ patientId, patientName, patientPhone, ghlContactId, onBack }) {
   const [messages, setMessages] = useState([]);
@@ -21,6 +24,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const [hasMore, setHasMore] = useState(false);
   const [totalMessages, setTotalMessages] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [showBooking, setShowBooking] = useState(false);
   const messagesContainerRef = useRef(null);
   const shouldScrollRef = useRef(false);
 
@@ -408,6 +412,13 @@ export default function ConversationView({ patientId, patientName, patientPhone,
             )}
           </div>
           <button
+            onClick={() => setShowBooking(true)}
+            style={styles.bookBtn}
+            title="Book appointment for this patient"
+          >
+            📅 Book
+          </button>
+          <button
             onClick={() => { fetchMessages(); }}
             style={styles.refreshBtn}
             title="Refresh messages"
@@ -416,6 +427,29 @@ export default function ConversationView({ patientId, patientName, patientPhone,
           </button>
         </div>
       </div>
+
+      {/* Inline Booking Modal */}
+      {showBooking && (
+        <div style={styles.bookingOverlay} onClick={() => setShowBooking(false)}>
+          <div style={styles.bookingModal} onClick={e => e.stopPropagation()}>
+            <div style={styles.bookingHeader}>
+              <h3 style={{ margin: 0, fontSize: '16px' }}>Book Appointment — {patientName}</h3>
+              <button onClick={() => setShowBooking(false)} style={styles.bookingClose}>×</button>
+            </div>
+            <div style={styles.bookingBody}>
+              <CalendarView
+                wizardOnly
+                preselectedPatient={{
+                  id: patientId,
+                  name: patientName,
+                  email: null,
+                  phone: patientPhone,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Messages */}
       <div style={styles.messagesContainer} ref={messagesContainerRef}>
@@ -797,6 +831,57 @@ const styles = {
     background: '#000',
     color: '#fff',
     borderColor: '#000',
+  },
+  bookBtn: {
+    background: '#000',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '6px',
+    padding: '6px 12px',
+    fontSize: '12px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    flexShrink: 0,
+    fontFamily: 'inherit',
+  },
+  bookingOverlay: {
+    position: 'fixed',
+    top: 0, left: 0, right: 0, bottom: 0,
+    background: 'rgba(0,0,0,0.5)',
+    zIndex: 9999,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bookingModal: {
+    background: '#fff',
+    borderRadius: '12px',
+    width: '90%',
+    maxWidth: '560px',
+    maxHeight: '85vh',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+  },
+  bookingHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '16px 20px',
+    borderBottom: '1px solid #e5e7eb',
+  },
+  bookingClose: {
+    background: 'none',
+    border: 'none',
+    fontSize: '22px',
+    cursor: 'pointer',
+    color: '#666',
+    padding: '0 4px',
+  },
+  bookingBody: {
+    flex: 1,
+    overflowY: 'auto',
+    padding: '16px 20px',
   },
   refreshBtn: {
     background: 'none',

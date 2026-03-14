@@ -1,15 +1,16 @@
 // /pages/api/webhooks/stripe.js
 // Stripe Webhook Handler
-// - checkout.session.completed: sends SMS + email notification to owner (Payment Link purchases)
+// - checkout.session.completed: creates purchase record, auto-creates protocol, sends notifications
 // - invoice.paid: HRT membership renewal → credits free Range IV + sends patient email
 // Range Medical
-// UPDATED: 2026-03-06 — Added invoice.paid handler for HRT membership perks
+// UPDATED: 2026-03-14 — Auto-create purchase + protocol from Payment Link checkouts
 
 import Stripe from 'stripe';
 import { Resend } from 'resend';
 import { createClient } from '@supabase/supabase-js';
 import { sendSMS } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
+import { autoCreateOrExtendProtocol } from '../../../lib/auto-protocol';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -415,13 +416,17 @@ export default async function handler(req, res) {
     const session = event.data.object;
 
     try {
-      // Get line items to identify what was purchased
-      const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 5 });
+      // Get line items with product details to identify what was purchased
+      const lineItems = await stripe.checkout.sessions.listLineItems(session.id, {
+        limit: 5,
+        expand: ['data.price.product'],
+      });
       const items = lineItems.data.map(item => item.description || 'Unknown item');
 
       // Customer info
       const customerEmail = session.customer_details?.email || session.customer_email || 'unknown';
       const customerName = session.customer_details?.name || customerEmail;
+      const customerPhone = session.customer_details?.phone || null;
       const amount = formatAmount(session.amount_total);
 
       // Send SMS via Twilio
@@ -433,6 +438,91 @@ export default async function handler(req, res) {
       const emailSent = await sendNotificationEmail({ customerName, customerEmail, items, amount });
 
       console.log(`Purchase notification: ${amount} — ${items.join(', ')} (SMS: ${smsSent ? 'sent' : 'failed'}, Email: ${emailSent ? 'sent' : 'failed'})`);
+
+      // ================================================================
+      // AUTO-CREATE PURCHASE RECORD + PROTOCOL
+      // Match customer to patient, create purchase, trigger auto-protocol
+      // ================================================================
+
+      // Find patient by email, then phone
+      let patientId = null;
+      if (customerEmail && customerEmail !== 'unknown') {
+        const { data: byEmail } = await supabase
+          .from('patients')
+          .select('id')
+          .ilike('email', customerEmail)
+          .limit(1)
+          .maybeSingle();
+        if (byEmail) patientId = byEmail.id;
+      }
+      if (!patientId && customerPhone) {
+        const digits = customerPhone.replace(/\D/g, '').slice(-10);
+        if (digits.length === 10) {
+          const { data: byPhone } = await supabase
+            .from('patients')
+            .select('id')
+            .or(`phone.ilike.%${digits}`)
+            .limit(1)
+            .maybeSingle();
+          if (byPhone) patientId = byPhone.id;
+        }
+      }
+
+      // Process each line item → purchase record + auto-protocol
+      for (const item of lineItems.data) {
+        const product = item.price?.product;
+        const category = (typeof product === 'object' ? product?.metadata?.category : null) || 'Other';
+        const serviceName = item.description || product?.name || 'Website Purchase';
+        const itemAmount = item.amount_total || 0;
+
+        // Create purchase record
+        const purchaseData = {
+          patient_id: patientId,
+          patient_name: customerName,
+          patient_email: customerEmail !== 'unknown' ? customerEmail : null,
+          patient_phone: customerPhone,
+          item_name: serviceName,
+          product_name: serviceName,
+          amount: itemAmount / 100,
+          amount_paid: itemAmount / 100,
+          category,
+          quantity: item.quantity || 1,
+          stripe_payment_intent_id: session.payment_intent || null,
+          payment_method: 'stripe',
+          source: 'payment_link',
+          purchase_date: new Date().toISOString().split('T')[0],
+        };
+
+        const { data: purchase, error: purchaseErr } = await supabase
+          .from('purchases')
+          .insert(purchaseData)
+          .select('id')
+          .single();
+
+        if (purchaseErr) {
+          console.error('Webhook purchase creation error:', purchaseErr.message);
+          continue;
+        }
+
+        console.log(`Purchase created from Payment Link: ${purchase.id} — ${serviceName} ($${(itemAmount / 100).toFixed(2)})`);
+
+        // Auto-create protocol if patient is matched and category is valid
+        if (patientId && category !== 'Other') {
+          try {
+            await autoCreateOrExtendProtocol({
+              patientId,
+              serviceCategory: category,
+              serviceName,
+              purchaseId: purchase.id,
+            });
+            console.log(`Auto-protocol triggered for Payment Link purchase: ${serviceName} (patient: ${patientId})`);
+          } catch (protoErr) {
+            console.error('Auto-protocol from Payment Link failed:', protoErr.message);
+          }
+        } else if (!patientId) {
+          console.log(`Payment Link purchase unlinked — no patient match for ${customerEmail}`);
+        }
+      }
     } catch (err) {
       // Don't fail the webhook response — Stripe would retry
       console.error('Error processing checkout notification:', err.message);

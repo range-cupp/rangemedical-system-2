@@ -60,6 +60,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
 
   const [activeCategory, setActiveCategory] = useState('');
   const [serviceSearch, setServiceSearch] = useState('');
+  const [expandedPeptideGroups, setExpandedPeptideGroups] = useState({});
   const [cartItems, setCartItems] = useState([]);
   const [cartWarning, setCartWarning] = useState('');
   const [customAmount, setCustomAmount] = useState('');
@@ -277,59 +278,34 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     return result && result.subgroups.length > 0;
   }
 
-  // Parse peptide names into groups: "Peptide Protocol — 10 Day — BPC-157 (500mcg)"
-  // → { baseName: "BPC-157", duration: "10 Day", detail: "500mcg", shortLabel: "10 Day · 500mcg" }
+  // Group peptides by sub_category (accordion sections)
   function getGroupedPeptides() {
     const items = getItemsByCategory('peptide');
     const groups = {};
 
     for (const item of items) {
-      const parts = item.name.split(' — ');
-      if (parts.length < 3) {
-        // Fallback for non-standard names
-        if (!groups['Other']) groups['Other'] = [];
-        groups['Other'].push({ ...item, shortLabel: item.name, duration: '', detail: '' });
-        continue;
-      }
-
-      const duration = parts[1].trim(); // "10 Day"
-      const peptidePart = parts.slice(2).join(' — ').trim(); // "BPC-157 (500mcg)"
-
-      // Split base name from parenthetical detail
-      const parenMatch = peptidePart.match(/^(.+?)\s*\((.+)\)$/);
-      let baseName, detail;
-      if (parenMatch) {
-        baseName = parenMatch[1].trim();
-        detail = parenMatch[2].trim();
-      } else {
-        baseName = peptidePart;
-        detail = '';
-      }
-
-      const shortLabel = detail ? `${duration} · ${detail}` : duration;
-
-      if (!groups[baseName]) groups[baseName] = [];
-      groups[baseName].push({ ...item, shortLabel, duration, detail, baseName });
+      const groupKey = item.sub_category || 'Other';
+      if (!groups[groupKey]) groups[groupKey] = [];
+      groups[groupKey].push(item);
     }
 
-    // Sort groups: most items first, then alphabetically
+    // Sort groups by sort_order of first item in each group
     const sortedKeys = Object.keys(groups).sort((a, b) => {
-      if (groups[b].length !== groups[a].length) return groups[b].length - groups[a].length;
-      return a.localeCompare(b);
+      const aOrder = Math.min(...groups[a].map(i => i.sort_order || 99999));
+      const bOrder = Math.min(...groups[b].map(i => i.sort_order || 99999));
+      return aOrder - bOrder;
     });
 
-    // Sort variants within each group by duration then detail
-    const durationOrder = { '10 Day': 1, '20 Day': 2, '30 Day': 3 };
+    // Sort items within each group by sort_order
     for (const key of sortedKeys) {
-      groups[key].sort((a, b) => {
-        const da = durationOrder[a.duration] || 99;
-        const db = durationOrder[b.duration] || 99;
-        if (da !== db) return da - db;
-        return a.detail.localeCompare(b.detail);
-      });
+      groups[key].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
     }
 
     return { groups, sortedKeys };
+  }
+
+  function togglePeptideGroup(groupName) {
+    setExpandedPeptideGroups(prev => ({ ...prev, [groupName]: !prev[groupName] }));
   }
 
   function getSearchResults() {
@@ -1356,34 +1332,55 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                     <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>No services match "{serviceSearch}"</div>
                   )
                 ) : activeCategory === 'peptide' ? (
-                  // Grouped peptide view
+                  // Accordion peptide view — grouped by sub_category
                   (() => {
                     const { groups, sortedKeys } = getGroupedPeptides();
                     return (
                       <div style={{ marginBottom: '16px' }}>
-                        {sortedKeys.map(groupName => (
-                          <div key={groupName} style={modalStyles.peptideGroup}>
-                            <div style={modalStyles.peptideGroupHeader}>{groupName}</div>
-                            <div style={modalStyles.peptideGroupGrid}>
-                              {groups[groupName].map(item => (
-                                <button
-                                  key={item.id}
-                                  style={{
-                                    ...modalStyles.peptideVariantCard,
-                                    ...(cartItems.some(i => i.id === item.id) ? modalStyles.itemCardSelected : {}),
-                                  }}
-                                  onClick={() => toggleCartItem(item)}
-                                >
-                                  {cartItems.some(i => i.id === item.id) && (
-                                    <span style={modalStyles.inCartBadge}>&#10003;</span>
-                                  )}
-                                  <div style={modalStyles.peptideVariantLabel}>{item.shortLabel}</div>
-                                  <div style={modalStyles.itemPrice}>{formatPrice(item.price)}</div>
-                                </button>
-                              ))}
+                        {sortedKeys.map(groupName => {
+                          const isExpanded = expandedPeptideGroups[groupName];
+                          const groupHasCartItem = groups[groupName].some(item => cartItems.some(ci => ci.id === item.id));
+                          return (
+                            <div key={groupName} style={modalStyles.peptideGroup}>
+                              <button
+                                style={{
+                                  ...modalStyles.peptideAccordionHeader,
+                                  ...(groupHasCartItem ? { borderColor: '#10b981', background: '#f0fdf4' } : {}),
+                                }}
+                                onClick={() => togglePeptideGroup(groupName)}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ fontSize: '18px', transition: 'transform 0.2s', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
+                                  <span style={{ fontWeight: 600, fontSize: '14px' }}>{groupName}</span>
+                                  <span style={{ fontSize: '12px', color: '#888' }}>({groups[groupName].length})</span>
+                                </div>
+                                {groupHasCartItem && (
+                                  <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600 }}>&#10003; In Cart</span>
+                                )}
+                              </button>
+                              {isExpanded && (
+                                <div style={modalStyles.peptideGroupGrid}>
+                                  {groups[groupName].map(item => (
+                                    <button
+                                      key={item.id}
+                                      style={{
+                                        ...modalStyles.peptideVariantCard,
+                                        ...(cartItems.some(i => i.id === item.id) ? modalStyles.itemCardSelected : {}),
+                                      }}
+                                      onClick={() => toggleCartItem(item)}
+                                    >
+                                      {cartItems.some(i => i.id === item.id) && (
+                                        <span style={modalStyles.inCartBadge}>&#10003;</span>
+                                      )}
+                                      <div style={modalStyles.peptideVariantLabel}>{item.name}</div>
+                                      <div style={modalStyles.itemPrice}>{formatPrice(item.price)}</div>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     );
                   })()
@@ -2358,9 +2355,23 @@ const modalStyles = {
     marginTop: '2px',
     lineHeight: '1.3',
   },
-  // Grouped peptide styles
+  // Grouped peptide styles (accordion)
   peptideGroup: {
-    marginBottom: '20px',
+    marginBottom: '4px',
+  },
+  peptideAccordionHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    padding: '12px 14px',
+    border: '2px solid #e5e7eb',
+    borderRadius: '8px',
+    background: '#fafafa',
+    cursor: 'pointer',
+    textAlign: 'left',
+    transition: 'all 0.15s',
+    marginBottom: '2px',
   },
   peptideGroupHeader: {
     fontSize: '13px',

@@ -37,12 +37,14 @@ export default async function handler(req, res) {
 
   try {
     // Find active protocols where end_date is yesterday or earlier
+    // Exclude weight_loss, hrt, and peptide — those need manual follow-up for renewals
     const { data: expiredProtocols, error: fetchError } = await supabase
       .from('protocols')
       .select('id, program_name, program_type, end_date, patient_id')
       .eq('status', 'active')
       .not('program_type', 'like', 'weight_loss%')
       .not('program_type', 'like', 'hrt%')
+      .neq('program_type', 'peptide')
       .lte('end_date', yesterdayStr);
 
     if (fetchError) {
@@ -112,6 +114,57 @@ export default async function handler(req, res) {
               console.error('Peptide follow-up task error:', taskErr);
             }
           }
+        }
+      }
+    }
+
+    // Peptide protocols: create follow-up tasks when end_date passes, but do NOT auto-complete
+    // They stay active so staff can follow up on renewals (GH peptides are 90-day processes)
+    if (peptideTaskStaff.length > 0) {
+      const { data: expiredPeptides } = await supabase
+        .from('protocols')
+        .select('id, program_name, program_type, end_date, patient_id')
+        .eq('status', 'active')
+        .eq('program_type', 'peptide')
+        .lte('end_date', yesterdayStr);
+
+      if (expiredPeptides && expiredPeptides.length > 0) {
+        for (const protocol of expiredPeptides) {
+          // Check if follow-up task already exists to avoid duplicates
+          const { data: existingTasks } = await supabase
+            .from('tasks')
+            .select('id')
+            .eq('patient_id', protocol.patient_id)
+            .ilike('title', `%Peptide Renewal%${protocol.program_name}%`)
+            .eq('status', 'pending')
+            .limit(1);
+
+          if (existingTasks && existingTasks.length > 0) continue;
+
+          const { data: patient } = await supabase
+            .from('patients')
+            .select('id, name, first_name, last_name')
+            .eq('id', protocol.patient_id)
+            .single();
+
+          const patientName = patient?.name
+            || `${patient?.first_name || ''} ${patient?.last_name || ''}`.trim()
+            || 'Unknown';
+
+          for (const empId of peptideTaskStaff) {
+            await supabase.from('tasks').insert({
+              title: `Peptide Renewal: Call ${patientName} — ${protocol.program_name}`,
+              description: `${patientName}'s ${protocol.program_name} ended ${protocol.end_date}. Follow up to discuss renewal and next steps.`,
+              assigned_to: empId,
+              assigned_by: empId,
+              patient_id: protocol.patient_id,
+              patient_name: patientName,
+              priority: 'medium',
+              status: 'pending',
+            });
+            peptideTasksCreated++;
+          }
+          console.log(`Peptide renewal tasks created for ${patientName} — ${protocol.program_name}`);
         }
       }
     }

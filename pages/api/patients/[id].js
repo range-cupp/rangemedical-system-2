@@ -121,6 +121,23 @@ function calculateRemaining(protocol) {
     }
   }
 
+  // ===== PEPTIDE — always use date-based tracking (calendar days, not injection count) =====
+  if (isPeptide && protocol.end_date) {
+    const endDate = new Date(protocol.end_date + 'T23:59:59');
+    const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+
+    let totalDays = protocol.duration_days || 30;
+    const programName = (protocol.program_name || '').toLowerCase();
+    const dayMatch = programName.match(/(\d+)\s*day/i);
+    if (dayMatch) totalDays = parseInt(dayMatch[1]);
+
+    const statusText = daysRemaining <= 0 ? 'Renewal due' :
+                       daysRemaining <= 3 ? `${daysRemaining}d left!` :
+                       `${daysRemaining} days left`;
+
+    return { days_remaining: daysRemaining, total_days: totalDays, status_text: statusText };
+  }
+
   // ===== SESSION-BASED (IV, HBOT, RLT, Combos, Injections) =====
   // Check BEFORE date-based — protocols with total_sessions should always show session progress
   if (protocol.total_sessions && protocol.total_sessions > 0) {
@@ -131,7 +148,7 @@ function calculateRemaining(protocol) {
     return { sessions_remaining: sessionsRemaining, total_sessions: protocol.total_sessions, status_text: statusText };
   }
 
-  // ===== PEPTIDE / DATE-BASED =====
+  // ===== DATE-BASED FALLBACK =====
   if (protocol.end_date) {
     const endDate = new Date(protocol.end_date + 'T23:59:59');
     const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
@@ -231,12 +248,14 @@ export default async function handler(req, res) {
           category
         };
 
-        // Weight loss protocols are ongoing — never auto-complete based on sessions/dates
+        // Weight loss & peptide protocols — never auto-complete (need manual follow-up for renewals)
         const isWeightLoss = (protocol.program_type || '').toLowerCase().includes('weight');
+        const isPeptideProto = (protocol.program_type || '').toLowerCase() === 'peptide';
+        const neverAutoComplete = isWeightLoss || isPeptideProto;
         const isCompleted =
           protocol.status === 'completed' ||
-          (!isWeightLoss && tracking.days_remaining !== null && tracking.days_remaining <= -7) ||
-          (!isWeightLoss && tracking.sessions_remaining !== undefined && tracking.sessions_remaining <= 0 && protocol.total_sessions > 0);
+          (!neverAutoComplete && tracking.days_remaining !== null && tracking.days_remaining <= -7) ||
+          (!neverAutoComplete && tracking.sessions_remaining !== undefined && tracking.sessions_remaining <= 0 && protocol.total_sessions > 0);
 
         // Skip labs — they live in the Labs pipeline, not in Active Protocols
         if (protocol.program_type === 'labs') return;

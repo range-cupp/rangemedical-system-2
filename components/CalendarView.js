@@ -100,6 +100,9 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   const [providerSchedules, setProviderSchedules] = useState({}); // username → { newport: { monday: [{start,end}], ... }, locations: { placentia: { monday: [{start,end}] } } }
   const [availableSlots, setAvailableSlots] = useState(null); // null = not loaded, [] = no slots, [...] = available
   const [loadingSlots, setLoadingSlots] = useState(false);
+  // Multi-service availability: fetched per-service slots (null = no cal.com, [] = none available, [...] = slots)
+  const [multiServiceSlots, setMultiServiceSlots] = useState({}); // { svcName: string[] | null }
+  const [loadingMultiSlots, setLoadingMultiSlots] = useState(false);
 
   // Reschedule state
   const [rescheduleAppt, setRescheduleAppt] = useState(null);
@@ -411,6 +414,72 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     return () => { cancelled = true; };
   }, [apptDate, selectedService?.calcomSlug, eventTypesMap, resolveEventType]);
 
+  // Fetch per-service availability for multi-service bookings when date or step changes
+  useEffect(() => {
+    if (wizardStep !== 4 || selectedServices.length <= 1 || !apptDate) {
+      setMultiServiceSlots({});
+      return;
+    }
+    let cancelled = false;
+    setLoadingMultiSlots(true);
+    setApptTime('');
+
+    const fetches = selectedServices.map(async svc => {
+      if (!svc.calcomSlug) return [svc.name, null]; // null = no Cal.com constraint, any time OK
+      const et = resolveEventType(svc.calcomSlug);
+      if (!et) return [svc.name, null];
+      try {
+        const r = await fetch(`/api/bookings/slots?eventTypeId=${et.id}&date=${apptDate}`);
+        const data = await r.json();
+        const daySlots = data.slots?.[apptDate] || [];
+        const times = [...new Set(
+          (Array.isArray(daySlots) ? daySlots : []).map(slot => {
+            const d = new Date(typeof slot === 'string' ? slot : slot.start);
+            return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+          })
+        )].sort();
+        return [svc.name, times];
+      } catch { return [svc.name, []]; }
+    });
+
+    Promise.all(fetches).then(results => {
+      if (cancelled) return;
+      setMultiServiceSlots(Object.fromEntries(results));
+      setLoadingMultiSlots(false);
+    });
+    return () => { cancelled = true; };
+  }, [wizardStep, apptDate, eventTypesMap, resolveEventType,
+      // stringify service names so the effect re-runs if services change
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      selectedServices.map(s => s.name).join(',')]); // intentional non-standard dep
+
+  // Compute valid start times for multi-service: times where every service's provider is available
+  // at its staggered start (T + sum of preceding durations). Services without calcomSlug are unconstrained.
+  const getValidMultiServiceTimes = useCallback(() => {
+    if (selectedServices.length <= 1 || Object.keys(multiServiceSlots).length === 0) return [];
+    const firstSvc = selectedServices[0];
+    const firstSlots = multiServiceSlots[firstSvc.name];
+    if (!firstSlots) return []; // still loading
+    const candidates = firstSlots.length > 0 ? firstSlots : [];
+    return candidates.filter(startTime => {
+      const [sh, sm] = startTime.split(':').map(Number);
+      let offsetMins = firstSvc.duration || 0;
+      for (let i = 1; i < selectedServices.length; i++) {
+        const svc = selectedServices[i];
+        const svcSlots = multiServiceSlots[svc.name];
+        if (svcSlots === undefined) return false; // still loading
+        if (svcSlots !== null && svcSlots.length >= 0) { // has Cal.com constraint
+          const totalMins = sh * 60 + sm + offsetMins;
+          const svcTime = `${String(Math.floor(totalMins / 60)).padStart(2,'0')}:${String(totalMins % 60).padStart(2,'0')}`;
+          if (svcSlots.length > 0 && !svcSlots.includes(svcTime)) return false;
+          if (svcSlots.length === 0) return false; // provider has no slots at all
+        }
+        offsetMins += svc.duration || 0;
+      }
+      return true;
+    });
+  }, [selectedServices, multiServiceSlots]);
+
   // Pre-fill wizard if patient is preselected
   useEffect(() => {
     if (preselectedPatient) {
@@ -487,53 +556,154 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
         ? (selectedProviders[allServices[0].name]?.label || selectedProviders[allServices[0].name]?.name || null)
         : (selectedProvider?.name || null);
 
-      // For multi-service, skip Cal.com (manual booking only)
-      const calcomSlug = allServices.length === 1 ? selectedService?.calcomSlug : null;
-      const eventType = calcomSlug ? resolveEventType(calcomSlug) : null;
-
       let res;
 
-      if (eventType && selectedPatient?.id && !useCustomTime) {
-        // Route through Cal.com for tracked services with a known patient
-        // This blocks the slot in Cal.com and the webhook syncs to appointments table
-        const hostInfo = eventType.hosts?.find(h => h.username === selectedProvider?.calcomUsername);
+      if (allServices.length > 1 && selectedPatient?.id && !useCustomTime) {
+        // ── Multi-service: book each service in Cal.com at its staggered start time ──
+        // Each provider's calendar gets blocked separately; one DB record ties them together.
+        const detailedServices = [];
+        let offsetMins = 0;
+        for (const svc of allServices) {
+          const svcStart = new Date(startDT.getTime() + offsetMins * 60000);
+          const svcProvider = selectedProviders[svc.name];
+          let calcomBookingId = null;
 
-        // Build service details (e.g., panel type for blood draws)
-        const serviceDetails = {};
-        if (panelType) serviceDetails.panelType = panelType;
+          if (svc.calcomSlug) {
+            const et = resolveEventType(svc.calcomSlug);
+            if (et) {
+              const hostInfo = et.hosts?.find(h => h.username === svcProvider?.calcomUsername);
+              try {
+                const calRes = await fetch('/api/bookings/create', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    eventTypeId: et.id,
+                    start: svcStart.toISOString(),
+                    patientId: selectedPatient.id,
+                    patientName,
+                    patientEmail: selectedPatient.email || null,
+                    patientPhone: patientPhone || null,
+                    serviceName: svc.name,
+                    serviceSlug: et.slug || svc.calcomSlug,
+                    durationMinutes: svc.duration,
+                    notes: apptNotes || null,
+                    hostUserId: hostInfo?.userId || null,
+                    hostName: svcProvider?.label || svcProvider?.name || null,
+                  }),
+                });
+                if (calRes.ok) {
+                  const calData = await calRes.json();
+                  calcomBookingId = String(calData.calcom?.id || calData.booking?.calcom_booking_id || '');
+                } else {
+                  console.error(`Cal.com booking failed for ${svc.name}:`, await calRes.text());
+                }
+              } catch (err) {
+                console.error(`Cal.com booking error for ${svc.name}:`, err);
+              }
+            }
+          }
 
-        const body = {
-          eventTypeId: eventType.id,
-          start: startDT.toISOString(),
-          patientId: selectedPatient.id,
-          patientName,
-          patientEmail: selectedPatient.email || null,
-          patientPhone: patientPhone || null,
-          serviceName: selectedService.name,
-          serviceSlug: eventType?.slug || calcomSlug,
-          durationMinutes: duration,
-          notes: apptNotes || null,
-          hostUserId: hostInfo?.userId || null,
-          hostName: selectedProvider?.label || selectedProvider?.name || null,
-          serviceDetails: Object.keys(serviceDetails).length > 0 ? serviceDetails : null,
-        };
+          detailedServices.push({
+            name: svc.name,
+            category: svc.category,
+            duration: svc.duration,
+            provider: svcProvider?.label || svcProvider?.name || null,
+            start_time: svcStart.toISOString(),
+            calcom_booking_id: calcomBookingId,
+          });
+          offsetMins += svc.duration || 0;
+        }
 
-        res = await fetch('/api/bookings/create', {
+        // One DB appointment record covering the full multi-service block
+        res = await fetch('/api/appointments/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
+          body: JSON.stringify({
+            patient_id: selectedPatient.id,
+            patient_name: patientName,
+            patient_phone: patientPhone,
+            service_name: displayServiceName,
+            service_category: allServices[0].category,
+            provider: primaryProviderName,
+            start_time: startDT.toISOString(),
+            end_time: endDT.toISOString(),
+            duration_minutes: duration,
+            location: selectedLocation?.label || DEFAULT_LOCATION.label,
+            notes: apptNotes || null,
+            created_by: 'command_center',
+            send_notification: sendNotification,
+            source: 'cal_com',
+            services: detailedServices,
+          }),
         });
 
-        if (res.ok) {
-          const data = await res.json();
+      } else if (allServices.length === 1) {
+        // ── Single-service: original Cal.com or manual path ──
+        const calcomSlug = selectedService?.calcomSlug || null;
+        const eventType = calcomSlug ? resolveEventType(calcomSlug) : null;
 
-          // Also create in native appointments table for immediate calendar display
-          // Webhook will upsert on cal_com_booking_id, so no duplicate
-          await fetch('/api/appointments/create', {
+        if (eventType && selectedPatient?.id && !useCustomTime) {
+          const hostInfo = eventType.hosts?.find(h => h.username === selectedProvider?.calcomUsername);
+          const serviceDetails = {};
+          if (panelType) serviceDetails.panelType = panelType;
+
+          const body = {
+            eventTypeId: eventType.id,
+            start: startDT.toISOString(),
+            patientId: selectedPatient.id,
+            patientName,
+            patientEmail: selectedPatient.email || null,
+            patientPhone: patientPhone || null,
+            serviceName: selectedService.name,
+            serviceSlug: eventType?.slug || calcomSlug,
+            durationMinutes: duration,
+            notes: apptNotes || null,
+            hostUserId: hostInfo?.userId || null,
+            hostName: selectedProvider?.label || selectedProvider?.name || null,
+            serviceDetails: Object.keys(serviceDetails).length > 0 ? serviceDetails : null,
+          };
+
+          res = await fetch('/api/bookings/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            await fetch('/api/appointments/create', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                patient_id: selectedPatient.id,
+                patient_name: patientName,
+                patient_phone: patientPhone,
+                service_name: displayServiceName,
+                service_category: selectedService.category,
+                provider: primaryProviderName,
+                start_time: startDT.toISOString(),
+                end_time: endDT.toISOString(),
+                duration_minutes: duration,
+                location: selectedLocation?.label || DEFAULT_LOCATION.label,
+                notes: apptNotes || null,
+                created_by: 'command_center',
+                send_notification: sendNotification,
+                cal_com_booking_id: String(data.calcom?.id || data.booking?.calcom_booking_id || ''),
+                source: 'cal_com',
+                service_details: Object.keys(serviceDetails).length > 0 ? serviceDetails : null,
+                services: servicesPayload,
+              }),
+            }).catch(err => console.error('Native appointment write error:', err));
+          }
+        } else {
+          // Fallback: manual booking (no Cal.com, walk-in, or custom time)
+          const fallbackDetails = {};
+          if (panelType) fallbackDetails.panelType = panelType;
+          res = await fetch('/api/appointments/create', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              patient_id: selectedPatient.id,
+              patient_id: selectedPatient?.id || null,
               patient_name: patientName,
               patient_phone: patientPhone,
               service_name: displayServiceName,
@@ -546,40 +716,31 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               notes: apptNotes || null,
               created_by: 'command_center',
               send_notification: sendNotification,
-              cal_com_booking_id: String(data.calcom?.id || data.booking?.calcom_booking_id || ''),
-              source: 'cal_com',
-              service_details: Object.keys(serviceDetails).length > 0 ? serviceDetails : null,
+              service_details: Object.keys(fallbackDetails).length > 0 ? fallbackDetails : null,
               services: servicesPayload,
             }),
-          }).catch(err => console.error('Native appointment write error:', err));
+          });
         }
       } else {
-        // Fallback: manual booking (no Cal.com event type or walk-in or multi-service)
-        const fallbackDetails = {};
-        if (panelType) fallbackDetails.panelType = panelType;
-
-        const body = {
-          patient_id: selectedPatient?.id || null,
-          patient_name: patientName,
-          patient_phone: patientPhone,
-          service_name: displayServiceName,
-          service_category: selectedService.category,
-          provider: primaryProviderName,
-          start_time: startDT.toISOString(),
-          end_time: endDT.toISOString(),
-          duration_minutes: duration,
-          location: selectedLocation?.label || DEFAULT_LOCATION.label,
-          notes: apptNotes || null,
-          created_by: 'command_center',
-          send_notification: sendNotification,
-          service_details: Object.keys(fallbackDetails).length > 0 ? fallbackDetails : null,
-          services: servicesPayload,
-        };
-
+        // Walk-in or no services edge case — manual fallback
         res = await fetch('/api/appointments/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
+          body: JSON.stringify({
+            patient_id: selectedPatient?.id || null,
+            patient_name: patientName,
+            patient_phone: patientPhone,
+            service_name: displayServiceName,
+            service_category: selectedService?.category || 'other',
+            provider: primaryProviderName,
+            start_time: startDT.toISOString(),
+            end_time: endDT.toISOString(),
+            duration_minutes: duration,
+            location: selectedLocation?.label || DEFAULT_LOCATION.label,
+            notes: apptNotes || null,
+            created_by: 'command_center',
+            send_notification: sendNotification,
+          }),
         });
       }
 
@@ -2163,6 +2324,181 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
 
       {/* Step 4: Date + Provider Availability */}
       {wizardStep === 4 && (() => {
+
+        // ── Multi-service path ──────────────────────────────────────────────
+        if (selectedServices.length > 1) {
+          const validTimes = getValidMultiServiceTimes();
+          const allLoaded = !loadingMultiSlots && selectedServices.every(s => s.name in multiServiceSlots);
+
+          // Helper: given a 'HH:MM' base time + offset in minutes → 'HH:MM'
+          const addMins = (base, mins) => {
+            const [h, m] = base.split(':').map(Number);
+            const total = h * 60 + m + mins;
+            return `${String(Math.floor(total / 60)).padStart(2,'0')}:${String(total % 60).padStart(2,'0')}`;
+          };
+
+          return (
+            <div>
+              <p style={styles.wizardLabel}>
+                {selectedServices.map(s => s.name).join(' + ')} &nbsp;·&nbsp;
+                {selectedServices.reduce((sum, s) => sum + (s.duration || 0), 0)} min total
+              </p>
+
+              {/* Date */}
+              <div style={{ marginBottom: '12px' }}>
+                <label style={styles.fieldLabel}>Date</label>
+                <input
+                  type="date"
+                  value={apptDate}
+                  onChange={e => { setApptDate(e.target.value); setApptTime(''); setUseCustomTime(false); }}
+                  style={styles.input}
+                />
+              </div>
+
+              {/* Loading */}
+              {loadingMultiSlots && apptDate && (
+                <div style={{ padding: '20px 0', textAlign: 'center', color: '#888', fontSize: '13px' }}>
+                  Checking availability for all providers…
+                </div>
+              )}
+
+              {/* Valid start-time grid */}
+              {allLoaded && apptDate && !useCustomTime && (
+                <div>
+                  <label style={styles.fieldLabel}>
+                    Pick a start time
+                    <span style={{ fontWeight: 400, color: '#16a34a', marginLeft: '8px', fontSize: '11px' }}>Live availability</span>
+                  </label>
+                  {validTimes.length === 0 ? (
+                    <div style={{ padding: '12px', background: '#fef3c7', borderRadius: '8px', color: '#92400e', fontSize: '13px', textAlign: 'center', marginTop: '6px' }}>
+                      No times where all providers are free on this date. Try another date or use custom time.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+                      {validTimes.map(t => {
+                        const active = apptTime === t;
+                        return (
+                          <button
+                            key={t}
+                            onClick={() => setApptTime(t)}
+                            style={{
+                              padding: '7px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer',
+                              border: active ? '2px solid #16a34a' : '1px solid #e5e5e5',
+                              background: active ? '#f0fdf4' : '#fff',
+                              color: active ? '#166534' : '#111',
+                              fontWeight: active ? '700' : '400',
+                            }}
+                          >
+                            {formatTimeLabel(t)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Staggered schedule breakdown */}
+                  {apptTime && (
+                    <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '8px', padding: '12px', marginTop: '12px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: '700', color: '#166534', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Appointment Schedule
+                      </div>
+                      {selectedServices.map((svc, idx) => {
+                        const offset = selectedServices.slice(0, idx).reduce((s, x) => s + (x.duration || 0), 0);
+                        const svcTime = addMins(apptTime, offset);
+                        const prov = selectedProviders[svc.name];
+                        return (
+                          <div key={svc.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: idx < selectedServices.length - 1 ? '1px solid #dcfce7' : 'none' }}>
+                            <div>
+                              <span style={{ fontSize: '13px', color: '#111', fontWeight: '500' }}>{svc.name}</span>
+                              <span style={{ fontSize: '11px', color: '#6b7280', marginLeft: '8px' }}>{svc.duration} min · {prov?.label || '—'}</span>
+                            </div>
+                            <span style={{ fontSize: '13px', fontWeight: '700', color: '#166534' }}>{formatTimeLabel(svcTime)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <div style={{ textAlign: 'center', marginTop: '8px' }}>
+                    <button
+                      onClick={() => { setUseCustomTime(true); setApptTime(''); }}
+                      style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '12px', cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                      Use custom time (override availability)
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Custom time entry */}
+              {useCustomTime && apptDate && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <label style={styles.fieldLabel}>Start Time (first service)</label>
+                    <button
+                      onClick={() => { setUseCustomTime(false); setApptTime(''); }}
+                      style={{ background: 'none', border: 'none', color: '#666', fontSize: '11px', cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                      ← Back to available slots
+                    </button>
+                  </div>
+                  <input
+                    type="time"
+                    value={apptTime}
+                    onChange={e => setApptTime(e.target.value)}
+                    style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '14px', width: '160px' }}
+                  />
+                  {apptTime && (
+                    <div style={{ background: '#fefce8', border: '1px solid #fde047', borderRadius: '8px', padding: '12px', marginTop: '10px' }}>
+                      <div style={{ fontSize: '11px', color: '#854d0e', fontWeight: '600', marginBottom: '8px' }}>⚠ Custom time — availability not verified</div>
+                      {selectedServices.map((svc, idx) => {
+                        const offset = selectedServices.slice(0, idx).reduce((s, x) => s + (x.duration || 0), 0);
+                        const svcTime = addMins(apptTime, offset);
+                        return (
+                          <div key={svc.name} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', padding: '4px 0' }}>
+                            <span>{svc.name} <span style={{ fontSize: '11px', color: '#92400e' }}>({selectedProviders[svc.name]?.label || '—'})</span></span>
+                            <span style={{ fontWeight: '600' }}>{formatTimeLabel(svcTime)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!apptDate && (
+                <div style={{ padding: '16px 0', color: '#888', fontSize: '13px', textAlign: 'center' }}>
+                  Select a date to see provider availability
+                </div>
+              )}
+
+              {/* Notes */}
+              <div style={{ marginTop: '12px' }}>
+                <label style={styles.fieldLabel}>Notes (optional)</label>
+                <textarea
+                  value={apptNotes}
+                  onChange={e => setApptNotes(e.target.value)}
+                  style={{ ...styles.input, minHeight: '60px', resize: 'vertical' }}
+                  placeholder="Any notes for this appointment…"
+                />
+              </div>
+
+              {/* Nav */}
+              <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                <button
+                  onClick={() => setWizardStep(5)}
+                  disabled={!apptDate || !apptTime}
+                  style={{ ...styles.primaryBtn, opacity: (apptDate && apptTime) ? 1 : 0.5 }}
+                >
+                  Next →
+                </button>
+                <button onClick={() => setWizardStep(3)} style={styles.linkBtn}>← Back</button>
+              </div>
+            </div>
+          );
+        }
+
+        // ── Single-service path (unchanged below) ───────────────────────────
         const hasCalcom = !!selectedService?.calcomSlug && resolveEventType(selectedService.calcomSlug);
         const providers = PROVIDERS[selectedService?.category] || PROVIDERS['other'] || [];
         const locationId = selectedLocation?.id || 'newport';

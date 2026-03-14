@@ -308,6 +308,7 @@ export default function PatientProfile() {
   const [showProtocolPdfModal, setShowProtocolPdfModal] = useState(false);
   const [protocolPdfSelections, setProtocolPdfSelections] = useState({});
   const [protocolPdfCombine, setProtocolPdfCombine] = useState(true);
+  const [protocolPdfPlanDate, setProtocolPdfPlanDate] = useState(new Date().toISOString().split('T')[0]);
   const [protocolPdfGenerating, setProtocolPdfGenerating] = useState(false);
   const [protocolPdfSaving, setProtocolPdfSaving] = useState(false);
 
@@ -333,6 +334,9 @@ export default function PatientProfile() {
   const [showIntakeModal, setShowIntakeModal] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showChargeModal, setShowChargeModal] = useState(false);
+  const [showQuickLogModal, setShowQuickLogModal] = useState(false);
+  const [quickLogSubmitting, setQuickLogSubmitting] = useState(false);
+  const [quickLogResult, setQuickLogResult] = useState(null);
   const [generatingChart, setGeneratingChart] = useState(false);
   const [showQuickView, setShowQuickView] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -2057,6 +2061,7 @@ export default function PatientProfile() {
     }
     setProtocolPdfSelections(selections);
     setProtocolPdfCombine(peptideProtos.length > 1);
+    setProtocolPdfPlanDate(new Date().toISOString().split('T')[0]);
     setShowProtocolPdfModal(true);
   };
 
@@ -2084,6 +2089,7 @@ export default function PatientProfile() {
           protocols,
           combine: protocolPdfCombine,
           store: false,
+          plan_date: protocolPdfPlanDate,
         }),
       });
       if (!res.ok) {
@@ -2126,6 +2132,7 @@ export default function PatientProfile() {
           protocols,
           combine: protocolPdfCombine,
           store: true,
+          plan_date: protocolPdfPlanDate,
         }),
       });
       if (!res.ok) throw new Error('Failed to save PDF');
@@ -2282,6 +2289,7 @@ export default function PatientProfile() {
             </div>
             <div className="toolbar-divider" />
             <div className="toolbar-group">
+              <button onClick={() => { setShowQuickLogModal(true); setQuickLogResult(null); }} className="toolbar-btn toolbar-btn-orange" title="Quick log visit">⚡ <span className="toolbar-label">Log</span></button>
               <button onClick={() => setShowBookingModal(true)} className="toolbar-btn toolbar-btn-blue" title="Book appointment">📅 <span className="toolbar-label">Book</span></button>
               <button onClick={() => setShowChargeModal(true)} className="toolbar-btn toolbar-btn-green" title="Charge patient">💳 <span className="toolbar-label">Charge</span></button>
               <button onClick={() => setShowAddCreditModal(true)} className="toolbar-btn toolbar-btn-credit" title="Add account credit">🎁 <span className="toolbar-label">Credit</span></button>
@@ -6664,6 +6672,109 @@ export default function PatientProfile() {
           </div>
         )}
 
+        {/* Quick Log Modal */}
+        {showQuickLogModal && (
+          <div className="modal-overlay" onClick={() => setShowQuickLogModal(false)}>
+            <div className="modal" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Quick Log — {patient?.name}</h3>
+                <button onClick={() => setShowQuickLogModal(false)} className="close-btn">×</button>
+              </div>
+              <div className="modal-body" style={{ padding: '16px 24px' }}>
+                {quickLogResult ? (
+                  <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                    <div style={{ fontSize: 40, marginBottom: 12 }}>{quickLogResult.success ? '✓' : '⚠'}</div>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: quickLogResult.success ? '#16a34a' : '#dc2626', marginBottom: 8 }}>
+                      {quickLogResult.success ? 'Visit Logged' : 'Error'}
+                    </div>
+                    <div style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>{quickLogResult.message}</div>
+                    <button onClick={() => setShowQuickLogModal(false)} className="btn-primary">Done</button>
+                  </div>
+                ) : activeProtocols.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '20px 0', color: '#666' }}>
+                    <div style={{ fontSize: 32, marginBottom: 8 }}>📋</div>
+                    <div>No active protocols to log against.</div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ fontSize: 13, color: '#666', marginBottom: 4 }}>Tap a protocol to log today's visit:</div>
+                    {activeProtocols.filter(p => p.program_type !== 'labs').map(protocol => {
+                      const typeMap = { hrt: 'testosterone', hrt_male: 'testosterone', hrt_female: 'testosterone', weight_loss: 'weight_loss', peptide: 'peptide', iv_therapy: 'iv_therapy', iv: 'iv_therapy', hbot: 'hbot', rlt: 'red_light', red_light: 'red_light', injection: 'vitamin' };
+                      const category = typeMap[protocol.program_type] || protocol.program_type;
+                      const entryTypeMap = { testosterone: 'pickup', weight_loss: 'pickup', peptide: 'pickup', iv_therapy: 'session', hbot: 'session', red_light: 'session', vitamin: 'injection' };
+                      const entryType = protocol.delivery_method === 'in_clinic' ? (category === 'testosterone' || category === 'weight_loss' || category === 'peptide' ? 'injection' : 'session') : (entryTypeMap[category] || 'session');
+                      const sessionsInfo = protocol.total_sessions ? `${protocol.sessions_used || 0}/${protocol.total_sessions}` : null;
+                      const isSubmitting = quickLogSubmitting === protocol.id;
+
+                      return (
+                        <button
+                          key={protocol.id}
+                          disabled={quickLogSubmitting}
+                          onClick={async () => {
+                            setQuickLogSubmitting(protocol.id);
+                            try {
+                              const today = new Date();
+                              const pacificDate = today.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+                              const res = await fetch('/api/service-log', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  patient_id: patient.id,
+                                  protocol_id: protocol.id,
+                                  category,
+                                  entry_type: entryType,
+                                  entry_date: pacificDate,
+                                  medication: protocol.medication || null,
+                                  dosage: protocol.selected_dose || protocol.dosage || null,
+                                  force: false,
+                                }),
+                              });
+                              const data = await res.json();
+                              if (data.duplicate) {
+                                setQuickLogResult({ success: false, message: `Already logged today for ${protocol.medication || protocol.program_name}. Go to Service Log to force-submit.` });
+                              } else if (data.success) {
+                                setQuickLogResult({ success: true, message: `${entryType.charAt(0).toUpperCase() + entryType.slice(1)} logged for ${protocol.medication || protocol.program_name}` });
+                              } else {
+                                setQuickLogResult({ success: false, message: data.error || 'Failed to log visit' });
+                              }
+                            } catch (err) {
+                              setQuickLogResult({ success: false, message: err.message });
+                            } finally {
+                              setQuickLogSubmitting(false);
+                            }
+                          }}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
+                            background: isSubmitting ? '#f3f4f6' : '#fff', border: '1px solid #e5e7eb', borderRadius: 10,
+                            cursor: quickLogSubmitting ? 'not-allowed' : 'pointer', textAlign: 'left', width: '100%',
+                            transition: 'all 0.15s', fontFamily: 'inherit',
+                          }}
+                          onMouseEnter={e => { if (!quickLogSubmitting) e.currentTarget.style.background = '#f9fafb'; }}
+                          onMouseLeave={e => { if (!quickLogSubmitting) e.currentTarget.style.background = '#fff'; }}
+                        >
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, fontSize: 14, color: '#111' }}>
+                              {protocol.medication || protocol.program_name}
+                            </div>
+                            <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>
+                              {entryType === 'pickup' ? 'Pickup/Refill' : entryType === 'injection' ? 'Injection' : 'Session'}
+                              {protocol.selected_dose && ` · ${protocol.selected_dose}`}
+                              {sessionsInfo && ` · ${sessionsInfo} used`}
+                            </div>
+                          </div>
+                          <div style={{ fontSize: 12, color: '#2563eb', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                            {isSubmitting ? 'Logging...' : 'Log →'}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* POS Charge Modal */}
         <POSChargeModal
           isOpen={showChargeModal}
@@ -7603,6 +7714,8 @@ export default function PatientProfile() {
           text-decoration: none;
         }
         .toolbar-btn:hover { background: #e2e8f0; color: #0f172a; }
+        .toolbar-btn-orange { background: #fff7ed; color: #c2410c; font-weight: 600; }
+        .toolbar-btn-orange:hover { background: #ffedd5; }
         .toolbar-btn-blue { background: #eff6ff; color: #1d4ed8; font-weight: 600; }
         .toolbar-btn-blue:hover { background: #dbeafe; }
         .toolbar-btn-green { background: #f0fdf4; color: #16a34a; font-weight: 600; }
@@ -9160,6 +9273,22 @@ export default function PatientProfile() {
                   )}
                 </div>
               ))}
+
+              {/* Plan Issued Date */}
+              {Object.values(protocolPdfSelections).some(s => s.selected) && (
+                <div style={{ marginBottom: 16, padding: '12px 16px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8 }}>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 4 }}>Plan Issued Date</label>
+                  <input type="date" value={protocolPdfPlanDate} onChange={e => setProtocolPdfPlanDate(e.target.value)}
+                    style={{ padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, width: 180 }} />
+                  {(() => {
+                    const today = new Date(); today.setHours(0,0,0,0);
+                    const picked = new Date(protocolPdfPlanDate + 'T00:00:00');
+                    const diff = Math.round((today - picked) / (1000*60*60*24));
+                    if (diff > 0) return <span style={{ marginLeft: 10, fontSize: 12, color: '#92400e', background: '#fef3c7', padding: '2px 8px', borderRadius: 4 }}>Backdated {diff} day{diff !== 1 ? 's' : ''}</span>;
+                    return null;
+                  })()}
+                </div>
+              )}
 
               {Object.keys(protocolPdfSelections).length === 0 && (
                 <div style={{ textAlign: 'center', padding: '24px', color: '#9ca3af', fontSize: 14 }}>

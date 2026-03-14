@@ -83,7 +83,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { patient_id, patient_name, protocols, combine = true, store = false, protocol_type, provider, start_date } = req.body;
+  const { patient_id, patient_name, protocols, combine = true, store = false, protocol_type, provider, start_date, plan_date } = req.body;
 
   if (!protocols || !Array.isArray(protocols) || protocols.length === 0) {
     return res.status(400).json({ error: 'protocols array is required' });
@@ -109,6 +109,7 @@ export default async function handler(req, res) {
       protocolType: protocol_type,
       provider,
       startDate: start_date,
+      planDate: plan_date,
     });
 
     // 4. Return inline or store

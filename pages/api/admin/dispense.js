@@ -88,6 +88,7 @@ export default async function handler(req, res) {
       dispense_date, // YYYY-MM-DD — allows backdating
       refill_interval_days, // override if provided, otherwise auto-calculated
       dosage_override, // if staff changed dosage at dispense time
+      quantity, // number of units dispensed (e.g., 2 injections for weight loss)
     } = req.body;
 
     if (!protocol_id || !patient_id) {
@@ -160,7 +161,7 @@ export default async function handler(req, res) {
     const updateData = {
       next_expected_date: nextExpectedDate,
       last_refill_date: entryDate,
-      sessions_used: (protocol.sessions_used || 0) + 1,
+      sessions_used: (protocol.sessions_used || 0) + (quantity || 1),
     };
 
     // If dosage was changed at dispense time, update the protocol's selected_dose

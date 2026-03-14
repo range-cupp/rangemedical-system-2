@@ -92,12 +92,13 @@ function getSupplyOptions(med) {
     ];
   }
 
-  // Weight loss — allow choosing pickup frequency
+  // Weight loss — pick number of injections (each = 1 week)
   if (pt.includes('weight_loss')) {
     return [
-      { value: 'weekly', label: 'Weekly', days: 7 },
-      { value: 'every_2_weeks', label: 'Every 2 Weeks', days: 14 },
-      { value: 'monthly', label: 'Monthly (4 weeks)', days: 28 },
+      { value: 'wl_1', label: '1 Injection (1 week)', days: 7 },
+      { value: 'wl_2', label: '2 Injections (2 weeks)', days: 14 },
+      { value: 'wl_3', label: '3 Injections (3 weeks)', days: 21 },
+      { value: 'wl_4', label: '4 Injections (4 weeks)', days: 28 },
     ];
   }
 
@@ -117,10 +118,11 @@ function getIntervalForSupply(supplyValue, med) {
   };
   if (prefillDays[supplyValue]) return prefillDays[supplyValue];
 
-  // Weight loss frequency
-  if (supplyValue === 'weekly') return 7;
-  if (supplyValue === 'every_2_weeks') return 14;
-  if (supplyValue === 'monthly') return 28;
+  // Weight loss — injection count × 7 days
+  if (supplyValue === 'wl_1' || supplyValue === 'weekly') return 7;
+  if (supplyValue === 'wl_2' || supplyValue === 'every_2_weeks') return 14;
+  if (supplyValue === 'wl_3') return 21;
+  if (supplyValue === 'wl_4' || supplyValue === 'monthly') return 28;
 
   // Vials — use the protocol's existing calculated interval
   // (already computed server-side based on dose + injection frequency)
@@ -169,7 +171,14 @@ export default function MedicationsPage() {
   const openDispenseModal = (med) => {
     setDispensingProtocol(med);
     setDispenseDate(new Date().toISOString().split('T')[0]);
-    setSelectedSupplyType(med.supply_type || '');
+    // Default supply type based on protocol type
+    const pt = (med.program_type || '').toLowerCase();
+    if (pt.includes('weight_loss')) {
+      // Default to 1 injection for weight loss — staff picks how many they're dispensing
+      setSelectedSupplyType('wl_1');
+    } else {
+      setSelectedSupplyType(med.supply_type || '');
+    }
     setDispenseDosage(med.dosage || '');
     setLogResult(null);
   };
@@ -190,6 +199,7 @@ export default function MedicationsPage() {
           dispense_date: dispenseDate,
           refill_interval_days: currentInterval,
           dosage_override: dispenseDosage !== dispensingProtocol.dosage ? dispenseDosage : null,
+          quantity: selectedSupplyType.startsWith('wl_') ? parseInt(selectedSupplyType.split('_')[1]) : 1,
         }),
       });
       if (res.status === 409) {

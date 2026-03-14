@@ -4082,19 +4082,6 @@ export default function PatientProfile() {
                                 {/* Action buttons for recovery peptides */}
                                 {isRecovery && protocol.status === 'active' && (
                                   <div className="px-actions">
-                                    {!protocol.peptide_checkin_optin_sent && (
-                                      <button
-                                        onClick={async () => {
-                                          try {
-                                            const res = await fetch(`/api/admin/protocols/${protocol.id}/send-optin`, { method: 'POST' });
-                                            const data = await res.json();
-                                            if (res.ok) { alert(data.twoStep ? 'Opt-in request sent! Link will deliver when patient replies.' : 'Check-in opt-in sent!'); fetchPatient(); }
-                                            else { alert(data.error || 'Failed to send'); }
-                                          } catch (e) { alert('Failed to send'); }
-                                        }}
-                                        className="btn-secondary-sm"
-                                      >📱 Send Check-in Opt-in</button>
-                                    )}
                                     {!protocol.peptide_guide_sent && (
                                       <button
                                         onClick={async () => {

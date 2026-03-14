@@ -7,6 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 import { logComm } from '../../../../../lib/comms-log';
 import { sendSMS, normalizePhone } from '../../../../../lib/send-sms';
 import { hasBlooioOptIn, queuePendingLinkMessage, isBlooioProvider } from '../../../../../lib/blooio-optin';
+import { getGuideSlug } from '../../../../../lib/protocol-config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -66,20 +67,9 @@ export default async function handler(req, res) {
       return res.status(409).json({ error: 'Peptide guide was already sent for this protocol' });
     }
 
-    // Build guide URL dynamically based on medication
-    const med = (protocol.medication || '').toLowerCase();
-    const pName = (protocol.program_name || '').toLowerCase();
-    let guideSlug = '/bpc-tb4-guide';
-    if ((med.includes('kpv') || med.includes('mgf') || pName.includes('kpv') || pName.includes('mgf')) && (med.includes('bpc') || med.includes('tb') || pName.includes('bpc') || pName.includes('tb'))) {
-      guideSlug = '/recovery-blend-guide';
-    } else if (med.includes('glow') || pName.includes('glow')) {
-      guideSlug = '/glow-guide';
-    } else if (med.includes('mots') || pName.includes('mots')) {
-      guideSlug = '/mots-c-guide';
-    } else if (med.includes('nad') || pName.includes('nad')) {
-      guideSlug = '/nad-guide';
-    }
-    const guideMessage = `Hi ${firstName}! Here's your guide to your recovery peptide protocol: https://www.range-medical.com${guideSlug} - Range Medical`;
+    // Build guide URL dynamically based on medication — uses centralized catalog matching
+    const guideSlug = getGuideSlug(protocol.medication, protocol.program_name);
+    const guideMessage = `Hi ${firstName}! Here's your guide to your peptide protocol: https://www.range-medical.com${guideSlug} - Range Medical`;
 
     // Blooio two-step: first contact cannot include links
     if (isBlooioProvider()) {

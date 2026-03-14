@@ -4859,6 +4859,14 @@ export default function PatientProfile() {
                             }}>
                               {note.source === 'encounter' ? 'Encounter' : note.source === 'addendum' ? 'Addendum' : note.source === 'protocol' ? 'Protocol Note' : note.source === 'manual' ? 'Staff Note' : 'GHL Import'}
                             </span>
+                            {note.encounter_service && (
+                              <span style={{
+                                marginLeft: 6, fontSize: 11, padding: '2px 8px', borderRadius: 4, fontWeight: 500,
+                                background: '#ede9fe', color: '#5b21b6',
+                              }}>
+                                {note.encounter_service.replace(/\b\w/g, l => l.toUpperCase())} Note
+                              </span>
+                            )}
                             {note.status && (
                               <span style={{
                                 marginLeft: 6, fontSize: 11, padding: '2px 8px', borderRadius: 4, fontWeight: 500,

@@ -395,6 +395,16 @@ const PRODUCTS = [
 
   // ── Peptide Therapy ──
   {
+    name: 'BDNF Peptide Protocol',
+    description: 'BDNF (Brain-Derived Neurotrophic Factor) peptide protocol. Three-phase progression.',
+    category: 'peptide',
+    prices: [
+      { amount: 15000, nickname: 'Phase 1' },
+      { amount: 20000, nickname: 'Phase 2' },
+      { amount: 25000, nickname: 'Phase 3' },
+    ],
+  },
+  {
     name: 'Peptide Protocol — 10 Day',
     description: '10-day peptide protocol. Pre-filled syringes, 1 injection per day.',
     category: 'peptide',

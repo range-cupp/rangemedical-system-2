@@ -32,6 +32,7 @@ export default async function handler(req, res) {
       created_by,
       send_notification = true,
       cal_com_booking_id,
+      services, // array of { name, category, duration } for multi-service appointments
     } = req.body;
 
     if (!patient_name || !service_name || !start_time || !end_time || !duration_minutes) {
@@ -55,6 +56,7 @@ export default async function handler(req, res) {
       notes: notes || null,
       source: source || 'manual',
       created_by: created_by || null,
+      services: services || null, // null for single-service, array for multi-service
     };
 
     // Include cal_com_booking_id if provided (prevents duplicate when webhook fires)
@@ -101,7 +103,7 @@ export default async function handler(req, res) {
               phone: patient.phone || patient_phone,
             },
             appointment: {
-              serviceName: service_name,
+              serviceName: services ? services.map(s => s.name).join(' + ') : service_name,
               startTime: start_time,
               endTime: end_time,
               durationMinutes: duration_minutes,

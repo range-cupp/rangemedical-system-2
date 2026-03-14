@@ -79,7 +79,8 @@ export default function CalendarView({ preselectedPatient = null }) {
   const [isWalkIn, setIsWalkIn] = useState(false);
   const [walkInName, setWalkInName] = useState('');
   const [walkInPhone, setWalkInPhone] = useState('');
-  const [selectedService, setSelectedService] = useState(null);
+  const [selectedService, setSelectedService] = useState(null);     // primary service (drives Cal.com/location/provider)
+  const [selectedServices, setSelectedServices] = useState([]);      // all selected services for multi-service appointments
   const [selectedServiceGroup, setSelectedServiceGroup] = useState(null);
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [selectedLocation, setSelectedLocation] = useState(DEFAULT_LOCATION);
@@ -446,13 +447,23 @@ export default function CalendarView({ preselectedPatient = null }) {
     setCreating(true);
     try {
       const startDT = new Date(`${apptDate}T${apptTime}`);
-      const duration = selectedService?.duration || 30;
+      // Multi-service: sum durations; single-service: use service duration
+      const allServices = selectedServices.length > 0 ? selectedServices : (selectedService ? [selectedService] : []);
+      const duration = allServices.reduce((sum, s) => sum + (s.duration || 0), 0) || selectedService?.duration || 30;
       const endDT = new Date(startDT.getTime() + duration * 60000);
       const patientName = isWalkIn ? walkInName : selectedPatient?.name;
       const patientPhone = isWalkIn ? walkInPhone : selectedPatient?.phone;
+      // Multi-service: display name is joined; single: use service name
+      const displayServiceName = allServices.length > 1
+        ? allServices.map(s => s.name).join(' + ')
+        : (selectedService?.name || '');
+      const servicesPayload = allServices.length > 1
+        ? allServices.map(s => ({ name: s.name, category: s.category, duration: s.duration }))
+        : null;
 
-      const calcomSlug = selectedService?.calcomSlug;
-      const eventType = resolveEventType(calcomSlug);
+      // For multi-service, skip Cal.com (manual booking only)
+      const calcomSlug = allServices.length === 1 ? selectedService?.calcomSlug : null;
+      const eventType = calcomSlug ? resolveEventType(calcomSlug) : null;
 
       let res;
 
@@ -499,7 +510,7 @@ export default function CalendarView({ preselectedPatient = null }) {
               patient_id: selectedPatient.id,
               patient_name: patientName,
               patient_phone: patientPhone,
-              service_name: selectedService.name,
+              service_name: displayServiceName,
               service_category: selectedService.category,
               provider: selectedProvider?.name || null,
               start_time: startDT.toISOString(),
@@ -512,11 +523,12 @@ export default function CalendarView({ preselectedPatient = null }) {
               cal_com_booking_id: String(data.calcom?.id || data.booking?.calcom_booking_id || ''),
               source: 'cal_com',
               service_details: Object.keys(serviceDetails).length > 0 ? serviceDetails : null,
+              services: servicesPayload,
             }),
           }).catch(err => console.error('Native appointment write error:', err));
         }
       } else {
-        // Fallback: manual booking (no Cal.com event type or walk-in)
+        // Fallback: manual booking (no Cal.com event type or walk-in or multi-service)
         const fallbackDetails = {};
         if (panelType) fallbackDetails.panelType = panelType;
 
@@ -524,7 +536,7 @@ export default function CalendarView({ preselectedPatient = null }) {
           patient_id: selectedPatient?.id || null,
           patient_name: patientName,
           patient_phone: patientPhone,
-          service_name: selectedService.name,
+          service_name: displayServiceName,
           service_category: selectedService.category,
           provider: selectedProvider?.name || null,
           start_time: startDT.toISOString(),
@@ -535,6 +547,7 @@ export default function CalendarView({ preselectedPatient = null }) {
           created_by: 'command_center',
           send_notification: sendNotification,
           service_details: Object.keys(fallbackDetails).length > 0 ? fallbackDetails : null,
+          services: servicesPayload,
         };
 
         res = await fetch('/api/appointments/create', {
@@ -570,6 +583,7 @@ export default function CalendarView({ preselectedPatient = null }) {
     setWalkInName('');
     setWalkInPhone('');
     setSelectedService(null);
+    setSelectedServices([]);
     setSelectedServiceGroup(null);
     setSelectedProvider(null);
     setSelectedLocation(DEFAULT_LOCATION);
@@ -1351,8 +1365,18 @@ export default function CalendarView({ preselectedPatient = null }) {
               </div>
             )}
             <div style={styles.popoverRow}>
-              <span style={styles.popoverLabel}>Service</span>
-              <span style={styles.popoverValue}>{appt.service_name}</span>
+              <span style={styles.popoverLabel}>Service{appt.services?.length > 1 ? 's' : ''}</span>
+              <span style={styles.popoverValue}>
+                {appt.services?.length > 1 ? (
+                  <span>
+                    {appt.services.map((s, i) => (
+                      <span key={s.name} style={{ display: 'block', fontSize: i === 0 ? '13px' : '12px', color: i === 0 ? '#111' : '#555' }}>
+                        {s.name} <span style={{ fontSize: '11px', color: '#9ca3af' }}>({s.duration} min)</span>
+                      </span>
+                    ))}
+                  </span>
+                ) : appt.service_name}
+              </span>
             </div>
             {appt.provider && (
               <div style={styles.popoverRow}>
@@ -1746,39 +1770,49 @@ export default function CalendarView({ preselectedPatient = null }) {
 
           {selectedServiceGroup && (
             <div style={styles.serviceList}>
-              {APPOINTMENT_SERVICES[selectedServiceGroup].map(svc => (
-                <div
-                  key={svc.name}
-                  onClick={() => {
-                    setSelectedService(svc);
-                    setSelectedProvider(null);
-                    setPanelType(null);
-                    // Blood draws need panel selection before advancing
-                    if (svc.calcomSlug === 'new-patient-blood-draw') return;
-                    // If service supports location selection, go to location step
-                    if (LOCATION_ENABLED_CATEGORIES.includes(svc.category)) {
-                      setSelectedLocation(DEFAULT_LOCATION);
-                      setWizardStep(2);
-                    } else {
-                      // Skip provider step — go straight to date/time with per-provider columns
-                      setSelectedLocation(DEFAULT_LOCATION);
-                      setWizardStep(4);
-                    }
-                  }}
-                  style={{
-                    ...styles.serviceItem,
-                    ...(selectedService?.name === svc.name ? { background: '#e0e7ff', borderColor: '#3730a3' } : {}),
-                  }}
-                >
-                  <span style={{ fontWeight: '500' }}>{svc.name}</span>
-                  <span style={{ fontSize: '12px', color: '#888' }}>{svc.duration} min</span>
-                </div>
-              ))}
+              {APPOINTMENT_SERVICES[selectedServiceGroup].map(svc => {
+                const isSelected = selectedServices.some(s => s.name === svc.name);
+                return (
+                  <div
+                    key={svc.name}
+                    onClick={() => {
+                      setSelectedServices(prev => {
+                        if (prev.some(s => s.name === svc.name)) {
+                          return prev.filter(s => s.name !== svc.name);
+                        }
+                        return [...prev, svc];
+                      });
+                      setPanelType(null);
+                    }}
+                    style={{
+                      ...styles.serviceItem,
+                      ...(isSelected ? { background: '#e0e7ff', borderColor: '#3730a3' } : {}),
+                      cursor: 'pointer',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{
+                        width: '18px', height: '18px', borderRadius: '4px', flexShrink: 0,
+                        border: isSelected ? '2px solid #3730a3' : '2px solid #d1d5db',
+                        background: isSelected ? '#3730a3' : '#fff',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        {isSelected && <span style={{ color: '#fff', fontSize: '11px', lineHeight: 1 }}>✓</span>}
+                      </div>
+                      <span style={{ fontWeight: '500' }}>{svc.name}</span>
+                    </div>
+                    <span style={{ fontSize: '12px', color: '#888' }}>{svc.duration} min</span>
+                  </div>
+                );
+              })}
             </div>
           )}
 
           {/* Panel type selector for New Patient Blood Draw */}
-          {selectedService?.calcomSlug === 'new-patient-blood-draw' && (
+          {selectedServices.some(s => s.calcomSlug === 'new-patient-blood-draw') && (
             <div style={{ marginTop: '12px' }}>
               <label style={styles.fieldLabel}>Lab Panel</label>
               <div style={{ display: 'flex', gap: '8px' }}>
@@ -1788,11 +1822,7 @@ export default function CalendarView({ preselectedPatient = null }) {
                 ].map(panel => (
                   <button
                     key={panel.key}
-                    onClick={() => {
-                      setPanelType(panel.key);
-                      setSelectedLocation(DEFAULT_LOCATION);
-                      setWizardStep(4);
-                    }}
+                    onClick={() => setPanelType(panel.key)}
                     style={{
                       flex: 1,
                       padding: '12px',
@@ -1815,6 +1845,40 @@ export default function CalendarView({ preselectedPatient = null }) {
             </div>
           )}
 
+          {/* Selected services summary + Continue button */}
+          {selectedServices.length > 0 && (
+            <div style={{ marginTop: '14px', padding: '12px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '8px' }}>
+              <div style={{ fontSize: '13px', fontWeight: '600', color: '#166534', marginBottom: '6px' }}>
+                {selectedServices.length === 1 ? '1 service selected' : `${selectedServices.length} services selected`}
+                {' · '}
+                {selectedServices.reduce((sum, s) => sum + (s.duration || 0), 0)} min total
+              </div>
+              <div style={{ fontSize: '12px', color: '#166534', marginBottom: '10px' }}>
+                {selectedServices.map(s => s.name).join(' + ')}
+              </div>
+              <button
+                onClick={() => {
+                  const primary = selectedServices[0];
+                  setSelectedService(primary);
+                  setSelectedProvider(null);
+                  // If ANY service needs blood-draw panel and panel not yet set, stay on step
+                  if (selectedServices.some(s => s.calcomSlug === 'new-patient-blood-draw') && !panelType) return;
+                  // If ANY service needs location (IV), go to location step
+                  if (selectedServices.some(s => LOCATION_ENABLED_CATEGORIES.includes(s.category))) {
+                    setSelectedLocation(DEFAULT_LOCATION);
+                    setWizardStep(2);
+                  } else {
+                    setSelectedLocation(DEFAULT_LOCATION);
+                    setWizardStep(4);
+                  }
+                }}
+                style={{ ...styles.primaryBtn, width: '100%', background: '#16a34a' }}
+              >
+                Continue →
+              </button>
+            </div>
+          )}
+
           <button onClick={() => setWizardStep(0)} style={{ ...styles.linkBtn, marginTop: '12px' }}>← Back</button>
         </div>
       )}
@@ -1823,7 +1887,9 @@ export default function CalendarView({ preselectedPatient = null }) {
       {wizardStep === 2 && (
         <div>
           <p style={styles.wizardLabel}>
-            {selectedService?.name} — {selectedService?.duration} min
+            {selectedServices.length > 1
+              ? `${selectedServices.map(s => s.name).join(' + ')} — ${selectedServices.reduce((sum, s) => sum + (s.duration || 0), 0)} min total`
+              : `${selectedService?.name} — ${selectedService?.duration} min`}
           </p>
           <label style={styles.fieldLabel}>Select Location</label>
           <div style={styles.serviceList}>
@@ -1853,7 +1919,9 @@ export default function CalendarView({ preselectedPatient = null }) {
       {wizardStep === 3 && (
         <div>
           <p style={styles.wizardLabel}>
-            {selectedService?.name} — {selectedService?.duration} min
+            {selectedServices.length > 1
+              ? `${selectedServices.map(s => s.name).join(' + ')} — ${selectedServices.reduce((sum, s) => sum + (s.duration || 0), 0)} min total`
+              : `${selectedService?.name} — ${selectedService?.duration} min`}
             {selectedLocation && selectedLocation.id !== 'newport' && (
               <span style={{ fontSize: '12px', color: '#6b7280' }}> · 📍 {selectedLocation.short}</span>
             )}
@@ -1890,7 +1958,9 @@ export default function CalendarView({ preselectedPatient = null }) {
         return (
           <div>
             <p style={styles.wizardLabel}>
-              {selectedService?.name} — {selectedService?.duration} min
+              {selectedServices.length > 1
+                ? `${selectedServices.map(s => s.name).join(' + ')} — ${selectedServices.reduce((sum, s) => sum + (s.duration || 0), 0)} min total`
+                : `${selectedService?.name} — ${selectedService?.duration} min`}
               {selectedLocation && selectedLocation.id !== 'newport' && (
                 <span style={{ fontSize: '12px', color: '#6b7280' }}> · 📍 {selectedLocation.short}</span>
               )}
@@ -2147,8 +2217,18 @@ export default function CalendarView({ preselectedPatient = null }) {
               <span>{isWalkIn ? walkInName : selectedPatient?.name}</span>
             </div>
             <div style={styles.confirmRow}>
-              <span style={styles.confirmLabel}>Service</span>
-              <span>{selectedService?.name}</span>
+              <span style={styles.confirmLabel}>Service{selectedServices.length > 1 ? 's' : ''}</span>
+              <span>
+                {selectedServices.length > 1 ? (
+                  <span>
+                    {selectedServices.map((s, i) => (
+                      <span key={s.name} style={{ display: 'block', fontSize: i === 0 ? '14px' : '13px', color: i === 0 ? '#111' : '#555' }}>
+                        {s.name} <span style={{ fontSize: '11px', color: '#888' }}>({s.duration} min)</span>
+                      </span>
+                    ))}
+                  </span>
+                ) : selectedService?.name}
+              </span>
             </div>
             {panelType && (
               <div style={styles.confirmRow}>
@@ -2162,7 +2242,9 @@ export default function CalendarView({ preselectedPatient = null }) {
             </div>
             <div style={styles.confirmRow}>
               <span style={styles.confirmLabel}>Duration</span>
-              <span>{selectedService?.duration} min</span>
+              <span>{selectedServices.reduce((sum, s) => sum + (s.duration || 0), 0) || selectedService?.duration} min
+                {selectedServices.length > 1 && <span style={{ fontSize: '11px', color: '#888', marginLeft: '4px' }}>(combined)</span>}
+              </span>
             </div>
             <div style={styles.confirmRow}>
               <span style={styles.confirmLabel}>Location</span>

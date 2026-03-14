@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     // Get all active take-home protocols with patient info
     let query = supabase
       .from('protocols')
-      .select('id, patient_id, program_name, program_type, medication, dosage, delivery_method, next_expected_date, status, start_date, end_date, sessions_used, total_sessions, created_at, patients!inner(id, first_name, last_name, phone, email)')
+      .select('id, patient_id, program_name, program_type, medication, selected_dose, delivery_method, next_expected_date, status, start_date, end_date, sessions_used, total_sessions, created_at, patients!inner(id, first_name, last_name, phone, email)')
       .eq('status', 'active')
       .eq('delivery_method', 'take_home')
       .order('next_expected_date', { ascending: true, nullsFirst: false });
@@ -84,7 +84,7 @@ export default async function handler(req, res) {
         program_name: p.program_name,
         program_type: p.program_type,
         medication: p.medication,
-        dosage: p.dosage,
+        dosage: p.selected_dose,
         next_expected_date: p.next_expected_date,
         start_date: p.start_date,
         days_until_refill: daysUntilRefill,

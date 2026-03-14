@@ -105,6 +105,16 @@ scripts/                # One-off utility scripts
 - The Service Log is the **single source of truth** for all session tracking (IV, HBOT, RLT, injections, peptide pickups, weight loss pickups, HRT pickups)
 - Do not add session counting to GHL webhooks or other systems
 
+### Protocol PDF Visual Style — NON-NEGOTIABLE
+- **Section headers:** Small-caps gray label (8pt, letter-spacing) + 0.75pt rule. NEVER use solid black/filled bars for section headers.
+- **Clinic name in header:** 13pt bold, left-aligned. Never large display size.
+- **Contact info:** 8pt right-aligned, same header row as clinic name.
+- **Body leading:** 16pt minimum. Never compress body text.
+- **Checkmarks:** Use unicode ✓ (U+2713) in green #2E6B35. Never literal text like "[check]".
+- **Dashes:** Use proper em dash — (U+2014) and en dash – (U+2013). Never `--`.
+- **Bullets:** Use en dash – (U+2013) + two spaces. Never asterisks or hyphens.
+- **Every compound section must include:** What It Is, Administration, Expected Benefits (bulleted), Timeline table, Side Effects (bulleted). Never omit these sections.
+
 ### Assessment Flow
 - Assessment is FREE — no pricing on the assessment itself
 - Lab panel pricing (Essential $350, Elite $750) stays on energy results screen

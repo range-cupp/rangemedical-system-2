@@ -61,7 +61,7 @@ const SESSION_BASED_CATEGORIES = ['rlt', 'hbot', 'iv', 'injection'];
 
 const HOURS = Array.from({ length: 15 }, (_, i) => i + 6); // 6 AM to 8 PM
 
-export default function CalendarView({ preselectedPatient = null }) {
+export default function CalendarView({ preselectedPatient = null, wizardOnly = false }) {
   // Calendar state
   const [viewMode, setViewMode] = useState('day');
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -82,6 +82,7 @@ export default function CalendarView({ preselectedPatient = null }) {
   const [selectedService, setSelectedService] = useState(null);     // primary service (drives Cal.com/location/provider)
   const [selectedServices, setSelectedServices] = useState([]);      // all selected services for multi-service appointments
   const [selectedServiceGroup, setSelectedServiceGroup] = useState(null);
+  const [serviceSearch, setServiceSearch] = useState('');            // search filter for Step 1
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [selectedProviders, setSelectedProviders] = useState({});   // multi-service: { serviceName → providerObj }
   const [selectedLocation, setSelectedLocation] = useState(DEFAULT_LOCATION);
@@ -611,6 +612,7 @@ export default function CalendarView({ preselectedPatient = null }) {
     setSelectedServiceGroup(null);
     setSelectedProvider(null);
     setSelectedProviders({});
+    setServiceSearch('');
     setSelectedLocation(DEFAULT_LOCATION);
     setApptDate('');
     setApptTime('');
@@ -1780,21 +1782,87 @@ export default function CalendarView({ preselectedPatient = null }) {
             Patient: <strong>{isWalkIn ? walkInName : selectedPatient?.name}</strong>
           </p>
 
-          {/* Service category groups */}
-          <div style={styles.serviceGroups}>
-            {Object.keys(APPOINTMENT_SERVICES).map(group => (
-              <button
-                key={group}
-                onClick={() => setSelectedServiceGroup(selectedServiceGroup === group ? null : group)}
-                style={{
-                  ...styles.serviceGroupBtn,
-                  ...(selectedServiceGroup === group ? styles.serviceGroupBtnActive : {}),
-                }}
-              >
-                {group}
-              </button>
-            ))}
-          </div>
+          {/* Service search */}
+          <input
+            type="text"
+            placeholder="Search services..."
+            value={serviceSearch}
+            onChange={e => { setServiceSearch(e.target.value); setSelectedServiceGroup(null); }}
+            style={{
+              ...styles.input,
+              marginBottom: '10px',
+              background: '#f9fafb',
+            }}
+            autoComplete="off"
+          />
+
+          {/* Flat search results */}
+          {serviceSearch.trim() && (() => {
+            const q = serviceSearch.trim().toLowerCase();
+            const matches = getAllServices().filter(s => s.name.toLowerCase().includes(q));
+            if (matches.length === 0) return (
+              <div style={{ fontSize: '13px', color: '#9ca3af', padding: '8px 0' }}>No services match "{serviceSearch}"</div>
+            );
+            return (
+              <div style={styles.serviceList}>
+                {matches.map(svc => {
+                  const isSelected = selectedServices.some(s => s.name === svc.name);
+                  return (
+                    <div
+                      key={svc.name}
+                      onClick={() => {
+                        setSelectedServices(prev =>
+                          prev.some(s => s.name === svc.name)
+                            ? prev.filter(s => s.name !== svc.name)
+                            : [...prev, svc]
+                        );
+                        setPanelType(null);
+                      }}
+                      style={{
+                        ...styles.serviceItem,
+                        ...(isSelected ? { background: '#e0e7ff', borderColor: '#3730a3' } : {}),
+                        cursor: 'pointer',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{
+                          width: '18px', height: '18px', borderRadius: '4px', flexShrink: 0,
+                          border: isSelected ? '2px solid #3730a3' : '2px solid #d1d5db',
+                          background: isSelected ? '#3730a3' : '#fff',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          {isSelected && <span style={{ color: '#fff', fontSize: '11px', lineHeight: 1 }}>✓</span>}
+                        </div>
+                        <div>
+                          <span style={{ fontWeight: '500' }}>{svc.name}</span>
+                          <span style={{ fontSize: '11px', color: '#9ca3af', marginLeft: '6px' }}>{svc.group}</span>
+                        </div>
+                      </div>
+                      <span style={{ fontSize: '12px', color: '#888' }}>{svc.duration} min</span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+
+          {/* Service category groups (hidden when searching) */}
+          {!serviceSearch.trim() && <>
+            <div style={styles.serviceGroups}>
+              {Object.keys(APPOINTMENT_SERVICES).map(group => (
+                <button
+                  key={group}
+                  onClick={() => setSelectedServiceGroup(selectedServiceGroup === group ? null : group)}
+                  style={{
+                    ...styles.serviceGroupBtn,
+                    ...(selectedServiceGroup === group ? styles.serviceGroupBtnActive : {}),
+                  }}
+                >
+                  {group}
+                </button>
+              ))}
+            </div>
 
           {selectedServiceGroup && (
             <div style={styles.serviceList}>
@@ -1838,6 +1906,7 @@ export default function CalendarView({ preselectedPatient = null }) {
               })}
             </div>
           )}
+          </>}
 
           {/* Panel type selector for New Patient Blood Draw */}
           {selectedServices.some(s => s.calcomSlug === 'new-patient-blood-draw') && (

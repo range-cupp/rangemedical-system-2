@@ -412,6 +412,9 @@ export default function PatientProfile() {
   const [stripeSubscriptions, setStripeSubscriptions] = useState([]);
   const [loadingStripeSubs, setLoadingStripeSubs] = useState(false);
   const [subActionLoading, setSubActionLoading] = useState(null);
+  const [showNewSubForm, setShowNewSubForm] = useState(false);
+  const [newSubForm, setNewSubForm] = useState({ amount: '', interval: 'month', description: '', service_category: 'hrt' });
+  const [creatingSub, setCreatingSub] = useState(false);
 
   // Form states
   const [selectedNotification, setSelectedNotification] = useState(null);
@@ -681,6 +684,41 @@ export default function PatientProfile() {
       alert('Error: ' + err.message);
     } finally {
       setSubActionLoading(null);
+    }
+  };
+
+  const handleCreateSubscription = async () => {
+    if (!newSubForm.amount || parseFloat(newSubForm.amount) <= 0) {
+      alert('Enter a valid amount');
+      return;
+    }
+    if (savedCards.length === 0) {
+      alert('Patient needs a card on file first. Add one under Payment Methods.');
+      return;
+    }
+    setCreatingSub(true);
+    try {
+      const res = await fetch('/api/stripe/subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: id,
+          price_amount: Math.round(parseFloat(newSubForm.amount) * 100),
+          interval: newSubForm.interval,
+          description: newSubForm.description || `${newSubForm.service_category?.toUpperCase() || ''} Subscription`.trim(),
+          service_category: newSubForm.service_category || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create subscription');
+      alert(`Subscription created! Status: ${data.status}`);
+      setShowNewSubForm(false);
+      setNewSubForm({ amount: '', interval: 'month', description: '', service_category: 'hrt' });
+      fetchStripeSubscriptions();
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      setCreatingSub(false);
     }
   };
 
@@ -5058,20 +5096,107 @@ export default function PatientProfile() {
                 <section className="card">
                   <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h3>Subscriptions</h3>
-                    <button
-                      onClick={() => { if (!loadingStripeSubs) fetchStripeSubscriptions(); }}
-                      style={{ background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 12px', fontSize: 12, cursor: 'pointer', color: '#374151' }}
-                    >
-                      {loadingStripeSubs ? 'Loading...' : 'Refresh from Stripe'}
-                    </button>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        onClick={() => setShowNewSubForm(prev => !prev)}
+                        style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        + New Subscription
+                      </button>
+                      <button
+                        onClick={() => { if (!loadingStripeSubs) fetchStripeSubscriptions(); }}
+                        style={{ background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 12px', fontSize: 12, cursor: 'pointer', color: '#374151' }}
+                      >
+                        {loadingStripeSubs ? 'Loading...' : 'Refresh'}
+                      </button>
+                    </div>
                   </div>
+
+                  {/* Create Subscription Form */}
+                  {showNewSubForm && (
+                    <div style={{ margin: '0 16px 12px', padding: '16px', background: '#f0fdf4', borderRadius: 10, border: '1px solid #bbf7d0' }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: '#166534' }}>New Subscription</div>
+                      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                        <div>
+                          <label style={{ fontSize: 11, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 3 }}>Amount ($)</label>
+                          <input
+                            type="number" step="0.01" min="0" placeholder="250"
+                            value={newSubForm.amount}
+                            onChange={e => setNewSubForm(f => ({ ...f, amount: e.target.value }))}
+                            style={{ width: 100, padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14 }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 11, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 3 }}>Interval</label>
+                          <select
+                            value={newSubForm.interval}
+                            onChange={e => setNewSubForm(f => ({ ...f, interval: e.target.value }))}
+                            style={{ padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}
+                          >
+                            <option value="month">Monthly</option>
+                            <option value="year">Yearly</option>
+                            <option value="week">Weekly</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 11, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 3 }}>Category</label>
+                          <select
+                            value={newSubForm.service_category}
+                            onChange={e => setNewSubForm(f => ({ ...f, service_category: e.target.value }))}
+                            style={{ padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}
+                          >
+                            <option value="hrt">HRT</option>
+                            <option value="weight_loss">Weight Loss</option>
+                            <option value="peptide">Peptide</option>
+                            <option value="iv">IV</option>
+                            <option value="hbot">HBOT</option>
+                            <option value="rlt">RLT</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </div>
+                        <div style={{ flex: 1, minWidth: 150 }}>
+                          <label style={{ fontSize: 11, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 3 }}>Description</label>
+                          <input
+                            type="text" placeholder="e.g. Male HRT Membership"
+                            value={newSubForm.description}
+                            onChange={e => setNewSubForm(f => ({ ...f, description: e.target.value }))}
+                            style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}
+                          />
+                        </div>
+                      </div>
+                      {savedCards.length === 0 && (
+                        <div style={{ marginTop: 10, fontSize: 12, color: '#dc2626', fontWeight: 500 }}>
+                          No card on file — add one under Payment Methods first
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                        <button
+                          onClick={handleCreateSubscription}
+                          disabled={creatingSub || savedCards.length === 0}
+                          style={{
+                            padding: '8px 20px', fontSize: 13, fontWeight: 600, borderRadius: 6,
+                            background: savedCards.length === 0 ? '#d1d5db' : '#16a34a', color: '#fff',
+                            border: 'none', cursor: savedCards.length === 0 ? 'not-allowed' : 'pointer',
+                          }}
+                        >
+                          {creatingSub ? 'Creating...' : 'Start Subscription'}
+                        </button>
+                        <button
+                          onClick={() => setShowNewSubForm(false)}
+                          style={{ padding: '8px 16px', fontSize: 13, borderRadius: 6, background: '#fff', color: '#6b7280', border: '1px solid #d1d5db', cursor: 'pointer' }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {stripeSubscriptions.length === 0 && !loadingStripeSubs ? (
                     <div style={{ padding: '16px', textAlign: 'center' }}>
                       <div className="empty">No subscriptions found</div>
                       <button
                         onClick={fetchStripeSubscriptions}
-                        style={{ marginTop: 8, background: '#16a34a', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                        style={{ marginTop: 8, background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: 6, padding: '8px 16px', fontSize: 13, cursor: 'pointer' }}
                       >
                         Load from Stripe
                       </button>

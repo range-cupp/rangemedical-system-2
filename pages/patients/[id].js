@@ -1883,6 +1883,7 @@ export default function PatientProfile() {
 
   const closePdfViewer = () => {
     setPdfSlideOut({ open: false, url: '', title: '' });
+  };
 
   // Open Protocol PDF modal — pre-select active peptide protocols
   const openProtocolPdfModal = () => {
@@ -1986,7 +1987,6 @@ export default function PatientProfile() {
     } finally {
       setProtocolPdfSaving(false);
     }
-  };
   };
 
   // Chart capture: SVG -> Canvas -> PNG base64

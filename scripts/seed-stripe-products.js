@@ -160,6 +160,12 @@ const PRODUCTS = [
     category: 'hrt',
     prices: [{ amount: 25000, nickname: null, recurring: true }],
   },
+  {
+    name: 'Testosterone Booster (Oral) — 30 Day Supply',
+    description: 'Oral testosterone booster. 30-day supply, take 2x per week. One-time purchase, auto-renews protocol.',
+    category: 'hrt',
+    prices: [{ amount: 17500, nickname: null }],
+  },
 
   // ── Weight Loss ──
   {

@@ -46,9 +46,10 @@ function getDispenseDoseOptions(med) {
   const pt = (med.program_type || '').toLowerCase();
   const programName = (med.program_name || med.medication || '').toLowerCase();
 
-  // HRT — male vs female
+  // HRT — male vs female (check program_name, medication, and program_type)
   if (pt.includes('hrt')) {
-    const isFemale = programName.includes('female') || programName.includes('women');
+    const allFields = `${med.program_name || ''} ${med.medication || ''} ${med.program_type || ''}`.toLowerCase();
+    const isFemale = allFields.includes('female') || allFields.includes('women');
     const doses = isFemale ? TESTOSTERONE_DOSES.female : TESTOSTERONE_DOSES.male;
     return doses.map(d => ({ value: d.value, label: d.label }));
   }

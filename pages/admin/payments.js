@@ -3,11 +3,17 @@
 // Range Medical System V2
 
 import { useState, useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import AdminLayout from '../../components/AdminLayout';
 import InvoiceModal from '../../components/InvoiceModal';
 import POSChargeModal from '../../components/POSChargeModal';
 import { loadStripe } from '@stripe/stripe-js';
+
+const PurchasesTab = dynamic(() => import('./purchases').then(mod => ({ default: mod.PurchasesContent })), {
+  ssr: false,
+  loading: () => <div style={{ padding: 40, textAlign: 'center', color: '#999' }}>Loading purchases...</div>,
+});
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -457,7 +463,7 @@ export default function PaymentsPage() {
       {/* Tab bar + Create button */}
       <div style={styles.topBar}>
         <div style={styles.tabBar}>
-          {['invoices', 'pos', 'subscriptions', 'products', 'gift_cards'].map(t => (
+          {['invoices', 'pos', 'subscriptions', 'purchases', 'products', 'gift_cards'].map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -466,7 +472,7 @@ export default function PaymentsPage() {
                 ...(tab === t ? styles.tabActive : {})
               }}
             >
-              {t === 'invoices' ? 'Invoices' : t === 'pos' ? 'POS Checkout' : t === 'subscriptions' ? 'Subscriptions' : t === 'products' ? 'Products & Services' : 'Gift Cards'}
+              {t === 'invoices' ? 'Invoices' : t === 'pos' ? 'POS Checkout' : t === 'subscriptions' ? 'Subscriptions' : t === 'purchases' ? 'Purchases' : t === 'products' ? 'Products & Services' : 'Gift Cards'}
             </button>
           ))}
         </div>
@@ -913,6 +919,9 @@ export default function PaymentsPage() {
           )}
         </div>
       )}
+
+      {/* Purchases Tab */}
+      {tab === 'purchases' && <PurchasesTab />}
 
       {/* Gift Cards Tab */}
       {tab === 'gift_cards' && (

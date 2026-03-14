@@ -9,6 +9,20 @@ import TemplateMessages from './TemplateMessages';
 
 const CalendarView = dynamic(() => import('./CalendarView'), { ssr: false });
 
+const FORM_OPTIONS = [
+  { id: 'intake', name: 'Medical Intake' },
+  { id: 'hipaa', name: 'HIPAA Privacy Notice' },
+  { id: 'blood-draw', name: 'Blood Draw Consent' },
+  { id: 'hrt', name: 'HRT Consent' },
+  { id: 'peptide', name: 'Peptide Consent' },
+  { id: 'iv', name: 'IV/Injection Consent' },
+  { id: 'hbot', name: 'HBOT Consent' },
+  { id: 'weight-loss', name: 'Weight Loss Consent' },
+  { id: 'red-light', name: 'Red Light Therapy Consent' },
+  { id: 'prp', name: 'PRP Consent' },
+  { id: 'exosome-iv', name: 'Exosome IV Consent' },
+];
+
 export default function ConversationView({ patientId, patientName, patientPhone, ghlContactId, onBack }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,6 +39,14 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const [totalMessages, setTotalMessages] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
   const [showBooking, setShowBooking] = useState(false);
+  const [showForms, setShowForms] = useState(false);
+  const [selectedForms, setSelectedForms] = useState([]);
+  const [sendingForms, setSendingForms] = useState(false);
+  const [formsResult, setFormsResult] = useState(null);
+  const [showLogVisit, setShowLogVisit] = useState(false);
+  const [protocols, setProtocols] = useState([]);
+  const [loadingProtocols, setLoadingProtocols] = useState(false);
+  const [logResult, setLogResult] = useState(null);
   const messagesContainerRef = useRef(null);
   const shouldScrollRef = useRef(false);
 
@@ -251,6 +273,94 @@ export default function ConversationView({ patientId, patientName, patientPhone,
     }
   };
 
+  // ---- Send Forms ----
+  const toggleForm = (formId) => {
+    setSelectedForms(prev =>
+      prev.includes(formId) ? prev.filter(f => f !== formId) : [...prev, formId]
+    );
+  };
+
+  const handleSendForms = async () => {
+    if (!selectedForms.length || !patientPhone) return;
+    setSendingForms(true);
+    setFormsResult(null);
+    try {
+      const res = await fetch('/api/send-forms-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: patientPhone,
+          firstName: (patientName || '').split(' ')[0] || null,
+          formIds: selectedForms,
+          patientId: patientId || null,
+          patientName: patientName || null,
+          ghlContactId: ghlContactId || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send forms');
+      setFormsResult({ success: true, message: data.twoStep
+        ? `Opt-in sent — forms deliver when patient replies YES`
+        : `${data.formsSent} form(s) sent via SMS` });
+      // Refresh messages to show the outbound SMS
+      setTimeout(() => fetchMessages(), 1500);
+    } catch (err) {
+      setFormsResult({ success: false, message: err.message });
+    } finally {
+      setSendingForms(false);
+    }
+  };
+
+  // ---- Log Visit ----
+  const openLogVisit = async () => {
+    setShowLogVisit(true);
+    setLogResult(null);
+    if (!patientId) return;
+    setLoadingProtocols(true);
+    try {
+      const res = await fetch(`/api/service-log/patient-protocols?patient_id=${patientId}`);
+      const data = await res.json();
+      setProtocols((data.protocols || []).filter(p => p.program_type !== 'labs'));
+    } catch (err) {
+      console.error('Error fetching protocols:', err);
+    } finally {
+      setLoadingProtocols(false);
+    }
+  };
+
+  const handleQuickLog = async (protocol) => {
+    setLogResult(null);
+    const typeMap = { hrt: 'testosterone', hrt_male: 'testosterone', weight_loss: 'weight_loss', peptide: 'peptide', iv: 'iv_therapy', iv_therapy: 'iv_therapy', specialty_iv: 'iv_therapy', hbot: 'hbot', rlt: 'rlt', red_light: 'rlt', injection: 'injection' };
+    const entryTypeMap = { testosterone: 'pickup', weight_loss: 'pickup', peptide: 'pickup' };
+    const category = typeMap[protocol.program_type] || protocol.program_type;
+    const entryType = protocol.delivery_method === 'in_clinic'
+      ? (['testosterone', 'peptide', 'injection'].includes(category) ? 'injection' : 'session')
+      : (entryTypeMap[category] || 'session');
+    try {
+      const res = await fetch('/api/service-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: patientId,
+          patient_name: patientName,
+          category,
+          entry_type: entryType,
+          medication: protocol.medication || null,
+          protocol_id: protocol.id,
+        }),
+      });
+      if (res.status === 409) {
+        setLogResult({ success: false, message: 'Already logged today' });
+        return;
+      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to log');
+      setLogResult({ success: true, message: `${entryType === 'pickup' ? 'Pickup' : entryType === 'injection' ? 'Injection' : 'Session'} logged` });
+    } catch (err) {
+      setLogResult({ success: false, message: err.message });
+    }
+  };
+
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -412,6 +522,20 @@ export default function ConversationView({ patientId, patientName, patientPhone,
             )}
           </div>
           <button
+            onClick={() => { setShowForms(true); setFormsResult(null); setSelectedForms([]); }}
+            style={styles.actionBtn}
+            title="Send forms to this patient"
+          >
+            📋 Forms
+          </button>
+          <button
+            onClick={openLogVisit}
+            style={{ ...styles.actionBtn, background: '#fff7ed', color: '#c2410c', borderColor: '#fed7aa' }}
+            title="Log a visit for this patient"
+          >
+            ⚡ Log
+          </button>
+          <button
             onClick={() => setShowBooking(true)}
             style={styles.bookBtn}
             title="Book appointment for this patient"
@@ -446,6 +570,117 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                   phone: patientPhone,
                 }}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Send Forms Modal */}
+      {showForms && (
+        <div style={styles.bookingOverlay} onClick={() => setShowForms(false)}>
+          <div style={{ ...styles.bookingModal, maxWidth: '420px' }} onClick={e => e.stopPropagation()}>
+            <div style={styles.bookingHeader}>
+              <h3 style={{ margin: 0, fontSize: '16px' }}>Send Forms — {(patientName || '').split(' ')[0]}</h3>
+              <button onClick={() => setShowForms(false)} style={styles.bookingClose}>×</button>
+            </div>
+            <div style={{ padding: '16px 20px', maxHeight: '60vh', overflowY: 'auto' }}>
+              {FORM_OPTIONS.map(form => (
+                <label key={form.id} style={{
+                  display: 'flex', alignItems: 'center', gap: '10px',
+                  padding: '10px 12px', borderRadius: '8px', cursor: 'pointer',
+                  background: selectedForms.includes(form.id) ? '#f0f9ff' : '#fff',
+                  border: selectedForms.includes(form.id) ? '1px solid #93c5fd' : '1px solid #e5e7eb',
+                  marginBottom: '6px', transition: 'all 0.15s',
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedForms.includes(form.id)}
+                    onChange={() => toggleForm(form.id)}
+                    style={{ width: '18px', height: '18px', accentColor: '#2563eb' }}
+                  />
+                  <span style={{ fontSize: '14px', fontWeight: 500, color: '#111' }}>{form.name}</span>
+                </label>
+              ))}
+              {formsResult && (
+                <div style={{
+                  padding: '10px 14px', borderRadius: '8px', marginTop: '10px', fontSize: '13px',
+                  background: formsResult.success ? '#f0fdf4' : '#fef2f2',
+                  color: formsResult.success ? '#16a34a' : '#dc2626',
+                  border: formsResult.success ? '1px solid #bbf7d0' : '1px solid #fecaca',
+                }}>
+                  {formsResult.message}
+                </div>
+              )}
+              <button
+                onClick={handleSendForms}
+                disabled={!selectedForms.length || sendingForms}
+                style={{
+                  width: '100%', padding: '12px', marginTop: '12px',
+                  background: selectedForms.length ? '#000' : '#e5e7eb',
+                  color: selectedForms.length ? '#fff' : '#9ca3af',
+                  border: 'none', borderRadius: '10px', fontSize: '14px',
+                  fontWeight: 600, cursor: selectedForms.length ? 'pointer' : 'default',
+                  fontFamily: 'inherit',
+                }}
+              >
+                {sendingForms ? 'Sending...' : `Send ${selectedForms.length || ''} Form${selectedForms.length !== 1 ? 's' : ''} via SMS`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Log Visit Modal */}
+      {showLogVisit && (
+        <div style={styles.bookingOverlay} onClick={() => setShowLogVisit(false)}>
+          <div style={{ ...styles.bookingModal, maxWidth: '400px' }} onClick={e => e.stopPropagation()}>
+            <div style={styles.bookingHeader}>
+              <h3 style={{ margin: 0, fontSize: '16px' }}>Log Visit — {(patientName || '').split(' ')[0]}</h3>
+              <button onClick={() => setShowLogVisit(false)} style={styles.bookingClose}>×</button>
+            </div>
+            <div style={{ padding: '16px 20px' }}>
+              {loadingProtocols ? (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>Loading protocols...</div>
+              ) : protocols.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px', color: '#999', fontSize: '14px' }}>
+                  No active protocols found
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {protocols.map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => handleQuickLog(p)}
+                      style={{
+                        padding: '14px 16px', border: '1px solid #e5e7eb', borderRadius: '10px',
+                        background: '#fff', cursor: 'pointer', textAlign: 'left',
+                        fontFamily: 'inherit', transition: 'all 0.15s',
+                      }}
+                      onMouseEnter={e => { e.target.style.borderColor = '#93c5fd'; e.target.style.background = '#f0f9ff'; }}
+                      onMouseLeave={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.background = '#fff'; }}
+                    >
+                      <div style={{ fontWeight: 600, fontSize: '14px', color: '#111' }}>
+                        {p.program_name || p.medication || p.program_type}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
+                        {p.medication && p.medication !== p.program_name ? p.medication : ''}
+                        {p.delivery_method === 'in_clinic' ? 'In-clinic' : 'Take-home'}
+                        {p.dosage ? ` · ${p.dosage}` : ''}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {logResult && (
+                <div style={{
+                  padding: '10px 14px', borderRadius: '8px', marginTop: '10px', fontSize: '13px',
+                  background: logResult.success ? '#f0fdf4' : '#fef2f2',
+                  color: logResult.success ? '#16a34a' : '#dc2626',
+                  border: logResult.success ? '1px solid #bbf7d0' : '1px solid #fecaca',
+                }}>
+                  {logResult.message}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -831,6 +1066,18 @@ const styles = {
     background: '#000',
     color: '#fff',
     borderColor: '#000',
+  },
+  actionBtn: {
+    background: '#f0f9ff',
+    color: '#2563eb',
+    border: '1px solid #bfdbfe',
+    borderRadius: '6px',
+    padding: '6px 12px',
+    fontSize: '12px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    flexShrink: 0,
+    fontFamily: 'inherit',
   },
   bookBtn: {
     background: '#000',

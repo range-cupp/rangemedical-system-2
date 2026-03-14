@@ -307,7 +307,6 @@ const NAV_ITEMS = [
   { href: '/admin/weight-loss', label: 'Weight Loss', icon: 'trending-down' },
   { href: '/admin/service-log', label: 'Service Log', icon: 'clipboard' },
   { href: '/admin/payments', label: 'Payments', icon: 'credit-card' },
-  { href: '/admin/purchases', label: 'Purchases', icon: 'shopping-bag' },
   { href: '/admin/communications', label: 'Communications', icon: 'message' },
   { href: '/admin/tasks', label: 'Tasks', icon: 'check-square' },
   { href: '/staff-chat', label: 'Assistant', icon: 'message' },

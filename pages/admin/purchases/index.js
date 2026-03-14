@@ -111,7 +111,20 @@ function findMatchingProtocol(purchase, activeProtocolsByPatient) {
   return match || null;
 }
 
+// Standalone content for embedding in Payments page tab
+export function PurchasesContent() {
+  return <PurchasesInner embedded />;
+}
+
 export default function PurchasesPage() {
+  return (
+    <AdminLayout title="Purchases">
+      <PurchasesInner />
+    </AdminLayout>
+  );
+}
+
+function PurchasesInner({ embedded } = {}) {
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -222,10 +235,10 @@ export default function PurchasesPage() {
   const totalRevenue = purchases.reduce((sum, p) => sum + displayAmt(p), 0);
 
   return (
-    <AdminLayout title={`Purchases`}>
-      <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '-12px', marginBottom: '20px' }}>
+    <>
+      {!embedded && <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '-12px', marginBottom: '20px' }}>
         {totalCount} purchases · ${totalRevenue.toLocaleString()}
-      </p>
+      </p>}
           {/* Toolbar */}
           <div style={styles.toolbar}>
             <input
@@ -417,7 +430,7 @@ export default function PurchasesPage() {
           }}
         />
       )}
-    </AdminLayout>
+    </>
   );
 }
 

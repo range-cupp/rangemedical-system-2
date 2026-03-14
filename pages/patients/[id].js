@@ -303,6 +303,13 @@ export default function PatientProfile() {
   const [sendFormsResult, setSendFormsResult] = useState(null);
   const [pinnedNoteExpanded, setPinnedNoteExpanded] = useState(false);
 
+  // Protocol PDF modal
+  const [showProtocolPdfModal, setShowProtocolPdfModal] = useState(false);
+  const [protocolPdfSelections, setProtocolPdfSelections] = useState({});
+  const [protocolPdfCombine, setProtocolPdfCombine] = useState(true);
+  const [protocolPdfGenerating, setProtocolPdfGenerating] = useState(false);
+  const [protocolPdfSaving, setProtocolPdfSaving] = useState(false);
+
   // Session log modal (for inline session grids — HBOT, RLT, IV, Injection)
   const [sessionLogModal, setSessionLogModal] = useState(null);
   const [sessionLogDate, setSessionLogDate] = useState('');
@@ -1876,6 +1883,110 @@ export default function PatientProfile() {
 
   const closePdfViewer = () => {
     setPdfSlideOut({ open: false, url: '', title: '' });
+
+  // Open Protocol PDF modal — pre-select active peptide protocols
+  const openProtocolPdfModal = () => {
+    const peptideProtos = activeProtocols.filter(p => p.category === 'peptide');
+    const selections = {};
+    for (const p of peptideProtos) {
+      selections[p.id] = {
+        selected: true,
+        medication: p.medication || p.program_name || '',
+        dose: p.selected_dose || '',
+        frequency: p.frequency || '5 on / 2 off',
+        duration: p.end_date
+          ? `${Math.ceil((new Date(p.end_date) - new Date(p.start_date)) / (1000 * 60 * 60 * 24 * 30))} months`
+          : '3 months',
+        route: 'SubQ',
+        pricePerMonth: '',
+        phases: [],
+      };
+    }
+    setProtocolPdfSelections(selections);
+    setProtocolPdfCombine(peptideProtos.length > 1);
+    setShowProtocolPdfModal(true);
+  };
+
+  // Generate Protocol PDF
+  const handleGenerateProtocolPdf = async () => {
+    const selected = Object.entries(protocolPdfSelections).filter(([, v]) => v.selected);
+    if (selected.length === 0) return;
+    setProtocolPdfGenerating(true);
+    try {
+      const protocols = selected.map(([, v]) => ({
+        medication: v.medication,
+        dose: v.dose,
+        frequency: v.frequency,
+        duration: v.duration,
+        route: v.route,
+        pricePerMonth: v.pricePerMonth || '',
+        phases: v.phases || [],
+      }));
+      const res = await fetch('/api/protocols/generate-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: patient.id,
+          patient_name: `${patient.first_name || ''} ${patient.last_name || ''}`.trim(),
+          protocols,
+          combine: protocolPdfCombine,
+          store: false,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to generate PDF');
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      setShowProtocolPdfModal(false);
+      openPdfViewer(url, selected.length > 1 ? 'Protocol Plan' : `${selected[0][1].medication} Protocol`);
+    } catch (err) {
+      console.error('Protocol PDF error:', err);
+      alert('Failed to generate protocol PDF: ' + err.message);
+    } finally {
+      setProtocolPdfGenerating(false);
+    }
+  };
+
+  // Save Protocol PDF to chart
+  const handleSaveProtocolPdfToChart = async () => {
+    const selected = Object.entries(protocolPdfSelections).filter(([, v]) => v.selected);
+    if (selected.length === 0) return;
+    setProtocolPdfSaving(true);
+    try {
+      const protocols = selected.map(([, v]) => ({
+        medication: v.medication,
+        dose: v.dose,
+        frequency: v.frequency,
+        duration: v.duration,
+        route: v.route,
+        pricePerMonth: v.pricePerMonth || '',
+        phases: v.phases || [],
+      }));
+      const res = await fetch('/api/protocols/generate-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: patient.id,
+          patient_name: `${patient.first_name || ''} ${patient.last_name || ''}`.trim(),
+          protocols,
+          combine: protocolPdfCombine,
+          store: true,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to save PDF');
+      const data = await res.json();
+      alert('Protocol PDF saved to patient chart!');
+      // Refresh documents
+      if (typeof fetchDocuments === 'function') fetchDocuments();
+    } catch (err) {
+      console.error('Save protocol PDF error:', err);
+      alert('Failed to save: ' + err.message);
+    } finally {
+      setProtocolPdfSaving(false);
+    }
+  };
   };
 
   // Chart capture: SVG -> Canvas -> PNG base64
@@ -2988,7 +3099,18 @@ export default function PatientProfile() {
               <section className="card">
                 <div className="card-header">
                   <h3>Protocols ({activeProtocols.length + completedProtocols.filter(p => p.status !== 'merged').length})</h3>
-                  <button onClick={() => openAssignModal()} className="btn-primary-sm">+ Add Protocol</button>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {activeProtocols.some(p => p.category === 'peptide') && (
+                      <button onClick={openProtocolPdfModal} style={{
+                        padding: '6px 14px', fontSize: 12, fontWeight: 600,
+                        background: '#f8fafc', color: '#334155', border: '1px solid #e2e8f0',
+                        borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+                      }}>
+                        📄 Generate PDF
+                      </button>
+                    )}
+                    <button onClick={() => openAssignModal()} className="btn-primary-sm">+ Add Protocol</button>
+                  </div>
                 </div>
                 {activeProtocols.length === 0 && completedProtocols.filter(p => p.status !== 'merged').length === 0 ? (
                   <div className="empty">No protocols</div>
@@ -8332,6 +8454,126 @@ export default function PatientProfile() {
           .wl-table th, .wl-table td { padding: 6px 8px; }
         }
       `}</style>
+
+      {/* Protocol PDF Modal */}
+      {showProtocolPdfModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setShowProtocolPdfModal(false)}>
+          <div style={{ background: '#fff', borderRadius: 12, width: '90%', maxWidth: 600, maxHeight: '85vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
+            onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#0a0a0a' }}>📄 Generate Protocol PDF</h3>
+              <button onClick={() => setShowProtocolPdfModal(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#9ca3af', padding: '4px 8px' }}>✕</button>
+            </div>
+
+            {/* Protocol Selection */}
+            <div style={{ padding: '16px 24px' }}>
+              <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 16 }}>Select peptide protocols to include in the PDF. You can adjust dose, duration, and pricing for each.</p>
+
+              {Object.entries(protocolPdfSelections).map(([protId, sel]) => (
+                <div key={protId} style={{
+                  border: `1px solid ${sel.selected ? '#3b82f6' : '#e5e7eb'}`,
+                  borderRadius: 10, padding: '14px 16px', marginBottom: 12,
+                  background: sel.selected ? '#f0f7ff' : '#fafafa',
+                  transition: 'all 0.15s',
+                }}>
+                  {/* Toggle + Name */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: sel.selected ? 12 : 0 }}>
+                    <input type="checkbox" checked={sel.selected} onChange={() => {
+                      setProtocolPdfSelections(prev => ({
+                        ...prev,
+                        [protId]: { ...prev[protId], selected: !sel.selected }
+                      }));
+                    }} style={{ width: 18, height: 18, cursor: 'pointer' }} />
+                    <span style={{ fontWeight: 600, fontSize: 14, color: '#1a1a1a' }}>🧬 {sel.medication}</span>
+                  </div>
+
+                  {/* Editable fields (when selected) */}
+                  {sel.selected && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 16px', paddingLeft: 28 }}>
+                      <div>
+                        <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 3 }}>Dose</label>
+                        <input value={sel.dose} onChange={e => setProtocolPdfSelections(prev => ({
+                          ...prev, [protId]: { ...prev[protId], dose: e.target.value }
+                        }))} style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 3 }}>Frequency</label>
+                        <input value={sel.frequency} onChange={e => setProtocolPdfSelections(prev => ({
+                          ...prev, [protId]: { ...prev[protId], frequency: e.target.value }
+                        }))} style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 3 }}>Duration</label>
+                        <select value={sel.duration} onChange={e => setProtocolPdfSelections(prev => ({
+                          ...prev, [protId]: { ...prev[protId], duration: e.target.value }
+                        }))} style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, background: '#fff' }}>
+                          <option value="1 month">1 month</option>
+                          <option value="2 months">2 months</option>
+                          <option value="3 months">3 months</option>
+                          <option value="6 months">6 months</option>
+                          <option value="12 months">12 months</option>
+                          <option value="Ongoing">Ongoing</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 3 }}>Price/Mo ($)</label>
+                        <input type="number" value={sel.pricePerMonth} placeholder="e.g. 200" onChange={e => setProtocolPdfSelections(prev => ({
+                          ...prev, [protId]: { ...prev[protId], pricePerMonth: e.target.value }
+                        }))} style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {Object.keys(protocolPdfSelections).length === 0 && (
+                <div style={{ textAlign: 'center', padding: '24px', color: '#9ca3af', fontSize: 14 }}>
+                  No active peptide protocols found for this patient.
+                </div>
+              )}
+            </div>
+
+            {/* Options */}
+            {Object.values(protocolPdfSelections).filter(s => s.selected).length > 1 && (
+              <div style={{ padding: '0 24px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <input type="checkbox" checked={protocolPdfCombine} onChange={() => setProtocolPdfCombine(!protocolPdfCombine)}
+                  style={{ width: 16, height: 16, cursor: 'pointer' }} id="combine-pdf" />
+                <label htmlFor="combine-pdf" style={{ fontSize: 13, color: '#374151', cursor: 'pointer' }}>
+                  Combine into single document
+                </label>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div style={{ padding: '16px 24px 20px', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+              <button onClick={() => setShowProtocolPdfModal(false)}
+                style={{ padding: '8px 20px', fontSize: 13, fontWeight: 500, background: '#f3f4f6', color: '#4b5563', border: '1px solid #d1d5db', borderRadius: 8, cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={handleSaveProtocolPdfToChart} disabled={protocolPdfSaving || Object.values(protocolPdfSelections).filter(s => s.selected).length === 0}
+                  style={{
+                    padding: '8px 16px', fontSize: 13, fontWeight: 600,
+                    background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0',
+                    borderRadius: 8, cursor: 'pointer', opacity: protocolPdfSaving ? 0.6 : 1,
+                  }}>
+                  {protocolPdfSaving ? 'Saving...' : '💾 Save to Chart'}
+                </button>
+                <button onClick={handleGenerateProtocolPdf} disabled={protocolPdfGenerating || Object.values(protocolPdfSelections).filter(s => s.selected).length === 0}
+                  style={{
+                    padding: '8px 20px', fontSize: 13, fontWeight: 600,
+                    background: '#0a0a0a', color: '#fff', border: 'none',
+                    borderRadius: 8, cursor: 'pointer', opacity: protocolPdfGenerating ? 0.6 : 1,
+                  }}>
+                  {protocolPdfGenerating ? 'Generating...' : '📄 Preview PDF'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Send Forms Modal */}
       {showSendFormsModal && (

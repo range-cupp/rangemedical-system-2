@@ -5958,6 +5958,51 @@ export default function PatientProfile() {
                           const peptideInfo = PEPTIDE_OPTIONS.flatMap(g => g.options).find(o => o.value === assignForm.peptideId);
                           if (!peptideInfo) return null;
                           const hasDoseList = peptideInfo.doses?.length > 0;
+
+                          // Generate titration steps between startingDose and maxDose
+                          const generateDoseSteps = (startStr, maxStr) => {
+                            const parseD = (s) => {
+                              if (!s) return null;
+                              const m = s.match(/([\d.]+)\s*(mg|mcg|iu|ml)/i);
+                              if (!m) return null;
+                              return { value: parseFloat(m[1]), unit: m[2].toLowerCase() };
+                            };
+                            const start = parseD(startStr);
+                            const max = parseD(maxStr);
+                            if (!start || !max || start.unit !== max.unit || start.value >= max.value) return null;
+
+                            // Determine step size based on the range
+                            const range = max.value - start.value;
+                            let step;
+                            if (start.unit === 'mcg') {
+                              step = range <= 500 ? 50 : range <= 1000 ? 100 : 250;
+                            } else if (start.unit === 'mg') {
+                              if (range <= 1) step = 0.25;
+                              else if (range <= 5) step = start.value < 1 ? 0.5 : 1;
+                              else step = range <= 20 ? 2.5 : 5;
+                            } else if (start.unit === 'iu') {
+                              step = range <= 500 ? 100 : 250;
+                            } else {
+                              step = range <= 1 ? 0.1 : 0.5;
+                            }
+
+                            const steps = [];
+                            for (let v = start.value; v <= max.value + 0.001; v += step) {
+                              const rounded = Math.round(v * 100) / 100;
+                              const label = rounded === start.value ? `${rounded}${start.unit} (starting)`
+                                : rounded === max.value ? `${rounded}${start.unit} (max)`
+                                : `${rounded}${start.unit}`;
+                              steps.push({ value: `${rounded}${start.unit}`, label });
+                            }
+                            // Ensure max is always included
+                            if (steps.length > 0 && !steps.find(s => s.value === `${max.value}${max.unit}`)) {
+                              steps.push({ value: `${max.value}${max.unit}`, label: `${max.value}${max.unit} (max)` });
+                            }
+                            return steps;
+                          };
+
+                          const titrationSteps = !hasDoseList ? generateDoseSteps(peptideInfo.startingDose, peptideInfo.maxDose) : null;
+
                           return (
                             <>
                               <div className="form-group">
@@ -5967,12 +6012,17 @@ export default function PatientProfile() {
                                     <option value="">Select dose...</option>
                                     {peptideInfo.doses.map(dose => <option key={dose} value={dose}>{dose}</option>)}
                                   </select>
+                                ) : titrationSteps ? (
+                                  <select value={assignForm.selectedDose} onChange={e => setAssignForm({...assignForm, selectedDose: e.target.value})}>
+                                    <option value="">Select dose...</option>
+                                    {titrationSteps.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                                  </select>
                                 ) : (
                                   <select value={assignForm.selectedDose} onChange={e => setAssignForm({...assignForm, selectedDose: e.target.value})}>
                                     <option value="">Select dose...</option>
-                                    <option value={peptideInfo.startingDose}>{peptideInfo.startingDose} (starting)</option>
+                                    <option value={peptideInfo.startingDose}>{peptideInfo.startingDose}</option>
                                     {peptideInfo.maxDose !== peptideInfo.startingDose && (
-                                      <option value={peptideInfo.maxDose}>{peptideInfo.maxDose} (max)</option>
+                                      <option value={peptideInfo.maxDose}>{peptideInfo.maxDose}</option>
                                     )}
                                   </select>
                                 )}

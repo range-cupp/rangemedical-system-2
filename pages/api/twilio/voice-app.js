@@ -30,10 +30,15 @@ export default async function handler(req, res) {
 
   const callerIdNumber = process.env.TWILIO_PHONE_NUMBER || '+19499973988';
 
+  // Build absolute URL for call status callback
+  const host = req.headers.host || 'rangemedical-system-2.vercel.app';
+  const protocol = host.includes('localhost') ? 'http' : 'https';
+  const callStatusUrl = `${protocol}://${host}/api/twilio/call-status`;
+
   return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial callerId="${callerIdNumber}" timeout="30" record="record-from-answer-dual-channel" recordingStatusCallback="/api/twilio/recording/status">
-    <Number statusCallbackEvent="initiated ringing answered completed" statusCallback="/api/twilio/status-callback">
+  <Dial callerId="${callerIdNumber}" timeout="30" record="record-from-answer-dual-channel" recordingStatusCallback="/api/twilio/recording/status" statusCallbackEvent="completed" statusCallback="${callStatusUrl}">
+    <Number>
       ${dialNumber}
     </Number>
   </Dial>

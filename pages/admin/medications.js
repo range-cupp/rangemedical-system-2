@@ -113,6 +113,8 @@ export default function MedicationsPage() {
   const [dispensingProtocol, setDispensingProtocol] = useState(null);
   const [dispenseDate, setDispenseDate] = useState('');
   const [selectedSupplyType, setSelectedSupplyType] = useState('');
+  const [dispenseDosage, setDispenseDosage] = useState('');
+  const [editingDosage, setEditingDosage] = useState(false);
   const [logging, setLogging] = useState(false);
   const [logResult, setLogResult] = useState(null);
 
@@ -139,6 +141,8 @@ export default function MedicationsPage() {
     setDispensingProtocol(med);
     setDispenseDate(new Date().toISOString().split('T')[0]);
     setSelectedSupplyType(med.supply_type || '');
+    setDispenseDosage(med.dosage || '');
+    setEditingDosage(false);
     setLogResult(null);
   };
 
@@ -157,6 +161,7 @@ export default function MedicationsPage() {
           patient_name: dispensingProtocol.patient_name,
           dispense_date: dispenseDate,
           refill_interval_days: currentInterval,
+          dosage_override: dispenseDosage !== dispensingProtocol.dosage ? dispenseDosage : null,
         }),
       });
       if (res.status === 409) {
@@ -393,11 +398,36 @@ export default function MedicationsPage() {
                 <div style={s.fieldValue}>{dispensingProtocol.medication || dispensingProtocol.program_name}</div>
               </div>
 
-              {/* Dosage */}
+              {/* Dosage — editable */}
               {dispensingProtocol.dosage && (
                 <div style={s.fieldRow}>
                   <div style={s.fieldLabel}>Dosage</div>
-                  <div style={s.fieldValue}>{dispensingProtocol.dosage}</div>
+                  {editingDosage ? (
+                    <input
+                      type="text"
+                      value={dispenseDosage}
+                      onChange={e => setDispenseDosage(e.target.value)}
+                      onBlur={() => { if (dispenseDosage) setEditingDosage(false); }}
+                      onKeyDown={e => { if (e.key === 'Enter' && dispenseDosage) setEditingDosage(false); }}
+                      autoFocus
+                      style={{
+                        flex: 1, padding: '6px 10px', fontSize: '14px', fontWeight: 600,
+                        border: '2px solid #2563eb', borderRadius: '6px', outline: 'none',
+                        fontFamily: 'inherit', color: '#111',
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{ ...s.fieldValue, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                      onClick={() => setEditingDosage(true)}
+                    >
+                      <span>{dispenseDosage}</span>
+                      <span style={{ fontSize: '11px', color: '#9ca3af' }}>✎</span>
+                      {dispenseDosage !== dispensingProtocol.dosage && (
+                        <span style={{ fontSize: '11px', color: '#f59e0b', fontWeight: 600 }}>(modified)</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 

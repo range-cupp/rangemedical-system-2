@@ -87,6 +87,7 @@ export default async function handler(req, res) {
       patient_name,
       dispense_date, // YYYY-MM-DD — allows backdating
       refill_interval_days, // override if provided, otherwise auto-calculated
+      dosage_override, // if staff changed dosage at dispense time
     } = req.body;
 
     if (!protocol_id || !patient_id) {
@@ -137,7 +138,7 @@ export default async function handler(req, res) {
         entry_type: 'pickup',
         entry_date: entryDate,
         medication: protocol.medication || null,
-        dosage: protocol.selected_dose || null,
+        dosage: dosage_override || protocol.selected_dose || null,
         supply_type: protocol.supply_type || null,
       })
       .select('id')
@@ -161,6 +162,11 @@ export default async function handler(req, res) {
       last_refill_date: entryDate,
       sessions_used: (protocol.sessions_used || 0) + 1,
     };
+
+    // If dosage was changed at dispense time, update the protocol's selected_dose
+    if (dosage_override) {
+      updateData.selected_dose = dosage_override;
+    }
 
     const { error: updateError } = await supabase
       .from('protocols')

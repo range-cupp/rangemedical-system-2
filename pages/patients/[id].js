@@ -36,7 +36,7 @@ import {
 } from '../../lib/protocol-config';
 import { getHRTLabSchedule, matchDrawsToLogs, buildAdaptiveHRTSchedule, isHRTProtocol } from '../../lib/hrt-lab-schedule';
 import { isRecoveryPeptide, isGHPeptide } from '../../lib/protocol-config';
-import BookingTab from '../../components/BookingTab';
+import CalendarView from '../../components/CalendarView';
 import LabDashboard from '../../components/labs/LabDashboard';
 import ConversationView from '../../components/ConversationView';
 import { loadStripe } from '@stripe/stripe-js';
@@ -6476,7 +6476,7 @@ export default function PatientProfile() {
                 <button onClick={() => setShowBookingModal(false)} className="close-btn">×</button>
               </div>
               <div className="modal-body">
-                <BookingTab preselectedPatient={{ id: patient.id, name: patient.name, email: patient.email, phone: patient.phone }} />
+                <CalendarView wizardOnly preselectedPatient={{ id: patient.id, name: patient.name, email: patient.email, phone: patient.phone }} />
               </div>
             </div>
           </div>

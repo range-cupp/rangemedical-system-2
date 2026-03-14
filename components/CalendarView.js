@@ -2464,14 +2464,14 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
 
   // ===================== MAIN RENDER =====================
   return (
-    <div style={styles.container} className="cal-container">
+    <div style={wizardOnly ? { ...styles.container, minHeight: 'unset' } : styles.container} className="cal-container">
       {/* Left Panel — Wizard */}
-      <div style={styles.leftPanel} className="cal-left">
+      <div style={wizardOnly ? { ...styles.leftPanel, width: '100%', minWidth: 'unset', borderRight: 'none', maxHeight: 'unset' } : styles.leftPanel} className="cal-left">
         {renderWizard()}
       </div>
 
-      {/* Right Panel — Calendar */}
-      <div style={styles.rightPanel} className="cal-right">
+      {/* Right Panel — Calendar (hidden in wizardOnly mode) */}
+      {!wizardOnly && <div style={styles.rightPanel} className="cal-right">
         {/* View toggle + navigation */}
         <div style={styles.calHeader}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -2542,7 +2542,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
           {viewMode === 'week' && renderWeekView()}
           {viewMode === 'month' && renderMonthView()}
         </div>
-      </div>
+      </div>}
 
       {/* Detail popover */}
       {renderDetailPopover()}

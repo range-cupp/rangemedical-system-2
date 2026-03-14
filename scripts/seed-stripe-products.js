@@ -404,28 +404,19 @@ const PRODUCTS = [
     name: 'DSIP Protocol — Phase 1 (250 mcg)',
     description: 'Delta Sleep-Inducing Peptide, 250 mcg, PRN before bed. Pre-filled syringes. 4-week supply.',
     category: 'sleep',
-    prices: [
-      { amount: 15000, nickname: null, recurring: true },
-      { amount: 15000, nickname: 'One-Time' },
-    ],
+    prices: [{ amount: 15000, nickname: null }],
   },
   {
     name: 'DSIP Protocol — Phase 2 (500 mcg)',
     description: 'Delta Sleep-Inducing Peptide, 500 mcg, PRN before bed. Pre-filled syringes. 4-week supply.',
     category: 'sleep',
-    prices: [
-      { amount: 20000, nickname: null, recurring: true },
-      { amount: 20000, nickname: 'One-Time' },
-    ],
+    prices: [{ amount: 20000, nickname: null }],
   },
   {
     name: 'DSIP Protocol — Phase 3 (750 mcg)',
     description: 'Delta Sleep-Inducing Peptide, 750 mcg, PRN before bed. Pre-filled syringes. 4-week supply.',
     category: 'sleep',
-    prices: [
-      { amount: 25000, nickname: null, recurring: true },
-      { amount: 25000, nickname: 'One-Time' },
-    ],
+    prices: [{ amount: 25000, nickname: null }],
   },
   {
     name: 'DSIP Protocol — Full 3-Phase Program',

@@ -63,6 +63,7 @@ const CATEGORY_TO_SVC = {
 const HRT_OPTIONS = {
   male: { dosages: PROTOCOL_TYPES.hrt_male.dosages, deliveryMethods: PROTOCOL_TYPES.hrt_male.deliveryMethods },
   female: { dosages: PROTOCOL_TYPES.hrt_female.dosages, deliveryMethods: PROTOCOL_TYPES.hrt_female.deliveryMethods },
+  oral: { dosages: [{ value: '30_day_supply', label: '30 Day Supply' }], deliveryMethods: [{ value: 'oral_tablets', label: 'Oral Tablets — 30 Day Supply' }] },
 };
 
 // Weight loss meds with dosages
@@ -1349,7 +1350,8 @@ export default function PatientProfile() {
     let defaultType = 'injection';
     if (['hbot', 'rlt', 'iv'].includes(protocol.category)) defaultType = 'session';
     else if (protocol.delivery_method === 'take_home') defaultType = 'pickup';
-    const hrtType = (protocol.program_type || '').includes('female') || (protocol.medication || '').toLowerCase().includes('female') ? 'female' : 'male';
+    const medLower = (protocol.medication || '').toLowerCase();
+    const hrtType = (medLower.includes('booster') || medLower.includes('oral')) ? 'oral' : ((protocol.program_type || '').includes('female') || medLower.includes('female') ? 'female' : 'male');
     const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
     setLogEntryProtocol({ ...protocol, svcCat });
     setLogEntryType(defaultType);
@@ -1379,8 +1381,15 @@ export default function PatientProfile() {
         signature_url: logSignature || null,
       };
       if (svcCat === 'testosterone') {
-        payload.medication = logForm.hrt_type === 'male' ? 'Male HRT' : 'Female HRT';
-        if (logEntryType === 'injection') {
+        payload.medication = logForm.hrt_type === 'oral' ? 'Testosterone Booster (Oral)' : logForm.hrt_type === 'male' ? 'Male HRT' : 'Female HRT';
+        if (logForm.hrt_type === 'oral') {
+          // Oral testosterone — simple pickup
+          payload.entry_type = 'pickup';
+          payload.delivery_method = 'oral_tablets';
+          payload.quantity = 1;
+          payload.supply_type = 'oral_30day';
+          payload.dosage = '30 Day Supply';
+        } else if (logEntryType === 'injection') {
           payload.dosage = logForm.dosage === 'custom' ? logForm.custom_dosage : logForm.dosage;
         } else {
           const dm = logForm.delivery_method || '';
@@ -6928,6 +6937,7 @@ export default function PatientProfile() {
                       <select value={logForm.hrt_type} onChange={e => setLogForm(p => ({ ...p, hrt_type: e.target.value, dosage: '' }))}>
                         <option value="male">Male HRT (200mg/ml)</option>
                         <option value="female">Female HRT (100mg/ml)</option>
+                        <option value="oral">Testosterone Booster (Oral)</option>
                       </select>
                     </div>
                     <div className="form-group">

@@ -155,9 +155,10 @@ export default async function handler(req, res) {
     nextDate.setDate(nextDate.getDate() + intervalDays);
     const nextExpectedDate = nextDate.toISOString().split('T')[0];
 
-    // Update protocol: advance next_expected_date and increment sessions_used
+    // Update protocol: advance next_expected_date, set last_refill_date, increment sessions_used
     const updateData = {
       next_expected_date: nextExpectedDate,
+      last_refill_date: entryDate,
       sessions_used: (protocol.sessions_used || 0) + 1,
     };
 

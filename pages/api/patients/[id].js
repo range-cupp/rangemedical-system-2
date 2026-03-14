@@ -23,6 +23,18 @@ function calculateRemaining(protocol) {
 
   // ===== WEIGHT LOSS =====
   if (isWeightLoss) {
+    // If next_expected_date is set (from dispense system), use it directly
+    if (protocol.next_expected_date) {
+      const nextDate = new Date(protocol.next_expected_date + 'T00:00:00');
+      const daysUntil = Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24));
+
+      const statusText = daysUntil <= 0 ? 'Refill overdue' :
+                         daysUntil <= 3 ? `${daysUntil}d — Refill soon` :
+                         `${daysUntil} days until refill`;
+
+      return { days_remaining: daysUntil, status_text: statusText };
+    }
+
     if (isTakeHome) {
       const totalInjections = protocol.total_sessions || 4;
       const supplyDays = totalInjections * 7;
@@ -54,6 +66,19 @@ function calculateRemaining(protocol) {
 
   // ===== HRT =====
   if (isHRT) {
+    // If next_expected_date is set (from dispense system), use it directly
+    if (protocol.next_expected_date) {
+      const nextDate = new Date(protocol.next_expected_date + 'T00:00:00');
+      const daysUntil = Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24));
+
+      const statusText = daysUntil <= 0 ? 'Refill overdue' :
+                         daysUntil <= 3 ? `${daysUntil}d — Refill soon` :
+                         daysUntil <= 14 ? `${daysUntil} days until refill` :
+                         `~${Math.floor(daysUntil / 7)} weeks until refill`;
+
+      return { days_remaining: daysUntil, status_text: statusText };
+    }
+
     const supplyType = (protocol.supply_type || '').toLowerCase();
     const selectedDose = (protocol.selected_dose || protocol.current_dose || '').toLowerCase();
     const lastRefillDate = protocol.last_refill_date || protocol.start_date;

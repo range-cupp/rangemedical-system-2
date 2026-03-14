@@ -5,16 +5,38 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import AdminLayout from '../../components/AdminLayout';
-import { sharedStyles } from '../../components/AdminLayout';
+
+// Friendly labels for supply types
+const SUPPLY_LABELS = {
+  prefilled_1week: '1-Week Prefilled',
+  prefilled_2week: '2-Week Prefilled',
+  prefilled_4week: '4-Week Prefilled',
+  vial_5ml: '5ml Vial',
+  vial_10ml: '10ml Vial',
+};
+
+function formatIntervalLabel(days) {
+  if (!days) return '';
+  if (days === 7) return '7 days (weekly)';
+  if (days === 14) return '14 days (biweekly)';
+  if (days === 28) return '28 days (monthly)';
+  if (days === 30) return '30 days (monthly)';
+  if (days === 70) return '70 days (~10 weeks)';
+  if (days === 140) return '140 days (~20 weeks)';
+  return `${days} days`;
+}
 
 export default function MedicationsPage() {
   const [medications, setMedications] = useState([]);
   const [stats, setStats] = useState(null);
   const [recentDispensing, setRecentDispensing] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // 'all' | 'overdue' | 'due_soon'
+  const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
+
+  // Dispense modal state
   const [dispensingProtocol, setDispensingProtocol] = useState(null);
+  const [dispenseDate, setDispenseDate] = useState('');
   const [logging, setLogging] = useState(false);
   const [logResult, setLogResult] = useState(null);
 
@@ -37,33 +59,42 @@ export default function MedicationsPage() {
     }
   };
 
-  const handleDispense = async (med) => {
+  const openDispenseModal = (med) => {
+    setDispensingProtocol(med);
+    setDispenseDate(new Date().toISOString().split('T')[0]);
+    setLogResult(null);
+  };
+
+  const handleDispense = async () => {
+    if (!dispensingProtocol || !dispenseDate) return;
     setLogging(true);
     setLogResult(null);
-    const typeMap = { hrt: 'testosterone', hrt_male: 'testosterone', weight_loss: 'weight_loss', peptide: 'peptide' };
-    const category = typeMap[med.program_type] || med.program_type;
     try {
-      const res = await fetch('/api/service-log', {
+      const res = await fetch('/api/admin/dispense', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          patient_id: med.patient_id,
-          patient_name: med.patient_name,
-          category,
-          entry_type: 'pickup',
-          medication: med.medication || null,
-          protocol_id: med.id,
+          protocol_id: dispensingProtocol.id,
+          patient_id: dispensingProtocol.patient_id,
+          patient_name: dispensingProtocol.patient_name,
+          dispense_date: dispenseDate,
         }),
       });
       if (res.status === 409) {
-        setLogResult({ success: false, message: 'Already dispensed today' });
+        setLogResult({ success: false, message: 'Already dispensed for this date' });
         return;
       }
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to log');
-      setLogResult({ success: true, message: 'Pickup logged successfully' });
-      // Refresh data
-      setTimeout(() => { fetchMedications(); setDispensingProtocol(null); setLogResult(null); }, 1500);
+      if (!res.ok) throw new Error(data.error || 'Failed to dispense');
+      setLogResult({
+        success: true,
+        message: `Dispensed — next refill ${formatDate(data.next_expected_date)} (+${data.interval_days}d)`,
+      });
+      setTimeout(() => {
+        fetchMedications();
+        setDispensingProtocol(null);
+        setLogResult(null);
+      }, 2000);
     } catch (err) {
       setLogResult({ success: false, message: err.message });
     } finally {
@@ -71,7 +102,16 @@ export default function MedicationsPage() {
     }
   };
 
-  // Filter by search
+  // Compute the preview next refill date
+  const previewNextRefill = () => {
+    if (!dispensingProtocol || !dispenseDate) return null;
+    const interval = dispensingProtocol.refill_interval_days;
+    if (!interval) return null;
+    const next = new Date(dispenseDate + 'T12:00:00');
+    next.setDate(next.getDate() + interval);
+    return next.toISOString().split('T')[0];
+  };
+
   const displayed = search
     ? medications.filter(m =>
         m.patient_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -87,24 +127,26 @@ export default function MedicationsPage() {
     });
   };
 
+  const previewDate = previewNextRefill();
+
   return (
     <AdminLayout title="Medications">
       {/* Stats Cards */}
       {stats && (
         <div style={s.statsRow}>
-          <div style={{ ...s.statCard, borderLeft: '4px solid #ef4444' }}>
+          <div style={{ ...s.statCard, borderLeft: '4px solid #ef4444', cursor: 'pointer' }} onClick={() => setFilter('overdue')}>
             <div style={s.statNumber}>{stats.overdue}</div>
             <div style={s.statLabel}>Overdue</div>
           </div>
-          <div style={{ ...s.statCard, borderLeft: '4px solid #f59e0b' }}>
+          <div style={{ ...s.statCard, borderLeft: '4px solid #f59e0b', cursor: 'pointer' }} onClick={() => setFilter('due_soon')}>
             <div style={s.statNumber}>{stats.dueSoon}</div>
             <div style={s.statLabel}>Due Soon</div>
           </div>
-          <div style={{ ...s.statCard, borderLeft: '4px solid #22c55e' }}>
+          <div style={{ ...s.statCard, borderLeft: '4px solid #22c55e', cursor: 'pointer' }} onClick={() => setFilter('all')}>
             <div style={s.statNumber}>{stats.onTrack}</div>
             <div style={s.statLabel}>On Track</div>
           </div>
-          <div style={{ ...s.statCard, borderLeft: '4px solid #6b7280' }}>
+          <div style={{ ...s.statCard, borderLeft: '4px solid #6b7280', cursor: 'pointer' }} onClick={() => setFilter('all')}>
             <div style={s.statNumber}>{stats.total}</div>
             <div style={s.statLabel}>Total Active</div>
           </div>
@@ -156,6 +198,7 @@ export default function MedicationsPage() {
                 <th style={s.th}>Patient</th>
                 <th style={s.th}>Medication</th>
                 <th style={s.th}>Dosage</th>
+                <th style={s.th}>Refill Cycle</th>
                 <th style={s.th}>Next Refill</th>
                 <th style={s.th}>Last Pickup</th>
                 <th style={s.th}>Action</th>
@@ -187,9 +230,14 @@ export default function MedicationsPage() {
                   </td>
                   <td style={s.td}>
                     <div style={{ fontWeight: 500, color: '#111' }}>{med.medication || med.program_name}</div>
-                    <div style={{ fontSize: '12px', color: '#6b7280' }}>{med.program_type?.replace(/_/g, ' ')}</div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                      {SUPPLY_LABELS[med.supply_type] || med.program_type?.replace(/_/g, ' ')}
+                    </div>
                   </td>
                   <td style={{ ...s.td, color: '#6b7280', fontSize: '13px' }}>{med.dosage || '—'}</td>
+                  <td style={{ ...s.td, fontSize: '13px', color: '#6b7280' }}>
+                    {med.refill_interval_days ? `Every ${med.refill_interval_days}d` : '—'}
+                  </td>
                   <td style={{ ...s.td, fontSize: '13px' }}>
                     {med.next_expected_date ? formatDate(med.next_expected_date) : '—'}
                   </td>
@@ -198,7 +246,7 @@ export default function MedicationsPage() {
                   </td>
                   <td style={s.td}>
                     <button
-                      onClick={() => { setDispensingProtocol(med); setLogResult(null); }}
+                      onClick={() => openDispenseModal(med)}
                       style={s.dispenseBtn}
                     >
                       Dispense
@@ -240,49 +288,102 @@ export default function MedicationsPage() {
         </div>
       )}
 
-      {/* Dispense Confirmation Modal */}
+      {/* Dispense Modal */}
       {dispensingProtocol && (
         <div style={s.overlay} onClick={() => { setDispensingProtocol(null); setLogResult(null); }}>
           <div style={s.modal} onClick={e => e.stopPropagation()}>
             <div style={s.modalHeader}>
-              <h3 style={{ margin: 0, fontSize: '16px' }}>Confirm Dispensing</h3>
+              <h3 style={{ margin: 0, fontSize: '16px' }}>Dispense Medication</h3>
               <button onClick={() => { setDispensingProtocol(null); setLogResult(null); }} style={s.modalClose}>×</button>
             </div>
             <div style={{ padding: '20px' }}>
-              <div style={{ marginBottom: '16px' }}>
-                <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>Patient</div>
-                <div style={{ fontSize: '16px', fontWeight: 600 }}>{dispensingProtocol.patient_name}</div>
+              {/* Patient */}
+              <div style={s.fieldRow}>
+                <div style={s.fieldLabel}>Patient</div>
+                <div style={s.fieldValue}>{dispensingProtocol.patient_name}</div>
               </div>
-              <div style={{ marginBottom: '16px' }}>
-                <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>Medication</div>
-                <div style={{ fontSize: '16px', fontWeight: 600 }}>{dispensingProtocol.medication || dispensingProtocol.program_name}</div>
+
+              {/* Medication */}
+              <div style={s.fieldRow}>
+                <div style={s.fieldLabel}>Medication</div>
+                <div style={s.fieldValue}>{dispensingProtocol.medication || dispensingProtocol.program_name}</div>
               </div>
+
+              {/* Dosage */}
               {dispensingProtocol.dosage && (
-                <div style={{ marginBottom: '16px' }}>
-                  <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '4px' }}>Dosage</div>
-                  <div style={{ fontSize: '16px', fontWeight: 600 }}>{dispensingProtocol.dosage}</div>
+                <div style={s.fieldRow}>
+                  <div style={s.fieldLabel}>Dosage</div>
+                  <div style={s.fieldValue}>{dispensingProtocol.dosage}</div>
                 </div>
               )}
+
+              {/* Supply Type */}
+              {dispensingProtocol.supply_type && (
+                <div style={s.fieldRow}>
+                  <div style={s.fieldLabel}>Supply Type</div>
+                  <div style={s.fieldValue}>{SUPPLY_LABELS[dispensingProtocol.supply_type] || dispensingProtocol.supply_type}</div>
+                </div>
+              )}
+
+              {/* Refill Cycle */}
+              <div style={s.fieldRow}>
+                <div style={s.fieldLabel}>Refill Cycle</div>
+                <div style={{ ...s.fieldValue, color: '#2563eb', fontWeight: 600 }}>
+                  {formatIntervalLabel(dispensingProtocol.refill_interval_days)}
+                </div>
+              </div>
+
+              {/* Date Picker */}
+              <div style={{ ...s.fieldRow, flexDirection: 'column', alignItems: 'stretch' }}>
+                <div style={s.fieldLabel}>Dispense Date</div>
+                <input
+                  type="date"
+                  value={dispenseDate}
+                  onChange={e => setDispenseDate(e.target.value)}
+                  max={new Date().toISOString().split('T')[0]}
+                  style={s.dateInput}
+                />
+              </div>
+
+              {/* Preview: Next Refill */}
+              {previewDate && (
+                <div style={s.previewBox}>
+                  <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Next refill will be set to:</div>
+                  <div style={{ fontSize: '18px', fontWeight: 700, color: '#111' }}>
+                    {formatDate(previewDate)}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#2563eb', marginTop: '2px' }}>
+                    {dispensingProtocol.refill_interval_days} days from {formatDate(dispenseDate)}
+                  </div>
+                </div>
+              )}
+
+              {/* Result */}
               {logResult && (
                 <div style={{
                   padding: '10px 14px', borderRadius: '8px', marginBottom: '12px', fontSize: '13px',
                   background: logResult.success ? '#f0fdf4' : '#fef2f2',
                   color: logResult.success ? '#16a34a' : '#dc2626',
+                  border: logResult.success ? '1px solid #bbf7d0' : '1px solid #fecaca',
                 }}>
                   {logResult.message}
                 </div>
               )}
+
+              {/* Dispense Button */}
               <button
-                onClick={() => handleDispense(dispensingProtocol)}
-                disabled={logging || logResult?.success}
+                onClick={handleDispense}
+                disabled={logging || logResult?.success || !dispenseDate}
                 style={{
                   width: '100%', padding: '14px', border: 'none', borderRadius: '10px',
-                  background: logResult?.success ? '#e5e7eb' : '#000', color: logResult?.success ? '#9ca3af' : '#fff',
-                  fontSize: '15px', fontWeight: 600, cursor: logging || logResult?.success ? 'default' : 'pointer',
-                  fontFamily: 'inherit',
+                  background: logResult?.success ? '#e5e7eb' : '#000',
+                  color: logResult?.success ? '#9ca3af' : '#fff',
+                  fontSize: '15px', fontWeight: 600,
+                  cursor: logging || logResult?.success ? 'default' : 'pointer',
+                  fontFamily: 'inherit', marginTop: '4px',
                 }}
               >
-                {logging ? 'Logging...' : logResult?.success ? 'Logged' : 'Log Pickup'}
+                {logging ? 'Dispensing...' : logResult?.success ? '✓ Dispensed' : 'Dispense & Log Pickup'}
               </button>
             </div>
           </div>
@@ -357,13 +458,14 @@ const s = {
   tableWrap: {
     background: '#fff',
     borderRadius: '10px',
-    overflow: 'hidden',
+    overflow: 'auto',
     boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
   },
   table: {
     width: '100%',
     borderCollapse: 'collapse',
     fontSize: '14px',
+    minWidth: '800px',
   },
   th: {
     textAlign: 'left',
@@ -375,6 +477,7 @@ const s = {
     textTransform: 'uppercase',
     letterSpacing: '0.3px',
     background: '#fafafa',
+    whiteSpace: 'nowrap',
   },
   tr: {
     borderBottom: '1px solid #f3f4f6',
@@ -416,12 +519,13 @@ const s = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
+    padding: '20px',
   },
   modal: {
     background: '#fff',
     borderRadius: '12px',
-    width: '90%',
-    maxWidth: '400px',
+    width: '100%',
+    maxWidth: '440px',
     overflow: 'hidden',
     boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
   },
@@ -439,5 +543,43 @@ const s = {
     cursor: 'pointer',
     color: '#666',
     padding: '0 4px',
+  },
+  fieldRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '10px 0',
+    borderBottom: '1px solid #f3f4f6',
+  },
+  fieldLabel: {
+    fontSize: '13px',
+    color: '#6b7280',
+    fontWeight: 500,
+  },
+  fieldValue: {
+    fontSize: '14px',
+    fontWeight: 600,
+    color: '#111',
+    textAlign: 'right',
+  },
+  dateInput: {
+    marginTop: '6px',
+    padding: '10px 14px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    fontSize: '14px',
+    fontFamily: 'inherit',
+    outline: 'none',
+    width: '100%',
+    boxSizing: 'border-box',
+  },
+  previewBox: {
+    background: '#f0f9ff',
+    border: '1px solid #bfdbfe',
+    borderRadius: '10px',
+    padding: '14px 16px',
+    marginTop: '14px',
+    marginBottom: '14px',
+    textAlign: 'center',
   },
 };

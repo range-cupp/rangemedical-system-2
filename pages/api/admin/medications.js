@@ -9,6 +9,29 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Calculate refill interval in days based on protocol type and supply
+function getRefillIntervalDays(programType, supplyType, pickupFrequency) {
+  const pt = (programType || '').toLowerCase();
+
+  if (pt.includes('weight_loss')) {
+    if (pickupFrequency === 'weekly') return 7;
+    if (pickupFrequency === 'every_2_weeks') return 14;
+    return 28; // default monthly
+  }
+
+  if (pt.includes('hrt')) {
+    const supplyDays = {
+      prefilled_1week: 7, prefilled_2week: 14, prefilled_4week: 28,
+      vial_5ml: 70, vial_10ml: 140, in_clinic: 7,
+    };
+    return supplyDays[(supplyType || '').toLowerCase()] || 30;
+  }
+
+  if (pt === 'peptide') return 30;
+
+  return 30; // default
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -25,7 +48,7 @@ export default async function handler(req, res) {
     // Get all active take-home protocols with patient info
     let query = supabase
       .from('protocols')
-      .select('id, patient_id, program_name, program_type, medication, selected_dose, delivery_method, next_expected_date, status, start_date, end_date, sessions_used, total_sessions, created_at, patients!inner(id, first_name, last_name, phone, email)')
+      .select('id, patient_id, program_name, program_type, medication, selected_dose, delivery_method, next_expected_date, status, start_date, end_date, sessions_used, total_sessions, supply_type, pickup_frequency, created_at, patients!inner(id, first_name, last_name, phone, email)')
       .eq('status', 'active')
       .eq('delivery_method', 'take_home')
       .order('next_expected_date', { ascending: true, nullsFirst: false });
@@ -76,6 +99,9 @@ export default async function handler(req, res) {
         isDueSoon = !isOverdue && daysUntilRefill <= 7;
       }
 
+      // Calculate refill interval based on protocol type and supply
+      const refillDays = getRefillIntervalDays(p.program_type, p.supply_type, p.pickup_frequency);
+
       return {
         id: p.id,
         patient_id: p.patient_id,
@@ -85,11 +111,14 @@ export default async function handler(req, res) {
         program_type: p.program_type,
         medication: p.medication,
         dosage: p.selected_dose,
+        supply_type: p.supply_type,
+        pickup_frequency: p.pickup_frequency,
         next_expected_date: p.next_expected_date,
         start_date: p.start_date,
         days_until_refill: daysUntilRefill,
         is_overdue: isOverdue,
         is_due_soon: isDueSoon,
+        refill_interval_days: refillDays,
         recent_pickups: dispensingByProtocol[p.id] || [],
         last_pickup: dispensingByProtocol[p.id]?.[0]?.entry_date || null,
       };

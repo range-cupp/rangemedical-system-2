@@ -306,6 +306,7 @@ const NAV_ITEMS = [
   { href: '/admin/labs', label: 'Labs', icon: 'flask' },
   { href: '/admin/weight-loss', label: 'Weight Loss', icon: 'trending-down' },
   { href: '/admin/service-log', label: 'Service Log', icon: 'clipboard' },
+  { href: '/admin/medications', label: 'Medications', icon: 'pill' },
   { href: '/admin/payments', label: 'Payments', icon: 'credit-card' },
   { href: '/admin/communications', label: 'Communications', icon: 'message' },
   { href: '/admin/tasks', label: 'Tasks', icon: 'check-square' },
@@ -353,6 +354,11 @@ const icons = {
   clipboard: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+    </svg>
+  ),
+  pill: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="8" width="18" height="8" rx="4" ry="4" transform="rotate(-45 12 12)" /><line x1="12" y1="2" x2="12" y2="22" transform="rotate(-45 12 12)" />
     </svg>
   ),
   'credit-card': (

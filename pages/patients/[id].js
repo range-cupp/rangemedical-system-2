@@ -422,6 +422,8 @@ export default function PatientProfile() {
   const [selectedIntake, setSelectedIntake] = useState(null);
   const [existingPacks, setExistingPacks] = useState([]);
   const [addToPackMode, setAddToPackMode] = useState(false);
+  const [linkToProtocolMode, setLinkToProtocolMode] = useState(false);
+  const [selectedLinkProtocolId, setSelectedLinkProtocolId] = useState('');
   const [selectedPackId, setSelectedPackId] = useState('');
 
   const [assignForm, setAssignForm] = useState({
@@ -1109,6 +1111,8 @@ export default function PatientProfile() {
       injectionMedication: '', injectionDose: ''
     });
     setAddToPackMode(false);
+    setLinkToProtocolMode(false);
+    setSelectedLinkProtocolId('');
     setSelectedPackId('');
     setExistingPacks([]);
 
@@ -1186,6 +1190,34 @@ export default function PatientProfile() {
       }
     } catch (error) {
       console.error('Error adding to pack:', error);
+    }
+  };
+
+  const handleLinkToProtocol = async () => {
+    if (!selectedLinkProtocolId) return alert('Please select a protocol');
+    if (!selectedNotification?.id) return alert('No purchase selected');
+
+    try {
+      const res = await fetch('/api/protocols/link-purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          protocolId: selectedLinkProtocolId,
+          purchaseId: selectedNotification.id
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setShowAssignModal(false);
+        fetchPatient();
+        alert(data.message || 'Purchase linked to protocol');
+      } else {
+        alert(data.error || 'Failed to link purchase');
+      }
+    } catch (error) {
+      console.error('Error linking purchase to protocol:', error);
     }
   };
 
@@ -5823,14 +5855,48 @@ export default function PatientProfile() {
                   <div className="modal-preview">{selectedNotification.product_name} • ${selectedNotification.amount_paid?.toFixed(2)}</div>
                 )}
 
-                {existingPacks.length > 0 && (
+                {/* Mode toggle: New Protocol / Add to Pack / Link to Protocol */}
+                {(existingPacks.length > 0 || (selectedNotification && activeProtocols.length > 0)) && (
                   <div className="pack-toggle">
-                    <button className={!addToPackMode ? 'active' : ''} onClick={() => setAddToPackMode(false)}>New Protocol</button>
-                    <button className={addToPackMode ? 'active' : ''} onClick={() => setAddToPackMode(true)}>Add to Pack</button>
+                    <button className={!addToPackMode && !linkToProtocolMode ? 'active' : ''} onClick={() => { setAddToPackMode(false); setLinkToProtocolMode(false); }}>New Protocol</button>
+                    {existingPacks.length > 0 && (
+                      <button className={addToPackMode ? 'active' : ''} onClick={() => { setAddToPackMode(true); setLinkToProtocolMode(false); }}>Add to Pack</button>
+                    )}
+                    {selectedNotification && activeProtocols.length > 0 && (
+                      <button className={linkToProtocolMode ? 'active' : ''} onClick={() => { setLinkToProtocolMode(true); setAddToPackMode(false); }}>Link to Protocol</button>
+                    )}
                   </div>
                 )}
 
-                {addToPackMode ? (
+                {linkToProtocolMode ? (
+                  <div className="form-group">
+                    <label>Select Active Protocol</label>
+                    <select value={selectedLinkProtocolId} onChange={e => setSelectedLinkProtocolId(e.target.value)}>
+                      <option value="">Choose protocol...</option>
+                      {activeProtocols.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.program_name}{p.medication && p.medication !== p.program_name ? ` — ${p.medication}` : ''} (started {new Date(p.start_date).toLocaleDateString()})
+                        </option>
+                      ))}
+                    </select>
+                    {selectedLinkProtocolId && (() => {
+                      const linked = activeProtocols.find(p => p.id === selectedLinkProtocolId);
+                      if (!linked) return null;
+                      return (
+                        <div style={{ marginTop: 8, padding: '10px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 6, fontSize: 13 }}>
+                          <div style={{ fontWeight: 600, marginBottom: 4 }}>{linked.program_name}</div>
+                          {linked.medication && <div>Medication: {linked.medication}</div>}
+                          {linked.selected_dose && <div>Dose: {linked.selected_dose}</div>}
+                          <div>Started: {new Date(linked.start_date).toLocaleDateString()}{linked.end_date && ` → ${new Date(linked.end_date).toLocaleDateString()}`}</div>
+                          {linked.amount_paid > 0 && <div>Paid so far: ${parseFloat(linked.amount_paid).toFixed(2)}</div>}
+                          <div style={{ marginTop: 6, color: '#16a34a', fontWeight: 500 }}>
+                            + ${(selectedNotification?.amount_paid || selectedNotification?.amount || 0).toFixed(2)} will be added
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                ) : addToPackMode ? (
                   <div className="form-group">
                     <label>Select Pack</label>
                     <select value={selectedPackId} onChange={e => setSelectedPackId(e.target.value)}>
@@ -5904,6 +5970,23 @@ export default function PatientProfile() {
                     <div className="form-group">
                       <label>Start Date</label>
                       <input type="date" value={assignForm.startDate} onChange={e => setAssignForm({...assignForm, startDate: e.target.value})} />
+                      {(() => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const start = new Date(assignForm.startDate + 'T00:00:00');
+                        const diffDays = Math.round((today - start) / (1000 * 60 * 60 * 24));
+                        if (diffDays > 0) {
+                          return (
+                            <div style={{ marginTop: 4, padding: '6px 10px', background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 6, fontSize: 12, color: '#92400e' }}>
+                              Backdated: {diffDays} day{diffDays !== 1 ? 's' : ''} ago
+                              {getSelectedTemplate()?.duration_days > 0 && (
+                                <span> — {Math.max(0, getSelectedTemplate().duration_days - diffDays)} day{Math.max(0, getSelectedTemplate().duration_days - diffDays) !== 1 ? 's' : ''} remaining</span>
+                              )}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
 
                     <div className="form-group">
@@ -5915,7 +5998,9 @@ export default function PatientProfile() {
               </div>
               <div className="modal-footer">
                 <button onClick={() => setShowAssignModal(false)} className="btn-secondary">Cancel</button>
-                {addToPackMode ? (
+                {linkToProtocolMode ? (
+                  <button onClick={handleLinkToProtocol} disabled={!selectedLinkProtocolId} className="btn-primary">Link Purchase</button>
+                ) : addToPackMode ? (
                   <button onClick={handleAddToPack} disabled={!selectedPackId} className="btn-primary">Add to Pack</button>
                 ) : (
                   <button onClick={handleAssignProtocol} disabled={!assignForm.templateId} className="btn-primary">Assign</button>

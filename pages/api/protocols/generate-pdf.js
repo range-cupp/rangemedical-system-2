@@ -27,6 +27,10 @@ async function fetchPeptideContent(peptideNames) {
   for (const row of (existing || [])) {
     cachedMap[row.peptide_name] = {
       description: row.description,
+      administration: row.administration || '',
+      expected_benefits: row.expected_benefits || [],
+      timeline: row.timeline || [],
+      side_effects: row.side_effects || [],
       phase_goals: row.phase_goals || [],
       what_to_expect: row.what_to_expect || [],
       storage_instructions: row.storage_instructions || '',
@@ -58,6 +62,10 @@ async function fetchPeptideContent(peptideNames) {
         if (!cachedMap[name]) {
           cachedMap[name] = {
             description: `${name} is a peptide used in regenerative medicine protocols at Range Medical.`,
+            administration: '',
+            expected_benefits: [],
+            timeline: [],
+            side_effects: [],
             phase_goals: [],
             what_to_expect: [],
             storage_instructions: 'Refrigerate pre-filled syringes between 36-46 degrees F. Do not freeze.',
@@ -75,7 +83,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { patient_id, patient_name, protocols, combine = true, store = false } = req.body;
+  const { patient_id, patient_name, protocols, combine = true, store = false, protocol_type, provider, start_date } = req.body;
 
   if (!protocols || !Array.isArray(protocols) || protocols.length === 0) {
     return res.status(400).json({ error: 'protocols array is required' });
@@ -98,6 +106,9 @@ export default async function handler(req, res) {
       protocols,
       combineSingleDoc: combine,
       cachedContent,
+      protocolType: protocol_type,
+      provider,
+      startDate: start_date,
     });
 
     // 4. Return inline or store

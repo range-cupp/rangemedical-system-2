@@ -11,34 +11,41 @@ const supabase = createClient(
 );
 
 const SYSTEM_PROMPT = `You are a medical content writer for Range Medical, a regenerative medicine clinic in Newport Beach, CA.
-Write patient-facing educational content about peptide protocols at a 4th-5th grade reading level.
+Write patient-facing educational content about peptide and weight loss protocols.
 
 Important guidelines:
-- Use simple, clear language that any patient can understand
-- Be warm and encouraging but professional
-- NEVER mention vials, reconstitution, mixing, needles, or bacteriostatic water — patients receive pre-filled syringes
-- Focus on benefits, what the peptide does, and what patients can expect
-- Keep descriptions concise (2-3 paragraphs max)
-- Phase goals should be 1-2 sentences each
-- "What to expect" items should be practical, specific observations patients may notice
+- Write at an accessible reading level — clear and professional
+- NEVER mention vials, reconstitution, mixing, needles, or bacteriostatic water — patients receive pre-filled syringes from our clinical team
+- Focus on mechanism of action, benefits, timeline, and side effects
+- Descriptions should be thorough (2-3 paragraphs explaining what the compound is and how it works)
+- Side effects should include the bold name and a brief explanation of what to do
+- Timeline entries should show specific timeframes and what patients typically notice
 
 Return ONLY valid JSON with this exact structure:
 {
-  "description": "2-3 paragraph plain-language description of what this peptide is and what it does",
-  "phase_goals": [
-    {"phase": "Phase 1", "goal": "What this phase focuses on"},
-    {"phase": "Phase 2", "goal": "What this phase focuses on"},
-    {"phase": "Phase 3", "goal": "What this phase focuses on"}
+  "description": "2-3 paragraph description of what this compound is and how it works (the 'What It Is' section)",
+  "administration": "1-2 sentence description of how it's administered (subcutaneous injection, timing, schedule rationale). Never mention needles or mixing — just say 'pre-filled syringe' or 'oral'.",
+  "expected_benefits": [
+    "Benefit 1 — clear, specific benefit statement",
+    "Benefit 2 — another specific benefit",
+    "Benefit 3 — etc (aim for 5-8 benefits)"
   ],
-  "what_to_expect": [
-    "Week 1-2: What patients typically notice first",
-    "Week 3-4: Continued changes",
-    "Month 2-3: Longer-term benefits"
+  "timeline": [
+    {"period": "Weeks 1-2", "description": "What patients typically notice first"},
+    {"period": "Weeks 3-4", "description": "Changes at this stage"},
+    {"period": "Month 2+", "description": "Longer-term effects"},
+    {"period": "Month 3+", "description": "Full protocol effects"}
   ],
-  "storage_instructions": "Brief storage instructions for this specific peptide"
+  "side_effects": [
+    {"name": "Side effect name", "description": "Brief explanation and what to do about it"},
+    {"name": "Another side effect", "description": "Explanation and guidance"}
+  ],
+  "phase_goals": [],
+  "what_to_expect": [],
+  "storage_instructions": "Brief storage instructions for this specific compound"
 }
 
-If the peptide doesn't typically have multiple phases, use a single phase or leave phase_goals as an empty array.`;
+Aim for 5-8 expected benefits, 3-4 timeline entries, and 4-8 side effects. Be medically accurate but patient-friendly.`;
 
 async function generatePeptideContent(peptideName) {
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -121,6 +128,10 @@ export default async function handler(req, res) {
           .insert({
             peptide_name: name,
             description: content.description || '',
+            administration: content.administration || '',
+            expected_benefits: content.expected_benefits || [],
+            timeline: content.timeline || [],
+            side_effects: content.side_effects || [],
             phase_goals: content.phase_goals || [],
             what_to_expect: content.what_to_expect || [],
             storage_instructions: content.storage_instructions || '',
@@ -155,6 +166,10 @@ export default async function handler(req, res) {
       if (cachedMap[name]) {
         result[name] = {
           description: cachedMap[name].description,
+          administration: cachedMap[name].administration || '',
+          expected_benefits: cachedMap[name].expected_benefits || [],
+          timeline: cachedMap[name].timeline || [],
+          side_effects: cachedMap[name].side_effects || [],
           phase_goals: cachedMap[name].phase_goals,
           what_to_expect: cachedMap[name].what_to_expect,
           storage_instructions: cachedMap[name].storage_instructions,

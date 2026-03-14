@@ -48,6 +48,18 @@ import SignatureCanvas from '../../components/SignatureCanvas';
 import CycleProgressCard from '../../components/CycleProgressCard';
 import { PROTOCOL_TYPES } from '../../lib/protocol-types';
 
+// Parse **bold** markdown into React elements
+function renderFormattedText(text) {
+  if (!text) return text;
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
+
 // Map protocol.category → service-log category
 const CATEGORY_TO_SVC = {
   hrt: 'testosterone',
@@ -4936,7 +4948,7 @@ export default function PatientProfile() {
                             }
                           }}
                         >
-                          {note.body}
+                          {renderFormattedText(note.body)}
                         </div>
                         {note.body && note.body.length > 200 && !expandedNotes[note.id] && (
                           <button

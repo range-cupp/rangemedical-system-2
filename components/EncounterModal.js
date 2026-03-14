@@ -7,6 +7,18 @@ import { NOTE_TYPES, ENCOUNTER_TEMPLATES, getTemplateForService } from '../lib/e
 // Users allowed to create/edit/sign encounter notes
 const NOTE_AUTHORS = ['burgess@range-medical.com', 'lily@range-medical.com', 'evan@range-medical.com'];
 
+// Parse **bold** markdown into React elements
+function renderFormattedText(text) {
+  if (!text) return text;
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
+
 export default function EncounterModal({ appointment, currentUser, onClose, onRefresh }) {
   // Check if current user can author notes
   const canAuthorNotes = NOTE_AUTHORS.some(email => currentUser?.toLowerCase()?.includes(email));
@@ -21,6 +33,28 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
   const [noteSaving, setNoteSaving] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef(null);
+  const noteTextareaRef = useRef(null);
+
+  // Toggle bold on selected text in textarea
+  const handleBoldToggle = () => {
+    const textarea = noteTextareaRef.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const text = noteInput;
+    if (start === end) return; // no selection
+    const selected = text.slice(start, end);
+    // If already bold, remove **
+    if (selected.startsWith('**') && selected.endsWith('**')) {
+      const unwrapped = selected.slice(2, -2);
+      setNoteInput(text.slice(0, start) + unwrapped + text.slice(end));
+    } else if (text.slice(start - 2, start) === '**' && text.slice(end, end + 2) === '**') {
+      setNoteInput(text.slice(0, start - 2) + selected + text.slice(end + 2));
+    } else {
+      setNoteInput(text.slice(0, start) + '**' + selected + '**' + text.slice(end));
+    }
+    setTimeout(() => textarea.focus(), 0);
+  };
 
   // Edit draft state
   const [editingNoteId, setEditingNoteId] = useState(null);
@@ -868,6 +902,14 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                             <span>{formatShortDate(note.note_date || note.created_at)}</span>
                             {note.created_by && <span style={{ color: '#6b7280' }}>by {note.created_by}</span>}
                             {note.source === 'addendum' && <span className="badge-addendum">Addendum</span>}
+                            {note.encounter_service && (
+                              <span style={{
+                                fontSize: 11, padding: '2px 8px', borderRadius: 4, fontWeight: 500,
+                                background: '#ede9fe', color: '#5b21b6',
+                              }}>
+                                {note.encounter_service.replace(/\b\w/g, l => l.toUpperCase())} Note
+                              </span>
+                            )}
                           </div>
                           <span className={note.status === 'signed' ? 'badge-signed' : 'badge-draft'}>
                             {note.status === 'signed'
@@ -895,7 +937,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                             </div>
                           </div>
                         ) : (
-                          <div className="enc-note-body">{note.body}</div>
+                          <div className="enc-note-body">{renderFormattedText(note.body)}</div>
                         )}
 
                         {/* Note actions — hide while editing, only for authorized users */}
@@ -991,9 +1033,29 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                       </div>
                     )}
 
+                    {/* Formatting toolbar */}
+                    <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+                      <button
+                        type="button"
+                        onClick={handleBoldToggle}
+                        title="Bold selected text (select text first)"
+                        style={{
+                          padding: '4px 10px', fontSize: 13, fontWeight: 800, border: '1px solid #d1d5db',
+                          borderRadius: 6, background: '#f9fafb', color: '#374151', cursor: 'pointer',
+                          fontFamily: 'serif', lineHeight: 1,
+                        }}
+                      >
+                        B
+                      </button>
+                      <span style={{ fontSize: 11, color: '#9ca3af', alignSelf: 'center', marginLeft: 4 }}>
+                        Select text, then click B to bold
+                      </span>
+                    </div>
+
                     {/* Textarea with dictation */}
                     <div className="enc-textarea-wrap">
                       <textarea
+                        ref={noteTextareaRef}
                         value={noteInput}
                         onChange={e => setNoteInput(e.target.value)}
                         placeholder="Type your encounter note here, or click the microphone to dictate..."

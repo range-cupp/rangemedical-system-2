@@ -132,7 +132,6 @@ export default async function handler(req, res) {
       .from('service_logs')
       .insert({
         patient_id,
-        patient_name: patient_name || null,
         protocol_id,
         category,
         entry_type: 'pickup',

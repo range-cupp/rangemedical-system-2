@@ -402,11 +402,16 @@ export default function PatientProfile() {
   const [mergeError, setMergeError] = useState('');
 
   // Payments sub-tab state
-  const [paymentsSubTab, setPaymentsSubTab] = useState('invoices');
+  const [paymentsSubTab, setPaymentsSubTab] = useState('subscriptions');
 
   // Saved cards state
   const [savedCards, setSavedCards] = useState([]);
   const [loadingSavedCards, setLoadingSavedCards] = useState(false);
+
+  // Stripe subscription management state
+  const [stripeSubscriptions, setStripeSubscriptions] = useState([]);
+  const [loadingStripeSubs, setLoadingStripeSubs] = useState(false);
+  const [subActionLoading, setSubActionLoading] = useState(null);
 
   // Form states
   const [selectedNotification, setSelectedNotification] = useState(null);
@@ -618,6 +623,73 @@ export default function PatientProfile() {
       setLoadingSavedCards(false);
     }
   };
+
+  const fetchStripeSubscriptions = async () => {
+    if (!id) return;
+    try {
+      setLoadingStripeSubs(true);
+      const res = await fetch(`/api/stripe/subscription?patient_id=${id}`);
+      const data = await res.json();
+      setStripeSubscriptions(data.subscriptions || []);
+    } catch (err) {
+      console.error('Error fetching stripe subscriptions:', err);
+    } finally {
+      setLoadingStripeSubs(false);
+    }
+  };
+
+  const handleSubAction = async (subscriptionId, action, paymentMethodId) => {
+    setSubActionLoading(subscriptionId + '_' + action);
+    try {
+      const res = await fetch('/api/stripe/subscription', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription_id: subscriptionId, action, payment_method_id: paymentMethodId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Action failed');
+      alert(data.message || 'Success');
+      fetchStripeSubscriptions();
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      setSubActionLoading(null);
+    }
+  };
+
+  const handleCancelSubscription = async (subscriptionId, immediate) => {
+    const msg = immediate
+      ? 'Cancel this subscription immediately? This cannot be undone.'
+      : 'Cancel this subscription at the end of the current billing period?';
+    if (!confirm(msg)) return;
+    setSubActionLoading(subscriptionId + '_cancel');
+    try {
+      if (immediate) {
+        const res = await fetch('/api/stripe/subscription', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subscription_id: subscriptionId }),
+        });
+        if (!res.ok) throw new Error((await res.json()).error || 'Cancel failed');
+        alert('Subscription cancelled');
+      } else {
+        await handleSubAction(subscriptionId, 'cancel_at_period_end');
+        return;
+      }
+      fetchStripeSubscriptions();
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      setSubActionLoading(null);
+    }
+  };
+
+  // Auto-load stripe subscriptions when switching to subscriptions sub-tab
+  useEffect(() => {
+    if (activeTab === 'payments' && paymentsSubTab === 'subscriptions' && stripeSubscriptions.length === 0 && !loadingStripeSubs) {
+      fetchStripeSubscriptions();
+    }
+  }, [activeTab, paymentsSubTab]);
 
   const fetchCreditBalance = async () => {
     if (!id) return;
@@ -4955,8 +5027,9 @@ export default function PatientProfile() {
           {activeTab === 'payments' && (
             <>
               {/* Payments Sub-tabs */}
-              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
                 {[
+                  { key: 'subscriptions', label: `Subscriptions${subscriptions.length > 0 ? ` (${subscriptions.filter(s => s.status === 'active' || s.status === 'past_due').length})` : ''}` },
                   { key: 'invoices', label: 'Invoices' },
                   { key: 'purchases', label: 'Purchases' },
                   { key: 'cards', label: `Payment Methods${savedCards.length > 0 ? ` (${savedCards.length})` : ''}` },
@@ -4979,6 +5052,255 @@ export default function PatientProfile() {
                   </button>
                 ))}
               </div>
+
+              {/* Subscriptions Sub-tab */}
+              {paymentsSubTab === 'subscriptions' && (
+                <section className="card">
+                  <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3>Subscriptions</h3>
+                    <button
+                      onClick={() => { if (!loadingStripeSubs) fetchStripeSubscriptions(); }}
+                      style={{ background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 12px', fontSize: 12, cursor: 'pointer', color: '#374151' }}
+                    >
+                      {loadingStripeSubs ? 'Loading...' : 'Refresh from Stripe'}
+                    </button>
+                  </div>
+
+                  {stripeSubscriptions.length === 0 && !loadingStripeSubs ? (
+                    <div style={{ padding: '16px', textAlign: 'center' }}>
+                      <div className="empty">No subscriptions found</div>
+                      <button
+                        onClick={fetchStripeSubscriptions}
+                        style={{ marginTop: 8, background: '#16a34a', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        Load from Stripe
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ padding: '0 16px 16px' }}>
+                      {stripeSubscriptions.map(sub => {
+                        const isPastDue = sub.status === 'past_due';
+                        const isPaused = !!sub.pause_collection;
+                        const isCanceled = sub.status === 'canceled';
+                        const isCancelingAtEnd = sub.cancel_at_period_end;
+                        const isActive = sub.status === 'active' && !isPaused && !isCancelingAtEnd;
+                        const pm = sub.payment_method;
+                        const inv = sub.latest_invoice;
+
+                        const statusColor = isPastDue ? '#ef4444' : isPaused ? '#f59e0b' : isCanceled ? '#6b7280' : isCancelingAtEnd ? '#f59e0b' : '#16a34a';
+                        const statusLabel = isPastDue ? 'Past Due' : isPaused ? 'Paused' : isCanceled ? 'Canceled' : isCancelingAtEnd ? 'Canceling' : 'Active';
+                        const statusBg = isPastDue ? '#fee2e2' : isPaused ? '#fef3c7' : isCanceled ? '#f3f4f6' : isCancelingAtEnd ? '#fef3c7' : '#dcfce7';
+
+                        return (
+                          <div key={sub.id} style={{
+                            background: '#f8fafc', borderRadius: 10, border: isPastDue ? '2px solid #fca5a5' : '1px solid #e2e8f0',
+                            padding: '16px', marginTop: 10,
+                          }}>
+                            {/* Header row */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                              <div>
+                                <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a' }}>
+                                  {sub.description || 'Subscription'}
+                                </div>
+                                <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                                  {sub.service_category && (
+                                    <span style={{
+                                      display: 'inline-block', padding: '2px 8px', borderRadius: 4,
+                                      fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginRight: 8,
+                                      background: sub.service_category === 'hrt' ? '#dbeafe' : sub.service_category === 'weight_loss' ? '#fef3c7' : '#e2e8f0',
+                                      color: sub.service_category === 'hrt' ? '#1e40af' : sub.service_category === 'weight_loss' ? '#92400e' : '#475569'
+                                    }}>
+                                      {sub.service_category}
+                                    </span>
+                                  )}
+                                  Since {new Date(sub.created).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </div>
+                              </div>
+                              <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontWeight: 700, fontSize: 18, color: '#0f172a' }}>
+                                  ${(sub.amount_cents / 100).toFixed(0)}<span style={{ fontSize: 12, fontWeight: 400, color: '#64748b' }}>/{sub.interval}</span>
+                                </div>
+                                <span style={{
+                                  display: 'inline-block', padding: '3px 10px', borderRadius: 12,
+                                  fontSize: 11, fontWeight: 700, background: statusBg, color: statusColor, marginTop: 4,
+                                }}>
+                                  {statusLabel}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Details row */}
+                            <div style={{ display: 'flex', gap: 24, fontSize: 12, color: '#64748b', marginBottom: 12, flexWrap: 'wrap' }}>
+                              {pm && (
+                                <div>
+                                  <span style={{ fontWeight: 600, color: '#374151' }}>Card: </span>
+                                  {pm.brand.toUpperCase()} ···· {pm.last4}
+                                  <span style={{ marginLeft: 4, color: '#94a3b8' }}>({String(pm.exp_month).padStart(2, '0')}/{pm.exp_year})</span>
+                                </div>
+                              )}
+                              {sub.current_period_end && !isCanceled && (
+                                <div>
+                                  <span style={{ fontWeight: 600, color: '#374151' }}>{isCancelingAtEnd ? 'Ends: ' : 'Renews: '}</span>
+                                  {new Date(sub.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </div>
+                              )}
+                              {isCanceled && sub.canceled_at && (
+                                <div>
+                                  <span style={{ fontWeight: 600, color: '#374151' }}>Canceled: </span>
+                                  {new Date(sub.canceled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Past due alert */}
+                            {isPastDue && inv && (
+                              <div style={{
+                                background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px',
+                                marginBottom: 12, fontSize: 13, color: '#991b1b',
+                              }}>
+                                Payment failed — ${(inv.amount_due / 100).toFixed(2)} due
+                                {inv.attempt_count > 1 && ` (${inv.attempt_count} attempts)`}
+                                {inv.next_payment_attempt && (
+                                  <span style={{ marginLeft: 8, fontSize: 12, color: '#b91c1c' }}>
+                                    Next retry: {new Date(inv.next_payment_attempt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Action buttons */}
+                            {!isCanceled && (
+                              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                {/* Update payment method */}
+                                {savedCards.length > 0 && (
+                                  <select
+                                    onChange={(e) => {
+                                      if (e.target.value) {
+                                        const action = isPastDue ? 'retry_payment' : 'update_payment_method';
+                                        handleSubAction(sub.id, action, e.target.value);
+                                        e.target.value = '';
+                                      }
+                                    }}
+                                    disabled={!!subActionLoading}
+                                    style={{
+                                      padding: '6px 10px', fontSize: 12, border: '1px solid #d1d5db', borderRadius: 6,
+                                      background: isPastDue ? '#16a34a' : '#fff', color: isPastDue ? '#fff' : '#374151',
+                                      cursor: 'pointer', fontWeight: isPastDue ? 600 : 400,
+                                    }}
+                                  >
+                                    <option value="">{isPastDue ? 'Retry with card...' : 'Change card...'}</option>
+                                    {savedCards.map(card => (
+                                      <option key={card.id} value={card.id}>
+                                        {card.brand.toUpperCase()} ···· {card.last4} ({String(card.exp_month).padStart(2, '0')}/{card.exp_year})
+                                      </option>
+                                    ))}
+                                  </select>
+                                )}
+
+                                {/* Retry payment with current card */}
+                                {isPastDue && (
+                                  <button
+                                    onClick={() => handleSubAction(sub.id, 'retry_payment')}
+                                    disabled={!!subActionLoading}
+                                    style={{
+                                      padding: '6px 14px', fontSize: 12, fontWeight: 600, borderRadius: 6,
+                                      background: '#16a34a', color: '#fff', border: 'none', cursor: 'pointer',
+                                    }}
+                                  >
+                                    {subActionLoading === sub.id + '_retry_payment' ? 'Retrying...' : 'Retry Payment'}
+                                  </button>
+                                )}
+
+                                {/* Pause / Resume */}
+                                {isActive && (
+                                  <button
+                                    onClick={() => handleSubAction(sub.id, 'pause')}
+                                    disabled={!!subActionLoading}
+                                    style={{
+                                      padding: '6px 14px', fontSize: 12, fontWeight: 500, borderRadius: 6,
+                                      background: '#fff', color: '#f59e0b', border: '1px solid #fcd34d', cursor: 'pointer',
+                                    }}
+                                  >
+                                    {subActionLoading === sub.id + '_pause' ? 'Pausing...' : 'Pause'}
+                                  </button>
+                                )}
+                                {isPaused && (
+                                  <button
+                                    onClick={() => handleSubAction(sub.id, 'resume')}
+                                    disabled={!!subActionLoading}
+                                    style={{
+                                      padding: '6px 14px', fontSize: 12, fontWeight: 600, borderRadius: 6,
+                                      background: '#16a34a', color: '#fff', border: 'none', cursor: 'pointer',
+                                    }}
+                                  >
+                                    {subActionLoading === sub.id + '_resume' ? 'Resuming...' : 'Resume'}
+                                  </button>
+                                )}
+
+                                {/* Undo cancel at period end */}
+                                {isCancelingAtEnd && (
+                                  <button
+                                    onClick={() => handleSubAction(sub.id, 'undo_cancel')}
+                                    disabled={!!subActionLoading}
+                                    style={{
+                                      padding: '6px 14px', fontSize: 12, fontWeight: 600, borderRadius: 6,
+                                      background: '#16a34a', color: '#fff', border: 'none', cursor: 'pointer',
+                                    }}
+                                  >
+                                    {subActionLoading === sub.id + '_undo_cancel' ? 'Undoing...' : 'Undo Cancel'}
+                                  </button>
+                                )}
+
+                                {/* Cancel options */}
+                                {!isCancelingAtEnd && !isPaused && (
+                                  <>
+                                    <button
+                                      onClick={() => handleCancelSubscription(sub.id, false)}
+                                      disabled={!!subActionLoading}
+                                      style={{
+                                        padding: '6px 14px', fontSize: 12, fontWeight: 500, borderRadius: 6,
+                                        background: '#fff', color: '#6b7280', border: '1px solid #d1d5db', cursor: 'pointer',
+                                      }}
+                                    >
+                                      Cancel at Period End
+                                    </button>
+                                    <button
+                                      onClick={() => handleCancelSubscription(sub.id, true)}
+                                      disabled={!!subActionLoading}
+                                      style={{
+                                        padding: '6px 14px', fontSize: 12, fontWeight: 500, borderRadius: 6,
+                                        background: '#fff', color: '#dc2626', border: '1px solid #fca5a5', cursor: 'pointer',
+                                      }}
+                                    >
+                                      Cancel Now
+                                    </button>
+                                  </>
+                                )}
+
+                                {/* View invoice on Stripe */}
+                                {inv?.hosted_invoice_url && (
+                                  <a
+                                    href={inv.hosted_invoice_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{
+                                      padding: '6px 14px', fontSize: 12, fontWeight: 500, borderRadius: 6,
+                                      background: '#fff', color: '#3b82f6', border: '1px solid #93c5fd', cursor: 'pointer',
+                                      textDecoration: 'none', display: 'inline-block',
+                                    }}
+                                  >
+                                    View Invoice
+                                  </a>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </section>
+              )}
 
               {/* Invoices Sub-tab */}
               {paymentsSubTab === 'invoices' && (

@@ -3997,9 +3997,9 @@ export default function PatientProfile() {
 
                           {/* ===== Peptide Expanded ===== */}
                           {protocol.category === 'peptide' && isExpanded && (() => {
-                            // Use calendar days (duration_days or parsed from name), NOT injection count (total_sessions)
-                            let totalDays = protocol.duration_days || protocol.total_days || 30;
-                            const nameMatch = (protocol.program_name || '').match(/(\d+)\s*day/i);
+                            // Use calendar days parsed from name (e.g. "10-Day"), fallback to total_sessions for in-clinic
+                            let totalDays = protocol.total_sessions || protocol.total_days || 30;
+                            const nameMatch = (protocol.program_name || '').match(/(\d+)[\s-]*day/i);
                             if (nameMatch) totalDays = parseInt(nameMatch[1]);
                             const currentDay = calculateCurrentDay(protocol.start_date);
                             const daysRemaining = currentDay ? Math.max(0, totalDays - currentDay) : totalDays;

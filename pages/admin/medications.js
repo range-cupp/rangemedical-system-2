@@ -9,21 +9,35 @@ import AdminLayout from '../../components/AdminLayout';
 // Friendly labels for supply types
 const SUPPLY_LABELS = {
   prefilled_1week: '1-Week Prefilled',
+  prefilled_1: '1-Week Prefilled',
   prefilled_2week: '2-Week Prefilled',
   prefilled_4week: '4-Week Prefilled',
   vial_5ml: '5ml Vial',
   vial_10ml: '10ml Vial',
+  vial: 'Vial',
+  pellet: 'Pellets',
+  oral_30day: '30-Day Oral',
+  in_clinic: 'In-Clinic',
 };
 
 function formatIntervalLabel(days) {
   if (!days) return '';
-  if (days === 7) return '7 days (weekly)';
-  if (days === 14) return '14 days (biweekly)';
-  if (days === 28) return '28 days (monthly)';
-  if (days === 30) return '30 days (monthly)';
-  if (days === 70) return '70 days (~10 weeks)';
-  if (days === 140) return '140 days (~20 weeks)';
-  return `${days} days`;
+  if (days === 7) return '7d (weekly)';
+  if (days === 14) return '14d (biweekly)';
+  if (days === 28) return '28d (4 weeks)';
+  if (days === 30) return '30d (monthly)';
+  if (days === 120) return '120d (4 months)';
+  const weeks = Math.round(days / 7);
+  if (weeks >= 4 && days % 7 === 0) return `${days}d (~${weeks} weeks)`;
+  return `${days}d`;
+}
+
+function formatSupplyInfo(med) {
+  const parts = [];
+  if (med.supply_type) parts.push(SUPPLY_LABELS[med.supply_type] || med.supply_type);
+  if (med.injection_method) parts.push(med.injection_method === 'subq' ? 'Sub-Q (daily)' : 'IM (2x/week)');
+  if (parts.length) return parts.join(' · ');
+  return med.program_type?.replace(/_/g, ' ') || '';
 }
 
 export default function MedicationsPage() {
@@ -231,7 +245,7 @@ export default function MedicationsPage() {
                   <td style={s.td}>
                     <div style={{ fontWeight: 500, color: '#111' }}>{med.medication || med.program_name}</div>
                     <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                      {SUPPLY_LABELS[med.supply_type] || med.program_type?.replace(/_/g, ' ')}
+                      {formatSupplyInfo(med)}
                     </div>
                   </td>
                   <td style={{ ...s.td, color: '#6b7280', fontSize: '13px' }}>{med.dosage || '—'}</td>
@@ -317,11 +331,11 @@ export default function MedicationsPage() {
                 </div>
               )}
 
-              {/* Supply Type */}
+              {/* Supply Type + Route */}
               {dispensingProtocol.supply_type && (
                 <div style={s.fieldRow}>
-                  <div style={s.fieldLabel}>Supply Type</div>
-                  <div style={s.fieldValue}>{SUPPLY_LABELS[dispensingProtocol.supply_type] || dispensingProtocol.supply_type}</div>
+                  <div style={s.fieldLabel}>Supply</div>
+                  <div style={s.fieldValue}>{formatSupplyInfo(dispensingProtocol)}</div>
                 </div>
               )}
 

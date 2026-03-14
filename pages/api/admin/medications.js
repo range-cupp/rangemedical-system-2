@@ -9,27 +9,92 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Calculate refill interval in days based on protocol type and supply
-function getRefillIntervalDays(programType, supplyType, pickupFrequency) {
-  const pt = (programType || '').toLowerCase();
+// Parse per-injection ml dose from selected_dose string
+// Handles: "0.4ml/80mg", "0.3ml/60mg", "1 vial @ 0.4ml/80mg (12 weeks)", "4 prefilled @ 0.3ml/60mg"
+function parseDoseMl(selectedDose) {
+  if (!selectedDose) return null;
+  // Try to parse "X weeks" directly from dose string (e.g., "1 vial @ 0.4ml/80mg (12 weeks)")
+  const weeksMatch = selectedDose.match(/\((\d+)\s*weeks?\)/i);
+  if (weeksMatch) return { weeks: parseInt(weeksMatch[1]) };
+  // Skip if this describes the entire vial, not per-injection dose
+  // e.g., "1 vial (10ml @ 200mg/ml)" — the 10ml is the vial volume
+  if (/vial\s*\(\d+ml/i.test(selectedDose)) return null;
+  // Parse per-injection ml: look for "@ 0.4ml" first (most explicit), then standalone "0.4ml"
+  const atMlMatch = selectedDose.match(/@\s*(\d+\.?\d*)\s*ml/i);
+  if (atMlMatch) return { ml: parseFloat(atMlMatch[1]) };
+  // Standalone ml (e.g., "0.4ml/80mg" or "0.4ml / 80mg")
+  const mlMatch = selectedDose.match(/(\d+\.?\d*)\s*ml/i);
+  if (mlMatch) {
+    const ml = parseFloat(mlMatch[1]);
+    // Sanity check: per-injection dose should be < 2ml; anything larger is likely vial volume
+    if (ml < 2) return { ml };
+  }
+  return null;
+}
 
+// Calculate refill interval in days based on protocol type, supply, dose, and injection method
+function getRefillIntervalDays(protocol) {
+  const pt = (protocol.program_type || '').toLowerCase();
+  const supply = (protocol.supply_type || '').toLowerCase();
+  const dose = protocol.selected_dose || '';
+
+  // ---- Weight Loss ----
   if (pt.includes('weight_loss')) {
-    if (pickupFrequency === 'weekly') return 7;
-    if (pickupFrequency === 'every_2_weeks') return 14;
+    if (protocol.pickup_frequency === 'weekly') return 7;
+    if (protocol.pickup_frequency === 'every_2_weeks') return 14;
     return 28; // default monthly
   }
 
+  // ---- HRT ----
   if (pt.includes('hrt')) {
-    const supplyDays = {
-      prefilled_1week: 7, prefilled_2week: 14, prefilled_4week: 28,
-      vial_5ml: 70, vial_10ml: 140, in_clinic: 7,
-    };
-    return supplyDays[(supplyType || '').toLowerCase()] || 30;
+    // Pellets — 4 months
+    if (supply === 'pellet') return 120;
+
+    // Oral — 30 day supply
+    if (supply === 'oral_30day' || supply.includes('oral')) return 30;
+
+    // In-clinic injections — weekly visits
+    if (supply === 'in_clinic') return 7;
+
+    // Prefilled syringes — supply_type defines the pickup interval
+    if (supply.startsWith('prefilled_')) {
+      const prefillDays = { prefilled_1week: 7, prefilled_2week: 14, prefilled_4week: 28 };
+      // Also handle "prefilled_1" legacy format
+      if (supply === 'prefilled_1') return 7;
+      return prefillDays[supply] || 28;
+    }
+
+    // Vials — calculate from dose + injection frequency
+    if (supply.includes('vial')) {
+      const vialMl = supply === 'vial_5ml' ? 5 : 10; // default 10ml
+      const parsed = parseDoseMl(dose);
+
+      // If dose string contains explicit weeks, use that
+      if (parsed?.weeks) return parsed.weeks * 7;
+
+      // Calculate from dose_ml × injections_per_week
+      if (parsed?.ml) {
+        // Default 2x/week (IM). Sub-Q = 7x/week (daily)
+        const isSubQ = (protocol.injection_method || '').toLowerCase() === 'subq';
+        const injectionsPerWeek = isSubQ ? 7 : (protocol.injection_frequency || 2);
+        const mlPerWeek = parsed.ml * injectionsPerWeek;
+        const weeks = vialMl / mlPerWeek;
+        return Math.round(weeks * 7);
+      }
+
+      // Fallback: can't parse dose, estimate conservatively
+      return supply === 'vial_5ml' ? 42 : 84; // ~6 weeks / ~12 weeks
+    }
+
+    // HRT fallback
+    return 30;
   }
 
+  // ---- Peptide ----
   if (pt === 'peptide') return 30;
 
-  return 30; // default
+  // ---- Default ----
+  return 30;
 }
 
 export default async function handler(req, res) {
@@ -48,7 +113,7 @@ export default async function handler(req, res) {
     // Get all active take-home protocols with patient info
     let query = supabase
       .from('protocols')
-      .select('id, patient_id, program_name, program_type, medication, selected_dose, delivery_method, next_expected_date, status, start_date, end_date, sessions_used, total_sessions, supply_type, pickup_frequency, created_at, patients!inner(id, first_name, last_name, phone, email)')
+      .select('id, patient_id, program_name, program_type, medication, selected_dose, delivery_method, next_expected_date, status, start_date, end_date, sessions_used, total_sessions, supply_type, pickup_frequency, injection_method, injection_frequency, created_at, patients!inner(id, first_name, last_name, phone, email)')
       .eq('status', 'active')
       .eq('delivery_method', 'take_home')
       .order('next_expected_date', { ascending: true, nullsFirst: false });
@@ -99,8 +164,8 @@ export default async function handler(req, res) {
         isDueSoon = !isOverdue && daysUntilRefill <= 7;
       }
 
-      // Calculate refill interval based on protocol type and supply
-      const refillDays = getRefillIntervalDays(p.program_type, p.supply_type, p.pickup_frequency);
+      // Calculate refill interval based on protocol type, supply, dose, and injection method
+      const refillDays = getRefillIntervalDays(p);
 
       return {
         id: p.id,
@@ -113,6 +178,7 @@ export default async function handler(req, res) {
         dosage: p.selected_dose,
         supply_type: p.supply_type,
         pickup_frequency: p.pickup_frequency,
+        injection_method: p.injection_method,
         next_expected_date: p.next_expected_date,
         start_date: p.start_date,
         days_until_refill: daysUntilRefill,

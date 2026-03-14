@@ -9,24 +9,67 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Calculate refill interval in days based on protocol type and supply
-function getRefillIntervalDays(programType, supplyType, pickupFrequency) {
-  const pt = (programType || '').toLowerCase();
+// Parse per-injection ml dose from selected_dose string
+function parseDoseMl(selectedDose) {
+  if (!selectedDose) return null;
+  const weeksMatch = selectedDose.match(/\((\d+)\s*weeks?\)/i);
+  if (weeksMatch) return { weeks: parseInt(weeksMatch[1]) };
+  if (/vial\s*\(\d+ml/i.test(selectedDose)) return null;
+  const atMlMatch = selectedDose.match(/@\s*(\d+\.?\d*)\s*ml/i);
+  if (atMlMatch) return { ml: parseFloat(atMlMatch[1]) };
+  const mlMatch = selectedDose.match(/(\d+\.?\d*)\s*ml/i);
+  if (mlMatch) {
+    const ml = parseFloat(mlMatch[1]);
+    if (ml < 2) return { ml };
+  }
+  return null;
+}
 
+// Calculate refill interval in days based on full protocol data
+function getRefillIntervalDays(protocol) {
+  const pt = (protocol.program_type || '').toLowerCase();
+  const supply = (protocol.supply_type || '').toLowerCase();
+  const dose = protocol.selected_dose || '';
+
+  // Weight Loss
   if (pt.includes('weight_loss')) {
-    if (pickupFrequency === 'weekly') return 7;
-    if (pickupFrequency === 'every_2_weeks') return 14;
+    if (protocol.pickup_frequency === 'weekly') return 7;
+    if (protocol.pickup_frequency === 'every_2_weeks') return 14;
     return 28;
   }
 
+  // HRT
   if (pt.includes('hrt')) {
-    const supplyDays = {
-      prefilled_1week: 7, prefilled_2week: 14, prefilled_4week: 28,
-      vial_5ml: 70, vial_10ml: 140, in_clinic: 7,
-    };
-    return supplyDays[(supplyType || '').toLowerCase()] || 30;
+    if (supply === 'pellet') return 120; // 4 months
+    if (supply === 'oral_30day' || supply.includes('oral')) return 30;
+    if (supply === 'in_clinic') return 7;
+
+    // Prefilled — supply_type defines pickup interval
+    if (supply.startsWith('prefilled_')) {
+      const prefillDays = { prefilled_1week: 7, prefilled_2week: 14, prefilled_4week: 28 };
+      if (supply === 'prefilled_1') return 7;
+      return prefillDays[supply] || 28;
+    }
+
+    // Vials — calculate from dose + injection frequency
+    if (supply.includes('vial')) {
+      const vialMl = supply === 'vial_5ml' ? 5 : 10;
+      const parsed = parseDoseMl(dose);
+      if (parsed?.weeks) return parsed.weeks * 7;
+      if (parsed?.ml) {
+        const isSubQ = (protocol.injection_method || '').toLowerCase() === 'subq';
+        const injectionsPerWeek = isSubQ ? 7 : (protocol.injection_frequency || 2);
+        const mlPerWeek = parsed.ml * injectionsPerWeek;
+        const weeks = vialMl / mlPerWeek;
+        return Math.round(weeks * 7);
+      }
+      return supply === 'vial_5ml' ? 42 : 84;
+    }
+
+    return 30;
   }
 
+  // Peptide
   if (pt === 'peptide') return 30;
 
   return 30;
@@ -52,10 +95,10 @@ export default async function handler(req, res) {
 
     const entryDate = dispense_date || new Date().toISOString().split('T')[0];
 
-    // Fetch protocol details for category mapping and interval calculation
+    // Fetch protocol details — include injection_method and injection_frequency for vial calc
     const { data: protocol, error: protocolError } = await supabase
       .from('protocols')
-      .select('id, program_type, program_name, medication, selected_dose, supply_type, pickup_frequency, delivery_method, sessions_used, next_expected_date')
+      .select('id, program_type, program_name, medication, selected_dose, supply_type, pickup_frequency, delivery_method, sessions_used, next_expected_date, injection_method, injection_frequency')
       .eq('id', protocol_id)
       .single();
 
@@ -107,11 +150,7 @@ export default async function handler(req, res) {
     }
 
     // Calculate next_expected_date from the dispense date + interval
-    const intervalDays = refill_interval_days || getRefillIntervalDays(
-      protocol.program_type,
-      protocol.supply_type,
-      protocol.pickup_frequency
-    );
+    const intervalDays = refill_interval_days || getRefillIntervalDays(protocol);
 
     const nextDate = new Date(entryDate + 'T12:00:00');
     nextDate.setDate(nextDate.getDate() + intervalDays);
@@ -130,7 +169,6 @@ export default async function handler(req, res) {
 
     if (updateError) {
       console.error('Protocol update error:', updateError);
-      // Non-fatal — pickup was still logged
     }
 
     console.log(`Dispensed: ${patient_name || patient_id} — ${protocol.medication || protocol.program_name} on ${entryDate}, next refill: ${nextExpectedDate} (+${intervalDays}d)`);

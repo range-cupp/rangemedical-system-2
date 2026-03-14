@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import AdminLayout from '../../components/AdminLayout';
+import { TESTOSTERONE_DOSES, WEIGHT_LOSS_DOSAGES, getDoseOptions } from '../../lib/protocol-config';
 
 // Friendly labels for supply types
 const SUPPLY_LABELS = {
@@ -38,6 +39,34 @@ function formatSupplyInfo(med) {
   if (med.injection_method) parts.push(med.injection_method === 'subq' ? 'Sub-Q (daily)' : 'IM (2x/week)');
   if (parts.length) return parts.join(' · ');
   return med.program_type?.replace(/_/g, ' ') || '';
+}
+
+// Get dosage options for dispense dropdown based on protocol type
+function getDispenseDoseOptions(med) {
+  const pt = (med.program_type || '').toLowerCase();
+  const programName = (med.program_name || med.medication || '').toLowerCase();
+
+  // HRT — male vs female
+  if (pt.includes('hrt')) {
+    const isFemale = programName.includes('female') || programName.includes('women');
+    const doses = isFemale ? TESTOSTERONE_DOSES.female : TESTOSTERONE_DOSES.male;
+    return doses.map(d => ({ value: d.value, label: d.label }));
+  }
+
+  // Weight Loss — look up by medication name
+  if (pt.includes('weight_loss')) {
+    const medName = med.medication || '';
+    const doses = WEIGHT_LOSS_DOSAGES[medName];
+    if (doses) return doses.map(d => ({ value: d, label: d }));
+  }
+
+  // Peptide — use getDoseOptions from protocol-config
+  if (pt === 'peptide') {
+    const doses = getDoseOptions('peptide', med.medication);
+    if (doses) return doses.map(d => ({ value: d, label: d }));
+  }
+
+  return null;
 }
 
 // Get supply type options available for dispense based on protocol type
@@ -114,7 +143,6 @@ export default function MedicationsPage() {
   const [dispenseDate, setDispenseDate] = useState('');
   const [selectedSupplyType, setSelectedSupplyType] = useState('');
   const [dispenseDosage, setDispenseDosage] = useState('');
-  const [editingDosage, setEditingDosage] = useState(false);
   const [logging, setLogging] = useState(false);
   const [logResult, setLogResult] = useState(null);
 
@@ -142,7 +170,6 @@ export default function MedicationsPage() {
     setDispenseDate(new Date().toISOString().split('T')[0]);
     setSelectedSupplyType(med.supply_type || '');
     setDispenseDosage(med.dosage || '');
-    setEditingDosage(false);
     setLogResult(null);
   };
 
@@ -398,38 +425,51 @@ export default function MedicationsPage() {
                 <div style={s.fieldValue}>{dispensingProtocol.medication || dispensingProtocol.program_name}</div>
               </div>
 
-              {/* Dosage — editable */}
-              {dispensingProtocol.dosage && (
-                <div style={s.fieldRow}>
-                  <div style={s.fieldLabel}>Dosage</div>
-                  {editingDosage ? (
-                    <input
-                      type="text"
-                      value={dispenseDosage}
-                      onChange={e => setDispenseDosage(e.target.value)}
-                      onBlur={() => { if (dispenseDosage) setEditingDosage(false); }}
-                      onKeyDown={e => { if (e.key === 'Enter' && dispenseDosage) setEditingDosage(false); }}
-                      autoFocus
-                      style={{
-                        flex: 1, padding: '6px 10px', fontSize: '14px', fontWeight: 600,
-                        border: '2px solid #2563eb', borderRadius: '6px', outline: 'none',
-                        fontFamily: 'inherit', color: '#111',
-                      }}
-                    />
-                  ) : (
-                    <div
-                      style={{ ...s.fieldValue, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                      onClick={() => setEditingDosage(true)}
-                    >
-                      <span>{dispenseDosage}</span>
-                      <span style={{ fontSize: '11px', color: '#9ca3af' }}>✎</span>
+              {/* Dosage — dropdown if options exist, otherwise static */}
+              {dispensingProtocol.dosage && (() => {
+                const doseOptions = getDispenseDoseOptions(dispensingProtocol);
+                if (doseOptions && doseOptions.length > 0) {
+                  return (
+                    <div style={{ ...s.fieldRow, flexDirection: 'column', alignItems: 'stretch' }}>
+                      <div style={s.fieldLabel}>Dosage</div>
+                      <select
+                        value={dispenseDosage}
+                        onChange={e => setDispenseDosage(e.target.value)}
+                        style={{
+                          width: '100%', padding: '10px 12px', fontSize: '14px', fontWeight: 600,
+                          border: dispenseDosage !== dispensingProtocol.dosage ? '2px solid #f59e0b' : '1px solid #e5e7eb',
+                          borderRadius: '8px', fontFamily: 'inherit', color: '#111',
+                          background: dispenseDosage !== dispensingProtocol.dosage ? '#fffbeb' : '#fff',
+                          cursor: 'pointer', outline: 'none', marginTop: '6px',
+                          appearance: 'none', backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath d=\'M6 8L1 3h10z\' fill=\'%236b7280\'/%3E%3C/svg%3E")',
+                          backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center',
+                          paddingRight: '32px',
+                        }}
+                      >
+                        {/* Include current dose if not in options list */}
+                        {!doseOptions.some(d => d.value === dispenseDosage) && dispenseDosage && (
+                          <option value={dispenseDosage}>{dispenseDosage} (current)</option>
+                        )}
+                        {doseOptions.map(d => (
+                          <option key={d.value} value={d.value}>{d.label}</option>
+                        ))}
+                      </select>
                       {dispenseDosage !== dispensingProtocol.dosage && (
-                        <span style={{ fontSize: '11px', color: '#f59e0b', fontWeight: 600 }}>(modified)</span>
+                        <div style={{ fontSize: '11px', color: '#f59e0b', fontWeight: 600, marginTop: '4px' }}>
+                          Changed from {dispensingProtocol.dosage}
+                        </div>
                       )}
                     </div>
-                  )}
-                </div>
-              )}
+                  );
+                }
+                // No dropdown options — show static
+                return (
+                  <div style={s.fieldRow}>
+                    <div style={s.fieldLabel}>Dosage</div>
+                    <div style={s.fieldValue}>{dispenseDosage}</div>
+                  </div>
+                );
+              })()}
 
               {/* Supply Type Selector */}
               {(() => {

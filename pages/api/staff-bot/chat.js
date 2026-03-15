@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 import {
   handleCheckAvailability,
   handleBookAppointment,
+  handleCancelAppointment,
   handleSendForms,
   handleQueryBilling,
   handleAddNote,
@@ -50,6 +51,20 @@ const TOOLS = [
         provider_name: { type: 'string', description: 'Optional: name of the specific nurse or provider to assign this to, e.g. "Lily"' },
       },
       required: ['service', 'date', 'time', 'patient_name'],
+    },
+  },
+  {
+    name: 'cancel_appointment',
+    description: 'Cancel an existing appointment for a patient. Looks up their booking by name and optionally by date or service, then cancels it in Cal.com and marks it cancelled in the system. Always confirm the specific appointment with the user before calling this.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        patient_name: { type: 'string', description: 'Full or partial name of the patient' },
+        date: { type: 'string', description: 'Optional date in YYYY-MM-DD format to narrow down which booking' },
+        service_type: { type: 'string', description: 'Optional service name to narrow down which booking, e.g. "Range IV"' },
+        reason: { type: 'string', description: 'Optional reason for cancellation' },
+      },
+      required: ['patient_name'],
     },
   },
   {
@@ -178,6 +193,7 @@ async function executeTool(toolName, toolInput, staff) {
   switch (toolName) {
     case 'check_availability':   return await handleCheckAvailability(toolInput);
     case 'book_appointment':     return await handleBookAppointment(toolInput);
+    case 'cancel_appointment':   return await handleCancelAppointment(toolInput);
     case 'send_forms':           return await handleSendForms(toolInput);
     case 'query_billing':        return await handleQueryBilling(toolInput);
     case 'add_note':             return await handleAddNote(toolInput, staff);

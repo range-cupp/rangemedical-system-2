@@ -19,6 +19,7 @@ import {
   handleGetPatientAppointments,
   handleRescheduleAppointment,
   handleSendDocument,
+  handleSearchKnowledge,
   DOCUMENT_CATALOG,
 } from '../../../lib/staff-bot';
 
@@ -234,6 +235,20 @@ Bundle types and what they include:
     },
   },
   {
+    name: 'search_knowledge',
+    description: 'Search the clinic knowledge base for SOPs, pre/post-service instructions, clinical protocols, and admin procedures. Use this when staff asks about how to do something, what a patient should do before or after a service, what a clinical protocol requires, or any question about clinic procedures and policies.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'Keywords to search for, e.g. "HBOT pre-service instructions", "peptide injection protocol", "post IV care", "cancellation policy"',
+        },
+      },
+      required: ['query'],
+    },
+  },
+  {
     name: 'send_document',
     description: `Send a link to a Range Medical service page to a patient via SMS or email. These are branded web pages on app.range-medical.com — not PDFs. Use this when staff says things like "send John the HBOT info", "text Sarah about hyperbaric oxygen", "email the tirzepatide page to Mike", "send the red light info to [patient]", or "send [patient] info about [service]". The document parameter should be the natural-language description of what to send (e.g. "hyperbaric oxygen", "tirzepatide", "methylene blue combo", "red light therapy", "NAD", "weight loss"). Available pages: ${DOCUMENT_CATALOG.map(d => d.name).join(', ')}.`,
     input_schema: {
@@ -268,6 +283,7 @@ async function executeTool(toolName, toolInput, staff) {
     case 'get_patient_appointments':  return await handleGetPatientAppointments(toolInput);
     case 'reschedule_appointment':    return await handleRescheduleAppointment(toolInput);
     case 'send_document':             return await handleSendDocument(toolInput);
+    case 'search_knowledge':          return await handleSearchKnowledge(toolInput);
     default:                          return `Unknown tool: ${toolName}`;
   }
 }
@@ -325,56 +341,12 @@ async function buildSystemPrompt(staff) {
     liveCatalogBlock = '(Live catalog unavailable — use get_service_info tool for pricing)';
   }
 
-  // Fetch SOPs and knowledge base entries — injected into prompt so the bot
-  // knows all clinic procedures, pre/post instructions, and policies.
-  let knowledgeBlock = '';
-  try {
-    const { data: entries } = await supabase
-      .from('sop_knowledge')
-      .select('category, title, content')
-      .eq('active', true)
-      .neq('category', 'patient_education')  // exclude PDF-sourced patient docs — too large, staff doesn't need them verbatim
-      .order('category')
-      .order('sort_order')
-      .order('created_at');
-
-    if (entries && entries.length > 0) {
-      const categoryLabels = {
-        pre_service:  'PRE-SERVICE INSTRUCTIONS',
-        post_service: 'POST-SERVICE INSTRUCTIONS',
-        clinical:     'CLINICAL PROTOCOLS',
-        protocol:     'PROTOCOLS',
-        admin:        'ADMIN / OPERATIONS',
-        faq:          'STAFF FAQs',
-        general:      'GENERAL KNOWLEDGE',
-      };
-      const grouped = {};
-      for (const e of entries) {
-        const cat = e.category || 'general';
-        if (!grouped[cat]) grouped[cat] = [];
-        grouped[cat].push(e);
-      }
-      const lines = ['── CLINIC KNOWLEDGE BASE (SOPs & PROCEDURES) ───────────────────────'];
-      for (const [cat, items] of Object.entries(grouped)) {
-        lines.push(`\n${categoryLabels[cat] || cat.toUpperCase()}`);
-        for (const e of items) {
-          lines.push(`\n[${e.title}]\n${e.content}`);
-        }
-      }
-      lines.push('\n────────────────────────────────────────────────────────────────────');
-      knowledgeBlock = lines.join('\n');
-      // Hard cap — keeps input tokens per Claude API call under ~10K so that
-      // multi-tool requests (cancel both, book + confirm, etc.) don't exceed the
-      // 50K input tokens/minute rate limit on the Build tier.
-      // 8K chars ≈ 2K tokens — plenty for operational SOPs.
-      const KB_CHAR_LIMIT = 8000;
-      if (knowledgeBlock.length > KB_CHAR_LIMIT) {
-        knowledgeBlock = knowledgeBlock.slice(0, KB_CHAR_LIMIT) + '\n\n[Knowledge base truncated — remaining entries omitted]\n────────────────────────────────────────────────────────────────────';
-      }
-    }
-  } catch (err) {
-    console.warn('[StaffBot] Could not load knowledge base:', err.message);
-  }
+  // Knowledge base is now on-demand via the search_knowledge tool.
+  // No bulk injection here — keeps system prompt token-lean so multi-step
+  // operations (cancel both, book + confirm) don't exceed the 50K input
+  // tokens/minute rate limit. The bot calls search_knowledge when it needs
+  // SOP content instead of having everything pre-loaded.
+  const knowledgeBlock = '';
 
   const now = new Date();
 
@@ -437,7 +409,16 @@ Cancellation policy: 24-hour notice required. Same-day cancellations may be subj
 Parking: Free parking available in the Westcliff Plaza lot.
 First visit: Patients should arrive 10–15 min early to complete paperwork. Wear comfortable clothing. No fasting required unless labs are ordered.
 
-── SERVICES & KNOWLEDGE BASE ────────────────────────────────────────
+── KNOWLEDGE BASE ───────────────────────────────────────────────────
+For SOPs, pre/post-service instructions, clinical protocols, and admin
+procedures — use the search_knowledge tool. Examples:
+  "What should a patient do before HBOT?" → search_knowledge("HBOT pre-service instructions")
+  "How do we administer peptide injections?" → search_knowledge("peptide injection protocol")
+  "What's our cancellation policy?" → search_knowledge("cancellation policy")
+Always search before saying you don't know a procedure or policy.
+─────────────────────────────────────────────────────────────────────
+
+── SERVICES QUICK REFERENCE ─────────────────────────────────────────
 
 IV THERAPY
   Duration: 30–60 min standard. NAD+ runs 2–4 hours. Exosome IV 30–60 min.
@@ -625,6 +606,7 @@ GENERAL BEHAVIOR:
 - Be direct and efficient. Staff are busy — get to the point.
 - You know this clinic inside and out. Answer service, prep, policy, and FAQ questions confidently without needing to look them up.
 - Use tools when the question is about a specific patient's data: lookup_patient for contact info, get_patient_protocols for what they're on, get_patient_appointments for their schedule.
+- Use search_knowledge for ANY question about clinic procedures, pre/post-service instructions, protocols, or policies. Never say "I don't know the specific protocol" — search first.
 - Understand natural phrasing. "Hey could you send Chris Cupp the new patient forms" → send_forms, patient "Chris Cupp", bundle "new-patient".
 - Dates: resolve "tomorrow", "Monday", "next Friday" using the date table above.
 - Only ask a follow-up question when genuinely stuck. One question at a time.

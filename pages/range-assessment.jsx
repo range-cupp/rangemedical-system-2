@@ -116,6 +116,104 @@ function AssessmentPaymentForm({ onSuccess, leadId }) {
   );
 }
 
+// Inner component for Energy Lab Panel Stripe payment form
+function EnergyPaymentForm({ onSuccess, leadId, panelLabel, panelPrice, panelPriceCents }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [processing, setProcessing] = useState(false);
+  const [payError, setPayError] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+
+    setProcessing(true);
+    setPayError(null);
+
+    try {
+      const baseUrl = window.location.origin;
+      const returnUrl = `${baseUrl}/range-assessment?payment_complete=true`;
+
+      const { error: stripeError, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        confirmParams: { return_url: returnUrl },
+        redirect: 'if_required',
+      });
+
+      if (stripeError) {
+        throw new Error(stripeError.message);
+      }
+
+      if (paymentIntent && paymentIntent.status === 'succeeded') {
+        await fetch('/api/assessment/confirm-payment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            leadId,
+            paymentIntentId: paymentIntent.id,
+          }),
+        });
+        onSuccess();
+      }
+    } catch (err) {
+      setPayError(err.message);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', fontSize: '1rem', color: '#171717' }}>
+          <span>{panelLabel}</span>
+          <span style={{ fontWeight: 700 }}>{panelPrice}</span>
+        </div>
+        <div style={{ borderTop: '2px solid #eee', paddingTop: 12, display: 'flex', justifyContent: 'space-between', fontSize: '1.125rem', fontWeight: 700, color: '#171717' }}>
+          <span>Total</span>
+          <span>{panelPriceCents}</span>
+        </div>
+      </div>
+
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '0.875rem 1rem', marginBottom: 24 }}>
+        <p style={{ margin: 0, fontSize: '0.875rem', color: '#166534' }}>
+          Includes your blood draw and a provider review of your results.
+        </p>
+      </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <PaymentElement options={{ layout: 'tabs' }} />
+      </div>
+
+      {payError && (
+        <p style={{ color: '#dc2626', fontSize: '0.8125rem', marginBottom: 12, padding: '8px 12px', background: '#fef2f2', borderRadius: 6 }}>
+          {payError}
+        </p>
+      )}
+
+      <button
+        type="submit"
+        disabled={!stripe || processing}
+        style={{
+          width: '100%',
+          padding: '1rem',
+          background: '#000',
+          color: '#fff',
+          border: 'none',
+          borderRadius: 10,
+          fontSize: '1rem',
+          fontWeight: 600,
+          cursor: processing ? 'default' : 'pointer',
+          opacity: processing ? 0.7 : 1,
+          fontFamily: 'inherit',
+        }}
+      >
+        {processing ? 'Processing...' : `Pay ${panelPrice}`}
+      </button>
+    </form>
+  );
+}
+
 // Biomarker mapping - which markers are relevant for each symptom/goal
 const biomarkerMapping = {
   symptoms: {
@@ -244,7 +342,7 @@ export default function RangeAssessment() {
   const [isCompletingIntake, setIsCompletingIntake] = useState(false);
   const [leadId, setLeadId] = useState(null);
 
-  // Payment & scheduling state (injury path)
+  // Payment & scheduling state (both paths)
   const [clientSecret, setClientSecret] = useState(null);
   const [showPayment, setShowPayment] = useState(false);
   const [showScheduling, setShowScheduling] = useState(false);
@@ -254,6 +352,21 @@ export default function RangeAssessment() {
   const [isBooking, setIsBooking] = useState(false);
   const [bookingResult, setBookingResult] = useState(null);
   const [slotsLoading, setSlotsLoading] = useState(false);
+
+  // Energy path specific state
+  const [selectedPanel, setSelectedPanel] = useState(null); // 'essential' or 'elite'
+  const [showEnergyPayment, setShowEnergyPayment] = useState(false);
+  const [showPrepChecklist, setShowPrepChecklist] = useState(false);
+  const [showEnergyScheduling, setShowEnergyScheduling] = useState(false);
+  const [showEnergyConfirmation, setShowEnergyConfirmation] = useState(false);
+  const [prepChecks, setPrepChecks] = useState({
+    fasting: false,
+    hydration: false,
+    noNSAIDs: false,
+    noAlcohol: false,
+    cycleAware: false,
+    timing: false,
+  });
 
   const [intakeData, setIntakeData] = useState({
     // Personal Details
@@ -494,18 +607,6 @@ export default function RangeAssessment() {
     }
   };
 
-  // Payment links
-  const PAYMENT_LINKS = {
-    elite: 'https://link.range-medical.com/payment-link/698365ba6503ca98c6834212',
-    essential: 'https://link.range-medical.com/payment-link/698365fcc80eaf78e79b8ef7'
-  };
-
-  // Open payment in new tab
-  const openPayment = (panelType) => {
-    const url = PAYMENT_LINKS[panelType];
-    window.open(url, '_blank');
-  };
-
   // Handle intake form completion (finalIntakeData passed directly from form to avoid stale state)
   const handleIntakeComplete = async (finalIntakeData) => {
     setIsCompletingIntake(true);
@@ -624,6 +725,88 @@ export default function RangeAssessment() {
     }
   };
 
+  // Initialize Stripe PaymentIntent for energy lab panel
+  const initializeEnergyPayment = async (panelType) => {
+    try {
+      const response = await fetch('/api/assessment/energy-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadId,
+          email: formData.email,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phone: formData.phone,
+          panelType,
+        }),
+      });
+      const data = await response.json();
+      if (data.clientSecret) {
+        setClientSecret(data.clientSecret);
+      } else {
+        setError('Could not initialize payment. Please call (949) 997-3988.');
+      }
+    } catch (err) {
+      console.error('Energy payment init error:', err);
+      setError('Could not initialize payment. Please call (949) 997-3988.');
+    }
+  };
+
+  // Book energy assessment blood draw appointment
+  const handleEnergyBooking = async () => {
+    if (!selectedSlot) return;
+    setIsBooking(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/assessment/energy-book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadId,
+          eventTypeId: ASSESSMENT_EVENT_TYPE_ID,
+          start: selectedSlot.time,
+          patientName: `${formData.firstName} ${formData.lastName}`,
+          patientEmail: formData.email,
+          patientPhone: formData.phone,
+          panelType: selectedPanel,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Booking failed');
+      }
+
+      setBookingResult(data.booking);
+      setShowEnergyScheduling(false);
+      setShowEnergyConfirmation(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      setError(err.message || 'Could not book appointment. Please call (949) 997-3988.');
+    } finally {
+      setIsBooking(false);
+    }
+  };
+
+  // Check if all required prep items are checked
+  const allPrepChecked = prepChecks.fasting && prepChecks.hydration && prepChecks.noNSAIDs && prepChecks.noAlcohol && prepChecks.timing;
+
+  // Generate next 14 days for date picker (skip Sundays, skip today for energy path)
+  const getAvailableDatesEnergy = () => {
+    const dates = [];
+    const today = new Date();
+    for (let i = 1; i < 22 && dates.length < 14; i++) { // Start from i=1 (tomorrow)
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      if (d.getDay() !== 0) { // Skip Sunday
+        dates.push(d);
+      }
+    }
+    return dates;
+  };
+
   // Fetch available slots for a date
   const fetchSlots = async (date) => {
     if (!ASSESSMENT_EVENT_TYPE_ID) {
@@ -738,7 +921,103 @@ export default function RangeAssessment() {
     }) + ' PT';
   };
 
-  // Confirmation screen (both paths)
+  // Energy path confirmation screen (after payment + booking)
+  if (showEnergyConfirmation) {
+    const panelLabel = selectedPanel === 'elite' ? 'Elite Lab Panel' : 'Essential Lab Panel';
+    return (
+      <Layout>
+        <Head>
+          <title>You're All Set | Range Medical</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Head>
+        <div className="ra-page">
+          <section style={{ padding: '4rem 1.5rem', textAlign: 'center', minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ maxWidth: 560, margin: '0 auto' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 80, height: 80, background: '#22c55e', borderRadius: '50%', marginBottom: '1.5rem' }}>
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+              </div>
+              <h1 style={{ fontSize: '2.25rem', fontWeight: 700, color: '#171717', margin: '0 0 1rem' }}>
+                You're All Set, {formData.firstName}
+              </h1>
+              <p style={{ fontSize: '1.0625rem', color: '#525252', lineHeight: 1.7, margin: '0 0 2rem' }}>
+                Your {panelLabel} is paid and your blood draw is booked.
+              </p>
+
+              {bookingResult && (
+                <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
+                  <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717', margin: '0 0 0.75rem' }}>Your Blood Draw Appointment</h3>
+                  <p style={{ fontSize: '1rem', color: '#171717', fontWeight: 600, margin: '0 0 0.5rem' }}>
+                    {formatBookingTime(bookingResult.start)}
+                  </p>
+                  <p style={{ fontSize: '0.9375rem', color: '#525252', lineHeight: 1.6, margin: '0 0 0.5rem' }}>
+                    1901 Westcliff Dr, Suite 10, Newport Beach, CA
+                  </p>
+                  <p style={{ fontSize: '0.9375rem', color: '#525252', lineHeight: 1.6, margin: '0 0 1rem' }}>
+                    We've texted a short medical intake form to your phone — please complete it before your visit so we're ready to go.
+                  </p>
+                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '0.875rem 1rem' }}>
+                    <p style={{ margin: 0, fontSize: '0.875rem', color: '#166534' }}>
+                      Didn't get the text? Check your messages at {formData.phone} or call us at (949) 997-3988.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Pre-Instructions Reminder */}
+              <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717', margin: '0 0 1rem' }}>Before Your Appointment</h3>
+                <div style={{ display: 'grid', gap: '0.625rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.625rem', fontSize: '0.9375rem', color: '#525252' }}>
+                    <span style={{ color: '#22c55e', fontWeight: 700, flexShrink: 0 }}>✓</span>
+                    <span>Fast for 10–12 hours before your draw (water and black coffee are fine)</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.625rem', fontSize: '0.9375rem', color: '#525252' }}>
+                    <span style={{ color: '#22c55e', fontWeight: 700, flexShrink: 0 }}>✓</span>
+                    <span>Drink plenty of water 1–2 hours before</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.625rem', fontSize: '0.9375rem', color: '#525252' }}>
+                    <span style={{ color: '#22c55e', fontWeight: 700, flexShrink: 0 }}>✓</span>
+                    <span>No NSAIDs (Advil, ibuprofen) for 48 hours before</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.625rem', fontSize: '0.9375rem', color: '#525252' }}>
+                    <span style={{ color: '#22c55e', fontWeight: 700, flexShrink: 0 }}>✓</span>
+                    <span>No alcohol the night before</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.625rem', fontSize: '0.9375rem', color: '#525252' }}>
+                    <span style={{ color: '#22c55e', fontWeight: 700, flexShrink: 0 }}>✓</span>
+                    <span>Bring a valid ID</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.625rem', fontSize: '0.9375rem', color: '#525252' }}>
+                    <span style={{ color: '#22c55e', fontWeight: 700, flexShrink: 0 }}>✓</span>
+                    <span>Wear a shirt with sleeves that roll up easily</span>
+                  </div>
+                </div>
+                <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '0.875rem 1rem', marginTop: '1rem' }}>
+                  <p style={{ margin: 0, fontSize: '0.875rem', color: '#92400e' }}>
+                    <strong>Women:</strong> If cycling, schedule on Day 3 of your period for the most accurate hormone results. If your cycle doesn't line up, call us at (949) 997-3988 and we'll help.
+                  </p>
+                </div>
+                <p style={{ fontSize: '0.875rem', color: '#737373', margin: '1rem 0 0' }}>
+                  Full prep details: <a href="/lab-prep" target="_blank" rel="noopener noreferrer" style={{ color: '#171717', fontWeight: 600, textDecoration: 'underline' }}>range-medical.com/lab-prep</a>
+                </p>
+              </div>
+
+              <p style={{ fontSize: '0.9375rem', color: '#737373', margin: '1.5rem 0 0' }}>
+                Questions? Call us at{' '}
+                <a href="tel:9499973988" style={{ color: '#171717', fontWeight: 600 }}>(949) 997-3988</a>
+              </p>
+            </div>
+          </section>
+        </div>
+        <style jsx>{styles}</style>
+      </Layout>
+    );
+  }
+
+  // Injury path confirmation screen
   if (showConfirmation) {
     return (
       <Layout>
@@ -762,65 +1041,32 @@ export default function RangeAssessment() {
                 We've sent a complete summary to our team.
               </p>
 
-              {selectedPath === 'injury' ? (
-                <>
-                  {bookingResult && (
-                    <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
-                      <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717', margin: '0 0 0.75rem' }}>Your In-Clinic Visit</h3>
-                      <p style={{ fontSize: '1rem', color: '#171717', fontWeight: 600, margin: '0 0 0.5rem' }}>
-                        {formatBookingTime(bookingResult.start)}
-                      </p>
-                      <p style={{ fontSize: '0.9375rem', color: '#525252', lineHeight: 1.6, margin: '0 0 0.5rem' }}>
-                        We'll go over your treatment options in person based on your assessment answers. Your $250 goes directly toward whichever protocol you choose.
-                      </p>
-                      <p style={{ fontSize: '0.9375rem', color: '#525252', lineHeight: 1.6, margin: '0 0 1rem' }}>
-                        We've texted a short medical intake form to your phone — please complete it before your visit so we're ready to go.
-                      </p>
-                      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '0.875rem 1rem' }}>
-                        <p style={{ margin: 0, fontSize: '0.875rem', color: '#166534' }}>
-                          Didn't get the text? Check your messages at {formData.phone} or call us at (949) 997-3988.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  {!bookingResult && (
-                    <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
-                      <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717', margin: '0 0 0.75rem' }}>What Happens Next</h3>
-                      <p style={{ fontSize: '0.9375rem', color: '#525252', lineHeight: 1.6, margin: 0 }}>
-                        Our team will review your information and reach out to schedule your consultation. We'll create a personalized peptide protocol based on your assessment and medical history.
-                      </p>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <>
-                  <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
-                    <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717', margin: '0 0 0.75rem' }}>What Happens Next</h3>
-                    <p style={{ fontSize: '0.9375rem', color: '#525252', lineHeight: 1.6, margin: '0 0 1rem' }}>
-                      Book your recommended lab panel below and our team will reach out to schedule your blood draw.
+              {bookingResult && (
+                <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
+                  <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717', margin: '0 0 0.75rem' }}>Your In-Clinic Visit</h3>
+                  <p style={{ fontSize: '1rem', color: '#171717', fontWeight: 600, margin: '0 0 0.5rem' }}>
+                    {formatBookingTime(bookingResult.start)}
+                  </p>
+                  <p style={{ fontSize: '0.9375rem', color: '#525252', lineHeight: 1.6, margin: '0 0 0.5rem' }}>
+                    We'll go over your treatment options in person based on your assessment answers. Your $250 goes directly toward whichever protocol you choose.
+                  </p>
+                  <p style={{ fontSize: '0.9375rem', color: '#525252', lineHeight: 1.6, margin: '0 0 1rem' }}>
+                    We've texted a short medical intake form to your phone — please complete it before your visit so we're ready to go.
+                  </p>
+                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '0.875rem 1rem' }}>
+                    <p style={{ margin: 0, fontSize: '0.875rem', color: '#166534' }}>
+                      Didn't get the text? Check your messages at {formData.phone} or call us at (949) 997-3988.
                     </p>
-                    <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                      <a
-                        href={PAYMENT_LINKS[recommendation?.panel || 'essential']}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ display: 'inline-block', background: '#000', color: '#fff', padding: '0.875rem 1.5rem', borderRadius: 8, fontWeight: 600, fontSize: '0.9375rem', textDecoration: 'none' }}
-                      >
-                        Pay & Book {recommendation?.panel === 'elite' ? 'Elite Panel — $750' : 'Essential Panel — $350'}
-                      </a>
-                      {recommendation?.panel === 'elite' && (
-                        <a
-                          href={PAYMENT_LINKS.essential}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ display: 'inline-block', background: '#fff', color: '#171717', padding: '0.875rem 1.5rem', borderRadius: 8, fontWeight: 600, fontSize: '0.9375rem', textDecoration: 'none', border: '1px solid #e5e5e5' }}
-                        >
-                          Essential Panel — $350
-                        </a>
-                      )}
-                    </div>
                   </div>
-                </>
+                </div>
+              )}
+              {!bookingResult && (
+                <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
+                  <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717', margin: '0 0 0.75rem' }}>What Happens Next</h3>
+                  <p style={{ fontSize: '0.9375rem', color: '#525252', lineHeight: 1.6, margin: 0 }}>
+                    Our team will review your information and reach out to schedule your consultation. We'll create a personalized peptide protocol based on your assessment and medical history.
+                  </p>
+                </div>
               )}
 
               <p style={{ fontSize: '0.9375rem', color: '#737373', margin: '1.5rem 0 0' }}>
@@ -860,6 +1106,377 @@ export default function RangeAssessment() {
           error={error}
           patientName={formData.firstName}
         />
+        <style jsx>{styles}</style>
+      </Layout>
+    );
+  }
+
+  // Energy path: Payment screen
+  if (showEnergyPayment) {
+    const panelLabel = selectedPanel === 'elite' ? 'Elite Lab Panel' : 'Essential Lab Panel';
+    const panelPrice = selectedPanel === 'elite' ? '$750' : '$350';
+    const panelPriceCents = selectedPanel === 'elite' ? '$750.00' : '$350.00';
+
+    return (
+      <Layout>
+        <Head>
+          <title>Payment | Range Medical</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Head>
+        <div className="ra-page">
+          <section style={{ padding: '3rem 1.5rem', minHeight: '60vh' }}>
+            <div style={{ maxWidth: 480, margin: '0 auto' }}>
+              <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                <p style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#737373', marginBottom: '0.5rem' }}>Step 1 of 3</p>
+                <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#171717', margin: '0 0 0.5rem' }}>Payment</h1>
+                <p style={{ fontSize: '0.9375rem', color: '#525252', margin: 0 }}>
+                  Pay for your {panelLabel} to continue
+                </p>
+              </div>
+
+              {stripePromise && clientSecret ? (
+                <Elements
+                  stripe={stripePromise}
+                  options={{
+                    clientSecret,
+                    appearance: {
+                      theme: 'stripe',
+                      variables: {
+                        colorPrimary: '#000000',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                        borderRadius: '8px',
+                      },
+                    },
+                  }}
+                >
+                  <EnergyPaymentForm
+                    leadId={leadId}
+                    panelLabel={panelLabel}
+                    panelPrice={panelPrice}
+                    panelPriceCents={panelPriceCents}
+                    onSuccess={() => {
+                      setShowEnergyPayment(false);
+                      setShowPrepChecklist(true);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                  />
+                </Elements>
+              ) : error ? (
+                <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                  <p style={{ fontSize: '48px', marginBottom: 16 }}>⚠️</p>
+                  <p style={{ color: '#dc2626', fontSize: '0.875rem', marginBottom: 12 }}>{error}</p>
+                  <p style={{ color: '#888', fontSize: '0.8125rem' }}>
+                    If this issue persists, please call <strong>(949) 997-3988</strong>.
+                  </p>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                  <p style={{ color: '#888', fontSize: '0.875rem' }}>Loading payment options...</p>
+                </div>
+              )}
+
+              <p style={{ textAlign: 'center', fontSize: '0.8125rem', color: '#a3a3a3', marginTop: '1.5rem' }}>
+                Questions? Call <a href="tel:9499973988" style={{ color: '#737373' }}>(949) 997-3988</a>
+              </p>
+            </div>
+          </section>
+        </div>
+        <style jsx>{styles}</style>
+      </Layout>
+    );
+  }
+
+  // Energy path: Pre-instructions checklist screen
+  if (showPrepChecklist) {
+    return (
+      <Layout>
+        <Head>
+          <title>Blood Draw Preparation | Range Medical</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Head>
+        <div className="ra-page">
+          <section style={{ padding: '3rem 1.5rem', minHeight: '60vh' }}>
+            <div style={{ maxWidth: 560, margin: '0 auto' }}>
+              <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                <p style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#737373', marginBottom: '0.5rem' }}>Step 2 of 3</p>
+                <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#171717', margin: '0 0 0.5rem' }}>Blood Draw Preparation</h1>
+                <p style={{ fontSize: '0.9375rem', color: '#525252', margin: 0 }}>
+                  Please review and confirm each item before booking your appointment
+                </p>
+              </div>
+
+              {/* General Prep */}
+              <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.5rem', marginBottom: '1rem' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#171717', margin: '0 0 1rem' }}>General Preparation</h3>
+
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.875rem 1rem', background: prepChecks.fasting ? '#f0fdf4' : '#fff', border: `1px solid ${prepChecks.fasting ? '#bbf7d0' : '#e5e5e5'}`, borderRadius: 8, cursor: 'pointer', marginBottom: '0.625rem', transition: 'all 0.2s' }}>
+                  <input type="checkbox" checked={prepChecks.fasting} onChange={(e) => setPrepChecks(prev => ({ ...prev, fasting: e.target.checked }))} style={{ width: 20, height: 20, marginTop: 2, accentColor: '#22c55e', flexShrink: 0 }} />
+                  <div>
+                    <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9375rem', color: '#171717' }}>I will fast for 10–12 hours before my blood draw</p>
+                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.8125rem', color: '#737373' }}>Water and black coffee (no creamer or sugar) are fine</p>
+                  </div>
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.875rem 1rem', background: prepChecks.hydration ? '#f0fdf4' : '#fff', border: `1px solid ${prepChecks.hydration ? '#bbf7d0' : '#e5e5e5'}`, borderRadius: 8, cursor: 'pointer', marginBottom: '0.625rem', transition: 'all 0.2s' }}>
+                  <input type="checkbox" checked={prepChecks.hydration} onChange={(e) => setPrepChecks(prev => ({ ...prev, hydration: e.target.checked }))} style={{ width: 20, height: 20, marginTop: 2, accentColor: '#22c55e', flexShrink: 0 }} />
+                  <div>
+                    <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9375rem', color: '#171717' }}>I will drink plenty of water 1–2 hours before</p>
+                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.8125rem', color: '#737373' }}>This makes your veins easier to find for the draw</p>
+                  </div>
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.875rem 1rem', background: prepChecks.noNSAIDs ? '#f0fdf4' : '#fff', border: `1px solid ${prepChecks.noNSAIDs ? '#bbf7d0' : '#e5e5e5'}`, borderRadius: 8, cursor: 'pointer', marginBottom: '0.625rem', transition: 'all 0.2s' }}>
+                  <input type="checkbox" checked={prepChecks.noNSAIDs} onChange={(e) => setPrepChecks(prev => ({ ...prev, noNSAIDs: e.target.checked }))} style={{ width: 20, height: 20, marginTop: 2, accentColor: '#22c55e', flexShrink: 0 }} />
+                  <div>
+                    <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9375rem', color: '#171717' }}>I will avoid NSAIDs (Advil, ibuprofen) for 48 hours before</p>
+                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.8125rem', color: '#737373' }}>These can affect certain blood test results</p>
+                  </div>
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.875rem 1rem', background: prepChecks.noAlcohol ? '#f0fdf4' : '#fff', border: `1px solid ${prepChecks.noAlcohol ? '#bbf7d0' : '#e5e5e5'}`, borderRadius: 8, cursor: 'pointer', marginBottom: '0.625rem', transition: 'all 0.2s' }}>
+                  <input type="checkbox" checked={prepChecks.noAlcohol} onChange={(e) => setPrepChecks(prev => ({ ...prev, noAlcohol: e.target.checked }))} style={{ width: 20, height: 20, marginTop: 2, accentColor: '#22c55e', flexShrink: 0 }} />
+                  <div>
+                    <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9375rem', color: '#171717' }}>I will avoid alcohol the night before</p>
+                  </div>
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.875rem 1rem', background: prepChecks.timing ? '#f0fdf4' : '#fff', border: `1px solid ${prepChecks.timing ? '#bbf7d0' : '#e5e5e5'}`, borderRadius: 8, cursor: 'pointer', transition: 'all 0.2s' }}>
+                  <input type="checkbox" checked={prepChecks.timing} onChange={(e) => setPrepChecks(prev => ({ ...prev, timing: e.target.checked }))} style={{ width: 20, height: 20, marginTop: 2, accentColor: '#22c55e', flexShrink: 0 }} />
+                  <div>
+                    <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9375rem', color: '#171717' }}>I understand that morning appointments (7:30–9:30 AM) are best for hormone accuracy</p>
+                    <p style={{ margin: '0.25rem 0 0', fontSize: '0.8125rem', color: '#737373' }}>Especially important for cortisol, testosterone, and prolactin testing</p>
+                  </div>
+                </label>
+              </div>
+
+              {/* Women's Note */}
+              <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '1.25rem', marginBottom: '1rem' }}>
+                <h4 style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#92400e', margin: '0 0 0.5rem' }}>For Women</h4>
+                <p style={{ fontSize: '0.875rem', color: '#92400e', lineHeight: 1.6, margin: '0 0 0.75rem' }}>
+                  If you're still cycling, the best time for labs is <strong>Day 3 of your period</strong>. If your cycle doesn't line up with your appointment, don't cancel — text or call us at <strong>(949) 997-3988</strong> and we'll help.
+                </p>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.625rem', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={prepChecks.cycleAware} onChange={(e) => setPrepChecks(prev => ({ ...prev, cycleAware: e.target.checked }))} style={{ width: 18, height: 18, marginTop: 2, accentColor: '#f59e0b', flexShrink: 0 }} />
+                  <span style={{ fontSize: '0.875rem', color: '#78350f', fontWeight: 500 }}>I understand (or this doesn't apply to me)</span>
+                </label>
+              </div>
+
+              {/* Medication Quick Reference */}
+              <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.25rem', marginBottom: '1.5rem' }}>
+                <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#171717', margin: '0 0 0.75rem' }}>Medication Quick Reference</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, padding: '0.5rem 0.75rem' }}>
+                    <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 600, color: '#991b1b' }}>NSAIDs</p>
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#b91c1c' }}>Stop 48hrs before</p>
+                  </div>
+                  <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, padding: '0.5rem 0.75rem' }}>
+                    <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 600, color: '#92400e' }}>Thyroid Meds</p>
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#a16207' }}>Skip morning of draw</p>
+                  </div>
+                  <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, padding: '0.5rem 0.75rem' }}>
+                    <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 600, color: '#991b1b' }}>Testosterone Inj.</p>
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#b91c1c' }}>Hold 3 days before</p>
+                  </div>
+                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 6, padding: '0.5rem 0.75rem' }}>
+                    <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 600, color: '#166534' }}>Estrogen & Prog.</p>
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#15803d' }}>Continue as normal</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Continue Button */}
+              <button
+                onClick={() => {
+                  setShowPrepChecklist(false);
+                  setShowEnergyScheduling(true);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                disabled={!allPrepChecked || !prepChecks.cycleAware}
+                style={{
+                  width: '100%',
+                  padding: '1rem',
+                  background: (allPrepChecked && prepChecks.cycleAware) ? '#000' : '#d4d4d4',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 10,
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  cursor: (allPrepChecked && prepChecks.cycleAware) ? 'pointer' : 'default',
+                  fontFamily: 'inherit',
+                  transition: 'background 0.2s',
+                }}
+              >
+                Continue to Schedule
+              </button>
+              {!(allPrepChecked && prepChecks.cycleAware) && (
+                <p style={{ textAlign: 'center', fontSize: '0.8125rem', color: '#a3a3a3', marginTop: '0.75rem' }}>
+                  Please confirm all items above to continue
+                </p>
+              )}
+
+              <p style={{ textAlign: 'center', fontSize: '0.8125rem', color: '#a3a3a3', marginTop: '1rem' }}>
+                Full prep details: <a href="/lab-prep" target="_blank" rel="noopener noreferrer" style={{ color: '#737373' }}>range-medical.com/lab-prep</a>
+              </p>
+            </div>
+          </section>
+        </div>
+        <style jsx>{styles}</style>
+      </Layout>
+    );
+  }
+
+  // Energy path: Scheduling screen
+  if (showEnergyScheduling) {
+    const dates = getAvailableDatesEnergy();
+    const slotsForDate = selectedDate
+      ? availableSlots[selectedDate.toISOString().split('T')[0]] || []
+      : [];
+
+    return (
+      <Layout>
+        <Head>
+          <title>Book Your Blood Draw | Range Medical</title>
+          <meta name="robots" content="noindex, nofollow" />
+        </Head>
+        <div className="ra-page">
+          <section style={{ padding: '3rem 1.5rem', minHeight: '60vh' }}>
+            <div style={{ maxWidth: 560, margin: '0 auto' }}>
+              <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                <p style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#737373', marginBottom: '0.5rem' }}>Step 3 of 3</p>
+                <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: '#171717', margin: '0 0 0.5rem' }}>Pick a Time</h1>
+                <p style={{ fontSize: '0.9375rem', color: '#525252', margin: 0 }}>
+                  Choose a day and time for your blood draw
+                </p>
+              </div>
+
+              <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: '0.875rem 1rem', marginBottom: '1.5rem' }}>
+                <p style={{ margin: 0, fontSize: '0.875rem', color: '#0369a1' }}>
+                  <strong>Tip:</strong> Morning appointments (7:30–9:30 AM) give the most accurate hormone results.
+                </p>
+              </div>
+
+              {/* Date picker */}
+              <div style={{ marginBottom: '2rem' }}>
+                <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#525252', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Select a Date</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {dates.map((d) => {
+                    const isSelected = selectedDate && d.toDateString() === selectedDate.toDateString();
+                    const dateStr = d.toISOString().split('T')[0];
+                    const isTomorrow = new Date(new Date().getTime() + 86400000).toDateString() === d.toDateString();
+                    return (
+                      <button
+                        key={dateStr}
+                        onClick={() => {
+                          setSelectedDate(d);
+                          setSelectedSlot(null);
+                          setAvailableSlots({});
+                          fetchSlots(dateStr);
+                        }}
+                        style={{
+                          padding: '0.625rem 1rem',
+                          borderRadius: 8,
+                          border: isSelected ? '2px solid #000' : '1px solid #e5e5e5',
+                          background: isSelected ? '#000' : '#fff',
+                          color: isSelected ? '#fff' : '#171717',
+                          fontSize: '0.8125rem',
+                          fontWeight: isSelected ? 600 : 400,
+                          cursor: 'pointer',
+                          fontFamily: 'inherit',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {isTomorrow ? 'Tomorrow' : formatDateShort(d)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Time slots */}
+              {selectedDate && (
+                <div style={{ marginBottom: '2rem' }}>
+                  <p style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#525252', marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Available Times — {formatDateShort(selectedDate)}
+                  </p>
+
+                  {slotsLoading ? (
+                    <p style={{ color: '#888', fontSize: '0.875rem', padding: '1rem 0' }}>Loading available times...</p>
+                  ) : slotsForDate.length > 0 ? (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '0.5rem' }}>
+                      {slotsForDate.map((slot) => {
+                        const isSelected = selectedSlot && selectedSlot.time === slot.time;
+                        return (
+                          <button
+                            key={slot.time}
+                            onClick={() => setSelectedSlot(slot)}
+                            style={{
+                              padding: '0.75rem 0.5rem',
+                              borderRadius: 8,
+                              border: isSelected ? '2px solid #000' : '1px solid #e5e5e5',
+                              background: isSelected ? '#000' : '#fff',
+                              color: isSelected ? '#fff' : '#171717',
+                              fontSize: '0.9375rem',
+                              fontWeight: isSelected ? 600 : 400,
+                              cursor: 'pointer',
+                              fontFamily: 'inherit',
+                            }}
+                          >
+                            {formatSlotTime(slot.time)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div style={{ background: '#fafafa', borderRadius: 8, padding: '1.25rem', textAlign: 'center' }}>
+                      <p style={{ color: '#737373', fontSize: '0.875rem', margin: 0 }}>
+                        No available times on this date. Please try another day.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Booking confirmation */}
+              {selectedSlot && (
+                <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.5rem', marginBottom: '1.5rem' }}>
+                  <p style={{ fontSize: '0.875rem', color: '#525252', margin: '0 0 0.25rem' }}>Your blood draw:</p>
+                  <p style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717', margin: '0 0 1rem' }}>
+                    {formatDateShort(selectedDate)} at {formatSlotTime(selectedSlot.time)} PT
+                  </p>
+                  <button
+                    onClick={handleEnergyBooking}
+                    disabled={isBooking}
+                    style={{
+                      width: '100%',
+                      padding: '1rem',
+                      background: '#000',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: 10,
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      cursor: isBooking ? 'default' : 'pointer',
+                      opacity: isBooking ? 0.7 : 1,
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    {isBooking ? 'Booking...' : 'Confirm Booking'}
+                  </button>
+                </div>
+              )}
+
+              {error && (
+                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '0.875rem 1rem', marginBottom: '1rem' }}>
+                  <p style={{ margin: 0, fontSize: '0.875rem', color: '#dc2626' }}>{error}</p>
+                </div>
+              )}
+
+              <p style={{ textAlign: 'center', fontSize: '0.8125rem', color: '#a3a3a3', marginTop: '1rem' }}>
+                Questions? Call <a href="tel:9499973988" style={{ color: '#737373' }}>(949) 997-3988</a>
+              </p>
+            </div>
+          </section>
+        </div>
         <style jsx>{styles}</style>
       </Layout>
     );
@@ -1676,14 +2293,18 @@ export default function RangeAssessment() {
                     <p className="res-panel-desc">
                       Our most complete panel — checks your hormones, heart health, inflammation, and more.
                     </p>
-                    <a
-                      href={PAYMENT_LINKS.elite}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
                       className="res-panel-cta"
+                      onClick={() => {
+                        setSelectedPanel('elite');
+                        setShowResults(false);
+                        setShowEnergyPayment(true);
+                        initializeEnergyPayment('elite');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
                     >
-                      Pay & Book Elite
-                    </a>
+                      Select & Pay — $750
+                    </button>
                   </div>
 
                   <div className="res-panels-or">or</div>
@@ -1698,33 +2319,19 @@ export default function RangeAssessment() {
                     <p className="res-panel-desc">
                       A great starting point — covers your hormones, thyroid, and blood sugar.
                     </p>
-                    <a
-                      href={PAYMENT_LINKS.essential}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                    <button
                       className="res-panel-cta"
+                      onClick={() => {
+                        setSelectedPanel('essential');
+                        setShowResults(false);
+                        setShowEnergyPayment(true);
+                        initializeEnergyPayment('essential');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
                     >
-                      Pay & Book Essential
-                    </a>
+                      Select & Pay — $350
+                    </button>
                   </div>
-                </div>
-
-                {/* Quick Intake Prompt */}
-                <div style={{ background: '#000', borderRadius: 12, padding: '1.5rem', marginBottom: '1.5rem', textAlign: 'center' }}>
-                  <h3 style={{ color: '#fff', fontSize: '1.125rem', fontWeight: 700, margin: '0 0 0.5rem' }}>Before You Book, Help Us Prepare</h3>
-                  <p style={{ color: '#a3a3a3', fontSize: '0.9375rem', lineHeight: 1.6, margin: '0 0 1.25rem' }}>
-                    Takes about 1 minute — helps our team get ready for your visit.
-                  </p>
-                  <button
-                    onClick={() => {
-                      setShowResults(false);
-                      setShowEnergyIntake(true);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    style={{ background: '#fff', color: '#000', padding: '0.875rem 2rem', borderRadius: 8, fontWeight: 600, fontSize: '0.9375rem', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-                  >
-                    Complete Quick Intake
-                  </button>
                 </div>
 
                 {/* Biomarkers */}
@@ -1790,22 +2397,22 @@ export default function RangeAssessment() {
                     <div className="res-step">
                       <div className="res-step-num">1</div>
                       <div>
-                        <h4>Complete Your Payment</h4>
-                        <p>Secure checkout takes less than a minute.</p>
+                        <h4>Select & Pay</h4>
+                        <p>Choose your panel and pay securely — takes less than a minute.</p>
                       </div>
                     </div>
                     <div className="res-step">
                       <div className="res-step-num">2</div>
                       <div>
-                        <h4>We'll Schedule Your Visit</h4>
-                        <p>Our team will call to book your appointment at Range Medical.</p>
+                        <h4>Review Prep & Book</h4>
+                        <p>Confirm your pre-draw checklist and pick a time that works for you.</p>
                       </div>
                     </div>
                     <div className="res-step">
                       <div className="res-step-num">3</div>
                       <div>
                         <h4>Blood Draw at Range Medical</h4>
-                        <p>Come to our Newport Beach office. Fasting 10-12 hours recommended. Not local? We'll coordinate with a lab near you.</p>
+                        <p>Come to our Newport Beach office fasted. We'll handle the rest.</p>
                       </div>
                     </div>
                     <div className="res-step">

@@ -1350,7 +1350,7 @@ export default function RangeAssessment() {
                 <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.875rem 1rem', background: prepChecks.timing ? '#f0fdf4' : '#fff', border: `1px solid ${prepChecks.timing ? '#bbf7d0' : '#e5e5e5'}`, borderRadius: 8, cursor: 'pointer', transition: 'all 0.2s' }}>
                   <input type="checkbox" checked={prepChecks.timing} onChange={(e) => setPrepChecks(prev => ({ ...prev, timing: e.target.checked }))} style={{ width: 20, height: 20, marginTop: 2, accentColor: '#22c55e', flexShrink: 0 }} />
                   <div>
-                    <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9375rem', color: '#171717' }}>I understand that morning appointments (7:30–9:30 AM) are best for hormone accuracy</p>
+                    <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9375rem', color: '#171717' }}>I understand that morning appointments (9:00–10:30 AM) are best for hormone accuracy</p>
                     <p style={{ margin: '0.25rem 0 0', fontSize: '0.8125rem', color: '#737373' }}>Especially important for cortisol, testosterone, and prolactin testing</p>
                   </div>
                 </label>
@@ -1492,7 +1492,7 @@ export default function RangeAssessment() {
 
               <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: '0.875rem 1rem', marginBottom: '1.5rem' }}>
                 <p style={{ margin: 0, fontSize: '0.875rem', color: '#0369a1' }}>
-                  <strong>Tip:</strong> Morning appointments (7:30–9:30 AM) give the most accurate hormone results.
+                  <strong>Tip:</strong> Morning appointments (9:00–10:30 AM) give the most accurate hormone results.
                 </p>
               </div>
 
@@ -2367,216 +2367,237 @@ export default function RangeAssessment() {
           <meta name="robots" content="noindex, nofollow" />
         </Head>
 
-        {/* Hero */}
-        <section className="res-hero">
-          <div className="res-container">
-            <span className="res-kicker">Your Personalized Recommendation</span>
-            <h1>Here's What We Need to Check</h1>
-            <p className="res-intro">
-              Based on your answers, here's what we recommend testing to find out what's going on.
-            </p>
-          </div>
-        </section>
+        <section className="res-page">
+          <div className="res-wrap">
 
-        {/* Main Content */}
-        <section className="res-main">
-          <div className="res-container">
-            <div className="res-grid">
-              {/* Left Column - Recommendation */}
-              <div className="res-primary">
-                {/* Labs Notice - if they have recent labs */}
-                {formData.lastLabWork === 'within_60_days' && (
-                  <div className="res-labs-notice">
-                    <div className="res-labs-notice-header">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                        <polyline points="14 2 14 8 20 8"/>
-                        <line x1="16" y1="13" x2="8" y2="13"/>
-                        <line x1="16" y1="17" x2="8" y2="17"/>
-                      </svg>
-                      <span>Already have labs?</span>
-                    </div>
-                    <p className="res-labs-notice-text">
-                      You mentioned having labs from the last 60 days. Before purchasing a new panel,
-                      send them over — we'll review and let you know if additional testing is needed.
-                    </p>
-                    <a href="mailto:info@range-medical.com" className="res-labs-notice-btn">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                        <polyline points="22,6 12,13 2,6"/>
-                      </svg>
-                      Email Labs to info@range-medical.com
-                    </a>
-                  </div>
-                )}
+            {/* Header */}
+            <div className="res-header">
+              <span className="res-kicker">Your Personalized Recommendation</span>
+              <h1>Here's What We Need to Check</h1>
+              <p className="res-intro">
+                Based on your answers, here's what we recommend testing to find out what's going on.
+              </p>
+            </div>
 
-                {/* Elite Recommendation Reasons */}
-                {recommendation.panel === 'elite' && recommendation.eliteReasons.length > 0 && (
-                  <div className="res-panel-reasons">
-                    <h4>Why we recommend Elite for you:</h4>
-                    <ul>
-                      {recommendation.eliteReasons.slice(0, 3).map((reason, i) => (
-                        <li key={i}>{reason}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Both Panel Options */}
-                <div className="res-panels-grid">
-                  {/* Elite Panel */}
-                  <div className={`res-panel-option ${recommendation.panel === 'elite' ? 'res-panel-recommended' : ''}`}>
-                    {recommendation.panel === 'elite' && (
-                      <div className="res-panel-badge">Recommended</div>
-                    )}
-                    <h3 className="res-panel-name">Elite Panel</h3>
-                    <div className="res-panel-price">$750</div>
-                    <p className="res-panel-desc">
-                      Our most complete panel — checks your hormones, heart health, inflammation, and more.
-                    </p>
-                    <button
-                      className="res-panel-cta"
-                      onClick={() => {
-                        setSelectedPanel('elite');
-                        setShowResults(false);
-                        setShowEnergyPayment(true);
-                        initializeEnergyPayment('elite');
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                    >
-                      Select & Pay — $750
-                    </button>
-                  </div>
-
-                  <div className="res-panels-or">or</div>
-
-                  {/* Essential Panel */}
-                  <div className={`res-panel-option ${recommendation.panel === 'essential' ? 'res-panel-recommended' : ''}`}>
-                    {recommendation.panel === 'essential' && (
-                      <div className="res-panel-badge">Recommended</div>
-                    )}
-                    <h3 className="res-panel-name">Essential Panel</h3>
-                    <div className="res-panel-price">$350</div>
-                    <p className="res-panel-desc">
-                      A great starting point — covers your hormones, thyroid, and blood sugar.
-                    </p>
-                    <button
-                      className="res-panel-cta"
-                      onClick={() => {
-                        setSelectedPanel('essential');
-                        setShowResults(false);
-                        setShowEnergyPayment(true);
-                        initializeEnergyPayment('essential');
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                    >
-                      Select & Pay — $350
-                    </button>
-                  </div>
-                </div>
-
-                {/* Biomarkers */}
-                <div className="res-card">
-                  <h3>What We'll Test</h3>
-                  <div className="res-markers">
-                    {recommendation.essentialMarkers.slice(0, 10).map((marker, i) => (
-                      <span key={i} className="res-marker">{marker}</span>
-                    ))}
-                    {recommendation.panel === 'elite' && recommendation.eliteMarkers.slice(0, 6).map((marker, i) => (
-                      <span key={`elite-${i}`} className="res-marker res-marker-elite">{marker}</span>
+            {/* SECTION 1: What You Told Us */}
+            <div className="res-section">
+              <div className="res-section-label">
+                <div className="res-section-num">1</div>
+                <span>What You Told Us</span>
+              </div>
+              <div className="res-told-grid">
+                <div className="res-told-col">
+                  <h4>Your Symptoms</h4>
+                  <div className="res-told-tags">
+                    {recommendation.symptoms.map(s => (
+                      <span key={s} className="res-told-tag">{symptomLabels[s]}</span>
                     ))}
                   </div>
-                  <p className="res-markers-more">
-                    {recommendation.panel === 'elite'
-                      ? `+ ${Math.max(0, 36 - 16)} more markers included`
-                      : '+ thyroid, cholesterol, and blood sugar tests'
-                    }
-                  </p>
                 </div>
-
-                {/* Why These Matter */}
-                <div className="res-card">
-                  <h3>Why We're Checking These</h3>
-                  <div className="res-reasons-list">
-                    {recommendation.reasons.slice(0, 4).map((item, i) => (
-                      <div key={i} className="res-reason">
-                        <h4>{item.type === 'symptom' ? symptomLabels[item.key] : goalLabels[item.key]}</h4>
-                        <p>{item.reason}</p>
-                      </div>
+                <div className="res-told-col">
+                  <h4>Your Goals</h4>
+                  <div className="res-told-tags">
+                    {recommendation.goals.map(g => (
+                      <span key={g} className="res-told-tag res-told-tag-goal">{goalLabels[g]}</span>
                     ))}
                   </div>
                 </div>
               </div>
 
-              {/* Right Column - Summary & Next Steps */}
-              <div className="res-secondary">
-                {/* What You Told Us */}
-                <div className="res-card res-summary-card">
-                  <h3>What You Told Us</h3>
-                  <div className="res-summary-section">
-                    <h4>Symptoms</h4>
-                    <ul>
-                      {recommendation.symptoms.map(s => (
-                        <li key={s}>{symptomLabels[s]}</li>
-                      ))}
-                    </ul>
+              {/* Labs Notice - if they have recent labs */}
+              {formData.lastLabWork === 'within_60_days' && (
+                <div className="res-labs-notice">
+                  <div className="res-labs-notice-header">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                      <polyline points="14 2 14 8 20 8"/>
+                      <line x1="16" y1="13" x2="8" y2="13"/>
+                      <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                    <span>Already have labs?</span>
                   </div>
-                  <div className="res-summary-section">
-                    <h4>Goals</h4>
-                    <ul>
-                      {recommendation.goals.map(g => (
-                        <li key={g}>{goalLabels[g]}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-
-                {/* What Happens Next */}
-                <div className="res-card res-next-card">
-                  <h3>What Happens Next</h3>
-                  <div className="res-steps">
-                    <div className="res-step">
-                      <div className="res-step-num">1</div>
-                      <div>
-                        <h4>Select & Pay</h4>
-                        <p>Choose your panel and pay securely — takes less than a minute.</p>
-                      </div>
-                    </div>
-                    <div className="res-step">
-                      <div className="res-step-num">2</div>
-                      <div>
-                        <h4>Review Prep & Book</h4>
-                        <p>Confirm your pre-draw checklist and pick a time that works for you.</p>
-                      </div>
-                    </div>
-                    <div className="res-step">
-                      <div className="res-step-num">3</div>
-                      <div>
-                        <h4>Blood Draw at Range Medical</h4>
-                        <p>Come to our Newport Beach office fasted. We'll handle the rest.</p>
-                      </div>
-                    </div>
-                    <div className="res-step">
-                      <div className="res-step-num">4</div>
-                      <div>
-                        <h4>Review Results Together</h4>
-                        <p>Your provider goes over your results and creates a plan just for you.</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Contact */}
-                <div className="res-contact">
-                  <p>Questions? Call us</p>
-                  <a href="tel:9499973988" className="res-phone">(949) 997-3988</a>
-                  <p className="res-location">
-                    Range Medical<br />
-                    1901 Westcliff Dr, Newport Beach
+                  <p className="res-labs-notice-text">
+                    You mentioned having labs from the last 60 days. Before purchasing a new panel,
+                    send them over — we'll review and let you know if additional testing is needed.
                   </p>
+                  <a href="mailto:info@range-medical.com" className="res-labs-notice-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                      <polyline points="22,6 12,13 2,6"/>
+                    </svg>
+                    Email Labs to info@range-medical.com
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* SECTION 2: What We Recommend */}
+            <div className="res-section">
+              <div className="res-section-label">
+                <div className="res-section-num">2</div>
+                <span>What We Recommend</span>
+              </div>
+
+              {/* Elite Recommendation Reasons */}
+              {recommendation.panel === 'elite' && recommendation.eliteReasons.length > 0 && (
+                <div className="res-recommend-why">
+                  <p className="res-recommend-intro">Based on your symptoms and goals, we suggest the <strong>Elite Panel</strong> because:</p>
+                  <ul>
+                    {recommendation.eliteReasons.slice(0, 3).map((reason, i) => (
+                      <li key={i}>{reason}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Why These Matter */}
+              <div className="res-reasons-list">
+                {recommendation.reasons.slice(0, 4).map((item, i) => (
+                  <div key={i} className="res-reason">
+                    <h4>{item.type === 'symptom' ? symptomLabels[item.key] : goalLabels[item.key]}</h4>
+                    <p>{item.reason}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Biomarkers */}
+              <div className="res-markers-box">
+                <h4>Key Markers We'll Check</h4>
+                <div className="res-markers">
+                  {recommendation.essentialMarkers.slice(0, 10).map((marker, i) => (
+                    <span key={i} className="res-marker">{marker}</span>
+                  ))}
+                  {recommendation.panel === 'elite' && recommendation.eliteMarkers.slice(0, 6).map((marker, i) => (
+                    <span key={`elite-${i}`} className="res-marker res-marker-elite">{marker}</span>
+                  ))}
+                </div>
+                <p className="res-markers-more">
+                  {recommendation.panel === 'elite'
+                    ? `+ ${Math.max(0, 36 - 16)} more markers included in Elite`
+                    : '+ thyroid, cholesterol, and blood sugar tests'
+                  }
+                </p>
+              </div>
+            </div>
+
+            {/* SECTION 3: Pick & Pay */}
+            <div className="res-section">
+              <div className="res-section-label">
+                <div className="res-section-num">3</div>
+                <span>Pick Your Panel & Pay</span>
+              </div>
+
+              <div className="res-panels-grid">
+                {/* Elite Panel */}
+                <div className={`res-panel-option ${recommendation.panel === 'elite' ? 'res-panel-recommended' : ''}`}>
+                  {recommendation.panel === 'elite' && (
+                    <div className="res-panel-badge">Recommended</div>
+                  )}
+                  <h3 className="res-panel-name">Elite Panel</h3>
+                  <div className="res-panel-price">$750</div>
+                  <p className="res-panel-desc">
+                    Our most complete panel — checks your hormones, heart health, inflammation, and more.
+                  </p>
+                  <p className="res-panel-includes">36+ biomarkers tested</p>
+                  <button
+                    className="res-panel-cta"
+                    onClick={() => {
+                      setSelectedPanel('elite');
+                      setShowResults(false);
+                      setShowEnergyPayment(true);
+                      initializeEnergyPayment('elite');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                  >
+                    Select & Pay — $750
+                  </button>
+                </div>
+
+                <div className="res-panels-or">or</div>
+
+                {/* Essential Panel */}
+                <div className={`res-panel-option ${recommendation.panel === 'essential' ? 'res-panel-recommended' : ''}`}>
+                  {recommendation.panel === 'essential' && (
+                    <div className="res-panel-badge">Recommended</div>
+                  )}
+                  <h3 className="res-panel-name">Essential Panel</h3>
+                  <div className="res-panel-price">$350</div>
+                  <p className="res-panel-desc">
+                    A great starting point — covers your hormones, thyroid, and blood sugar.
+                  </p>
+                  <p className="res-panel-includes">20+ biomarkers tested</p>
+                  <button
+                    className="res-panel-cta"
+                    onClick={() => {
+                      setSelectedPanel('essential');
+                      setShowResults(false);
+                      setShowEnergyPayment(true);
+                      initializeEnergyPayment('essential');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                  >
+                    Select & Pay — $350
+                  </button>
+                </div>
+              </div>
+
+              <div className="res-panels-note">
+                <p>Both panels include your blood draw and a provider review of your results.</p>
+              </div>
+            </div>
+
+            {/* What Happens After You Pay */}
+            <div className="res-section res-section-last">
+              <div className="res-section-label">
+                <div className="res-section-num">4</div>
+                <span>What Happens Next</span>
+              </div>
+              <div className="res-steps">
+                <div className="res-step">
+                  <div className="res-step-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                  </div>
+                  <div>
+                    <h4>Review Your Prep Checklist</h4>
+                    <p>Fasting, hydration, and a few easy things to know before your draw.</p>
+                  </div>
+                </div>
+                <div className="res-step">
+                  <div className="res-step-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  </div>
+                  <div>
+                    <h4>Book Your Blood Draw</h4>
+                    <p>Pick a day and time that works for you — mornings are best.</p>
+                  </div>
+                </div>
+                <div className="res-step">
+                  <div className="res-step-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                  </div>
+                  <div>
+                    <h4>Come In for Your Draw</h4>
+                    <p>Visit our Newport Beach office fasted. We handle the rest.</p>
+                  </div>
+                </div>
+                <div className="res-step">
+                  <div className="res-step-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                  </div>
+                  <div>
+                    <h4>Review Results Together</h4>
+                    <p>Your provider goes over everything and builds a plan just for you.</p>
+                  </div>
                 </div>
               </div>
             </div>
+
+            {/* Contact */}
+            <div className="res-contact">
+              <p>Questions? Call us at <a href="tel:9499973988">(949) 997-3988</a></p>
+              <p className="res-location">Range Medical · 1901 Westcliff Dr, Newport Beach</p>
+            </div>
+
           </div>
         </section>
 
@@ -3655,19 +3676,22 @@ const styles = `
 `;
 
 const resultsStyles = `
-  /* Results Page - Matching Site Design */
+  /* Results Page — Single-column linear flow */
 
-  /* Hero Section */
-  .res-hero {
-    padding: 4rem 1.5rem 3rem;
-    text-align: center;
+  .res-page {
     background: #ffffff;
+    padding: 3rem 1.5rem 4rem;
   }
 
-  .res-container {
-    max-width: 1100px;
+  .res-wrap {
+    max-width: 640px;
     margin: 0 auto;
-    padding: 0 1.5rem;
+  }
+
+  /* Header */
+  .res-header {
+    text-align: center;
+    margin-bottom: 3rem;
   }
 
   .res-kicker {
@@ -3680,203 +3704,99 @@ const resultsStyles = `
     margin-bottom: 0.75rem;
   }
 
-  .res-hero h1 {
-    font-size: 2.5rem;
+  .res-header h1 {
+    font-size: 2rem;
     font-weight: 700;
     color: #171717;
-    margin: 0 0 1rem;
-    line-height: 1.15;
+    margin: 0 0 0.75rem;
+    line-height: 1.2;
   }
 
   .res-intro {
-    font-size: 1.0625rem;
+    font-size: 1rem;
     color: #525252;
     line-height: 1.7;
-    max-width: 540px;
-    margin: 0 auto;
-  }
-
-  /* Main Content */
-  .res-main {
-    padding: 0 1.5rem 5rem;
-    background: #fafafa;
-  }
-
-  .res-main .res-container {
-    padding-top: 3rem;
-  }
-
-  .res-grid {
-    display: grid;
-    grid-template-columns: 1fr 380px;
-    gap: 2rem;
-    align-items: start;
-  }
-
-  /* Cards */
-  .res-card {
-    background: #ffffff;
-    border: 1px solid #e5e5e5;
-    border-radius: 12px;
-    padding: 1.75rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .res-card h3 {
-    font-size: 1.125rem;
-    font-weight: 700;
-    color: #171717;
-    margin: 0 0 1.25rem;
-  }
-
-  /* Panel Recommendation Card */
-  .res-panel-card {
-    background: #ffffff;
-    border: 2px solid #e5e5e5;
-    border-radius: 16px;
-    padding: 2rem;
-    margin-bottom: 1.5rem;
-    text-align: center;
-  }
-
-  .res-panel-card.res-panel-elite {
-    border-color: #000000;
-  }
-
-  .res-panel-badge {
-    display: inline-block;
-    font-size: 0.6875rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    background: #000000;
-    color: #ffffff;
-    padding: 0.5rem 1rem;
-    border-radius: 100px;
-    margin-bottom: 1.25rem;
-  }
-
-  .res-panel-name {
-    font-size: 1.75rem;
-    font-weight: 700;
-    color: #171717;
-    margin: 0 0 0.5rem;
-  }
-
-  .res-panel-price {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #000000;
-    margin-bottom: 1rem;
-  }
-
-  .res-panel-desc {
-    font-size: 0.9375rem;
-    color: #525252;
-    line-height: 1.6;
-    margin: 0 0 1.5rem;
-    max-width: 400px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .res-panel-reasons {
-    background: #f5f5f5;
-    border-radius: 8px;
-    padding: 1.25rem;
-    margin-bottom: 1.5rem;
-    text-align: left;
-  }
-
-  .res-panel-reasons h4 {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: #171717;
-    margin: 0 0 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  .res-panel-reasons ul {
-    list-style: none;
-    padding: 0;
     margin: 0;
   }
 
-  .res-panel-reasons li {
-    font-size: 0.9375rem;
-    color: #525252;
-    padding: 0.375rem 0;
-    padding-left: 1.25rem;
-    position: relative;
-    line-height: 1.5;
+  /* Numbered sections */
+  .res-section {
+    margin-bottom: 2.5rem;
+    padding-bottom: 2.5rem;
+    border-bottom: 1px solid #e5e5e5;
   }
 
-  .res-panel-reasons li::before {
-    content: "✓";
-    position: absolute;
-    left: 0;
-    color: #22c55e;
-    font-weight: 700;
+  .res-section-last {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 2rem;
   }
 
-  /* Panels Grid - Both Options */
-  .res-panels-grid {
+  .res-section-label {
     display: flex;
-    gap: 1rem;
-    align-items: stretch;
+    align-items: center;
+    gap: 0.75rem;
     margin-bottom: 1.5rem;
   }
 
-  .res-panel-option {
-    flex: 1;
-    background: #ffffff;
-    border: 2px solid #e5e5e5;
-    border-radius: 12px;
-    padding: 1.5rem;
-    text-align: center;
-    position: relative;
+  .res-section-num {
+    width: 28px;
+    height: 28px;
+    background: #171717;
+    color: #ffffff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.8125rem;
+    flex-shrink: 0;
   }
 
-  .res-panel-option.res-panel-recommended {
-    border-color: #000000;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  .res-section-label span {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #171717;
   }
 
-  .res-panel-option .res-panel-badge {
-    position: absolute;
-    top: -0.75rem;
-    left: 50%;
-    transform: translateX(-50%);
+  /* Section 1: What You Told Us */
+  .res-told-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
     margin-bottom: 0;
   }
 
-  .res-panel-option .res-panel-name {
-    font-size: 1.25rem;
-    margin-top: 0.5rem;
-  }
-
-  .res-panel-option .res-panel-price {
-    font-size: 2rem;
-  }
-
-  .res-panel-option .res-panel-desc {
-    font-size: 0.875rem;
-    margin-bottom: 1.25rem;
-  }
-
-  .res-panel-option .res-panel-cta {
-    padding: 0.875rem 1.25rem;
-    font-size: 0.9375rem;
-  }
-
-  .res-panels-or {
-    display: flex;
-    align-items: center;
-    font-size: 0.875rem;
+  .res-told-col h4 {
+    font-size: 0.6875rem;
     font-weight: 600;
-    color: #737373;
     text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #737373;
+    margin: 0 0 0.625rem;
+  }
+
+  .res-told-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  .res-told-tag {
+    display: inline-block;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #171717;
+    background: #f5f5f5;
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid #e5e5e5;
+  }
+
+  .res-told-tag-goal {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+    color: #166534;
   }
 
   /* Labs Notice */
@@ -3884,33 +3804,25 @@ const resultsStyles = `
     background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%);
     border: 1px solid #fde047;
     border-radius: 12px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    text-align: left;
+    padding: 1.25rem;
+    margin-top: 1.25rem;
   }
 
   .res-labs-notice-header {
     display: flex;
     align-items: center;
     gap: 0.625rem;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.625rem;
   }
 
-  .res-labs-notice-header svg {
-    color: #a16207;
-  }
-
-  .res-labs-notice-header span {
-    font-size: 1rem;
-    font-weight: 700;
-    color: #854d0e;
-  }
+  .res-labs-notice-header svg { color: #a16207; }
+  .res-labs-notice-header span { font-size: 0.9375rem; font-weight: 700; color: #854d0e; }
 
   .res-labs-notice-text {
-    font-size: 0.9375rem;
+    font-size: 0.875rem;
     color: #a16207;
     line-height: 1.6;
-    margin: 0 0 1rem;
+    margin: 0 0 0.875rem;
   }
 
   .res-labs-notice-btn {
@@ -3919,77 +3831,114 @@ const resultsStyles = `
     gap: 0.5rem;
     background: #854d0e;
     color: #ffffff;
-    padding: 0.75rem 1.25rem;
+    padding: 0.625rem 1rem;
     border-radius: 8px;
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     font-weight: 600;
     text-decoration: none;
     transition: background 0.2s;
   }
 
-  .res-labs-notice-btn:hover {
-    background: #713f12;
+  .res-labs-notice-btn:hover { background: #713f12; }
+  .res-labs-notice-btn svg { color: #ffffff; }
+
+  /* Section 2: What We Recommend */
+  .res-recommend-why {
+    background: #f5f5f5;
+    border-radius: 10px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
   }
 
-  .res-labs-notice-btn svg {
-    color: #ffffff;
-  }
-
-  .res-panel-cta {
-    display: block;
-    width: 100%;
-    background: #000000;
-    color: #ffffff;
-    padding: 1rem 1.5rem;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 1rem;
-    text-decoration: none;
-    text-align: center;
-    transition: background 0.2s;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
-    border: none;
-    cursor: pointer;
-    font-family: inherit;
-  }
-
-  .res-panel-cta:hover {
-    background: #333333;
-  }
-
-  .res-panel-alt {
-    display: inline-block;
-    margin-top: 1rem;
-    font-size: 0.875rem;
-    color: #737373;
-    text-decoration: underline;
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-family: inherit;
-    padding: 0;
-  }
-
-  .res-panel-alt:hover {
+  .res-recommend-intro {
+    font-size: 0.9375rem;
     color: #171717;
+    line-height: 1.6;
+    margin: 0 0 0.75rem;
+  }
+
+  .res-recommend-why ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .res-recommend-why li {
+    font-size: 0.875rem;
+    color: #525252;
+    padding: 0.25rem 0 0.25rem 1.25rem;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .res-recommend-why li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #22c55e;
+    font-weight: 700;
+  }
+
+  /* Reasons List */
+  .res-reasons-list {
+    display: grid;
+    gap: 0;
+    margin-bottom: 1.5rem;
+  }
+
+  .res-reason {
+    padding: 0.875rem 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .res-reason:last-child { border-bottom: none; padding-bottom: 0; }
+  .res-reason:first-child { padding-top: 0; }
+
+  .res-reason h4 {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #171717;
+    margin: 0 0 0.25rem;
+  }
+
+  .res-reason p {
+    font-size: 0.875rem;
+    color: #525252;
+    line-height: 1.6;
+    margin: 0;
   }
 
   /* Biomarkers */
+  .res-markers-box {
+    background: #fafafa;
+    border-radius: 10px;
+    padding: 1.25rem;
+  }
+
+  .res-markers-box h4 {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #171717;
+    margin: 0 0 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
   .res-markers {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
+    gap: 0.375rem;
+    margin-bottom: 0.75rem;
   }
 
   .res-marker {
     display: inline-block;
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
     font-weight: 500;
     color: #171717;
-    background: #f5f5f5;
-    padding: 0.5rem 0.875rem;
-    border-radius: 6px;
+    background: #ffffff;
+    padding: 0.375rem 0.625rem;
+    border-radius: 5px;
     border: 1px solid #e5e5e5;
   }
 
@@ -4005,84 +3954,112 @@ const resultsStyles = `
     margin: 0;
   }
 
-  /* Reasons List */
-  .res-reasons-list {
-    display: grid;
+  /* Section 3: Pick & Pay */
+  .res-panels-grid {
+    display: flex;
     gap: 1rem;
+    align-items: stretch;
+    margin-bottom: 1rem;
   }
 
-  .res-reason {
-    padding-bottom: 1rem;
-    border-bottom: 1px solid #e5e5e5;
-  }
-
-  .res-reason:last-child {
-    padding-bottom: 0;
-    border-bottom: none;
-  }
-
-  .res-reason h4 {
-    font-size: 0.9375rem;
-    font-weight: 600;
-    color: #171717;
-    margin: 0 0 0.375rem;
-  }
-
-  .res-reason p {
-    font-size: 0.875rem;
-    color: #525252;
-    line-height: 1.6;
-    margin: 0;
-  }
-
-  /* Summary Card */
-  .res-summary-card {
+  .res-panel-option {
+    flex: 1;
     background: #ffffff;
-  }
-
-  .res-summary-section {
-    margin-bottom: 1.25rem;
-  }
-
-  .res-summary-section:last-child {
-    margin-bottom: 0;
-  }
-
-  .res-summary-section h4 {
-    font-size: 0.6875rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: #737373;
-    margin: 0 0 0.5rem;
-  }
-
-  .res-summary-section ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-
-  .res-summary-section li {
-    font-size: 0.875rem;
-    color: #171717;
-    padding: 0.25rem 0;
-    padding-left: 1rem;
+    border: 2px solid #e5e5e5;
+    border-radius: 12px;
+    padding: 1.5rem 1.25rem;
+    text-align: center;
     position: relative;
   }
 
-  .res-summary-section li::before {
-    content: "•";
+  .res-panel-option.res-panel-recommended {
+    border-color: #000000;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
+
+  .res-panel-badge {
+    display: inline-block;
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: #000000;
+    color: #ffffff;
+    padding: 0.375rem 0.75rem;
+    border-radius: 100px;
     position: absolute;
-    left: 0;
+    top: -0.625rem;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+  }
+
+  .res-panel-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #171717;
+    margin: 0.5rem 0 0.25rem;
+  }
+
+  .res-panel-price {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #000000;
+    margin-bottom: 0.625rem;
+  }
+
+  .res-panel-desc {
+    font-size: 0.8125rem;
+    color: #525252;
+    line-height: 1.5;
+    margin: 0 0 0.5rem;
+  }
+
+  .res-panel-includes {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #737373;
+    margin: 0 0 1rem;
+  }
+
+  .res-panel-cta {
+    display: block;
+    width: 100%;
+    background: #000000;
+    color: #ffffff;
+    padding: 0.875rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    text-align: center;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s;
+  }
+
+  .res-panel-cta:hover { background: #333333; }
+
+  .res-panels-or {
+    display: flex;
+    align-items: center;
+    font-size: 0.8125rem;
+    font-weight: 600;
     color: #a3a3a3;
+    text-transform: uppercase;
   }
 
-  /* Steps */
-  .res-next-card {
-    background: #ffffff;
+  .res-panels-note {
+    text-align: center;
   }
 
+  .res-panels-note p {
+    font-size: 0.8125rem;
+    color: #737373;
+    margin: 0;
+  }
+
+  /* Section 4: What Happens Next */
   .res-steps {
     display: grid;
     gap: 0;
@@ -4090,41 +4067,32 @@ const resultsStyles = `
 
   .res-step {
     display: flex;
-    gap: 1rem;
+    gap: 0.875rem;
     align-items: flex-start;
-    padding: 1rem 0;
+    padding: 0.875rem 0;
     border-bottom: 1px solid #f0f0f0;
-    position: relative;
   }
 
-  .res-step:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-  }
+  .res-step:last-child { border-bottom: none; padding-bottom: 0; }
+  .res-step:first-child { padding-top: 0; }
 
-  .res-step:first-child {
-    padding-top: 0;
-  }
-
-  .res-step-num {
-    width: 32px;
-    height: 32px;
-    background: #000000;
-    color: #ffffff;
-    border-radius: 50%;
+  .res-step-icon {
+    width: 36px;
+    height: 36px;
+    background: #f5f5f5;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 700;
-    font-size: 0.8125rem;
     flex-shrink: 0;
+    color: #525252;
   }
 
   .res-step h4 {
     font-size: 0.9375rem;
     font-weight: 600;
     color: #171717;
-    margin: 0 0 0.25rem;
+    margin: 0 0 0.125rem;
   }
 
   .res-step p {
@@ -4137,79 +4105,50 @@ const resultsStyles = `
   /* Contact */
   .res-contact {
     text-align: center;
-    padding: 1.5rem;
-    background: #ffffff;
-    border: 1px solid #e5e5e5;
-    border-radius: 12px;
+    padding: 1.25rem 0 0;
   }
 
   .res-contact p {
     font-size: 0.875rem;
     color: #737373;
-    margin: 0;
+    margin: 0 0 0.25rem;
   }
 
-  .res-phone {
-    display: block;
-    font-size: 1.25rem;
-    font-weight: 700;
+  .res-contact a {
     color: #171717;
+    font-weight: 600;
     text-decoration: none;
-    margin: 0.5rem 0 1rem;
   }
 
-  .res-phone:hover {
-    color: #000000;
-  }
+  .res-contact a:hover { text-decoration: underline; }
 
   .res-location {
     font-size: 0.8125rem !important;
     color: #a3a3a3 !important;
-    line-height: 1.5;
   }
 
   /* Responsive */
-  @media (max-width: 900px) {
-    .res-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .res-secondary {
-      order: -1;
-    }
-
-    .res-summary-card {
-      display: none;
-    }
-  }
-
   @media (max-width: 640px) {
-    .res-hero {
-      padding: 3rem 1.5rem 2rem;
+    .res-page {
+      padding: 2rem 1.25rem 3rem;
     }
 
-    .res-hero h1 {
-      font-size: 1.75rem;
+    .res-header h1 {
+      font-size: 1.625rem;
     }
 
-    .res-main .res-container {
-      padding-top: 2rem;
+    .res-header {
+      margin-bottom: 2rem;
     }
 
-    .res-panel-card {
-      padding: 1.5rem;
+    .res-section {
+      margin-bottom: 2rem;
+      padding-bottom: 2rem;
     }
 
-    .res-panel-name {
-      font-size: 1.5rem;
-    }
-
-    .res-panel-price {
-      font-size: 2rem;
-    }
-
-    .res-card {
-      padding: 1.25rem;
+    .res-told-grid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
     }
 
     .res-panels-grid {
@@ -4218,14 +4157,14 @@ const resultsStyles = `
 
     .res-panels-or {
       justify-content: center;
-      padding: 0.5rem 0;
+      padding: 0.25rem 0;
     }
 
-    .res-panel-option .res-panel-name {
+    .res-panel-name {
       font-size: 1.125rem;
     }
 
-    .res-panel-option .res-panel-price {
+    .res-panel-price {
       font-size: 1.75rem;
     }
   }

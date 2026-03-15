@@ -56,6 +56,8 @@ export default function PaymentsPage() {
   const [newSubPatient, setNewSubPatient] = useState(null);
   const [newSubForm, setNewSubForm] = useState({ amount: '', interval: 'month', description: '', service_category: 'hrt' });
   const [creatingSub, setCreatingSub] = useState(false);
+  const [subPlans, setSubPlans] = useState([]);
+  const [loadingSubPlans, setLoadingSubPlans] = useState(false);
   const [newSubPatientCards, setNewSubPatientCards] = useState([]);
   const [expandedGiftCard, setExpandedGiftCard] = useState(null);
   const [giftCardRedemptions, setGiftCardRedemptions] = useState({});
@@ -88,7 +90,26 @@ export default function PaymentsPage() {
     if (tab === 'subscriptions' && !subsLoaded) {
       fetchAllSubscriptions();
     }
+    if (tab === 'subscriptions' && subPlans.length === 0) {
+      fetchSubPlans();
+    }
   }, [tab]);
+
+  const fetchSubPlans = async () => {
+    setLoadingSubPlans(true);
+    try {
+      const res = await fetch('/api/pos/services?active=true');
+      const data = await res.json();
+      const recurring = (data.services || [])
+        .filter(s => s.recurring && s.price > 0)
+        .map(s => ({ id: s.id, name: s.name, price: s.price, category: s.category, interval: s.interval || 'month' }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      setSubPlans(recurring);
+    } catch (err) {
+      console.error('Error fetching subscription plans:', err);
+    }
+    setLoadingSubPlans(false);
+  };
 
   const fetchAllSubscriptions = async () => {
     setSubsLoading(true);
@@ -1350,64 +1371,82 @@ export default function PaymentsPage() {
               </div>
             )}
 
-            {/* Subscription details */}
-            <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-              <div>
-                <label style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 3 }}>Amount ($)</label>
-                <input
-                  type="number" step="0.01" min="0" placeholder="250"
-                  value={newSubForm.amount}
-                  onChange={e => setNewSubForm(f => ({ ...f, amount: e.target.value }))}
-                  style={{ width: 100, padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14 }}
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 3 }}>Interval</label>
-                <select value={newSubForm.interval} onChange={e => setNewSubForm(f => ({ ...f, interval: e.target.value }))}
-                  style={{ padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
-                  <option value="month">Monthly</option>
-                  <option value="year">Yearly</option>
-                  <option value="week">Weekly</option>
-                </select>
-              </div>
-              <div>
-                <label style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 3 }}>Category</label>
-                <select value={newSubForm.service_category} onChange={e => setNewSubForm(f => ({ ...f, service_category: e.target.value }))}
-                  style={{ padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
-                  <option value="hrt">HRT</option>
-                  <option value="weight_loss">Weight Loss</option>
-                  <option value="peptide">Peptide</option>
-                  <option value="iv">IV</option>
-                  <option value="hbot">HBOT</option>
-                  <option value="rlt">RLT</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
+            {/* Plan dropdown */}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 3 }}>Subscription Plan</label>
+              <select
+                value=""
+                onChange={e => {
+                  const plan = subPlans.find(p => p.id === e.target.value);
+                  if (plan) {
+                    setNewSubForm({
+                      amount: (plan.price / 100).toString(),
+                      interval: plan.interval || 'month',
+                      description: plan.name,
+                      service_category: plan.category || 'other',
+                    });
+                  }
+                }}
+                style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, boxSizing: 'border-box' }}
+              >
+                <option value="">{loadingSubPlans ? 'Loading plans...' : '-- Select a plan --'}</option>
+                {subPlans.map(plan => (
+                  <option key={plan.id} value={plan.id}>
+                    {plan.name} — ${(plan.price / 100).toFixed(0)}/{plan.interval === 'year' ? 'yr' : plan.interval === 'week' ? 'wk' : 'mo'}
+                  </option>
+                ))}
+              </select>
             </div>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 3 }}>Description</label>
-              <input
-                type="text" placeholder="e.g. Male HRT Membership"
-                value={newSubForm.description}
-                onChange={e => setNewSubForm(f => ({ ...f, description: e.target.value }))}
-                style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, boxSizing: 'border-box' }}
-              />
-            </div>
+
+            {/* Editable fields (auto-filled from plan) */}
+            {newSubForm.description && (
+              <>
+                <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 3 }}>Amount ($)</label>
+                    <input
+                      type="number" step="0.01" min="0" placeholder="250"
+                      value={newSubForm.amount}
+                      onChange={e => setNewSubForm(f => ({ ...f, amount: e.target.value }))}
+                      style={{ width: 100, padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14 }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 3 }}>Interval</label>
+                    <select value={newSubForm.interval} onChange={e => setNewSubForm(f => ({ ...f, interval: e.target.value }))}
+                      style={{ padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
+                      <option value="month">Monthly</option>
+                      <option value="year">Yearly</option>
+                      <option value="week">Weekly</option>
+                    </select>
+                  </div>
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 3 }}>Description</label>
+                  <input
+                    type="text" placeholder="e.g. Male HRT Membership"
+                    value={newSubForm.description}
+                    onChange={e => setNewSubForm(f => ({ ...f, description: e.target.value }))}
+                    style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, boxSizing: 'border-box' }}
+                  />
+                </div>
+              </>
+            )}
 
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button
-                onClick={() => { setShowNewSubModal(false); setNewSubPatient(null); setNewSubPatientCards([]); }}
+                onClick={() => { setShowNewSubModal(false); setNewSubPatient(null); setNewSubPatientCards([]); setNewSubForm({ amount: '', interval: 'month', description: '', service_category: 'hrt' }); }}
                 style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', fontSize: 13, cursor: 'pointer', color: '#475569', fontWeight: 500, fontFamily: 'inherit' }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateNewSub}
-                disabled={creatingSub || !newSubPatient || newSubPatientCards.length === 0}
+                disabled={creatingSub || !newSubPatient || newSubPatientCards.length === 0 || !newSubForm.description}
                 style={{
                   padding: '8px 20px', borderRadius: 8, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                  background: (!newSubPatient || newSubPatientCards.length === 0) ? '#e2e8f0' : '#16a34a', color: '#fff',
-                  opacity: (creatingSub || !newSubPatient || newSubPatientCards.length === 0) ? 0.6 : 1,
+                  background: (!newSubPatient || newSubPatientCards.length === 0 || !newSubForm.description) ? '#e2e8f0' : '#16a34a', color: '#fff',
+                  opacity: (creatingSub || !newSubPatient || newSubPatientCards.length === 0 || !newSubForm.description) ? 0.6 : 1,
                 }}
               >
                 {creatingSub ? 'Creating...' : 'Start Subscription'}

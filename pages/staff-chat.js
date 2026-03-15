@@ -10,11 +10,56 @@ import AdminLayout from '../components/AdminLayout';
 const SUGGESTIONS = [
   "What's on the schedule today?",
   "Is there availability tomorrow for a Range IV?",
+  "Send new patient onboarding to [patient name]",
+  "Send blood draw forms to [patient name]",
   "Look up [patient name]",
   "What did we charge [patient name]?",
   "Add note to [patient name]: ",
   "Create task for [staff]: ",
 ];
+
+// ── Voice dictation hook (Web Speech API) ───────────────────────
+function useVoiceDictation({ onResult, onEnd }) {
+  const [listening, setListening] = useState(false);
+  const recogRef = useRef(null);
+
+  const supported = typeof window !== 'undefined' &&
+    ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+
+  const start = useCallback(() => {
+    if (!supported || listening) return;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recog = new SpeechRecognition();
+    recog.lang = 'en-US';
+    recog.interimResults = false;
+    recog.maxAlternatives = 1;
+    recog.continuous = false;
+
+    recog.onresult = (e) => {
+      const transcript = e.results[0]?.[0]?.transcript || '';
+      if (transcript) onResult(transcript);
+    };
+    recog.onend = () => {
+      setListening(false);
+      recogRef.current = null;
+      onEnd?.();
+    };
+    recog.onerror = () => {
+      setListening(false);
+      recogRef.current = null;
+    };
+
+    recogRef.current = recog;
+    recog.start();
+    setListening(true);
+  }, [supported, listening, onResult, onEnd]);
+
+  const stop = useCallback(() => {
+    recogRef.current?.stop();
+  }, []);
+
+  return { listening, supported, start, stop };
+}
 
 // ── Single message bubble ────────────────────────────────────────
 function MessageBubble({ msg }) {
@@ -76,6 +121,40 @@ export default function StaffChat() {
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const hasGreeted = useRef(false);
+
+  // Voice dictation
+  const { listening, supported: voiceSupported, start: startListening, stop: stopListening } = useVoiceDictation({
+    onResult: (transcript) => {
+      // Auto-send if the transcript sounds like a command; otherwise just fill the input
+      setInput(transcript);
+      // Small delay so user can see what was transcribed, then auto-send
+      setTimeout(() => {
+        setInput('');
+        setSending(true);
+        setMessages((prev) => [...prev, { role: 'user', content: transcript, id: Date.now() }]);
+        fetch('/api/staff-bot/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ message: transcript }),
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            setMessages((prev) => [...prev, { role: 'bot', content: data.response || data.error, id: Date.now() + 1 }]);
+          })
+          .catch((err) => {
+            setMessages((prev) => [...prev, { role: 'bot', content: `❌ ${err.message}`, id: Date.now() + 1 }]);
+          })
+          .finally(() => {
+            setSending(false);
+            setTimeout(() => inputRef.current?.focus(), 100);
+          });
+      }, 600);
+    },
+    onEnd: () => {},
+  });
 
   // Greet on first load
   useEffect(() => {
@@ -289,16 +368,73 @@ export default function StaffChat() {
           background: '#fff',
           flexShrink: 0,
         }}>
+          {/* Mic button — only shown when browser supports Web Speech API */}
+          {voiceSupported && (
+            <button
+              onClick={listening ? stopListening : startListening}
+              disabled={sending}
+              title={listening ? 'Stop listening' : 'Tap to speak'}
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: '50%',
+                background: listening ? '#ef4444' : '#f3f4f6',
+                border: listening ? '2px solid #ef4444' : '1.5px solid #e5e7eb',
+                cursor: sending ? 'default' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                transition: 'all 0.15s',
+                boxShadow: listening ? '0 0 0 4px rgba(239,68,68,0.15)' : 'none',
+              }}
+            >
+              {listening ? (
+                /* Animated waveform when recording */
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <rect x="2" y="9" width="2" height="6" rx="1" fill="#fff">
+                    <animate attributeName="height" values="6;12;6" dur="0.8s" repeatCount="indefinite" />
+                    <animate attributeName="y" values="9;6;9" dur="0.8s" repeatCount="indefinite" />
+                  </rect>
+                  <rect x="6" y="7" width="2" height="10" rx="1" fill="#fff">
+                    <animate attributeName="height" values="10;4;10" dur="0.6s" repeatCount="indefinite" begin="0.1s" />
+                    <animate attributeName="y" values="7;10;7" dur="0.6s" repeatCount="indefinite" begin="0.1s" />
+                  </rect>
+                  <rect x="10" y="5" width="2" height="14" rx="1" fill="#fff">
+                    <animate attributeName="height" values="14;6;14" dur="0.7s" repeatCount="indefinite" begin="0.2s" />
+                    <animate attributeName="y" values="5;9;5" dur="0.7s" repeatCount="indefinite" begin="0.2s" />
+                  </rect>
+                  <rect x="14" y="7" width="2" height="10" rx="1" fill="#fff">
+                    <animate attributeName="height" values="10;4;10" dur="0.6s" repeatCount="indefinite" begin="0.15s" />
+                    <animate attributeName="y" values="7;10;7" dur="0.6s" repeatCount="indefinite" begin="0.15s" />
+                  </rect>
+                  <rect x="18" y="9" width="2" height="6" rx="1" fill="#fff">
+                    <animate attributeName="height" values="6;12;6" dur="0.8s" repeatCount="indefinite" begin="0.05s" />
+                    <animate attributeName="y" values="9;6;9" dur="0.8s" repeatCount="indefinite" begin="0.05s" />
+                  </rect>
+                </svg>
+              ) : (
+                /* Mic icon */
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                  <rect x="9" y="2" width="6" height="12" rx="3" fill="#6b7280" />
+                  <path d="M5 11a7 7 0 0014 0" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" />
+                  <line x1="12" y1="18" x2="12" y2="22" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" />
+                  <line x1="8" y1="22" x2="16" y2="22" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              )}
+            </button>
+          )}
+
           <textarea
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask anything…"
+            placeholder={listening ? '🎙 Listening…' : 'Ask anything…'}
             rows={1}
             style={{
               flex: 1,
-              border: '1.5px solid #e5e7eb',
+              border: `1.5px solid ${listening ? '#ef4444' : '#e5e7eb'}`,
               borderRadius: 22,
               padding: '10px 14px',
               fontSize: 15,
@@ -309,6 +445,7 @@ export default function StaffChat() {
               overflowY: 'auto',
               resize: 'none',
               fontFamily: 'inherit',
+              transition: 'border-color 0.15s',
             }}
             onInput={(e) => {
               e.target.style.height = 'auto';

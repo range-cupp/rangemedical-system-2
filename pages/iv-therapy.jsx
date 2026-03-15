@@ -118,13 +118,17 @@ export default function IVTherapy() {
     { name: "B12", benefit: "Energy, mood, nerves" },
     { name: "Magnesium", benefit: "Muscle, sleep, recovery" },
     { name: "Zinc", benefit: "Immune, skin, healing" },
-    { name: "Glutathione", benefit: "Antioxidant, detox" },
     { name: "Amino Acids", benefit: "Muscle, recovery" },
     { name: "L-Carnitine", benefit: "Fat metabolism, energy" },
     { name: "NAC", benefit: "Liver support, antioxidant" },
     { name: "Calcium", benefit: "Bone, muscle, nerve" },
-    { name: "Biotin", benefit: "Hair, skin, nails" },
-    { name: "Vitamin D3", benefit: "Immune, mood, bone" }
+    { name: "Biotin", benefit: "Hair, skin, nails" }
+  ];
+
+  const glutathioneIVs = [
+    { dose: "1g", price: "$170" },
+    { dose: "2g", price: "$190" },
+    { dose: "3g", price: "$215" }
   ];
 
   const tags = [
@@ -385,6 +389,33 @@ export default function IVTherapy() {
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* Glutathione IV */}
+        <section className="iv-section iv-section-alt">
+          <div className="iv-container">
+            <div className="iv-animate">
+              <div className="iv-kicker">Standalone IV</div>
+              <h2>Glutathione IV</h2>
+              <div className="iv-divider"></div>
+              <p className="iv-body-text">
+                Glutathione is the body's master antioxidant — critical for detox, liver function, immune support, and skin health. Available as a standalone IV push, separate from the Range IV.
+              </p>
+            </div>
+
+            <div className="iv-glut-grid iv-animate">
+              {glutathioneIVs.map((g, i) => (
+                <div key={i} className="iv-glut-card">
+                  <div className="iv-glut-dose">{g.dose}</div>
+                  <div className="iv-glut-price">{g.price}</div>
+                </div>
+              ))}
+            </div>
+
+            <p className="iv-glut-note iv-animate">
+              Administered as a direct IV push. Quick — typically just a few minutes.
+            </p>
           </div>
         </section>
 
@@ -882,6 +913,48 @@ export default function IVTherapy() {
           font-size: 0.75rem;
           color: #737373;
           line-height: 1.4;
+        }
+
+        /* Glutathione Push */
+        .iv-glut-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1rem;
+          margin-top: 2rem;
+          max-width: 500px;
+        }
+
+        .iv-glut-card {
+          padding: 1.5rem;
+          border-radius: 10px;
+          border: 2px solid #e5e5e5;
+          background: #ffffff;
+          text-align: center;
+          transition: border-color 0.2s ease;
+        }
+
+        .iv-glut-card:hover {
+          border-color: #171717;
+        }
+
+        .iv-glut-dose {
+          font-size: 1.5rem;
+          font-weight: 800;
+          color: #171717;
+          margin-bottom: 0.25rem;
+        }
+
+        .iv-glut-price {
+          font-size: 1.125rem;
+          font-weight: 600;
+          color: #525252;
+        }
+
+        .iv-glut-note {
+          font-size: 0.875rem;
+          color: #737373;
+          margin-top: 1.25rem;
+          line-height: 1.6;
         }
 
         /* Tags */

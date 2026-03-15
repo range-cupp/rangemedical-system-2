@@ -12,7 +12,7 @@ import LabsPipelineTab from '../../components/LabsPipelineTab';
 import BookingTab from '../../components/BookingTab';
 import CalendarView from '../../components/CalendarView';
 import LabDashboard from '../../components/labs/LabDashboard';
-import { formatCategoryName, WEIGHT_LOSS_MEDICATIONS, WEIGHT_LOSS_DOSAGES, PEPTIDE_OPTIONS, HRT_MEDICATIONS, HRT_SECONDARY_MEDICATIONS } from '../../lib/protocol-config';
+import { formatCategoryName, WEIGHT_LOSS_MEDICATIONS, WEIGHT_LOSS_DOSAGES, PEPTIDE_OPTIONS, HRT_MEDICATIONS, HRT_SECONDARY_MEDICATIONS, TESTOSTERONE_DOSES } from '../../lib/protocol-config';
 import { formatPhone } from '../../lib/format-utils';
 import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../lib/hrt-lab-schedule';
 import { loadStripe } from '@stripe/stripe-js';
@@ -1381,31 +1381,15 @@ export default function CommandCenter() {
     'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
   ];
 
-  // Service-log-style medication options for first visit form
+  // Service-log-style medication options — sourced from protocol-config.js (single source of truth)
   const SL_TESTOSTERONE_OPTIONS = {
     male: {
       label: 'Male HRT (200mg/ml)',
-      dosages: [
-        { value: '0.2ml/40mg', label: '0.2ml (40mg)' },
-        { value: '0.3ml/60mg', label: '0.3ml (60mg)' },
-        { value: '0.35ml/70mg', label: '0.35ml (70mg)' },
-        { value: '0.4ml/80mg', label: '0.4ml (80mg)' },
-        { value: '0.5ml/100mg', label: '0.5ml (100mg)' },
-        { value: 'custom', label: 'Custom dose' }
-      ]
+      dosages: [...TESTOSTERONE_DOSES.male, { value: 'custom', label: 'Custom dose' }]
     },
     female: {
       label: 'Female HRT (100mg/ml)',
-      dosages: [
-        { value: '0.1ml/10mg', label: '0.1ml (10mg)' },
-        { value: '0.15ml/15mg', label: '0.15ml (15mg)' },
-        { value: '0.2ml/20mg', label: '0.2ml (20mg)' },
-        { value: '0.25ml/25mg', label: '0.25ml (25mg)' },
-        { value: '0.3ml/30mg', label: '0.3ml (30mg)' },
-        { value: '0.4ml/40mg', label: '0.4ml (40mg)' },
-        { value: '0.5ml/50mg', label: '0.5ml (50mg)' },
-        { value: 'custom', label: 'Custom dose' }
-      ]
+      dosages: [...TESTOSTERONE_DOSES.female, { value: 'custom', label: 'Custom dose' }]
     }
   };
 

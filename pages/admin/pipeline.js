@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import AdminLayout from '../../components/AdminLayout';
 import LabsPipelineTab from '../../components/LabsPipelineTab';
-import { WEIGHT_LOSS_DOSAGES } from '../../lib/protocol-config';
+import { WEIGHT_LOSS_DOSAGES, TESTOSTERONE_DOSES } from '../../lib/protocol-config';
 
 // ================================================================
 // PEPTIDE OPTIONS - Complete Dosing Guide from Range Medical
@@ -217,24 +217,7 @@ const findMatchingPeptide = (savedMedication) => {
   return savedMedication;
 };
 
-const TESTOSTERONE_DOSES = {
-  male: [
-    { value: '0.2ml/40mg', label: '0.2ml / 40mg' },
-    { value: '0.3ml/60mg', label: '0.3ml / 60mg' },
-    { value: '0.35ml/70mg', label: '0.35ml / 70mg' },
-    { value: '0.4ml/80mg', label: '0.4ml / 80mg' },
-    { value: '0.5ml/100mg', label: '0.5ml / 100mg' },
-  ],
-  female: [
-    { value: '0.1ml/10mg', label: '0.1ml / 10mg' },
-    { value: '0.15ml/15mg', label: '0.15ml / 15mg' },
-    { value: '0.2ml/20mg', label: '0.2ml / 20mg' },
-    { value: '0.25ml/25mg', label: '0.25ml / 25mg' },
-    { value: '0.3ml/30mg', label: '0.3ml / 30mg' },
-    { value: '0.4ml/40mg', label: '0.4ml / 40mg' },
-    { value: '0.5ml/50mg', label: '0.5ml / 50mg' },
-  ]
-};
+// TESTOSTERONE_DOSES imported from protocol-config.js (single source of truth)
 
 export default function UnifiedPipeline() {
   const router = useRouter();

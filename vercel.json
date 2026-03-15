@@ -47,7 +47,7 @@
     },
     {
       "path": "/api/cron/send-notifications",
-      "schedule": "0 16 * * *"
+      "schedule": "0 15,16 * * *"
     },
     {
       "path": "/api/cron/hrt-onboarding-emails",

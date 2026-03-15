@@ -163,13 +163,15 @@ Bundle types and what they include:
   },
   {
     name: 'get_available_providers',
-    description: 'Get the list of active clinical staff/providers for a given date, including how many appointments they already have that day. Always call this during the booking workflow before asking who to book with.',
+    description: 'Get the list of providers who can perform a specific service on a given date. Filters to only staff who are hosts on that Cal.com event type — so only qualified providers are shown. Always pass the service name so the list is accurate.',
     input_schema: {
       type: 'object',
       properties: {
         date: { type: 'string', description: 'Date in YYYY-MM-DD format' },
+        service: { type: 'string', description: 'Service name to filter providers by, e.g. "Range IV". Always pass this.' },
+        location: { type: 'string', description: 'Optional location, e.g. "Newport Beach" or "Placentia"' },
       },
-      required: ['date'],
+      required: ['date', 'service'],
     },
   },
   {
@@ -287,8 +289,9 @@ PROVIDER vs PATIENT — critical distinction:
    - 2+ matches → list them, ask "Which one?" — wait for reply.
    - 0 matches → say so, ask for clarification.
 
-2. PROVIDER: Call get_available_providers for the requested date.
-   - Present the list: "Available providers on [day]: [names]. Who should I book with?"
+2. PROVIDER: Call get_available_providers with the service name AND date (and location if known).
+   - This filters to only providers who actually perform that service — always pass service.
+   - Present the list: "Available providers for [service] on [day]: [names]. Who should I book with?"
    - Wait for the staff member to pick one before proceeding.
    - If staff member already specified a provider → skip the question, just verify they're on the list.
 

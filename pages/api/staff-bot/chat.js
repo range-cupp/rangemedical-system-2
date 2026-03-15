@@ -18,6 +18,8 @@ import {
   handleGetPatientProtocols,
   handleGetPatientAppointments,
   handleRescheduleAppointment,
+  handleSendDocument,
+  DOCUMENT_CATALOG,
 } from '../../../lib/staff-bot';
 
 const supabase = createClient(
@@ -231,6 +233,19 @@ Bundle types and what they include:
       required: ['patient_name', 'new_date', 'new_time'],
     },
   },
+  {
+    name: 'send_document',
+    description: `Send a service guide or info document to a patient via SMS or email. Use this when staff says things like "send John the HBOT guide", "text Sarah info about hyperbaric oxygen", "email the tirzepatide guide to Mike", or "send the red light info to [patient]". The document parameter should be the natural-language description of what to send (e.g. "HBOT guide", "hyperbaric oxygen info", "tirzepatide", "methylene blue combo", "red light therapy"). Available documents include: ${DOCUMENT_CATALOG.map(d => d.name).join(', ')}.`,
+    input_schema: {
+      type: 'object',
+      properties: {
+        patient_name: { type: 'string', description: 'Full or partial name of the patient' },
+        document: { type: 'string', description: 'Natural language description of what to send, e.g. "HBOT guide", "tirzepatide info", "methylene blue combo"' },
+        method: { type: 'string', enum: ['sms', 'email'], description: 'Delivery method. Default: sms' },
+      },
+      required: ['patient_name', 'document'],
+    },
+  },
 ];
 
 // ── Execute a tool call from Claude ─────────────────────────────────────────
@@ -252,6 +267,7 @@ async function executeTool(toolName, toolInput, staff) {
     case 'get_patient_protocols':     return await handleGetPatientProtocols(toolInput);
     case 'get_patient_appointments':  return await handleGetPatientAppointments(toolInput);
     case 'reschedule_appointment':    return await handleRescheduleAppointment(toolInput);
+    case 'send_document':             return await handleSendDocument(toolInput);
     default:                          return `Unknown tool: ${toolName}`;
   }
 }

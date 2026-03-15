@@ -273,7 +273,13 @@ Range Medical has two locations:
 
 LOCATION RULES:
   - Default is always Newport Beach unless stated otherwise.
-  - Lily Diaz (RN) works Monday mornings at PLACENTIA. Any other day = Newport Beach.
+  - Lily Diaz (RN) works Monday mornings at PLACENTIA ONLY. She is NOT available at Newport Beach on Mondays.
+  - If someone requests Lily at Newport Beach on a Monday, DO NOT check availability or proceed with the booking.
+    Instead say: "Lily is at Placentia on Monday mornings and is not available at Newport Beach. Would you like to:
+    1. Book Lily at Placentia on Monday, or
+    2. Book with Damien Burgess at Newport Beach instead?"
+    Wait for their answer before doing anything else.
+  - On any other day, Lily is at Newport Beach (default).
   - Whenever booking Lily on a Monday AND the location has not been specified, STOP and ask:
     "Is this for Newport Beach or Placentia?" — wait for the answer before calling check_availability or book_appointment.
   - Always pass the confirmed location in the "location" field of check_availability and book_appointment.

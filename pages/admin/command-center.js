@@ -83,8 +83,6 @@ const CATEGORY_LABELS = {
 
 const IV_OPTIONS = [
   { value: 'Range Energy IV', label: 'Range Energy IV' },
-  { value: 'Range Hydration IV', label: 'Range Hydration IV' },
-  { value: 'Range Immune IV', label: 'Range Immune IV' },
   { value: 'Range Glow IV', label: 'Range Glow IV' },
   { value: 'Range Brain IV', label: 'Range Brain IV' },
   { value: 'Range Performance IV', label: 'Range Performance IV' },
@@ -92,9 +90,7 @@ const IV_OPTIONS = [
   { value: 'Range NAD+ IV 500mg', label: 'Range NAD+ IV 500mg' },
   { value: 'Range NAD+ IV 750mg', label: 'Range NAD+ IV 750mg' },
   { value: 'Range NAD+ IV 1000mg', label: 'Range NAD+ IV 1000mg' },
-  { value: 'Range Methylene Blue IV', label: 'Range Methylene Blue IV' },
-  { value: 'Range High-Dose Vitamin C', label: 'Range High-Dose Vitamin C' },
-  { value: 'Range Magnesium IV', label: 'Range Magnesium IV' },
+  { value: 'Range MB + Vit C + Mag Combo', label: 'Range MB + Vit C + Mag Combo' },
   { value: 'Custom Range IV', label: 'Custom Range IV' },
 ];
 
@@ -1417,8 +1413,6 @@ export default function CommandCenter() {
 
   const SL_IV_OPTIONS = [
     { value: 'Range Energy IV', label: 'Range Energy IV' },
-    { value: 'Range Hydration IV', label: 'Range Hydration IV' },
-    { value: 'Range Immune IV', label: 'Range Immune IV' },
     { value: 'Range Glow IV', label: 'Range Glow IV' },
     { value: 'Range Brain IV', label: 'Range Brain IV' },
     { value: 'Range Performance IV', label: 'Range Performance IV' },
@@ -1426,9 +1420,7 @@ export default function CommandCenter() {
     { value: 'Range NAD+ IV 500mg', label: 'Range NAD+ IV 500mg' },
     { value: 'Range NAD+ IV 750mg', label: 'Range NAD+ IV 750mg' },
     { value: 'Range NAD+ IV 1000mg', label: 'Range NAD+ IV 1000mg' },
-    { value: 'Range Methylene Blue IV', label: 'Range Methylene Blue IV' },
-    { value: 'Range High-Dose Vitamin C', label: 'Range High-Dose Vitamin C' },
-    { value: 'Range Magnesium IV', label: 'Range Magnesium IV' },
+    { value: 'Range MB + Vit C + Mag Combo', label: 'Range MB + Vit C + Mag Combo' },
     { value: 'Custom Range IV', label: 'Custom Range IV' }
   ];
 

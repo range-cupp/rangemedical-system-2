@@ -82,8 +82,8 @@ const NAD_DOSES = [
 ];
 
 const SPECIALTY_IV_TYPES = [
-  'Glutathione', 'Methylene Blue', 'MB + Vitamin C + Magnesium Combo',
-  'Exosome', 'BYO', 'Hydration',
+  'Glutathione', 'MB + Vitamin C + Magnesium Combo',
+  'Exosome', 'BYO',
 ];
 
 // ============================================

@@ -28,12 +28,12 @@ export default function Home() {
     <>
       <Head>
         <title>Range Medical | Newport Beach Wellness & Recovery Clinic</title>
-        <meta name="description" content="Two ways to feel like yourself again. Range Medical in Newport Beach offers injury recovery and energy optimization programs. Take our free Range Assessment to get started." />
+        <meta name="description" content="Two ways to feel like yourself again. Range Medical in Newport Beach offers injury recovery and energy optimization programs. Take our Range Assessment to get started." />
         <meta name="keywords" content="wellness clinic Newport Beach, injury recovery, low energy treatment, brain fog help, hormone optimization, medical weight loss, peptide therapy, PRP therapy, IV therapy" />
         <link rel="canonical" href="https://www.range-medical.com/" />
 
         <meta property="og:title" content="Range Medical | Newport Beach Wellness & Recovery" />
-        <meta property="og:description" content="Two ways to feel like yourself again. Injury recovery or energy optimization. Take our free Range Assessment." />
+        <meta property="og:description" content="Two ways to feel like yourself again. Injury recovery or energy optimization. Take our Range Assessment ($250, credited toward treatment)." />
         <meta property="og:url" content="https://www.range-medical.com/" />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="https://www.range-medical.com/og-home.jpg" />
@@ -42,7 +42,7 @@ export default function Home() {
 
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Range Medical | Newport Beach Wellness & Recovery" />
-        <meta name="twitter:description" content="Two ways to feel like yourself again. Take our free Range Assessment." />
+        <meta name="twitter:description" content="Two ways to feel like yourself again. Take our Range Assessment ($250, credited toward treatment)." />
         <meta name="twitter:image" content="https://www.range-medical.com/og-home.jpg" />
 
         <meta name="geo.region" content="US-CA" />
@@ -371,7 +371,7 @@ export default function Home() {
           <div className="home-container">
             <h2>Ready to Feel Like Yourself Again?</h2>
             <p className="home-cta-text">
-              Pick the door that fits your situation. Both start with a free Range Assessment.
+              Pick the door that fits your situation. Both start with a $250 Range Assessment (credited toward any treatment).
             </p>
             <div className="home-cta-buttons">
               <Link href="/range-assessment?path=injury" style={{

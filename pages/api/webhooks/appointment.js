@@ -34,12 +34,10 @@ const APPOINTMENT_MAPPING = {
   'High Dose Vitamin C IV': { type: 'iv_therapy', action: 'decrement' },
   'Vitamin C IV': { type: 'iv_therapy', action: 'decrement' },
   'Glutathione IV': { type: 'iv_therapy', action: 'decrement' },
-  'Methylene Blue IV': { type: 'iv_therapy', action: 'decrement' },
   'MB + Vit C + Mag Combo': { type: 'iv_therapy', action: 'decrement' },
   'Exosome IV Therapy': { type: 'iv_therapy', action: 'decrement' },
   'BYO - IV': { type: 'iv_therapy', action: 'decrement' },
   'BYO IV': { type: 'iv_therapy', action: 'decrement' },
-  'Hydration IV': { type: 'iv_therapy', action: 'decrement' },
   
   // In-Clinic Injections
   'Range Injections': { type: 'injection_pack', action: 'decrement' },

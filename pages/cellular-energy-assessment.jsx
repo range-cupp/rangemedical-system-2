@@ -606,18 +606,18 @@ const CellularEnergyAssessment = () => {
     <>
       <Head>
         <title>Cellular Energy Assessment | Range Medical</title>
-        <meta name="description" content="Labs, provider review, and experience sessions to know exactly what's happening at the cellular level. free, 100% credits toward the 6-Week Reset." />
+        <meta name="description" content="Labs, provider review, and experience sessions to know exactly what's happening at the cellular level. $250, 100% credits toward the 6-Week Reset." />
         
         {/* Open Graph / Link Preview */}
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://range-medical.com/cellular-energy-assessment" />
-        <meta property="og:title" content="Cellular Energy Assessment — free" />
+        <meta property="og:title" content="Cellular Energy Assessment — $250 (credited toward treatment)" />
         <meta property="og:description" content="Labs, provider review, and experience sessions. 100% credits toward the 6-Week Reset." />
         <meta property="og:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
         
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Cellular Energy Assessment — free" />
+        <meta name="twitter:title" content="Cellular Energy Assessment — $250 (credited toward treatment)" />
         <meta name="twitter:description" content="Labs, provider review, and experience sessions. 100% credits toward the 6-Week Reset." />
         <meta name="twitter:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
       </Head>
@@ -651,8 +651,8 @@ const CellularEnergyAssessment = () => {
             Know exactly what's happening at the cellular level before you commit to anything. Labs, analysis, and a clear plan—in one visit.
           </p>
           <div className="cea-hero-price-box">
-            <div className="cea-hero-price">free</div>
-            <div className="cea-hero-credit">100% credits toward the 6-Week Reset</div>
+            <div className="cea-hero-price">$250</div>
+            <div className="cea-hero-credit">100% credits toward any treatment you start</div>
           </div>
           <div>
             <a href="sms:+19499973988?body=Hi, I'd like to book a Cellular Energy Assessment." className="cea-btn-primary">Take Your Assessment →</a>
@@ -725,7 +725,7 @@ const CellularEnergyAssessment = () => {
             <div className="cea-included-card">
               <div className="cea-included-number">✓</div>
               <h3 className="cea-included-title">Full Credit Toward Reset</h3>
-              <p className="cea-included-desc">If you start the 6-Week Reset within 7 days of your results visit, your entire free applies toward the program.</p>
+              <p className="cea-included-desc">If you start the 6-Week Reset within 7 days of your results visit, your entire $250 applies toward the program.</p>
             </div>
           </div>
         </div>
@@ -815,7 +815,7 @@ const CellularEnergyAssessment = () => {
               <div className="cea-step-number">4</div>
               <div className="cea-step-content">
                 <h4>Decide Your Next Step</h4>
-                <p>If the 6-Week Reset is right for you, your free is credited. If not, you still have your data and plan.</p>
+                <p>If the 6-Week Reset is right for you, your $250 is credited. If not, you still have your data and plan.</p>
               </div>
             </div>
           </div>
@@ -829,7 +829,7 @@ const CellularEnergyAssessment = () => {
             <div className="cea-credit-icon">💰</div>
             <h3 className="cea-credit-title">100% Credits Toward the 6-Week Reset</h3>
             <p className="cea-credit-text">
-              If you decide to move forward with the full <strong>6-Week Cellular Energy Reset</strong> within 7 days of your results visit, your entire <strong>free</strong> applies toward the $3,999 program price. You're not paying twice—you're just getting the data first.
+              If you decide to move forward with the full <strong>6-Week Cellular Energy Reset</strong> within 7 days of your results visit, your entire <strong>$250</strong> applies toward the $3,999 program price. You're not paying twice—you're just getting the data first.
             </p>
           </div>
         </div>
@@ -845,8 +845,8 @@ const CellularEnergyAssessment = () => {
             <h3 className="cea-pricing-title">Cellular Energy Assessment</h3>
             <p className="cea-pricing-subtitle">Complete diagnostic package</p>
             
-            <div className="cea-pricing-price">free</div>
-            <div className="cea-pricing-credit">→ 100% credits toward 6-Week Reset</div>
+            <div className="cea-pricing-price">$250</div>
+            <div className="cea-pricing-credit">→ 100% credits toward any treatment you start</div>
             
             <div className="cea-pricing-includes">
               <ul>

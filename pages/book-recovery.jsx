@@ -118,7 +118,7 @@ export default function BookRecovery() {
             </div>
           </div>
           
-          <p className="credit-note-text">Your free assessment fee is credited toward any treatment you start.</p>
+          <p className="credit-note-text">Your $250 assessment fee is credited toward any treatment you start.</p>
         </div>
       </section>
 
@@ -186,7 +186,7 @@ export default function BookRecovery() {
                 checked={checkboxes.check6}
                 onChange={() => handleCheckboxChange('check6')}
               />
-              <label htmlFor="check6">I understand the <strong>assessment fee is free</strong>, payable at the clinic. This is credited toward any treatment.</label>
+              <label htmlFor="check6">I understand the <strong>assessment fee is $250</strong>, payable at the clinic. This is credited toward any treatment.</label>
             </div>
           </div>
 

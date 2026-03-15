@@ -181,7 +181,7 @@ export default function Home() {
               Injury Recovery — $250
             </Link>
             <Link href="/range-assessment" className="btn-outline-white">
-              Range Assessment — Free
+              Range Assessment — $250
             </Link>
           </div>
           <p className="cta-location">📍 Range Medical • 1901 Westcliff Dr, Newport Beach</p>

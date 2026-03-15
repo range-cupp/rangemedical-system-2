@@ -930,12 +930,13 @@ export default function UnifiedPipeline() {
               <label style={styles.formLabel}>IV Type</label>
               <select value={protocolForm.iv_type || ''} onChange={(e) => setProtocolForm({ ...protocolForm, iv_type: e.target.value })} style={styles.formSelect}>
                 <option value="">Select type...</option>
-                <option value="Myers Cocktail">Myers Cocktail</option>
+                <option value="Range IV">Range IV</option>
                 <option value="NAD+">NAD+</option>
-                <option value="High Dose Vitamin C">High Dose Vitamin C</option>
-                <option value="Hydration">Hydration</option>
-                <option value="Immunity">Immunity</option>
-                <option value="Recovery">Recovery</option>
+                <option value="Glutathione">Glutathione</option>
+                <option value="Vitamin C">Vitamin C</option>
+                <option value="MB + Vit C + Mag Combo">MB + Vit C + Mag Combo</option>
+                <option value="Exosome IV">Exosome IV</option>
+                <option value="BYO IV">BYO IV</option>
                 <option value="Custom">Custom</option>
               </select>
             </div>

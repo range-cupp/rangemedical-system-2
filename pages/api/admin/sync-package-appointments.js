@@ -27,12 +27,10 @@ const CALENDAR_TO_PROTOCOL = {
   'High Dose Vitamin C IV': 'iv',
   'Vitamin C IV': 'iv',
   'Glutathione IV': 'iv',
-  'Methylene Blue IV': 'iv',
   'MB + Vit C + Mag Combo': 'iv',
   'Exosome IV Therapy': 'iv',
   'BYO - IV': 'iv',
   'BYO IV': 'iv',
-  'Hydration IV': 'iv',
   // Injection packs
   'Range Injections': 'injection',
   'NAD+ Injection': 'injection',

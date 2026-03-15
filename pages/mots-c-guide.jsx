@@ -396,7 +396,7 @@ export default function MOTSc() {
           <div className="container">
             <div className="section-kicker">Ready to Get Started?</div>
             <h2 className="section-title">See If MOTS-c Is Right for You</h2>
-            <p className="section-subtitle">Start with a free Range Assessment. We&rsquo;ll review your goals, discuss your options, and build a protocol that makes sense for you — no pressure, no sales pitch.</p>
+            <p className="section-subtitle">Start with a Range Assessment ($250, credited toward treatment). We&rsquo;ll review your goals, discuss your options, and build a protocol that makes sense for you — no pressure, no sales pitch.</p>
             <div className="mots-cta-buttons">
               <Link href="/range-assessment?path=energy" className="btn-primary">Take Assessment</Link>
               <a href="tel:9499973988" className="btn-outline">Call (949) 997-3988</a>

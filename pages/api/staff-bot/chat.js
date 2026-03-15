@@ -325,7 +325,7 @@ First visit: Patients should arrive 10–15 min early to complete paperwork. Wea
 IV THERAPY (Range IV / NAD+ / Specialty Drips)
   Duration: 30–60 min (NAD+ can run 2–4 hours depending on dose)
   What it is: Vitamins, minerals, and nutrients delivered directly into the bloodstream for immediate absorption. Bypasses digestion — far more effective than oral supplements.
-  Services offered: Range IV (Myers cocktail base), NAD+ 250mg, NAD+ 500mg, Specialty/custom IVs, Exosome IV (30–60 min)
+  Services offered: Range IV, NAD+ 250mg/500mg/750mg/1000mg, Glutathione 1g/2g/3g, Vitamin C 25g/50g/75g, MB + Vit C + Mag Combo ($750), Exosome IV, BYO/Custom IV
   Common uses: Energy, immune support, hydration, recovery, hangover, athletic performance, anti-aging
   Prep: No special prep needed. Eat beforehand. Stay hydrated. Wear comfortable clothing with easy arm access.
   Contraindications: Kidney disease, congestive heart failure, certain allergies. Provider screens on first visit.
@@ -352,7 +352,7 @@ RED LIGHT THERAPY (RLT)
 HORMONE REPLACEMENT THERAPY (HRT)
   Membership: $250/month — includes all hormone medications, ongoing lab monitoring, provider check-ins, and ONE IV per month ($225 value)
   What it is: Personalized hormone optimization for men and women. Testosterone, thyroid, estrogen, progesterone, DHEA based on lab results.
-  Process: Free assessment → comprehensive hormone labs → provider review → personalized protocol → monthly monitoring
+  Process: $250 assessment (credited toward treatment) → comprehensive hormone labs → provider review → personalized protocol → monthly monitoring
   Common uses: Low energy, brain fog, low libido, poor sleep, muscle loss, mood changes, menopause symptoms
   Timeline: Most patients notice improvements in energy and mood within 2–6 weeks.
   Delivery: Injections (self-administered at home), topical cream, or pellets depending on protocol.
@@ -361,7 +361,7 @@ HORMONE REPLACEMENT THERAPY (HRT)
 WEIGHT LOSS (GLP-1 Medications)
   Medications: Tirzepatide (dual GIP/GLP-1), Semaglutide (GLP-1), Retatrutide (triple agonist — newest, strongest)
   What it is: Physician-supervised medical weight loss. Weekly self-injections. Dosing titrated monthly.
-  Process: Free assessment → metabolic/hormone labs → provider recommendation → weekly injections → dose adjustments
+  Process: $250 assessment (credited toward treatment) → metabolic/hormone labs → provider recommendation → weekly injections → dose adjustments
   Results: Most patients lose 15–25% body weight over 6–12 months.
   Side effects: Mild nausea most common, especially in first few weeks. Usually improves with dose titration.
   Duration: Most use for 6–12 months, then maintain. Not a forever medication for most patients.
@@ -395,17 +395,17 @@ LAB PANELS
   First-timers: Always start with a lab panel before beginning any hormone or peptide protocol.
 
 INITIAL CONSULT / ASSESSMENT
-  Cost: FREE — no charge for the initial Range Assessment
+  Cost: $250 — credited toward any treatment the patient starts
   What it is: 15–20 min conversation with a provider about symptoms, goals, and which services fit. Not a full medical appointment.
-  Outcome: Provider recommends a starting point (labs, specific service, protocol). Patient decides whether to move forward.
+  Outcome: Provider recommends a starting point (labs, specific service, protocol). Patient decides whether to move forward. The $250 assessment fee is credited toward whatever treatment they choose.
   How to book: Can book online or via the schedule tool. No forms required in advance for consult-only.
 
 ── COMMON FRONT DESK QUESTIONS ──────────────────────────────────────
 Q: Do you take insurance?
 A: No, we are a cash-pay clinic. We accept all major credit cards, HSA, and FSA cards.
 
-Q: Is the assessment free?
-A: Yes, the initial Range Assessment is completely free. No obligation.
+Q: How much is the assessment?
+A: The Range Assessment is $250. If you decide on any treatment, that $250 is credited toward your treatment — so you're not paying extra.
 
 Q: How long is an IV?
 A: Standard IVs are 30–60 minutes. NAD+ runs longer — typically 2–4 hours depending on dose.

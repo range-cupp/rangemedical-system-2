@@ -31,7 +31,7 @@ export default function CellularEnergyReset() {
   const faqs = [
     {
       question: "How do I know if this is right for me?",
-      answer: "Take our free 2-minute assessment quiz. It asks about your symptoms, energy levels, and health history to determine if the Cellular Energy Reset is the right fit. If it is, we'll schedule a consultation to build your plan. If something else is going on, we'll point you in the right direction."
+      answer: "Take our 2-minute assessment quiz. It asks about your symptoms, energy levels, and health history to determine if the Cellular Energy Reset is the right fit. If it is, we'll schedule a consultation to build your plan. If something else is going on, we'll point you in the right direction."
     },
     {
       question: "How long does each session take?",

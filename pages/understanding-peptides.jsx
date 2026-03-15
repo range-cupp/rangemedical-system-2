@@ -526,7 +526,7 @@ export default function UnderstandingPeptides() {
               <div className="pm-kicker" style={{ marginBottom: '1.5rem' }}>Next Steps</div>
               <h2 className="pm-cta-title">Ready to explore peptide therapy?</h2>
               <p className="pm-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
-                Start with a free assessment and our team will guide you to the right protocol. Or give us a call — we're happy to answer any questions.
+                Start with a $250 assessment (credited toward treatment) and our team will guide you to the right protocol. Or give us a call — we're happy to answer any questions.
               </p>
               <div className="pm-cta-buttons">
                 <Link href="/range-assessment?path=injury" className="pm-btn-primary">Injury & Recovery</Link>

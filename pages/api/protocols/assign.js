@@ -712,8 +712,8 @@ export default async function handler(req, res) {
           'hbot': ['Hyperbaric Oxygen Therapy', 'HBOT'],
           'rlt': ['Red Light Therapy', 'RLT'],
           'red_light': ['Red Light Therapy', 'RLT'],
-          'iv': ['Range IV', 'NAD+ IV', 'Vitamin C IV', 'Glutathione IV', 'Methylene Blue IV', 'Hydration IV', 'Exosome IV', 'BYO IV', 'BYO - IV'],
-          'iv_therapy': ['Range IV', 'NAD+ IV', 'Vitamin C IV', 'Glutathione IV', 'Methylene Blue IV', 'Hydration IV', 'Exosome IV', 'BYO IV', 'BYO - IV'],
+          'iv': ['Range IV', 'NAD+ IV', 'Vitamin C IV', 'Glutathione IV', 'MB + Vit C + Mag Combo', 'Exosome IV', 'BYO IV', 'BYO - IV'],
+          'iv_therapy': ['Range IV', 'NAD+ IV', 'Vitamin C IV', 'Glutathione IV', 'MB + Vit C + Mag Combo', 'Exosome IV', 'BYO IV', 'BYO - IV'],
           'injection': ['Range Injections', 'NAD+ Injection', 'Glutathione Injection', 'B12 Injection', 'Vitamin Injection'],
           'injection_pack': ['Range Injections', 'NAD+ Injection', 'Glutathione Injection', 'B12 Injection', 'Vitamin Injection']
         };

@@ -132,10 +132,10 @@ const SERVICES = [
   {
     id: 'prp',
     name: 'PRP Therapy',
-    price: 'Consultation-based',
-    priceNote: 'Pricing discussed at assessment',
+    price: '$750/injection',
+    priceNote: '3-pack: $1,800 (save $450)',
     description: 'Platelet-Rich Plasma concentrated 3–5x from your own blood, injected into the treatment area. Common for knee pain, rotator cuff, tennis elbow, sports injuries, hair restoration, and facial rejuvenation.',
-    highlights: ['Uses your own blood — no synthetic materials', 'Minimally invasive, no downtime', 'Sports injuries, joint pain, hair, skin', 'Consultation required'],
+    highlights: ['Single injection: $750', '3-Injection Pack: $1,800 (save $450)', 'Uses your own blood — no synthetic materials', 'Minimally invasive, no downtime'],
     categories: ['recovery'],
     link: '/prp-therapy',
   },
@@ -332,7 +332,7 @@ export default function Services() {
               <h2>The Range Assessment</h2>
               <div className="svc-divider"></div>
               <p className="svc-body-text">
-                Your journey starts with a free assessment — a quick conversation about your symptoms, goals, and medical history. Your provider then recommends the right path for you.
+                Your journey starts with a $250 assessment — a conversation about your symptoms, goals, and medical history. Your provider recommends the right path for you, and the $250 is credited toward any treatment you start.
               </p>
 
               <div className="svc-doors-grid">

@@ -333,6 +333,7 @@ async function buildSystemPrompt(staff) {
       .from('sop_knowledge')
       .select('category, title, content')
       .eq('active', true)
+      .neq('category', 'patient_education')  // exclude PDF-sourced patient docs — too large, staff doesn't need them verbatim
       .order('category')
       .order('sort_order')
       .order('created_at');
@@ -362,6 +363,12 @@ async function buildSystemPrompt(staff) {
       }
       lines.push('\n────────────────────────────────────────────────────────────────────');
       knowledgeBlock = lines.join('\n');
+      // Hard cap — prevents system prompt from exceeding Anthropic context limits
+      // if the knowledge base grows large. ~60K chars ≈ ~15K tokens.
+      const KB_CHAR_LIMIT = 60000;
+      if (knowledgeBlock.length > KB_CHAR_LIMIT) {
+        knowledgeBlock = knowledgeBlock.slice(0, KB_CHAR_LIMIT) + '\n\n[Knowledge base truncated — remaining entries omitted]\n────────────────────────────────────────────────────────────────────';
+      }
     }
   } catch (err) {
     console.warn('[StaffBot] Could not load knowledge base:', err.message);
@@ -685,8 +692,16 @@ export default async function handler(req, res) {
 
       if (!claudeRes.ok) {
         const errText = await claudeRes.text();
-        console.error('Claude API error:', claudeRes.status, errText);
-        throw new Error(`Claude API error: ${claudeRes.status}`);
+        console.error('[StaffBot] Claude API error:', claudeRes.status, errText);
+        // Don't throw — return a 200 with the error detail so the frontend shows it
+        // instead of a blank 500 that gives no info
+        let detail = '';
+        try { detail = JSON.parse(errText)?.error?.message || ''; } catch {}
+        return res.status(200).json({
+          response: `⚠️ AI service error (${claudeRes.status})${detail ? `: ${detail}` : ''}. Please try again.`,
+          employee: { name: employee.name, title: employee.title },
+          _debug: { claudeStatus: claudeRes.status, claudeError: errText.slice(0, 500) },
+        });
       }
 
       const claudeData = await claudeRes.json();
@@ -735,7 +750,10 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Staff bot chat error:', error);
-    return res.status(500).json({ error: 'Something went wrong. Please try again.' });
+    console.error('[StaffBot] Unhandled error:', error.message, error.stack);
+    return res.status(500).json({
+      error: 'Something went wrong. Please try again.',
+      _debug: error.message,
+    });
   }
 }

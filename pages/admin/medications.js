@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import AdminLayout from '../../components/AdminLayout';
-import { TESTOSTERONE_DOSES, WEIGHT_LOSS_DOSAGES, getDoseOptions } from '../../lib/protocol-config';
+import { TESTOSTERONE_DOSES, WEIGHT_LOSS_DOSAGES, getDoseOptions, getPeptideVialSupply } from '../../lib/protocol-config';
 
 // Friendly labels for supply types
 const SUPPLY_LABELS = {
@@ -102,7 +102,13 @@ function getSupplyOptions(med) {
     ];
   }
 
-  // No options to change for other types (pellets, oral, peptide)
+  // Peptide — look up vial supply options by medication name
+  if (pt === 'peptide') {
+    const vialSupply = getPeptideVialSupply(med.medication || med.program_name || '');
+    if (vialSupply) return vialSupply.options;
+  }
+
+  // No options to change for other types (pellets, oral)
   return null;
 }
 
@@ -123,6 +129,12 @@ function getIntervalForSupply(supplyValue, med) {
   if (supplyValue === 'wl_2' || supplyValue === 'every_2_weeks') return 14;
   if (supplyValue === 'wl_3') return 21;
   if (supplyValue === 'wl_4' || supplyValue === 'monthly') return 28;
+
+  // Peptide vial durations — extract days from value (e.g. peptide_30d → 30)
+  if (supplyValue.startsWith('peptide_')) {
+    const days = parseInt(supplyValue.replace('peptide_', '').replace('d', ''));
+    if (!isNaN(days)) return days;
+  }
 
   // Vials — use the protocol's existing calculated interval
   // (already computed server-side based on dose + injection frequency)
@@ -178,6 +190,10 @@ export default function MedicationsPage() {
     if (pt.includes('weight_loss')) {
       // Default to 1 injection for weight loss — staff picks how many they're dispensing
       setSelectedSupplyType('wl_1');
+    } else if (pt === 'peptide') {
+      // Default to first vial supply option if available
+      const vialSupply = getPeptideVialSupply(med.medication || med.program_name || '');
+      setSelectedSupplyType(vialSupply ? vialSupply.options[0].value : '');
     } else {
       setSelectedSupplyType(med.supply_type || '');
     }
@@ -537,10 +553,14 @@ export default function MedicationsPage() {
               {/* Supply Type Selector */}
               {(() => {
                 const options = getSupplyOptions(dispensingProtocol);
+                const pt = (dispensingProtocol.program_type || '').toLowerCase();
+                const vialInfo = pt === 'peptide' ? getPeptideVialSupply(dispensingProtocol.medication || dispensingProtocol.program_name || '') : null;
                 if (options) {
                   return (
                     <div style={{ ...s.fieldRow, flexDirection: 'column', alignItems: 'stretch' }}>
-                      <div style={s.fieldLabel}>Supply Type</div>
+                      <div style={s.fieldLabel}>
+                        {vialInfo ? `Vial Supply (${vialInfo.vialSize})` : 'Supply Type'}
+                      </div>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
                         {options.map(opt => (
                           <button

@@ -258,7 +258,56 @@ async function executeTool(toolName, toolInput, staff) {
 
 // ── System prompt ────────────────────────────────────────────────────────────
 
-function buildSystemPrompt(staff) {
+async function buildSystemPrompt(staff) {
+  // Fetch live service catalog from pos_services — injected into prompt so
+  // the bot always knows current pricing without needing a tool call.
+  // Grouped by category for readability.
+  let liveCatalogBlock = '';
+  try {
+    const { data: services } = await supabase
+      .from('pos_services')
+      .select('name, category, price_cents, recurring, interval, description')
+      .eq('active', true)
+      .order('category')
+      .order('sort_order');
+
+    if (services && services.length > 0) {
+      const grouped = {};
+      for (const s of services) {
+        if (!grouped[s.category]) grouped[s.category] = [];
+        grouped[s.category].push(s);
+      }
+      const categoryLabels = {
+        assessment:   'ASSESSMENT',
+        lab_panels:   'LAB PANELS',
+        iv_therapy:   'IV THERAPY',
+        injections:   'INJECTIONS',
+        hbot:         'HBOT',
+        regenerative: 'RED LIGHT THERAPY',
+        packages:     'PACKAGES',
+        prp:          'PRP',
+        hrt:          'HRT',
+        weight_loss:  'WEIGHT LOSS (GLP-1)',
+        peptide:      'PEPTIDES',
+      };
+      const lines = ['── LIVE PRICE CATALOG (from POS) ───────────────────────────────────'];
+      for (const [cat, items] of Object.entries(grouped)) {
+        lines.push(`\n${categoryLabels[cat] || cat.toUpperCase()}`);
+        for (const s of items) {
+          const price = s.price_cents > 0
+            ? `$${(s.price_cents / 100).toFixed(0)}${s.recurring ? `/${s.interval || 'mo'}` : ''}`
+            : 'pricing by consultation';
+          const desc = s.description ? ` — ${s.description}` : '';
+          lines.push(`  ${s.name}: ${price}${desc}`);
+        }
+      }
+      lines.push('────────────────────────────────────────────────────────────────────');
+      liveCatalogBlock = lines.join('\n');
+    }
+  } catch (err) {
+    console.warn('[StaffBot] Could not load live catalog:', err.message);
+    liveCatalogBlock = '(Live catalog unavailable — use get_service_info tool for pricing)';
+  }
   const now = new Date();
 
   // All date logic anchored to Pacific time — Vercel runs UTC so we must derive
@@ -322,15 +371,22 @@ First visit: Patients should arrive 10–15 min early to complete paperwork. Wea
 
 ── SERVICES & KNOWLEDGE BASE ────────────────────────────────────────
 
-IV THERAPY (Range IV / NAD+ / Specialty Drips)
-  Duration: 30–60 min (NAD+ can run 2–4 hours depending on dose)
-  What it is: Vitamins, minerals, and nutrients delivered directly into the bloodstream for immediate absorption. Bypasses digestion — far more effective than oral supplements.
-  Services offered: Range IV, NAD+ 250mg/500mg/750mg/1000mg, Glutathione 1g/2g/3g, Vitamin C 25g/50g/75g, MB + Vit C + Mag Combo ($750), Exosome IV, BYO/Custom IV
-  Common uses: Energy, immune support, hydration, recovery, hangover, athletic performance, anti-aging
-  Prep: No special prep needed. Eat beforehand. Stay hydrated. Wear comfortable clothing with easy arm access.
-  Contraindications: Kidney disease, congestive heart failure, certain allergies. Provider screens on first visit.
-  Pricing: Range IV ~$225 | NAD+ 250mg / 500mg — check POS for current price | Specialty IVs vary
-  First-timers: Brief health screening by nurse before first IV. After that, walk-in friendly.
+IV THERAPY
+  Duration: 30–60 min standard. NAD+ runs 2–4 hours. Exosome IV 30–60 min.
+  What it is: Nutrients delivered directly into the bloodstream. Bypasses digestion — far more effective than oral supplements.
+  Services:
+    Range IV ($225) — Myers cocktail base, 5 nutrients, 30–60 min
+    NAD+ IV — 225mg ($375) / 500mg ($525) / 750mg ($650) / 1000mg ($775) — cellular energy, brain, anti-aging
+    Vitamin C IV — 25g ($215) / 50g ($255) / 75g ($330) — immune support, antioxidant
+    Glutathione IV — 1g ($170) / 2g ($190) / 3g ($215) — detox, skin, immune
+    MB + Vit C + Mag Combo ($750) — Methylene Blue + Vitamin C + Magnesium. Mitochondrial support, brain function, energy, anti-inflammatory. This IS a service we offer.
+    IV Add-on ($35 each) — extra nutrients added to any IV
+    Exosome IV — pricing by consultation
+  Injections: Standard ($35) — B12, B-Complex, D3, Biotin, Amino Blend, NAC, BCAA | Premium ($50) — L-Carnitine, Glutathione, MIC-B12/Skinny Shot | NAD+ IM injection $0.50/mg (50mg–150mg)
+  Common uses: Energy, immune support, hydration, recovery, hangover, athletic performance, anti-aging, mitochondrial health
+  Prep: Eat beforehand, stay hydrated, wear clothing with easy arm access. No special prep.
+  Contraindications: Kidney disease, CHF, certain allergies. Provider screens on first visit.
+  First-timers: Brief health screening before first IV. Walk-in friendly after that.
 
 HYPERBARIC OXYGEN THERAPY (HBOT)
   Duration: 60–90 minutes per session
@@ -399,6 +455,8 @@ INITIAL CONSULT / ASSESSMENT
   What it is: 15–20 min conversation with a provider about symptoms, goals, and which services fit. Not a full medical appointment.
   Outcome: Provider recommends a starting point (labs, specific service, protocol). Patient decides whether to move forward. The $250 assessment fee is credited toward whatever treatment they choose.
   How to book: Can book online or via the schedule tool. No forms required in advance for consult-only.
+
+${liveCatalogBlock}
 
 ── COMMON FRONT DESK QUESTIONS ──────────────────────────────────────
 Q: Do you take insurance?
@@ -488,9 +546,10 @@ Never reschedule without confirmation. Always resolve ambiguity (multiple bookin
 ─────────────────────────────────────────────────────────────────────
 
 PRICING:
-- Always use get_service_info for live POS pricing first.
-- Known fallbacks: Essential Labs $350 | Elite Labs $750 | HRT Membership $250/mo | Range IV ~$225 | Initial Consult FREE | HBOT/RLT/Peptides/Weight loss — check POS.
-- When asked "what is [service]?" — answer from the knowledge base above. Then offer to pull current pricing.
+- The LIVE PRICE CATALOG above is injected from the POS at session start — use it to answer pricing questions directly without a tool call.
+- Use get_service_info tool only if a service isn't in the catalog above (e.g. custom/new items).
+- Key quick-ref: Range IV $225 | MB + Vit C + Mag Combo $750 | NAD+ from $375 | HRT Membership $250/mo | Essential Labs $350 | Elite Labs $750 | Range Assessment $250 (credited toward treatment) | HBOT single $185 | RLT single $85 | PRP single $750
+- When asked "what is [service]?" — answer from the knowledge base above. Then give pricing from the catalog.
 
 GENERAL BEHAVIOR:
 - Be direct and efficient. Staff are busy — get to the point.
@@ -540,7 +599,7 @@ export default async function handler(req, res) {
       { role: 'user', content: message.trim() },
     ];
 
-    const systemPrompt = buildSystemPrompt(employee);
+    const systemPrompt = await buildSystemPrompt(employee);
 
     // ── Agentic loop: Claude → tool calls → results → Claude ────────────────
     let finalResponse = null;

@@ -194,34 +194,41 @@ async function executeTool(toolName, toolInput, staff) {
 
 function buildSystemPrompt(staff) {
   const now = new Date();
+
+  // All date logic anchored to Pacific time — Vercel runs UTC so we must derive
+  // the Pacific calendar date first, then build a noon anchor from it.
+  // Using noon avoids any DST boundary issues.
+  const todayISO = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }); // YYYY-MM-DD in Pacific
   const today = now.toLocaleDateString('en-US', {
     timeZone: 'America/Los_Angeles',
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
-  const todayISO = now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
   const timeNow = now.toLocaleTimeString('en-US', {
     timeZone: 'America/Los_Angeles', hour: 'numeric', minute: '2-digit',
   });
 
-  // Pre-compute useful dates for the prompt
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowISO = tomorrow.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+  // pacificAnchor = noon on today's Pacific date. getDay() on this is always
+  // the correct Pacific weekday regardless of what the server's UTC clock says.
+  const pacificAnchor = new Date(todayISO + 'T12:00:00');
+  const currentDayPacific = pacificAnchor.getDay();
 
-  // "This [day]" = nearest upcoming occurrence (could be a few days away)
+  const tomorrowAnchor = new Date(pacificAnchor);
+  tomorrowAnchor.setDate(tomorrowAnchor.getDate() + 1);
+  const tomorrowISO = tomorrowAnchor.toLocaleDateString('en-CA');
+
+  // "This [day]" = nearest upcoming occurrence (always at least 1 day in the future)
   function thisWeekday(dayIndex) {
-    const d = new Date(now);
-    const current = d.getDay();
-    let diff = dayIndex - current;
+    const d = new Date(pacificAnchor);
+    let diff = dayIndex - currentDayPacific;
     if (diff <= 0) diff += 7;
     d.setDate(d.getDate() + diff);
-    return d.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+    return d.toLocaleDateString('en-CA');
   }
-  // "Next [day]" = ALWAYS the week AFTER the nearest occurrence (7+ days from thisWeekday)
+  // "Next [day]" = ALWAYS 7 days after thisWeekday (the following week)
   function nextWeekday(dayIndex) {
     const d = new Date(thisWeekday(dayIndex) + 'T12:00:00');
     d.setDate(d.getDate() + 7);
-    return d.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+    return d.toLocaleDateString('en-CA');
   }
 
   const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];

@@ -51,9 +51,25 @@ export default async function handler(req, res) {
 
 // GET - Fetch logs by category
 async function handleGet(req, res) {
-  const { category, patient_id, limit = 100 } = req.query;
+  const { category, patient_id, search, limit = 100 } = req.query;
 
   try {
+    // If searching, find matching patient IDs first so we can filter server-side
+    let searchPatientIds = null;
+    if (search && search.trim().length >= 2) {
+      const term = search.trim().toLowerCase();
+      // Search patients by name
+      const { data: matchingPatients } = await supabase
+        .from('patients')
+        .select('id')
+        .or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%,name.ilike.%${term}%`)
+        .limit(50);
+
+      searchPatientIds = (matchingPatients || []).map(p => p.id);
+
+      // If no patients match the name, still allow medication search below
+    }
+
     // Fetch from BOTH tables and merge results
     let allLogs = [];
 
@@ -62,8 +78,7 @@ async function handleGet(req, res) {
       .from('service_logs')
       .select('*')
       .order('entry_date', { ascending: false, nullsFirst: false })
-      .order('created_at', { ascending: false })
-      .limit(parseInt(limit));
+      .order('created_at', { ascending: false });
 
     if (category) {
       serviceQuery = serviceQuery.eq('category', category);
@@ -72,6 +87,16 @@ async function handleGet(req, res) {
       serviceQuery = serviceQuery.eq('patient_id', patient_id);
     }
 
+    // Server-side patient filter for search
+    if (searchPatientIds !== null && searchPatientIds.length > 0) {
+      serviceQuery = serviceQuery.in('patient_id', searchPatientIds);
+    } else if (searchPatientIds !== null && searchPatientIds.length === 0) {
+      // No patients matched name — try medication search only
+      const term = search.trim();
+      serviceQuery = serviceQuery.ilike('medication', `%${term}%`);
+    }
+
+    serviceQuery = serviceQuery.limit(parseInt(limit));
     const { data: serviceLogs, error: serviceError } = await serviceQuery;
 
     if (!serviceError && serviceLogs) {
@@ -83,8 +108,7 @@ async function handleGet(req, res) {
       .from('injection_logs')
       .select('*')
       .order('entry_date', { ascending: false, nullsFirst: false })
-      .order('created_at', { ascending: false })
-      .limit(parseInt(limit));
+      .order('created_at', { ascending: false });
 
     if (category) {
       injectionQuery = injectionQuery.eq('category', category);
@@ -93,6 +117,15 @@ async function handleGet(req, res) {
       injectionQuery = injectionQuery.eq('patient_id', patient_id);
     }
 
+    // Server-side patient filter for search
+    if (searchPatientIds !== null && searchPatientIds.length > 0) {
+      injectionQuery = injectionQuery.in('patient_id', searchPatientIds);
+    } else if (searchPatientIds !== null && searchPatientIds.length === 0) {
+      const term = search.trim();
+      injectionQuery = injectionQuery.ilike('medication', `%${term}%`);
+    }
+
+    injectionQuery = injectionQuery.limit(parseInt(limit));
     const { data: injectionLogs, error: injectionError } = await injectionQuery;
 
     if (!injectionError && injectionLogs) {

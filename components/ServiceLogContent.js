@@ -187,11 +187,25 @@ export default function ServiceLogContent() {
     fetchPatients();
   }, [viewCategory]);
 
-  const fetchLogs = async () => {
+  // Debounced server-side search — re-fetches when search term changes
+  useEffect(() => {
+    if (!searchTerm || searchTerm.trim().length < 2) {
+      // If search cleared or too short, re-fetch default logs
+      if (searchTerm === '') fetchLogs();
+      return;
+    }
+    const timer = setTimeout(() => {
+      fetchLogs(searchTerm);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  const fetchLogs = async (search = '') => {
     setLoading(true);
     try {
       const categoryParam = viewCategory === 'all' ? '' : `category=${viewCategory}&`;
-      const res = await fetch(`/api/service-log?${categoryParam}limit=100`);
+      const searchParam = search.trim().length >= 2 ? `search=${encodeURIComponent(search.trim())}&` : '';
+      const res = await fetch(`/api/service-log?${categoryParam}${searchParam}limit=100`);
       if (!res.ok) throw new Error(`Failed to load logs (${res.status})`);
       const data = await res.json();
       if (data.success) {

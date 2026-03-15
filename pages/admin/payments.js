@@ -1291,9 +1291,13 @@ export default function PaymentsPage() {
 
       {/* New Subscription Modal */}
       {showNewSubModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', borderRadius: 12, padding: 24, width: 480, maxWidth: '90vw' }}>
-            <h3 style={{ margin: '0 0 16px', fontSize: 18 }}>New Subscription</h3>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 16, width: 500, maxWidth: '90vw', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px 12px', borderBottom: '1px solid #f1f5f9' }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0f172a' }}>New Subscription</h3>
+              <button onClick={() => { setShowNewSubModal(false); setNewSubPatient(null); setNewSubPatientCards([]); }} style={{ background: 'none', border: 'none', fontSize: 18, color: '#94a3b8', cursor: 'pointer', padding: '4px 8px', borderRadius: 6 }}>✕</button>
+            </div>
+            <div style={{ padding: '16px 24px 24px' }}>
 
             {/* Patient search */}
             {!newSubPatient ? (
@@ -1393,7 +1397,7 @@ export default function PaymentsPage() {
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button
                 onClick={() => { setShowNewSubModal(false); setNewSubPatient(null); setNewSubPatientCards([]); }}
-                style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', fontSize: 13, cursor: 'pointer' }}
+                style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', fontSize: 13, cursor: 'pointer', color: '#475569', fontWeight: 500, fontFamily: 'inherit' }}
               >
                 Cancel
               </button>
@@ -1401,12 +1405,14 @@ export default function PaymentsPage() {
                 onClick={handleCreateNewSub}
                 disabled={creatingSub || !newSubPatient || newSubPatientCards.length === 0}
                 style={{
-                  padding: '8px 20px', borderRadius: 6, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                  background: (!newSubPatient || newSubPatientCards.length === 0) ? '#d1d5db' : '#16a34a', color: '#fff',
+                  padding: '8px 20px', borderRadius: 8, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                  background: (!newSubPatient || newSubPatientCards.length === 0) ? '#e2e8f0' : '#16a34a', color: '#fff',
+                  opacity: (creatingSub || !newSubPatient || newSubPatientCards.length === 0) ? 0.6 : 1,
                 }}
               >
                 {creatingSub ? 'Creating...' : 'Start Subscription'}
               </button>
+            </div>
             </div>
           </div>
         </div>
@@ -1433,189 +1439,208 @@ const styles = {
   },
   tabBar: {
     display: 'flex',
-    gap: '8px',
+    gap: '6px',
+    flexWrap: 'wrap',
   },
   tab: {
-    padding: '8px 16px',
-    border: '1px solid #ddd',
-    borderRadius: '8px',
+    padding: '6px 14px',
+    border: '1px solid #e2e8f0',
+    borderRadius: '20px',
     background: '#fff',
-    fontSize: '14px',
+    fontSize: '12px',
     cursor: 'pointer',
-    fontWeight: '400',
-    color: '#666'
+    fontWeight: '600',
+    color: '#475569',
+    fontFamily: 'inherit',
+    transition: 'all 0.15s',
   },
   tabActive: {
-    background: '#000',
+    background: '#1e40af',
     color: '#fff',
-    border: '1px solid #000',
-    fontWeight: '500'
+    border: '1px solid #1e40af',
   },
   createBtn: {
-    padding: '10px 20px',
-    background: '#000',
+    padding: '8px 18px',
+    background: '#16a34a',
     color: '#fff',
     border: 'none',
     borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '500',
+    fontSize: '13px',
+    fontWeight: '600',
     cursor: 'pointer',
+    fontFamily: 'inherit',
   },
   statsRow: {
     display: 'flex',
-    gap: '12px',
+    gap: '10px',
     marginBottom: '20px',
+    flexWrap: 'wrap',
   },
   stat: {
     flex: 1,
     background: '#fff',
     borderRadius: '12px',
-    border: '1px solid #e5e5e5',
-    padding: '16px',
+    border: '1px solid #e2e8f0',
+    padding: '14px 16px',
     textAlign: 'center',
+    minWidth: '100px',
   },
   statValue: {
     fontSize: '20px',
-    fontWeight: '600',
+    fontWeight: '700',
     marginBottom: '4px',
+    color: '#0f172a',
   },
   statLabel: {
-    fontSize: '11px',
-    color: '#999',
+    fontSize: '10px',
+    color: '#94a3b8',
     textTransform: 'uppercase',
-    fontWeight: '500',
-    letterSpacing: '0.3px',
+    fontWeight: '600',
+    letterSpacing: '0.5px',
   },
   filters: {
     display: 'flex',
-    gap: '12px',
+    gap: '10px',
     alignItems: 'center',
     marginBottom: '16px',
+    flexWrap: 'wrap',
   },
   searchInput: {
     padding: '8px 14px',
-    border: '1px solid #ddd',
+    border: '1px solid #e2e8f0',
     borderRadius: '8px',
-    fontSize: '14px',
-    width: '280px',
+    fontSize: '13px',
+    width: '260px',
     outline: 'none',
     fontFamily: 'inherit',
+    color: '#1e293b',
   },
   filterPills: {
     display: 'flex',
-    gap: '6px',
+    gap: '4px',
+    flexWrap: 'wrap',
   },
   filterPill: {
-    padding: '6px 12px',
-    border: '1px solid #e5e5e5',
-    borderRadius: '16px',
+    padding: '5px 12px',
+    border: '1px solid #e2e8f0',
+    borderRadius: '20px',
     background: '#fff',
-    fontSize: '12px',
+    fontSize: '11px',
     cursor: 'pointer',
-    color: '#666',
-    fontWeight: '400',
+    color: '#475569',
+    fontWeight: '600',
+    fontFamily: 'inherit',
+    transition: 'all 0.15s',
   },
   filterPillActive: {
-    background: '#111',
+    background: '#1e40af',
     color: '#fff',
-    border: '1px solid #111',
-    fontWeight: '500',
+    border: '1px solid #1e40af',
   },
   toast: {
     position: 'fixed',
     top: '20px',
     right: '20px',
     padding: '12px 20px',
-    background: '#111',
+    background: '#0f172a',
     color: '#fff',
-    borderRadius: '8px',
-    fontSize: '14px',
+    borderRadius: '10px',
+    fontSize: '13px',
+    fontWeight: '500',
     zIndex: 1100,
-    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
   },
   loading: {
     textAlign: 'center',
-    padding: '60px',
-    color: '#666'
+    padding: '48px',
+    color: '#94a3b8',
+    fontSize: '13px',
   },
   card: {
     background: '#fff',
     borderRadius: '12px',
     overflow: 'hidden',
-    border: '1px solid #e5e5e5'
+    border: '1px solid #e2e8f0',
   },
   empty: {
     padding: '40px',
     textAlign: 'center',
-    color: '#666'
+    color: '#94a3b8',
+    fontSize: '13px',
   },
   table: {
     width: '100%',
-    borderCollapse: 'collapse'
+    borderCollapse: 'collapse',
   },
   th: {
     textAlign: 'left',
-    padding: '12px 16px',
-    fontSize: '11px',
-    fontWeight: '600',
+    padding: '10px 16px',
+    fontSize: '10px',
+    fontWeight: '700',
     textTransform: 'uppercase',
-    color: '#666',
-    borderBottom: '1px solid #e5e5e5',
-    background: '#fafafa'
+    color: '#94a3b8',
+    borderBottom: '1px solid #e2e8f0',
+    background: '#f8fafc',
+    letterSpacing: '0.5px',
   },
   tr: {
-    borderBottom: '1px solid #f0f0f0'
+    borderBottom: '1px solid #f1f5f9',
   },
   td: {
     padding: '12px 16px',
-    fontSize: '14px',
+    fontSize: '13px',
     verticalAlign: 'top',
+    color: '#1e293b',
   },
   badge: {
-    padding: '4px 10px',
+    padding: '3px 10px',
     borderRadius: '12px',
-    fontSize: '11px',
-    fontWeight: '600',
-    textTransform: 'uppercase'
+    fontSize: '10px',
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
   actions: {
     display: 'flex',
-    gap: '6px',
+    gap: '4px',
   },
   actionBtn: {
     padding: '4px 10px',
-    border: '1px solid #ddd',
+    border: '1px solid #e2e8f0',
     borderRadius: '6px',
     background: '#fff',
-    fontSize: '12px',
+    fontSize: '11px',
     cursor: 'pointer',
-    color: '#333',
-    fontWeight: '500',
+    color: '#475569',
+    fontWeight: '600',
+    fontFamily: 'inherit',
+    transition: 'all 0.15s',
   },
   textBtn: {
     padding: '4px 10px',
     border: '1px solid #bbf7d0',
     borderRadius: '6px',
     background: '#f0fdf4',
-    fontSize: '12px',
+    fontSize: '11px',
     cursor: 'pointer',
     color: '#16a34a',
-    fontWeight: '500',
+    fontWeight: '600',
+    fontFamily: 'inherit',
   },
   voidBtn: {
     padding: '4px 10px',
     border: '1px solid #fecaca',
     borderRadius: '6px',
     background: '#fff',
-    fontSize: '12px',
+    fontSize: '11px',
     cursor: 'pointer',
     color: '#dc2626',
-    fontWeight: '500',
+    fontWeight: '600',
+    fontFamily: 'inherit',
   },
   expandedRow: {
     padding: '0 16px 16px',
-    background: '#fafafa',
-    borderBottom: '2px solid #e5e5e5',
+    background: '#f8fafc',
+    borderBottom: '2px solid #e2e8f0',
   },
   detailGrid: {
     display: 'grid',
@@ -1625,56 +1650,58 @@ const styles = {
   },
   detailSection: {},
   detailTitle: {
-    fontSize: '11px',
-    fontWeight: '600',
+    fontSize: '10px',
+    fontWeight: '700',
     textTransform: 'uppercase',
-    color: '#999',
+    color: '#94a3b8',
     marginBottom: '8px',
-    letterSpacing: '0.3px',
+    letterSpacing: '0.5px',
   },
   detailItem: {
     display: 'flex',
     justifyContent: 'space-between',
     fontSize: '13px',
     padding: '4px 0',
+    color: '#1e293b',
   },
   detailMeta: {
     display: 'flex',
     gap: '8px',
     fontSize: '13px',
     padding: '3px 0',
+    color: '#1e293b',
   },
   metaLabel: {
-    color: '#999',
-    fontWeight: '500',
+    color: '#94a3b8',
+    fontWeight: '600',
     minWidth: '70px',
   },
   patientLink: {
     fontSize: '13px',
-    color: '#000',
-    fontWeight: '500',
+    color: '#2563eb',
+    fontWeight: '600',
     textDecoration: 'none',
   },
   link: {
     display: 'inline-block',
     marginTop: '12px',
     padding: '10px 20px',
-    background: '#000',
+    background: '#1e40af',
     color: '#fff',
     borderRadius: '8px',
     textDecoration: 'none',
-    fontSize: '14px',
-    fontWeight: '500'
+    fontSize: '13px',
+    fontWeight: '600',
   },
   // POS styles
   posSection: {
     marginBottom: '24px',
   },
   posSectionTitle: {
-    fontSize: '16px',
-    fontWeight: '600',
+    fontSize: '15px',
+    fontWeight: '700',
     margin: '0 0 12px 0',
-    color: '#111',
+    color: '#0f172a',
   },
   posSearchWrap: {
     position: 'relative',
@@ -1684,12 +1711,13 @@ const styles = {
   posSearchInput: {
     width: '100%',
     padding: '10px 14px',
-    border: '1px solid #d1d5db',
-    borderRadius: '8px',
-    fontSize: '15px',
+    border: '1px solid #e2e8f0',
+    borderRadius: '10px',
+    fontSize: '14px',
     outline: 'none',
     boxSizing: 'border-box',
     fontFamily: 'inherit',
+    color: '#1e293b',
   },
   posDropdown: {
     position: 'absolute',
@@ -1697,57 +1725,62 @@ const styles = {
     left: 0,
     right: 0,
     background: '#fff',
-    border: '1px solid #d1d5db',
-    borderRadius: '8px',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+    border: '1px solid #e2e8f0',
+    borderRadius: '10px',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
     zIndex: 10,
     maxHeight: '240px',
     overflowY: 'auto',
+    marginTop: '4px',
   },
   posDropdownItem: {
     padding: '10px 14px',
     cursor: 'pointer',
-    borderBottom: '1px solid #f3f4f6',
-    fontSize: '14px',
+    borderBottom: '1px solid #f1f5f9',
+    fontSize: '13px',
+    color: '#1e293b',
+    transition: 'background 0.1s',
   },
   posChargeBtn: {
     padding: '10px 24px',
-    borderRadius: '8px',
+    borderRadius: '10px',
     border: 'none',
-    background: '#000',
+    background: '#2563eb',
     color: '#fff',
-    fontSize: '14px',
-    fontWeight: '500',
+    fontSize: '13px',
+    fontWeight: '600',
     cursor: 'pointer',
+    fontFamily: 'inherit',
   },
   // Products & Services styles
   productsGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-    gap: '16px',
+    gap: '12px',
   },
   productCategory: {
     background: '#fff',
     borderRadius: '12px',
-    border: '1px solid #e5e5e5',
+    border: '1px solid #e2e8f0',
     overflow: 'hidden',
   },
   productCategoryHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '14px 18px',
-    background: '#fafafa',
-    borderBottom: '1px solid #e5e5e5',
+    padding: '12px 18px',
+    background: '#f8fafc',
+    borderBottom: '1px solid #e2e8f0',
   },
   productCategoryName: {
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#111',
+    fontSize: '13px',
+    fontWeight: '700',
+    color: '#0f172a',
   },
   productCategoryCount: {
-    fontSize: '12px',
-    color: '#999',
+    fontSize: '11px',
+    color: '#94a3b8',
+    fontWeight: '600',
   },
   productList: {
     padding: '4px 0',
@@ -1757,11 +1790,11 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '10px 18px',
-    borderBottom: '1px solid #f5f5f5',
+    borderBottom: '1px solid #f1f5f9',
   },
   productName: {
-    fontSize: '14px',
-    color: '#333',
+    fontSize: '13px',
+    color: '#1e293b',
   },
   productPriceWrap: {
     display: 'flex',
@@ -1770,13 +1803,13 @@ const styles = {
     flexShrink: 0,
   },
   productPrice: {
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#111',
+    fontSize: '13px',
+    fontWeight: '700',
+    color: '#0f172a',
   },
   productRecurring: {
-    fontSize: '12px',
-    color: '#999',
+    fontSize: '11px',
+    color: '#94a3b8',
     fontWeight: '400',
   },
 };

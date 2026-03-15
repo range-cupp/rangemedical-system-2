@@ -131,6 +131,47 @@ const FORM_QUICK_SELECTS = [
   { label: 'Exosome IV', forms: ['intake', 'hipaa', 'exosome-iv'] },
 ];
 
+// Guides available to send from patient profile
+const AVAILABLE_GUIDES = [
+  { id: 'hrt-guide', name: 'HRT Guide', icon: '💊', category: 'hrt' },
+  { id: 'tirzepatide-guide', name: 'Tirzepatide Guide', icon: '⚖️', category: 'weight_loss' },
+  { id: 'retatrutide-guide', name: 'Retatrutide Guide', icon: '⚖️', category: 'weight_loss' },
+  { id: 'weight-loss-medication-guide-page', name: 'WL Medication Guide', icon: '⚖️', category: 'weight_loss' },
+  { id: 'bpc-tb4-guide', name: 'BPC/TB4 Guide', icon: '🧬', category: 'peptide' },
+  { id: 'recovery-blend-guide', name: 'Recovery Blend Guide', icon: '🧬', category: 'peptide' },
+  { id: 'glow-guide', name: 'GLOW Guide', icon: '✨', category: 'peptide' },
+  { id: 'ghk-cu-guide', name: 'GHK-Cu Guide', icon: '🧬', category: 'peptide' },
+  { id: '3x-blend-guide', name: '3x Blend Guide', icon: '🧬', category: 'peptide' },
+  { id: 'nad-guide', name: 'NAD+ Guide', icon: '💧', category: 'iv' },
+  { id: 'methylene-blue-iv-guide', name: 'Methylene Blue Guide', icon: '💧', category: 'iv' },
+  { id: 'methylene-blue-combo-iv-guide', name: 'MB+VitC Combo Guide', icon: '💧', category: 'iv' },
+  { id: 'glutathione-iv-guide', name: 'Glutathione Guide', icon: '💧', category: 'iv' },
+  { id: 'vitamin-c-iv-guide', name: 'Vitamin C Guide', icon: '💧', category: 'iv' },
+  { id: 'range-iv-guide', name: 'Range IV Guide', icon: '💧', category: 'iv' },
+  { id: 'cellular-reset-guide', name: 'Cellular Reset Guide', icon: '💧', category: 'iv' },
+  { id: 'hbot-guide', name: 'HBOT Guide', icon: '🫁', category: 'hbot' },
+  { id: 'red-light-guide', name: 'Red Light Guide', icon: '🔴', category: 'rlt' },
+  { id: 'combo-membership-guide', name: 'Combo Membership', icon: '🏷️', category: 'membership' },
+  { id: 'hbot-membership-guide', name: 'HBOT Membership', icon: '🏷️', category: 'membership' },
+  { id: 'rlt-membership-guide', name: 'RLT Membership', icon: '🏷️', category: 'membership' },
+  { id: 'essential-panel-male-guide', name: 'Essential Male Panel', icon: '🧪', category: 'labs' },
+  { id: 'essential-panel-female-guide', name: 'Essential Female Panel', icon: '🧪', category: 'labs' },
+  { id: 'elite-panel-male-guide', name: 'Elite Male Panel', icon: '🧪', category: 'labs' },
+  { id: 'elite-panel-female-guide', name: 'Elite Female Panel', icon: '🧪', category: 'labs' },
+  { id: 'the-blu-guide', name: 'The Blu', icon: '💎', category: 'other' },
+];
+const GUIDE_CATEGORY_FILTERS = [
+  { id: 'all', label: 'All' },
+  { id: 'hrt', label: 'HRT' },
+  { id: 'weight_loss', label: 'Weight Loss' },
+  { id: 'peptide', label: 'Peptides' },
+  { id: 'iv', label: 'IV' },
+  { id: 'hbot', label: 'HBOT' },
+  { id: 'rlt', label: 'Red Light' },
+  { id: 'membership', label: 'Memberships' },
+  { id: 'labs', label: 'Labs' },
+];
+
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
   : null;
@@ -314,6 +355,9 @@ export default function PatientProfile() {
   const [sendFormsMethod, setSendFormsMethod] = useState('sms');
   const [sendFormsLoading, setSendFormsLoading] = useState(false);
   const [sendFormsResult, setSendFormsResult] = useState(null);
+  const [sendFormsTab, setSendFormsTab] = useState('forms'); // 'forms' | 'guides'
+  const [sendGuidesSelected, setSendGuidesSelected] = useState(new Set());
+  const [sendGuidesCategory, setSendGuidesCategory] = useState('all');
   const [pinnedNoteExpanded, setPinnedNoteExpanded] = useState(false);
 
   // Protocol PDF modal
@@ -1099,6 +1143,58 @@ export default function PatientProfile() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed to send SMS');
         setSendFormsResult({ success: true, message: data.twoStep ? 'Opt-in request sent — forms will deliver after patient replies' : `${sortedForms.length} form${sortedForms.length > 1 ? 's' : ''} sent via SMS` });
+      }
+    } catch (err) {
+      setSendFormsResult({ success: false, message: err.message });
+    } finally {
+      setSendFormsLoading(false);
+      setTimeout(() => setSendFormsResult(null), 4000);
+    }
+  };
+
+  const handleSendGuides = async () => {
+    if (sendGuidesSelected.size === 0) return;
+    setSendFormsLoading(true);
+    setSendFormsResult(null);
+    try {
+      const guideIds = [...sendGuidesSelected];
+      const firstName = patient?.first_name || patient?.name?.split(' ')[0] || '';
+      const patientName = (patient?.first_name && patient?.last_name) ? `${patient.first_name} ${patient.last_name}` : patient?.name || '';
+
+      if (sendFormsMethod === 'email') {
+        const res = await fetch('/api/admin/send-guides-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: patient.email,
+            firstName,
+            guideIds,
+            patientId: id,
+            patientName,
+            ghlContactId: patient.ghl_contact_id || null,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to send email');
+        setSendFormsResult({ success: true, message: `${guideIds.length} guide${guideIds.length > 1 ? 's' : ''} sent via email` });
+      } else {
+        const phone = (patient.phone || '').replace(/\D/g, '');
+        const cleanPhone = phone.length === 11 && phone.startsWith('1') ? phone.slice(1) : phone;
+        const res = await fetch('/api/send-guide-sms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: cleanPhone,
+            firstName,
+            guideIds,
+            patientId: id,
+            patientName,
+            ghlContactId: patient.ghl_contact_id || null,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to send SMS');
+        setSendFormsResult({ success: true, message: data.twoStep ? 'Opt-in request sent — guides will deliver after patient replies' : `${guideIds.length} guide${guideIds.length > 1 ? 's' : ''} sent via SMS` });
       }
     } catch (err) {
       setSendFormsResult({ success: false, message: err.message });
@@ -2408,7 +2504,7 @@ export default function PatientProfile() {
               {patient.phone && <button onClick={() => setSmsModalOpen(true)} className="toolbar-btn" title="Send text message">💬 <span className="toolbar-label">SMS</span></button>}
               {patient.phone && <a href={`tel:${patient.phone}`} className="toolbar-btn" title="Call patient">📞 <span className="toolbar-label">Call</span></a>}
               {patient.email && <button onClick={() => setEmailModalOpen(true)} className="toolbar-btn" title="Send email">✉️ <span className="toolbar-label">Email</span></button>}
-              <button onClick={() => { setShowSendFormsModal(true); setSendFormsSelected(new Set()); setSendFormsResult(null); }} className="toolbar-btn" title="Send forms">📋 <span className="toolbar-label">Forms</span></button>
+              <button onClick={() => { setShowSendFormsModal(true); setSendFormsSelected(new Set()); setSendGuidesSelected(new Set()); setSendFormsResult(null); setSendFormsTab('forms'); setSendGuidesCategory('all'); }} className="toolbar-btn" title="Send forms">📋 <span className="toolbar-label">Forms</span></button>
             </div>
             <div className="toolbar-divider" />
             <div className="toolbar-group">
@@ -5249,26 +5345,17 @@ export default function PatientProfile() {
           {activeTab === 'payments' && (
             <>
               {/* Payments Sub-tabs */}
-              <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+              <div className="pay-tabs">
                 {[
                   { key: 'subscriptions', label: `Subscriptions${subscriptions.length > 0 ? ` (${subscriptions.filter(s => s.status === 'active' || s.status === 'past_due').length})` : ''}` },
                   { key: 'invoices', label: 'Invoices' },
                   { key: 'purchases', label: 'Purchases' },
-                  { key: 'cards', label: `Payment Methods${savedCards.length > 0 ? ` (${savedCards.length})` : ''}` },
+                  { key: 'cards', label: `Cards${savedCards.length > 0 ? ` (${savedCards.length})` : ''}` },
                 ].map(tab => (
                   <button
                     key={tab.key}
                     onClick={() => setPaymentsSubTab(tab.key)}
-                    style={{
-                      padding: '8px 16px',
-                      borderRadius: 20,
-                      border: paymentsSubTab === tab.key ? '2px solid #166534' : '1px solid #d1d5db',
-                      background: paymentsSubTab === tab.key ? '#dcfce7' : '#fff',
-                      color: paymentsSubTab === tab.key ? '#166534' : '#374151',
-                      fontWeight: paymentsSubTab === tab.key ? 600 : 400,
-                      fontSize: 13,
-                      cursor: 'pointer',
-                    }}
+                    className={`pay-tab ${paymentsSubTab === tab.key ? 'active' : ''}`}
                   >
                     {tab.label}
                   </button>
@@ -5277,19 +5364,16 @@ export default function PatientProfile() {
 
               {/* Subscriptions Sub-tab */}
               {paymentsSubTab === 'subscriptions' && (
-                <section className="card">
-                  <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="pay-section">
+                  <div className="pay-section-header">
                     <h3>Subscriptions</h3>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button
-                        onClick={() => setShowNewSubForm(prev => !prev)}
-                        style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
-                      >
-                        + New Subscription
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={() => setShowNewSubForm(prev => !prev)} className="pay-btn-primary">
+                        + New
                       </button>
                       <button
                         onClick={() => { if (!loadingStripeSubs) fetchStripeSubscriptions(); }}
-                        style={{ background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 12px', fontSize: 12, cursor: 'pointer', color: '#374151' }}
+                        className="pay-btn-secondary"
                       >
                         {loadingStripeSubs ? 'Loading...' : 'Refresh'}
                       </button>
@@ -5298,7 +5382,7 @@ export default function PatientProfile() {
 
                   {/* Create Subscription Form */}
                   {showNewSubForm && (
-                    <div style={{ margin: '0 16px 12px', padding: '16px', background: '#f0fdf4', borderRadius: 10, border: '1px solid #bbf7d0' }}>
+                    <div className="pay-new-sub-form">
                       <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 12, color: '#166534' }}>New Subscription</div>
                       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                         <div>
@@ -5350,25 +5434,14 @@ export default function PatientProfile() {
                       </div>
                       {savedCards.length === 0 && (
                         <div style={{ marginTop: 10, fontSize: 12, color: '#dc2626', fontWeight: 500 }}>
-                          No card on file — add one under Payment Methods first
+                          No card on file — add one under Cards first
                         </div>
                       )}
                       <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                        <button
-                          onClick={handleCreateSubscription}
-                          disabled={creatingSub || savedCards.length === 0}
-                          style={{
-                            padding: '8px 20px', fontSize: 13, fontWeight: 600, borderRadius: 6,
-                            background: savedCards.length === 0 ? '#d1d5db' : '#16a34a', color: '#fff',
-                            border: 'none', cursor: savedCards.length === 0 ? 'not-allowed' : 'pointer',
-                          }}
-                        >
+                        <button onClick={handleCreateSubscription} disabled={creatingSub || savedCards.length === 0} className="pay-btn-primary" style={{ padding: '8px 20px', fontSize: 13, opacity: (creatingSub || savedCards.length === 0) ? 0.5 : 1 }}>
                           {creatingSub ? 'Creating...' : 'Start Subscription'}
                         </button>
-                        <button
-                          onClick={() => setShowNewSubForm(false)}
-                          style={{ padding: '8px 16px', fontSize: 13, borderRadius: 6, background: '#fff', color: '#6b7280', border: '1px solid #d1d5db', cursor: 'pointer' }}
-                        >
+                        <button onClick={() => setShowNewSubForm(false)} className="pay-btn-secondary" style={{ padding: '8px 16px', fontSize: 13 }}>
                           Cancel
                         </button>
                       </div>
@@ -5376,17 +5449,14 @@ export default function PatientProfile() {
                   )}
 
                   {stripeSubscriptions.length === 0 && !loadingStripeSubs ? (
-                    <div style={{ padding: '16px', textAlign: 'center' }}>
-                      <div className="empty">No subscriptions found</div>
-                      <button
-                        onClick={fetchStripeSubscriptions}
-                        style={{ marginTop: 8, background: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: 6, padding: '8px 16px', fontSize: 13, cursor: 'pointer' }}
-                      >
-                        Load from Stripe
-                      </button>
+                    <div className="pay-empty">
+                      No subscriptions found
+                      <div style={{ marginTop: 8 }}>
+                        <button onClick={fetchStripeSubscriptions} className="pay-btn-secondary">Load from Stripe</button>
+                      </div>
                     </div>
                   ) : (
-                    <div style={{ padding: '0 16px 16px' }}>
+                    <div className="pay-list">
                       {stripeSubscriptions.map(sub => {
                         const isPastDue = sub.status === 'past_due';
                         const isPaused = !!sub.pause_collection;
@@ -5396,91 +5466,59 @@ export default function PatientProfile() {
                         const pm = sub.payment_method;
                         const inv = sub.latest_invoice;
 
-                        const statusColor = isPastDue ? '#ef4444' : isPaused ? '#f59e0b' : isCanceled ? '#6b7280' : isCancelingAtEnd ? '#f59e0b' : '#16a34a';
+                        const badgeClass = isPastDue ? 'pay-badge-red' : isPaused ? 'pay-badge-yellow' : isCanceled ? 'pay-badge-gray' : isCancelingAtEnd ? 'pay-badge-yellow' : 'pay-badge-green';
                         const statusLabel = isPastDue ? 'Past Due' : isPaused ? 'Paused' : isCanceled ? 'Canceled' : isCancelingAtEnd ? 'Canceling' : 'Active';
-                        const statusBg = isPastDue ? '#fee2e2' : isPaused ? '#fef3c7' : isCanceled ? '#f3f4f6' : isCancelingAtEnd ? '#fef3c7' : '#dcfce7';
 
                         return (
-                          <div key={sub.id} style={{
-                            background: '#f8fafc', borderRadius: 10, border: isPastDue ? '2px solid #fca5a5' : '1px solid #e2e8f0',
-                            padding: '16px', marginTop: 10,
-                          }}>
-                            {/* Header row */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                          <div key={sub.id} className={`pay-sub-card ${isPastDue ? 'past-due' : ''}`}>
+                            <div className="pay-sub-header">
                               <div>
-                                <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a' }}>
-                                  {sub.description || 'Subscription'}
-                                </div>
-                                <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                                <div className="pay-sub-name">{sub.description || 'Subscription'}</div>
+                                <div className="pay-sub-since">
                                   {sub.service_category && (
-                                    <span style={{
-                                      display: 'inline-block', padding: '2px 8px', borderRadius: 4,
-                                      fontSize: 10, fontWeight: 700, textTransform: 'uppercase', marginRight: 8,
-                                      background: sub.service_category === 'hrt' ? '#dbeafe' : sub.service_category === 'weight_loss' ? '#fef3c7' : '#e2e8f0',
-                                      color: sub.service_category === 'hrt' ? '#1e40af' : sub.service_category === 'weight_loss' ? '#92400e' : '#475569'
-                                    }}>
+                                    <span className={`pay-badge ${sub.service_category === 'hrt' ? 'pay-badge-blue' : sub.service_category === 'weight_loss' ? 'pay-badge-yellow' : 'pay-badge-gray'}`} style={{ marginRight: 6 }}>
                                       {sub.service_category}
                                     </span>
                                   )}
                                   Since {new Date(sub.created).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                                 </div>
                               </div>
-                              <div style={{ textAlign: 'right' }}>
-                                <div style={{ fontWeight: 700, fontSize: 18, color: '#0f172a' }}>
-                                  ${(sub.amount_cents / 100).toFixed(0)}<span style={{ fontSize: 12, fontWeight: 400, color: '#64748b' }}>/{sub.interval}</span>
+                              <div>
+                                <div className="pay-sub-price">
+                                  ${(sub.amount_cents / 100).toFixed(0)}<span>/{sub.interval}</span>
                                 </div>
-                                <span style={{
-                                  display: 'inline-block', padding: '3px 10px', borderRadius: 12,
-                                  fontSize: 11, fontWeight: 700, background: statusBg, color: statusColor, marginTop: 4,
-                                }}>
-                                  {statusLabel}
-                                </span>
+                                <div style={{ textAlign: 'right', marginTop: 4 }}>
+                                  <span className={`pay-badge ${badgeClass}`}>{statusLabel}</span>
+                                </div>
                               </div>
                             </div>
 
-                            {/* Details row */}
-                            <div style={{ display: 'flex', gap: 24, fontSize: 12, color: '#64748b', marginBottom: 12, flexWrap: 'wrap' }}>
+                            <div className="pay-sub-details">
                               {pm && (
-                                <div>
-                                  <span style={{ fontWeight: 600, color: '#374151' }}>Card: </span>
-                                  {pm.brand.toUpperCase()} ···· {pm.last4}
-                                  <span style={{ marginLeft: 4, color: '#94a3b8' }}>({String(pm.exp_month).padStart(2, '0')}/{pm.exp_year})</span>
-                                </div>
+                                <div><strong>Card: </strong>{pm.brand.toUpperCase()} ···· {pm.last4} <span style={{ color: '#94a3b8' }}>({String(pm.exp_month).padStart(2, '0')}/{pm.exp_year})</span></div>
                               )}
                               {sub.current_period_end && !isCanceled && (
-                                <div>
-                                  <span style={{ fontWeight: 600, color: '#374151' }}>{isCancelingAtEnd ? 'Ends: ' : 'Renews: '}</span>
-                                  {new Date(sub.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                </div>
+                                <div><strong>{isCancelingAtEnd ? 'Ends: ' : 'Renews: '}</strong>{new Date(sub.current_period_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
                               )}
                               {isCanceled && sub.canceled_at && (
-                                <div>
-                                  <span style={{ fontWeight: 600, color: '#374151' }}>Canceled: </span>
-                                  {new Date(sub.canceled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                </div>
+                                <div><strong>Canceled: </strong>{new Date(sub.canceled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
                               )}
                             </div>
 
-                            {/* Past due alert */}
                             {isPastDue && inv && (
-                              <div style={{
-                                background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px',
-                                marginBottom: 12, fontSize: 13, color: '#991b1b',
-                              }}>
+                              <div className="pay-sub-alert">
                                 Payment failed — ${(inv.amount_due / 100).toFixed(2)} due
                                 {inv.attempt_count > 1 && ` (${inv.attempt_count} attempts)`}
                                 {inv.next_payment_attempt && (
-                                  <span style={{ marginLeft: 8, fontSize: 12, color: '#b91c1c' }}>
+                                  <span style={{ marginLeft: 8, fontSize: 11 }}>
                                     Next retry: {new Date(inv.next_payment_attempt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                   </span>
                                 )}
                               </div>
                             )}
 
-                            {/* Action buttons */}
                             {!isCanceled && (
-                              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                                {/* Update payment method */}
+                              <div className="pay-sub-actions">
                                 {savedCards.length > 0 && (
                                   <select
                                     onChange={(e) => {
@@ -5492,9 +5530,8 @@ export default function PatientProfile() {
                                     }}
                                     disabled={!!subActionLoading}
                                     style={{
-                                      padding: '6px 10px', fontSize: 12, border: '1px solid #d1d5db', borderRadius: 6,
-                                      background: isPastDue ? '#16a34a' : '#fff', color: isPastDue ? '#fff' : '#374151',
-                                      cursor: 'pointer', fontWeight: isPastDue ? 600 : 400,
+                                      border: '1px solid #e2e8f0', background: isPastDue ? '#16a34a' : '#fff',
+                                      color: isPastDue ? '#fff' : '#475569', fontWeight: isPastDue ? 600 : 400,
                                     }}
                                   >
                                     <option value="">{isPastDue ? 'Retry with card...' : 'Change card...'}</option>
@@ -5505,99 +5542,45 @@ export default function PatientProfile() {
                                     ))}
                                   </select>
                                 )}
-
-                                {/* Retry payment with current card */}
                                 {isPastDue && (
-                                  <button
-                                    onClick={() => handleSubAction(sub.id, 'retry_payment')}
-                                    disabled={!!subActionLoading}
-                                    style={{
-                                      padding: '6px 14px', fontSize: 12, fontWeight: 600, borderRadius: 6,
-                                      background: '#16a34a', color: '#fff', border: 'none', cursor: 'pointer',
-                                    }}
-                                  >
+                                  <button onClick={() => handleSubAction(sub.id, 'retry_payment')} disabled={!!subActionLoading}
+                                    style={{ background: '#16a34a', color: '#fff', border: 'none', fontWeight: 600 }}>
                                     {subActionLoading === sub.id + '_retry_payment' ? 'Retrying...' : 'Retry Payment'}
                                   </button>
                                 )}
-
-                                {/* Pause / Resume */}
                                 {isActive && (
-                                  <button
-                                    onClick={() => handleSubAction(sub.id, 'pause')}
-                                    disabled={!!subActionLoading}
-                                    style={{
-                                      padding: '6px 14px', fontSize: 12, fontWeight: 500, borderRadius: 6,
-                                      background: '#fff', color: '#f59e0b', border: '1px solid #fcd34d', cursor: 'pointer',
-                                    }}
-                                  >
+                                  <button onClick={() => handleSubAction(sub.id, 'pause')} disabled={!!subActionLoading}
+                                    style={{ background: '#fff', color: '#f59e0b', border: '1px solid #fcd34d' }}>
                                     {subActionLoading === sub.id + '_pause' ? 'Pausing...' : 'Pause'}
                                   </button>
                                 )}
                                 {isPaused && (
-                                  <button
-                                    onClick={() => handleSubAction(sub.id, 'resume')}
-                                    disabled={!!subActionLoading}
-                                    style={{
-                                      padding: '6px 14px', fontSize: 12, fontWeight: 600, borderRadius: 6,
-                                      background: '#16a34a', color: '#fff', border: 'none', cursor: 'pointer',
-                                    }}
-                                  >
+                                  <button onClick={() => handleSubAction(sub.id, 'resume')} disabled={!!subActionLoading}
+                                    style={{ background: '#16a34a', color: '#fff', border: 'none', fontWeight: 600 }}>
                                     {subActionLoading === sub.id + '_resume' ? 'Resuming...' : 'Resume'}
                                   </button>
                                 )}
-
-                                {/* Undo cancel at period end */}
                                 {isCancelingAtEnd && (
-                                  <button
-                                    onClick={() => handleSubAction(sub.id, 'undo_cancel')}
-                                    disabled={!!subActionLoading}
-                                    style={{
-                                      padding: '6px 14px', fontSize: 12, fontWeight: 600, borderRadius: 6,
-                                      background: '#16a34a', color: '#fff', border: 'none', cursor: 'pointer',
-                                    }}
-                                  >
+                                  <button onClick={() => handleSubAction(sub.id, 'undo_cancel')} disabled={!!subActionLoading}
+                                    style={{ background: '#16a34a', color: '#fff', border: 'none', fontWeight: 600 }}>
                                     {subActionLoading === sub.id + '_undo_cancel' ? 'Undoing...' : 'Undo Cancel'}
                                   </button>
                                 )}
-
-                                {/* Cancel options */}
                                 {!isCancelingAtEnd && !isPaused && (
                                   <>
-                                    <button
-                                      onClick={() => handleCancelSubscription(sub.id, false)}
-                                      disabled={!!subActionLoading}
-                                      style={{
-                                        padding: '6px 14px', fontSize: 12, fontWeight: 500, borderRadius: 6,
-                                        background: '#fff', color: '#6b7280', border: '1px solid #d1d5db', cursor: 'pointer',
-                                      }}
-                                    >
+                                    <button onClick={() => handleCancelSubscription(sub.id, false)} disabled={!!subActionLoading}
+                                      style={{ background: '#fff', color: '#6b7280', border: '1px solid #e2e8f0' }}>
                                       Cancel at Period End
                                     </button>
-                                    <button
-                                      onClick={() => handleCancelSubscription(sub.id, true)}
-                                      disabled={!!subActionLoading}
-                                      style={{
-                                        padding: '6px 14px', fontSize: 12, fontWeight: 500, borderRadius: 6,
-                                        background: '#fff', color: '#dc2626', border: '1px solid #fca5a5', cursor: 'pointer',
-                                      }}
-                                    >
+                                    <button onClick={() => handleCancelSubscription(sub.id, true)} disabled={!!subActionLoading}
+                                      style={{ background: '#fff', color: '#dc2626', border: '1px solid #fca5a5' }}>
                                       Cancel Now
                                     </button>
                                   </>
                                 )}
-
-                                {/* View invoice on Stripe */}
                                 {inv?.hosted_invoice_url && (
-                                  <a
-                                    href={inv.hosted_invoice_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    style={{
-                                      padding: '6px 14px', fontSize: 12, fontWeight: 500, borderRadius: 6,
-                                      background: '#fff', color: '#3b82f6', border: '1px solid #93c5fd', cursor: 'pointer',
-                                      textDecoration: 'none', display: 'inline-block',
-                                    }}
-                                  >
+                                  <a href={inv.hosted_invoice_url} target="_blank" rel="noopener noreferrer"
+                                    style={{ background: '#fff', color: '#3b82f6', border: '1px solid #93c5fd', textDecoration: 'none', display: 'inline-block' }}>
                                     View Invoice
                                   </a>
                                 )}
@@ -5608,75 +5591,60 @@ export default function PatientProfile() {
                       })}
                     </div>
                   )}
-                </section>
+                </div>
               )}
 
               {/* Invoices Sub-tab */}
               {paymentsSubTab === 'invoices' && (
-                <section className="card">
-                  <div className="card-header">
+                <div className="pay-section">
+                  <div className="pay-section-header">
                     <h3>Invoices ({invoices.length})</h3>
                   </div>
                   {invoices.length === 0 ? (
-                    <div className="empty">No invoices found</div>
+                    <div className="pay-empty">No invoices found</div>
                   ) : (
-                    <div className="payments-list">
+                    <div className="pay-list">
                       {invoices.map(inv => {
-                        const statusColors = {
-                          paid: { bg: '#dcfce7', text: '#166534' },
-                          pending: { bg: '#fef3c7', text: '#92400e' },
-                          overdue: { bg: '#fee2e2', text: '#dc2626' },
-                          void: { bg: '#f3f4f6', text: '#6b7280' },
-                          draft: { bg: '#f3f4f6', text: '#6b7280' }
-                        };
                         const invStatus = (inv.status || 'pending').toLowerCase();
-                        const invStyle = statusColors[invStatus] || statusColors.pending;
-
+                        const badgeClass = invStatus === 'paid' ? 'pay-badge-green' : invStatus === 'overdue' ? 'pay-badge-red' : invStatus === 'pending' || invStatus === 'sent' ? 'pay-badge-yellow' : 'pay-badge-gray';
                         return (
-                          <div key={inv.id} className="payment-row">
-                            <div className="payment-info">
-                              <strong>{inv.description || inv.line_items?.[0]?.description || 'Invoice'}</strong>
-                              <span className="payment-date">{formatDate(inv.created_at)}</span>
+                          <div key={inv.id} className="pay-item">
+                            <div className="pay-item-info">
+                              <div className="pay-item-title">{inv.description || inv.line_items?.[0]?.description || 'Invoice'}</div>
+                              <div className="pay-item-sub">{formatDate(inv.created_at)}</div>
                             </div>
-                            <div className="payment-amount">${(inv.total_amount || inv.amount || 0).toFixed(2)}</div>
-                            <span className="payment-status" style={{ background: invStyle.bg, color: invStyle.text }}>
-                              {invStatus}
-                            </span>
+                            <div className="pay-item-amount">${(inv.total_amount || inv.amount || 0).toFixed(2)}</div>
+                            <span className={`pay-badge ${badgeClass}`}>{invStatus}</span>
                           </div>
                         );
                       })}
                     </div>
                   )}
-                </section>
+                </div>
               )}
 
               {/* Purchases Sub-tab */}
               {paymentsSubTab === 'purchases' && (
-                <section className="card">
-                  <div className="card-header">
+                <div className="pay-section">
+                  <div className="pay-section-header">
                     <h3>Purchases ({allPurchases.length})</h3>
                   </div>
                   {allPurchases.length === 0 ? (
-                    <div className="empty">No purchases found</div>
+                    <div className="pay-empty">No purchases found</div>
                   ) : (
-                    <div className="payments-list">
+                    <div className="pay-list">
                       {allPurchases.map(purchase => (
-                        <div key={purchase.id} className="payment-row" style={{ cursor: 'pointer' }} onClick={() => openEditPurchase(purchase)}>
-                          <div className="payment-info">
-                            <strong>{purchase.product_name || purchase.item_name || 'Purchase'}</strong>
-                            <span className="payment-date">{formatDate(purchase.purchased_at || purchase.purchase_date || purchase.created_at)}</span>
+                        <div key={purchase.id} className="pay-item" style={{ cursor: 'pointer' }} onClick={() => openEditPurchase(purchase)}>
+                          <div className="pay-item-info">
+                            <div className="pay-item-title">{purchase.product_name || purchase.item_name || 'Purchase'}</div>
+                            <div className="pay-item-sub">{formatDate(purchase.purchased_at || purchase.purchase_date || purchase.created_at)}</div>
                           </div>
-                          <div className="payment-amount">${(purchase.amount_paid || purchase.amount || 0).toFixed(2)}</div>
+                          <div className="pay-item-amount">${(purchase.amount_paid || purchase.amount || 0).toFixed(2)}</div>
                           <div style={{ display: 'flex', gap: 4 }}>
                             {purchase.stripe_subscription_id && (
-                              <span className="payment-status" style={{ background: '#dbeafe', color: '#1e40af' }}>
-                                recurring
-                              </span>
+                              <span className="pay-badge pay-badge-blue">recurring</span>
                             )}
-                            <span className="payment-status" style={{
-                              background: purchase.protocol_created ? '#dcfce7' : '#fef3c7',
-                              color: purchase.protocol_created ? '#166534' : '#92400e'
-                            }}>
+                            <span className={`pay-badge ${purchase.protocol_created ? 'pay-badge-green' : 'pay-badge-yellow'}`}>
                               {purchase.protocol_created ? 'protocol set' : 'no protocol'}
                             </span>
                           </div>
@@ -5684,52 +5652,33 @@ export default function PatientProfile() {
                       ))}
                     </div>
                   )}
-                </section>
+                </div>
               )}
 
               {/* Payment Methods (Cards) Sub-tab */}
               {paymentsSubTab === 'cards' && (
-                <section className="card">
-                  <div className="card-header">
+                <div className="pay-section">
+                  <div className="pay-section-header">
                     <h3>Payment Methods</h3>
                   </div>
-
-                  {/* Saved Cards List */}
                   {savedCards.length > 0 ? (
-                    <div style={{ padding: '0 16px 16px' }}>
+                    <div className="pay-list">
                       {savedCards.map(card => (
-                        <div key={card.id} style={{
-                          display: 'flex', alignItems: 'center', gap: 12,
-                          padding: '12px 16px', background: '#f9fafb', borderRadius: 8,
-                          marginTop: 8, border: '1px solid #e5e7eb',
-                        }}>
-                          <span style={{ fontSize: 20 }}>💳</span>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: 600, fontSize: 14, color: '#1a1a1a' }}>
-                              {card.brand.toUpperCase()} ···· {card.last4}
-                            </div>
-                            <div style={{ fontSize: 12, color: '#6b7280' }}>
-                              Expires {String(card.exp_month).padStart(2, '0')}/{card.exp_year}
-                            </div>
+                        <div key={card.id} className="pay-card-row">
+                          <span className="pay-card-icon">💳</span>
+                          <div className="pay-card-info">
+                            <div className="pay-card-brand">{card.brand.toUpperCase()} ···· {card.last4}</div>
+                            <div className="pay-card-exp">Expires {String(card.exp_month).padStart(2, '0')}/{card.exp_year}</div>
                           </div>
-                          <button
-                            onClick={() => handleRemoveCard(card.id)}
-                            style={{
-                              padding: '6px 12px', fontSize: 12, fontWeight: 500,
-                              background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6,
-                              color: '#dc2626', cursor: 'pointer',
-                            }}
-                          >
+                          <button onClick={() => handleRemoveCard(card.id)} className="pay-btn-secondary" style={{ color: '#dc2626', borderColor: '#fca5a5' }}>
                             Remove
                           </button>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div className="empty">No cards on file</div>
+                    <div className="pay-empty">No cards on file</div>
                   )}
-
-                  {/* Add Card Section */}
                   {stripePromise && (
                     <div style={{ padding: '0 16px 16px' }}>
                       <Elements stripe={stripePromise}>
@@ -5737,7 +5686,7 @@ export default function PatientProfile() {
                       </Elements>
                     </div>
                   )}
-                </section>
+                </div>
               )}
 
             </>
@@ -9238,6 +9187,17 @@ export default function PatientProfile() {
           cursor: pointer; padding: 4px 8px; border-radius: 6px;
         }
         .sf-close:hover { background: #f1f5f9; color: #475569; }
+        .sf-tab-row {
+          display: flex; gap: 0; padding: 0 24px; border-bottom: 1px solid #e2e8f0;
+        }
+        .sf-tab-btn {
+          flex: 1; padding: 10px 16px; border: none; background: none;
+          font-size: 13px; font-weight: 600; color: #94a3b8; cursor: pointer;
+          border-bottom: 2px solid transparent; font-family: inherit;
+          transition: all 0.15s;
+        }
+        .sf-tab-btn:hover { color: #475569; }
+        .sf-tab-btn.active { color: #1e40af; border-bottom-color: #2563eb; }
         .sf-quick-row {
           display: flex; flex-wrap: wrap; gap: 6px; padding: 16px 24px 8px;
         }
@@ -9302,6 +9262,105 @@ export default function PatientProfile() {
         }
         .sf-result-ok { background: #f0fdf4; color: #166534; }
         .sf-result-err { background: #fef2f2; color: #991b1b; }
+
+        /* Payments Section Styles */
+        .pay-tabs {
+          display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap;
+        }
+        .pay-tab {
+          padding: 6px 14px; border-radius: 20px; border: 1px solid #e2e8f0;
+          background: #fff; color: #475569; font-size: 12px; font-weight: 600;
+          cursor: pointer; transition: all 0.15s; font-family: inherit;
+        }
+        .pay-tab:hover { border-color: #94a3b8; background: #f8fafc; }
+        .pay-tab.active { background: #1e40af; color: #fff; border-color: #1e40af; }
+        .pay-section {
+          background: #fff; border-radius: 12px; border: 1px solid #e2e8f0;
+          overflow: hidden;
+        }
+        .pay-section-header {
+          display: flex; justify-content: space-between; align-items: center;
+          padding: 16px 20px; border-bottom: 1px solid #f1f5f9;
+        }
+        .pay-section-header h3 {
+          margin: 0; font-size: 15px; font-weight: 700; color: #0f172a;
+        }
+        .pay-btn-primary {
+          padding: 6px 14px; border-radius: 8px; border: none;
+          background: #16a34a; color: #fff; font-size: 12px; font-weight: 600;
+          cursor: pointer; font-family: inherit; transition: all 0.15s;
+        }
+        .pay-btn-primary:hover { background: #15803d; }
+        .pay-btn-secondary {
+          padding: 6px 14px; border-radius: 8px; border: 1px solid #e2e8f0;
+          background: #fff; color: #475569; font-size: 12px; font-weight: 500;
+          cursor: pointer; font-family: inherit; transition: all 0.15s;
+        }
+        .pay-btn-secondary:hover { background: #f8fafc; border-color: #94a3b8; }
+        .pay-empty {
+          padding: 32px 20px; text-align: center; color: #94a3b8; font-size: 13px;
+        }
+        .pay-list { padding: 8px 12px; }
+        .pay-item {
+          display: flex; align-items: center; gap: 12px;
+          padding: 12px 14px; border-radius: 10px; border: 1px solid #f1f5f9;
+          background: #fafbfc; margin-bottom: 6px; transition: all 0.15s;
+        }
+        .pay-item:hover { border-color: #e2e8f0; background: #f8fafc; }
+        .pay-item-info { flex: 1; min-width: 0; }
+        .pay-item-title {
+          font-size: 13px; font-weight: 600; color: #1e293b;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .pay-item-sub { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+        .pay-item-amount { font-size: 15px; font-weight: 700; color: #0f172a; flex-shrink: 0; }
+        .pay-badge {
+          display: inline-block; padding: 3px 10px; border-radius: 12px;
+          font-size: 10px; font-weight: 700; text-transform: uppercase; flex-shrink: 0;
+        }
+        .pay-badge-green { background: #dcfce7; color: #166534; }
+        .pay-badge-yellow { background: #fef3c7; color: #92400e; }
+        .pay-badge-red { background: #fee2e2; color: #dc2626; }
+        .pay-badge-gray { background: #f3f4f6; color: #6b7280; }
+        .pay-badge-blue { background: #dbeafe; color: #1e40af; }
+        .pay-sub-card {
+          background: #fafbfc; border-radius: 12px; border: 1px solid #e2e8f0;
+          padding: 16px 18px; margin: 6px 0;
+        }
+        .pay-sub-card.past-due { border: 2px solid #fca5a5; }
+        .pay-sub-header {
+          display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;
+        }
+        .pay-sub-name { font-weight: 700; font-size: 14px; color: #0f172a; }
+        .pay-sub-since { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+        .pay-sub-price { font-weight: 700; font-size: 17px; color: #0f172a; text-align: right; }
+        .pay-sub-price span { font-size: 11px; font-weight: 400; color: #94a3b8; }
+        .pay-sub-details {
+          display: flex; gap: 16px; font-size: 11px; color: #94a3b8; margin-bottom: 10px; flex-wrap: wrap;
+        }
+        .pay-sub-details strong { color: #475569; font-weight: 600; }
+        .pay-sub-alert {
+          background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px;
+          padding: 10px 14px; margin-bottom: 10px; font-size: 12px; color: #991b1b;
+        }
+        .pay-sub-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+        .pay-sub-actions button, .pay-sub-actions select, .pay-sub-actions a {
+          padding: 5px 12px; font-size: 11px; border-radius: 6px;
+          cursor: pointer; font-family: inherit; transition: all 0.15s;
+        }
+        .pay-card-row {
+          display: flex; align-items: center; gap: 12px;
+          padding: 12px 14px; background: #fafbfc; border-radius: 10px;
+          margin-bottom: 6px; border: 1px solid #f1f5f9;
+        }
+        .pay-card-icon { font-size: 20px; flex-shrink: 0; }
+        .pay-card-info { flex: 1; }
+        .pay-card-brand { font-weight: 600; font-size: 13px; color: #1e293b; }
+        .pay-card-exp { font-size: 11px; color: #94a3b8; }
+        .pay-new-sub-form {
+          margin: 0 12px 12px; padding: 16px; background: #f0fdf4;
+          border-radius: 10px; border: 1px solid #bbf7d0;
+        }
 
         /* Responsive: Tablet */
         @media (max-width: 768px) {
@@ -9499,42 +9558,89 @@ export default function PatientProfile() {
         <div className="sf-overlay" onClick={() => setShowSendFormsModal(false)}>
           <div className="sf-modal" onClick={e => e.stopPropagation()}>
             <div className="sf-header">
-              <h3>📋 Send Forms {patient?.first_name ? `to ${patient.first_name}` : ''}</h3>
+              <h3>{sendFormsTab === 'forms' ? '📋' : '📖'} Send {sendFormsTab === 'forms' ? 'Forms' : 'Guides'} {patient?.first_name ? `to ${patient.first_name}` : ''}</h3>
               <button className="sf-close" onClick={() => setShowSendFormsModal(false)}>✕</button>
             </div>
 
-            {/* Quick Selects */}
-            <div className="sf-quick-row">
-              {FORM_QUICK_SELECTS.map(qs => {
-                const isActive = qs.forms.every(f => sendFormsSelected.has(f)) && qs.forms.length === sendFormsSelected.size;
-                return (
-                  <button key={qs.label} className={`sf-quick-btn ${isActive ? 'active' : ''}`}
-                    onClick={() => setSendFormsSelected(new Set(qs.forms))}>
-                    {qs.label}
-                  </button>
-                );
-              })}
+            {/* Forms / Guides Tab Toggle */}
+            <div className="sf-tab-row">
+              <button className={`sf-tab-btn ${sendFormsTab === 'forms' ? 'active' : ''}`} onClick={() => setSendFormsTab('forms')}>
+                📋 Forms {sendFormsSelected.size > 0 ? `(${sendFormsSelected.size})` : ''}
+              </button>
+              <button className={`sf-tab-btn ${sendFormsTab === 'guides' ? 'active' : ''}`} onClick={() => setSendFormsTab('guides')}>
+                📖 Guides {sendGuidesSelected.size > 0 ? `(${sendGuidesSelected.size})` : ''}
+              </button>
             </div>
 
-            {/* Form Grid */}
-            <div className="sf-form-grid">
-              {SEND_FORMS_LIST.map(form => {
-                const checked = sendFormsSelected.has(form.id);
-                return (
-                  <button key={form.id} className={`sf-form-card ${checked ? 'active' : ''}`}
-                    onClick={() => {
-                      const next = new Set(sendFormsSelected);
-                      if (checked) next.delete(form.id); else next.add(form.id);
-                      setSendFormsSelected(next);
-                    }}>
-                    <span className="sf-form-check">{checked ? '✓' : ''}</span>
-                    <span className="sf-form-icon">{form.icon}</span>
-                    <span className="sf-form-name">{form.name}</span>
-                    <span className="sf-form-time">{form.time}</span>
-                  </button>
-                );
-              })}
-            </div>
+            {sendFormsTab === 'forms' ? (
+              <>
+                {/* Quick Selects */}
+                <div className="sf-quick-row">
+                  {FORM_QUICK_SELECTS.map(qs => {
+                    const isActive = qs.forms.every(f => sendFormsSelected.has(f)) && qs.forms.length === sendFormsSelected.size;
+                    return (
+                      <button key={qs.label} className={`sf-quick-btn ${isActive ? 'active' : ''}`}
+                        onClick={() => setSendFormsSelected(new Set(qs.forms))}>
+                        {qs.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Form Grid */}
+                <div className="sf-form-grid">
+                  {SEND_FORMS_LIST.map(form => {
+                    const checked = sendFormsSelected.has(form.id);
+                    return (
+                      <button key={form.id} className={`sf-form-card ${checked ? 'active' : ''}`}
+                        onClick={() => {
+                          const next = new Set(sendFormsSelected);
+                          if (checked) next.delete(form.id); else next.add(form.id);
+                          setSendFormsSelected(next);
+                        }}>
+                        <span className="sf-form-check">{checked ? '✓' : ''}</span>
+                        <span className="sf-form-icon">{form.icon}</span>
+                        <span className="sf-form-name">{form.name}</span>
+                        <span className="sf-form-time">{form.time}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Guide Category Filters */}
+                <div className="sf-quick-row">
+                  {GUIDE_CATEGORY_FILTERS.map(cat => (
+                    <button key={cat.id} className={`sf-quick-btn ${sendGuidesCategory === cat.id ? 'active' : ''}`}
+                      onClick={() => setSendGuidesCategory(cat.id)}>
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Guide Grid */}
+                <div className="sf-form-grid">
+                  {AVAILABLE_GUIDES
+                    .filter(g => sendGuidesCategory === 'all' || g.category === sendGuidesCategory)
+                    .map(guide => {
+                      const checked = sendGuidesSelected.has(guide.id);
+                      return (
+                        <button key={guide.id} className={`sf-form-card ${checked ? 'active' : ''}`}
+                          onClick={() => {
+                            const next = new Set(sendGuidesSelected);
+                            if (checked) next.delete(guide.id); else next.add(guide.id);
+                            setSendGuidesSelected(next);
+                          }}>
+                          <span className="sf-form-check">{checked ? '✓' : ''}</span>
+                          <span className="sf-form-icon">{guide.icon}</span>
+                          <span className="sf-form-name">{guide.name}</span>
+                        </button>
+                      );
+                    })}
+                </div>
+              </>
+            )}
 
             {/* Delivery Method */}
             <div className="sf-delivery">
@@ -9553,10 +9659,17 @@ export default function PatientProfile() {
 
             {/* Send Button + Result */}
             <div className="sf-actions">
-              <button className="sf-send-btn" disabled={sendFormsSelected.size === 0 || sendFormsLoading || (sendFormsMethod === 'sms' && !patient?.phone) || (sendFormsMethod === 'email' && !patient?.email)}
-                onClick={handleSendForms}>
-                {sendFormsLoading ? 'Sending...' : `Send ${sendFormsSelected.size} Form${sendFormsSelected.size !== 1 ? 's' : ''} via ${sendFormsMethod === 'sms' ? 'SMS' : 'Email'}`}
-              </button>
+              {sendFormsTab === 'forms' ? (
+                <button className="sf-send-btn" disabled={sendFormsSelected.size === 0 || sendFormsLoading || (sendFormsMethod === 'sms' && !patient?.phone) || (sendFormsMethod === 'email' && !patient?.email)}
+                  onClick={handleSendForms}>
+                  {sendFormsLoading ? 'Sending...' : `Send ${sendFormsSelected.size} Form${sendFormsSelected.size !== 1 ? 's' : ''} via ${sendFormsMethod === 'sms' ? 'SMS' : 'Email'}`}
+                </button>
+              ) : (
+                <button className="sf-send-btn" disabled={sendGuidesSelected.size === 0 || sendFormsLoading || (sendFormsMethod === 'sms' && !patient?.phone) || (sendFormsMethod === 'email' && !patient?.email)}
+                  onClick={handleSendGuides}>
+                  {sendFormsLoading ? 'Sending...' : `Send ${sendGuidesSelected.size} Guide${sendGuidesSelected.size !== 1 ? 's' : ''} via ${sendFormsMethod === 'sms' ? 'SMS' : 'Email'}`}
+                </button>
+              )}
               {sendFormsResult && (
                 <div className={`sf-result ${sendFormsResult.success ? 'sf-result-ok' : 'sf-result-err'}`}>
                   {sendFormsResult.success ? '✓' : '✕'} {sendFormsResult.message}

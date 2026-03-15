@@ -31,7 +31,7 @@ async function main() {
   let startingAfter = null;
 
   while (hasMore) {
-    const params = { limit: 100, expand: ['data.default_payment_method'] };
+    const params = { limit: 100, expand: ['data.default_payment_method', 'data.latest_invoice'] };
     if (startingAfter) params.starting_after = startingAfter;
 
     const batch = await stripe.subscriptions.list(params);
@@ -132,7 +132,9 @@ async function main() {
     // Extract subscription details
     const item = sub.items?.data?.[0];
     const price = item?.price;
-    const amountCents = price?.unit_amount || 0;
+    // Use latest invoice amount_paid to reflect discounts/coupons; fall back to base price
+    const invoice = sub.latest_invoice && typeof sub.latest_invoice === 'object' ? sub.latest_invoice : null;
+    const amountCents = invoice?.amount_paid != null ? invoice.amount_paid : (price?.unit_amount || 0);
     const interval = price?.recurring?.interval || 'month';
     const intervalCount = price?.recurring?.interval_count || 1;
     const description = price?.nickname || item?.description || sub.description || price?.product?.name || '';

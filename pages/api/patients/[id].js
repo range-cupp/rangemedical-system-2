@@ -616,6 +616,7 @@ export default async function handler(req, res) {
           const stripeSubs = await stripe.subscriptions.list({
             customer: patient.stripe_customer_id,
             limit: 100,
+            expand: ['data.latest_invoice'],
           });
 
           const existingStripeIds = new Set(
@@ -627,9 +628,12 @@ export default async function handler(req, res) {
           for (const sub of stripeSubs.data) {
             const item = sub.items.data[0];
             const price = item?.price;
+            // Use latest invoice amount_paid to reflect discounts/coupons; fall back to base price
+            const invoice = sub.latest_invoice && typeof sub.latest_invoice === 'object' ? sub.latest_invoice : null;
+            const actualAmount = invoice?.amount_paid != null ? invoice.amount_paid : (price?.unit_amount || 0);
             const record = {
               status: sub.status,
-              amount_cents: price?.unit_amount || 0,
+              amount_cents: actualAmount,
               currency: price?.currency || 'usd',
               interval: price?.recurring?.interval || 'month',
               interval_count: price?.recurring?.interval_count || 1,

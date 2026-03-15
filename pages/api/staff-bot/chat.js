@@ -308,6 +308,49 @@ async function buildSystemPrompt(staff) {
     console.warn('[StaffBot] Could not load live catalog:', err.message);
     liveCatalogBlock = '(Live catalog unavailable — use get_service_info tool for pricing)';
   }
+
+  // Fetch SOPs and knowledge base entries — injected into prompt so the bot
+  // knows all clinic procedures, pre/post instructions, and policies.
+  let knowledgeBlock = '';
+  try {
+    const { data: entries } = await supabase
+      .from('sop_knowledge')
+      .select('category, title, content')
+      .eq('active', true)
+      .order('category')
+      .order('sort_order')
+      .order('created_at');
+
+    if (entries && entries.length > 0) {
+      const categoryLabels = {
+        pre_service:  'PRE-SERVICE INSTRUCTIONS',
+        post_service: 'POST-SERVICE INSTRUCTIONS',
+        clinical:     'CLINICAL PROTOCOLS',
+        protocol:     'PROTOCOLS',
+        admin:        'ADMIN / OPERATIONS',
+        faq:          'STAFF FAQs',
+        general:      'GENERAL KNOWLEDGE',
+      };
+      const grouped = {};
+      for (const e of entries) {
+        const cat = e.category || 'general';
+        if (!grouped[cat]) grouped[cat] = [];
+        grouped[cat].push(e);
+      }
+      const lines = ['── CLINIC KNOWLEDGE BASE (SOPs & PROCEDURES) ───────────────────────'];
+      for (const [cat, items] of Object.entries(grouped)) {
+        lines.push(`\n${categoryLabels[cat] || cat.toUpperCase()}`);
+        for (const e of items) {
+          lines.push(`\n[${e.title}]\n${e.content}`);
+        }
+      }
+      lines.push('\n────────────────────────────────────────────────────────────────────');
+      knowledgeBlock = lines.join('\n');
+    }
+  } catch (err) {
+    console.warn('[StaffBot] Could not load knowledge base:', err.message);
+  }
+
   const now = new Date();
 
   // All date logic anchored to Pacific time — Vercel runs UTC so we must derive
@@ -457,6 +500,8 @@ INITIAL CONSULT / ASSESSMENT
   How to book: Can book online or via the schedule tool. No forms required in advance for consult-only.
 
 ${liveCatalogBlock}
+
+${knowledgeBlock}
 
 ── COMMON FRONT DESK QUESTIONS ──────────────────────────────────────
 Q: Do you take insurance?

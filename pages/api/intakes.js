@@ -194,7 +194,10 @@ export default async function handler(req, res) {
       consent_given: toBool(formData.consent),
       
       // Timestamp
-      submitted_at: new Date().toISOString()
+      submitted_at: new Date().toISOString(),
+
+      // Bundle token — links intake directly to form bundle for completion tracking
+      bundle_token: formData.bundleToken || null,
     };
 
     console.log('Photo ID URL:', intakeRecord.photo_id_url);
@@ -357,6 +360,19 @@ export default async function handler(req, res) {
       if (linkedPatientId) {
         await supabase.from('intakes').update({ patient_id: linkedPatientId }).eq('id', data.id);
         console.log(`✅ Intake ${data.id} linked to patient ${linkedPatientId}`);
+
+        // Update bundle's patient_id if it was null — ensures completion tracking works
+        if (bundleToken) {
+          const { data: bundleRow } = await supabase
+            .from('form_bundles')
+            .select('patient_id')
+            .eq('token', bundleToken)
+            .maybeSingle();
+          if (bundleRow && !bundleRow.patient_id) {
+            await supabase.from('form_bundles').update({ patient_id: linkedPatientId }).eq('token', bundleToken);
+            console.log(`✅ Bundle ${bundleToken} updated with patient_id ${linkedPatientId}`);
+          }
+        }
       } else {
         console.warn(`⚠️ Intake ${data.id} could not be linked to any patient`);
       }

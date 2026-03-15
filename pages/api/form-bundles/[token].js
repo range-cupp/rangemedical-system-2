@@ -108,34 +108,60 @@ export default async function handler(req, res) {
 
       // Check intakes table separately (intake form saves there, not consents)
       if (bundle.form_ids.includes('intake')) {
-        const intakeOrParts = [];
-        if (bundle.patient_id) intakeOrParts.push(`patient_id.eq.${bundle.patient_id}`);
-        if (bundle.patient_email) intakeOrParts.push(`email.ilike.${bundle.patient_email}`);
-        if (bundle.patient_phone) {
-          const digits = bundle.patient_phone.replace(/\D/g, '');
-          const last10 = digits.slice(-10);
-          intakeOrParts.push(`phone.ilike.%${last10}`);
+        let intakeFound = false;
+
+        // Priority 1: Match by bundle_token (most reliable — direct link)
+        const { data: tokenIntakes } = await supabase
+          .from('intakes')
+          .select('first_name, last_name, email, phone, date_of_birth, submitted_at')
+          .eq('bundle_token', token)
+          .order('submitted_at', { ascending: false })
+          .limit(1);
+
+        if (tokenIntakes && tokenIntakes.length > 0) {
+          intakeFound = true;
+          completedTypes.push('intake');
+          if (!patientInfo) {
+            patientInfo = {
+              firstName: tokenIntakes[0].first_name || '',
+              lastName: tokenIntakes[0].last_name || '',
+              email: tokenIntakes[0].email || '',
+              phone: tokenIntakes[0].phone || '',
+              dateOfBirth: tokenIntakes[0].date_of_birth || '',
+            };
+          }
         }
 
-        if (intakeOrParts.length > 0) {
-          const { data: intakes } = await supabase
-            .from('intakes')
-            .select('first_name, last_name, email, phone, date_of_birth, submitted_at')
-            .or(intakeOrParts.join(','))
-            .order('submitted_at', { ascending: false })
-            .limit(1);
+        // Priority 2: Fallback to patient_id / email / phone matching
+        if (!intakeFound) {
+          const intakeOrParts = [];
+          if (bundle.patient_id) intakeOrParts.push(`patient_id.eq.${bundle.patient_id}`);
+          if (bundle.patient_email) intakeOrParts.push(`email.ilike.${bundle.patient_email}`);
+          if (bundle.patient_phone) {
+            const digits = bundle.patient_phone.replace(/\D/g, '');
+            const last10 = digits.slice(-10);
+            intakeOrParts.push(`phone.ilike.%${last10}`);
+          }
 
-          if (intakes && intakes.length > 0) {
-            completedTypes.push('intake');
-            // Use intake info as patient info if we don't have it yet
-            if (!patientInfo) {
-              patientInfo = {
-                firstName: intakes[0].first_name || '',
-                lastName: intakes[0].last_name || '',
-                email: intakes[0].email || '',
-                phone: intakes[0].phone || '',
-                dateOfBirth: intakes[0].date_of_birth || '',
-              };
+          if (intakeOrParts.length > 0) {
+            const { data: intakes } = await supabase
+              .from('intakes')
+              .select('first_name, last_name, email, phone, date_of_birth, submitted_at')
+              .or(intakeOrParts.join(','))
+              .order('submitted_at', { ascending: false })
+              .limit(1);
+
+            if (intakes && intakes.length > 0) {
+              completedTypes.push('intake');
+              if (!patientInfo) {
+                patientInfo = {
+                  firstName: intakes[0].first_name || '',
+                  lastName: intakes[0].last_name || '',
+                  email: intakes[0].email || '',
+                  phone: intakes[0].phone || '',
+                  dateOfBirth: intakes[0].date_of_birth || '',
+                };
+              }
             }
           }
         }

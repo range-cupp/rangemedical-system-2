@@ -13,6 +13,7 @@ import {
   handleGetSchedule,
   handleLookupPatient,
   handleGetServiceInfo,
+  handleGetAvailableProviders,
 } from '../../../lib/staff-bot';
 
 const supabase = createClient(
@@ -144,6 +145,17 @@ Bundle types and what they include:
     },
   },
   {
+    name: 'get_available_providers',
+    description: 'Get the list of active clinical staff/providers for a given date, including how many appointments they already have that day. Always call this during the booking workflow before asking who to book with.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        date: { type: 'string', description: 'Date in YYYY-MM-DD format' },
+      },
+      required: ['date'],
+    },
+  },
+  {
     name: 'get_service_info',
     description: 'Look up live pricing and descriptions for clinic services from the POS catalog. Use this to answer questions about how much something costs or what a service includes.',
     input_schema: {
@@ -172,6 +184,7 @@ async function executeTool(toolName, toolInput, staff) {
     case 'create_task':          return await handleCreateTask(toolInput, staff);
     case 'get_schedule':         return await handleGetSchedule(toolInput);
     case 'lookup_patient':       return await handleLookupPatient(toolInput);
+    case 'get_available_providers': return await handleGetAvailableProviders(toolInput);
     case 'get_service_info':     return await handleGetServiceInfo(toolInput);
     default:                     return `Unknown tool: ${toolName}`;
   }
@@ -195,8 +208,8 @@ function buildSystemPrompt(staff) {
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowISO = tomorrow.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
 
-  // Next occurrence of each weekday from today
-  function nextWeekday(dayIndex) {
+  // "This [day]" = nearest upcoming occurrence (could be a few days away)
+  function thisWeekday(dayIndex) {
     const d = new Date(now);
     const current = d.getDay();
     let diff = dayIndex - current;
@@ -204,45 +217,60 @@ function buildSystemPrompt(staff) {
     d.setDate(d.getDate() + diff);
     return d.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
   }
-  const nextDates = {
-    Sunday: nextWeekday(0), Monday: nextWeekday(1), Tuesday: nextWeekday(2),
-    Wednesday: nextWeekday(3), Thursday: nextWeekday(4), Friday: nextWeekday(5), Saturday: nextWeekday(6),
-  };
+  // "Next [day]" = ALWAYS the week AFTER the nearest occurrence (7+ days from thisWeekday)
+  function nextWeekday(dayIndex) {
+    const d = new Date(thisWeekday(dayIndex) + 'T12:00:00');
+    d.setDate(d.getDate() + 7);
+    return d.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+  }
+
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const thisWeekDates = Object.fromEntries(days.map((d,i) => [d, thisWeekday(i)]));
+  const nextWeekDates = Object.fromEntries(days.map((d,i) => ['Next '+d, nextWeekday(i)]));
 
   return `You are the Range Medical staff assistant — a smart, concise AI helper for the clinic team at Range Medical in Newport Beach, CA.
 
 Today is ${today} (${todayISO}). Current time: ${timeNow} Pacific.
 Tomorrow = ${tomorrowISO}.
-Next weekdays: ${Object.entries(nextDates).map(([d,iso]) => `${d} = ${iso}`).join(', ')}.
+THIS week: ${Object.entries(thisWeekDates).map(([d,iso]) => `${d}=${iso}`).join(', ')}.
+NEXT week: ${Object.entries(nextWeekDates).map(([d,iso]) => `${d}=${iso}`).join(', ')}.
+DATE RULES: "Tuesday" or "this Tuesday" = ${thisWeekDates['Tuesday']}. "Next Tuesday" = ${nextWeekDates['Next Tuesday']}. Always use the NEXT WEEK date when the user says "next [day]".
 You are assisting: ${staff.name}${staff.title ? ` (${staff.title})` : ''}.
 
 SERVICES: Range IV, specialty drips, HBOT (hyperbaric oxygen), Red Light Therapy (RLT), HRT (hormone/testosterone replacement), Peptide therapy, Weight loss (semaglutide/tirzepatide), PRP, Exosome IV, Lab panels (Essential $350 / Elite $750), Initial consult.
 
-── BOOKING WORKFLOW (follow every time) ────────────────────────────
+── BOOKING WORKFLOW (follow every time, in order) ──────────────────
 PROVIDER vs PATIENT — critical distinction:
-  - "Book WITH Nurse Lily" / "with Lily" / "Lily's patient" → Lily is the PROVIDER (nurse doing the treatment), NOT the patient.
+  - "Book WITH Nurse Lily" / "with Lily" → Lily is the PROVIDER (nurse/staff doing the treatment), NOT the patient.
   - The patient is the person being treated. If unclear who the patient is, ask once.
-  - Pass the provider's name in the provider_name field so it gets assigned to them.
 
 1. PATIENT: If given only a first name or partial name, call lookup_patient first.
    - 1 match → proceed.
-   - 2+ matches → "I found [names] — which one?" then wait.
+   - 2+ matches → list them, ask "Which one?" — wait for reply.
    - 0 matches → say so, ask for clarification.
 
-2. AVAILABILITY: Always call check_availability before booking.
-   - If the exact time IS available → call book_appointment immediately.
-   - If NOT available → do NOT book. Say:
-     "[time] isn't open for [service] on [day]. Closest available:
-     • [time 1]  • [time 2]  • [time 3]
-     Which works?"
-     Wait for reply, then book.
+2. PROVIDER: Call get_available_providers for the requested date.
+   - Present the list: "Available providers on [day]: [names]. Who should I book with?"
+   - Wait for the staff member to pick one before proceeding.
+   - If staff member already specified a provider → skip the question, just verify they're on the list.
 
-3. BOOK: call book_appointment with patient_name, service, date, time, and provider_name if specified.
+3. AVAILABILITY: Call check_availability for the service + date.
+   - If the exact time IS available → proceed to step 4.
+   - If NOT available → show 3 closest slots, ask which works. Wait for reply.
 
-4. CONFIRM: "✅ Booked — [Patient], [Service], [Day] at [time]."
-   If booking fails, report the EXACT error text returned — do not paraphrase or soften it.
+4. CONFIRM: Before calling book_appointment, always show a confirmation:
+   "Ready to book:
+   👤 [Patient name]
+   🏥 [Service]
+   📅 [Day, Date] at [time]
+   👩‍⚕️ [Provider]
+   Confirm? (yes/no)"
+   Wait for "yes" or "confirm" before booking.
 
-Never skip availability check. Never ask permission to proceed through steps.
+5. BOOK: Call book_appointment. Report EXACT error text if it fails — do not soften it.
+   On success: "✅ Booked — [Patient], [Service], [Day] at [time] with [Provider]."
+
+Never skip any step. Never call book_appointment without a confirmed "yes."
 ─────────────────────────────────────────────────────────────────────
 
 PRICING & SERVICES:

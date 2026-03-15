@@ -736,6 +736,11 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Staff bot chat error:', error);
-    return res.status(500).json({ error: 'Something went wrong. Please try again.' });
+    // Temporarily expose error detail for debugging — remove after diagnosis
+    return res.status(500).json({
+      error: 'Something went wrong. Please try again.',
+      _debug: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      _debugProd: error.message, // temp: remove after diagnosing 500
+    });
   }
 }

@@ -151,6 +151,8 @@ export default function ServiceLogContent() {
     quantity: 1,
     pickup_type: 'vial',
     delivery_method: '', // From protocol-types deliveryMethods (prefilled_1..8 or vial)
+    injection_method: '', // im or subq
+    frequency: '', // injections per week
     duration: 60,
     notes: ''
   });
@@ -527,27 +529,32 @@ export default function ServiceLogContent() {
 
         if (item.serviceType.id === 'testosterone') {
           payload.medication = item.formData.hrt_type === 'male' ? 'Male HRT' : 'Female HRT';
+          payload.injection_method = item.formData.injection_method || null;
+          payload.injection_frequency = item.formData.frequency ? parseInt(item.formData.frequency) : null;
           if (item.entryType === 'injection') {
             payload.dosage = item.formData.dosage === 'custom' ? item.formData.custom_dosage : item.formData.dosage;
           } else {
             // Use delivery_method from shared config (prefilled_1..8 or vial)
             const dm = item.formData.delivery_method || '';
-            const isVial = dm === 'vial';
+            const isVial = dm.startsWith('vial');
             const qty = isVial ? 1 : (dm.startsWith('prefilled_') ? parseInt(dm.replace('prefilled_', '')) : (item.formData.quantity || 1));
-            payload.supply_type = isVial ? 'vial_10ml' :
+            payload.supply_type = isVial ? dm :
               qty >= 8 ? 'prefilled_4week' : qty >= 4 ? 'prefilled_2week' : 'prefilled';
             payload.quantity = qty;
             payload.delivery_method = dm; // Store exact delivery method value
             if (isVial) {
-              const totalMg = item.formData.hrt_type === 'male' ? 2000 : 1000;
+              const vialMl = dm === 'vial_5ml' ? 5 : 10;
+              const mgPerMl = item.formData.hrt_type === 'male' ? 200 : 100;
+              const totalMg = vialMl * mgPerMl;
               const match = item.formData.dosage.match(/(\d+)mg/);
+              const freq = item.formData.frequency ? parseInt(item.formData.frequency) : 2;
               let weeks = 12;
               if (match) {
                 const dosePerInjection = parseInt(match[1]);
-                const weeklyMg = dosePerInjection * 2;
+                const weeklyMg = dosePerInjection * freq;
                 weeks = Math.floor(totalMg / weeklyMg);
               }
-              payload.dosage = `1 vial @ ${item.formData.dosage} (${weeks} weeks)`;
+              payload.dosage = `1 vial (${vialMl}ml) @ ${item.formData.dosage} (${weeks} weeks)`;
             } else {
               payload.dosage = `${qty} prefilled @ ${item.formData.dosage}`;
             }
@@ -1345,7 +1352,7 @@ export default function ServiceLogContent() {
                         </div>
 
                         <div style={slcStyles.formGroup}>
-                          <label style={slcStyles.label}>Dosage</label>
+                          <label style={slcStyles.label}>Dose (per injection)</label>
                           <select
                             value={formData.dosage}
                             onChange={(e) => setFormData(prev => ({ ...prev, dosage: e.target.value }))}
@@ -1367,14 +1374,43 @@ export default function ServiceLogContent() {
                           )}
                         </div>
 
+                        <div style={slcStyles.formGroup}>
+                          <label style={slcStyles.label}>Injection Method</label>
+                          <div style={slcStyles.toggleGroup}>
+                            {[{ val: 'im', label: 'Intramuscular (IM)' }, { val: 'subq', label: 'Subcutaneous (SubQ)' }].map(m => (
+                              <button
+                                key={m.val}
+                                style={{ ...slcStyles.toggleBtn, ...(formData.injection_method === m.val ? slcStyles.toggleBtnActive : {}) }}
+                                onClick={() => setFormData(prev => ({ ...prev, injection_method: m.val, frequency: m.val === 'subq' ? '7' : (prev.frequency === '7' ? '2' : prev.frequency) }))}
+                              >
+                                {m.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div style={slcStyles.formGroup}>
+                          <label style={slcStyles.label}>Injection Frequency</label>
+                          <select
+                            value={formData.frequency}
+                            onChange={(e) => setFormData(prev => ({ ...prev, frequency: e.target.value }))}
+                            style={slcStyles.select}
+                          >
+                            <option value="">Select frequency...</option>
+                            <option value="2">2x per week</option>
+                            <option value="3">3x per week</option>
+                            <option value="7">Daily (SubQ)</option>
+                          </select>
+                        </div>
+
                         {entryType === 'pickup' && (
                           <div style={slcStyles.formGroup}>
-                            <label style={slcStyles.label}>Dispensing</label>
+                            <label style={slcStyles.label}>Supply Type</label>
                             <select
                               value={formData.delivery_method || ''}
                               onChange={(e) => {
                                 const val = e.target.value;
-                                const isVial = val === 'vial';
+                                const isVial = val.startsWith('vial');
                                 const qty = isVial ? 1 : (val.startsWith('prefilled_') ? parseInt(val.replace('prefilled_', '')) : 1);
                                 setFormData(prev => ({
                                   ...prev,

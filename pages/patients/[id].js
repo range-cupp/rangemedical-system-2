@@ -1543,12 +1543,17 @@ export default function PatientProfile() {
           payload.dosage = logForm.dosage === 'custom' ? logForm.custom_dosage : logForm.dosage;
         } else {
           const dm = logForm.delivery_method || '';
-          const isVial = dm === 'vial';
+          const isVial = dm.startsWith('vial');
           const qty = isVial ? 1 : (dm.startsWith('prefilled_') ? parseInt(dm.replace('prefilled_', '')) : (logForm.quantity || 1));
           payload.delivery_method = dm;
           payload.quantity = qty;
-          payload.supply_type = isVial ? 'vial_10ml' : qty >= 8 ? 'prefilled_4week' : qty >= 4 ? 'prefilled_2week' : 'prefilled';
-          payload.dosage = isVial ? `1 vial @ ${logForm.dosage}` : `${qty} prefilled @ ${logForm.dosage}`;
+          payload.supply_type = isVial ? dm : qty >= 8 ? 'prefilled_4week' : qty >= 4 ? 'prefilled_2week' : 'prefilled';
+          if (isVial) {
+            const vialMl = dm === 'vial_5ml' ? 5 : 10;
+            payload.dosage = `1 vial (${vialMl}ml) @ ${logForm.dosage}`;
+          } else {
+            payload.dosage = `${qty} prefilled @ ${logForm.dosage}`;
+          }
         }
       } else if (svcCat === 'weight_loss') {
         payload.medication = logForm.medication;

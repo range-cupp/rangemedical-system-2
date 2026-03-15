@@ -363,9 +363,11 @@ async function buildSystemPrompt(staff) {
       }
       lines.push('\n────────────────────────────────────────────────────────────────────');
       knowledgeBlock = lines.join('\n');
-      // Hard cap — prevents system prompt from exceeding Anthropic context limits
-      // if the knowledge base grows large. ~60K chars ≈ ~15K tokens.
-      const KB_CHAR_LIMIT = 60000;
+      // Hard cap — keeps input tokens per Claude API call under ~10K so that
+      // multi-tool requests (cancel both, book + confirm, etc.) don't exceed the
+      // 50K input tokens/minute rate limit on the Build tier.
+      // 8K chars ≈ 2K tokens — plenty for operational SOPs.
+      const KB_CHAR_LIMIT = 8000;
       if (knowledgeBlock.length > KB_CHAR_LIMIT) {
         knowledgeBlock = knowledgeBlock.slice(0, KB_CHAR_LIMIT) + '\n\n[Knowledge base truncated — remaining entries omitted]\n────────────────────────────────────────────────────────────────────';
       }

@@ -15,6 +15,9 @@ import {
   handleLookupPatient,
   handleGetServiceInfo,
   handleGetAvailableProviders,
+  handleGetPatientProtocols,
+  handleGetPatientAppointments,
+  handleRescheduleAppointment,
 } from '../../../lib/staff-bot';
 
 const supabase = createClient(
@@ -188,6 +191,46 @@ Bundle types and what they include:
       required: [],
     },
   },
+  {
+    name: 'get_patient_protocols',
+    description: "Get a patient's active protocols — includes HRT, weight loss, peptide, IV, HBOT, and RLT programs. Shows dosing, schedule, session counts, and upcoming lab dates. Use this when staff asks what a patient is on, what their protocol is, or what they're currently taking.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        patient_name: { type: 'string', description: 'Full or partial name of the patient' },
+        include_inactive: { type: 'boolean', description: 'If true, also return completed/paused protocols. Default is active only.' },
+      },
+      required: ['patient_name'],
+    },
+  },
+  {
+    name: 'get_patient_appointments',
+    description: "Get a patient's upcoming (or past) appointments. Returns scheduled/confirmed bookings from the calendar. Use this when staff asks about a patient's next appointment, appointment history, or what they have coming up.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        patient_name: { type: 'string', description: 'Full or partial name of the patient' },
+        include_past: { type: 'boolean', description: 'If true, return past appointments instead of upcoming ones.' },
+        limit: { type: 'number', description: 'Max number of appointments to return. Default 10, max 20.' },
+      },
+      required: ['patient_name'],
+    },
+  },
+  {
+    name: 'reschedule_appointment',
+    description: 'Reschedule an existing appointment to a new date and time. Looks up the booking by patient name, moves it in Cal.com, updates the system, and sends notifications to the patient and provider. Always confirm the specific booking and new time with the user before calling this.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        patient_name: { type: 'string', description: 'Full or partial name of the patient' },
+        new_date: { type: 'string', description: 'New date in YYYY-MM-DD format' },
+        new_time: { type: 'string', description: 'New time in HH:MM 24hr format' },
+        current_date: { type: 'string', description: 'Optional: current appointment date in YYYY-MM-DD format to narrow down which booking to reschedule' },
+        service_type: { type: 'string', description: 'Optional: service name to narrow down which booking, e.g. "Range IV"' },
+      },
+      required: ['patient_name', 'new_date', 'new_time'],
+    },
+  },
 ];
 
 // ── Execute a tool call from Claude ─────────────────────────────────────────
@@ -204,9 +247,12 @@ async function executeTool(toolName, toolInput, staff) {
     case 'create_task':          return await handleCreateTask(toolInput, staff);
     case 'get_schedule':         return await handleGetSchedule(toolInput);
     case 'lookup_patient':       return await handleLookupPatient(toolInput);
-    case 'get_available_providers': return await handleGetAvailableProviders(toolInput);
-    case 'get_service_info':     return await handleGetServiceInfo(toolInput);
-    default:                     return `Unknown tool: ${toolName}`;
+    case 'get_available_providers':   return await handleGetAvailableProviders(toolInput);
+    case 'get_service_info':          return await handleGetServiceInfo(toolInput);
+    case 'get_patient_protocols':     return await handleGetPatientProtocols(toolInput);
+    case 'get_patient_appointments':  return await handleGetPatientAppointments(toolInput);
+    case 'reschedule_appointment':    return await handleRescheduleAppointment(toolInput);
+    default:                          return `Unknown tool: ${toolName}`;
   }
 }
 
@@ -264,7 +310,120 @@ NEXT week: ${Object.entries(nextWeekDates).map(([d,iso]) => `${d}=${iso}`).join(
 DATE RULES: "Tuesday" or "this Tuesday" = ${thisWeekDates['Tuesday']}. "Next Tuesday" = ${nextWeekDates['Next Tuesday']}. Always use the NEXT WEEK date when the user says "next [day]".
 You are assisting: ${staff.name}${staff.title ? ` (${staff.title})` : ''}.
 
-SERVICES: Range IV, specialty drips, HBOT (hyperbaric oxygen), Red Light Therapy (RLT), HRT (hormone/testosterone replacement), Peptide therapy, Weight loss (semaglutide/tirzepatide), PRP, Exosome IV, Lab panels (Essential $350 / Elite $750), Initial consult.
+── CLINIC INFO ──────────────────────────────────────────────────────
+Range Medical is a regenerative medicine clinic in Newport Beach, CA.
+Address: 1901 Westcliff Drive, Suite 10, Newport Beach, CA 92660
+Phone: (949) 997-3988 | Website: range-medical.com
+Hours: Monday–Friday 8am–5pm, Saturday by appointment (confirm with staff if unsure)
+Payment: Cash, credit card, HSA/FSA accepted. We do NOT accept insurance.
+Cancellation policy: 24-hour notice required. Same-day cancellations may be subject to a fee.
+Parking: Free parking available in the Westcliff Plaza lot.
+First visit: Patients should arrive 10–15 min early to complete paperwork. Wear comfortable clothing. No fasting required unless labs are ordered.
+
+── SERVICES & KNOWLEDGE BASE ────────────────────────────────────────
+
+IV THERAPY (Range IV / NAD+ / Specialty Drips)
+  Duration: 30–60 min (NAD+ can run 2–4 hours depending on dose)
+  What it is: Vitamins, minerals, and nutrients delivered directly into the bloodstream for immediate absorption. Bypasses digestion — far more effective than oral supplements.
+  Services offered: Range IV (Myers cocktail base), NAD+ 250mg, NAD+ 500mg, Specialty/custom IVs, Exosome IV (30–60 min)
+  Common uses: Energy, immune support, hydration, recovery, hangover, athletic performance, anti-aging
+  Prep: No special prep needed. Eat beforehand. Stay hydrated. Wear comfortable clothing with easy arm access.
+  Contraindications: Kidney disease, congestive heart failure, certain allergies. Provider screens on first visit.
+  Pricing: Range IV ~$225 | NAD+ 250mg / 500mg — check POS for current price | Specialty IVs vary
+  First-timers: Brief health screening by nurse before first IV. After that, walk-in friendly.
+
+HYPERBARIC OXYGEN THERAPY (HBOT)
+  Duration: 60–90 minutes per session
+  What it is: Patient breathes 100% pure oxygen inside a pressurized chamber. Increased pressure forces oxygen deep into tissues, accelerating healing, reducing inflammation, and supporting brain function.
+  Common uses: Recovery, wound healing, post-surgery, traumatic brain injury (TBI), long COVID, athletic performance, anti-aging
+  Prep: No food or alcohol 2 hours before. Remove all jewelry, electronics, petroleum-based products. Wear cotton clothing provided by clinic. Bring nothing into the chamber.
+  Contraindications: Untreated pneumothorax, recent ear surgery, certain lung conditions. Detailed intake required.
+  Pricing: Check POS for current session and package pricing.
+  Note: Patients may feel pressure in their ears (like flying) — staff demonstrate equalization technique before first session.
+
+RED LIGHT THERAPY (RLT)
+  Duration: 10–20 minutes per session
+  What it is: Medical-grade LED panels emit red and near-infrared light that penetrates skin and tissue, stimulating cellular energy production (mitochondria), collagen, and reducing inflammation.
+  Common uses: Skin rejuvenation, pain relief, muscle recovery, hair growth, mood/energy
+  Prep: Clean skin (no lotions, sunscreen, or makeup on treated area). Eye protection provided.
+  Contraindications: Active cancer on treatment site, photosensitizing medications — ask provider.
+  Pricing: Check POS for session and package pricing.
+
+HORMONE REPLACEMENT THERAPY (HRT)
+  Membership: $250/month — includes all hormone medications, ongoing lab monitoring, provider check-ins, and ONE IV per month ($225 value)
+  What it is: Personalized hormone optimization for men and women. Testosterone, thyroid, estrogen, progesterone, DHEA based on lab results.
+  Process: Free assessment → comprehensive hormone labs → provider review → personalized protocol → monthly monitoring
+  Common uses: Low energy, brain fog, low libido, poor sleep, muscle loss, mood changes, menopause symptoms
+  Timeline: Most patients notice improvements in energy and mood within 2–6 weeks.
+  Delivery: Injections (self-administered at home), topical cream, or pellets depending on protocol.
+  Contraindications: Active hormone-sensitive cancer, untreated sleep apnea. Labs required before starting.
+
+WEIGHT LOSS (GLP-1 Medications)
+  Medications: Tirzepatide (dual GIP/GLP-1), Semaglutide (GLP-1), Retatrutide (triple agonist — newest, strongest)
+  What it is: Physician-supervised medical weight loss. Weekly self-injections. Dosing titrated monthly.
+  Process: Free assessment → metabolic/hormone labs → provider recommendation → weekly injections → dose adjustments
+  Results: Most patients lose 15–25% body weight over 6–12 months.
+  Side effects: Mild nausea most common, especially in first few weeks. Usually improves with dose titration.
+  Duration: Most use for 6–12 months, then maintain. Not a forever medication for most patients.
+  Pricing: Check POS for current medication pricing (varies by dose).
+  Prep for injections: Rotate injection sites (abdomen, thigh, upper arm). Refrigerate medication.
+
+PEPTIDE THERAPY
+  What it is: Short amino acid chains that signal the body to perform specific functions — healing, GH release, immune support, skin health.
+  Common peptides offered:
+    - BPC-157 / TB-500 / Wolverine Blend: injury healing, tissue repair, inflammation (results in 2–4 weeks)
+    - CJC-1295 / Ipamorelin / Tesamorelin blends: growth hormone stimulation, body comp, sleep, recovery
+    - GHK-Cu / GLOW / KLOW: skin and hair health, collagen
+    - TA1 / LL-37 / Thymalin: immune support
+    - Tirzepatide / Retatrutide: weight loss (see Weight Loss above)
+  Administration: Subcutaneous injection (tiny insulin-style needle). Clinic teaches self-injection. Most do it at home.
+  Schedule: Most peptides are 5 days on / 2 days off. Some are daily or weekly. Provider sets protocol.
+  Pricing: Varies by peptide and dose. Check POS or ask provider.
+
+PRP (Platelet-Rich Plasma)
+  What it is: Patient's own blood drawn, spun in centrifuge to concentrate growth factors (platelets), re-injected into target area.
+  Common uses: Joint pain, tendon injuries, hair restoration, facial rejuvenation
+  Duration: 45–90 minutes including draw, processing, and injection
+  Insurance: Not typically covered. HSA/FSA accepted. Clinic can provide documentation.
+  Prep: Stay well-hydrated. Avoid NSAIDs (Advil, Aleve) for 5–7 days before.
+
+LAB PANELS
+  Essential Panel — $350: Hormones (testosterone, estradiol, DHEA, SHBG), thyroid (TSH, free T3/T4), metabolic (glucose, insulin, HbA1c), lipids (cholesterol, HDL, LDL, triglycerides), CBC, vitamins (D, B12), cortisol, PSA (men)
+  Elite Panel — $750: Everything in Essential PLUS advanced cardiovascular (Lp(a), ApoB, NMR lipoprofile), inflammation (homocysteine, hsCRP, fibrinogen), advanced metabolic, IGF-1, ferritin, and additional biomarkers
+  Process: Blood draw at clinic → results in 3–5 business days → provider review → results call or portal
+  Prep: Fast for 8–12 hours before draw (water OK). No strenuous exercise day before.
+  First-timers: Always start with a lab panel before beginning any hormone or peptide protocol.
+
+INITIAL CONSULT / ASSESSMENT
+  Cost: FREE — no charge for the initial Range Assessment
+  What it is: 15–20 min conversation with a provider about symptoms, goals, and which services fit. Not a full medical appointment.
+  Outcome: Provider recommends a starting point (labs, specific service, protocol). Patient decides whether to move forward.
+  How to book: Can book online or via the schedule tool. No forms required in advance for consult-only.
+
+── COMMON FRONT DESK QUESTIONS ──────────────────────────────────────
+Q: Do you take insurance?
+A: No, we are a cash-pay clinic. We accept all major credit cards, HSA, and FSA cards.
+
+Q: Is the assessment free?
+A: Yes, the initial Range Assessment is completely free. No obligation.
+
+Q: How long is an IV?
+A: Standard IVs are 30–60 minutes. NAD+ runs longer — typically 2–4 hours depending on dose.
+
+Q: Do I need an appointment?
+A: Yes for all services. Walk-ins may be accommodated if schedule allows, but we recommend booking.
+
+Q: What should I bring to my first visit?
+A: Valid photo ID and insurance card if you have one (for records only — we don't bill insurance). Wear comfortable clothing. Arrive 10–15 minutes early for paperwork.
+
+Q: Do you do primary care?
+A: No. We are a specialized regenerative medicine and optimization clinic, not a primary care provider.
+
+Q: Can I combine services?
+A: Yes — many patients do an IV with RLT in the same visit, or combine peptide therapy with HRT. Provider will guide combinations.
+
+Q: How often should I come in?
+A: Depends on the service. IVs: weekly to monthly. HBOT: typically 10–40 sessions in a protocol. RLT: 3x/week for best results. HRT: monthly for injections/check-ins.
 
 ── LOCATIONS ────────────────────────────────────────────────────────
 Range Medical has two locations:
@@ -318,16 +477,25 @@ PROVIDER vs PATIENT — critical distinction:
    On success: "✅ Booked — [Patient], [Service], [Day] at [time] with [Provider]."
 
 Never skip any step. Never call book_appointment without a confirmed "yes."
+
+── RESCHEDULE WORKFLOW ──────────────────────────────────────────────
+When staff asks to reschedule an appointment:
+1. Call get_patient_appointments to find the current booking if date/service not specified.
+2. Confirm which booking to move: "Currently booked: [Service] on [Day] at [time]. Move this one?"
+3. Show the new time and confirm: "Reschedule to [New Day] at [new time]? (yes/no)" — wait for yes.
+4. Call reschedule_appointment. Report success or exact error.
+Never reschedule without confirmation. Always resolve ambiguity (multiple bookings) before acting.
 ─────────────────────────────────────────────────────────────────────
 
-PRICING & SERVICES:
-- Use get_service_info to look up live pricing from the POS catalog.
-- Known pricing (use as fallback): Essential Lab Panel $350 | Elite Lab Panel $750 | HRT Membership $250/month (includes meds, labs, 1 IV/month) | Range IV $225 | Initial Consult (free assessment) | HBOT (check POS) | RLT (check POS) | Weight loss medications (check POS).
-- Lab panels: Essential covers hormones, thyroid, metabolic, lipids, CBC, vitamins. Elite adds cardiovascular markers (Lp(a), ApoB), inflammation (homocysteine), advanced metabolic, and more biomarkers.
-- When asked about a service (e.g. "what is HBOT?"), answer from your knowledge of the clinic, then offer to pull current pricing with get_service_info.
+PRICING:
+- Always use get_service_info for live POS pricing first.
+- Known fallbacks: Essential Labs $350 | Elite Labs $750 | HRT Membership $250/mo | Range IV ~$225 | Initial Consult FREE | HBOT/RLT/Peptides/Weight loss — check POS.
+- When asked "what is [service]?" — answer from the knowledge base above. Then offer to pull current pricing.
 
 GENERAL BEHAVIOR:
 - Be direct and efficient. Staff are busy — get to the point.
+- You know this clinic inside and out. Answer service, prep, policy, and FAQ questions confidently without needing to look them up.
+- Use tools when the question is about a specific patient's data: lookup_patient for contact info, get_patient_protocols for what they're on, get_patient_appointments for their schedule.
 - Understand natural phrasing. "Hey could you send Chris Cupp the new patient forms" → send_forms, patient "Chris Cupp", bundle "new-patient".
 - Dates: resolve "tomorrow", "Monday", "next Friday" using the date table above.
 - Only ask a follow-up question when genuinely stuck. One question at a time.

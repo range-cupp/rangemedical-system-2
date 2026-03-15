@@ -146,6 +146,8 @@ export default function MedicationsPage() {
   const [dispenseDate, setDispenseDate] = useState('');
   const [selectedSupplyType, setSelectedSupplyType] = useState('');
   const [dispenseDosage, setDispenseDosage] = useState('');
+  const [customDoseMode, setCustomDoseMode] = useState(false);
+  const [customDoseValue, setCustomDoseValue] = useState('');
   const [logging, setLogging] = useState(false);
   const [logResult, setLogResult] = useState(null);
 
@@ -180,6 +182,8 @@ export default function MedicationsPage() {
       setSelectedSupplyType(med.supply_type || '');
     }
     setDispenseDosage(med.dosage || '');
+    setCustomDoseMode(false);
+    setCustomDoseValue('');
     setLogResult(null);
   };
 
@@ -445,29 +449,75 @@ export default function MedicationsPage() {
                   return (
                     <div style={{ ...s.fieldRow, flexDirection: 'column', alignItems: 'stretch' }}>
                       <div style={s.fieldLabel}>Dosage</div>
-                      <select
-                        value={dispenseDosage}
-                        onChange={e => setDispenseDosage(e.target.value)}
-                        style={{
-                          width: '100%', padding: '10px 12px', fontSize: '14px', fontWeight: 600,
-                          border: dispenseDosage !== dispensingProtocol.dosage ? '2px solid #f59e0b' : '1px solid #e5e7eb',
-                          borderRadius: '8px', fontFamily: 'inherit', color: '#111',
-                          background: dispenseDosage !== dispensingProtocol.dosage ? '#fffbeb' : '#fff',
-                          cursor: 'pointer', outline: 'none', marginTop: '6px',
-                          appearance: 'none', backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath d=\'M6 8L1 3h10z\' fill=\'%236b7280\'/%3E%3C/svg%3E")',
-                          backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center',
-                          paddingRight: '32px',
-                        }}
-                      >
-                        {/* Include current dose if not in options list */}
-                        {!doseOptions.some(d => d.value === dispenseDosage) && dispenseDosage && (
-                          <option value={dispenseDosage}>{dispenseDosage} (current)</option>
-                        )}
-                        {doseOptions.map(d => (
-                          <option key={d.value} value={d.value}>{d.label}</option>
-                        ))}
-                      </select>
-                      {dispenseDosage !== dispensingProtocol.dosage && (
+                      {customDoseMode ? (
+                        <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                          <input
+                            type="text"
+                            placeholder="e.g. 0.275ml / 55mg"
+                            value={customDoseValue}
+                            onChange={e => setCustomDoseValue(e.target.value)}
+                            autoFocus
+                            style={{
+                              flex: 1, padding: '10px 12px', fontSize: '14px', fontWeight: 600,
+                              border: '2px solid #2563eb', borderRadius: '8px', fontFamily: 'inherit',
+                              color: '#111', background: '#eff6ff', outline: 'none',
+                            }}
+                          />
+                          <button
+                            onClick={() => {
+                              if (customDoseValue.trim()) {
+                                setDispenseDosage(customDoseValue.trim());
+                                setCustomDoseMode(false);
+                              }
+                            }}
+                            style={{
+                              padding: '10px 16px', fontSize: '13px', fontWeight: 600,
+                              background: '#111', color: '#fff', border: 'none', borderRadius: '8px',
+                              cursor: 'pointer',
+                            }}
+                          >Set</button>
+                          <button
+                            onClick={() => { setCustomDoseMode(false); setCustomDoseValue(''); }}
+                            style={{
+                              padding: '10px 12px', fontSize: '13px', fontWeight: 600,
+                              background: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb',
+                              borderRadius: '8px', cursor: 'pointer',
+                            }}
+                          >Cancel</button>
+                        </div>
+                      ) : (
+                        <select
+                          value={dispenseDosage}
+                          onChange={e => {
+                            if (e.target.value === '__custom__') {
+                              setCustomDoseMode(true);
+                              setCustomDoseValue('');
+                            } else {
+                              setDispenseDosage(e.target.value);
+                            }
+                          }}
+                          style={{
+                            width: '100%', padding: '10px 12px', fontSize: '14px', fontWeight: 600,
+                            border: dispenseDosage !== dispensingProtocol.dosage ? '2px solid #f59e0b' : '1px solid #e5e7eb',
+                            borderRadius: '8px', fontFamily: 'inherit', color: '#111',
+                            background: dispenseDosage !== dispensingProtocol.dosage ? '#fffbeb' : '#fff',
+                            cursor: 'pointer', outline: 'none', marginTop: '6px',
+                            appearance: 'none', backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath d=\'M6 8L1 3h10z\' fill=\'%236b7280\'/%3E%3C/svg%3E")',
+                            backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center',
+                            paddingRight: '32px',
+                          }}
+                        >
+                          {/* Include current dose if not in options list */}
+                          {!doseOptions.some(d => d.value === dispenseDosage) && dispenseDosage && (
+                            <option value={dispenseDosage}>{dispenseDosage} (current)</option>
+                          )}
+                          {doseOptions.map(d => (
+                            <option key={d.value} value={d.value}>{d.label}</option>
+                          ))}
+                          <option value="__custom__">Custom dose...</option>
+                        </select>
+                      )}
+                      {dispenseDosage !== dispensingProtocol.dosage && !customDoseMode && (
                         <div style={{ fontSize: '11px', color: '#f59e0b', fontWeight: 600, marginTop: '4px' }}>
                           Changed from {dispensingProtocol.dosage}
                         </div>

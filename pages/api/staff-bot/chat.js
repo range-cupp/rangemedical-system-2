@@ -12,6 +12,7 @@ import {
   handleCreateTask,
   handleGetSchedule,
   handleLookupPatient,
+  handleGetServiceInfo,
 } from '../../../lib/staff-bot';
 
 const supabase = createClient(
@@ -37,14 +38,15 @@ const TOOLS = [
   },
   {
     name: 'book_appointment',
-    description: 'Book an appointment on the calendar for a patient.',
+    description: 'Book an appointment on the calendar for a patient. If a specific nurse or provider is requested, pass their name in provider_name so it can be reassigned to them after booking.',
     input_schema: {
       type: 'object',
       properties: {
-        service: { type: 'string', description: 'Service name' },
+        service: { type: 'string', description: 'Service name, e.g. "Range IV"' },
         date: { type: 'string', description: 'Date in YYYY-MM-DD format' },
         time: { type: 'string', description: 'Time in HH:MM 24hr format' },
-        patient_name: { type: 'string', description: 'Full name of the patient' },
+        patient_name: { type: 'string', description: 'Full name of the patient being treated' },
+        provider_name: { type: 'string', description: 'Optional: name of the specific nurse or provider to assign this to, e.g. "Lily"' },
       },
       required: ['service', 'date', 'time', 'patient_name'],
     },
@@ -141,6 +143,20 @@ Bundle types and what they include:
       required: ['patient_name'],
     },
   },
+  {
+    name: 'get_service_info',
+    description: 'Look up live pricing and descriptions for clinic services from the POS catalog. Use this to answer questions about how much something costs or what a service includes.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        service_name: {
+          type: 'string',
+          description: 'Service or category to look up. Leave blank to get all active services.',
+        },
+      },
+      required: [],
+    },
+  },
 ];
 
 // ── Execute a tool call from Claude ─────────────────────────────────────────
@@ -156,6 +172,7 @@ async function executeTool(toolName, toolInput, staff) {
     case 'create_task':          return await handleCreateTask(toolInput, staff);
     case 'get_schedule':         return await handleGetSchedule(toolInput);
     case 'lookup_patient':       return await handleLookupPatient(toolInput);
+    case 'get_service_info':     return await handleGetServiceInfo(toolInput);
     default:                     return `Unknown tool: ${toolName}`;
   }
 }
@@ -201,28 +218,38 @@ You are assisting: ${staff.name}${staff.title ? ` (${staff.title})` : ''}.
 
 SERVICES: Range IV, specialty drips, HBOT (hyperbaric oxygen), Red Light Therapy (RLT), HRT (hormone/testosterone replacement), Peptide therapy, Weight loss (semaglutide/tirzepatide), PRP, Exosome IV, Lab panels (Essential $350 / Elite $750), Initial consult.
 
-── BOOKING WORKFLOW (follow this every time) ────────────────────────
+── BOOKING WORKFLOW (follow every time) ────────────────────────────
+PROVIDER vs PATIENT — critical distinction:
+  - "Book WITH Nurse Lily" / "with Lily" / "Lily's patient" → Lily is the PROVIDER (nurse doing the treatment), NOT the patient.
+  - The patient is the person being treated. If unclear who the patient is, ask once.
+  - Pass the provider's name in the provider_name field so it gets assigned to them.
+
 1. PATIENT: If given only a first name or partial name, call lookup_patient first.
-   - If 1 match → proceed with that patient.
-   - If 2+ matches → ask "I found [names] — which one?" before proceeding.
-   - If 0 matches → say so and ask for clarification.
+   - 1 match → proceed.
+   - 2+ matches → "I found [names] — which one?" then wait.
+   - 0 matches → say so, ask for clarification.
 
-2. AVAILABILITY: Always call check_availability for the requested service + date before booking.
-   - Parse the returned time list to see if the requested time is available.
-   - If the exact time IS available → call book_appointment immediately, no confirmation needed.
-   - If the exact time is NOT available → do NOT book. Instead say:
-     "[time] isn't open for [service] on [day]. Here are the closest available slots:
+2. AVAILABILITY: Always call check_availability before booking.
+   - If the exact time IS available → call book_appointment immediately.
+   - If NOT available → do NOT book. Say:
+     "[time] isn't open for [service] on [day]. Closest available:
      • [time 1]  • [time 2]  • [time 3]
-     Which one works?"
-     Then wait for a reply before booking.
+     Which works?"
+     Wait for reply, then book.
 
-3. BOOK: Once you have a confirmed patient + confirmed available time → call book_appointment.
+3. BOOK: call book_appointment with patient_name, service, date, time, and provider_name if specified.
 
-4. CONFIRM: After a successful booking, reply concisely:
-   "✅ Booked — [Patient name], [Service], [Day] at [time]."
+4. CONFIRM: "✅ Booked — [Patient], [Service], [Day] at [time]."
+   If booking fails, report the EXACT error text returned — do not paraphrase or soften it.
 
-Never skip the availability check. Never ask the staff member for permission to proceed through these steps — just do them.
+Never skip availability check. Never ask permission to proceed through steps.
 ─────────────────────────────────────────────────────────────────────
+
+PRICING & SERVICES:
+- Use get_service_info to look up live pricing from the POS catalog.
+- Known pricing (use as fallback): Essential Lab Panel $350 | Elite Lab Panel $750 | HRT Membership $250/month (includes meds, labs, 1 IV/month) | Range IV $225 | Initial Consult (free assessment) | HBOT (check POS) | RLT (check POS) | Weight loss medications (check POS).
+- Lab panels: Essential covers hormones, thyroid, metabolic, lipids, CBC, vitamins. Elite adds cardiovascular markers (Lp(a), ApoB), inflammation (homocysteine), advanced metabolic, and more biomarkers.
+- When asked about a service (e.g. "what is HBOT?"), answer from your knowledge of the clinic, then offer to pull current pricing with get_service_info.
 
 GENERAL BEHAVIOR:
 - Be direct and efficient. Staff are busy — get to the point.

@@ -235,7 +235,7 @@ Bundle types and what they include:
   },
   {
     name: 'send_document',
-    description: `Send a service guide or info document to a patient via SMS or email. Use this when staff says things like "send John the HBOT guide", "text Sarah info about hyperbaric oxygen", "email the tirzepatide guide to Mike", or "send the red light info to [patient]". The document parameter should be the natural-language description of what to send (e.g. "HBOT guide", "hyperbaric oxygen info", "tirzepatide", "methylene blue combo", "red light therapy"). Available documents include: ${DOCUMENT_CATALOG.map(d => d.name).join(', ')}.`,
+    description: `Send a link to a Range Medical service page to a patient via SMS or email. These are branded web pages on app.range-medical.com — not PDFs. Use this when staff says things like "send John the HBOT info", "text Sarah about hyperbaric oxygen", "email the tirzepatide page to Mike", "send the red light info to [patient]", or "send [patient] info about [service]". The document parameter should be the natural-language description of what to send (e.g. "hyperbaric oxygen", "tirzepatide", "methylene blue combo", "red light therapy", "NAD", "weight loss"). Available pages: ${DOCUMENT_CATALOG.map(d => d.name).join(', ')}.`,
     input_schema: {
       type: 'object',
       properties: {

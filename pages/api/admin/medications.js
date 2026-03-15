@@ -130,7 +130,7 @@ export default async function handler(req, res) {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const { data: recentDispensing, error: dispError } = await supabase
       .from('service_logs')
-      .select('id, patient_id, category, medication, entry_date, entry_type, protocol_id, created_at')
+      .select('id, patient_id, category, medication, entry_date, entry_type, protocol_id, created_at, patients(first_name, last_name)')
       .eq('entry_type', 'pickup')
       .gte('entry_date', thirtyDaysAgo.toISOString().split('T')[0])
       .order('entry_date', { ascending: false })
@@ -140,9 +140,15 @@ export default async function handler(req, res) {
       console.error('Dispensing query error:', dispError);
     }
 
+    // Flatten patient name onto dispensing records
+    const dispensingWithNames = (recentDispensing || []).map(d => ({
+      ...d,
+      patient_name: d.patients ? `${d.patients.first_name || ''} ${d.patients.last_name || ''}`.trim() : null,
+    }));
+
     // Build dispensing map by protocol_id
     const dispensingByProtocol = {};
-    for (const log of (recentDispensing || [])) {
+    for (const log of dispensingWithNames) {
       const key = log.protocol_id || log.patient_id;
       if (!dispensingByProtocol[key]) dispensingByProtocol[key] = [];
       dispensingByProtocol[key].push(log);
@@ -210,7 +216,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       medications: filtered,
       stats,
-      recentDispensing: recentDispensing || [],
+      recentDispensing: dispensingWithNames,
     });
 
   } catch (error) {

@@ -397,6 +397,7 @@ export default function MedicationsPage() {
               <thead>
                 <tr>
                   <th style={s.th}>Date</th>
+                  <th style={s.th}>Patient</th>
                   <th style={s.th}>Category</th>
                   <th style={s.th}>Medication</th>
                 </tr>
@@ -405,6 +406,7 @@ export default function MedicationsPage() {
                 {recentDispensing.slice(0, 20).map(d => (
                   <tr key={d.id} style={s.tr}>
                     <td style={{ ...s.td, fontSize: '13px' }}>{formatDate(d.entry_date)}</td>
+                    <td style={{ ...s.td, fontSize: '13px', fontWeight: 500 }}>{d.patient_name || '—'}</td>
                     <td style={{ ...s.td, fontSize: '13px' }}>{(d.category || '').replace(/_/g, ' ')}</td>
                     <td style={{ ...s.td, fontSize: '13px', color: '#6b7280' }}>{d.medication || '—'}</td>
                   </tr>

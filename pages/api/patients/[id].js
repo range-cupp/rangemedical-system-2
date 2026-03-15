@@ -3,6 +3,7 @@
 // Unified patient data endpoint: demographics, protocols, labs, intakes, sessions, purchases
 
 import { createClient } from '@supabase/supabase-js';
+import stripe from '../../../lib/stripe';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -602,12 +603,73 @@ export default async function handler(req, res) {
         .eq('patient_id', id)
         .order('created_at', { ascending: false });
 
-      // ===== Subscriptions =====
-      const { data: subscriptions } = await supabase
+      // ===== Subscriptions (with lazy Stripe sync) =====
+      let { data: subscriptions } = await supabase
         .from('subscriptions')
         .select('*')
         .eq('patient_id', id)
         .order('started_at', { ascending: false });
+
+      // Lazy sync: if patient has a Stripe customer, backfill missing + update stale subscriptions
+      if (patient.stripe_customer_id) {
+        try {
+          const stripeSubs = await stripe.subscriptions.list({
+            customer: patient.stripe_customer_id,
+            limit: 100,
+          });
+
+          const existingStripeIds = new Set(
+            (subscriptions || []).map(s => s.stripe_subscription_id).filter(Boolean)
+          );
+
+          let needsRefresh = false;
+
+          for (const sub of stripeSubs.data) {
+            const item = sub.items.data[0];
+            const price = item?.price;
+            const record = {
+              status: sub.status,
+              amount_cents: price?.unit_amount || 0,
+              currency: price?.currency || 'usd',
+              interval: price?.recurring?.interval || 'month',
+              interval_count: price?.recurring?.interval_count || 1,
+              current_period_start: sub.current_period_start ? new Date(sub.current_period_start * 1000).toISOString() : null,
+              current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
+              cancel_at_period_end: sub.cancel_at_period_end,
+              canceled_at: sub.canceled_at ? new Date(sub.canceled_at * 1000).toISOString() : null,
+            };
+
+            if (existingStripeIds.has(sub.id)) {
+              // Update existing — keep status/amount/dates fresh
+              await supabase.from('subscriptions').update(record).eq('stripe_subscription_id', sub.id);
+              needsRefresh = true;
+            } else {
+              // Insert missing subscription
+              await supabase.from('subscriptions').insert({
+                ...record,
+                patient_id: id,
+                stripe_subscription_id: sub.id,
+                stripe_customer_id: patient.stripe_customer_id,
+                description: sub.metadata?.description || price?.nickname || 'Subscription',
+                service_category: sub.metadata?.service_category || null,
+                started_at: sub.start_date ? new Date(sub.start_date * 1000).toISOString() : null,
+              });
+              needsRefresh = true;
+            }
+          }
+
+          if (needsRefresh) {
+            const { data: refreshed } = await supabase
+              .from('subscriptions')
+              .select('*')
+              .eq('patient_id', id)
+              .order('started_at', { ascending: false });
+            subscriptions = refreshed || subscriptions;
+          }
+        } catch (stripeErr) {
+          console.error('Stripe subscription lazy sync error (non-blocking):', stripeErr.message);
+        }
+      }
 
       // ===== Medications (PF import + manual) =====
       const { data: medications } = await supabase

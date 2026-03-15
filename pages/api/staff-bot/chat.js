@@ -34,6 +34,7 @@ const TOOLS = [
         service: { type: 'string', description: 'Service name, e.g. "Range IV", "Initial Consult", "HBOT"' },
         date: { type: 'string', description: 'Date in YYYY-MM-DD format' },
         time: { type: 'string', description: 'Optional preferred time in HH:MM 24hr format' },
+        location: { type: 'string', description: 'Clinic location, e.g. "Newport Beach" or "Placentia". Required when the provider works at multiple locations.' },
       },
       required: ['service', 'date'],
     },
@@ -49,6 +50,7 @@ const TOOLS = [
         time: { type: 'string', description: 'Time in HH:MM 24hr format' },
         patient_name: { type: 'string', description: 'Full name of the patient being treated' },
         provider_name: { type: 'string', description: 'Optional: name of the specific nurse or provider to assign this to, e.g. "Lily"' },
+        location: { type: 'string', description: 'Clinic location, e.g. "Newport Beach" or "Placentia". Required when the provider works at multiple locations.' },
       },
       required: ['service', 'date', 'time', 'patient_name'],
     },
@@ -261,6 +263,19 @@ DATE RULES: "Tuesday" or "this Tuesday" = ${thisWeekDates['Tuesday']}. "Next Tue
 You are assisting: ${staff.name}${staff.title ? ` (${staff.title})` : ''}.
 
 SERVICES: Range IV, specialty drips, HBOT (hyperbaric oxygen), Red Light Therapy (RLT), HRT (hormone/testosterone replacement), Peptide therapy, Weight loss (semaglutide/tirzepatide), PRP, Exosome IV, Lab panels (Essential $350 / Elite $750), Initial consult.
+
+── LOCATIONS ────────────────────────────────────────────────────────
+Range Medical has two locations:
+  - Newport Beach (default) — 1901 Westcliff Drive, Suite 10
+  - Placentia — separate Cal.com event types (slugs/titles contain "placentia" or "tlab")
+
+LOCATION RULES:
+  - Default is always Newport Beach unless stated otherwise.
+  - Lily Diaz (RN) works Monday mornings at PLACENTIA. Any other day = Newport Beach.
+  - Whenever booking Lily on a Monday AND the location has not been specified, STOP and ask:
+    "Is this for Newport Beach or Placentia?" — wait for the answer before calling check_availability or book_appointment.
+  - Always pass the confirmed location in the `location` field of check_availability and book_appointment.
+  - If any other provider works at multiple locations and the user hasn't specified, ask the same question.
 
 ── BOOKING WORKFLOW (follow every time, in order) ──────────────────
 PROVIDER vs PATIENT — critical distinction:

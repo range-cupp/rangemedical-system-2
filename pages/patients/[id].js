@@ -32,7 +32,8 @@ import {
   IV_THERAPY_TYPES,
   findPeptideInfo,
   findMatchingPeptide,
-  getDoseOptions
+  getDoseOptions,
+  getPeptideVialSupply
 } from '../../lib/protocol-config';
 import { getHRTLabSchedule, matchDrawsToLogs, buildAdaptiveHRTSchedule, isHRTProtocol } from '../../lib/hrt-lab-schedule';
 import { isRecoveryPeptide, isGHPeptide } from '../../lib/protocol-config';
@@ -498,7 +499,7 @@ export default function PatientProfile() {
   const [assignForm, setAssignForm] = useState({
     templateId: '', peptideId: '', selectedDose: '', frequency: '',
     startDate: new Date().toISOString().split('T')[0], notes: '',
-    injectionMedication: '', injectionDose: ''
+    injectionMedication: '', injectionDose: '', vialDuration: ''
   });
 
   const [editForm, setEditForm] = useState({
@@ -1256,7 +1257,7 @@ export default function PatientProfile() {
     setAssignForm({
       templateId: '', peptideId: '', selectedDose: '', frequency: '',
       startDate: new Date().toISOString().split('T')[0], notes: '',
-      injectionMedication: '', injectionDose: ''
+      injectionMedication: '', injectionDose: '', vialDuration: ''
     });
     setAddToPackMode(false);
     setLinkToProtocolMode(false);
@@ -1290,6 +1291,12 @@ export default function PatientProfile() {
       const isInjection = template?.name?.toLowerCase().includes('injection');
       const isPeptide = template?.name?.toLowerCase().includes('peptide');
 
+      // For peptide vial templates, pass the vial duration
+      const isVialTemplate = template?.name?.toLowerCase().includes('vial');
+      const peptideDurationDays = (isPeptide && isVialTemplate && assignForm.vialDuration)
+        ? parseInt(assignForm.vialDuration)
+        : undefined;
+
       const res = await fetch('/api/protocols/assign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1302,7 +1309,8 @@ export default function PatientProfile() {
           frequency: assignForm.frequency,
           startDate: assignForm.startDate,
           notes: assignForm.notes,
-          purchaseId: selectedNotification?.id
+          purchaseId: selectedNotification?.id,
+          peptideDurationDays
         })
       });
 
@@ -6105,11 +6113,13 @@ export default function PatientProfile() {
                           <select value={assignForm.peptideId} onChange={e => {
                             const peptideName = e.target.value;
                             const peptideInfo = PEPTIDE_OPTIONS.flatMap(g => g.options).find(o => o.value === peptideName);
+                            const vialSupply = getPeptideVialSupply(peptideName);
                             setAssignForm({
                               ...assignForm,
                               peptideId: peptideName,
                               selectedDose: peptideInfo?.startingDose || '',
-                              frequency: peptideInfo?.frequency || assignForm.frequency
+                              frequency: peptideInfo?.frequency || assignForm.frequency,
+                              vialDuration: vialSupply?.options?.[0]?.days?.toString() || ''
                             });
                           }}>
                             <option value="">Select peptide...</option>
@@ -6200,6 +6210,27 @@ export default function PatientProfile() {
                                 <strong>Frequency:</strong> {peptideInfo.frequency}
                                 {peptideInfo.notes && <> &nbsp;|&nbsp; {peptideInfo.notes}</>}
                               </div>
+                              {/* Vial duration selector — only for Vial templates */}
+                              {getSelectedTemplate()?.name?.toLowerCase().includes('vial') && (() => {
+                                const vialSupply = getPeptideVialSupply(assignForm.peptideId);
+                                if (!vialSupply) return null;
+                                return (
+                                  <div className="form-group">
+                                    <label>Vial Duration ({vialSupply.vialSize})</label>
+                                    {vialSupply.options.length === 1 ? (
+                                      <div style={{ padding: '8px 10px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 6, fontSize: 13, color: '#166534', fontWeight: 600 }}>
+                                        {vialSupply.options[0].label}
+                                      </div>
+                                    ) : (
+                                      <select value={assignForm.vialDuration} onChange={e => setAssignForm({...assignForm, vialDuration: e.target.value})}>
+                                        {vialSupply.options.map(opt => (
+                                          <option key={opt.value} value={opt.days}>{opt.label}</option>
+                                        ))}
+                                      </select>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                             </>
                           );
                         })()}

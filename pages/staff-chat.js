@@ -61,6 +61,32 @@ function useVoiceDictation({ onResult, onEnd }) {
   return { listening, supported, start, stop };
 }
 
+// ── Inline markdown renderer (bold, italic, inline code) ────────
+function renderMarkdown(text) {
+  if (!text) return null;
+  const lines = text.split('\n');
+  return lines.map((line, li) => {
+    // Parse inline **bold**, *italic*, `code`
+    const parts = [];
+    const re = /(\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`)/g;
+    let last = 0, match;
+    while ((match = re.exec(line)) !== null) {
+      if (match.index > last) parts.push(line.slice(last, match.index));
+      if (match[0].startsWith('**'))      parts.push(<strong key={match.index}>{match[2]}</strong>);
+      else if (match[0].startsWith('*'))  parts.push(<em key={match.index}>{match[3]}</em>);
+      else                                parts.push(<code key={match.index} style={{ background: 'rgba(0,0,0,0.08)', borderRadius: 3, padding: '1px 4px', fontSize: 13 }}>{match[4]}</code>);
+      last = match.index + match[0].length;
+    }
+    if (last < line.length) parts.push(line.slice(last));
+    return (
+      <span key={li}>
+        {parts.length ? parts : line}
+        {li < lines.length - 1 && '\n'}
+      </span>
+    );
+  });
+}
+
 // ── Single message bubble ────────────────────────────────────────
 function MessageBubble({ msg }) {
   const isUser = msg.role === 'user';
@@ -83,7 +109,7 @@ function MessageBubble({ msg }) {
         wordBreak: 'break-word',
         boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
       }}>
-        {msg.content}
+        {isUser ? msg.content : renderMarkdown(msg.content)}
       </div>
     </div>
   );

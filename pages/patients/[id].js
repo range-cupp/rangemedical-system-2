@@ -3567,6 +3567,31 @@ export default function PatientProfile() {
                             </div>
                           )}
                           <div className="protocol-dates">Started {formatShortDate(protocol.start_date)}{protocol.end_date && ` → ${formatShortDate(protocol.end_date)}`}</div>
+                          {protocol.delivery_method === 'take_home' && protocol.status === 'active' && (
+                            <div style={{ display: 'flex', gap: '16px', fontSize: '12px', margin: '6px 0 2px', flexWrap: 'wrap' }}>
+                              <span style={{ color: '#6b7280' }}>
+                                Last pickup: <strong style={{ color: protocol.last_refill_date ? '#111' : '#9ca3af' }}>
+                                  {protocol.last_refill_date ? formatShortDate(protocol.last_refill_date) : 'Never'}
+                                </strong>
+                              </span>
+                              {protocol.next_expected_date && (() => {
+                                const next = new Date(protocol.next_expected_date + 'T00:00:00');
+                                const today = new Date(); today.setHours(0,0,0,0);
+                                const diffDays = Math.ceil((next - today) / (1000 * 60 * 60 * 24));
+                                const isOverdue = diffDays < 0;
+                                const isDueSoon = !isOverdue && diffDays <= 3;
+                                return (
+                                  <span style={{ color: '#6b7280' }}>
+                                    Next refill: <strong style={{ color: isOverdue ? '#dc2626' : isDueSoon ? '#f59e0b' : '#111' }}>
+                                      {formatShortDate(protocol.next_expected_date)}
+                                      {isOverdue && ` (${Math.abs(diffDays)}d overdue)`}
+                                      {isDueSoon && ` (in ${diffDays}d)`}
+                                    </strong>
+                                  </span>
+                                );
+                              })()}
+                            </div>
+                          )}
                           <div className="protocol-footer">
                             <span className="status-badge">{protocol.status_text}</span>
                             <div style={{ display: 'flex', gap: 8 }}>

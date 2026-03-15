@@ -85,6 +85,48 @@ export default function IVTherapy() {
     { number: "06", title: "Recovery & Performance", desc: "Athletes and active individuals use IV therapy to speed recovery, reduce inflammation, and maintain peak performance." }
   ];
 
+  const signatureIVs = [
+    {
+      name: "Immune Defense IV",
+      icon: "🛡️",
+      ingredients: ["Vitamin C", "Zinc", "Glutathione", "B-Complex", "Magnesium"],
+      description: "Immune support, antioxidant protection, and infection defense."
+    },
+    {
+      name: "Energy & Vitality IV",
+      icon: "⚡",
+      ingredients: ["B12", "B-Complex", "L-Carnitine", "Magnesium", "Vitamin C"],
+      description: "Energy production, reduced fatigue, and metabolic support."
+    },
+    {
+      name: "Muscle Recovery & Performance IV",
+      icon: "💪",
+      ingredients: ["Amino Acids", "Magnesium", "B-Complex", "Vitamin C", "Glutathione"],
+      description: "Muscle repair, recovery acceleration, and stress reduction."
+    },
+    {
+      name: "Detox & Cellular Repair IV",
+      icon: "🧬",
+      ingredients: ["Glutathione", "Vitamin C", "NAC", "Zinc", "Magnesium"],
+      description: "Liver support, oxidative stress defense, and cellular repair."
+    }
+  ];
+
+  const availableNutrients = [
+    { name: "Vitamin C", benefit: "Immune support, antioxidant" },
+    { name: "B-Complex", benefit: "Energy, metabolism" },
+    { name: "B12", benefit: "Energy, mood, nerves" },
+    { name: "Magnesium", benefit: "Muscle, sleep, recovery" },
+    { name: "Zinc", benefit: "Immune, skin, healing" },
+    { name: "Glutathione", benefit: "Antioxidant, detox" },
+    { name: "Amino Acids", benefit: "Muscle, recovery" },
+    { name: "L-Carnitine", benefit: "Fat metabolism, energy" },
+    { name: "NAC", benefit: "Liver support, antioxidant" },
+    { name: "Calcium", benefit: "Bone, muscle, nerve" },
+    { name: "Biotin", benefit: "Hair, skin, nails" },
+    { name: "Vitamin D3", benefit: "Immune, mood, bone" }
+  ];
+
   const tags = [
     "Low Energy / Fatigue",
     "Frequent Illness",
@@ -286,6 +328,62 @@ export default function IVTherapy() {
               <div className="iv-range-footer">
                 <p>Add-ons available. Ask your provider about customization based on your specific needs.</p>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Signature Formulas */}
+        <section className="iv-section iv-section-alt">
+          <div className="iv-container">
+            <div className="iv-animate">
+              <div className="iv-kicker">Choose Your Formula</div>
+              <h2>4 Signature Formulas</h2>
+              <div className="iv-divider"></div>
+              <p className="iv-body-text">
+                Not sure where to start? Pick from one of our pre-built formulas — each one is a curated combination of 5 vitamins and minerals designed for a specific goal. All $225 per session.
+              </p>
+            </div>
+
+            <div className="iv-formulas-grid">
+              {signatureIVs.map((iv, i) => (
+                <div key={i} className="iv-formula-card iv-animate">
+                  <div className="iv-formula-icon">{iv.icon}</div>
+                  <h3 className="iv-formula-name">{iv.name}</h3>
+                  <p className="iv-formula-desc">{iv.description}</p>
+                  <div className="iv-formula-ingredients">
+                    {iv.ingredients.map((ing, j) => (
+                      <span key={j} className="iv-formula-pill">{ing}</span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="iv-formulas-note iv-animate">
+              <p>Want more than 5? Add on any additional nutrient for <strong>$35 each</strong>. Your nurse will help you customize based on your symptoms and goals.</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Available Vitamins & Minerals */}
+        <section className="iv-section">
+          <div className="iv-container">
+            <div className="iv-animate">
+              <div className="iv-kicker">Available Nutrients</div>
+              <h2>Build your own or add on.</h2>
+              <div className="iv-divider"></div>
+              <p className="iv-body-text">
+                Every Range IV includes 5 of these vitamins and minerals. Want more? Add any extra for $35 each.
+              </p>
+            </div>
+
+            <div className="iv-nutrients-grid iv-animate">
+              {availableNutrients.map((nutrient, i) => (
+                <div key={i} className="iv-nutrient-card">
+                  <div className="iv-nutrient-name">{nutrient.name}</div>
+                  <div className="iv-nutrient-benefit">{nutrient.benefit}</div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
@@ -680,6 +778,112 @@ export default function IVTherapy() {
           text-align: center;
         }
 
+        /* Signature Formulas Grid */
+        .iv-formulas-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.25rem;
+          margin-top: 2.5rem;
+        }
+
+        .iv-formula-card {
+          padding: 2rem;
+          border-radius: 12px;
+          border: 1px solid #e5e5e5;
+          background: #ffffff;
+          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .iv-formula-card:hover {
+          border-color: #000000;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        }
+
+        .iv-formula-icon {
+          font-size: 1.75rem;
+          margin-bottom: 0.75rem;
+        }
+
+        .iv-formula-name {
+          font-size: 1.125rem;
+          font-weight: 700;
+          color: #171717;
+          margin-bottom: 0.5rem;
+        }
+
+        .iv-formula-desc {
+          font-size: 0.875rem;
+          line-height: 1.6;
+          color: #525252;
+          margin-bottom: 1rem;
+        }
+
+        .iv-formula-ingredients {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.375rem;
+        }
+
+        .iv-formula-pill {
+          font-size: 0.6875rem;
+          font-weight: 600;
+          padding: 0.375rem 0.75rem;
+          border-radius: 100px;
+          background: #f5f5f5;
+          color: #525252;
+          border: 1px solid #e5e5e5;
+        }
+
+        .iv-formulas-note {
+          margin-top: 2rem;
+          padding: 1.25rem 1.5rem;
+          border-radius: 8px;
+          background: #ffffff;
+          border: 1px solid #e5e5e5;
+          text-align: center;
+        }
+
+        .iv-formulas-note p {
+          font-size: 0.9375rem;
+          color: #525252;
+          line-height: 1.6;
+          margin: 0;
+        }
+
+        /* Available Nutrients Grid */
+        .iv-nutrients-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 0.75rem;
+          margin-top: 2.5rem;
+        }
+
+        .iv-nutrient-card {
+          padding: 1.25rem;
+          border-radius: 10px;
+          border: 1px solid #e5e5e5;
+          background: #fafafa;
+          text-align: center;
+          transition: border-color 0.2s ease;
+        }
+
+        .iv-nutrient-card:hover {
+          border-color: #171717;
+        }
+
+        .iv-nutrient-name {
+          font-size: 0.9375rem;
+          font-weight: 700;
+          color: #171717;
+          margin-bottom: 0.25rem;
+        }
+
+        .iv-nutrient-benefit {
+          font-size: 0.75rem;
+          color: #737373;
+          line-height: 1.4;
+        }
+
         /* Tags */
         .iv-tags-grid {
           display: flex;
@@ -939,6 +1143,14 @@ export default function IVTherapy() {
 
           .iv-benefits-grid {
             grid-template-columns: 1fr;
+          }
+
+          .iv-formulas-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .iv-nutrients-grid {
+            grid-template-columns: repeat(2, 1fr);
           }
 
           .iv-research-grid {

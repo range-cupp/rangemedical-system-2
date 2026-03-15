@@ -368,6 +368,12 @@ export default function RangeAssessment() {
     timing: false,
   });
 
+  // Promo code state
+  const [promoCode, setPromoCode] = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoError, setPromoError] = useState('');
+  const [promoApplied, setPromoApplied] = useState(false);
+
   const [intakeData, setIntakeData] = useState({
     // Personal Details
     dob: '',
@@ -750,6 +756,39 @@ export default function RangeAssessment() {
     } catch (err) {
       console.error('Energy payment init error:', err);
       setError('Could not initialize payment. Please call (949) 997-3988.');
+    }
+  };
+
+  // Apply promo code (bypasses Stripe, marks payment as paid)
+  const applyPromoCode = async () => {
+    if (!promoCode.trim()) return;
+    setPromoLoading(true);
+    setPromoError('');
+
+    try {
+      const response = await fetch('/api/assessment/apply-promo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId, promoCode: promoCode.trim() }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setPromoError(data.error || 'Invalid promo code');
+        return;
+      }
+
+      setPromoApplied(true);
+      // Skip payment, go to prep checklist
+      setTimeout(() => {
+        setShowEnergyPayment(false);
+        setShowPrepChecklist(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 800);
+    } catch (err) {
+      setPromoError('Could not apply promo code. Please try again.');
+    } finally {
+      setPromoLoading(false);
     }
   };
 
@@ -1184,6 +1223,60 @@ export default function RangeAssessment() {
                   <p style={{ color: '#888', fontSize: '0.875rem' }}>Loading payment options...</p>
                 </div>
               )}
+
+              {/* Promo Code */}
+              <div style={{ marginTop: '1.5rem', borderTop: '1px solid #e5e5e5', paddingTop: '1.25rem' }}>
+                <p style={{ textAlign: 'center', fontSize: '0.8125rem', color: '#a3a3a3', marginBottom: '0.75rem' }}>Have a promo code?</p>
+                {promoApplied ? (
+                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '0.875rem 1rem', textAlign: 'center' }}>
+                    <p style={{ margin: 0, fontSize: '0.875rem', color: '#166534', fontWeight: 600 }}>
+                      ✓ Promo code applied — redirecting...
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input
+                      type="text"
+                      value={promoCode}
+                      onChange={(e) => { setPromoCode(e.target.value.toUpperCase()); setPromoError(''); }}
+                      placeholder="Enter code"
+                      style={{
+                        flex: 1,
+                        padding: '0.625rem 0.875rem',
+                        border: `1px solid ${promoError ? '#fecaca' : '#e5e5e5'}`,
+                        borderRadius: 8,
+                        fontSize: '0.875rem',
+                        fontFamily: 'inherit',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        outline: 'none',
+                      }}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); applyPromoCode(); } }}
+                    />
+                    <button
+                      onClick={applyPromoCode}
+                      disabled={promoLoading || !promoCode.trim()}
+                      style={{
+                        padding: '0.625rem 1.25rem',
+                        background: promoCode.trim() ? '#171717' : '#d4d4d4',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: 8,
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                        cursor: promoCode.trim() ? 'pointer' : 'default',
+                        fontFamily: 'inherit',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {promoLoading ? 'Applying...' : 'Apply'}
+                    </button>
+                  </div>
+                )}
+                {promoError && (
+                  <p style={{ color: '#dc2626', fontSize: '0.8125rem', marginTop: '0.5rem', textAlign: 'center' }}>{promoError}</p>
+                )}
+              </div>
 
               <p style={{ textAlign: 'center', fontSize: '0.8125rem', color: '#a3a3a3', marginTop: '1.5rem' }}>
                 Questions? Call <a href="tel:9499973988" style={{ color: '#737373' }}>(949) 997-3988</a>

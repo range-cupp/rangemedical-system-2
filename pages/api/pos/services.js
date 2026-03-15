@@ -50,7 +50,13 @@ async function handleGet(req, res) {
     return res.status(500).json({ error: error.message });
   }
 
-  return res.status(200).json({ services: data });
+  // Map price_cents → price for frontend compatibility
+  const services = (data || []).map(s => ({
+    ...s,
+    price: s.price_cents ?? s.price ?? 0,
+  }));
+
+  return res.status(200).json({ services });
 }
 
 async function handlePost(req, res) {

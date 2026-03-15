@@ -122,36 +122,16 @@ export default function StaffChat() {
   const inputRef = useRef(null);
   const hasGreeted = useRef(false);
 
-  // Voice dictation
+  // Ref to always have the latest messages for voice dictation callback
+  const messagesRef = useRef([]);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+
+  // Voice dictation — transcribes and auto-sends via sendMessage
   const { listening, supported: voiceSupported, start: startListening, stop: stopListening } = useVoiceDictation({
     onResult: (transcript) => {
-      // Auto-send if the transcript sounds like a command; otherwise just fill the input
+      // Show a brief flash of the transcript in the input, then send
       setInput(transcript);
-      // Small delay so user can see what was transcribed, then auto-send
-      setTimeout(() => {
-        setInput('');
-        setSending(true);
-        setMessages((prev) => [...prev, { role: 'user', content: transcript, id: Date.now() }]);
-        fetch('/api/staff-bot/chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({ message: transcript }),
-        })
-          .then((r) => r.json())
-          .then((data) => {
-            setMessages((prev) => [...prev, { role: 'bot', content: data.response || data.error, id: Date.now() + 1 }]);
-          })
-          .catch((err) => {
-            setMessages((prev) => [...prev, { role: 'bot', content: `❌ ${err.message}`, id: Date.now() + 1 }]);
-          })
-          .finally(() => {
-            setSending(false);
-            setTimeout(() => inputRef.current?.focus(), 100);
-          });
-      }, 600);
+      setTimeout(() => sendMessage(transcript), 400);
     },
     onEnd: () => {},
   });
@@ -163,9 +143,7 @@ export default function StaffChat() {
       setMessages([{
         role: 'bot',
         content:
-          `👋 Hi ${employee.name.split(' ')[0]}! I'm your Range Medical assistant.\n\n` +
-          `Ask me anything — check availability, look up patients, add notes, query billing, create tasks, or get today's schedule.\n\n` +
-          `Type "help" to see all commands.`,
+          `👋 Hi ${employee.name.split(' ')[0]}! What do you need?`,
         id: 'greeting',
       }]);
     }
@@ -188,6 +166,17 @@ export default function StaffChat() {
     setInput('');
     setSending(true);
 
+    // Snapshot the current conversation to send as history (exclude greeting)
+    const currentMessages = messagesRef.current;
+    const history = currentMessages
+      .filter((m) => m.id !== 'greeting')
+      .map((m) => ({
+        role: m.role === 'bot' ? 'assistant' : 'user',
+        content: m.content,
+      }))
+      // Cap at last 10 turns to keep context manageable
+      .slice(-10);
+
     setMessages((prev) => [...prev, {
       role: 'user',
       content: messageText,
@@ -204,7 +193,7 @@ export default function StaffChat() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
         },
-        body: JSON.stringify({ message: messageText }),
+        body: JSON.stringify({ message: messageText, history }),
       });
 
       const data = await res.json();

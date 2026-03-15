@@ -239,7 +239,9 @@ async function handlePost(req, res) {
     administered_by,
     lot_number,
     expiration_date,
-    signature_url
+    signature_url,
+    injection_method, // IM or subq
+    injection_frequency, // injections per week (e.g. 2, 3, 7)
   } = req.body;
 
   if (!patient_id || !category) {
@@ -391,6 +393,14 @@ async function handlePost(req, res) {
       } else {
         console.log('[service-log] Safety net skipped: backdated entry', logDate, 'is older than latest', latestForSafety[0].entry_date);
       }
+    }
+
+    // Update protocol injection_method / injection_frequency if provided
+    if (targetProtocolId && (injection_method || injection_frequency)) {
+      const protoUpdate = {};
+      if (injection_method) protoUpdate.injection_method = injection_method;
+      if (injection_frequency) protoUpdate.injection_frequency = parseInt(injection_frequency);
+      await supabase.from('protocols').update(protoUpdate).eq('id', targetProtocolId);
     }
 
     return res.status(200).json({

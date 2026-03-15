@@ -436,7 +436,7 @@ export default function PatientProfile() {
   const [logEntryProtocol, setLogEntryProtocol] = useState(null);
   const [logEntryType, setLogEntryType] = useState('injection');
   const [logEntryDate, setLogEntryDate] = useState('');
-  const [logForm, setLogForm] = useState({ hrt_type: 'male', medication: '', dosage: '', custom_dosage: '', weight: '', quantity: 1, delivery_method: '', duration: 60, notes: '' });
+  const [logForm, setLogForm] = useState({ hrt_type: 'male', medication: '', dosage: '', custom_dosage: '', weight: '', quantity: 1, delivery_method: '', injection_method: '', frequency: '', duration: 60, notes: '' });
   const [logDispensing, setLogDispensing] = useState({ administered_by: '', lot_number: '', expiration_date: '' });
   const [logSignature, setLogSignature] = useState(null);
   const [logSubmitting, setLogSubmitting] = useState(false);
@@ -1504,7 +1504,7 @@ export default function PatientProfile() {
     setLogEntryProtocol({ ...protocol, svcCat });
     setLogEntryType(defaultType);
     setLogEntryDate(today);
-    setLogForm({ hrt_type: hrtType, medication: protocol.medication || '', dosage: protocol.current_dose || protocol.selected_dose || protocol.starting_dose || '', custom_dosage: '', weight: '', quantity: 1, delivery_method: '', duration: protocol.category === 'rlt' ? 20 : 60, notes: '' });
+    setLogForm({ hrt_type: hrtType, medication: protocol.medication || '', dosage: protocol.current_dose || protocol.selected_dose || protocol.starting_dose || '', custom_dosage: '', weight: '', quantity: 1, delivery_method: protocol.supply_type || '', injection_method: protocol.injection_method || '', frequency: protocol.frequency || protocol.injection_frequency || '', duration: protocol.category === 'rlt' ? 20 : 60, notes: '' });
     setLogDispensing({ administered_by: '', lot_number: '', expiration_date: '' });
     setLogSignature(null);
     setShowLogEntryModal(true);
@@ -1530,6 +1530,8 @@ export default function PatientProfile() {
       };
       if (svcCat === 'testosterone') {
         payload.medication = logForm.hrt_type === 'oral' ? 'Testosterone Booster (Oral)' : logForm.hrt_type === 'male' ? 'Male HRT' : 'Female HRT';
+        payload.injection_method = logForm.injection_method || null;
+        payload.injection_frequency = logForm.frequency ? parseInt(logForm.frequency) : null;
         if (logForm.hrt_type === 'oral') {
           // Oral testosterone — simple pickup
           payload.entry_type = 'pickup';
@@ -7292,24 +7294,45 @@ export default function PatientProfile() {
                         <option value="oral">Testosterone Booster (Oral)</option>
                       </select>
                     </div>
-                    <div className="form-group">
-                      <label>Dosage</label>
-                      <select value={logForm.dosage} onChange={e => setLogForm(p => ({ ...p, dosage: e.target.value }))}>
-                        <option value="">Select dosage...</option>
-                        {(HRT_OPTIONS[logForm.hrt_type]?.dosages || []).map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
-                      </select>
-                      {logForm.dosage === 'custom' && (
-                        <input type="text" placeholder="Enter custom dosage..." value={logForm.custom_dosage} onChange={e => setLogForm(p => ({ ...p, custom_dosage: e.target.value }))} style={{ marginTop: 6 }} />
-                      )}
-                    </div>
-                    {logEntryType === 'pickup' && (
-                      <div className="form-group">
-                        <label>Dispensing</label>
-                        <select value={logForm.delivery_method} onChange={e => setLogForm(p => ({ ...p, delivery_method: e.target.value }))}>
-                          <option value="">Select...</option>
-                          {(HRT_OPTIONS[logForm.hrt_type]?.deliveryMethods || []).map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
-                        </select>
-                      </div>
+                    {logForm.hrt_type !== 'oral' && (
+                      <>
+                        <div className="form-group">
+                          <label>Dose (per injection)</label>
+                          <select value={logForm.dosage} onChange={e => setLogForm(p => ({ ...p, dosage: e.target.value }))}>
+                            <option value="">Select dosage...</option>
+                            {(HRT_OPTIONS[logForm.hrt_type]?.dosages || []).map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                          </select>
+                          {logForm.dosage === 'custom' && (
+                            <input type="text" placeholder="Enter custom dosage..." value={logForm.custom_dosage} onChange={e => setLogForm(p => ({ ...p, custom_dosage: e.target.value }))} style={{ marginTop: 6 }} />
+                          )}
+                        </div>
+                        <div className="form-group">
+                          <label>Injection Method</label>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            {['IM', 'SubQ'].map(m => (
+                              <button key={m} onClick={() => setLogForm(p => ({ ...p, injection_method: m.toLowerCase(), frequency: m === 'SubQ' ? '7' : (p.frequency === '7' ? '2' : p.frequency) }))} style={{ flex: 1, padding: '8px 0', border: '1px solid', borderColor: logForm.injection_method === m.toLowerCase() ? '#1e40af' : '#d1d5db', borderRadius: 6, background: logForm.injection_method === m.toLowerCase() ? '#1e40af' : '#fff', color: logForm.injection_method === m.toLowerCase() ? '#fff' : '#333', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{m === 'IM' ? 'Intramuscular (IM)' : 'Subcutaneous (SubQ)'}</button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="form-group">
+                          <label>Injection Frequency</label>
+                          <select value={logForm.frequency} onChange={e => setLogForm(p => ({ ...p, frequency: e.target.value }))}>
+                            <option value="">Select frequency...</option>
+                            <option value="2">2x per week</option>
+                            <option value="3">3x per week</option>
+                            <option value="7">Daily (SubQ)</option>
+                          </select>
+                        </div>
+                        {logEntryType === 'pickup' && (
+                          <div className="form-group">
+                            <label>Supply Type</label>
+                            <select value={logForm.delivery_method} onChange={e => setLogForm(p => ({ ...p, delivery_method: e.target.value }))}>
+                              <option value="">Select...</option>
+                              {(HRT_OPTIONS[logForm.hrt_type]?.deliveryMethods || []).map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                            </select>
+                          </div>
+                        )}
+                      </>
                     )}
                   </>
                 )}

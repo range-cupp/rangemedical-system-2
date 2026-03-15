@@ -419,6 +419,7 @@ export default function RangeAssessment() {
     inPhysicalTherapy: '',
     recoveryGoal: [],
     wantsPTRecommendation: null,
+    gender: '',
     symptoms: [],
     symptomDuration: '',
     lastLabWork: '',
@@ -995,11 +996,20 @@ export default function RangeAssessment() {
                     <span>Wear a shirt with sleeves that roll up easily</span>
                   </div>
                 </div>
-                <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '0.875rem 1rem', marginTop: '1rem' }}>
-                  <p style={{ margin: 0, fontSize: '0.875rem', color: '#92400e' }}>
-                    <strong>Women:</strong> If cycling, schedule on Day 3 of your period for the most accurate hormone results. If your cycle doesn't line up, call us at (949) 997-3988 and we'll help.
-                  </p>
-                </div>
+                {formData.gender === 'female' && (
+                  <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '0.875rem 1rem', marginTop: '1rem' }}>
+                    <p style={{ margin: 0, fontSize: '0.875rem', color: '#92400e' }}>
+                      <strong>Cycle timing:</strong> If cycling, Day 3 of your period gives the most accurate hormone results. If your cycle doesn't line up, call us at (949) 997-3988 and we'll help. Continue estrogen & progesterone as normal. Hold testosterone injections for 3 days.
+                    </p>
+                  </div>
+                )}
+                {formData.gender === 'male' && (
+                  <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: '0.875rem 1rem', marginTop: '1rem' }}>
+                    <p style={{ margin: 0, fontSize: '0.875rem', color: '#0369a1' }}>
+                      <strong>Reminder:</strong> Hold testosterone injections for 3 days before labs. Avoid heavy workouts and sexual activity for 24 hours before (PSA accuracy).
+                    </p>
+                  </div>
+                )}
                 <p style={{ fontSize: '0.875rem', color: '#737373', margin: '1rem 0 0' }}>
                   Full prep details: <a href="/lab-prep" target="_blank" rel="noopener noreferrer" style={{ color: '#171717', fontWeight: 600, textDecoration: 'underline' }}>range-medical.com/lab-prep</a>
                 </p>
@@ -1186,8 +1196,12 @@ export default function RangeAssessment() {
     );
   }
 
-  // Energy path: Pre-instructions checklist screen
+  // Energy path: Pre-instructions checklist screen (gender-conditional)
   if (showPrepChecklist) {
+    const isFemale = formData.gender === 'female';
+    const isMale = formData.gender === 'male';
+    const prepReady = allPrepChecked && (isFemale ? prepChecks.cycleAware : true);
+
     return (
       <Layout>
         <Head>
@@ -1205,7 +1219,7 @@ export default function RangeAssessment() {
                 </p>
               </div>
 
-              {/* General Prep */}
+              {/* General Prep — All Patients */}
               <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.5rem', marginBottom: '1rem' }}>
                 <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#171717', margin: '0 0 1rem' }}>General Preparation</h3>
 
@@ -1249,17 +1263,43 @@ export default function RangeAssessment() {
                 </label>
               </div>
 
-              {/* Women's Note */}
-              <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '1.25rem', marginBottom: '1rem' }}>
-                <h4 style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#92400e', margin: '0 0 0.5rem' }}>For Women</h4>
-                <p style={{ fontSize: '0.875rem', color: '#92400e', lineHeight: 1.6, margin: '0 0 0.75rem' }}>
-                  If you're still cycling, the best time for labs is <strong>Day 3 of your period</strong>. If your cycle doesn't line up with your appointment, don't cancel — text or call us at <strong>(949) 997-3988</strong> and we'll help.
-                </p>
-                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.625rem', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={prepChecks.cycleAware} onChange={(e) => setPrepChecks(prev => ({ ...prev, cycleAware: e.target.checked }))} style={{ width: 18, height: 18, marginTop: 2, accentColor: '#f59e0b', flexShrink: 0 }} />
-                  <span style={{ fontSize: '0.875rem', color: '#78350f', fontWeight: 500 }}>I understand (or this doesn't apply to me)</span>
-                </label>
-              </div>
+              {/* Men's Guidelines */}
+              {isMale && (
+                <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 12, padding: '1.25rem', marginBottom: '1rem' }}>
+                  <h4 style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#0c4a6e', margin: '0 0 0.75rem' }}>For Men</h4>
+                  <div style={{ display: 'grid', gap: '0.625rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.875rem', color: '#0369a1', lineHeight: 1.5 }}>
+                      <span style={{ flexShrink: 0 }}>💉</span>
+                      <span><strong>Testosterone injections:</strong> Hold for 3 days before your labs. Schedule your draw for the morning of your injection day, before dosing.</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.875rem', color: '#0369a1', lineHeight: 1.5 }}>
+                      <span style={{ flexShrink: 0 }}>🔬</span>
+                      <span><strong>PSA testing:</strong> Avoid heavy workouts and sexual activity for 24 hours before your draw.</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Women's Guidelines */}
+              {isFemale && (
+                <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '1.25rem', marginBottom: '1rem' }}>
+                  <h4 style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#92400e', margin: '0 0 0.75rem' }}>For Women</h4>
+                  <div style={{ display: 'grid', gap: '0.625rem', marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.875rem', color: '#92400e', lineHeight: 1.5 }}>
+                      <span style={{ flexShrink: 0 }}>📅</span>
+                      <span><strong>Cycle timing:</strong> If you're still cycling, the best time for labs is <strong>Day 3 of your period</strong>. If your cycle doesn't line up with your appointment, don't cancel — text or call us at <strong>(949) 997-3988</strong> and we'll help.</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.875rem', color: '#92400e', lineHeight: 1.5 }}>
+                      <span style={{ flexShrink: 0 }}>💊</span>
+                      <span><strong>Estrogen & progesterone:</strong> Continue as normal. <strong>Testosterone injections:</strong> Hold for 3 days before labs.</span>
+                    </div>
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.625rem', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={prepChecks.cycleAware} onChange={(e) => setPrepChecks(prev => ({ ...prev, cycleAware: e.target.checked }))} style={{ width: 18, height: 18, marginTop: 2, accentColor: '#f59e0b', flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.875rem', color: '#78350f', fontWeight: 500 }}>I understand the cycle timing guidelines (or I'm not currently cycling)</span>
+                  </label>
+                </div>
+              )}
 
               {/* Medication Quick Reference */}
               <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.25rem', marginBottom: '1.5rem' }}>
@@ -1277,10 +1317,18 @@ export default function RangeAssessment() {
                     <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 600, color: '#991b1b' }}>Testosterone Inj.</p>
                     <p style={{ margin: 0, fontSize: '0.75rem', color: '#b91c1c' }}>Hold 3 days before</p>
                   </div>
-                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 6, padding: '0.5rem 0.75rem' }}>
-                    <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 600, color: '#166534' }}>Estrogen & Prog.</p>
-                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#15803d' }}>Continue as normal</p>
-                  </div>
+                  {isFemale && (
+                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 6, padding: '0.5rem 0.75rem' }}>
+                      <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 600, color: '#166534' }}>Estrogen & Prog.</p>
+                      <p style={{ margin: 0, fontSize: '0.75rem', color: '#15803d' }}>Continue as normal</p>
+                    </div>
+                  )}
+                  {isMale && (
+                    <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, padding: '0.5rem 0.75rem' }}>
+                      <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 600, color: '#92400e' }}>PSA Testing</p>
+                      <p style={{ margin: 0, fontSize: '0.75rem', color: '#a16207' }}>No heavy workouts 24hrs</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1291,24 +1339,24 @@ export default function RangeAssessment() {
                   setShowEnergyScheduling(true);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                disabled={!allPrepChecked || !prepChecks.cycleAware}
+                disabled={!prepReady}
                 style={{
                   width: '100%',
                   padding: '1rem',
-                  background: (allPrepChecked && prepChecks.cycleAware) ? '#000' : '#d4d4d4',
+                  background: prepReady ? '#000' : '#d4d4d4',
                   color: '#fff',
                   border: 'none',
                   borderRadius: 10,
                   fontSize: '1rem',
                   fontWeight: 600,
-                  cursor: (allPrepChecked && prepChecks.cycleAware) ? 'pointer' : 'default',
+                  cursor: prepReady ? 'pointer' : 'default',
                   fontFamily: 'inherit',
                   transition: 'background 0.2s',
                 }}
               >
                 Continue to Schedule
               </button>
-              {!(allPrepChecked && prepChecks.cycleAware) && (
+              {!prepReady && (
                 <p style={{ textAlign: 'center', fontSize: '0.8125rem', color: '#a3a3a3', marginTop: '0.75rem' }}>
                   Please confirm all items above to continue
                 </p>
@@ -2583,6 +2631,15 @@ export default function RangeAssessment() {
   ];
 
   const energyQuestions = [
+    {
+      id: 'gender',
+      question: 'Which best describes you?',
+      type: 'radio',
+      options: [
+        { value: 'male', label: 'Male' },
+        { value: 'female', label: 'Female' },
+      ]
+    },
     {
       id: 'symptoms',
       question: "What symptoms are you experiencing?",

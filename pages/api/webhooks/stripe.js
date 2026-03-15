@@ -585,6 +585,7 @@ export default async function handler(req, res) {
             interval: price?.recurring?.interval || 'month',
             interval_count: price?.recurring?.interval_count || 1,
             description: price?.nickname || sub.description || '',
+            service_category: sub.metadata?.service_category || null,
             current_period_start: sub.current_period_start ? new Date(sub.current_period_start * 1000).toISOString() : null,
             current_period_end: sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null,
             cancel_at_period_end: sub.cancel_at_period_end || false,

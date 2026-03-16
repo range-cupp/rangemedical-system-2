@@ -23,7 +23,7 @@ for (const line of envFile.split('\n')) {
 const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 
 // ── Config ──────────────────────────────────────────────────────────────
-const PF_DIR = '/Users/chriscupp/Library/Mobile Documents/com~apple~CloudDocs/Claude CUPP 2nd brain/Range Medical CRM/PracticeExport_5449226f-7ac3-4d00-9470-e28b28c51103_20260308_181507_1';
+const PF_DIR = '/Users/chriscupp/Library/Mobile Documents/com~apple~CloudDocs/Claude CUPP 2nd brain/Range Medical CRM/PracticeExport_91d614de-197f-4195-83b3-91c287c85df9_20260314_182136_1';
 const DRY_RUN = process.argv.includes('--dry-run');
 
 // Provider GUID → display name
@@ -315,14 +315,41 @@ async function main() {
 
   // ── Step 4: Import Prescriptions ──────────────────────────────────
   console.log('\n💊 Importing prescriptions...');
+
+  // Fetch existing prescriptions for dedup (patient_id + medication_name + signed_at)
+  const existingRx = new Set();
+  let rxPage = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from('prescriptions')
+      .select('patient_id, medication_name, signed_at')
+      .range(rxPage * 1000, (rxPage + 1) * 1000 - 1);
+    if (error) throw new Error(`Failed to fetch existing prescriptions: ${error.message}`);
+    for (const r of (data || [])) {
+      existingRx.add(`${r.patient_id}|${(r.medication_name || '').toLowerCase()}|${r.signed_at || ''}`);
+    }
+    if (!data || data.length < 1000) break;
+    rxPage++;
+  }
+  console.log(`  Existing prescriptions (for dedup): ${existingRx.size}`);
+
+  let rxSkipped = 0;
   const rxRecords = [];
   for (const rx of prescriptions) {
     const patientId = findCRMPatient(rx.PatientPracticeGuid);
     if (!patientId) continue;
 
+    const medName = rx.MedicationDisplayName || rx.TradeName || rx.GenericName || 'Unknown';
+    const signedAt = parsePFDateTime(rx.DateOfService) || parsePFDate(rx.DateOfService);
+    const rxKey = `${patientId}|${medName.toLowerCase()}|${signedAt || ''}`;
+    if (existingRx.has(rxKey)) {
+      rxSkipped++;
+      continue;
+    }
+
     rxRecords.push({
       patient_id: patientId,
-      medication_name: rx.MedicationDisplayName || rx.TradeName || rx.GenericName || 'Unknown',
+      medication_name: medName,
       strength: rx.ProductStrength,
       form: rx.DoseForm,
       quantity: rx.Quantity,
@@ -332,11 +359,12 @@ async function main() {
       is_controlled: rx.ControlledSubstanceSchedule ? true : false,
       schedule: rx.ControlledSubstanceSchedule,
       status: 'completed',
-      signed_at: parsePFDateTime(rx.DateOfService) || parsePFDate(rx.DateOfService),
+      signed_at: signedAt,
       created_by: PROVIDERS[rx.PrescribingProviderGuid] || 'Practice Fusion Import',
       created_at: parsePFDateTime(rx.DateOfService) || new Date().toISOString(),
     });
   }
+  if (rxSkipped > 0) console.log(`  ⏭  Skipped ${rxSkipped} duplicate prescriptions`);
   await batchInsert('prescriptions', rxRecords, 'Prescriptions');
 
   // ── Step 5: Import Medications ────────────────────────────────────
@@ -436,6 +464,25 @@ async function main() {
 
   // ── Step 8: Import Structured Lab Values ──────────────────────────
   console.log('\n🔬 Importing structured lab values...');
+
+  // Fetch existing lab observations for dedup (patient_id + result_guid + observation)
+  const existingLabs = new Set();
+  let labPage = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from('pf_lab_observations')
+      .select('patient_id, result_guid, observation')
+      .range(labPage * 1000, (labPage + 1) * 1000 - 1);
+    if (error) throw new Error(`Failed to fetch existing lab observations: ${error.message}`);
+    for (const r of (data || [])) {
+      existingLabs.add(`${r.patient_id}|${r.result_guid}|${r.observation}`);
+    }
+    if (!data || data.length < 1000) break;
+    labPage++;
+  }
+  console.log(`  Existing lab observations (for dedup): ${existingLabs.size}`);
+
+  let labSkipped = 0;
   const labRecords = [];
   for (const obs of labObservations) {
     const patientId = findCRMPatient(obs.PatientPracticeGuid);
@@ -444,6 +491,12 @@ async function main() {
     // Skip empty/metadata rows
     if (!obs.Observation || obs.Observation === '..') continue;
     if (!obs.Result || obs.Result === 'See Note') continue;
+
+    const labKey = `${patientId}|${obs.ResultGuid}|${obs.Observation}`;
+    if (existingLabs.has(labKey)) {
+      labSkipped++;
+      continue;
+    }
 
     labRecords.push({
       patient_id: patientId,
@@ -463,6 +516,7 @@ async function main() {
       source: 'practice_fusion',
     });
   }
+  if (labSkipped > 0) console.log(`  ⏭  Skipped ${labSkipped} duplicate lab observations`);
   await batchInsert('pf_lab_observations', labRecords, 'Lab Observations');
 
   // ── Step 9: Import Weight/Vitals ──────────────────────────────────
@@ -512,10 +566,34 @@ async function main() {
       if (p.ghl_contact_id) ghlMap[p.id] = p.ghl_contact_id;
     }
 
+    // Fetch existing weight logs for dedup (ghl_contact_id + log_date)
+    const existingWeights = new Set();
+    let weightPage = 0;
+    while (true) {
+      const { data, error } = await supabase
+        .from('weight_logs')
+        .select('ghl_contact_id, log_date')
+        .range(weightPage * 1000, (weightPage + 1) * 1000 - 1);
+      if (error) throw new Error(`Failed to fetch existing weight logs: ${error.message}`);
+      for (const r of (data || [])) {
+        existingWeights.add(`${r.ghl_contact_id}|${r.log_date}`);
+      }
+      if (!data || data.length < 1000) break;
+      weightPage++;
+    }
+    console.log(`  Existing weight logs (for dedup): ${existingWeights.size}`);
+
+    let weightSkipped = 0;
     const finalWeightRecords = [];
     for (const wr of weightRecords) {
       const ghlId = ghlMap[wr._patient_id];
       if (!ghlId) continue; // skip if no GHL contact ID
+
+      const weightKey = `${ghlId}|${wr.log_date}`;
+      if (existingWeights.has(weightKey)) {
+        weightSkipped++;
+        continue;
+      }
 
       const { _patient_id, ...rest } = wr;
       finalWeightRecords.push({
@@ -524,11 +602,33 @@ async function main() {
       });
     }
 
+    if (weightSkipped > 0) console.log(`  ⏭  Skipped ${weightSkipped} duplicate weight logs`);
     await batchInsert('weight_logs', finalWeightRecords, 'Weight Logs');
   }
 
   // ── Step 10: Import Pinned Notes ──────────────────────────────────
   console.log('\n📌 Importing pinned notes...');
+
+  // Fetch existing pinned note imports for dedup (via ghl_note_id)
+  const existingPinnedGuids = new Set();
+  let pinnedPage = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from('patient_notes')
+      .select('ghl_note_id')
+      .eq('source', 'practice_fusion')
+      .eq('encounter_service', 'Pinned Note')
+      .range(pinnedPage * 1000, (pinnedPage + 1) * 1000 - 1);
+    if (error) throw new Error(`Failed to fetch existing pinned notes: ${error.message}`);
+    for (const r of (data || [])) {
+      if (r.ghl_note_id) existingPinnedGuids.add(r.ghl_note_id);
+    }
+    if (!data || data.length < 1000) break;
+    pinnedPage++;
+  }
+  console.log(`  Existing pinned notes (for dedup): ${existingPinnedGuids.size}`);
+
+  let pinnedSkipped = 0;
   const pinnedRecords = [];
   for (const note of pinnedNotes) {
     const patientId = findCRMPatient(note.PatientPracticeGuid);
@@ -536,6 +636,13 @@ async function main() {
 
     const body = stripHTML(note.NoteText);
     if (!body || body.length < 2) continue;
+
+    // Use PinnedNoteGuid or construct a unique key for dedup
+    const noteGuid = note.PinnedNoteGuid || `pinned_${note.PatientPracticeGuid}_${(note.LastModifiedDateTimeUtc || '').replace(/\W/g, '')}`;
+    if (existingPinnedGuids.has(noteGuid)) {
+      pinnedSkipped++;
+      continue;
+    }
 
     pinnedRecords.push({
       patient_id: patientId,
@@ -545,8 +652,10 @@ async function main() {
       status: 'draft',
       encounter_service: 'Pinned Note',
       created_by: PROVIDERS[note.LastModifiedByUserGuid] || 'Practice Fusion',
+      ghl_note_id: noteGuid,
     });
   }
+  if (pinnedSkipped > 0) console.log(`  ⏭  Skipped ${pinnedSkipped} duplicate pinned notes`);
   await batchInsert('patient_notes', pinnedRecords, 'Pinned Notes');
 
   // ── Summary ───────────────────────────────────────────────────────

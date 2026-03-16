@@ -23,7 +23,7 @@ for (const line of envFile.split('\n')) {
 const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 
 // ── Config ──────────────────────────────────────────────────────────────
-const PF_DIR = '/Users/chriscupp/Library/Mobile Documents/com~apple~CloudDocs/Claude CUPP 2nd brain/Range Medical CRM/PracticeExport_5449226f-7ac3-4d00-9470-e28b28c51103_20260308_181507_1';
+const PF_DIR = '/Users/chriscupp/Library/Mobile Documents/com~apple~CloudDocs/Claude CUPP 2nd brain/Range Medical CRM/PracticeExport_91d614de-197f-4195-83b3-91c287c85df9_20260314_182136_1';
 const DRY_RUN = process.argv.includes('--dry-run');
 
 // Provider GUID → display name
@@ -246,6 +246,25 @@ async function main() {
   // ── Step 5: Convert to patient_vitals records ────────────────────────
   console.log('\n🩺 Building patient_vitals records...');
 
+  // Fetch existing vitals for dedup (via appointment_id starting with pf_)
+  const existingVitalIds = new Set();
+  let vitalsPage = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from('patient_vitals')
+      .select('appointment_id')
+      .like('appointment_id', 'pf_%')
+      .range(vitalsPage * 1000, (vitalsPage + 1) * 1000 - 1);
+    if (error) throw new Error(`Failed to fetch existing vitals: ${error.message}`);
+    for (const r of (data || [])) {
+      if (r.appointment_id) existingVitalIds.add(r.appointment_id);
+    }
+    if (!data || data.length < 1000) break;
+    vitalsPage++;
+  }
+  console.log(`  Existing PF vitals (for dedup): ${existingVitalIds.size}`);
+
+  let vitalsSkipped = 0;
   const vitalsRecords = [];
   const unmatchedPatients = new Set();
 
@@ -254,6 +273,13 @@ async function main() {
     if (!patientId) {
       const pf = pfPatients[enc.patientGuid];
       unmatchedPatients.add(pf ? `${pf.firstName} ${pf.lastName}` : enc.patientGuid);
+      continue;
+    }
+
+    // Skip if this encounter's vitals were already imported
+    const aptId = `pf_${enc.encounterGuid}`;
+    if (existingVitalIds.has(aptId)) {
+      vitalsSkipped++;
       continue;
     }
 
@@ -280,7 +306,7 @@ async function main() {
 
     vitalsRecords.push({
       patient_id: patientId,
-      appointment_id: `pf_${enc.encounterGuid}`,
+      appointment_id: aptId,
       height_inches: heightInches,
       weight_lbs: weightLbs,
       bp_systolic: bpSys,
@@ -295,6 +321,7 @@ async function main() {
     });
   }
 
+  if (vitalsSkipped > 0) console.log(`  ⏭  Skipped ${vitalsSkipped} duplicate vitals records`);
   console.log(`  Vitals records to insert: ${vitalsRecords.length}`);
   console.log(`  Unmatched patients (${unmatchedPatients.size}): ${[...unmatchedPatients].sort().join(', ')}`);
 

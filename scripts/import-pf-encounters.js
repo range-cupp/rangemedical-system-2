@@ -23,7 +23,7 @@ for (const line of envFile.split('\n')) {
 const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 
 // ── Config ──────────────────────────────────────────────────────────────
-const PF_DIR = '/Users/chriscupp/Library/Mobile Documents/com~apple~CloudDocs/Claude CUPP 2nd brain/Range Medical CRM/PracticeExport_5449226f-7ac3-4d00-9470-e28b28c51103_20260308_181507_1';
+const PF_DIR = '/Users/chriscupp/Library/Mobile Documents/com~apple~CloudDocs/Claude CUPP 2nd brain/Range Medical CRM/PracticeExport_91d614de-197f-4195-83b3-91c287c85df9_20260314_182136_1';
 const DRY_RUN = process.argv.includes('--dry-run');
 
 // Provider GUID → display name

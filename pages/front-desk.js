@@ -356,12 +356,15 @@ function BotPanel({ session, employee, selectedPatient }) {
           <span style={{ fontSize: 10, color: '#bbb' }}>AI-powered</span>
         </div>
         {selectedPatient && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', background: color + '15', borderRadius: 20, width: 'fit-content' }}>
+          <a href={selectedPatient.id ? `/patients/${selectedPatient.id}` : '#'} target="_blank" rel="noopener noreferrer"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', background: color + '15', borderRadius: 20, width: 'fit-content', textDecoration: 'none', cursor: 'pointer' }}
+            onMouseEnter={e => e.currentTarget.querySelector('.pt-name').style.textDecoration = 'underline'}
+            onMouseLeave={e => e.currentTarget.querySelector('.pt-name').style.textDecoration = 'none'}>
             <div style={{ width: 16, height: 16, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, color: '#fff' }}>
               {initials(selectedPatient.name).toUpperCase()}
             </div>
-            <span style={{ fontSize: 11, fontWeight: 600, color: color }}>{selectedPatient.name}</span>
-          </div>
+            <span className="pt-name" style={{ fontSize: 11, fontWeight: 600, color: color }}>{selectedPatient.name}</span>
+          </a>
         )}
       </div>
 
@@ -440,7 +443,11 @@ function PatientBanner({ patient, onCharge, onLog, onDismiss }) {
         <div style={{ width: 64, height: 64, borderRadius: '50%', background: color, color: '#fff', fontSize: 22, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
           {initials(patient.name).toUpperCase()}
         </div>
-        <div style={{ fontSize: 20, fontWeight: 700, color: '#111', marginBottom: 4 }}>{patient.name}</div>
+        <a href={patient.id ? `/patients/${patient.id}` : '#'} target="_blank" rel="noopener noreferrer"
+          style={{ fontSize: 20, fontWeight: 700, color: '#111', marginBottom: 4, textDecoration: 'none', display: 'block' }}
+          onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
+          onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
+        >{patient.name}</a>
         {patient.phone && <div style={{ fontSize: 13, color: '#888', marginBottom: 16 }}>{patient.phone}</div>}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
           <button onClick={onCharge} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: '#059669', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>$ Charge</button>

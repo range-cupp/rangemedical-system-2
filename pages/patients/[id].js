@@ -454,6 +454,8 @@ export default function PatientProfile() {
   const [aptEditNotes, setAptEditNotes] = useState('');
   const [aptEditCategory, setAptEditCategory] = useState('');
   const [savingApt, setSavingApt] = useState(false);
+  const [statusDropdownAptId, setStatusDropdownAptId] = useState(null);
+  const [updatingAptStatus, setUpdatingAptStatus] = useState(null);
 
   // Send Progress modal state
   const [showSendProgressModal, setShowSendProgressModal] = useState(false);
@@ -564,6 +566,14 @@ export default function PatientProfile() {
     }
   }, [id]);
 
+  // Close status dropdown on outside click
+  useEffect(() => {
+    if (!statusDropdownAptId) return;
+    const handler = () => setStatusDropdownAptId(null);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [statusDropdownAptId]);
+
   // Fetch 90-day cycle info when we have a patient with recovery peptide protocols
   useEffect(() => {
     if (!id || !activeProtocols.length) return;
@@ -616,6 +626,42 @@ export default function PatientProfile() {
       if (data.employees) setLogEmployees(data.employees.filter(e => e.is_active));
     } catch (err) {
       console.error('Error fetching employees:', err);
+    }
+  };
+
+  const VALID_TRANSITIONS = {
+    scheduled: ['confirmed', 'checked_in', 'showed', 'completed', 'cancelled', 'no_show'],
+    confirmed: ['checked_in', 'showed', 'completed', 'cancelled', 'no_show'],
+    checked_in: ['in_progress', 'showed', 'completed', 'cancelled', 'no_show'],
+    in_progress: ['completed', 'cancelled'],
+    showed: ['completed', 'cancelled'],
+    completed: [],
+    cancelled: [],
+    no_show: [],
+    rescheduled: [],
+  };
+
+  const handleQuickStatusChange = async (apt, newStatus) => {
+    setStatusDropdownAptId(null);
+    setUpdatingAptStatus(apt.id);
+    try {
+      const res = await fetch(`/api/appointments/${apt.id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.error || 'Failed to update status');
+        return;
+      }
+      // Update local state immediately
+      setAppointments(prev => prev.map(a => a.id === apt.id ? { ...a, status: newStatus } : a));
+    } catch (err) {
+      console.error('Status update error:', err);
+      alert('Failed to update status');
+    } finally {
+      setUpdatingAptStatus(null);
     }
   };
 
@@ -4967,6 +5013,8 @@ export default function PatientProfile() {
                       const statusColors = {
                         scheduled: { bg: '#fef3c7', text: '#92400e' },
                         confirmed: { bg: '#dbeafe', text: '#1e40af' },
+                        checked_in: { bg: '#fef9c3', text: '#854d0e' },
+                        in_progress: { bg: '#e0e7ff', text: '#3730a3' },
                         showed: { bg: '#dcfce7', text: '#166534' },
                         completed: { bg: '#dcfce7', text: '#166534' },
                         no_show: { bg: '#fee2e2', text: '#dc2626' },
@@ -5000,9 +5048,58 @@ export default function PatientProfile() {
                                 📝 {apt.encounter_note_count}
                               </span>
                             )}
-                            <span className="apt-status" style={{ background: statusStyle.bg, color: statusStyle.text }}>
-                              {displayStatus.replace('_', ' ')}
-                            </span>
+                            <div style={{ position: 'relative' }}>
+                              <span
+                                className="apt-status"
+                                style={{
+                                  background: statusStyle.bg,
+                                  color: statusStyle.text,
+                                  cursor: (VALID_TRANSITIONS[apt.status || 'scheduled'] || []).length > 0 ? 'pointer' : 'default',
+                                  userSelect: 'none',
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const realStatus = apt.status || 'scheduled';
+                                  if ((VALID_TRANSITIONS[realStatus] || []).length > 0) {
+                                    setStatusDropdownAptId(statusDropdownAptId === apt.id ? null : apt.id);
+                                  }
+                                }}
+                              >
+                                {updatingAptStatus === apt.id ? '...' : displayStatus.replace('_', ' ')}
+                                {(VALID_TRANSITIONS[apt.status || 'scheduled'] || []).length > 0 && ' ▾'}
+                              </span>
+                              {statusDropdownAptId === apt.id && (
+                                <div style={{
+                                  position: 'absolute', top: '100%', right: 0, marginTop: 4,
+                                  background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8,
+                                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 50,
+                                  minWidth: 150, overflow: 'hidden',
+                                }}>
+                                  {(VALID_TRANSITIONS[apt.status || 'scheduled'] || []).map(s => {
+                                    const sc = statusColors[s] || statusColors.scheduled;
+                                    return (
+                                      <div
+                                        key={s}
+                                        onClick={(e) => { e.stopPropagation(); handleQuickStatusChange(apt, s); }}
+                                        style={{
+                                          padding: '8px 14px', cursor: 'pointer', fontSize: 13,
+                                          display: 'flex', alignItems: 'center', gap: 8,
+                                          borderBottom: '1px solid #f3f4f6',
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                      >
+                                        <span style={{
+                                          width: 8, height: 8, borderRadius: '50%',
+                                          background: sc.text, flexShrink: 0,
+                                        }} />
+                                        {s.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );

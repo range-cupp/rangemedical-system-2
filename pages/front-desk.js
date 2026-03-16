@@ -809,6 +809,161 @@ function PatientBanner({ patient, onCharge, onLog, onDismiss }) {
   );
 }
 
+// ── Send Forms Modal ──────────────────────────────────────────────
+const FORM_BUNDLES = [
+  { key: 'new-patient', label: 'New Patient', desc: 'Medical Intake + HIPAA', forms: ['intake', 'hipaa'] },
+  { key: 'blood-draw', label: 'Blood Draw / Labs', desc: 'Intake + HIPAA + Blood Draw Consent', forms: ['intake', 'hipaa', 'blood-draw'] },
+  { key: 'iv', label: 'IV / Injection', desc: 'Intake + HIPAA + IV Consent', forms: ['intake', 'hipaa', 'iv'] },
+  { key: 'hbot', label: 'Hyperbaric (HBOT)', desc: 'Intake + HIPAA + HBOT Consent', forms: ['intake', 'hipaa', 'hbot'] },
+  { key: 'hrt', label: 'HRT / Hormone', desc: 'Intake + HIPAA + HRT Consent', forms: ['intake', 'hipaa', 'hrt'] },
+  { key: 'weight-loss', label: 'Weight Loss', desc: 'Intake + HIPAA + Weight Loss Consent', forms: ['intake', 'hipaa', 'weight-loss'] },
+  { key: 'peptide', label: 'Peptide', desc: 'Intake + HIPAA + Peptide Consent', forms: ['intake', 'hipaa', 'peptide'] },
+  { key: 'red-light', label: 'Red Light (RLT)', desc: 'Intake + HIPAA + RLT Consent', forms: ['intake', 'hipaa', 'red-light'] },
+  { key: 'prp', label: 'PRP', desc: 'Intake + HIPAA + PRP Consent', forms: ['intake', 'hipaa', 'prp'] },
+  { key: 'exosome', label: 'Exosome IV', desc: 'Intake + HIPAA + Exosome Consent', forms: ['intake', 'hipaa', 'exosome-iv'] },
+];
+
+function SendFormsModal({ onClose, patient }) {
+  const [phone, setPhone] = useState(patient?.phone || '');
+  const [firstName, setFirstName] = useState(patient?.name?.split(' ')[0] || '');
+  const [selectedBundle, setSelectedBundle] = useState('new-patient');
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const formatPhone = (val) => {
+    const digits = val.replace(/\D/g, '').slice(0, 10);
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `(${digits.slice(0,3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+  };
+
+  const handleSend = async () => {
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length < 10) return;
+    setSending(true);
+    setResult(null);
+    try {
+      const bundle = FORM_BUNDLES.find(b => b.key === selectedBundle);
+      const res = await fetch('/api/send-forms-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: digits,
+          firstName: firstName.trim() || null,
+          formIds: bundle.forms,
+          patientId: patient?.id || null,
+          patientName: patient?.name || firstName.trim() || null,
+          ghlContactId: patient?.ghl_contact_id || null,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setResult({ success: true, message: data.twoStep ? 'Opt-in sent — forms follow when patient replies YES' : 'Forms sent!' });
+      } else {
+        setResult({ success: false, message: data.error || 'Failed to send' });
+      }
+    } catch {
+      setResult({ success: false, message: 'Network error' });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, width: 420, maxHeight: '85vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.3)' }}>
+        {/* Header */}
+        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #eee' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#111' }}>Send Forms</h2>
+            <button onClick={onClose} style={{ border: 'none', background: 'none', fontSize: 20, color: '#999', cursor: 'pointer', padding: 4 }}>✕</button>
+          </div>
+          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#888' }}>Text consent forms to a patient</p>
+        </div>
+
+        <div style={{ padding: '16px 24px 24px' }}>
+          {/* Phone + Name */}
+          <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>Phone Number *</label>
+              <input
+                type="tel"
+                value={formatPhone(phone)}
+                onChange={e => setPhone(e.target.value)}
+                placeholder="(949) 555-0123"
+                autoFocus
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 15, outline: 'none', fontFamily: 'inherit' }}
+                onFocus={e => e.target.style.borderColor = '#3b82f6'}
+                onBlur={e => e.target.style.borderColor = '#ddd'}
+              />
+            </div>
+            <div style={{ width: 130 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 4 }}>First Name</label>
+              <input
+                value={firstName}
+                onChange={e => setFirstName(e.target.value)}
+                placeholder="Optional"
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 15, outline: 'none', fontFamily: 'inherit' }}
+                onFocus={e => e.target.style.borderColor = '#3b82f6'}
+                onBlur={e => e.target.style.borderColor = '#ddd'}
+              />
+            </div>
+          </div>
+
+          {/* Bundle selection */}
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 8 }}>Form Bundle</label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
+            {FORM_BUNDLES.map(b => (
+              <button
+                key={b.key}
+                onClick={() => setSelectedBundle(b.key)}
+                style={{
+                  padding: '10px 12px',
+                  borderRadius: 9,
+                  border: selectedBundle === b.key ? '2px solid #3b82f6' : '1.5px solid #e5e7eb',
+                  background: selectedBundle === b.key ? '#eff6ff' : '#fff',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all .15s',
+                }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 600, color: selectedBundle === b.key ? '#1d4ed8' : '#333' }}>{b.label}</div>
+                <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>{b.desc}</div>
+              </button>
+            ))}
+          </div>
+
+          {/* Result message */}
+          {result && (
+            <div style={{
+              padding: '10px 14px', borderRadius: 8, marginBottom: 14, fontSize: 13, fontWeight: 500,
+              background: result.success ? '#ecfdf5' : '#fef2f2',
+              color: result.success ? '#065f46' : '#991b1b',
+              border: `1px solid ${result.success ? '#a7f3d0' : '#fecaca'}`,
+            }}>
+              {result.success ? '✓' : '✕'} {result.message}
+            </div>
+          )}
+
+          {/* Send button */}
+          <button
+            onClick={handleSend}
+            disabled={sending || phone.replace(/\D/g, '').length < 10}
+            style={{
+              width: '100%', padding: '12px 0', borderRadius: 10, border: 'none',
+              background: sending || phone.replace(/\D/g, '').length < 10 ? '#94a3b8' : '#3b82f6',
+              color: '#fff', fontSize: 15, fontWeight: 700, cursor: sending ? 'wait' : 'pointer',
+              transition: 'background .15s',
+            }}
+          >
+            {sending ? 'Sending...' : result?.success ? 'Send Again' : 'Send Forms via SMS'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────
 export default function FrontDesk() {
   const { employee, session, loading: authLoading } = useAuth();
@@ -819,6 +974,7 @@ export default function FrontDesk() {
   const [walkinPatient,   setWalkinPatient]        = useState(null); // from top search
   const [showCharge,      setShowCharge]           = useState(false);
   const [showLog,         setShowLog]              = useState(false);
+  const [showForms,       setShowForms]            = useState(false);
 
   useEffect(() => {
     if (!authLoading && !employee) router.push('/login');
@@ -861,9 +1017,13 @@ export default function FrontDesk() {
 
         {/* ── Top bar ── */}
         <div style={{ height: 52, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, padding: '0 16px', background: '#111', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
-          <span style={{ fontSize: 12, fontWeight: 800, color: '#fff', letterSpacing: 1, whiteSpace: 'nowrap', marginRight: 4 }}>RM</span>
+          <span onClick={() => router.push('/admin/command-center')} style={{ fontSize: 12, fontWeight: 800, color: '#fff', letterSpacing: 1, whiteSpace: 'nowrap', marginRight: 4, cursor: 'pointer', padding: '4px 8px', borderRadius: 5, background: 'rgba(255,255,255,.08)' }} title="Back to System">RM</span>
           <WalkinSearch onSelect={handleWalkin} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 4 }}>
+            <button onClick={() => setShowForms(true)}
+              style={{ padding: '6px 14px', borderRadius: 7, border: 'none', background: '#3b82f6', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              📋 Send Forms
+            </button>
             <button onClick={() => setShowCharge(true)}
               style={{ padding: '6px 14px', borderRadius: 7, border: 'none', background: '#059669', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
               $ Charge
@@ -943,6 +1103,14 @@ export default function FrontDesk() {
             name: activePatient.name,
             phone: activePatient.phone,
           } : null}
+        />
+      )}
+
+      {/* ── Send Forms modal ── */}
+      {showForms && (
+        <SendFormsModal
+          onClose={() => setShowForms(false)}
+          patient={activePatient}
         />
       )}
     </>

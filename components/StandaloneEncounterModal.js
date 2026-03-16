@@ -75,18 +75,47 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
 
   const getNoteMarkdown = () => htmlToMd(noteRef.current?.innerHTML || '');
 
+  // Select the next ?? placeholder in a contentEditable element
+  const selectNextPlaceholder = (el, fromStart = false) => {
+    if (!el) return false;
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+    let node;
+    let firstMatch = null;
+    while ((node = walker.nextNode())) {
+      const idx = node.textContent.indexOf('??');
+      if (idx !== -1) {
+        if (!firstMatch) firstMatch = { node, idx };
+        if (fromStart) break; // Just grab the first one
+      }
+    }
+    if (firstMatch) {
+      const range = document.createRange();
+      range.setStart(firstMatch.node, firstMatch.idx);
+      range.setEnd(firstMatch.node, firstMatch.idx + 2);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      return true;
+    }
+    return false;
+  };
+
   const loadTemplate = (body) => {
     if (noteRef.current) {
       noteRef.current.innerHTML = mdToHtml(body);
       setNoteIsEmpty(false);
       noteRef.current.focus();
-      // Move cursor to end
-      const range = document.createRange();
-      const sel = window.getSelection();
-      range.selectNodeContents(noteRef.current);
-      range.collapse(false);
-      sel.removeAllRanges();
-      sel.addRange(range);
+      // Jump to first ?? placeholder, or move cursor to end
+      setTimeout(() => {
+        if (!selectNextPlaceholder(noteRef.current, true)) {
+          const range = document.createRange();
+          const sel = window.getSelection();
+          range.selectNodeContents(noteRef.current);
+          range.collapse(false);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+      }, 50);
     }
   };
 
@@ -371,6 +400,45 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
                   onInput={() => {
                     const text = noteRef.current?.innerText || '';
                     setNoteIsEmpty(!text.trim());
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Tab' && noteRef.current?.innerText?.includes('??')) {
+                      e.preventDefault();
+                      // Find next ?? from current cursor position
+                      const sel = window.getSelection();
+                      const el = noteRef.current;
+                      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+                      let node;
+                      let passedCurrent = false;
+                      let firstMatch = null;
+                      const curNode = sel.anchorNode;
+                      const curOff = sel.anchorOffset;
+                      // If current selection is ??, skip past it
+                      const selectedText = sel.toString();
+                      const skipOffset = selectedText === '??' ? curOff + 2 : curOff;
+                      while ((node = walker.nextNode())) {
+                        const searchFrom = (node === curNode && !passedCurrent) ? skipOffset : 0;
+                        const idx = node.textContent.indexOf('??', searchFrom);
+                        if (idx !== -1 && !firstMatch) firstMatch = { node, idx };
+                        if (idx !== -1 && passedCurrent) {
+                          const range = document.createRange();
+                          range.setStart(node, idx);
+                          range.setEnd(node, idx + 2);
+                          sel.removeAllRanges();
+                          sel.addRange(range);
+                          return;
+                        }
+                        if (node === curNode) passedCurrent = true;
+                      }
+                      // Wrap around
+                      if (firstMatch) {
+                        const range = document.createRange();
+                        range.setStart(firstMatch.node, firstMatch.idx);
+                        range.setEnd(firstMatch.node, firstMatch.idx + 2);
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                      }
+                    }
                   }}
                   style={{
                     minHeight: 180,

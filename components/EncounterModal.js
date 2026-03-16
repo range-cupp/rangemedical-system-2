@@ -36,6 +36,54 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
   const noteTextareaRef = useRef(null);
   const [showTemplateMenu, setShowTemplateMenu] = useState(false);
 
+  // Jump to next ?? placeholder in textarea (Tab key support)
+  const jumpToNextPlaceholder = (fromPos = null) => {
+    const textarea = noteTextareaRef.current;
+    if (!textarea) return false;
+    const text = noteInput;
+    const searchFrom = fromPos !== null ? fromPos : textarea.selectionStart;
+    // Search forward from cursor
+    let idx = text.indexOf('??', searchFrom);
+    // If not found, wrap around to beginning
+    if (idx === -1) idx = text.indexOf('??', 0);
+    if (idx === -1) return false;
+    // Use setTimeout to ensure state has settled
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(idx, idx + 2);
+    }, 0);
+    return true;
+  };
+
+  // Handle Tab key to jump between ?? placeholders
+  const handleTextareaKeyDown = (e) => {
+    if (e.key === 'Tab') {
+      const textarea = noteTextareaRef.current;
+      if (!textarea) return;
+      const text = noteInput;
+      // Only intercept Tab if there are ?? placeholders in the text
+      if (!text.includes('??')) return;
+      e.preventDefault();
+      const currentPos = textarea.selectionStart;
+      // If current selection IS a ??, jump to the next one after it
+      const selected = text.slice(textarea.selectionStart, textarea.selectionEnd);
+      const searchFrom = selected === '??' ? currentPos + 2 : currentPos;
+      jumpToNextPlaceholder(searchFrom);
+    }
+  };
+
+  // Auto-select first ?? when template is loaded
+  const selectFirstPlaceholder = (text) => {
+    const idx = text.indexOf('??');
+    if (idx === -1) return;
+    setTimeout(() => {
+      const textarea = noteTextareaRef.current;
+      if (!textarea) return;
+      textarea.focus();
+      textarea.setSelectionRange(idx, idx + 2);
+    }, 50);
+  };
+
   // Toggle bold on selected text in textarea
   const handleBoldToggle = () => {
     const textarea = noteTextareaRef.current;
@@ -1075,6 +1123,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                                         setNoteInput(tmpl.body);
                                         if (tmpl.defaultNoteType) setNoteType(tmpl.defaultNoteType);
                                         setShowTemplateMenu(false);
+                                        selectFirstPlaceholder(tmpl.body);
                                       }}
                                     >
                                       {tmpl.label}
@@ -1096,6 +1145,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                                         setNoteInput(tmpl.body);
                                         if (tmpl.defaultNoteType) setNoteType(tmpl.defaultNoteType);
                                         setShowTemplateMenu(false);
+                                        selectFirstPlaceholder(tmpl.body);
                                       }}
                                     >
                                       {tmpl.label}
@@ -1138,8 +1188,13 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                         B
                       </button>
                       <span style={{ fontSize: 11, color: '#9ca3af', alignSelf: 'center', marginLeft: 4 }}>
-                        Select text, then click B to bold
+                        Select text → B to bold
                       </span>
+                      {noteInput.includes('??') && (
+                        <span style={{ fontSize: 11, color: '#6d28d9', alignSelf: 'center', marginLeft: 12, fontWeight: 500 }}>
+                          ⇥ Tab to jump between ?? fields
+                        </span>
+                      )}
                     </div>
 
                     {/* Textarea with dictation */}
@@ -1148,6 +1203,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                         ref={noteTextareaRef}
                         value={noteInput}
                         onChange={e => setNoteInput(e.target.value)}
+                        onKeyDown={handleTextareaKeyDown}
                         placeholder="Type your encounter note here, or click the microphone to dictate..."
                         className="enc-textarea"
                       />

@@ -55,12 +55,12 @@ export default function ConversationView({ patientId, patientName, patientPhone,
       shouldScrollRef.current = true;
       fetchMessages();
 
-      // Mark this patient's messages as read
-      if (patientId) {
+      // Mark this patient's messages as read (by ID and/or phone so orphaned rows are cleared too)
+      if (patientId || patientPhone) {
         fetch('/api/admin/mark-read', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ patientId }),
+          body: JSON.stringify({ patientId: patientId || null, patientPhone: patientPhone || null }),
         }).catch(() => {}); // non-blocking, best-effort
       }
     }

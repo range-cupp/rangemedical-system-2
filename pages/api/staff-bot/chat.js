@@ -617,6 +617,9 @@ GENERAL BEHAVIOR:
 
 // ── Main API handler ─────────────────────────────────────────────────────────
 
+// Allow longer execution for multi-step tool loops
+export const config = { maxDuration: 60 };
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -647,8 +650,10 @@ export default async function handler(req, res) {
     }
 
     // Build initial messages array from history + new user message
+    // Trim history to last 6 turns to stay well under token limits
+    const trimmedHistory = history.slice(-6).map((m) => ({ role: m.role, content: m.content }));
     const loopMessages = [
-      ...history.map((m) => ({ role: m.role, content: m.content })),
+      ...trimmedHistory,
       { role: 'user', content: message.trim() },
     ];
 
@@ -658,11 +663,29 @@ export default async function handler(req, res) {
     let finalResponse = null;
     const MAX_ITERATIONS = 6;
 
-    // Helper: call Claude API with retry on rate limit (429)
+    // Helper: call Claude API with one short retry on rate limit (429)
     async function callClaude(messages) {
-      const MAX_RETRIES = 3;
-      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-        const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+      const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 1024,
+          system: systemPrompt,
+          tools: TOOLS,
+          messages,
+        }),
+      });
+
+      if (claudeRes.status === 429) {
+        // One quick retry after 2 seconds
+        console.warn('[StaffBot] Rate limited (429), retrying in 2s');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        return await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
           headers: {
             'x-api-key': process.env.ANTHROPIC_API_KEY,
@@ -677,18 +700,9 @@ export default async function handler(req, res) {
             messages,
           }),
         });
-
-        if (claudeRes.status === 429 && attempt < MAX_RETRIES - 1) {
-          // Rate limited — wait and retry. Use retry-after header if available.
-          const retryAfter = claudeRes.headers.get('retry-after');
-          const waitMs = retryAfter ? Math.min(Number(retryAfter) * 1000, 15000) : (attempt + 1) * 3000;
-          console.warn(`[StaffBot] Rate limited (429), retrying in ${waitMs}ms (attempt ${attempt + 1}/${MAX_RETRIES})`);
-          await new Promise(resolve => setTimeout(resolve, waitMs));
-          continue;
-        }
-
-        return claudeRes;
       }
+
+      return claudeRes;
     }
 
     for (let i = 0; i < MAX_ITERATIONS; i++) {

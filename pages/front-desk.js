@@ -616,16 +616,24 @@ function BotPanel({ session, employee, selectedPatient }) {
 
     setMessages(prev => [...prev, { role: 'user', content: msg, id: Date.now() }]);
     try {
+      // 45-second timeout so the user isn't stuck with infinite dots
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 45000);
       const res = await fetch('/api/staff-bot/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
         body: JSON.stringify({ message: msg, history }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Request failed');
       setMessages(prev => [...prev, { role: 'bot', content: data.response, id: Date.now() + 1 }]);
     } catch (err) {
-      setMessages(prev => [...prev, { role: 'bot', content: `❌ ${err.message}`, id: Date.now() + 1 }]);
+      const msg2 = err.name === 'AbortError'
+        ? 'The assistant took too long to respond. Please try again.'
+        : err.message;
+      setMessages(prev => [...prev, { role: 'bot', content: `❌ ${msg2}`, id: Date.now() + 1 }]);
     } finally {
       setSending(false);
     }

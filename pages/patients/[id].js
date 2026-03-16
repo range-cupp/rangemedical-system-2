@@ -470,6 +470,7 @@ export default function PatientProfile() {
   const [showMergeModal, setShowMergeModal] = useState(false);
   const [merging, setMerging] = useState(false);
   const [mergeError, setMergeError] = useState('');
+  const [redeemingPerkId, setRedeemingPerkId] = useState(null);
 
   // Payments sub-tab state
   const [paymentsSubTab, setPaymentsSubTab] = useState('subscriptions');
@@ -1825,6 +1826,34 @@ export default function PatientProfile() {
       }
     } catch (error) {
       console.error('Error deleting protocol:', error);
+    }
+  };
+
+  // Redeem HRT Membership free Range IV perk — one click at checkout
+  const handleRedeemRangeIV = async (protocolId) => {
+    if (redeemingPerkId) return;
+    setRedeemingPerkId(protocolId);
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+    try {
+      const res = await fetch(`/api/protocols/${protocolId}/log-session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          log_date: today,
+          log_type: 'session',
+          notes: 'HRT Membership Perk redeemed at checkout'
+        })
+      });
+      if (res.ok) {
+        fetchPatient();
+      } else {
+        const data = await res.json();
+        alert('Error: ' + (data.error || 'Failed to redeem perk'));
+      }
+    } catch (err) {
+      alert('Error redeeming perk');
+    } finally {
+      setRedeemingPerkId(null);
     }
   };
 
@@ -3597,6 +3626,32 @@ export default function PatientProfile() {
                     <button onClick={() => openAssignModal()} className="btn-primary-sm">+ Add Protocol</button>
                   </div>
                 </div>
+                {/* Free Range IV perk banner — shown when patient has an unredeemed HRT membership IV */}
+                {activeProtocols.some(p => p.medication === 'Range IV' && p.notes?.includes('HRT Membership Perk') && (p.sessions_used || 0) === 0) && (
+                  <div style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', border: '1.5px solid #86efac', borderRadius: 10, padding: '14px 18px', margin: '0 0 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: 22 }}>💉</span>
+                      <div>
+                        <div style={{ fontWeight: 700, color: '#166534', fontSize: 14 }}>Free Range IV Ready</div>
+                        <div style={{ fontSize: 12, color: '#15803d' }}>HRT Membership Perk — redeemable this month</div>
+                      </div>
+                    </div>
+                    {(() => {
+                      const perk = activeProtocols.find(p => p.medication === 'Range IV' && p.notes?.includes('HRT Membership Perk') && (p.sessions_used || 0) === 0);
+                      if (!perk) return null;
+                      return (
+                        <button
+                          onClick={() => handleRedeemRangeIV(perk.id)}
+                          disabled={redeemingPerkId === perk.id}
+                          style={{ padding: '10px 20px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap', opacity: redeemingPerkId === perk.id ? 0.6 : 1 }}
+                        >
+                          {redeemingPerkId === perk.id ? 'Redeeming...' : '✓ Use Today'}
+                        </button>
+                      );
+                    })()}
+                  </div>
+                )}
+
                 {activeProtocols.length === 0 && completedProtocols.filter(p => p.status !== 'merged').length === 0 ? (
                   <div className="empty">No protocols</div>
                 ) : (
@@ -3628,13 +3683,24 @@ export default function PatientProfile() {
                       const startingDose = protocol.starting_dose || protocol.selected_dose || (wlLogs.length > 0 ? parseDose(wlLogs[0].dosage) : null);
                       const currentDose = protocol.dose || protocol.selected_dose || (wlLogs.length > 0 ? parseDose(wlLogs[wlLogs.length - 1].dosage) : null);
                       const pLogs = getProtocolLogsForId(protocol.id);
+                      const isRangeIVPerk = protocol.medication === 'Range IV' && protocol.notes?.includes('HRT Membership Perk');
+                      const perkAvailable = isRangeIVPerk && (protocol.sessions_used || 0) === 0 && protocol.status === 'active';
 
                       return (
-                        <div key={protocol.id} className="protocol-card" style={protocol.status === 'completed' ? { opacity: 0.7 } : {}}>
+                        <div key={protocol.id} className="protocol-card" style={{
+                          ...(protocol.status === 'completed' ? { opacity: 0.7 } : {}),
+                          ...(perkAvailable ? { border: '1.5px solid #86efac', boxShadow: '0 0 0 2px #f0fdf4' } : {})
+                        }}>
                           <div className="protocol-card-header">
                             <span className="protocol-badge" style={{ background: cat.bg, color: cat.text }}>{cat.label}</span>
                             <span className="protocol-name">{protocol.program_name || protocol.medication}</span>
-                            {protocol.status === 'completed' && <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', background: '#f3f4f6', padding: '2px 8px', borderRadius: '4px' }}>✓ Completed</span>}
+                            {isRangeIVPerk && perkAvailable && (
+                              <span style={{ fontSize: '11px', fontWeight: 700, color: '#166534', background: '#dcfce7', border: '1px solid #86efac', padding: '2px 8px', borderRadius: '4px' }}>FREE PERK</span>
+                            )}
+                            {isRangeIVPerk && !perkAvailable && protocol.status !== 'expired' && (
+                              <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', background: '#f3f4f6', padding: '2px 8px', borderRadius: '4px' }}>PERK USED</span>
+                            )}
+                            {protocol.status === 'completed' && !isRangeIVPerk && <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', background: '#f3f4f6', padding: '2px 8px', borderRadius: '4px' }}>✓ Completed</span>}
                             {protocol.delivery_method === 'in_clinic' && <span className="clinic-badge">In-Clinic</span>}
                           </div>
                           <div className="protocol-details">
@@ -3651,6 +3717,18 @@ export default function PatientProfile() {
                             </div>
                           )}
                           <div className="protocol-dates">Started {formatShortDate(protocol.start_date)}{protocol.end_date && ` → ${formatShortDate(protocol.end_date)}`}</div>
+                          {/* Range IV perk one-click checkout button */}
+                          {perkAvailable && (
+                            <div style={{ marginTop: 10 }}>
+                              <button
+                                onClick={() => handleRedeemRangeIV(protocol.id)}
+                                disabled={redeemingPerkId === protocol.id}
+                                style={{ width: '100%', padding: '10px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer', opacity: redeemingPerkId === protocol.id ? 0.6 : 1 }}
+                              >
+                                {redeemingPerkId === protocol.id ? 'Redeeming...' : '✓ Use Free Range IV Today'}
+                              </button>
+                            </div>
+                          )}
                           {protocol.delivery_method === 'take_home' && protocol.status === 'active' && (
                             <div style={{ display: 'flex', gap: '16px', fontSize: '12px', margin: '6px 0 2px', flexWrap: 'wrap' }}>
                               <span style={{ color: '#6b7280' }}>

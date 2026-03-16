@@ -5973,8 +5973,15 @@ export default function PatientProfile() {
                             {purchase.stripe_subscription_id && (
                               <span className="pay-badge pay-badge-blue">recurring</span>
                             )}
-                            <span className={`pay-badge ${purchase.protocol_created ? 'pay-badge-green' : 'pay-badge-yellow'}`}>
-                              {purchase.protocol_created ? 'protocol set' : 'no protocol'}
+                            <span className={`pay-badge ${purchase.protocol_created ? 'pay-badge-green' : 'pay-badge-yellow'}`}
+                              title={purchase.protocol_id ? (() => {
+                                const linked = [...activeProtocols, ...completedProtocols].find(p => p.id === purchase.protocol_id);
+                                return linked ? `Protocol: ${linked.program_name}${linked.medication && linked.medication !== linked.program_name ? ' — ' + linked.medication : ''}` : 'Protocol created';
+                              })() : undefined}>
+                              {purchase.protocol_created ? (() => {
+                                const linked = [...activeProtocols, ...completedProtocols].find(p => p.id === purchase.protocol_id);
+                                return linked ? `✓ ${linked.program_name}` : '✓ protocol set';
+                              })() : 'no protocol'}
                             </span>
                           </div>
                         </div>
@@ -6313,6 +6320,26 @@ export default function PatientProfile() {
               <div className="modal-body">
                 {selectedNotification && (
                   <div className="modal-preview">{selectedNotification.product_name} • ${selectedNotification.amount_paid?.toFixed(2)}</div>
+                )}
+
+                {/* Active protocol warning — shown when patient already has protocols and no purchase was selected */}
+                {activeProtocols.length > 0 && (
+                  <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 8, padding: '12px 14px', marginBottom: 14 }}>
+                    <div style={{ fontWeight: 600, color: '#92400e', marginBottom: 6, fontSize: 13 }}>
+                      ⚠️ This patient already has {activeProtocols.length} active protocol{activeProtocols.length !== 1 ? 's' : ''}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                      {activeProtocols.map(p => (
+                        <div key={p.id} style={{ fontSize: 12, color: '#78350f' }}>
+                          • <strong>{p.program_name}</strong>{p.medication && p.medication !== p.program_name ? ` — ${p.medication}` : ''}
+                          <span style={{ color: '#a16207' }}> (started {new Date(p.start_date).toLocaleDateString()})</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ marginTop: 8, fontSize: 11, color: '#92400e' }}>
+                      A new purchase may have already extended or created these automatically. Only proceed if this is a genuinely new protocol.
+                    </div>
+                  </div>
                 )}
 
                 {/* Mode toggle: New Protocol / Add to Pack / Link to Protocol */}

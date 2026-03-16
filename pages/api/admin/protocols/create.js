@@ -66,7 +66,8 @@ export default async function handler(req, res) {
       baselineLabsDate,
       notes,
       initial_journey_stage,  // Optional: skip to a specific journey stage (e.g. 'dispensed' for POS purchases)
-      source                   // Optional: 'pos', 'admin', etc.
+      source,                  // Optional: 'pos', 'admin', etc.
+      force                    // Optional: true to bypass duplicate prevention
     } = req.body;
 
     if (!protocolType || !patientName || !startDate) {
@@ -75,7 +76,8 @@ export default async function handler(req, res) {
 
     // ===== DUPLICATE PREVENTION =====
     // Check for existing active protocol with same type + medication
-    if (patient_id) {
+    // Skipped when force=true (user confirmed they want to create a second protocol)
+    if (patient_id && !force) {
       const existingProtocol = await findDuplicateProtocol(patient_id, protocolType, medication);
       if (existingProtocol) {
         return res.status(409).json({

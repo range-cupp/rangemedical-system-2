@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 
 const PROTOCOL_TYPES = {
   peptide: {
@@ -69,9 +70,12 @@ const PROTOCOL_TYPES = {
 export default function NewProtocol() {
   const router = useRouter();
   const { patient_id, ghl_contact_id, patient_name, patient_phone } = router.query;
-  
+
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [duplicateInfo, setDuplicateInfo] = useState(null); // { message, existing_protocol_id }
+  const [existingProtocols, setExistingProtocols] = useState([]);
+  const [forceCreate, setForceCreate] = useState(false);
   
   const [form, setForm] = useState({
     protocolType: '',
@@ -110,12 +114,24 @@ export default function NewProtocol() {
     if (patient_phone) setForm(f => ({ ...f, patientPhone: patient_phone }));
   }, [patient_name, patient_phone]);
 
+  // Load existing active protocols for this patient so we can warn before creating a duplicate
+  useEffect(() => {
+    if (!patient_id) return;
+    fetch(`/api/admin/patients/${patient_id}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        const protos = (data?.protocols || []).filter(p => p.status === 'active');
+        setExistingProtocols(protos);
+      })
+      .catch(() => {});
+  }, [patient_id]);
+
   const selectedType = PROTOCOL_TYPES[form.protocolType];
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const submitProtocol = async (force = false) => {
     setSaving(true);
     setError('');
+    setDuplicateInfo(null);
 
     try {
       const res = await fetch('/api/admin/protocols/create', {
@@ -125,16 +141,24 @@ export default function NewProtocol() {
           patient_id,
           ghl_contact_id,
           ...form,
-          medication: form.medication === 'Other' || form.medication === 'Custom' 
-            ? form.customMedication 
+          medication: form.medication === 'Other' || form.medication === 'Custom'
+            ? form.customMedication
             : form.medication,
-          dosage: form.dosage === 'Custom' 
-            ? form.customDosage 
-            : form.dosage
+          dosage: form.dosage === 'Custom'
+            ? form.customDosage
+            : form.dosage,
+          force: force || forceCreate
         })
       });
 
       const data = await res.json();
+
+      if (res.status === 409) {
+        // Duplicate protocol — show a specific actionable message, don't throw generic error
+        setDuplicateInfo({ message: data.details || data.error, existing_protocol_id: data.existing_protocol_id });
+        return;
+      }
+
       if (!res.ok) throw new Error(data.error || 'Failed to create protocol');
 
       router.push(`/patients/${patient_id || data.protocol.patient_id}`);
@@ -143,6 +167,17 @@ export default function NewProtocol() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    submitProtocol(false);
+  };
+
+  const handleForceCreate = () => {
+    setForceCreate(true);
+    setDuplicateInfo(null);
+    submitProtocol(true);
   };
 
   return (
@@ -157,6 +192,44 @@ export default function NewProtocol() {
         <main style={styles.main}>
           <form onSubmit={handleSubmit} style={styles.form}>
             {error && <div style={styles.error}>{error}</div>}
+
+            {/* Duplicate protocol alert — returned by API when active protocol already exists */}
+            {duplicateInfo && (
+              <div style={{ background: '#fef3c7', border: '2px solid #f59e0b', borderRadius: 8, padding: '14px 16px', marginBottom: 16 }}>
+                <div style={{ fontWeight: 700, color: '#92400e', marginBottom: 6 }}>⚠️ Protocol Already Exists</div>
+                <div style={{ fontSize: 14, color: '#78350f', marginBottom: 10 }}>{duplicateInfo.message}</div>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {patient_id && (
+                    <Link href={`/patients/${patient_id}`} style={{ padding: '8px 14px', background: '#92400e', color: '#fff', borderRadius: 6, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+                      View Patient Profile →
+                    </Link>
+                  )}
+                  <button type="button" onClick={handleForceCreate} disabled={saving} style={{ padding: '8px 14px', background: '#fff', color: '#92400e', border: '1px solid #f59e0b', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}>
+                    {saving ? 'Creating...' : 'Create Anyway'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Existing active protocols warning — shown when patient already has active protocols */}
+            {existingProtocols.length > 0 && (
+              <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 8, padding: '12px 14px', marginBottom: 16 }}>
+                <div style={{ fontWeight: 600, color: '#92400e', marginBottom: 6, fontSize: 13 }}>
+                  ⚠️ This patient already has {existingProtocols.length} active protocol{existingProtocols.length !== 1 ? 's' : ''}:
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 8 }}>
+                  {existingProtocols.map(p => (
+                    <div key={p.id} style={{ fontSize: 12, color: '#78350f' }}>
+                      • <strong>{p.program_name}</strong>{p.medication && p.medication !== p.program_name ? ` — ${p.medication}` : ''}
+                      <span style={{ color: '#a16207' }}> (started {new Date(p.start_date).toLocaleDateString()})</span>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ fontSize: 11, color: '#92400e' }}>
+                  A recent purchase may have already created or extended these automatically. Only proceed if this is a genuinely new protocol.
+                </div>
+              </div>
+            )}
 
             {/* Patient Info */}
             <section style={styles.section}>

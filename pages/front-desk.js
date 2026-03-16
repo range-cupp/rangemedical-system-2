@@ -362,94 +362,115 @@ function InboxSidebar({ selected, onSelect, employeeId }) {
   const isSelected = (c) => selected && (selected.id ? selected.id === c.id : selected.phone === c.phone);
 
   return (
-    <div style={{ width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column', background: '#f7f8fa', borderRight: '1px solid #e8eaed', height: '100%' }}>
+    <div style={{ width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column', background: '#f7f8fa', borderRight: '1px solid #e8eaed', height: '100%', overflow: 'hidden' }}>
 
-      {/* Today's Schedule */}
-      <SidebarSection title="TODAY" icon="📅" count={scheduleCount} expanded={showSchedule} onToggle={() => setShowSchedule(!showSchedule)}>
-        <TodaySchedule onSelectPatient={onSelect} />
-      </SidebarSection>
+      {/* Fixed top sections — schedule + tasks */}
+      <div style={{ flexShrink: 0, overflowY: 'auto', maxHeight: '45%' }}>
+        {/* Today's Schedule */}
+        <SidebarSection title="TODAY" icon="📅" count={scheduleCount} expanded={showSchedule} onToggle={() => setShowSchedule(!showSchedule)}>
+          <TodaySchedule onSelectPatient={onSelect} />
+        </SidebarSection>
 
-      {/* My Tasks */}
-      <SidebarSection title="TASKS" icon="✅" count={taskCount} badge={taskCount > 0 ? 'red' : null} expanded={showTasks} onToggle={() => setShowTasks(!showTasks)}>
-        <MyTasks employeeId={employeeId} onSelectPatient={onSelect} />
-      </SidebarSection>
+        {/* My Tasks */}
+        <SidebarSection title="TASKS" icon="✅" count={taskCount} badge={taskCount > 0 ? 'red' : null} expanded={showTasks} onToggle={() => setShowTasks(!showTasks)}>
+          <MyTasks employeeId={employeeId} onSelectPatient={onSelect} />
+        </SidebarSection>
+      </div>
 
-      {/* Conversations */}
-      <SidebarSection title="MESSAGES" icon="💬" count={unreadCount} badge={unreadCount > 0 ? 'red' : null} expanded={showConversations} onToggle={() => setShowConversations(!showConversations)}>
-        <div style={{ padding: '4px 10px 6px' }}>
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Filter conversations..."
-            style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e0e0e0', borderRadius: 8, padding: '5px 8px', fontSize: 11, outline: 'none', background: '#fff', color: '#333' }}
-          />
-          <button
-            onClick={() => { setShowNew(!showNew); setNewSearch(''); setNewResults([]); }}
-            style={{ width: '100%', marginTop: 4, padding: '5px 0', background: showNew ? '#333' : '#111', color: '#fff', border: 'none', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>
-            {showNew ? '↑ Cancel' : '+ New Conversation'}
-          </button>
+      {/* Messages section — fills remaining space */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, borderTop: '1px solid #e8eaed' }}>
+        {/* Messages header */}
+        <div onClick={() => setShowConversations(!showConversations)}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px', cursor: 'pointer', userSelect: 'none', flexShrink: 0 }}
+          onMouseEnter={e => e.currentTarget.style.background = '#eff1f3'}
+          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+          <span style={{ fontSize: 10, color: '#999', transform: showConversations ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}>▶</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#555', letterSpacing: 0.3 }}>💬 MESSAGES</span>
+          {unreadCount > 0 && (
+            <span style={{ fontSize: 9, fontWeight: 700, color: '#fff', background: '#ef4444', borderRadius: 10, padding: '1px 6px', marginLeft: 'auto' }}>
+              {unreadCount}
+            </span>
+          )}
         </div>
 
-        {/* New conversation search */}
-        {showNew && (
-          <div style={{ padding: '0 10px 6px', borderBottom: '1px solid #e8eaed' }}>
-            <input autoFocus value={newSearch} onChange={e => setNewSearch(e.target.value)}
-              placeholder="Search patient name..."
-              style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #6366f1', borderRadius: 8, padding: '5px 8px', fontSize: 11, outline: 'none', background: '#fff' }} />
-            {newResults.map(p => (
-              <div key={p.id || p.phone} onClick={() => { onSelect(p); setShowNew(false); setNewSearch(''); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 4px', cursor: 'pointer', borderRadius: 6 }}
-                onMouseEnter={e => e.currentTarget.style.background = '#f0f0f0'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                <div style={{ width: 22, height: 22, borderRadius: '50%', background: avatarColor(p.name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flexShrink: 0 }}>
-                  {initials(p.name).toUpperCase()}
-                </div>
-                <div style={{ fontSize: 11, color: '#333', fontWeight: 500 }}>{p.name}</div>
-              </div>
-            ))}
-          </div>
-        )}
+        {showConversations && (
+          <>
+            <div style={{ padding: '4px 10px 6px', flexShrink: 0 }}>
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Filter conversations..."
+                style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e0e0e0', borderRadius: 8, padding: '5px 8px', fontSize: 11, outline: 'none', background: '#fff', color: '#333' }}
+              />
+              <button
+                onClick={() => { setShowNew(!showNew); setNewSearch(''); setNewResults([]); }}
+                style={{ width: '100%', marginTop: 4, padding: '5px 0', background: showNew ? '#333' : '#111', color: '#fff', border: 'none', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>
+                {showNew ? '↑ Cancel' : '+ New Conversation'}
+              </button>
+            </div>
 
-        {/* Contact list */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          {loading && <div style={{ padding: 12, textAlign: 'center', fontSize: 11, color: '#aaa' }}>Loading…</div>}
-          {!loading && filtered.length === 0 && <div style={{ padding: 12, textAlign: 'center', fontSize: 11, color: '#bbb' }}>No conversations</div>}
-          {filtered.map(c => {
-            const sel = isSelected(c);
-            const color = avatarColor(c.name);
-            return (
-              <div key={c.id || c.phone}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', cursor: 'pointer', borderBottom: '1px solid #eff0f1', background: sel ? '#fff' : 'transparent', borderLeft: sel ? '3px solid #6366f1' : '3px solid transparent', transition: 'background 0.1s' }}
-                onMouseEnter={e => { if (!sel) e.currentTarget.style.background = '#eff1f3'; }}
-                onMouseLeave={e => { if (!sel) e.currentTarget.style.background = 'transparent'; }}
-                onClick={() => {
-                  if (c.unread > 0) setContacts(prev => prev.map(x => (x.id === c.id && x.phone === c.phone) ? { ...x, unread: 0 } : x));
-                  onSelect(c);
-                }}>
-                <div style={{ position: 'relative', flexShrink: 0 }}>
-                  <div style={{ width: 30, height: 30, borderRadius: '50%', background: color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>
-                    {initials(c.name).toUpperCase()}
-                  </div>
-                  {c.unread > 0 && (
-                    <div style={{ position: 'absolute', top: -2, right: -2, width: 14, height: 14, borderRadius: '50%', background: '#ef4444', color: '#fff', fontSize: 8, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #f7f8fa' }}>
-                      {c.unread > 9 ? '9+' : c.unread}
+            {/* New conversation search */}
+            {showNew && (
+              <div style={{ padding: '0 10px 6px', borderBottom: '1px solid #e8eaed', flexShrink: 0 }}>
+                <input autoFocus value={newSearch} onChange={e => setNewSearch(e.target.value)}
+                  placeholder="Search patient name..."
+                  style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #6366f1', borderRadius: 8, padding: '5px 8px', fontSize: 11, outline: 'none', background: '#fff' }} />
+                {newResults.map(p => (
+                  <div key={p.id || p.phone} onClick={() => { onSelect(p); setShowNew(false); setNewSearch(''); }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 4px', cursor: 'pointer', borderRadius: 6 }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#f0f0f0'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                    <div style={{ width: 22, height: 22, borderRadius: '50%', background: avatarColor(p.name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flexShrink: 0 }}>
+                      {initials(p.name).toUpperCase()}
                     </div>
-                  )}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 1 }}>
-                    <span style={{ fontSize: 12, fontWeight: c.unread > 0 ? 700 : 500, color: '#111', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 110 }}>{c.name}</span>
-                    <span style={{ fontSize: 9, color: '#bbb', flexShrink: 0 }}>{timeAgo(c.lastMessage)}</span>
+                    <div style={{ fontSize: 11, color: '#333', fontWeight: 500 }}>{p.name}</div>
                   </div>
-                  <div style={{ fontSize: 10, color: c.unread > 0 ? '#555' : '#aaa', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {c.direction === 'inbound' ? '' : '↗ '}{c.preview || 'No messages yet'}
-                  </div>
-                </div>
+                ))}
               </div>
-            );
-          })}
-        </div>
-      </SidebarSection>
+            )}
+
+            {/* Contact list — scrolls independently */}
+            <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+              {loading && <div style={{ padding: 12, textAlign: 'center', fontSize: 11, color: '#aaa' }}>Loading…</div>}
+              {!loading && filtered.length === 0 && <div style={{ padding: 12, textAlign: 'center', fontSize: 11, color: '#bbb' }}>No conversations</div>}
+              {filtered.map(c => {
+                const sel = isSelected(c);
+                const color = avatarColor(c.name);
+                return (
+                  <div key={c.id || c.phone}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', cursor: 'pointer', borderBottom: '1px solid #eff0f1', background: sel ? '#fff' : 'transparent', borderLeft: sel ? '3px solid #6366f1' : '3px solid transparent', transition: 'background 0.1s' }}
+                    onMouseEnter={e => { if (!sel) e.currentTarget.style.background = '#eff1f3'; }}
+                    onMouseLeave={e => { if (!sel) e.currentTarget.style.background = 'transparent'; }}
+                    onClick={() => {
+                      if (c.unread > 0) setContacts(prev => prev.map(x => (x.id === c.id && x.phone === c.phone) ? { ...x, unread: 0 } : x));
+                      onSelect(c);
+                    }}>
+                    <div style={{ position: 'relative', flexShrink: 0 }}>
+                      <div style={{ width: 30, height: 30, borderRadius: '50%', background: color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>
+                        {initials(c.name).toUpperCase()}
+                      </div>
+                      {c.unread > 0 && (
+                        <div style={{ position: 'absolute', top: -2, right: -2, width: 14, height: 14, borderRadius: '50%', background: '#ef4444', color: '#fff', fontSize: 8, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #f7f8fa' }}>
+                          {c.unread > 9 ? '9+' : c.unread}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 1 }}>
+                        <span style={{ fontSize: 12, fontWeight: c.unread > 0 ? 700 : 500, color: '#111', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 110 }}>{c.name}</span>
+                        <span style={{ fontSize: 9, color: '#bbb', flexShrink: 0 }}>{timeAgo(c.lastMessage)}</span>
+                      </div>
+                      <div style={{ fontSize: 10, color: c.unread > 0 ? '#555' : '#aaa', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {c.direction === 'inbound' ? '' : '↗ '}{c.preview || 'No messages yet'}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

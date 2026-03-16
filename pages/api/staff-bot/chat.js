@@ -658,28 +658,52 @@ export default async function handler(req, res) {
     let finalResponse = null;
     const MAX_ITERATIONS = 6;
 
+    // Helper: call Claude API with retry on rate limit (429)
+    async function callClaude(messages) {
+      const MAX_RETRIES = 3;
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key': process.env.ANTHROPIC_API_KEY,
+            'anthropic-version': '2023-06-01',
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 1024,
+            system: systemPrompt,
+            tools: TOOLS,
+            messages,
+          }),
+        });
+
+        if (claudeRes.status === 429 && attempt < MAX_RETRIES - 1) {
+          // Rate limited — wait and retry. Use retry-after header if available.
+          const retryAfter = claudeRes.headers.get('retry-after');
+          const waitMs = retryAfter ? Math.min(Number(retryAfter) * 1000, 15000) : (attempt + 1) * 3000;
+          console.warn(`[StaffBot] Rate limited (429), retrying in ${waitMs}ms (attempt ${attempt + 1}/${MAX_RETRIES})`);
+          await new Promise(resolve => setTimeout(resolve, waitMs));
+          continue;
+        }
+
+        return claudeRes;
+      }
+    }
+
     for (let i = 0; i < MAX_ITERATIONS; i++) {
-      const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'x-api-key': process.env.ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 1024,
-          system: systemPrompt,
-          tools: TOOLS,
-          messages: loopMessages,
-        }),
-      });
+      const claudeRes = await callClaude(loopMessages);
 
       if (!claudeRes.ok) {
         const errText = await claudeRes.text();
         console.error('[StaffBot] Claude API error:', claudeRes.status, errText);
-        // Don't throw — return a 200 with the error detail so the frontend shows it
-        // instead of a blank 500 that gives no info
+        // Friendly message for rate limits
+        if (claudeRes.status === 429) {
+          return res.status(200).json({
+            response: '⚠️ The assistant is getting a lot of requests right now. Please wait a few seconds and try again.',
+            employee: { name: employee.name, title: employee.title },
+          });
+        }
         let detail = '';
         try { detail = JSON.parse(errText)?.error?.message || ''; } catch {}
         return res.status(200).json({

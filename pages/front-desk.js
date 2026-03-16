@@ -205,13 +205,7 @@ function TodaySchedule({ onSelectPatient }) {
       .finally(() => setLoading(false));
   }, []);
 
-  // Close menu when clicking outside
-  useEffect(() => {
-    if (!menuOpen) return;
-    const handler = () => setMenuOpen(null);
-    document.addEventListener('click', handler);
-    return () => document.removeEventListener('click', handler);
-  }, [menuOpen]);
+  // menuOpen is closed by the backdrop overlay rendered below (no document listener needed)
 
   const updateStatus = async (apptId, newStatus) => {
     setMenuOpen(null);
@@ -246,7 +240,14 @@ function TodaySchedule({ onSelectPatient }) {
   if (appointments.length === 0) return <div style={{ padding: '8px 14px', fontSize: 11, color: '#bbb' }}>No appointments today</div>;
 
   return (
-    <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+    <div style={{ maxHeight: 200, overflowY: 'auto', position: 'relative' }}>
+      {/* Invisible backdrop to close dropdown when clicking outside */}
+      {menuOpen && (
+        <div
+          onClick={() => setMenuOpen(null)}
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99 }}
+        />
+      )}
       {appointments.map(a => {
         const time = new Date(a.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' });
         const patientName = a.patients ? `${a.patients.first_name || ''} ${a.patients.last_name || ''}`.trim() : (a.patient_name || a.title || 'Unknown');
@@ -285,7 +286,7 @@ function TodaySchedule({ onSelectPatient }) {
             </div>
             {/* Status dropdown */}
             {menuOpen === a.id && (
-              <div onClick={e => e.stopPropagation()} style={{
+              <div style={{
                 position: 'absolute', right: 8, top: '100%', zIndex: 100,
                 background: '#fff', borderRadius: 8, boxShadow: '0 4px 20px rgba(0,0,0,.15)', border: '1px solid #e5e7eb',
                 padding: '4px 0', minWidth: 130,
@@ -293,7 +294,7 @@ function TodaySchedule({ onSelectPatient }) {
                 {STATUS_FLOW.map(s => (
                   <div
                     key={s.key}
-                    onClick={() => updateStatus(a.id, s.key)}
+                    onClick={(e) => { e.stopPropagation(); updateStatus(a.id, s.key); }}
                     style={{
                       padding: '6px 12px', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
                       background: a.status === s.key ? s.bg : 'transparent', fontWeight: a.status === s.key ? 700 : 400,

@@ -281,10 +281,11 @@ export default async function handler(req, res) {
           category
         };
 
-        // Weight loss & peptide protocols — never auto-complete (need manual follow-up for renewals)
+        // Ongoing protocols — never auto-complete (need manual follow-up for renewals)
         const isWeightLoss = (protocol.program_type || '').toLowerCase().includes('weight');
         const isPeptideProto = (protocol.program_type || '').toLowerCase() === 'peptide';
-        const neverAutoComplete = isWeightLoss || isPeptideProto;
+        const isHRT = (protocol.program_type || '').toLowerCase() === 'hrt';
+        const neverAutoComplete = isWeightLoss || isPeptideProto || isHRT;
         const isCompleted =
           protocol.status === 'completed' ||
           (!neverAutoComplete && tracking.days_remaining !== null && tracking.days_remaining <= -7) ||

@@ -209,12 +209,10 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
         { label: 'Add-Ons', match: i => !i.recurring && i.name.toLowerCase().includes('additional') },
       ],
       weight_loss: [
-        { label: 'Tirzepatide — Monthly (One-Time)', match: i => i.name.toLowerCase().includes('tirzepatide') && i.name.toLowerCase().includes('one-time') },
-        { label: 'Retatrutide — Monthly (One-Time)', match: i => i.name.toLowerCase().includes('retatrutide') && i.name.toLowerCase().includes('one-time') },
-        { label: 'Tirzepatide — Single Injections', match: i => i.name.toLowerCase().includes('tirzepatide') && !i.recurring && !i.name.toLowerCase().includes('one-time') },
-        { label: 'Retatrutide — Single Injections', match: i => i.name.toLowerCase().includes('retatrutide') && !i.recurring && !i.name.toLowerCase().includes('one-time') },
-        { label: 'Tirzepatide — Subscriptions', match: i => i.name.toLowerCase().includes('tirzepatide') && i.recurring },
-        { label: 'Retatrutide — Subscriptions', match: i => i.name.toLowerCase().includes('retatrutide') && i.recurring },
+        { label: 'Tirzepatide — Monthly Program', match: i => i.name.toLowerCase().includes('tirzepatide') && i.name.toLowerCase().includes('monthly') },
+        { label: 'Retatrutide — Monthly Program', match: i => i.name.toLowerCase().includes('retatrutide') && i.name.toLowerCase().includes('monthly') },
+        { label: 'Tirzepatide — Single Injections', match: i => i.name.toLowerCase().includes('tirzepatide') && i.name.toLowerCase().includes('single') },
+        { label: 'Retatrutide — Single Injections', match: i => i.name.toLowerCase().includes('retatrutide') && i.name.toLowerCase().includes('single') },
         { label: 'Semaglutide', match: i => i.name.toLowerCase().includes('semaglutide') },
       ],
       iv_therapy: [

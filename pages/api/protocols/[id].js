@@ -171,6 +171,9 @@ async function updateProtocol(id, updates, res) {
     'program_name',
     'program_type',
     'starting_weight',
+    // Peptide vial fields
+    'num_vials',
+    'doses_per_vial',
     // HRT vial-specific fields
     'dose_per_injection',
     'injections_per_week',
@@ -238,6 +241,14 @@ async function updateProtocol(id, updates, res) {
   }
   if (updateData.supply_type === 'prefill_4week') {
     updateData.supply_type = 'prefilled_4week';
+  }
+
+  // Parse vial fields as integers
+  if (updateData.num_vials !== undefined) {
+    updateData.num_vials = updateData.num_vials ? parseInt(updateData.num_vials) : null;
+  }
+  if (updateData.doses_per_vial !== undefined) {
+    updateData.doses_per_vial = updateData.doses_per_vial ? parseInt(updateData.doses_per_vial) : null;
   }
 
   // Always update the updated_at timestamp

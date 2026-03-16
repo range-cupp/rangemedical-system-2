@@ -210,6 +210,7 @@ export default async function handler(req, res) {
           purchaseId: data.id,
           deliveryMethod: delivery_method || null,
           durationDays: duration_days || null,
+          quantity: quantity || 1,
         });
       } catch (err) {
         console.error('Auto-protocol failed:', err);

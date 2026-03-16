@@ -522,6 +522,7 @@ export default async function handler(req, res) {
               serviceCategory: category,
               serviceName,
               purchaseId: purchase.id,
+              quantity: item.quantity || 1,
             });
             console.log(`Auto-protocol triggered for Payment Link purchase: ${serviceName} (patient: ${patientId})`);
           } catch (protoErr) {

@@ -513,6 +513,8 @@ export default function PatientProfile() {
   const [editForm, setEditForm] = useState({
     medication: '', selectedDose: '', frequency: '', startDate: '',
     endDate: '', status: '', notes: '', sessionsUsed: 0, totalSessions: null,
+    // Peptide vial fields
+    numVials: '', dosesPerVial: '',
     // HRT vial-specific fields
     dosePerInjection: '', injectionsPerWeek: 2, vialSize: '', supplyType: '', lastRefillDate: '',
     // HRT injection method (IM or SubQ)
@@ -1744,6 +1746,9 @@ export default function PatientProfile() {
       notes: protocol.notes || '',
       sessionsUsed: protocol.sessions_used || 0,
       totalSessions: protocol.total_sessions || null,
+      // Peptide vial fields
+      numVials: protocol.num_vials || '',
+      dosesPerVial: protocol.doses_per_vial || '',
       // HRT vial-specific fields
       dosePerInjection: protocol.dose_per_injection || '',
       injectionsPerWeek: protocol.injections_per_week || 2,
@@ -1797,6 +1802,9 @@ export default function PatientProfile() {
           status: editForm.status,
           notes: editForm.notes || null,
           sessions_used: editForm.sessionsUsed,
+          // Peptide vial fields
+          num_vials: editForm.numVials ? parseInt(editForm.numVials) : null,
+          doses_per_vial: editForm.dosesPerVial ? parseInt(editForm.dosesPerVial) : null,
           // HRT vial-specific fields (dose_per_injection auto-derived from selected_dose for HRT)
           dose_per_injection: derivedDosePerInjection,
           injections_per_week: editForm.injectionsPerWeek ? parseInt(editForm.injectionsPerWeek) : null,
@@ -3771,6 +3779,20 @@ export default function PatientProfile() {
                             {protocol.selected_dose && <span>{protocol.selected_dose}</span>}
                             {protocol.frequency && <span>{protocol.frequency}</span>}
                           </div>
+                          {protocol.num_vials > 0 && (
+                            <div style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0' }}>
+                              {protocol.num_vials} vial{protocol.num_vials > 1 ? 's' : ''}
+                              {protocol.doses_per_vial > 0 && ` × ${protocol.doses_per_vial} doses`}
+                              {protocol.doses_per_vial > 0 && protocol.sessions_used > 0 && (() => {
+                                const dpv = protocol.doses_per_vial;
+                                const numV = protocol.num_vials;
+                                const used = protocol.sessions_used || 0;
+                                const currentVial = Math.min(Math.floor(used / dpv) + 1, numV);
+                                const dosesInVial = used - ((currentVial - 1) * dpv);
+                                return ` — Vial ${currentVial} of ${numV} (${dosesInVial}/${dpv} used)`;
+                              })()}
+                            </div>
+                          )}
                           {protocol.delivery_method === 'in_clinic' && protocol.scheduled_days?.length > 0 && (
                             <div className="protocol-schedule">
                               Schedule: {protocol.scheduled_days.map(d => d.charAt(0).toUpperCase() + d.slice(1, 3)).join(', ')}
@@ -6914,6 +6936,53 @@ export default function PatientProfile() {
                     )}
                     {findPeptideInfo(editForm.medication)?.notes && (
                       <div className="form-hint">{findPeptideInfo(editForm.medication).notes}</div>
+                    )}
+                    <div className="form-section-label">Vial Configuration</div>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Number of Vials</label>
+                        <select
+                          value={editForm.numVials}
+                          onChange={e => {
+                            const nv = e.target.value;
+                            const updates = { ...editForm, numVials: nv };
+                            if (nv && editForm.dosesPerVial) {
+                              updates.totalSessions = parseInt(nv) * parseInt(editForm.dosesPerVial);
+                            }
+                            setEditForm(updates);
+                          }}
+                        >
+                          <option value="">Not vial-based</option>
+                          {[1, 2, 3, 4, 5, 6].map(n => (
+                            <option key={n} value={n}>{n} vial{n > 1 ? 's' : ''}</option>
+                          ))}
+                        </select>
+                      </div>
+                      {editForm.numVials && (
+                        <div className="form-group">
+                          <label>Doses per Vial</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="50"
+                            value={editForm.dosesPerVial}
+                            onChange={e => {
+                              const dpv = e.target.value;
+                              const updates = { ...editForm, dosesPerVial: dpv };
+                              if (dpv && editForm.numVials) {
+                                updates.totalSessions = parseInt(editForm.numVials) * parseInt(dpv);
+                              }
+                              setEditForm(updates);
+                            }}
+                            placeholder="e.g., 10"
+                          />
+                        </div>
+                      )}
+                    </div>
+                    {editForm.numVials && editForm.dosesPerVial && (
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '-4px', marginBottom: '8px' }}>
+                        Total: {parseInt(editForm.numVials) * parseInt(editForm.dosesPerVial)} doses ({editForm.numVials} vial{parseInt(editForm.numVials) > 1 ? 's' : ''} x {editForm.dosesPerVial} doses)
+                      </div>
                     )}
                   </>
                 )}

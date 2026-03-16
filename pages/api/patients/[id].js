@@ -226,9 +226,19 @@ function getProtocolCategory(protocol) {
   if (programType.includes('rlt') || programType.includes('red_light') || programType.includes('red light')) {
     return 'rlt';
   }
-  if (programType.includes('injection')) {
+  if (programType.includes('injection') || programType.includes('b12') || programType.includes('vitamin')) {
     return 'injection';
   }
+  if (programType.includes('lab')) {
+    return 'labs';
+  }
+  // Fall back to checking medication name when program_type is generic
+  const med = (protocol.medication || '').toLowerCase();
+  if (med.includes('nad')) return 'iv';
+  if (med.includes('b12') || med.includes('lipo') || med.includes('taurine') || med.includes('toradol') || med.includes('glutathione')) return 'injection';
+  if (med.includes('semaglutide') || med.includes('tirzepatide') || med.includes('retatrutide')) return 'weight_loss';
+  if (med.includes('testosterone') || med.includes('estradiol') || med.includes('progesterone')) return 'hrt';
+  if (med.includes('bpc') || med.includes('tb-500') || med.includes('recovery') || med.includes('glow') || med.includes('ghk')) return 'peptide';
   return 'other';
 }
 

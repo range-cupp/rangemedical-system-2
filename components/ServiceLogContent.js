@@ -1994,30 +1994,6 @@ const slcStyles = {
   wrapper: {
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   },
-  pfReminder: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    padding: '12px 16px',
-    background: '#eff6ff',
-    border: '1px solid #93c5fd',
-    borderRadius: '8px',
-    marginBottom: '16px',
-    fontSize: '14px',
-    color: '#1e40af',
-    animation: 'fadeIn 0.3s ease-out'
-  },
-  pfIcon: { fontSize: '20px', flexShrink: 0 },
-  pfDismiss: {
-    marginLeft: 'auto',
-    background: 'none',
-    border: 'none',
-    fontSize: '18px',
-    cursor: 'pointer',
-    color: '#6b7280',
-    padding: '0 4px',
-    flexShrink: 0
-  },
   dispensingSection: {
     marginTop: '16px',
     padding: '16px',

@@ -46,7 +46,6 @@ import POSChargeModal from '../../components/POSChargeModal';
 import EncounterModal from '../../components/EncounterModal';
 import StandaloneEncounterModal from '../../components/StandaloneEncounterModal';
 import EncounterQuickView from '../../components/EncounterQuickView';
-import SignatureCanvas from '../../components/SignatureCanvas';
 import CycleProgressCard from '../../components/CycleProgressCard';
 import { PROTOCOL_TYPES } from '../../lib/protocol-types';
 
@@ -1548,7 +1547,7 @@ export default function PatientProfile() {
         administered_by: logDispensing.administered_by || null,
         lot_number: logDispensing.lot_number || null,
         expiration_date: logDispensing.expiration_date || null,
-        signature_url: logSignature || null,
+        signature_url: null,
       };
       if (svcCat === 'testosterone') {
         payload.medication = logForm.hrt_type === 'oral' ? 'Testosterone Booster (Oral)' : logForm.hrt_type === 'male' ? 'Male HRT' : 'Female HRT';

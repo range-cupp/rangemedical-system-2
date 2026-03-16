@@ -341,7 +341,16 @@ function InboxSidebar({ selected, onSelect, session }) {
         )}
         {filtered.map(c => (
           <div key={c.id || c.phone} style={s.item(selected?.id === c.id && selected?.phone === c.phone)}
-            onClick={() => onSelect(c)}>
+            onClick={() => {
+              // Optimistically clear the unread badge on click — the actual
+              // mark-read API call is handled inside ConversationView
+              if (c.unread > 0) {
+                setContacts(prev => prev.map(x =>
+                  (x.id === c.id && x.phone === c.phone) ? { ...x, unread: 0 } : x
+                ));
+              }
+              onSelect(c);
+            }}>
             <div style={s.name}>
               {c.name}
               {c.unread > 0 && <span style={s.unread}>{c.unread}</span>}

@@ -55,6 +55,7 @@ const TOOLS = [
         date: { type: 'string', description: 'Date in YYYY-MM-DD format' },
         time: { type: 'string', description: 'Time in HH:MM 24hr format' },
         patient_name: { type: 'string', description: 'Full name of the patient being treated' },
+        patient_id: { type: 'string', description: 'Patient UUID from context. Always include when available.' },
         provider_name: { type: 'string', description: 'Optional: name of the specific nurse or provider to assign this to, e.g. "Lily"' },
         location: { type: 'string', description: 'Clinic location, e.g. "Newport Beach" or "Placentia". Required when the provider works at multiple locations.' },
       },
@@ -68,6 +69,7 @@ const TOOLS = [
       type: 'object',
       properties: {
         patient_name: { type: 'string', description: 'Full or partial name of the patient' },
+        patient_id: { type: 'string', description: 'Patient UUID from context. Always include when available.' },
         date: { type: 'string', description: 'Optional date in YYYY-MM-DD format to narrow down which booking' },
         service_type: { type: 'string', description: 'Optional service name to narrow down which booking, e.g. "Range IV"' },
         reason: { type: 'string', description: 'Optional reason for cancellation' },
@@ -93,6 +95,7 @@ Bundle types and what they include:
       type: 'object',
       properties: {
         patient_name: { type: 'string', description: 'Full name of the patient' },
+        patient_id: { type: 'string', description: 'Patient UUID from context. Always include when available.' },
         bundle_type: {
           type: 'string',
           description: 'Bundle key. Default to "new-patient" if unclear.',
@@ -114,6 +117,7 @@ Bundle types and what they include:
       type: 'object',
       properties: {
         patient_name: { type: 'string', description: 'Full name of the patient' },
+        patient_id: { type: 'string', description: 'Patient UUID from context. Always include when available.' },
       },
       required: ['patient_name'],
     },
@@ -125,6 +129,7 @@ Bundle types and what they include:
       type: 'object',
       properties: {
         patient_name: { type: 'string', description: 'Full name of the patient' },
+        patient_id: { type: 'string', description: 'Patient UUID from context. Always include when available.' },
         note: { type: 'string', description: 'The note text to add' },
       },
       required: ['patient_name', 'note'],
@@ -139,6 +144,7 @@ Bundle types and what they include:
         assigned_to: { type: 'string', description: 'First or full name of the staff member' },
         title: { type: 'string', description: 'Task description' },
         patient_name: { type: 'string', description: 'Optional patient this task is about' },
+        patient_id: { type: 'string', description: 'Patient UUID from context. Always include when available.' },
         due_date: { type: 'string', description: 'Optional due date in YYYY-MM-DD format' },
         priority: { type: 'string', enum: ['low', 'medium', 'high'] },
       },
@@ -163,6 +169,7 @@ Bundle types and what they include:
       type: 'object',
       properties: {
         patient_name: { type: 'string', description: 'Full or partial name of the patient' },
+        patient_id: { type: 'string', description: 'Patient UUID from context. Always include when available.' },
       },
       required: ['patient_name'],
     },
@@ -201,6 +208,7 @@ Bundle types and what they include:
       type: 'object',
       properties: {
         patient_name: { type: 'string', description: 'Full or partial name of the patient' },
+        patient_id: { type: 'string', description: 'Patient UUID from context. Always include when available.' },
         include_inactive: { type: 'boolean', description: 'If true, also return completed/paused protocols. Default is active only.' },
       },
       required: ['patient_name'],
@@ -213,6 +221,7 @@ Bundle types and what they include:
       type: 'object',
       properties: {
         patient_name: { type: 'string', description: 'Full or partial name of the patient' },
+        patient_id: { type: 'string', description: 'Patient UUID from context. Always include when available.' },
         include_past: { type: 'boolean', description: 'If true, return past appointments instead of upcoming ones.' },
         limit: { type: 'number', description: 'Max number of appointments to return. Default 10, max 20.' },
       },
@@ -226,6 +235,7 @@ Bundle types and what they include:
       type: 'object',
       properties: {
         patient_name: { type: 'string', description: 'Full or partial name of the patient' },
+        patient_id: { type: 'string', description: 'Patient UUID from context. Always include when available.' },
         new_date: { type: 'string', description: 'New date in YYYY-MM-DD format' },
         new_time: { type: 'string', description: 'New time in HH:MM 24hr format' },
         current_date: { type: 'string', description: 'Optional: current appointment date in YYYY-MM-DD format to narrow down which booking to reschedule' },
@@ -255,6 +265,7 @@ Bundle types and what they include:
       type: 'object',
       properties: {
         patient_name: { type: 'string', description: 'Full or partial name of the patient' },
+        patient_id: { type: 'string', description: 'Patient UUID from context. Always include when available.' },
         document: { type: 'string', description: 'Natural language description of what to send, e.g. "HBOT guide", "tirzepatide info", "methylene blue combo"' },
         method: { type: 'string', enum: ['sms', 'email'], description: 'Delivery method. Default: sms' },
       },
@@ -422,6 +433,7 @@ RESCHEDULE: get_patient_appointments → confirm which booking → confirm new t
 
 BEHAVIOR:
 - Direct and efficient. One question at a time.
+- When a patient_id is provided in context, ALWAYS include it in every tool call. This ensures exact patient matching.
 - For service details, prep instructions, SOPs, protocols → use search_knowledge tool.
 - For patient data → use lookup_patient, get_patient_protocols, get_patient_appointments.
 - On tool errors, report exact error text — never invent generic messages.

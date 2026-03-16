@@ -601,8 +601,8 @@ function BotPanel({ session, employee, selectedPatient }) {
 
     const patientCtx = selectedPatient
       ? [
-          { role: 'user', content: `[Context] Patient currently on screen: ${selectedPatient.name}${selectedPatient.phone ? ` (${selectedPatient.phone})` : ''}. Use as default patient unless I specify someone else.` },
-          { role: 'assistant', content: `Got it — I have ${selectedPatient.name.split(' ')[0]} in context.` },
+          { role: 'user', content: `[Context] Patient currently on screen: ${selectedPatient.name} (patient_id: ${selectedPatient.id})${selectedPatient.phone ? ` (phone: ${selectedPatient.phone})` : ''}. Use as default patient unless I specify someone else. IMPORTANT: Always include patient_id in tool calls for this patient.` },
+          { role: 'assistant', content: `Got it — I have ${selectedPatient.name.split(' ')[0]} in context with their patient_id. I'll include it in all tool calls.` },
         ]
       : [];
 

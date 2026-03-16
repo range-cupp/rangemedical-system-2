@@ -4,6 +4,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { PDFDocument } from 'pdf-lib';
+import { loadReviewerIds, postImportActions } from '../../../lib/lab-post-import';
 
 export const config = {
   api: { bodyParser: { sizeLimit: '15mb' } },
@@ -245,11 +246,11 @@ export default async function handler(req, res) {
       group.biomarkers = parseBiomarkers(allLines);
     }
 
-    // 5. Load all patients from DB for matching
-    const { data: allPatients } = await supabase
-      .from('patients')
-      .select('id, first_name, last_name, date_of_birth')
-      .order('last_name');
+    // 5. Load all patients from DB for matching + reviewer IDs for tasks
+    const [{ data: allPatients }, reviewerIds] = await Promise.all([
+      supabase.from('patients').select('id, first_name, last_name, date_of_birth').order('last_name'),
+      loadReviewerIds(supabase),
+    ]);
 
     // 6. Check existing lab records (batch)
     const accessionList = patientGroups.map(g => g.accession);
@@ -339,6 +340,10 @@ export default async function handler(req, res) {
 
       // Upload PDF
       await ensurePdfUploaded(srcPdf, pages, match.id, info, fileName);
+
+      // Post-import: advance pipeline + create review tasks
+      const displayName = `${info.first_name?.charAt(0).toUpperCase() + info.first_name?.slice(1).toLowerCase()} ${info.last_name?.charAt(0).toUpperCase() + info.last_name?.slice(1).toLowerCase()}`.trim();
+      await postImportActions(supabase, match.id, displayName || result.name, info.collected_date, reviewerIds);
 
       result.status = 'imported';
       result.message = `Imported ${Object.keys(biomarkers).length} biomarkers`;

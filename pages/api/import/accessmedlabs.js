@@ -2,6 +2,7 @@
 // Import AccessMedLabs CSV - with duplicate protection and detailed errors
 
 import { createClient } from '@supabase/supabase-js';
+import { loadReviewerIds, postImportActions } from '../../../lib/lab-post-import';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -207,11 +208,14 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'csvData required in body' });
   }
 
+  // Load reviewer IDs once for the whole batch
+  const reviewerIds = await loadReviewerIds(supabase);
+
   const lines = csvData.split('\n');
-  const results = { 
-    imported: 0, 
-    errors: 0, 
-    skipped: 0, 
+  const results = {
+    imported: 0,
+    errors: 0,
+    skipped: 0,
     duplicates: 0,
     details: [],
     errorDetails: []
@@ -367,12 +371,14 @@ export default async function handler(req, res) {
       });
     } else {
       results.imported++;
-      results.details.push({ 
-        name: fullName, 
-        date: testDate, 
+      results.details.push({
+        name: fullName,
+        date: testDate,
         status: 'imported',
         patientStatus: patientResult.status
       });
+      // Post-import: advance lab pipeline + create review tasks for Evan & Dr. Burgess
+      await postImportActions(supabase, patientResult.id, fullName, testDate, reviewerIds);
     }
   }
 

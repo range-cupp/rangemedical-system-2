@@ -186,7 +186,7 @@ function TodaySchedule({ onSelectPatient }) {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(null); // appointment id with open menu
-  const [updating, setUpdating] = useState(null);
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     const now = new Date();
@@ -205,13 +205,23 @@ function TodaySchedule({ onSelectPatient }) {
       .finally(() => setLoading(false));
   }, []);
 
-  // menuOpen is closed by the backdrop overlay rendered below (no document listener needed)
+  // Close dropdown on outside mousedown (same pattern as WalkinSearch)
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setMenuOpen(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuOpen]);
 
   const updateStatus = async (apptId, newStatus) => {
+    // Close menu and update UI immediately
     setMenuOpen(null);
-    // Save old status for revert
     const oldStatus = appointments.find(a => a.id === apptId)?.status;
-    // Optimistic update — change UI immediately so staff don't double-click
+    if (oldStatus === newStatus) return; // no-op if same status
     setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, status: newStatus } : a));
     try {
       const res = await fetch('/api/appointments/update', {
@@ -221,12 +231,10 @@ function TodaySchedule({ onSelectPatient }) {
       });
       if (res.ok) {
         const data = await res.json();
-        // Sync server data (e.g. checked_in_at timestamp)
         if (data.checked_in_at) {
           setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, checked_in_at: data.checked_in_at } : a));
         }
       } else {
-        // Revert on failure
         console.error('Status update failed:', res.status);
         setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, status: oldStatus } : a));
       }
@@ -240,14 +248,7 @@ function TodaySchedule({ onSelectPatient }) {
   if (appointments.length === 0) return <div style={{ padding: '8px 14px', fontSize: 13, color: '#bbb' }}>No appointments today</div>;
 
   return (
-    <div style={{ maxHeight: 200, overflowY: 'auto', position: 'relative' }}>
-      {/* Invisible backdrop to close dropdown when clicking outside */}
-      {menuOpen && (
-        <div
-          onClick={() => setMenuOpen(null)}
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 99 }}
-        />
-      )}
+    <div style={{ maxHeight: 200, overflowY: 'auto' }}>
       {appointments.map(a => {
         const time = new Date(a.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' });
         const patientName = a.patients ? `${a.patients.first_name || ''} ${a.patients.last_name || ''}`.trim() : (a.patient_name || a.title || 'Unknown');
@@ -259,10 +260,11 @@ function TodaySchedule({ onSelectPatient }) {
           <div key={a.id} style={{ position: 'relative' }}>
             <div
               onClick={() => {
+                if (menuOpen) return; // don't navigate when closing a dropdown
                 const pid = a.patient_id || a.patients?.id;
                 if (pid) onSelectPatient({ id: pid, name: patientName, phone: a.patients?.phone });
               }}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', cursor: 'pointer', fontSize: 13, opacity: updating === a.id ? 0.5 : 1, background: isOffsite ? '#fefce8' : 'transparent' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', cursor: 'pointer', fontSize: 13, background: isOffsite ? '#fefce8' : 'transparent' }}
               onMouseEnter={e => { if (!isOffsite) e.currentTarget.style.background = '#eff1f3'; }}
               onMouseLeave={e => { e.currentTarget.style.background = isOffsite ? '#fefce8' : 'transparent'; }}>
               <span style={{ fontWeight: 600, color: '#333', minWidth: 48, flexShrink: 0 }}>{time}</span>
@@ -286,7 +288,7 @@ function TodaySchedule({ onSelectPatient }) {
             </div>
             {/* Status dropdown */}
             {menuOpen === a.id && (
-              <div style={{
+              <div ref={dropdownRef} style={{
                 position: 'absolute', right: 8, top: '100%', zIndex: 100,
                 background: '#fff', borderRadius: 8, boxShadow: '0 4px 20px rgba(0,0,0,.15)', border: '1px solid #e5e7eb',
                 padding: '4px 0', minWidth: 130,
@@ -294,6 +296,7 @@ function TodaySchedule({ onSelectPatient }) {
                 {STATUS_FLOW.map(s => (
                   <div
                     key={s.key}
+                    onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
                     onClick={(e) => { e.stopPropagation(); updateStatus(a.id, s.key); }}
                     style={{
                       padding: '6px 12px', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,

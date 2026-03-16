@@ -244,6 +244,8 @@ function TodaySchedule({ onSelectPatient }) {
         const patientName = a.patients ? `${a.patients.first_name || ''} ${a.patients.last_name || ''}`.trim() : (a.patient_name || a.title || 'Unknown');
         const statusInfo = STATUS_FLOW.find(s => s.key === a.status) || STATUS_FLOW[0];
         const checkInTime = a.checked_in_at ? new Date(a.checked_in_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' }) : null;
+        const isOffsite = a.location && !a.location.toLowerCase().includes('newport');
+        const locationLabel = isOffsite ? (a.location.includes('Placentia') ? 'Placentia' : a.location.split('—')[0]?.trim() || 'Offsite') : null;
         return (
           <div key={a.id} style={{ position: 'relative' }}>
             <div
@@ -251,13 +253,14 @@ function TodaySchedule({ onSelectPatient }) {
                 const pid = a.patient_id || a.patients?.id;
                 if (pid) onSelectPatient({ id: pid, name: patientName, phone: a.patients?.phone });
               }}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', cursor: 'pointer', fontSize: 11, opacity: updating === a.id ? 0.5 : 1 }}
-              onMouseEnter={e => e.currentTarget.style.background = '#eff1f3'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', cursor: 'pointer', fontSize: 11, opacity: updating === a.id ? 0.5 : 1, background: isOffsite ? '#fefce8' : 'transparent' }}
+              onMouseEnter={e => { if (!isOffsite) e.currentTarget.style.background = '#eff1f3'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = isOffsite ? '#fefce8' : 'transparent'; }}>
               <span style={{ fontWeight: 600, color: '#333', minWidth: 48, flexShrink: 0 }}>{time}</span>
               <span style={{ color: '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                 {patientName}
                 {checkInTime && <span style={{ color: '#8b5cf6', fontSize: 9, fontWeight: 600, marginLeft: 4 }}>IN {checkInTime}</span>}
+                {locationLabel && <span style={{ color: '#b45309', fontSize: 8, fontWeight: 700, marginLeft: 4, background: '#fef3c7', padding: '1px 4px', borderRadius: 3, letterSpacing: 0.3 }}>{locationLabel.toUpperCase()}</span>}
               </span>
               <span style={{ color: '#aaa', fontSize: 10, flexShrink: 0, maxWidth: 60, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {a.service_name || a.event_type_title || a.title || ''}

@@ -1017,7 +1017,7 @@ export default function FrontDesk() {
 
         {/* ── Top bar ── */}
         <div style={{ height: 52, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, padding: '0 16px', background: '#111', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
-          <span onClick={() => router.push('/admin/command-center')} style={{ fontSize: 12, fontWeight: 800, color: '#fff', letterSpacing: 1, whiteSpace: 'nowrap', marginRight: 4, cursor: 'pointer', padding: '4px 8px', borderRadius: 5, background: 'rgba(255,255,255,.08)' }} title="Back to System">RM</span>
+          <span onClick={() => router.push('/admin')} style={{ fontSize: 12, fontWeight: 800, color: '#fff', letterSpacing: 1, whiteSpace: 'nowrap', marginRight: 4, cursor: 'pointer', padding: '4px 8px', borderRadius: 5, background: 'rgba(255,255,255,.08)' }} title="Back to System">RM</span>
           <WalkinSearch onSelect={handleWalkin} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 4 }}>
             <button onClick={() => setShowForms(true)}

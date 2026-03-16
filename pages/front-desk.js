@@ -173,12 +173,22 @@ function SidebarSection({ title, icon, count, badge, expanded, onToggle, childre
 }
 
 // ── Today's Schedule section ──────────────────────────────────────
+const STATUS_FLOW = [
+  { key: 'scheduled', label: 'Scheduled', color: '#f59e0b', bg: '#fffbeb' },
+  { key: 'confirmed', label: 'Confirmed', color: '#3b82f6', bg: '#eff6ff' },
+  { key: 'checked_in', label: 'Checked In', color: '#8b5cf6', bg: '#f5f3ff' },
+  { key: 'showed', label: 'Showed', color: '#22c55e', bg: '#ecfdf5' },
+  { key: 'completed', label: 'Completed', color: '#059669', bg: '#d1fae5' },
+  { key: 'no_show', label: 'No Show', color: '#ef4444', bg: '#fef2f2' },
+];
+
 function TodaySchedule({ onSelectPatient }) {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(null); // appointment id with open menu
+  const [updating, setUpdating] = useState(null);
 
   useEffect(() => {
-    // Use the same endpoint as admin schedule page — queries appointments table
     const now = new Date();
     const todayPT = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
     const y = todayPT.getFullYear(), m = String(todayPT.getMonth() + 1).padStart(2, '0'), d = String(todayPT.getDate()).padStart(2, '0');
@@ -187,13 +197,37 @@ function TodaySchedule({ onSelectPatient }) {
     fetch(`/api/appointments/list?start_date=${todayStart}&end_date=${todayEnd}`)
       .then(r => r.json())
       .then(data => {
-        const appts = (data.appointments || []).filter(a => a.status !== 'cancelled' && a.status !== 'no_show');
+        const appts = (data.appointments || []).filter(a => a.status !== 'cancelled');
         appts.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
         setAppointments(appts);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = () => setMenuOpen(null);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [menuOpen]);
+
+  const updateStatus = async (apptId, newStatus) => {
+    setUpdating(apptId);
+    setMenuOpen(null);
+    try {
+      const res = await fetch('/api/appointments/update', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: apptId, table: 'appointments', status: newStatus }),
+      });
+      if (res.ok) {
+        setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, status: newStatus } : a));
+      }
+    } catch (e) { console.error('Status update failed:', e); }
+    finally { setUpdating(null); }
+  };
 
   if (loading) return <div style={{ padding: '8px 14px', fontSize: 11, color: '#aaa' }}>Loading…</div>;
   if (appointments.length === 0) return <div style={{ padding: '8px 14px', fontSize: 11, color: '#bbb' }}>No appointments today</div>;
@@ -203,25 +237,58 @@ function TodaySchedule({ onSelectPatient }) {
       {appointments.map(a => {
         const time = new Date(a.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' });
         const patientName = a.patients ? `${a.patients.first_name || ''} ${a.patients.last_name || ''}`.trim() : (a.patient_name || a.title || 'Unknown');
-        const statusColors = { checked_in: '#22c55e', confirmed: '#3b82f6', scheduled: '#f59e0b', rescheduled: '#f97316' };
-        const dotColor = statusColors[a.status] || '#ccc';
+        const statusInfo = STATUS_FLOW.find(s => s.key === a.status) || STATUS_FLOW[0];
         return (
-          <div key={a.id}
-            onClick={() => {
-              const pid = a.patient_id || a.patients?.id;
-              if (pid) onSelectPatient({ id: pid, name: patientName, phone: a.patients?.phone });
-            }}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 11 }}
-            onMouseEnter={e => e.currentTarget.style.background = '#eff1f3'}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
-            <span style={{ fontWeight: 600, color: '#333', minWidth: 48, flexShrink: 0 }}>{time}</span>
-            <span style={{ color: '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-              {patientName}
-            </span>
-            <span style={{ color: '#aaa', fontSize: 10, flexShrink: 0, maxWidth: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {a.service_name || a.event_type_title || a.title || ''}
-            </span>
+          <div key={a.id} style={{ position: 'relative' }}>
+            <div
+              onClick={() => {
+                const pid = a.patient_id || a.patients?.id;
+                if (pid) onSelectPatient({ id: pid, name: patientName, phone: a.patients?.phone });
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', cursor: 'pointer', fontSize: 11, opacity: updating === a.id ? 0.5 : 1 }}
+              onMouseEnter={e => e.currentTarget.style.background = '#eff1f3'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              <span style={{ fontWeight: 600, color: '#333', minWidth: 48, flexShrink: 0 }}>{time}</span>
+              <span style={{ color: '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                {patientName}
+              </span>
+              <span style={{ color: '#aaa', fontSize: 10, flexShrink: 0, maxWidth: 60, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {a.service_name || a.event_type_title || a.title || ''}
+              </span>
+              <button
+                onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === a.id ? null : a.id); }}
+                style={{
+                  padding: '2px 6px', borderRadius: 4, border: 'none', fontSize: 9, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+                  background: statusInfo.bg, color: statusInfo.color,
+                }}
+              >
+                {statusInfo.label}
+              </button>
+            </div>
+            {/* Status dropdown */}
+            {menuOpen === a.id && (
+              <div onClick={e => e.stopPropagation()} style={{
+                position: 'absolute', right: 8, top: '100%', zIndex: 100,
+                background: '#fff', borderRadius: 8, boxShadow: '0 4px 20px rgba(0,0,0,.15)', border: '1px solid #e5e7eb',
+                padding: '4px 0', minWidth: 130,
+              }}>
+                {STATUS_FLOW.map(s => (
+                  <div
+                    key={s.key}
+                    onClick={() => updateStatus(a.id, s.key)}
+                    style={{
+                      padding: '6px 12px', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
+                      background: a.status === s.key ? s.bg : 'transparent', fontWeight: a.status === s.key ? 700 : 400,
+                    }}
+                    onMouseEnter={e => { if (a.status !== s.key) e.currentTarget.style.background = '#f8f9fb'; }}
+                    onMouseLeave={e => { if (a.status !== s.key) e.currentTarget.style.background = 'transparent'; }}
+                  >
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
+                    <span style={{ color: s.color }}>{s.label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       })}

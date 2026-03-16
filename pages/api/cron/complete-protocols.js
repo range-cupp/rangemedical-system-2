@@ -82,38 +82,6 @@ export default async function handler(req, res) {
           console.log(`Completed: ${protocol.program_name} (ended ${protocol.end_date})`);
           completed++;
 
-          // Auto-create follow-up tasks for completed peptide protocols
-          if (protocol.program_type === 'peptide' && peptideTaskStaff.length > 0) {
-            try {
-              // Get patient name
-              const { data: patient } = await supabase
-                .from('patients')
-                .select('id, name, first_name, last_name')
-                .eq('id', protocol.patient_id)
-                .single();
-
-              const patientName = patient?.name
-                || `${patient?.first_name || ''} ${patient?.last_name || ''}`.trim()
-                || 'Unknown';
-
-              for (const empId of peptideTaskStaff) {
-                await supabase.from('tasks').insert({
-                  title: `Peptide Complete: Call ${patientName}`,
-                  description: `${patientName}'s ${protocol.program_name} protocol has completed (ended ${protocol.end_date}). Call them to check how they're doing and discuss next steps.`,
-                  assigned_to: empId,
-                  assigned_by: empId,
-                  patient_id: protocol.patient_id,
-                  patient_name: patientName,
-                  priority: 'medium',
-                  status: 'pending',
-                });
-                peptideTasksCreated++;
-              }
-              console.log(`Peptide follow-up tasks created for ${patientName}`);
-            } catch (taskErr) {
-              console.error('Peptide follow-up task error:', taskErr);
-            }
-          }
         }
       }
     }
@@ -130,6 +98,21 @@ export default async function handler(req, res) {
 
       if (expiredPeptides && expiredPeptides.length > 0) {
         for (const protocol of expiredPeptides) {
+          // Skip if patient already has a newer active peptide protocol (they renewed)
+          const { data: newerPeptides } = await supabase
+            .from('protocols')
+            .select('id')
+            .eq('patient_id', protocol.patient_id)
+            .eq('program_type', 'peptide')
+            .eq('status', 'active')
+            .gt('start_date', protocol.end_date)
+            .limit(1);
+
+          if (newerPeptides && newerPeptides.length > 0) {
+            console.log(`Skipping renewal task for ${protocol.patient_id} — already has newer active peptide protocol`);
+            continue;
+          }
+
           // Check if follow-up task already exists to avoid duplicates
           const { data: existingTasks } = await supabase
             .from('tasks')

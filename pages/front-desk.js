@@ -884,23 +884,24 @@ function PatientBanner({ patient, onCharge, onLog, onDismiss }) {
 }
 
 // ── Send Forms Modal ──────────────────────────────────────────────
-const FORM_BUNDLES = [
-  { key: 'new-patient', label: 'New Patient', desc: 'Medical Intake + HIPAA', forms: ['intake', 'hipaa'] },
-  { key: 'blood-draw', label: 'Blood Draw / Labs', desc: 'Intake + HIPAA + Blood Draw Consent', forms: ['intake', 'hipaa', 'blood-draw'] },
-  { key: 'iv', label: 'IV / Injection', desc: 'Intake + HIPAA + IV Consent', forms: ['intake', 'hipaa', 'iv'] },
-  { key: 'hbot', label: 'Hyperbaric (HBOT)', desc: 'Intake + HIPAA + HBOT Consent', forms: ['intake', 'hipaa', 'hbot'] },
-  { key: 'hrt', label: 'HRT / Hormone', desc: 'Intake + HIPAA + HRT Consent', forms: ['intake', 'hipaa', 'hrt'] },
-  { key: 'weight-loss', label: 'Weight Loss', desc: 'Intake + HIPAA + Weight Loss Consent', forms: ['intake', 'hipaa', 'weight-loss'] },
-  { key: 'peptide', label: 'Peptide', desc: 'Intake + HIPAA + Peptide Consent', forms: ['intake', 'hipaa', 'peptide'] },
-  { key: 'red-light', label: 'Red Light (RLT)', desc: 'Intake + HIPAA + RLT Consent', forms: ['intake', 'hipaa', 'red-light'] },
-  { key: 'prp', label: 'PRP', desc: 'Intake + HIPAA + PRP Consent', forms: ['intake', 'hipaa', 'prp'] },
-  { key: 'exosome', label: 'Exosome IV', desc: 'Intake + HIPAA + Exosome Consent', forms: ['intake', 'hipaa', 'exosome-iv'] },
+const FORM_OPTIONS = [
+  { id: 'intake', name: 'Medical Intake' },
+  { id: 'hipaa', name: 'HIPAA Privacy Notice' },
+  { id: 'blood-draw', name: 'Blood Draw Consent' },
+  { id: 'hrt', name: 'HRT Consent' },
+  { id: 'peptide', name: 'Peptide Consent' },
+  { id: 'iv', name: 'IV/Injection Consent' },
+  { id: 'hbot', name: 'HBOT Consent' },
+  { id: 'weight-loss', name: 'Weight Loss Consent' },
+  { id: 'red-light', name: 'Red Light Therapy Consent' },
+  { id: 'prp', name: 'PRP Consent' },
+  { id: 'exosome-iv', name: 'Exosome IV Consent' },
 ];
 
 function SendFormsModal({ onClose, patient }) {
   const [phone, setPhone] = useState(patient?.phone || '');
   const [firstName, setFirstName] = useState(patient?.name?.split(' ')[0] || '');
-  const [selectedBundle, setSelectedBundle] = useState('new-patient');
+  const [selectedForms, setSelectedForms] = useState([]);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState(null);
 
@@ -911,20 +912,25 @@ function SendFormsModal({ onClose, patient }) {
     return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
   };
 
+  const toggleForm = (formId) => {
+    setSelectedForms(prev =>
+      prev.includes(formId) ? prev.filter(f => f !== formId) : [...prev, formId]
+    );
+  };
+
   const handleSend = async () => {
     const digits = phone.replace(/\D/g, '');
-    if (digits.length < 10) return;
+    if (digits.length < 10 || !selectedForms.length) return;
     setSending(true);
     setResult(null);
     try {
-      const bundle = FORM_BUNDLES.find(b => b.key === selectedBundle);
       const res = await fetch('/api/send-forms-sms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           phone: digits,
           firstName: firstName.trim() || null,
-          formIds: bundle.forms,
+          formIds: selectedForms,
           patientId: patient?.id || null,
           patientName: patient?.name || firstName.trim() || null,
           ghlContactId: patient?.ghl_contact_id || null,
@@ -932,7 +938,7 @@ function SendFormsModal({ onClose, patient }) {
       });
       const data = await res.json();
       if (res.ok) {
-        setResult({ success: true, message: data.twoStep ? 'Opt-in sent — forms follow when patient replies YES' : 'Forms sent!' });
+        setResult({ success: true, message: data.twoStep ? 'Opt-in sent — forms follow when patient replies YES' : `${data.formsSent || selectedForms.length} form(s) sent!` });
       } else {
         setResult({ success: false, message: data.error || 'Failed to send' });
       }
@@ -943,11 +949,13 @@ function SendFormsModal({ onClose, patient }) {
     }
   };
 
+  const canSend = phone.replace(/\D/g, '').length >= 10 && selectedForms.length > 0;
+
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, width: 420, maxHeight: '85vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.3)' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, width: 420, maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,.3)' }}>
         {/* Header */}
-        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #eee' }}>
+        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #eee', flexShrink: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#111' }}>Send Forms</h2>
             <button onClick={onClose} style={{ border: 'none', background: 'none', fontSize: 20, color: '#999', cursor: 'pointer', padding: 4 }}>✕</button>
@@ -955,7 +963,7 @@ function SendFormsModal({ onClose, patient }) {
           <p style={{ margin: '4px 0 0', fontSize: 13, color: '#888' }}>Text consent forms to a patient</p>
         </div>
 
-        <div style={{ padding: '16px 24px 24px' }}>
+        <div style={{ padding: '16px 24px 24px', overflowY: 'auto', flex: 1 }}>
           {/* Phone + Name */}
           <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
             <div style={{ flex: 1 }}>
@@ -966,7 +974,7 @@ function SendFormsModal({ onClose, patient }) {
                 onChange={e => setPhone(e.target.value)}
                 placeholder="(949) 555-0123"
                 autoFocus
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 15, outline: 'none', fontFamily: 'inherit' }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 15, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
                 onFocus={e => e.target.style.borderColor = '#3b82f6'}
                 onBlur={e => e.target.style.borderColor = '#ddd'}
               />
@@ -977,33 +985,32 @@ function SendFormsModal({ onClose, patient }) {
                 value={firstName}
                 onChange={e => setFirstName(e.target.value)}
                 placeholder="Optional"
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 15, outline: 'none', fontFamily: 'inherit' }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 15, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
                 onFocus={e => e.target.style.borderColor = '#3b82f6'}
                 onBlur={e => e.target.style.borderColor = '#ddd'}
               />
             </div>
           </div>
 
-          {/* Bundle selection */}
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 8 }}>Form Bundle</label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 20 }}>
-            {FORM_BUNDLES.map(b => (
-              <button
-                key={b.key}
-                onClick={() => setSelectedBundle(b.key)}
-                style={{
-                  padding: '10px 12px',
-                  borderRadius: 9,
-                  border: selectedBundle === b.key ? '2px solid #3b82f6' : '1.5px solid #e5e7eb',
-                  background: selectedBundle === b.key ? '#eff6ff' : '#fff',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  transition: 'all .15s',
-                }}
-              >
-                <div style={{ fontSize: 13, fontWeight: 600, color: selectedBundle === b.key ? '#1d4ed8' : '#333' }}>{b.label}</div>
-                <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>{b.desc}</div>
-              </button>
+          {/* Individual form checkboxes */}
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 8 }}>Select Forms</label>
+          <div style={{ marginBottom: 16 }}>
+            {FORM_OPTIONS.map(form => (
+              <label key={form.id} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 12px', borderRadius: 8, cursor: 'pointer',
+                background: selectedForms.includes(form.id) ? '#f0f9ff' : '#fff',
+                border: selectedForms.includes(form.id) ? '1.5px solid #93c5fd' : '1.5px solid #e5e7eb',
+                marginBottom: 6, transition: 'all 0.15s',
+              }}>
+                <input
+                  type="checkbox"
+                  checked={selectedForms.includes(form.id)}
+                  onChange={() => toggleForm(form.id)}
+                  style={{ width: 18, height: 18, accentColor: '#2563eb', flexShrink: 0 }}
+                />
+                <span style={{ fontSize: 14, fontWeight: 500, color: '#111' }}>{form.name}</span>
+              </label>
             ))}
           </div>
 
@@ -1022,15 +1029,15 @@ function SendFormsModal({ onClose, patient }) {
           {/* Send button */}
           <button
             onClick={handleSend}
-            disabled={sending || phone.replace(/\D/g, '').length < 10}
+            disabled={sending || !canSend}
             style={{
               width: '100%', padding: '12px 0', borderRadius: 10, border: 'none',
-              background: sending || phone.replace(/\D/g, '').length < 10 ? '#94a3b8' : '#3b82f6',
-              color: '#fff', fontSize: 15, fontWeight: 700, cursor: sending ? 'wait' : 'pointer',
+              background: !canSend ? '#94a3b8' : '#3b82f6',
+              color: '#fff', fontSize: 15, fontWeight: 700, cursor: sending ? 'wait' : canSend ? 'pointer' : 'default',
               transition: 'background .15s',
             }}
           >
-            {sending ? 'Sending...' : result?.success ? 'Send Again' : 'Send Forms via SMS'}
+            {sending ? 'Sending...' : result?.success ? 'Send Again' : `Send ${selectedForms.length || ''} Form${selectedForms.length !== 1 ? 's' : ''} via SMS`}
           </button>
         </div>
       </div>

@@ -469,7 +469,7 @@ const PRODUCTS = [
       { amount: 40000, nickname: 'BPC-157 (500mcg)', peptide_identifier: 'BPC-157 (500mcg)' },
       { amount: 60000, nickname: 'BPC-157 (750mcg)', peptide_identifier: 'BPC-157 (750mcg)' },
       { amount: 67500, nickname: 'BPC-157 + Thymosin Beta-4', peptide_identifier: 'BPC-157 + Thymosin Beta-4' },
-      { amount: 50000, nickname: 'GLOW Blend (GHK-Cu + BPC-157 + TB-500)', peptide_identifier: 'GLOW Blend (GHK-Cu + BPC-157 + TB-500)' },
+      { amount: 67500, nickname: 'GLOW Blend (GHK-Cu + BPC-157 + TB-500)', peptide_identifier: 'GLOW Blend (GHK-Cu + BPC-157 + TB-500)' },
       { amount: 25000, nickname: 'GHK-Cu (1mg daily)', peptide_identifier: 'GHK-Cu (1mg daily)' },
       { amount: 35000, nickname: 'GHK-Cu (2mg daily)', peptide_identifier: 'GHK-Cu (2mg daily)' },
       { amount: 40000, nickname: '2X Blend (1mg × 20 inj)', peptide_identifier: '2X Blend (1mg × 20 inj)' },

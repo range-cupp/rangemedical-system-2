@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { formatPhone } from '../lib/format-utils';
 import { WEIGHT_LOSS_MEDICATIONS, WEIGHT_LOSS_DOSAGES, PEPTIDE_OPTIONS as ALL_PEPTIDE_OPTIONS } from '../lib/protocol-config';
 import { PROTOCOL_TYPES, getDeliveryLabel } from '../lib/protocol-types';
-import SignatureCanvas from './SignatureCanvas';
 
 // ============================================
 // SERVICE CONFIGURATION — derived from /lib/protocol-types.js (single source of truth)
@@ -168,16 +167,15 @@ export default function ServiceLogContent() {
   });
 
   const [submitting, setSubmitting] = useState(false);
-  const [showPFReminder, setShowPFReminder] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState(null); // { messages: [], pendingPayloads: [] }
 
-  // Dispensing & signature state
+  // Dispensing state
   const [dispensingData, setDispensingData] = useState({
     administered_by: '',
     lot_number: '',
     expiration_date: ''
   });
-  const [signatureDataUrl, setSignatureDataUrl] = useState(null);
+  const [employees, setEmployees] = useState([]);
 
   // Protocol selection state (for services with multiple active protocols)
   const [selectedProtocolId, setSelectedProtocolId] = useState(null);
@@ -187,6 +185,7 @@ export default function ServiceLogContent() {
   useEffect(() => {
     fetchLogs();
     fetchPatients();
+    fetchEmployees();
   }, [viewCategory]);
 
   // Debounced server-side search — re-fetches when search term changes
@@ -230,6 +229,19 @@ export default function ServiceLogContent() {
       }
     } catch (err) {
       console.error('Error fetching patients:', err);
+    }
+  };
+
+  const fetchEmployees = async () => {
+    try {
+      const res = await fetch('/api/admin/employees?basic=true');
+      if (!res.ok) throw new Error('Failed to load employees');
+      const data = await res.json();
+      if (data.employees) {
+        setEmployees(data.employees.filter(e => e.is_active));
+      }
+    } catch (err) {
+      console.error('Error fetching employees:', err);
     }
   };
 
@@ -524,7 +536,7 @@ export default function ServiceLogContent() {
           administered_by: dispensingData.administered_by || null,
           lot_number: dispensingData.lot_number || null,
           expiration_date: dispensingData.expiration_date || null,
-          signature_url: signatureDataUrl || null
+          signature_url: null
         };
 
         if (item.serviceType.id === 'testosterone') {
@@ -680,9 +692,6 @@ export default function ServiceLogContent() {
       if (selectedPatient) {
         fetchPatientProtocols(selectedPatient.id);
       }
-      // Show Practice Fusion reminder instead of simple alert
-      setShowPFReminder(true);
-      setTimeout(() => setShowPFReminder(false), 8000);
     } else {
       alert(`Logged ${results.length} service(s), ${errors.length} error(s):\n${errors.map(e => e.error).join('\n')}`);
       if (results.length > 0) {
@@ -723,8 +732,6 @@ export default function ServiceLogContent() {
       closeModal();
       fetchLogs();
       if (selectedPatient) fetchPatientProtocols(selectedPatient.id);
-      setShowPFReminder(true);
-      setTimeout(() => setShowPFReminder(false), 8000);
     } else {
       alert(`Logged ${results.length} service(s), ${errors.length} error(s):\n${errors.map(e => e.error).join('\n')}`);
       if (results.length > 0) fetchLogs();
@@ -824,17 +831,6 @@ export default function ServiceLogContent() {
 
   return (
     <div style={slcStyles.wrapper}>
-      {/* Practice Fusion Reminder */}
-      {showPFReminder && (
-        <div style={slcStyles.pfReminder}>
-          <span style={slcStyles.pfIcon}>🏥</span>
-          <div>
-            <strong>Don't forget:</strong> Log this service in Practice Fusion as well for the clinical record.
-          </div>
-          <button onClick={() => setShowPFReminder(false)} style={slcStyles.pfDismiss}>×</button>
-        </div>
-      )}
-
       {/* Duplicate Warning Modal */}
       {duplicateWarning && (
         <div style={{
@@ -1212,13 +1208,16 @@ export default function ServiceLogContent() {
                     <div style={slcStyles.dispensingRow}>
                       <div style={slcStyles.formGroup}>
                         <label style={slcStyles.label}>Administered By</label>
-                        <input
-                          type="text"
-                          placeholder="Staff name"
+                        <select
                           value={dispensingData.administered_by}
                           onChange={(e) => setDispensingData({ ...dispensingData, administered_by: e.target.value })}
                           style={slcStyles.input}
-                        />
+                        >
+                          <option value="">Select staff</option>
+                          {employees.map(emp => (
+                            <option key={emp.id} value={emp.name}>{emp.name}</option>
+                          ))}
+                        </select>
                       </div>
                       <div style={slcStyles.formGroup}>
                         <label style={slcStyles.label}>Lot #</label>
@@ -1241,15 +1240,6 @@ export default function ServiceLogContent() {
                       </div>
                     </div>
 
-                    {/* Signature Capture */}
-                    <div style={{ marginTop: '12px' }}>
-                      <SignatureCanvas
-                        onSignature={(dataUrl) => setSignatureDataUrl(dataUrl)}
-                        width={360}
-                        height={120}
-                        label="Patient Signature"
-                      />
-                    </div>
                   </div>
                 )}
 

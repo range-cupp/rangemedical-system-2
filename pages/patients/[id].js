@@ -440,8 +440,8 @@ export default function PatientProfile() {
   const [logEntryDate, setLogEntryDate] = useState('');
   const [logForm, setLogForm] = useState({ hrt_type: 'male', medication: '', dosage: '', custom_dosage: '', weight: '', quantity: 1, delivery_method: '', injection_method: '', frequency: '', duration: 60, notes: '' });
   const [logDispensing, setLogDispensing] = useState({ administered_by: '', lot_number: '', expiration_date: '' });
-  const [logSignature, setLogSignature] = useState(null);
   const [logSubmitting, setLogSubmitting] = useState(false);
+  const [logEmployees, setLogEmployees] = useState([]);
 
   // WL drip email + check-in state
   const [dripLogs, setDripLogs] = useState({});
@@ -561,6 +561,7 @@ export default function PatientProfile() {
       fetchPeptides();
       fetchLabDocuments();
       fetchCreditBalance();
+      fetchLogEmployees();
     }
   }, [id]);
 
@@ -607,6 +608,17 @@ export default function PatientProfile() {
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
   }, [pdfSlideOut.open]);
+
+  const fetchLogEmployees = async () => {
+    try {
+      const res = await fetch('/api/admin/employees?basic=true');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.employees) setLogEmployees(data.employees.filter(e => e.is_active));
+    } catch (err) {
+      console.error('Error fetching employees:', err);
+    }
+  };
 
   const fetchPatient = async () => {
     try {
@@ -7541,7 +7553,12 @@ export default function PatientProfile() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label>Administered By</label>
-                    <input type="text" value={logDispensing.administered_by} onChange={e => setLogDispensing(p => ({ ...p, administered_by: e.target.value }))} />
+                    <select value={logDispensing.administered_by} onChange={e => setLogDispensing(p => ({ ...p, administered_by: e.target.value }))}>
+                      <option value="">Select staff</option>
+                      {logEmployees.map(emp => (
+                        <option key={emp.id} value={emp.name}>{emp.name}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label>Lot #</label>
@@ -7551,9 +7568,6 @@ export default function PatientProfile() {
                     <label>Exp Date</label>
                     <input type="date" value={logDispensing.expiration_date} onChange={e => setLogDispensing(p => ({ ...p, expiration_date: e.target.value }))} />
                   </div>
-                </div>
-                <div style={{ marginBottom: 4 }}>
-                  <SignatureCanvas onSignature={dataUrl => setLogSignature(dataUrl)} width={440} height={120} label="Patient Signature" />
                 </div>
               </div>
               <div className="modal-footer">

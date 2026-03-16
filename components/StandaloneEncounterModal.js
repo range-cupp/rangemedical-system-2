@@ -3,13 +3,46 @@
 // Used for walk-ins, unscheduled visits, or retroactive documentation
 // Range Medical System
 
-import { useState, useRef } from 'react';
-import { ENCOUNTER_TEMPLATES } from '../lib/encounter-templates';
+import { useState, useRef, useEffect } from 'react';
+import { ENCOUNTER_TEMPLATES, getTemplatesForCategory } from '../lib/encounter-templates';
 
 const SERVICE_OPTIONS = Object.entries(ENCOUNTER_TEMPLATES).map(([key, val]) => ({
   value: key,
   label: val.label,
 }));
+
+// ── Markdown ↔ HTML helpers ───────────────────────────────────────────────────
+
+// Convert **bold** markdown + newlines → HTML for contentEditable display
+function mdToHtml(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+}
+
+// Convert contentEditable HTML back to **bold** markdown for storage
+function htmlToMd(html) {
+  if (!html) return '';
+  return html
+    .replace(/<strong>([\s\S]*?)<\/strong>/gi, (_, inner) => `**${inner.replace(/<[^>]*>/g, '')}**`)
+    .replace(/<b>([\s\S]*?)<\/b>/gi, (_, inner) => `**${inner.replace(/<[^>]*>/g, '')}**`)
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<div><br\s*\/?><\/div>/gi, '\n')
+    .replace(/<div>([\s\S]*?)<\/div>/gi, '\n$1')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/<[^>]*>/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function StandaloneEncounterModal({ patient, currentUser, onClose, onRefresh }) {
   const today = new Date().toISOString().split('T')[0];
@@ -18,15 +51,46 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
     visitDate: today,
     serviceType: 'general',
     provider: currentUser || '',
-    noteInput: '',
-    noteFormatted: '',
   });
   const [step, setStep] = useState('form'); // 'form' | 'preview'
+  const [noteFormatted, setNoteFormatted] = useState('');
+  const [noteIsEmpty, setNoteIsEmpty] = useState(true);
   const [formatting, setFormatting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [showTemplateMenu, setShowTemplateMenu] = useState(false);
   const [error, setError] = useState('');
+
+  const noteRef = useRef(null);
   const recognitionRef = useRef(null);
+
+  // Focus the editor when stepping back from preview
+  useEffect(() => {
+    if (step === 'form' && noteRef.current) {
+      noteRef.current.focus();
+    }
+  }, [step]);
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
+  const getNoteMarkdown = () => htmlToMd(noteRef.current?.innerHTML || '');
+
+  const loadTemplate = (body) => {
+    if (noteRef.current) {
+      noteRef.current.innerHTML = mdToHtml(body);
+      setNoteIsEmpty(false);
+      noteRef.current.focus();
+      // Move cursor to end
+      const range = document.createRange();
+      const sel = window.getSelection();
+      range.selectNodeContents(noteRef.current);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+  };
+
+  // ── Dictation ────────────────────────────────────────────────────────────
 
   const toggleDictation = () => {
     if (isRecording) {
@@ -48,7 +112,16 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
         .slice(e.resultIndex)
         .map(r => r[0].transcript)
         .join(' ');
-      setForm(prev => ({ ...prev, noteInput: prev.noteInput + (prev.noteInput ? ' ' : '') + transcript }));
+      if (noteRef.current) {
+        noteRef.current.focus();
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0 && noteRef.current.contains(sel.anchorNode)) {
+          document.execCommand('insertText', false, ' ' + transcript);
+        } else {
+          noteRef.current.innerHTML += ' ' + transcript;
+        }
+        setNoteIsEmpty(false);
+      }
     };
     recognition.onend = () => setIsRecording(false);
     recognition.start();
@@ -56,21 +129,24 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
     setIsRecording(true);
   };
 
+  // ── Format with AI ───────────────────────────────────────────────────────
+
   const handleFormatWithAI = async () => {
-    if (!form.noteInput.trim()) return;
+    const rawMarkdown = getNoteMarkdown();
+    if (!rawMarkdown.trim()) return;
     setFormatting(true);
     try {
       const res = await fetch('/api/notes/format', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          raw_input: form.noteInput,
+          raw_input: rawMarkdown,
           note_type: ENCOUNTER_TEMPLATES[form.serviceType]?.defaultNoteType || 'progress',
         }),
       });
       const data = await res.json();
       if (data.formatted) {
-        setForm(prev => ({ ...prev, noteFormatted: data.formatted }));
+        setNoteFormatted(data.formatted);
         setStep('preview');
       }
     } catch (err) {
@@ -80,12 +156,16 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
     }
   };
 
+  // ── Save ─────────────────────────────────────────────────────────────────
+
   const handleSave = async () => {
-    if (!form.noteInput.trim()) return;
+    const rawMarkdown = getNoteMarkdown();
+    const bodyToSave = step === 'preview' ? noteFormatted : null;
+    if (!rawMarkdown.trim() && !bodyToSave?.trim()) return;
+
     setSaving(true);
     setError('');
 
-    // Parse the visit date back to ISO
     const visitDateTime = new Date(form.visitDate + 'T12:00:00').toISOString();
 
     try {
@@ -94,8 +174,8 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           patient_id: patient.id,
-          raw_input: form.noteInput,
-          body: form.noteFormatted || null,
+          raw_input: rawMarkdown || bodyToSave,
+          body: bodyToSave || null,
           created_by: form.provider || currentUser || 'Staff',
           source: 'encounter',
           encounter_service: form.serviceType,
@@ -118,17 +198,14 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
     }
   };
 
+  // ── Render ────────────────────────────────────────────────────────────────
+
+  const canSave = step === 'preview' ? !!noteFormatted.trim() : !noteIsEmpty;
+
   return (
     <>
       {/* Overlay */}
-      <div
-        onClick={onClose}
-        style={{
-          position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.45)',
-          zIndex: 10000,
-        }}
-      />
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 10000 }} />
 
       {/* Modal */}
       <div
@@ -137,33 +214,34 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
           position: 'fixed', top: '50%', left: '50%',
           transform: 'translate(-50%, -50%)',
           background: '#fff', borderRadius: 12,
-          width: '95%', maxWidth: 600,
+          width: '95%', maxWidth: 620,
           maxHeight: '90vh', overflowY: 'auto',
           zIndex: 10001,
           boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
           fontFamily: 'system-ui, sans-serif',
         }}
       >
+        {/* Scoped styles for the contentEditable note field */}
+        <style>{`
+          .sem-note-editor:empty::before {
+            content: attr(data-placeholder);
+            color: #9ca3af;
+            pointer-events: none;
+          }
+          .sem-note-editor:focus {
+            outline: none;
+            border-color: #2563eb !important;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+          }
+        `}</style>
+
         {/* Header */}
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '18px 24px', borderBottom: '1px solid #e5e7eb',
-        }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 24px', borderBottom: '1px solid #e5e7eb' }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#111827' }}>
-              Log Encounter
-            </h3>
-            <p style={{ margin: '2px 0 0', fontSize: 13, color: '#6b7280' }}>
-              {patient?.name} — no appointment required
-            </p>
+            <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#111827' }}>Log Encounter</h3>
+            <p style={{ margin: '2px 0 0', fontSize: 13, color: '#6b7280' }}>{patient?.name} — no appointment required</p>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none', border: 'none', fontSize: 22,
-              color: '#9ca3af', cursor: 'pointer', lineHeight: 1, padding: 4,
-            }}
-          >×</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, color: '#9ca3af', cursor: 'pointer', lineHeight: 1, padding: 4 }}>×</button>
         </div>
 
         {/* Body */}
@@ -179,10 +257,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
                 type="date"
                 value={form.visitDate}
                 onChange={e => setForm(prev => ({ ...prev, visitDate: e.target.value }))}
-                style={{
-                  width: '100%', padding: '8px 10px', border: '1px solid #d1d5db',
-                  borderRadius: 6, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box',
-                }}
+                style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
               />
             </div>
             <div>
@@ -191,11 +266,8 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
               </label>
               <select
                 value={form.serviceType}
-                onChange={e => setForm(prev => ({ ...prev, serviceType: e.target.value }))}
-                style={{
-                  width: '100%', padding: '8px 10px', border: '1px solid #d1d5db',
-                  borderRadius: 6, fontSize: 14, fontFamily: 'inherit', background: '#fff', boxSizing: 'border-box',
-                }}
+                onChange={e => { setForm(prev => ({ ...prev, serviceType: e.target.value })); setShowTemplateMenu(false); }}
+                style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, fontFamily: 'inherit', background: '#fff', boxSizing: 'border-box' }}
               >
                 {SERVICE_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -214,30 +286,104 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
               value={form.provider}
               onChange={e => setForm(prev => ({ ...prev, provider: e.target.value }))}
               placeholder="Dr. Burgess"
-              style={{
-                width: '100%', padding: '8px 10px', border: '1px solid #d1d5db',
-                borderRadius: 6, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box',
-              }}
+              style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
             />
           </div>
 
-          {/* Note */}
+          {/* Template selector — only in form step */}
+          {step === 'form' && (() => {
+            const { matched, other } = getTemplatesForCategory(form.serviceType);
+            const allTemplates = [...matched, ...other];
+            if (allTemplates.length === 0) return null;
+            return (
+              <div style={{ marginBottom: 16, position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowTemplateMenu(prev => !prev)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: 6,
+                    background: '#f9fafb', color: '#374151', fontSize: 13.5,
+                    cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                  }}
+                >
+                  <span style={{ fontSize: 15 }}>📋</span>
+                  <span style={{ fontWeight: 500 }}>Use a Note Template</span>
+                  <span style={{ marginLeft: 'auto', fontSize: 11, color: '#9ca3af' }}>{showTemplateMenu ? '▲' : '▼'}</span>
+                </button>
+                {showTemplateMenu && (
+                  <div style={{
+                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
+                    background: '#fff', border: '1px solid #d1d5db', borderRadius: 8,
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.12)', marginTop: 4,
+                    maxHeight: 320, overflowY: 'auto',
+                  }}>
+                    {matched.length > 0 && (
+                      <>
+                        <div style={{ padding: '7px 12px', fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', borderBottom: '1px solid #f3f4f6' }}>
+                          Suggested for this visit
+                        </div>
+                        {matched.map(tmpl => (
+                          <button key={tmpl.key} type="button"
+                            onClick={() => { loadTemplate(tmpl.body); setShowTemplateMenu(false); }}
+                            style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', border: 'none', background: 'none', fontSize: 13.5, color: '#111827', cursor: 'pointer', fontFamily: 'inherit', borderBottom: '1px solid #f9fafb' }}
+                            onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                          >{tmpl.label}</button>
+                        ))}
+                        {other.length > 0 && <div style={{ borderTop: '1px solid #e5e7eb', margin: '4px 0' }} />}
+                      </>
+                    )}
+                    {other.length > 0 && (
+                      <>
+                        <div style={{ padding: '7px 12px', fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', borderBottom: '1px solid #f3f4f6' }}>
+                          {matched.length > 0 ? 'Other Templates' : 'All Templates'}
+                        </div>
+                        {other.map(tmpl => (
+                          <button key={tmpl.key} type="button"
+                            onClick={() => { loadTemplate(tmpl.body); setShowTemplateMenu(false); }}
+                            style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', border: 'none', background: 'none', fontSize: 13.5, color: '#111827', cursor: 'pointer', fontFamily: 'inherit', borderBottom: '1px solid #f9fafb' }}
+                            onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                          >{tmpl.label}</button>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Note field */}
           {step === 'form' ? (
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Encounter Note
               </label>
               <div style={{ position: 'relative' }}>
-                <textarea
-                  value={form.noteInput}
-                  onChange={e => setForm(prev => ({ ...prev, noteInput: e.target.value }))}
-                  rows={7}
-                  placeholder="Type your clinical note, or click the microphone to dictate..."
+                <div
+                  ref={noteRef}
+                  className="sem-note-editor"
+                  contentEditable
+                  suppressContentEditableWarning
+                  data-placeholder="Type your clinical note, or click the microphone to dictate..."
+                  onInput={() => {
+                    const text = noteRef.current?.innerText || '';
+                    setNoteIsEmpty(!text.trim());
+                  }}
                   style={{
-                    width: '100%', padding: '10px 48px 10px 12px',
-                    border: '1px solid #d1d5db', borderRadius: 6,
-                    fontSize: 14, fontFamily: 'inherit', lineHeight: 1.6,
-                    resize: 'vertical', boxSizing: 'border-box',
+                    minHeight: 180,
+                    padding: '10px 48px 10px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: 6,
+                    fontSize: 14,
+                    fontFamily: 'inherit',
+                    lineHeight: 1.7,
+                    overflowY: 'auto',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-word',
+                    transition: 'border-color 0.15s, box-shadow 0.15s',
                   }}
                 />
                 <button
@@ -251,7 +397,6 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
                     background: isRecording ? '#dc2626' : '#f3f4f6',
                     color: isRecording ? '#fff' : '#374151',
                     fontSize: 17, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    animation: isRecording ? 'pulse 1.5s infinite' : 'none',
                     transition: 'background 0.2s',
                   }}
                 >🎤</button>
@@ -272,12 +417,12 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
                   onClick={() => setStep('form')}
                   style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: 13 }}
                 >
-                  ← Edit raw
+                  ← Edit
                 </button>
               </div>
               <textarea
-                value={form.noteFormatted}
-                onChange={e => setForm(prev => ({ ...prev, noteFormatted: e.target.value }))}
+                value={noteFormatted}
+                onChange={e => setNoteFormatted(e.target.value)}
                 rows={10}
                 style={{
                   width: '100%', padding: '10px 12px',
@@ -299,15 +444,20 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
                   <button
                     key={qn}
                     type="button"
-                    onClick={() => setForm(prev => ({
-                      ...prev,
-                      noteInput: prev.noteInput ? prev.noteInput + '. ' + qn : qn,
-                    }))}
-                    style={{
-                      padding: '3px 10px', fontSize: 12, borderRadius: 20,
-                      border: '1px solid #d1d5db', background: '#f9fafb',
-                      color: '#374151', cursor: 'pointer',
+                    onClick={() => {
+                      if (noteRef.current) {
+                        noteRef.current.focus();
+                        const sel = window.getSelection();
+                        if (sel && sel.rangeCount > 0 && noteRef.current.contains(sel.anchorNode)) {
+                          document.execCommand('insertText', false, (noteRef.current.innerText.trim() ? '. ' : '') + qn);
+                        } else {
+                          const current = noteRef.current.innerHTML;
+                          noteRef.current.innerHTML = current.trim() ? current + '. ' + qn : qn;
+                        }
+                        setNoteIsEmpty(false);
+                      }
                     }}
+                    style={{ padding: '3px 10px', fontSize: 12, borderRadius: 20, border: '1px solid #d1d5db', background: '#f9fafb', color: '#374151', cursor: 'pointer' }}
                   >
                     + {qn}
                   </button>
@@ -316,22 +466,14 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
             </div>
           )}
 
-          {error && (
-            <p style={{ marginTop: 12, color: '#dc2626', fontSize: 13 }}>{error}</p>
-          )}
+          {error && <p style={{ marginTop: 12, color: '#dc2626', fontSize: 13 }}>{error}</p>}
         </div>
 
         {/* Footer */}
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          padding: '14px 24px', borderTop: '1px solid #e5e7eb', gap: 10,
-        }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 24px', borderTop: '1px solid #e5e7eb', gap: 10 }}>
           <button
             onClick={onClose}
-            style={{
-              padding: '8px 18px', border: '1px solid #d1d5db', borderRadius: 6,
-              background: '#fff', color: '#374151', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit',
-            }}
+            style={{ padding: '8px 18px', border: '1px solid #d1d5db', borderRadius: 6, background: '#fff', color: '#374151', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}
           >
             Cancel
           </button>
@@ -339,12 +481,12 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
             {step === 'form' && (
               <button
                 onClick={handleFormatWithAI}
-                disabled={!form.noteInput.trim() || formatting}
+                disabled={noteIsEmpty || formatting}
                 style={{
                   padding: '8px 18px', borderRadius: 6, border: '1px solid #d1d5db',
                   background: '#fff', color: '#374151', fontSize: 14,
-                  cursor: (!form.noteInput.trim() || formatting) ? 'not-allowed' : 'pointer',
-                  opacity: (!form.noteInput.trim() || formatting) ? 0.5 : 1,
+                  cursor: (noteIsEmpty || formatting) ? 'not-allowed' : 'pointer',
+                  opacity: (noteIsEmpty || formatting) ? 0.5 : 1,
                   fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6,
                 }}
               >
@@ -353,12 +495,12 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
             )}
             <button
               onClick={handleSave}
-              disabled={!form.noteInput.trim() || saving}
+              disabled={!canSave || saving}
               style={{
                 padding: '8px 20px', borderRadius: 6, border: 'none',
                 background: '#2563eb', color: '#fff', fontSize: 14, fontWeight: 600,
-                cursor: (!form.noteInput.trim() || saving) ? 'not-allowed' : 'pointer',
-                opacity: (!form.noteInput.trim() || saving) ? 0.5 : 1,
+                cursor: (!canSave || saving) ? 'not-allowed' : 'pointer',
+                opacity: (!canSave || saving) ? 0.5 : 1,
                 fontFamily: 'inherit',
               }}
             >

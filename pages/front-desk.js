@@ -185,8 +185,6 @@ const STATUS_FLOW = [
 function TodaySchedule({ onSelectPatient }) {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [menuOpen, setMenuOpen] = useState(null); // appointment id with open menu
-  const dropdownRef = useRef(null);
 
   useEffect(() => {
     const now = new Date();
@@ -205,23 +203,10 @@ function TodaySchedule({ onSelectPatient }) {
       .finally(() => setLoading(false));
   }, []);
 
-  // Close dropdown on outside mousedown (same pattern as WalkinSearch)
-  useEffect(() => {
-    if (!menuOpen) return;
-    const handler = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setMenuOpen(null);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [menuOpen]);
-
   const updateStatus = async (apptId, newStatus) => {
-    // Close menu and update UI immediately
-    setMenuOpen(null);
     const oldStatus = appointments.find(a => a.id === apptId)?.status;
-    if (oldStatus === newStatus) return; // no-op if same status
+    if (oldStatus === newStatus) return;
+    // Optimistic update
     setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, status: newStatus } : a));
     try {
       const res = await fetch('/api/appointments/update', {
@@ -257,10 +242,9 @@ function TodaySchedule({ onSelectPatient }) {
         const isOffsite = a.location && !a.location.toLowerCase().includes('newport');
         const locationLabel = isOffsite ? (a.location.includes('Placentia') ? 'Placentia' : a.location.split('—')[0]?.trim() || 'Offsite') : null;
         return (
-          <div key={a.id} style={{ position: 'relative' }}>
+          <div key={a.id}>
             <div
               onClick={() => {
-                if (menuOpen) return; // don't navigate when closing a dropdown
                 const pid = a.patient_id || a.patients?.id;
                 if (pid) onSelectPatient({ id: pid, name: patientName, phone: a.patients?.phone });
               }}
@@ -276,41 +260,22 @@ function TodaySchedule({ onSelectPatient }) {
               <span style={{ color: '#aaa', fontSize: 12, flexShrink: 0, maxWidth: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {a.service_name || a.event_type_title || a.title || ''}
               </span>
-              <button
-                onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === a.id ? null : a.id); }}
+              {/* Native select for status — no custom dropdown needed */}
+              <select
+                value={a.status}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => { e.stopPropagation(); updateStatus(a.id, e.target.value); }}
                 style={{
-                  padding: '2px 6px', borderRadius: 4, border: 'none', fontSize: 11, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+                  padding: '2px 4px', borderRadius: 4, border: 'none', fontSize: 11, fontWeight: 700,
+                  cursor: 'pointer', flexShrink: 0, appearance: 'auto',
                   background: statusInfo.bg, color: statusInfo.color,
                 }}
               >
-                {statusInfo.label}
-              </button>
-            </div>
-            {/* Status dropdown */}
-            {menuOpen === a.id && (
-              <div ref={dropdownRef} style={{
-                position: 'absolute', right: 8, top: '100%', zIndex: 100,
-                background: '#fff', borderRadius: 8, boxShadow: '0 4px 20px rgba(0,0,0,.15)', border: '1px solid #e5e7eb',
-                padding: '4px 0', minWidth: 130,
-              }}>
                 {STATUS_FLOW.map(s => (
-                  <div
-                    key={s.key}
-                    onMouseDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                    onClick={(e) => { e.stopPropagation(); updateStatus(a.id, s.key); }}
-                    style={{
-                      padding: '6px 12px', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
-                      background: a.status === s.key ? s.bg : 'transparent', fontWeight: a.status === s.key ? 700 : 400,
-                    }}
-                    onMouseEnter={e => { if (a.status !== s.key) e.currentTarget.style.background = '#f8f9fb'; }}
-                    onMouseLeave={e => { if (a.status !== s.key) e.currentTarget.style.background = 'transparent'; }}
-                  >
-                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
-                    <span style={{ color: s.color }}>{s.label}</span>
-                  </div>
+                  <option key={s.key} value={s.key}>{s.label}</option>
                 ))}
-              </div>
-            )}
+              </select>
+            </div>
           </div>
         );
       })}

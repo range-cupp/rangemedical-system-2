@@ -72,15 +72,15 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
     }
   };
 
-  // Auto-select first ?? when template is loaded
-  const selectFirstPlaceholder = (text) => {
+  // Auto-select first ?? when template is loaded (offset = where appended text starts)
+  const selectFirstPlaceholder = (text, offset = 0) => {
     const idx = text.indexOf('??');
     if (idx === -1) return;
     setTimeout(() => {
       const textarea = noteTextareaRef.current;
       if (!textarea) return;
       textarea.focus();
-      textarea.setSelectionRange(idx, idx + 2);
+      textarea.setSelectionRange(offset + idx, offset + idx + 2);
     }, 50);
   };
 
@@ -1120,10 +1120,14 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                                       key={tmpl.key}
                                       className="enc-template-option"
                                       onClick={() => {
-                                        setNoteInput(tmpl.body);
-                                        if (tmpl.defaultNoteType) setNoteType(tmpl.defaultNoteType);
-                                        setShowTemplateMenu(false);
-                                        selectFirstPlaceholder(tmpl.body);
+                                        setNoteInput(prev => {
+                                          const separator = prev.trim() ? '\n\n---\n\n' : '';
+                                          const offset = prev.length + separator.length;
+                                          if (tmpl.defaultNoteType && !prev.trim()) setNoteType(tmpl.defaultNoteType);
+                                          setShowTemplateMenu(false);
+                                          selectFirstPlaceholder(tmpl.body, offset);
+                                          return prev + separator + tmpl.body;
+                                        });
                                       }}
                                     >
                                       {tmpl.label}
@@ -1142,10 +1146,14 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                                       key={tmpl.key}
                                       className="enc-template-option"
                                       onClick={() => {
-                                        setNoteInput(tmpl.body);
-                                        if (tmpl.defaultNoteType) setNoteType(tmpl.defaultNoteType);
-                                        setShowTemplateMenu(false);
-                                        selectFirstPlaceholder(tmpl.body);
+                                        setNoteInput(prev => {
+                                          const separator = prev.trim() ? '\n\n---\n\n' : '';
+                                          const offset = prev.length + separator.length;
+                                          if (tmpl.defaultNoteType && !prev.trim()) setNoteType(tmpl.defaultNoteType);
+                                          setShowTemplateMenu(false);
+                                          selectFirstPlaceholder(tmpl.body, offset);
+                                          return prev + separator + tmpl.body;
+                                        });
                                       }}
                                     >
                                       {tmpl.label}

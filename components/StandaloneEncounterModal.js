@@ -102,15 +102,51 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
 
   const loadTemplate = (body) => {
     if (noteRef.current) {
-      noteRef.current.innerHTML = mdToHtml(body);
+      const existing = noteRef.current.innerHTML.trim();
+      const separator = existing ? '<br><br><hr><br>' : '';
+      noteRef.current.innerHTML = (existing ? existing + separator : '') + mdToHtml(body);
       setNoteIsEmpty(false);
       noteRef.current.focus();
-      // Jump to first ?? placeholder, or move cursor to end
+      // Jump to first ?? placeholder in the newly appended template, or move cursor to end
       setTimeout(() => {
-        if (!selectNextPlaceholder(noteRef.current, true)) {
+        // Find ?? placeholders — selectNextPlaceholder scans from start,
+        // but we want the first one in the appended section
+        const el = noteRef.current;
+        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+        let node;
+        let lastMatch = null;
+        let foundInNew = false;
+        // Walk all text nodes and find the first ?? that appears in the new content
+        // We track all ?? and use the ones after the separator
+        const allMatches = [];
+        while ((node = walker.nextNode())) {
+          let searchFrom = 0;
+          while (true) {
+            const idx = node.textContent.indexOf('??', searchFrom);
+            if (idx === -1) break;
+            allMatches.push({ node, idx });
+            searchFrom = idx + 2;
+          }
+        }
+        // If we appended, jump to first ?? in the new body text
+        // Otherwise jump to first ?? overall
+        const bodyHasPlaceholder = body.includes('??');
+        if (allMatches.length > 0 && bodyHasPlaceholder) {
+          // Jump to first ?? (selectNextPlaceholder from start works fine)
+          if (!selectNextPlaceholder(el, true)) {
+            // fallback: cursor to end
+            const range = document.createRange();
+            const sel = window.getSelection();
+            range.selectNodeContents(el);
+            range.collapse(false);
+            sel.removeAllRanges();
+            sel.addRange(range);
+          }
+        } else {
+          // No ??, move cursor to end
           const range = document.createRange();
           const sel = window.getSelection();
-          range.selectNodeContents(noteRef.current);
+          range.selectNodeContents(el);
           range.collapse(false);
           sel.removeAllRanges();
           sel.addRange(range);

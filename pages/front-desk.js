@@ -178,12 +178,16 @@ function TodaySchedule({ onSelectPatient }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
-    fetch(`/api/app/schedule?date=${today}&days=1`)
+    // Use the same endpoint as admin schedule page — queries appointments table
+    const now = new Date();
+    const todayPT = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+    const y = todayPT.getFullYear(), m = String(todayPT.getMonth() + 1).padStart(2, '0'), d = String(todayPT.getDate()).padStart(2, '0');
+    const todayStart = `${y}-${m}-${d}T00:00:00`;
+    const todayEnd = `${y}-${m}-${d}T23:59:59`;
+    fetch(`/api/appointments/list?start_date=${todayStart}&end_date=${todayEnd}`)
       .then(r => r.json())
       .then(data => {
-        const appts = data.appointments || [];
-        // Sort by start_time
+        const appts = (data.appointments || []).filter(a => a.status !== 'cancelled' && a.status !== 'no_show');
         appts.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
         setAppointments(appts);
       })
@@ -198,7 +202,7 @@ function TodaySchedule({ onSelectPatient }) {
     <div style={{ maxHeight: 200, overflowY: 'auto' }}>
       {appointments.map(a => {
         const time = new Date(a.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' });
-        const patientName = a.patients ? `${a.patients.first_name || ''} ${a.patients.last_name || ''}`.trim() : (a.patient_name || 'Unknown');
+        const patientName = a.patients ? `${a.patients.first_name || ''} ${a.patients.last_name || ''}`.trim() : (a.patient_name || a.title || 'Unknown');
         const statusColors = { checked_in: '#22c55e', confirmed: '#3b82f6', scheduled: '#f59e0b', rescheduled: '#f97316' };
         const dotColor = statusColors[a.status] || '#ccc';
         return (
@@ -216,7 +220,7 @@ function TodaySchedule({ onSelectPatient }) {
               {patientName}
             </span>
             <span style={{ color: '#aaa', fontSize: 10, flexShrink: 0, maxWidth: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {a.event_type_title || a.title || ''}
+              {a.service_name || a.event_type_title || a.title || ''}
             </span>
           </div>
         );
@@ -226,18 +230,20 @@ function TodaySchedule({ onSelectPatient }) {
 }
 
 // ── My Tasks section ──────────────────────────────────────────────
-function MyTasks({ employeeId, onSelectPatient }) {
+function MyTasks({ employeeId, session, onSelectPatient }) {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const fetchTasks = useCallback(() => {
-    if (!employeeId) return;
-    fetch(`/api/admin/tasks?filter=my&status=pending&employee_id=${employeeId}`)
+    if (!employeeId || !session?.access_token) return;
+    fetch(`/api/admin/tasks?filter=my&status=pending`, {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
       .then(r => r.json())
       .then(data => setTasks(data.tasks || []))
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [employeeId]);
+  }, [employeeId, session]);
 
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
 
@@ -245,7 +251,7 @@ function MyTasks({ employeeId, onSelectPatient }) {
     e.stopPropagation();
     await fetch('/api/admin/tasks', {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
       body: JSON.stringify({ id: taskId, status: 'completed' }),
     });
     setTasks(prev => prev.filter(t => t.id !== taskId));
@@ -294,7 +300,7 @@ function MyTasks({ employeeId, onSelectPatient }) {
 }
 
 // ── Sidebar with Schedule, Tasks, and Conversations ───────────────
-function InboxSidebar({ selected, onSelect, employeeId }) {
+function InboxSidebar({ selected, onSelect, employeeId, session }) {
   const [contacts, setContacts] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -331,18 +337,27 @@ function InboxSidebar({ selected, onSelect, employeeId }) {
 
   // Fetch counts for badges
   useEffect(() => {
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
-    fetch(`/api/app/schedule?date=${today}&days=1`)
+    const now = new Date();
+    const todayPT = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+    const y = todayPT.getFullYear(), m = String(todayPT.getMonth() + 1).padStart(2, '0'), d = String(todayPT.getDate()).padStart(2, '0');
+    const todayStart = `${y}-${m}-${d}T00:00:00`;
+    const todayEnd = `${y}-${m}-${d}T23:59:59`;
+    fetch(`/api/appointments/list?start_date=${todayStart}&end_date=${todayEnd}`)
       .then(r => r.json())
-      .then(data => setScheduleCount((data.appointments || []).length))
+      .then(data => {
+        const active = (data.appointments || []).filter(a => a.status !== 'cancelled' && a.status !== 'no_show');
+        setScheduleCount(active.length);
+      })
       .catch(() => {});
-    if (employeeId) {
-      fetch(`/api/admin/unread-tasks?employee_id=${employeeId}`)
+    if (employeeId && session?.access_token) {
+      fetch(`/api/admin/tasks?filter=my&status=pending`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
         .then(r => r.json())
-        .then(data => setTaskCount(data.count || 0))
+        .then(data => setTaskCount((data.tasks || []).length))
         .catch(() => {});
     }
-  }, [employeeId]);
+  }, [employeeId, session]);
 
   useEffect(() => {
     clearTimeout(searchTO.current);
@@ -373,7 +388,7 @@ function InboxSidebar({ selected, onSelect, employeeId }) {
 
         {/* My Tasks */}
         <SidebarSection title="TASKS" icon="✅" count={taskCount} badge={taskCount > 0 ? 'red' : null} expanded={showTasks} onToggle={() => setShowTasks(!showTasks)}>
-          <MyTasks employeeId={employeeId} onSelectPatient={onSelect} />
+          <MyTasks employeeId={employeeId} session={session} onSelectPatient={onSelect} />
         </SidebarSection>
       </div>
 
@@ -732,7 +747,7 @@ export default function FrontDesk() {
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
 
           {/* Inbox sidebar */}
-          <InboxSidebar selected={selectedPatient} onSelect={p => { setSelectedPatient(p); setWalkinPatient(null); }} employeeId={employee.id} />
+          <InboxSidebar selected={selectedPatient} onSelect={p => { setSelectedPatient(p); setWalkinPatient(null); }} employeeId={employee.id} session={session} />
 
           {/* Center: conversation or patient banner */}
           <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>

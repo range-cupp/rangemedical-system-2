@@ -634,6 +634,12 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
         }
 
         if (item.createProtocol && item.protocolData) {
+          // For weight loss pickups, use supply duration (quantity = weeks) as total_sessions
+          let totalSessions = item.protocolData.totalSessions ? parseInt(item.protocolData.totalSessions) : null;
+          if (!totalSessions && item.serviceType.id === 'weight_loss' && item.entryType === 'pickup' && item.formData.quantity) {
+            totalSessions = parseInt(item.formData.quantity);
+          }
+
           const protocolPayload = {
             patient_id: selectedPatient.id,
             program_type: item.serviceType.programType,
@@ -643,7 +649,7 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
             frequency: item.protocolData.frequency || null,
             delivery_method: item.protocolData.deliveryMethod || 'take_home',
             supply_type: item.protocolData.supplyType || null,
-            total_sessions: item.protocolData.totalSessions ? parseInt(item.protocolData.totalSessions) : null,
+            total_sessions: totalSessions,
             start_date: visitDate
           };
 

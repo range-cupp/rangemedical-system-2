@@ -217,7 +217,7 @@ function getProtocolCategory(protocol) {
   if (programType.includes('peptide') || programType.includes('bpc') || programType.includes('tb-500') || programType.includes('recovery') || programType.includes('month_program') || programType.includes('jumpstart') || programType.includes('maintenance_4week') || programType.includes('gh_peptide')) {
     return 'peptide';
   }
-  if (programType.includes('iv') || programType.includes('infusion') || programType.includes('nad')) {
+  if (programType.includes('iv') || programType.includes('infusion')) {
     return 'iv';
   }
   if (programType.includes('hbot') || programType.includes('hyperbaric')) {
@@ -226,7 +226,7 @@ function getProtocolCategory(protocol) {
   if (programType.includes('rlt') || programType.includes('red_light') || programType.includes('red light')) {
     return 'rlt';
   }
-  if (programType.includes('injection') || programType.includes('b12') || programType.includes('vitamin')) {
+  if (programType.includes('injection') || programType.includes('b12') || programType.includes('vitamin') || programType.includes('nad')) {
     return 'injection';
   }
   if (programType.includes('lab')) {
@@ -234,7 +234,7 @@ function getProtocolCategory(protocol) {
   }
   // Fall back to checking medication name when program_type is generic
   const med = (protocol.medication || '').toLowerCase();
-  if (med.includes('nad')) return 'iv';
+  if (med.includes('nad')) return 'injection';
   if (med.includes('b12') || med.includes('lipo') || med.includes('taurine') || med.includes('toradol') || med.includes('glutathione')) return 'injection';
   if (med.includes('semaglutide') || med.includes('tirzepatide') || med.includes('retatrutide')) return 'weight_loss';
   if (med.includes('testosterone') || med.includes('estradiol') || med.includes('progesterone')) return 'hrt';

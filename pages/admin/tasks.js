@@ -49,11 +49,15 @@ export default function TasksPage() {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [expandedTask, setExpandedTask] = useState(null);
 
-  // Renewal text state
-  const [textPreview, setTextPreview] = useState({}); // { [taskId]: { message, loading, sent, error } }
+  // SMS composer state per task: { [taskId]: { message, loading, sending, sent, error, open } }
+  const [smsState, setSmsState] = useState({});
+
+  const openSmsComposer = (task) => {
+    setSmsState(prev => ({ ...prev, [task.id]: { ...prev[task.id], open: true, sent: false, error: null } }));
+  };
 
   const generateRenewalText = async (task) => {
-    setTextPreview(prev => ({ ...prev, [task.id]: { ...prev[task.id], loading: true, error: null } }));
+    setSmsState(prev => ({ ...prev, [task.id]: { ...prev[task.id], open: true, loading: true, error: null } }));
     try {
       const res = await fetch('/api/tasks/generate-renewal-text', {
         method: 'POST',
@@ -65,16 +69,16 @@ export default function TasksPage() {
         }),
       });
       const data = await res.json();
-      setTextPreview(prev => ({ ...prev, [task.id]: { message: data.message, loading: false } }));
+      setSmsState(prev => ({ ...prev, [task.id]: { ...prev[task.id], message: data.message, loading: false } }));
     } catch (err) {
-      setTextPreview(prev => ({ ...prev, [task.id]: { loading: false, error: 'Failed to generate message' } }));
+      setSmsState(prev => ({ ...prev, [task.id]: { ...prev[task.id], loading: false, error: 'Failed to generate message' } }));
     }
   };
 
-  const sendRenewalText = async (task) => {
-    const preview = textPreview[task.id];
-    if (!preview?.message || !task.patient_phone) return;
-    setTextPreview(prev => ({ ...prev, [task.id]: { ...prev[task.id], sending: true } }));
+  const sendTaskSms = async (task) => {
+    const state = smsState[task.id];
+    if (!state?.message?.trim() || !task.patient_phone) return;
+    setSmsState(prev => ({ ...prev, [task.id]: { ...prev[task.id], sending: true, error: null } }));
     try {
       const res = await fetch('/api/tasks/send-renewal-text', {
         method: 'POST',
@@ -83,18 +87,18 @@ export default function TasksPage() {
           patient_id: task.patient_id,
           patient_name: task.patient_name,
           patient_phone: task.patient_phone,
-          message: preview.message,
+          message: state.message,
           task_id: task.id,
         }),
       });
       const data = await res.json();
       if (data.success) {
-        setTextPreview(prev => ({ ...prev, [task.id]: { ...prev[task.id], sending: false, sent: true } }));
+        setSmsState(prev => ({ ...prev, [task.id]: { ...prev[task.id], sending: false, sent: true, message: '' } }));
       } else {
-        setTextPreview(prev => ({ ...prev, [task.id]: { ...prev[task.id], sending: false, error: data.error || 'Send failed' } }));
+        setSmsState(prev => ({ ...prev, [task.id]: { ...prev[task.id], sending: false, error: data.error || 'Send failed' } }));
       }
     } catch (err) {
-      setTextPreview(prev => ({ ...prev, [task.id]: { ...prev[task.id], sending: false, error: 'Send failed' } }));
+      setSmsState(prev => ({ ...prev, [task.id]: { ...prev[task.id], sending: false, error: 'Send failed' } }));
     }
   };
 
@@ -607,113 +611,120 @@ export default function TasksPage() {
 
                       {/* Patient contact — phone + action buttons */}
                       {task.patient_phone && (
-                        <div style={{
-                          display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
-                          marginBottom: '12px', padding: '10px 14px',
-                          background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0',
-                        }}>
-                          <Phone size={14} style={{ color: '#16a34a', flexShrink: 0 }} />
-                          <a
-                            href={`tel:${task.patient_phone}`}
-                            style={{ fontSize: '14px', fontWeight: 600, color: '#16a34a', textDecoration: 'none' }}
-                          >
-                            {formatPhone(task.patient_phone)}
-                          </a>
-                          <a
-                            href={`sms:${task.patient_phone.replace(/\D/g, '')}`}
-                            style={{
-                              display: 'inline-flex', alignItems: 'center', gap: '5px',
-                              padding: '4px 10px', fontSize: '12px', fontWeight: 600,
-                              color: '#1e40af', background: '#eff6ff',
-                              border: '1px solid #bfdbfe', borderRadius: '6px',
-                              textDecoration: 'none', cursor: 'pointer',
-                            }}
-                          >
-                            <MessageSquare size={12} /> SMS
-                          </a>
-                          {task.title?.includes('Peptide') && task.patient_id && !textPreview[task.id]?.message && (
+                        <div style={{ marginBottom: '12px' }}>
+                          <div style={{
+                            display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
+                            padding: '10px 14px',
+                            background: '#f0fdf4', borderRadius: smsState[task.id]?.open ? '8px 8px 0 0' : '8px',
+                            border: '1px solid #bbf7d0',
+                            borderBottom: smsState[task.id]?.open ? 'none' : '1px solid #bbf7d0',
+                          }}>
+                            <Phone size={14} style={{ color: '#16a34a', flexShrink: 0 }} />
+                            <a
+                              href={`tel:${task.patient_phone}`}
+                              style={{ fontSize: '14px', fontWeight: 600, color: '#16a34a', textDecoration: 'none' }}
+                            >
+                              {formatPhone(task.patient_phone)}
+                            </a>
                             <button
-                              onClick={(e) => { e.stopPropagation(); generateRenewalText(task); }}
-                              disabled={textPreview[task.id]?.loading}
+                              onClick={(e) => { e.stopPropagation(); openSmsComposer(task); }}
                               style={{
                                 display: 'inline-flex', alignItems: 'center', gap: '5px',
                                 padding: '4px 10px', fontSize: '12px', fontWeight: 600,
-                                color: '#7c3aed', background: '#f5f3ff',
-                                border: '1px solid #ddd6fe', borderRadius: '6px',
-                                cursor: textPreview[task.id]?.loading ? 'not-allowed' : 'pointer',
-                                opacity: textPreview[task.id]?.loading ? 0.6 : 1,
+                                color: '#1e40af', background: '#eff6ff',
+                                border: '1px solid #bfdbfe', borderRadius: '6px',
+                                cursor: 'pointer',
                               }}
                             >
-                              {textPreview[task.id]?.loading ? (
-                                <><Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> Generating...</>
-                              ) : (
-                                <><Sparkles size={12} /> Generate Renewal Text</>
-                              )}
+                              <MessageSquare size={12} /> Text
                             </button>
-                          )}
-                        </div>
-                      )}
-
-                      {/* AI-generated renewal text preview */}
-                      {textPreview[task.id]?.message && (
-                        <div style={{
-                          marginBottom: '12px', padding: '12px 14px',
-                          background: '#faf5ff', borderRadius: '8px', border: '1px solid #e9d5ff',
-                        }}>
-                          <div style={{ fontSize: '11px', fontWeight: 600, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
-                            Renewal Text Preview
-                          </div>
-                          <textarea
-                            value={textPreview[task.id].message}
-                            onChange={(e) => setTextPreview(prev => ({
-                              ...prev,
-                              [task.id]: { ...prev[task.id], message: e.target.value }
-                            }))}
-                            style={{
-                              width: '100%', padding: '10px 12px', fontSize: '13px',
-                              border: '1px solid #e9d5ff', borderRadius: '6px', outline: 'none',
-                              resize: 'vertical', fontFamily: 'inherit', lineHeight: '1.5',
-                              minHeight: '60px', boxSizing: 'border-box', background: '#fff',
-                            }}
-                          />
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
-                            {textPreview[task.id]?.sent ? (
-                              <span style={{ fontSize: '13px', fontWeight: 600, color: '#16a34a' }}>
-                                &#10003; Sent!
-                              </span>
-                            ) : (
+                            {task.title?.includes('Peptide') && task.patient_id && (
                               <button
-                                onClick={(e) => { e.stopPropagation(); sendRenewalText(task); }}
-                                disabled={textPreview[task.id]?.sending || !task.patient_phone}
+                                onClick={(e) => { e.stopPropagation(); generateRenewalText(task); }}
+                                disabled={smsState[task.id]?.loading}
                                 style={{
-                                  display: 'inline-flex', alignItems: 'center', gap: '6px',
-                                  padding: '6px 14px', fontSize: '13px', fontWeight: 600,
-                                  color: '#fff', background: '#7c3aed',
-                                  border: 'none', borderRadius: '6px',
-                                  cursor: textPreview[task.id]?.sending ? 'not-allowed' : 'pointer',
-                                  opacity: textPreview[task.id]?.sending ? 0.6 : 1,
+                                  display: 'inline-flex', alignItems: 'center', gap: '5px',
+                                  padding: '4px 10px', fontSize: '12px', fontWeight: 600,
+                                  color: '#7c3aed', background: '#f5f3ff',
+                                  border: '1px solid #ddd6fe', borderRadius: '6px',
+                                  cursor: smsState[task.id]?.loading ? 'not-allowed' : 'pointer',
+                                  opacity: smsState[task.id]?.loading ? 0.6 : 1,
                                 }}
                               >
-                                {textPreview[task.id]?.sending ? (
-                                  <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Sending...</>
+                                {smsState[task.id]?.loading ? (
+                                  <><Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> Generating...</>
                                 ) : (
-                                  <><Send size={13} /> Send to {task.patient_name?.split(' ')[0]}</>
+                                  <><Sparkles size={12} /> AI Renewal Text</>
                                 )}
                               </button>
                             )}
-                            {textPreview[task.id]?.error && (
-                              <span style={{ fontSize: '12px', color: '#dc2626' }}>{textPreview[task.id].error}</span>
-                            )}
-                            <button
-                              onClick={(e) => { e.stopPropagation(); generateRenewalText(task); }}
-                              style={{
-                                background: 'none', border: 'none', cursor: 'pointer',
-                                fontSize: '12px', color: '#7c3aed', fontWeight: 500,
-                              }}
-                            >
-                              Regenerate
-                            </button>
                           </div>
+
+                          {/* Inline SMS composer */}
+                          {smsState[task.id]?.open && (
+                            <div style={{
+                              padding: '12px 14px',
+                              background: '#f9fafb', borderRadius: '0 0 8px 8px',
+                              border: '1px solid #bbf7d0', borderTop: '1px solid #e5e7eb',
+                            }}>
+                              {smsState[task.id]?.sent && (
+                                <div style={{
+                                  display: 'flex', alignItems: 'center', gap: '6px',
+                                  padding: '6px 10px', marginBottom: '8px',
+                                  background: '#f0fdf4', borderRadius: '6px',
+                                  fontSize: '13px', fontWeight: 600, color: '#16a34a',
+                                }}>
+                                  &#10003; Message sent to {task.patient_name?.split(' ')[0]}
+                                </div>
+                              )}
+                              <textarea
+                                value={smsState[task.id]?.message || ''}
+                                onChange={(e) => setSmsState(prev => ({
+                                  ...prev,
+                                  [task.id]: { ...prev[task.id], message: e.target.value, sent: false }
+                                }))}
+                                onClick={(e) => e.stopPropagation()}
+                                placeholder={`Type a message to ${task.patient_name?.split(' ')[0] || 'patient'}...`}
+                                style={{
+                                  width: '100%', padding: '10px 12px', fontSize: '13px',
+                                  border: '1px solid #d1d5db', borderRadius: '6px', outline: 'none',
+                                  resize: 'vertical', fontFamily: 'inherit', lineHeight: '1.5',
+                                  minHeight: '60px', boxSizing: 'border-box', background: '#fff',
+                                }}
+                              />
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); sendTaskSms(task); }}
+                                  disabled={smsState[task.id]?.sending || !smsState[task.id]?.message?.trim()}
+                                  style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                    padding: '6px 14px', fontSize: '13px', fontWeight: 600,
+                                    color: '#fff', background: (!smsState[task.id]?.message?.trim() || smsState[task.id]?.sending) ? '#9ca3af' : '#1e40af',
+                                    border: 'none', borderRadius: '6px',
+                                    cursor: (!smsState[task.id]?.message?.trim() || smsState[task.id]?.sending) ? 'not-allowed' : 'pointer',
+                                  }}
+                                >
+                                  {smsState[task.id]?.sending ? (
+                                    <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Sending...</>
+                                  ) : (
+                                    <><Send size={13} /> Send</>
+                                  )}
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setSmsState(prev => ({ ...prev, [task.id]: { ...prev[task.id], open: false } })); }}
+                                  style={{
+                                    background: 'none', border: 'none', cursor: 'pointer',
+                                    fontSize: '12px', color: '#999', fontWeight: 500,
+                                  }}
+                                >
+                                  Close
+                                </button>
+                                {smsState[task.id]?.error && (
+                                  <span style={{ fontSize: '12px', color: '#dc2626' }}>{smsState[task.id].error}</span>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
 

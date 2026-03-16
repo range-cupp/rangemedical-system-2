@@ -322,6 +322,9 @@ export default function PatientProfile() {
   const [selectedQuestionnaireIdx, setSelectedQuestionnaireIdx] = useState(0);
   const [labProtocols, setLabProtocols] = useState([]);
   const [labDocuments, setLabDocuments] = useState([]);
+  const [sendingLabId, setSendingLabId] = useState(null);
+  const [sentLabIds, setSentLabIds] = useState({});
+  const [deletingLabId, setDeletingLabId] = useState(null);
   const [appointments, setAppointments] = useState([]);
   const [notes, setNotes] = useState([]);
   const [weightLossLogs, setWeightLossLogs] = useState([]);
@@ -360,6 +363,8 @@ export default function PatientProfile() {
   const [sendGuidesSelected, setSendGuidesSelected] = useState(new Set());
   const [sendGuidesCategory, setSendGuidesCategory] = useState('all');
   const [pinnedNoteExpanded, setPinnedNoteExpanded] = useState(false);
+  const [pinnedNoteOverflows, setPinnedNoteOverflows] = useState(false);
+  const pinnedNoteRef = useRef(null);
 
   // Protocol PDF modal
   const [showProtocolPdfModal, setShowProtocolPdfModal] = useState(false);
@@ -1924,6 +1929,55 @@ export default function PatientProfile() {
     }
   };
 
+  // Send lab results link to patient via SMS
+  const handleSendLabResults = async (labProtocol) => {
+    // Find matching lab record by draw date + patient
+    const drawDate = labProtocol.start_date;
+    const matchedLab = labs.find(l => l.test_date === drawDate || l.completed_date === drawDate);
+    if (!matchedLab) {
+      alert('No lab results record found for this draw date. Make sure the results have been imported first.');
+      return;
+    }
+
+    setSendingLabId(labProtocol.id);
+    try {
+      const res = await fetch('/api/labs/send-results', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lab_id: matchedLab.id, patient_id: patient.id })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSentLabIds(prev => ({ ...prev, [labProtocol.id]: true }));
+        alert(`Lab results sent to ${data.sent_to}`);
+      } else {
+        alert(`Failed to send: ${data.error}`);
+      }
+    } catch (err) {
+      alert('Error sending results: ' + err.message);
+    } finally {
+      setSendingLabId(null);
+    }
+  };
+
+  // Delete a lab pipeline entry (protocol with program_type = 'labs')
+  const handleDeleteLabProtocol = async (protocolId) => {
+    if (!confirm('Delete this lab order? This cannot be undone.')) return;
+    setDeletingLabId(protocolId);
+    try {
+      const res = await fetch(`/api/admin/protocols/${protocolId}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchPatient();
+      } else {
+        alert('Failed to delete lab order.');
+      }
+    } catch (err) {
+      alert('Error deleting lab order: ' + err.message);
+    } finally {
+      setDeletingLabId(null);
+    }
+  };
+
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (file && file.type === 'application/pdf') {
@@ -2279,6 +2333,13 @@ export default function PatientProfile() {
   const hasBaselineLabs = latestLabs || latestLabDoc;
   const baselineSymptoms = symptomResponses?.[0];
   const pinnedNote = notes.find(n => n.pinned);
+
+  // Check if pinned note content overflows the collapsed height
+  useEffect(() => {
+    if (pinnedNoteRef.current && pinnedNote && !pinnedNoteExpanded) {
+      setPinnedNoteOverflows(pinnedNoteRef.current.scrollHeight > pinnedNoteRef.current.clientHeight);
+    }
+  }, [pinnedNote, pinnedNoteExpanded]);
 
   // Helper to open PDF in slide-out viewer
   const openPdfViewer = (url, title = 'Document') => {
@@ -2949,7 +3010,7 @@ export default function PatientProfile() {
                     {pinnedNote.created_by && ` · ${pinnedNote.created_by}`}
                   </span>
                 </div>
-                <div style={{
+                <div ref={pinnedNoteRef} style={{
                   fontSize: 14,
                   color: '#374151',
                   lineHeight: 1.5,
@@ -2973,7 +3034,7 @@ export default function PatientProfile() {
                 >✕</button>
               </div>
             </div>
-            {pinnedNote.body && pinnedNote.body.length > 120 && (
+            {(pinnedNoteOverflows || pinnedNoteExpanded) && (
               <button
                 onClick={() => setPinnedNoteExpanded(!pinnedNoteExpanded)}
                 style={{
@@ -4565,7 +4626,21 @@ export default function PatientProfile() {
                           background: '#f5f5f5', color: '#525252',
                         }}>{labType}</span>
                       </div>
-                      <span style={{ fontSize: 12, color: '#737373' }}>Draw: {drawDate}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: 12, color: '#737373' }}>Draw: {drawDate}</span>
+                        <button
+                          onClick={() => handleDeleteLabProtocol(lp.id)}
+                          disabled={deletingLabId === lp.id}
+                          title="Delete this lab order"
+                          style={{
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            color: '#d1d5db', fontSize: 16, padding: '2px 4px',
+                            lineHeight: 1, opacity: deletingLabId === lp.id ? 0.4 : 1,
+                          }}
+                        >
+                          🗑
+                        </button>
+                      </div>
                     </div>
 
                     {/* Step tracker */}
@@ -4635,7 +4710,23 @@ export default function PatientProfile() {
                           <div style={{ fontSize: 11, color: '#737373', marginTop: 2 }}>{lp.notes}</div>
                         )}
                       </div>
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                        {/* Send Results button — shown when results are available */}
+                        {['results_received', 'provider_reviewed', 'consult_scheduled', 'consult_complete'].includes(lp.status) && (
+                          <button
+                            onClick={() => handleSendLabResults(lp)}
+                            disabled={sendingLabId === lp.id}
+                            style={{
+                              padding: '7px 14px', border: '1px solid #8b5cf6', borderRadius: 6,
+                              background: sentLabIds[lp.id] ? '#f0fdf4' : '#faf5ff',
+                              color: sentLabIds[lp.id] ? '#15803d' : '#7c3aed',
+                              cursor: 'pointer', fontWeight: 600, fontSize: 12,
+                              opacity: sendingLabId === lp.id ? 0.6 : 1,
+                            }}
+                          >
+                            {sendingLabId === lp.id ? 'Sending...' : sentLabIds[lp.id] ? '✓ Sent to Patient' : '📤 Send to Patient'}
+                          </button>
+                        )}
                         {nextStage && (
                           <button
                             onClick={() => handleLabStageAdvance(lp.id, nextStage.id)}
@@ -4693,7 +4784,21 @@ export default function PatientProfile() {
                           <span style={{ fontSize: 13, fontWeight: 500, color: '#525252' }}>{panelType} Panel</span>
                           <span style={{ fontSize: 11, color: '#a3a3a3' }}>{labType}</span>
                         </div>
-                        <span style={{ fontSize: 12, color: '#a3a3a3' }}>{drawDate}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <span style={{ fontSize: 12, color: '#a3a3a3' }}>{drawDate}</span>
+                          <button
+                            onClick={() => handleDeleteLabProtocol(lp.id)}
+                            disabled={deletingLabId === lp.id}
+                            title="Delete this lab order"
+                            style={{
+                              background: 'none', border: 'none', cursor: 'pointer',
+                              color: '#d1d5db', fontSize: 14, padding: '1px 3px',
+                              lineHeight: 1, opacity: deletingLabId === lp.id ? 0.4 : 1,
+                            }}
+                          >
+                            🗑
+                          </button>
+                        </div>
                       </div>
                     );
                   })}

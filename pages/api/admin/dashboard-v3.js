@@ -122,7 +122,16 @@ export default async function handler(req, res) {
     const todayDate = new Date();
     const renewals = activeProtocols.filter(p => {
       if (p.total_sessions && p.total_sessions > 0) {
-        return (p.total_sessions - (p.sessions_used || 0)) <= 2;
+        const sessionsRemaining = p.total_sessions - (p.sessions_used || 0);
+        if (sessionsRemaining <= 2) {
+          // If end_date is still well in the future, sessions were dispensed in advance — not a renewal
+          if (p.end_date) {
+            const endDays = Math.ceil((new Date(p.end_date + 'T23:59:59') - todayDate) / (1000 * 60 * 60 * 24));
+            if (endDays > 7) return false;
+          }
+          return true;
+        }
+        return false;
       }
       if (p.end_date) {
         const daysLeft = Math.ceil((new Date(p.end_date + 'T23:59:59') - todayDate) / (1000 * 60 * 60 * 24));

@@ -24,7 +24,7 @@ export default async function handler(req, res) {
     // Fetch active protocols for this patient
     const { data: protocols, error } = await supabase
       .from('protocols')
-      .select('id, program_type, program_name, medication, selected_dose, frequency, total_sessions, sessions_used, status, start_date, supply_type')
+      .select('*')
       .eq('patient_id', patient_id)
       .eq('status', 'active')
       .order('created_at', { ascending: false });
@@ -37,23 +37,38 @@ export default async function handler(req, res) {
     // Normalize program_type to match SERVICE_TYPES in service-log.js
     // SERVICE_TYPES uses: testosterone->hrt, weight_loss, vitamin, peptide, iv_therapy, hbot, red_light
     const normalizedProtocols = (protocols || []).map(p => {
-      let normalizedType = p.program_type?.toLowerCase() || '';
+      const pt = (p.program_type || '').toLowerCase();
+      const med = (p.medication || '').toLowerCase();
+      let normalizedType = pt;
 
-      // Map common variations to the expected program_type values
-      if (normalizedType === 'hrt' || normalizedType.includes('testosterone') || normalizedType.includes('hrt')) {
+      // Map from program_type first
+      if (pt.includes('hrt') || pt.includes('testosterone') || pt.includes('hormone')) {
         normalizedType = 'hrt';
-      } else if (normalizedType.includes('weight') || normalizedType.includes('semaglutide') || normalizedType.includes('tirzepatide')) {
+      } else if (pt.includes('weight') || pt.includes('semaglutide') || pt.includes('tirzepatide')) {
         normalizedType = 'weight_loss';
-      } else if (normalizedType.includes('vitamin') || normalizedType.includes('b12')) {
+      } else if (pt.includes('vitamin') || pt.includes('b12') || pt.includes('injection')) {
         normalizedType = 'vitamin';
-      } else if (normalizedType.includes('peptide') || normalizedType.includes('bpc') || normalizedType.includes('tb-500')) {
+      } else if (pt.includes('peptide') || pt.includes('bpc') || pt.includes('tb-500') || pt.includes('recovery') || pt.includes('jumpstart') || pt.includes('maintenance')) {
         normalizedType = 'peptide';
-      } else if (normalizedType.includes('iv') || normalizedType.includes('infusion')) {
+      } else if (pt.includes('iv') || pt.includes('infusion')) {
         normalizedType = 'iv_therapy';
-      } else if (normalizedType.includes('hbot') || normalizedType.includes('hyperbaric')) {
+      } else if (pt.includes('hbot') || pt.includes('hyperbaric')) {
         normalizedType = 'hbot';
-      } else if (normalizedType.includes('red') || normalizedType.includes('light') || normalizedType.includes('rlt')) {
+      } else if (pt.includes('red') || pt.includes('light') || pt.includes('rlt')) {
         normalizedType = 'red_light';
+      } else if (pt.includes('nad')) {
+        normalizedType = 'vitamin';
+      } else {
+        // Fall back to medication name
+        if (med.includes('testosterone') || med.includes('estradiol') || med.includes('progesterone')) {
+          normalizedType = 'hrt';
+        } else if (med.includes('semaglutide') || med.includes('tirzepatide') || med.includes('retatrutide')) {
+          normalizedType = 'weight_loss';
+        } else if (med.includes('b12') || med.includes('nad') || med.includes('lipo') || med.includes('taurine') || med.includes('toradol') || med.includes('glutathione')) {
+          normalizedType = 'vitamin';
+        } else if (med.includes('bpc') || med.includes('tb-500') || med.includes('tb500') || med.includes('wolverine') || med.includes('recovery') || med.includes('glow') || med.includes('ghk')) {
+          normalizedType = 'peptide';
+        }
       }
 
       return {

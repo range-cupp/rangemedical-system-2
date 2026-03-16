@@ -993,8 +993,19 @@ export default function ConversationView({ patientId, patientName, patientPhone,
           {formatting ? '...' : '✨'}
         </button>
         <textarea
+          ref={el => {
+            if (el) {
+              el.style.height = 'auto';
+              el.style.height = Math.min(el.scrollHeight, 200) + 'px';
+            }
+          }}
           value={newMessage}
-          onChange={e => setNewMessage(e.target.value)}
+          onChange={e => {
+            setNewMessage(e.target.value);
+            const el = e.target;
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 200) + 'px';
+          }}
           onKeyDown={handleKeyDown}
           placeholder={patientPhone ? 'Type a message... (Enter to send)' : 'No phone number on file'}
           style={styles.input}
@@ -1377,9 +1388,10 @@ const styles = {
     fontSize: '14px',
     outline: 'none',
     fontFamily: 'inherit',
-    resize: 'none',
+    resize: 'vertical',
     minHeight: '20px',
-    maxHeight: '80px',
+    maxHeight: '200px',
+    overflow: 'auto',
   },
   sendBtn: {
     padding: '10px 18px',

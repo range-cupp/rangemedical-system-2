@@ -2,10 +2,10 @@
 // Encounter view modal — shows appointment details, encounter notes, prescriptions
 
 import { useState, useEffect, useRef } from 'react';
-import { NOTE_TYPES, ENCOUNTER_TEMPLATES, getTemplateForService } from '../lib/encounter-templates';
+import { NOTE_TYPES, ENCOUNTER_TEMPLATES, getTemplateForService, NURSE_TEMPLATES, getTemplatesForCategory } from '../lib/encounter-templates';
 
 // Users allowed to create/edit/sign encounter notes
-const NOTE_AUTHORS = ['burgess@range-medical.com', 'lily@range-medical.com', 'evan@range-medical.com'];
+const NOTE_AUTHORS = ['burgess@range-medical.com', 'lily@range-medical.com', 'evan@range-medical.com', 'chris@range-medical.com'];
 
 // Parse **bold** markdown into React elements
 function renderFormattedText(text) {
@@ -34,6 +34,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef(null);
   const noteTextareaRef = useRef(null);
+  const [showTemplateMenu, setShowTemplateMenu] = useState(false);
 
   // Toggle bold on selected text in textarea
   const handleBoldToggle = () => {
@@ -640,6 +641,32 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
         }
         .enc-quick-note:hover { background: #f0f0f0; border-color: #d1d5db; }
 
+        /* Template selector */
+        .enc-template-selector { position: relative; margin-bottom: 16px; }
+        .enc-template-btn {
+          display: flex; align-items: center; gap: 8px; padding: 8px 14px;
+          font-size: 13px; font-weight: 600; border-radius: 8px;
+          border: 1.5px dashed #d1d5db; background: #fafbfc; color: #374151;
+          cursor: pointer; transition: all 0.15s; width: 100%; text-align: left;
+        }
+        .enc-template-btn:hover { border-color: #9ca3af; background: #f3f4f6; }
+        .enc-template-dropdown {
+          position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 50;
+          background: #fff; border: 1px solid #e5e7eb; border-radius: 10px;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.12); max-height: 320px; overflow-y: auto;
+        }
+        .enc-template-group-label {
+          padding: 8px 14px 4px; font-size: 10px; font-weight: 700; text-transform: uppercase;
+          letter-spacing: 0.06em; color: #9ca3af;
+        }
+        .enc-template-option {
+          display: block; width: 100%; padding: 10px 14px; font-size: 13px; font-weight: 500;
+          border: none; background: none; color: #374151; cursor: pointer; text-align: left;
+          transition: background 0.1s;
+        }
+        .enc-template-option:hover { background: #f3f4f6; }
+        .enc-template-divider { height: 1px; background: #f0f0f0; margin: 4px 0; }
+
         /* Textarea */
         .enc-textarea-wrap { position: relative; margin-bottom: 14px; }
         .enc-textarea {
@@ -1018,6 +1045,69 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                       </div>
                       <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 6 }}>{NOTE_TYPES[noteType]?.description}</div>
                     </div>
+
+                    {/* Template selector */}
+                    {(() => {
+                      const { matched, other } = getTemplatesForCategory(templateKey);
+                      return (
+                        <div className="enc-template-selector">
+                          <button
+                            type="button"
+                            className="enc-template-btn"
+                            onClick={() => setShowTemplateMenu(!showTemplateMenu)}
+                          >
+                            <span style={{ fontSize: 16 }}>📋</span>
+                            <span>Use a Note Template</span>
+                            <span style={{ marginLeft: 'auto', fontSize: 11, color: '#9ca3af' }}>
+                              {showTemplateMenu ? '▲' : '▼'}
+                            </span>
+                          </button>
+                          {showTemplateMenu && (
+                            <div className="enc-template-dropdown">
+                              {matched.length > 0 && (
+                                <>
+                                  <div className="enc-template-group-label">Suggested for this visit</div>
+                                  {matched.map(tmpl => (
+                                    <button
+                                      key={tmpl.key}
+                                      className="enc-template-option"
+                                      onClick={() => {
+                                        setNoteInput(tmpl.body);
+                                        if (tmpl.defaultNoteType) setNoteType(tmpl.defaultNoteType);
+                                        setShowTemplateMenu(false);
+                                      }}
+                                    >
+                                      {tmpl.label}
+                                    </button>
+                                  ))}
+                                  {other.length > 0 && <div className="enc-template-divider" />}
+                                </>
+                              )}
+                              {other.length > 0 && (
+                                <>
+                                  <div className="enc-template-group-label">
+                                    {matched.length > 0 ? 'Other Templates' : 'All Templates'}
+                                  </div>
+                                  {other.map(tmpl => (
+                                    <button
+                                      key={tmpl.key}
+                                      className="enc-template-option"
+                                      onClick={() => {
+                                        setNoteInput(tmpl.body);
+                                        if (tmpl.defaultNoteType) setNoteType(tmpl.defaultNoteType);
+                                        setShowTemplateMenu(false);
+                                      }}
+                                    >
+                                      {tmpl.label}
+                                    </button>
+                                  ))}
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {/* Quick notes */}
                     {template.quickNotes && template.quickNotes.length > 0 && (

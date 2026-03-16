@@ -543,6 +543,8 @@ export default function PatientProfile() {
   const [editNoteBody, setEditNoteBody] = useState('');
   const [editNoteSaving, setEditNoteSaving] = useState(false);
   const [expandedNotes, setExpandedNotes] = useState({});
+  const [noteFilter, setNoteFilter] = useState('clinical');
+  const [addNoteCategory, setAddNoteCategory] = useState('internal');
   const recognitionRef = useRef(null);
 
   // Blooio opt-in status
@@ -2167,6 +2169,7 @@ export default function PatientProfile() {
           raw_input: noteInput,
           body: noteInput,
           created_by: 'Staff',
+          note_category: addNoteCategory,
         }),
       });
       const data = await res.json();
@@ -5176,28 +5179,81 @@ export default function PatientProfile() {
           )}
 
           {/* Notes Tab */}
-          {activeTab === 'notes' && (
+          {activeTab === 'notes' && (() => {
+            // Categorize notes — use note_category if available, fall back to source-based logic
+            const getCat = (n) => n.note_category || (
+              ['encounter', 'addendum', 'protocol'].includes(n.source) ? 'clinical' : 'internal'
+            );
+            const clinicalNotes = notes.filter(n => getCat(n) === 'clinical');
+            const internalNotes = notes.filter(n => getCat(n) === 'internal');
+            const filteredNotes = noteFilter === 'clinical' ? clinicalNotes : internalNotes;
+
+            return (
             <>
+              {/* Filter pills */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                <button
+                  onClick={() => setNoteFilter('clinical')}
+                  style={{
+                    padding: '8px 18px', fontSize: 13, fontWeight: 600, borderRadius: 20,
+                    border: noteFilter === 'clinical' ? '2px solid #059669' : '1.5px solid #d1d5db',
+                    background: noteFilter === 'clinical' ? '#ecfdf5' : '#fff',
+                    color: noteFilter === 'clinical' ? '#059669' : '#6b7280',
+                    cursor: 'pointer', transition: 'all 0.15s',
+                  }}
+                >
+                  🩺 Clinical Notes ({clinicalNotes.length})
+                </button>
+                <button
+                  onClick={() => setNoteFilter('internal')}
+                  style={{
+                    padding: '8px 18px', fontSize: 13, fontWeight: 600, borderRadius: 20,
+                    border: noteFilter === 'internal' ? '2px solid #2563eb' : '1.5px solid #d1d5db',
+                    background: noteFilter === 'internal' ? '#eff6ff' : '#fff',
+                    color: noteFilter === 'internal' ? '#2563eb' : '#6b7280',
+                    cursor: 'pointer', transition: 'all 0.15s',
+                  }}
+                >
+                  📝 Internal Notes ({internalNotes.length})
+                </button>
+              </div>
+
+              {/* Description banner */}
+              <div style={{
+                padding: '10px 14px', marginBottom: 16, borderRadius: 8, fontSize: 12, lineHeight: 1.5,
+                background: noteFilter === 'clinical' ? '#f0fdf4' : '#eff6ff',
+                color: noteFilter === 'clinical' ? '#166534' : '#1e40af',
+                border: `1px solid ${noteFilter === 'clinical' ? '#bbf7d0' : '#bfdbfe'}`,
+              }}>
+                {noteFilter === 'clinical'
+                  ? '🩺 Clinical notes are part of the patient\'s medical chart — encounter notes, signed notes, and protocol notes. These are included when printing or exporting the chart.'
+                  : '📝 Internal notes are for staff only — patient experience, operational notes, reminders. These are NOT included in the patient\'s medical chart.'}
+              </div>
+
               <section className="card">
                 <div className="card-header">
-                  <h3>Notes ({notes.length})</h3>
+                  <h3>{noteFilter === 'clinical' ? 'Clinical Notes' : 'Internal Notes'} ({filteredNotes.length})</h3>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button
-                      className="btn-secondary-sm"
-                      onClick={() => setShowStandaloneEncounterModal(true)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 4 }}
-                      title="Log an encounter not tied to a scheduled appointment"
-                    >
-                      📋 Log Encounter
+                    {noteFilter === 'clinical' && (
+                      <button
+                        className="btn-secondary-sm"
+                        onClick={() => setShowStandaloneEncounterModal(true)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                        title="Log an encounter not tied to a scheduled appointment"
+                      >
+                        📋 Log Encounter
+                      </button>
+                    )}
+                    <button className="btn-primary-sm" onClick={() => { setAddNoteCategory(noteFilter); setShowAddNoteModal(true); }}>
+                      + Add {noteFilter === 'clinical' ? 'Clinical' : 'Internal'} Note
                     </button>
-                    <button className="btn-primary-sm" onClick={() => setShowAddNoteModal(true)}>+ Add Note</button>
                   </div>
                 </div>
-                {notes.length === 0 ? (
-                  <div className="empty">No notes yet</div>
+                {filteredNotes.length === 0 ? (
+                  <div className="empty">No {noteFilter === 'clinical' ? 'clinical' : 'internal'} notes yet</div>
                 ) : (
                   <div className="notes-list">
-                    {notes.map(note => (
+                    {filteredNotes.map(note => (
                       <div key={note.id} className="note-row">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                           <div className="note-date">
@@ -5303,7 +5359,8 @@ export default function PatientProfile() {
                 )}
               </section>
             </>
-          )}
+            );
+          })()}
 
           {/* Tasks Tab */}
           {activeTab === 'tasks' && (
@@ -6111,10 +6168,40 @@ export default function PatientProfile() {
           <div className="modal-overlay" onClick={() => { setShowAddNoteModal(false); stopDictation(); }}>
             <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 640 }}>
               <div className="modal-header">
-                <h3>Add Note</h3>
+                <h3>Add {addNoteCategory === 'clinical' ? 'Clinical' : 'Internal'} Note</h3>
                 <button onClick={() => { setShowAddNoteModal(false); stopDictation(); setNoteInput(''); setNoteFormatted(''); }} className="close-btn">×</button>
               </div>
               <div className="modal-body">
+                {/* Category toggle */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                  <button
+                    onClick={() => setAddNoteCategory('clinical')}
+                    style={{
+                      flex: 1, padding: '10px 14px', fontSize: 13, fontWeight: 600, borderRadius: 8,
+                      border: addNoteCategory === 'clinical' ? '2px solid #059669' : '1.5px solid #d1d5db',
+                      background: addNoteCategory === 'clinical' ? '#ecfdf5' : '#fff',
+                      color: addNoteCategory === 'clinical' ? '#059669' : '#6b7280',
+                      cursor: 'pointer', textAlign: 'center',
+                    }}
+                  >
+                    🩺 Clinical Note
+                    <div style={{ fontSize: 11, fontWeight: 400, marginTop: 2 }}>Included in chart</div>
+                  </button>
+                  <button
+                    onClick={() => setAddNoteCategory('internal')}
+                    style={{
+                      flex: 1, padding: '10px 14px', fontSize: 13, fontWeight: 600, borderRadius: 8,
+                      border: addNoteCategory === 'internal' ? '2px solid #2563eb' : '1.5px solid #d1d5db',
+                      background: addNoteCategory === 'internal' ? '#eff6ff' : '#fff',
+                      color: addNoteCategory === 'internal' ? '#2563eb' : '#6b7280',
+                      cursor: 'pointer', textAlign: 'center',
+                    }}
+                  >
+                    📝 Internal Note
+                    <div style={{ fontSize: 11, fontWeight: 400, marginTop: 2 }}>Staff only, not in chart</div>
+                  </button>
+                </div>
+
                 <div className="form-group">
                   <label>Note (type or dictate)</label>
                   <div style={{ position: 'relative' }}>

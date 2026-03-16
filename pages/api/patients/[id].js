@@ -705,7 +705,7 @@ export default async function handler(req, res) {
       let patientNotes = null;
       const { data: notesData, error: notesErr } = await supabase
         .from('patient_notes')
-        .select('id, body, raw_input, note_date, source, created_by, created_at, pinned, protocol_id, protocol_name, appointment_id, encounter_service, signed_by, signed_at, status, parent_note_id')
+        .select('id, body, raw_input, note_date, source, created_by, created_at, pinned, protocol_id, protocol_name, appointment_id, encounter_service, signed_by, signed_at, status, parent_note_id, note_category')
         .eq('patient_id', id)
         .order('note_date', { ascending: false });
       if (notesErr) {

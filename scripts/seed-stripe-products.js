@@ -484,6 +484,9 @@ const PRODUCTS = [
       { amount: 50000, nickname: '4X Blend (2mg × 20 inj)', peptide_identifier: '4X Blend (2mg × 20 inj)' },
       { amount: 55000, nickname: '4X Blend (3mg × 20 inj)', peptide_identifier: '4X Blend (3mg × 20 inj)' },
       { amount: 65000, nickname: '4X Blend (4mg × 20 inj)', peptide_identifier: '4X Blend (4mg × 20 inj)' },
+      { amount: 15000, nickname: 'BDNF Phase 1', peptide_identifier: 'BDNF Phase 1' },
+      { amount: 20000, nickname: 'BDNF Phase 2', peptide_identifier: 'BDNF Phase 2' },
+      { amount: 25000, nickname: 'BDNF Phase 3', peptide_identifier: 'BDNF Phase 3' },
     ],
   },
 

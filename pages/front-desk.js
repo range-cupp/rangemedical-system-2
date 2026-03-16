@@ -214,8 +214,11 @@ function TodaySchedule({ onSelectPatient }) {
   }, [menuOpen]);
 
   const updateStatus = async (apptId, newStatus) => {
-    setUpdating(apptId);
     setMenuOpen(null);
+    // Save old status for revert
+    const oldStatus = appointments.find(a => a.id === apptId)?.status;
+    // Optimistic update — change UI immediately so staff don't double-click
+    setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, status: newStatus } : a));
     try {
       const res = await fetch('/api/appointments/update', {
         method: 'PUT',
@@ -224,14 +227,19 @@ function TodaySchedule({ onSelectPatient }) {
       });
       if (res.ok) {
         const data = await res.json();
-        setAppointments(prev => prev.map(a => a.id === apptId ? {
-          ...a,
-          status: newStatus,
-          ...(data.checked_in_at ? { checked_in_at: data.checked_in_at } : {}),
-        } : a));
+        // Sync server data (e.g. checked_in_at timestamp)
+        if (data.checked_in_at) {
+          setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, checked_in_at: data.checked_in_at } : a));
+        }
+      } else {
+        // Revert on failure
+        console.error('Status update failed:', res.status);
+        setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, status: oldStatus } : a));
       }
-    } catch (e) { console.error('Status update failed:', e); }
-    finally { setUpdating(null); }
+    } catch (e) {
+      console.error('Status update failed:', e);
+      setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, status: oldStatus } : a));
+    }
   };
 
   if (loading) return <div style={{ padding: '8px 14px', fontSize: 11, color: '#aaa' }}>Loading…</div>;
@@ -445,7 +453,7 @@ function MyTasks({ employeeId, session, onSelectPatient }) {
 }
 
 // ── Sidebar with Schedule, Tasks, and Conversations ───────────────
-function InboxSidebar({ selected, onSelect, employeeId, session }) {
+function InboxSidebar({ selected, onSelect, employeeId, session, width }) {
   const [contacts, setContacts] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -522,7 +530,7 @@ function InboxSidebar({ selected, onSelect, employeeId, session }) {
   const isSelected = (c) => selected && (selected.id ? selected.id === c.id : selected.phone === c.phone);
 
   return (
-    <div style={{ width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column', background: '#f7f8fa', borderRight: '1px solid #e8eaed', height: '100%', overflow: 'hidden' }}>
+    <div style={{ width: width || 260, flexShrink: 0, display: 'flex', flexDirection: 'column', background: '#f7f8fa', borderRight: '1px solid #e8eaed', height: '100%', overflow: 'hidden' }}>
 
       {/* Fixed top sections — schedule + tasks */}
       <div style={{ flexShrink: 0, overflowY: 'auto', maxHeight: '45%' }}>
@@ -1059,6 +1067,30 @@ export default function FrontDesk() {
   const [showCharge,      setShowCharge]           = useState(false);
   const [showLog,         setShowLog]              = useState(false);
   const [showForms,       setShowForms]            = useState(false);
+  const [sidebarWidth,    setSidebarWidth]         = useState(260);
+  const draggingRef = useRef(false);
+
+  // Sidebar resize drag handler
+  useEffect(() => {
+    const onMouseMove = (e) => {
+      if (!draggingRef.current) return;
+      const newWidth = Math.min(Math.max(e.clientX, 200), 600);
+      setSidebarWidth(newWidth);
+    };
+    const onMouseUp = () => {
+      if (draggingRef.current) {
+        draggingRef.current = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+    };
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !employee) router.push('/login');
@@ -1125,7 +1157,15 @@ export default function FrontDesk() {
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
 
           {/* Inbox sidebar */}
-          <InboxSidebar selected={selectedPatient} onSelect={p => { setSelectedPatient(p); setWalkinPatient(null); }} employeeId={employee.id} session={session} />
+          <InboxSidebar selected={selectedPatient} onSelect={p => { setSelectedPatient(p); setWalkinPatient(null); }} employeeId={employee.id} session={session} width={sidebarWidth} />
+
+          {/* Resize handle */}
+          <div
+            onMouseDown={() => { draggingRef.current = true; document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none'; }}
+            style={{ width: 5, flexShrink: 0, cursor: 'col-resize', background: 'transparent', position: 'relative', zIndex: 10, marginLeft: -3 }}
+            onMouseEnter={e => e.currentTarget.style.background = '#d0d5dd'}
+            onMouseLeave={e => { if (!draggingRef.current) e.currentTarget.style.background = 'transparent'; }}
+          />
 
           {/* Center: conversation or patient banner */}
           <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>

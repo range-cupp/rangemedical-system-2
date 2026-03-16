@@ -85,11 +85,28 @@ async function handleInboundMessage(body) {
 
   // ================================================================
   // STAFF BOT: Check if sender is a staff member — route to bot if so
+  // Skip staff bot if sender is also a patient (treat as patient message)
   // ================================================================
   if (senderPhone && messageText) {
     const staffMember = await identifyStaff(senderPhone);
 
+    // Check if sender is also a patient — if so, skip staff bot
+    let senderIsPatient = false;
     if (staffMember) {
+      const normalizedPhone = senderPhone.replace(/\D/g, '').slice(-10);
+      const { data: patientMatch } = await supabase
+        .from('patients')
+        .select('id')
+        .or(`phone.ilike.%${normalizedPhone},phone.eq.+1${normalizedPhone}`)
+        .limit(1)
+        .maybeSingle();
+      senderIsPatient = !!patientMatch;
+      if (senderIsPatient) {
+        console.log(`Staff member ${staffMember.name} is also a patient — routing as patient message`);
+      }
+    }
+
+    if (staffMember && !senderIsPatient) {
       console.log(`Staff message from ${staffMember.name} (${senderPhone}): ${messageText}`);
 
       // Log inbound staff message to comms_log

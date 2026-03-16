@@ -299,6 +299,7 @@ function useUnreadTasks(employeeId) {
 }
 
 const NAV_ITEMS = [
+  { href: '/front-desk', label: 'Front Desk', icon: 'monitor' },
   { href: '/admin', label: 'Dashboard', icon: 'grid' },
   { href: '/admin/patients', label: 'Patients', icon: 'users' },
   { href: '/admin/protocols', label: 'Protocols', icon: 'activity' },
@@ -322,6 +323,11 @@ const NAV_ITEMS = [
 
 // Simple SVG icons to avoid external dependency
 const icons = {
+  monitor: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="3" width="20" height="14" rx="2" ry="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" />
+    </svg>
+  ),
   grid: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />

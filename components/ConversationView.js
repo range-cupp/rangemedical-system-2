@@ -1192,7 +1192,7 @@ const styles = {
     marginBottom: '8px',
   },
   bubble: {
-    maxWidth: '600px',
+    maxWidth: '75%',
     padding: '10px 14px',
     borderRadius: '16px',
     fontSize: '14px',

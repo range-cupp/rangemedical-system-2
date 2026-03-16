@@ -35,35 +35,23 @@ export default async function handler(req, res) {
       return fallbackConversations(req, res, daysNum, limitNum, since, supabase);
     }
 
-    // Step 2: Get unread counts + actual phone numbers from patients table
+    // Step 2: Get unread counts per patient
     const patientIds = (convRows || []).map(r => r.patient_id).filter(Boolean);
     let unreadMap = {};
-    let phoneMap = {};
     if (patientIds.length > 0) {
-      const [{ data: unreadRows }, { data: patientRows }] = await Promise.all([
-        supabase
-          .from('comms_log')
-          .select('patient_id')
-          .in('patient_id', patientIds)
-          .eq('direction', 'inbound')
-          .is('read_at', null),
-        supabase
-          .from('patients')
-          .select('id, phone')
-          .in('id', patientIds),
-      ]);
+      const { data: unreadRows } = await supabase
+        .from('comms_log')
+        .select('patient_id')
+        .in('patient_id', patientIds)
+        .eq('direction', 'inbound')
+        .is('read_at', null);
       for (const row of unreadRows || []) {
         unreadMap[row.patient_id] = (unreadMap[row.patient_id] || 0) + 1;
-      }
-      for (const row of patientRows || []) {
-        if (row.phone) phoneMap[row.id] = row.phone;
       }
     }
 
     const conversations = (convRows || []).map(r => ({
       ...r,
-      // Use the patient's actual phone from patients table, fall back to comms_log recipient
-      recipient: (r.patient_id && phoneMap[r.patient_id]) || r.recipient,
       unread_count: unreadMap[r.patient_id] || 0,
     }));
 
@@ -161,24 +149,6 @@ async function fallbackConversations(req, res, daysNum, limitNum, since, supabas
 
   for (const key of Object.keys(patientMap)) {
     patientMap[key].unread_count = unreadCounts[key] || 0;
-  }
-
-  // Look up actual phone numbers from patients table to avoid comms_log mismatches
-  const fallbackPatientIds = Object.values(patientMap).map(c => c.patient_id).filter(Boolean);
-  if (fallbackPatientIds.length > 0) {
-    const { data: patientRows } = await supabase
-      .from('patients')
-      .select('id, phone')
-      .in('id', fallbackPatientIds);
-    const phoneMap = {};
-    for (const row of patientRows || []) {
-      if (row.phone) phoneMap[row.id] = row.phone;
-    }
-    for (const conv of Object.values(patientMap)) {
-      if (conv.patient_id && phoneMap[conv.patient_id]) {
-        conv.recipient = phoneMap[conv.patient_id];
-      }
-    }
   }
 
   const conversations = Object.values(patientMap)

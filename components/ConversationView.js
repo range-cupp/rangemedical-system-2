@@ -63,12 +63,6 @@ export default function ConversationView({ patientId, patientName, patientPhone,
           body: JSON.stringify({ patientId: patientId || null, patientPhone: patientPhone || null }),
         }).catch(() => {}); // non-blocking, best-effort
       }
-
-      // Poll for new messages every 5 seconds
-      const pollInterval = setInterval(() => {
-        fetchMessages(true); // silent = true (no loading spinner)
-      }, 5000);
-      return () => clearInterval(pollInterval);
     }
   }, [patientId, patientPhone]);
 
@@ -92,9 +86,9 @@ export default function ConversationView({ patientId, patientName, patientPhone,
     }
   };
 
-  const fetchMessages = async (silent = false) => {
+  const fetchMessages = async () => {
     try {
-      if (!silent) setLoading(true);
+      setLoading(true);
 
       // Fetch local comms_log (by patient ID + phone to catch orphaned pre-link messages)
       const phoneParam = patientPhone ? `&phone=${encodeURIComponent(patientPhone)}` : '';
@@ -107,22 +101,10 @@ export default function ConversationView({ patientId, patientName, patientPhone,
 
       // Sort oldest first for conversation view
       const sorted = localLogs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-
-      // On poll: only update + scroll if there are new messages
-      if (silent) {
-        setMessages(prev => {
-          if (sorted.length !== prev.length || (sorted.length > 0 && prev.length > 0 && sorted[sorted.length - 1].id !== prev[prev.length - 1].id)) {
-            shouldScrollRef.current = true;
-            return sorted;
-          }
-          return prev;
-        });
-      } else {
-        setMessages(sorted);
-      }
+      setMessages(sorted);
       setHasMore(data.hasMore || false);
       setTotalMessages(data.total || localLogs.length);
-      if (!silent) setLoading(false);
+      setLoading(false);
 
       // Sync Twilio call history in background (non-blocking)
       if (patientPhone && !callsSynced) {
@@ -130,7 +112,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
       }
     } catch (err) {
       console.error('Error fetching messages:', err);
-      if (!silent) setLoading(false);
+      setLoading(false);
     }
   };
 

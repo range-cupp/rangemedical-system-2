@@ -4,7 +4,7 @@
 // Range Medical System
 
 import { useState, useRef } from 'react';
-import { ENCOUNTER_TEMPLATES } from '../lib/encounter-templates';
+import { ENCOUNTER_TEMPLATES, NURSE_TEMPLATES, getTemplatesForCategory } from '../lib/encounter-templates';
 
 const SERVICE_OPTIONS = Object.entries(ENCOUNTER_TEMPLATES).map(([key, val]) => ({
   value: key,
@@ -25,6 +25,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
   const [formatting, setFormatting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [showTemplateMenu, setShowTemplateMenu] = useState(false);
   const [error, setError] = useState('');
   const recognitionRef = useRef(null);
 
@@ -191,7 +192,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
               </label>
               <select
                 value={form.serviceType}
-                onChange={e => setForm(prev => ({ ...prev, serviceType: e.target.value }))}
+                onChange={e => { setForm(prev => ({ ...prev, serviceType: e.target.value })); setShowTemplateMenu(false); }}
                 style={{
                   width: '100%', padding: '8px 10px', border: '1px solid #d1d5db',
                   borderRadius: 6, fontSize: 14, fontFamily: 'inherit', background: '#fff', boxSizing: 'border-box',
@@ -220,6 +221,105 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
               }}
             />
           </div>
+
+          {/* Note Template Selector — only shown before preview */}
+          {step === 'form' && (() => {
+            const { matched, other } = getTemplatesForCategory(form.serviceType);
+            const allTemplates = [...matched, ...other];
+            if (allTemplates.length === 0) return null;
+            return (
+              <div style={{ marginBottom: 16, position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowTemplateMenu(prev => !prev)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: 6,
+                    background: '#f9fafb', color: '#374151', fontSize: 13.5,
+                    cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
+                  }}
+                >
+                  <span style={{ fontSize: 15 }}>📋</span>
+                  <span style={{ fontWeight: 500 }}>Use a Note Template</span>
+                  <span style={{ marginLeft: 'auto', fontSize: 11, color: '#9ca3af' }}>
+                    {showTemplateMenu ? '▲' : '▼'}
+                  </span>
+                </button>
+                {showTemplateMenu && (
+                  <div style={{
+                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
+                    background: '#fff', border: '1px solid #d1d5db', borderRadius: 8,
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.12)', marginTop: 4,
+                    maxHeight: 320, overflowY: 'auto',
+                  }}>
+                    {matched.length > 0 && (
+                      <>
+                        <div style={{
+                          padding: '7px 12px', fontSize: 11, fontWeight: 700, color: '#9ca3af',
+                          textTransform: 'uppercase', letterSpacing: '0.07em',
+                          borderBottom: '1px solid #f3f4f6',
+                        }}>
+                          Suggested for this visit
+                        </div>
+                        {matched.map(tmpl => (
+                          <button
+                            key={tmpl.key}
+                            type="button"
+                            onClick={() => {
+                              setForm(prev => ({ ...prev, noteInput: tmpl.body }));
+                              setShowTemplateMenu(false);
+                            }}
+                            style={{
+                              display: 'block', width: '100%', textAlign: 'left',
+                              padding: '10px 14px', border: 'none', background: 'none',
+                              fontSize: 13.5, color: '#111827', cursor: 'pointer',
+                              fontFamily: 'inherit', borderBottom: '1px solid #f9fafb',
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                          >
+                            {tmpl.label}
+                          </button>
+                        ))}
+                        {other.length > 0 && <div style={{ borderTop: '1px solid #e5e7eb', margin: '4px 0' }} />}
+                      </>
+                    )}
+                    {other.length > 0 && (
+                      <>
+                        <div style={{
+                          padding: '7px 12px', fontSize: 11, fontWeight: 700, color: '#9ca3af',
+                          textTransform: 'uppercase', letterSpacing: '0.07em',
+                          borderBottom: '1px solid #f3f4f6',
+                        }}>
+                          {matched.length > 0 ? 'Other Templates' : 'All Templates'}
+                        </div>
+                        {other.map(tmpl => (
+                          <button
+                            key={tmpl.key}
+                            type="button"
+                            onClick={() => {
+                              setForm(prev => ({ ...prev, noteInput: tmpl.body }));
+                              setShowTemplateMenu(false);
+                            }}
+                            style={{
+                              display: 'block', width: '100%', textAlign: 'left',
+                              padding: '10px 14px', border: 'none', background: 'none',
+                              fontSize: 13.5, color: '#111827', cursor: 'pointer',
+                              fontFamily: 'inherit', borderBottom: '1px solid #f9fafb',
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                          >
+                            {tmpl.label}
+                          </button>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Note */}
           {step === 'form' ? (

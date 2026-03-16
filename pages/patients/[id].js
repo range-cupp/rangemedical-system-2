@@ -3569,8 +3569,15 @@ export default function PatientProfile() {
                       const startingWeight = chartData.length > 0 ? chartData[0].weight : null;
                       const currentWeight = chartData.length > 0 ? chartData[chartData.length - 1].weight : null;
                       const totalLoss = startingWeight && currentWeight ? (startingWeight - currentWeight).toFixed(1) : null;
-                      const startingDose = wlLogs.length > 0 ? wlLogs[0].dosage : null;
-                      const currentDose = wlLogs.length > 0 ? wlLogs[wlLogs.length - 1].dosage : null;
+                      // Parse dose: prefer protocol selected_dose, otherwise extract from dosage like "4 week supply @ 2mg" → "2mg"
+                      const parseDose = (dosageStr) => {
+                        if (!dosageStr) return null;
+                        const atMatch = dosageStr.match(/@\s*(.+)/);
+                        if (atMatch) return atMatch[1].trim();
+                        return dosageStr;
+                      };
+                      const startingDose = protocol.starting_dose || protocol.selected_dose || (wlLogs.length > 0 ? parseDose(wlLogs[0].dosage) : null);
+                      const currentDose = protocol.dose || protocol.selected_dose || (wlLogs.length > 0 ? parseDose(wlLogs[wlLogs.length - 1].dosage) : null);
                       const pLogs = getProtocolLogsForId(protocol.id);
 
                       return (
@@ -3620,6 +3627,34 @@ export default function PatientProfile() {
                               })()}
                             </div>
                           )}
+                          {/* Fulfillment / Shipping Info */}
+                          {(() => {
+                            const logs = isWeightLoss ? wlLogs : [];
+                            const shippedLog = logs.find(l => l.fulfillment_method === 'overnight');
+                            const pickupLog = logs.find(l => l.fulfillment_method === 'in_clinic');
+                            if (shippedLog) {
+                              return (
+                                <div style={{ margin: '6px 0 2px', padding: '6px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, fontSize: 12, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                  <span style={{ fontWeight: 600, color: '#1e40af' }}>📦 Overnighted to patient</span>
+                                  {shippedLog.tracking_number && (
+                                    <span style={{ color: '#3b82f6' }}>Tracking: <strong>{shippedLog.tracking_number}</strong></span>
+                                  )}
+                                  <span style={{ color: '#6b7280' }}>Shipped {formatShortDate(shippedLog.entry_date)}</span>
+                                  {shippedLog.quantity && <span style={{ color: '#6b7280' }}>· {shippedLog.quantity} injections</span>}
+                                </div>
+                              );
+                            }
+                            if (pickupLog) {
+                              return (
+                                <div style={{ margin: '6px 0 2px', padding: '6px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, fontSize: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                  <span style={{ fontWeight: 600, color: '#166534' }}>🏥 Picked up in clinic</span>
+                                  <span style={{ color: '#6b7280' }}>{formatShortDate(pickupLog.entry_date)}</span>
+                                  {pickupLog.quantity && <span style={{ color: '#6b7280' }}>· {pickupLog.quantity} injections</span>}
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
                           <div className="protocol-footer">
                             <span className="status-badge">{protocol.status_text}</span>
                             <div style={{ display: 'flex', gap: 8 }}>
@@ -3906,7 +3941,7 @@ export default function PatientProfile() {
                                 <div className="wl-stat-divider" />
                                 <div className="wl-stat">
                                   <span className="wl-stat-label">Sessions</span>
-                                  <span className="wl-stat-value">{wlLogs.length}{protocol.total_sessions ? ` of ${protocol.total_sessions}` : ''}</span>
+                                  <span className="wl-stat-value">{Math.max(wlLogs.length, protocol.sessions_used || 0)}{protocol.total_sessions ? ` of ${protocol.total_sessions}` : ''}</span>
                                 </div>
                                 {chartData.length >= 2 && (
                                   <div style={{ marginLeft: 'auto', display: 'flex', gap: '6px' }}>
@@ -3989,6 +4024,11 @@ export default function PatientProfile() {
                                         });
                                       }
 
+                                      // Check if all injections were dispensed at once (bulk shipment)
+                                      // A single pickup log with quantity >= total means all were sent together
+                                      const bulkPickup = wlLogs.find(l => l.quantity && l.quantity >= totalSlots);
+                                      const allDispensed = bulkPickup || (protocol.sessions_used >= totalSlots);
+
                                       // Build full slot schedule
                                       const freqLower = (protocol.frequency || '').toLowerCase();
                                       const intervalDays = freqLower.includes('bi') ? 14 : 7;
@@ -4009,16 +4049,35 @@ export default function PatientProfile() {
                                       });
 
                                       const rows = slots.map(slot => {
+                                        // If all dispensed at once (bulk shipment), show each slot as dispensed
+                                        if (allDispensed && !slot.log) {
+                                          const shipLog = bulkPickup || wlLogs[0];
+                                          const shipDate = shipLog ? formatShortDate(shipLog.entry_date) : formatShortDate(slot.expStr);
+                                          const doseLabel = parseDose(shipLog?.dosage) || protocol.selected_dose || '—';
+                                          const fulfillment = shipLog?.fulfillment_method;
+                                          return (
+                                            <tr key={'dispensed-' + slot.num} style={{ background: '#f0fdf4' }}>
+                                              <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
+                                              <td>{formatShortDate(slot.expStr)}</td>
+                                              <td>{doseLabel}</td>
+                                              <td colSpan={2} style={{ color: '#16a34a', fontSize: 12 }}>
+                                                ✓ Dispensed {shipDate}{fulfillment === 'overnight' ? ' · 📦 Shipped' : fulfillment === 'in_clinic' ? ' · 🏥 Pickup' : ''}
+                                              </td>
+                                              <td></td>
+                                            </tr>
+                                          );
+                                        }
                                         if (slot.log) {
                                           const prevSlot = slots.slice(0, slot.num - 1).reverse().find(s => s.log);
                                           const prevWeight = prevSlot?.log?.weight ? parseFloat(prevSlot.log.weight) : null;
                                           const curWeight = slot.log.weight ? parseFloat(slot.log.weight) : null;
                                           const delta = prevWeight && curWeight ? (curWeight - prevWeight).toFixed(1) : null;
+                                          const fulfillment = slot.log.fulfillment_method;
                                           return (
                                             <tr key={slot.log.id} className="wl-editable-row" onClick={() => openEditInjection(slot.log)} title="Click to edit or delete">
                                               <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
-                                              <td>{formatShortDate(slot.log.entry_date)}</td>
-                                              <td>{slot.log.dosage || '—'}</td>
+                                              <td>{formatShortDate(slot.log.entry_date)}{fulfillment === 'overnight' ? <span style={{ marginLeft: 4, fontSize: 11 }}>📦</span> : fulfillment === 'in_clinic' ? <span style={{ marginLeft: 4, fontSize: 11 }}>🏥</span> : ''}</td>
+                                              <td>{parseDose(slot.log.dosage) || slot.log.dosage || '—'}</td>
                                               <td>{slot.log.weight ? `${slot.log.weight} lbs` : '—'}</td>
                                               <td style={{ color: delta && parseFloat(delta) < 0 ? '#16a34a' : delta && parseFloat(delta) > 0 ? '#dc2626' : '#666' }}>{delta ? (parseFloat(delta) > 0 ? `+${delta}` : delta) + ' lbs' : '—'}</td>
                                               <td style={{ textAlign: 'center' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></td>
@@ -4997,6 +5056,14 @@ export default function PatientProfile() {
                             <div className="apt-details">
                               <strong>{log.medication || catLabel}</strong>
                               {log.dosage && <span className="apt-title">{log.dosage}</span>}
+                              {log.fulfillment_method === 'overnight' && (
+                                <span className="apt-title" style={{ color: '#1e40af', fontSize: '12px', fontWeight: 600 }}>
+                                  📦 Overnighted{log.tracking_number ? ` · Tracking: ${log.tracking_number}` : ''}
+                                </span>
+                              )}
+                              {log.fulfillment_method === 'in_clinic' && (
+                                <span className="apt-title" style={{ color: '#166534', fontSize: '12px', fontWeight: 600 }}>🏥 Picked up in clinic</span>
+                              )}
                               {log.notes && <span className="apt-title" style={{ color: '#6b7280', fontSize: '12px' }}>{log.notes}</span>}
                             </div>
                             <span className="apt-status" style={{ background: catStyle.bg, color: catStyle.text }}>

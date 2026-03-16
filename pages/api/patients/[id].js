@@ -563,7 +563,7 @@ export default async function handler(req, res) {
       // ===== Weight loss service logs (for progress chart) =====
       const { data: weightLossLogs } = await supabase
         .from('service_logs')
-        .select('id, protocol_id, entry_date, medication, dosage, weight, notes')
+        .select('id, protocol_id, entry_date, medication, dosage, weight, quantity, notes, fulfillment_method, tracking_number')
         .eq('patient_id', id)
         .eq('category', 'weight_loss')
         .order('entry_date', { ascending: true });
@@ -583,7 +583,7 @@ export default async function handler(req, res) {
       // ===== V2: All service logs (for timeline + visits tab) =====
       const { data: serviceLogs } = await supabase
         .from('service_logs')
-        .select('id, category, entry_type, entry_date, medication, dosage, quantity, administered_by, notes, created_at, protocol_id')
+        .select('id, category, entry_type, entry_date, medication, dosage, quantity, administered_by, notes, created_at, protocol_id, fulfillment_method, tracking_number')
         .eq('patient_id', id)
         .order('entry_date', { ascending: false })
         .limit(200);

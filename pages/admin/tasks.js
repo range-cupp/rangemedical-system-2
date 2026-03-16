@@ -638,7 +638,7 @@ export default function TasksPage() {
                             >
                               <MessageSquare size={12} /> Text
                             </button>
-                            {task.title?.includes('Peptide') && task.patient_id && (
+                            {task.patient_id && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); generateRenewalText(task); }}
                                 disabled={smsState[task.id]?.loading}
@@ -654,7 +654,7 @@ export default function TasksPage() {
                                 {smsState[task.id]?.loading ? (
                                   <><Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> Generating...</>
                                 ) : (
-                                  <><Sparkles size={12} /> AI Renewal Text</>
+                                  <><Sparkles size={12} /> AI Draft Text</>
                                 )}
                               </button>
                             )}

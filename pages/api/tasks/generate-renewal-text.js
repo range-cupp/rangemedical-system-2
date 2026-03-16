@@ -1,5 +1,5 @@
 // /pages/api/tasks/generate-renewal-text.js
-// AI-generated renewal follow-up text message for peptide tasks
+// AI-generated follow-up text message for any task type
 // Generates a personalized SMS snippet that staff can review and send
 // Range Medical System
 
@@ -36,13 +36,13 @@ export default async function handler(req, res) {
     const msg = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 256,
-      system: `You write friendly, professional follow-up text messages for Range Medical, a regenerative medicine clinic in Newport Beach, CA.
+      system: `You write friendly, professional text messages for Range Medical, a regenerative medicine clinic in Newport Beach, CA.
 
 Rules:
 - Address the patient by first name
 - Keep it warm, casual, and brief (2-3 sentences max)
-- Mention their specific protocol/medication ending
-- Ask how they're doing and if they'd like to renew or discuss next steps
+- Match the tone and intent to the task context — could be a renewal follow-up, check-in, appointment reminder, lab results notification, onboarding step, or general outreach
+- If the task mentions a protocol or medication, reference it naturally
 - Include "Range Medical" at the end so they know who it's from
 - Do NOT use markdown, emojis, or formatting — plain SMS text only
 - Do NOT include any links or URLs
@@ -50,7 +50,7 @@ Rules:
       messages: [
         {
           role: 'user',
-          content: `Generate a follow-up renewal text for this patient:
+          content: `Generate a text message for this patient based on the task:
 Patient: ${patient_name}
 Task: ${task_title || ''}
 Details: ${task_description || ''}`,

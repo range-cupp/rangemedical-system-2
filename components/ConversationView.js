@@ -23,7 +23,7 @@ const FORM_OPTIONS = [
   { id: 'exosome-iv', name: 'Exosome IV Consent' },
 ];
 
-export default function ConversationView({ patientId, patientName, patientPhone, ghlContactId, onBack }) {
+export default function ConversationView({ patientId, patientName, patientPhone, ghlContactId, onBack, onPatientLinked }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newMessage, setNewMessage] = useState('');
@@ -47,6 +47,12 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const [protocols, setProtocols] = useState([]);
   const [loadingProtocols, setLoadingProtocols] = useState(false);
   const [logResult, setLogResult] = useState(null);
+  const [editingName, setEditingName] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [savingName, setSavingName] = useState(false);
+  const [linkedPatientId, setLinkedPatientId] = useState(patientId);
+  const [displayName, setDisplayName] = useState(patientName);
+  const nameInputRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const shouldScrollRef = useRef(false);
 
@@ -230,8 +236,8 @@ export default function ConversationView({ patientId, patientName, patientPhone,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          patient_id: patientId,
-          patient_name: patientName,
+          patient_id: linkedPatientId || patientId,
+          patient_name: displayName || patientName,
           to: patientPhone,
           message: msgText,
           message_type: 'direct_sms',
@@ -257,7 +263,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   };
 
   const handleTemplateSelect = (templateText) => {
-    const fullName = patientName || '';
+    const fullName = displayName || patientName || '';
     const firstName = fullName.split(' ')[0] || 'there';
     const lastName = fullName.split(' ').slice(1).join(' ') || '';
     const populated = templateText
@@ -277,7 +283,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           raw_text: newMessage,
-          recipientName: (patientName || '').split(' ')[0] || null,
+          recipientName: (displayName || patientName || '').split(' ')[0] || null,
         }),
       });
       const data = await res.json();
@@ -308,10 +314,10 @@ export default function ConversationView({ patientId, patientName, patientPhone,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           phone: patientPhone,
-          firstName: (patientName || '').split(' ')[0] || null,
+          firstName: (displayName || patientName || '').split(' ')[0] || null,
           formIds: selectedForms,
-          patientId: patientId || null,
-          patientName: patientName || null,
+          patientId: linkedPatientId || patientId || null,
+          patientName: displayName || patientName || null,
           ghlContactId: ghlContactId || null,
         }),
       });
@@ -359,8 +365,8 @@ export default function ConversationView({ patientId, patientName, patientPhone,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          patient_id: patientId,
-          patient_name: patientName,
+          patient_id: linkedPatientId || patientId,
+          patient_name: displayName || patientName,
           category,
           entry_type: entryType,
           medication: protocol.medication || null,
@@ -460,6 +466,40 @@ export default function ConversationView({ patientId, patientName, patientPhone,
     return null;
   };
 
+  const isPhoneOnly = !linkedPatientId && patientPhone;
+
+  const handleSaveName = async () => {
+    const parts = editName.trim().split(/\s+/);
+    if (parts.length < 2) return; // need first + last name
+    const firstName = parts[0];
+    const lastName = parts.slice(1).join(' ');
+    setSavingName(true);
+    try {
+      const res = await fetch('/api/admin/link-phone-patient', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: patientPhone, firstName, lastName }),
+      });
+      const data = await res.json();
+      if (data.success && data.patient) {
+        setLinkedPatientId(data.patient.id);
+        setDisplayName(data.patient.name);
+        setEditingName(false);
+        if (onPatientLinked) {
+          onPatientLinked({
+            id: data.patient.id,
+            name: data.patient.name,
+            phone: data.patient.phone || patientPhone,
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Error linking patient:', err);
+    } finally {
+      setSavingName(false);
+    }
+  };
+
   if (!patientId && !patientPhone) {
     return (
       <div style={styles.emptyState}>
@@ -480,17 +520,55 @@ export default function ConversationView({ patientId, patientName, patientPhone,
             </button>
           )}
           <div>
-            {onBack && patientId ? (
+            {editingName ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <input
+                  ref={nameInputRef}
+                  autoFocus
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') handleSaveName();
+                    if (e.key === 'Escape') setEditingName(false);
+                  }}
+                  placeholder="First Last"
+                  style={{ fontSize: 14, fontWeight: 600, border: '1px solid #d0d5dd', borderRadius: 6, padding: '4px 8px', width: 180, outline: 'none' }}
+                  disabled={savingName}
+                />
+                <button
+                  onClick={handleSaveName}
+                  disabled={savingName || editName.trim().split(/\s+/).length < 2}
+                  style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: 'none', background: editName.trim().split(/\s+/).length >= 2 ? '#059669' : '#e0e0e0', color: '#fff', cursor: editName.trim().split(/\s+/).length >= 2 ? 'pointer' : 'default', fontWeight: 600 }}
+                >
+                  {savingName ? '…' : 'Save'}
+                </button>
+                <button
+                  onClick={() => setEditingName(false)}
+                  style={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: '1px solid #e0e0e0', background: '#fff', color: '#666', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : onBack && linkedPatientId ? (
               <a
-                href={`/patients/${patientId}`}
+                href={`/patients/${linkedPatientId}`}
                 style={{ ...styles.headerName, color: '#2563eb', textDecoration: 'none' }}
                 onMouseEnter={e => e.target.style.textDecoration = 'underline'}
                 onMouseLeave={e => e.target.style.textDecoration = 'none'}
               >
-                {patientName || 'Unknown'}
+                {displayName || 'Unknown'}
               </a>
+            ) : isPhoneOnly ? (
+              <div
+                onClick={() => { setEditName(''); setEditingName(true); }}
+                style={{ ...styles.headerName, cursor: 'pointer', color: '#6366f1', display: 'flex', alignItems: 'center', gap: 6 }}
+                title="Click to assign a patient name"
+              >
+                {displayName || patientPhone}
+                <span style={{ fontSize: 10, color: '#999', fontWeight: 400 }}>✎ add name</span>
+              </div>
             ) : (
-              <div style={styles.headerName}>{patientName || 'Unknown'}</div>
+              <div style={styles.headerName}>{displayName || 'Unknown'}</div>
             )}
             <div style={styles.headerPhone}>{patientPhone || 'No phone on file'}</div>
           </div>
@@ -575,15 +653,15 @@ export default function ConversationView({ patientId, patientName, patientPhone,
         <div style={styles.bookingOverlay} onClick={() => setShowBooking(false)}>
           <div style={styles.bookingModal} onClick={e => e.stopPropagation()}>
             <div style={styles.bookingHeader}>
-              <h3 style={{ margin: 0, fontSize: '16px' }}>Book Appointment — {patientName}</h3>
+              <h3 style={{ margin: 0, fontSize: '16px' }}>Book Appointment — {displayName || patientName}</h3>
               <button onClick={() => setShowBooking(false)} style={styles.bookingClose}>×</button>
             </div>
             <div style={styles.bookingBody}>
               <CalendarView
                 wizardOnly
                 preselectedPatient={{
-                  id: patientId,
-                  name: patientName,
+                  id: linkedPatientId || patientId,
+                  name: displayName || patientName,
                   email: null,
                   phone: patientPhone,
                 }}
@@ -598,7 +676,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
         <div style={styles.bookingOverlay} onClick={() => setShowForms(false)}>
           <div style={{ ...styles.bookingModal, maxWidth: '420px' }} onClick={e => e.stopPropagation()}>
             <div style={styles.bookingHeader}>
-              <h3 style={{ margin: 0, fontSize: '16px' }}>Send Forms — {(patientName || '').split(' ')[0]}</h3>
+              <h3 style={{ margin: 0, fontSize: '16px' }}>Send Forms — {(displayName || patientName || '').split(' ')[0]}</h3>
               <button onClick={() => setShowForms(false)} style={styles.bookingClose}>×</button>
             </div>
             <div style={{ padding: '16px 20px', maxHeight: '60vh', overflowY: 'auto' }}>
@@ -653,7 +731,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
         <div style={styles.bookingOverlay} onClick={() => setShowLogVisit(false)}>
           <div style={{ ...styles.bookingModal, maxWidth: '400px' }} onClick={e => e.stopPropagation()}>
             <div style={styles.bookingHeader}>
-              <h3 style={{ margin: 0, fontSize: '16px' }}>Log Visit — {(patientName || '').split(' ')[0]}</h3>
+              <h3 style={{ margin: 0, fontSize: '16px' }}>Log Visit — {(displayName || patientName || '').split(' ')[0]}</h3>
               <button onClick={() => setShowLogVisit(false)} style={styles.bookingClose}>×</button>
             </div>
             <div style={{ padding: '16px 20px' }}>

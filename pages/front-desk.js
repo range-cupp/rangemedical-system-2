@@ -453,7 +453,7 @@ function MyTasks({ employeeId, session, onSelectPatient }) {
 }
 
 // ── Sidebar with Schedule, Tasks, and Conversations ───────────────
-function InboxSidebar({ selected, onSelect, employeeId, session, width }) {
+function InboxSidebar({ selected, onSelect, employeeId, session, width, contactUpdate }) {
   const [contacts, setContacts] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -470,6 +470,22 @@ function InboxSidebar({ selected, onSelect, employeeId, session, width }) {
   // Schedule + task counts for badges
   const [scheduleCount, setScheduleCount] = useState(0);
   const [taskCount, setTaskCount] = useState(0);
+
+  // Update a contact in the list when patient is linked (name saved)
+  useEffect(() => {
+    if (!contactUpdate) return;
+    setContacts(prev => prev.map(c => {
+      // Match by phone (the contact being updated was phone-only)
+      if (c.phone && contactUpdate.phone) {
+        const cLast10 = c.phone.replace(/\D/g, '').slice(-10);
+        const uLast10 = contactUpdate.phone.replace(/\D/g, '').slice(-10);
+        if (cLast10 === uLast10) {
+          return { ...c, id: contactUpdate.id, name: contactUpdate.name };
+        }
+      }
+      return c;
+    }));
+  }, [contactUpdate]);
 
   useEffect(() => {
     fetch('/api/admin/conversations?days=90&limit=200')
@@ -1068,6 +1084,7 @@ export default function FrontDesk() {
   const [showLog,         setShowLog]              = useState(false);
   const [showForms,       setShowForms]            = useState(false);
   const [sidebarWidth,    setSidebarWidth]         = useState(260);
+  const [contactUpdate,   setContactUpdate]        = useState(null); // triggers sidebar contact rename
   const draggingRef = useRef(false);
 
   // Sidebar resize drag handler
@@ -1157,7 +1174,7 @@ export default function FrontDesk() {
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
 
           {/* Inbox sidebar */}
-          <InboxSidebar selected={selectedPatient} onSelect={p => { setSelectedPatient(p); setWalkinPatient(null); }} employeeId={employee.id} session={session} width={sidebarWidth} />
+          <InboxSidebar selected={selectedPatient} onSelect={p => { setSelectedPatient(p); setWalkinPatient(null); }} employeeId={employee.id} session={session} width={sidebarWidth} contactUpdate={contactUpdate} />
 
           {/* Resize handle */}
           <div
@@ -1177,6 +1194,10 @@ export default function FrontDesk() {
                 patientPhone={selectedPatient.phone}
                 ghlContactId={selectedPatient.ghl_contact_id}
                 onBack={() => setSelectedPatient(null)}
+                onPatientLinked={(linked) => {
+                  setSelectedPatient(prev => ({ ...prev, id: linked.id, name: linked.name }));
+                  setContactUpdate({ ...linked, _ts: Date.now() }); // trigger sidebar update
+                }}
               />
             ) : walkinPatient ? (
               <PatientBanner

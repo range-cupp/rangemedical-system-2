@@ -626,6 +626,14 @@ export default function PatientProfile() {
     return () => window.removeEventListener('keydown', handleEscape);
   }, [pdfSlideOut.open]);
 
+  // Check if pinned note content overflows the collapsed height
+  const pinnedNote = notes.find(n => n.pinned);
+  useEffect(() => {
+    if (pinnedNoteRef.current && pinnedNote && !pinnedNoteExpanded) {
+      setPinnedNoteOverflows(pinnedNoteRef.current.scrollHeight > pinnedNoteRef.current.clientHeight);
+    }
+  }, [pinnedNote, pinnedNoteExpanded]);
+
   const fetchLogEmployees = async () => {
     try {
       const res = await fetch('/api/admin/employees?basic=true');
@@ -2332,14 +2340,6 @@ export default function PatientProfile() {
   const latestLabDoc = labDocuments?.[0];
   const hasBaselineLabs = latestLabs || latestLabDoc;
   const baselineSymptoms = symptomResponses?.[0];
-  const pinnedNote = notes.find(n => n.pinned);
-
-  // Check if pinned note content overflows the collapsed height
-  useEffect(() => {
-    if (pinnedNoteRef.current && pinnedNote && !pinnedNoteExpanded) {
-      setPinnedNoteOverflows(pinnedNoteRef.current.scrollHeight > pinnedNoteRef.current.clientHeight);
-    }
-  }, [pinnedNote, pinnedNoteExpanded]);
 
   // Helper to open PDF in slide-out viewer
   const openPdfViewer = (url, title = 'Document') => {

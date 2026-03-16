@@ -4,7 +4,7 @@
 // Range Medical System
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Sparkles, Mic, MicOff } from 'lucide-react';
+import { Sparkles, Mic, MicOff, Phone, MessageSquare, Send, Loader2 } from 'lucide-react';
 import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
 import { useAuth } from '../../components/AuthProvider';
 
@@ -48,6 +48,63 @@ export default function TasksPage() {
   const [searchingPatients, setSearchingPatients] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [expandedTask, setExpandedTask] = useState(null);
+
+  // Renewal text state
+  const [textPreview, setTextPreview] = useState({}); // { [taskId]: { message, loading, sent, error } }
+
+  const generateRenewalText = async (task) => {
+    setTextPreview(prev => ({ ...prev, [task.id]: { ...prev[task.id], loading: true, error: null } }));
+    try {
+      const res = await fetch('/api/tasks/generate-renewal-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({
+          patient_name: task.patient_name,
+          task_title: task.title,
+          task_description: task.description,
+        }),
+      });
+      const data = await res.json();
+      setTextPreview(prev => ({ ...prev, [task.id]: { message: data.message, loading: false } }));
+    } catch (err) {
+      setTextPreview(prev => ({ ...prev, [task.id]: { loading: false, error: 'Failed to generate message' } }));
+    }
+  };
+
+  const sendRenewalText = async (task) => {
+    const preview = textPreview[task.id];
+    if (!preview?.message || !task.patient_phone) return;
+    setTextPreview(prev => ({ ...prev, [task.id]: { ...prev[task.id], sending: true } }));
+    try {
+      const res = await fetch('/api/tasks/send-renewal-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({
+          patient_id: task.patient_id,
+          patient_name: task.patient_name,
+          patient_phone: task.patient_phone,
+          message: preview.message,
+          task_id: task.id,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTextPreview(prev => ({ ...prev, [task.id]: { ...prev[task.id], sending: false, sent: true } }));
+      } else {
+        setTextPreview(prev => ({ ...prev, [task.id]: { ...prev[task.id], sending: false, error: data.error || 'Send failed' } }));
+      }
+    } catch (err) {
+      setTextPreview(prev => ({ ...prev, [task.id]: { ...prev[task.id], sending: false, error: 'Send failed' } }));
+    }
+  };
+
+  const formatPhone = (phone) => {
+    if (!phone) return null;
+    const digits = phone.replace(/\D/g, '');
+    const num = digits.startsWith('1') ? digits.slice(1) : digits;
+    if (num.length === 10) return `(${num.slice(0,3)}) ${num.slice(3,6)}-${num.slice(6)}`;
+    return phone;
+  };
 
   const authHeaders = useCallback(() => ({
     Authorization: `Bearer ${session?.access_token}`,
@@ -307,6 +364,10 @@ export default function TasksPage() {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.4; }
         }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
       `}</style>
       <div style={{ maxWidth: '900px', margin: '0 auto' }}>
         {/* Header */}
@@ -541,6 +602,130 @@ export default function TasksPage() {
                           }}>
                             {task.description}
                           </div>
+                        </div>
+                      )}
+
+                      {/* Patient contact — phone + action buttons */}
+                      {task.patient_phone && (
+                        <div style={{
+                          display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
+                          marginBottom: '12px', padding: '10px 14px',
+                          background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0',
+                        }}>
+                          <Phone size={14} style={{ color: '#16a34a', flexShrink: 0 }} />
+                          <a
+                            href={`tel:${task.patient_phone}`}
+                            style={{ fontSize: '14px', fontWeight: 600, color: '#16a34a', textDecoration: 'none' }}
+                          >
+                            {formatPhone(task.patient_phone)}
+                          </a>
+                          <a
+                            href={`sms:${task.patient_phone.replace(/\D/g, '')}`}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: '5px',
+                              padding: '4px 10px', fontSize: '12px', fontWeight: 600,
+                              color: '#1e40af', background: '#eff6ff',
+                              border: '1px solid #bfdbfe', borderRadius: '6px',
+                              textDecoration: 'none', cursor: 'pointer',
+                            }}
+                          >
+                            <MessageSquare size={12} /> SMS
+                          </a>
+                          {task.title?.includes('Peptide') && task.patient_id && !textPreview[task.id]?.message && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); generateRenewalText(task); }}
+                              disabled={textPreview[task.id]?.loading}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '5px',
+                                padding: '4px 10px', fontSize: '12px', fontWeight: 600,
+                                color: '#7c3aed', background: '#f5f3ff',
+                                border: '1px solid #ddd6fe', borderRadius: '6px',
+                                cursor: textPreview[task.id]?.loading ? 'not-allowed' : 'pointer',
+                                opacity: textPreview[task.id]?.loading ? 0.6 : 1,
+                              }}
+                            >
+                              {textPreview[task.id]?.loading ? (
+                                <><Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> Generating...</>
+                              ) : (
+                                <><Sparkles size={12} /> Generate Renewal Text</>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* AI-generated renewal text preview */}
+                      {textPreview[task.id]?.message && (
+                        <div style={{
+                          marginBottom: '12px', padding: '12px 14px',
+                          background: '#faf5ff', borderRadius: '8px', border: '1px solid #e9d5ff',
+                        }}>
+                          <div style={{ fontSize: '11px', fontWeight: 600, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                            Renewal Text Preview
+                          </div>
+                          <textarea
+                            value={textPreview[task.id].message}
+                            onChange={(e) => setTextPreview(prev => ({
+                              ...prev,
+                              [task.id]: { ...prev[task.id], message: e.target.value }
+                            }))}
+                            style={{
+                              width: '100%', padding: '10px 12px', fontSize: '13px',
+                              border: '1px solid #e9d5ff', borderRadius: '6px', outline: 'none',
+                              resize: 'vertical', fontFamily: 'inherit', lineHeight: '1.5',
+                              minHeight: '60px', boxSizing: 'border-box', background: '#fff',
+                            }}
+                          />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+                            {textPreview[task.id]?.sent ? (
+                              <span style={{ fontSize: '13px', fontWeight: 600, color: '#16a34a' }}>
+                                &#10003; Sent!
+                              </span>
+                            ) : (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); sendRenewalText(task); }}
+                                disabled={textPreview[task.id]?.sending || !task.patient_phone}
+                                style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                  padding: '6px 14px', fontSize: '13px', fontWeight: 600,
+                                  color: '#fff', background: '#7c3aed',
+                                  border: 'none', borderRadius: '6px',
+                                  cursor: textPreview[task.id]?.sending ? 'not-allowed' : 'pointer',
+                                  opacity: textPreview[task.id]?.sending ? 0.6 : 1,
+                                }}
+                              >
+                                {textPreview[task.id]?.sending ? (
+                                  <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Sending...</>
+                                ) : (
+                                  <><Send size={13} /> Send to {task.patient_name?.split(' ')[0]}</>
+                                )}
+                              </button>
+                            )}
+                            {textPreview[task.id]?.error && (
+                              <span style={{ fontSize: '12px', color: '#dc2626' }}>{textPreview[task.id].error}</span>
+                            )}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); generateRenewalText(task); }}
+                              style={{
+                                background: 'none', border: 'none', cursor: 'pointer',
+                                fontSize: '12px', color: '#7c3aed', fontWeight: 500,
+                              }}
+                            >
+                              Regenerate
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* No phone warning for patient-linked tasks */}
+                      {task.patient_id && !task.patient_phone && (
+                        <div style={{
+                          display: 'flex', alignItems: 'center', gap: '8px',
+                          marginBottom: '12px', padding: '8px 14px',
+                          background: '#fef3c7', borderRadius: '8px', border: '1px solid #fde68a',
+                          fontSize: '12px', color: '#92400e',
+                        }}>
+                          <Phone size={12} /> No phone number on file for {task.patient_name}
                         </div>
                       )}
 

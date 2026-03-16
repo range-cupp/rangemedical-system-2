@@ -70,10 +70,22 @@ async function handleGet(req, res, employee) {
   const empMap = {};
   (employees || []).forEach(e => { empMap[e.id] = e.name; });
 
+  // Enrich with patient phone numbers
+  const patientIds = [...new Set(data.filter(t => t.patient_id).map(t => t.patient_id))];
+  const patientPhoneMap = {};
+  if (patientIds.length > 0) {
+    const { data: patients } = await supabase
+      .from('patients')
+      .select('id, phone')
+      .in('id', patientIds);
+    (patients || []).forEach(p => { patientPhoneMap[p.id] = p.phone; });
+  }
+
   const tasks = data.map(t => ({
     ...t,
     assigned_to_name: empMap[t.assigned_to] || 'Unknown',
     assigned_by_name: empMap[t.assigned_by] || 'Unknown',
+    patient_phone: t.patient_id ? (patientPhoneMap[t.patient_id] || null) : null,
   }));
 
   return res.status(200).json({ tasks });

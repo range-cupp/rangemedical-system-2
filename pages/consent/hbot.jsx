@@ -1,21 +1,10 @@
 import Head from 'next/head';
-import { useEffect, useRef, useState } from 'react';
-import Script from 'next/script';
+import { useEffect } from 'react';
 
 export default function HBOTConsent() {
-  const [scriptsLoaded, setScriptsLoaded] = useState(0);
-  const formInitialized = useRef(false);
-
   useEffect(() => {
-    if (scriptsLoaded >= 3 && !formInitialized.current) {
-      formInitialized.current = true;
-      initializeForm();
-    }
-  }, [scriptsLoaded]);
-
-  const handleScriptLoad = () => {
-    setScriptsLoaded(prev => prev + 1);
-  };
+    initializeForm();
+  }, []);
 
   return (
     <>
@@ -26,10 +15,12 @@ export default function HBOTConsent() {
         <meta name="robots" content="noindex, nofollow" />
       </Head>
 
-      <Script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" onLoad={handleScriptLoad} />
-
-      <Script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js" onLoad={handleScriptLoad} />
-      <Script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onLoad={handleScriptLoad} />
+      {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+      {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+      <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+      {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+      <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
       <style jsx global>{`
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -747,7 +738,8 @@ function initializeForm() {
     const blob = await response.blob();
 
     const timestamp = Date.now();
-    const fileName = `signatures/${firstName}-${lastName}-${timestamp}.jpg`;
+    const safeName = `${firstName}-${lastName}`.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+    const fileName = `signatures/${safeName}-${timestamp}.jpg`;
     
     const { data, error } = await supabaseClient.storage
       .from('medical-documents')
@@ -764,7 +756,8 @@ function initializeForm() {
 
   async function uploadPDFToSupabase(pdfBlob, firstName, lastName) {
     const timestamp = Date.now();
-    const fileName = `consents/hbot-consent-${firstName}-${lastName}-${timestamp}.pdf`;
+    const safeName = `${firstName}-${lastName}`.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+    const fileName = `consents/hbot-consent-${safeName}-${timestamp}.pdf`;
     
     const { data, error } = await supabaseClient.storage
       .from('medical-documents')
@@ -794,7 +787,7 @@ function initializeForm() {
       signatureUrl: signatureUrl,
       pdfUrl: pdfUrl,
       consentGiven: formData.consentGiven,
-      healthAnswers: formData.healthAnswers,
+      additionalData: { healthAnswers: formData.healthAnswers },
       ghlContactId: ghlContactId
     };
 

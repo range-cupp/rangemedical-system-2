@@ -309,7 +309,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   function getSearchResults() {
     const q = serviceSearch.toLowerCase().trim();
     if (!q) return [];
-    return services.filter(s => s.name.toLowerCase().includes(q));
+    return services.filter(s => s.name.toLowerCase().includes(q) || (s.peptide_identifier && s.peptide_identifier.toLowerCase().includes(q)));
   }
 
   const isSearching = serviceSearch.trim().length > 0;
@@ -422,7 +422,10 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       return customDescription || 'Custom charge';
     }
     if (cartItems.length === 0) return '';
-    return cartItems.map(i => (i.quantity || 1) > 1 ? `${i.name} x${i.quantity}` : i.name).join(', ');
+    return cartItems.map(i => {
+      const label = i.peptide_identifier ? `${i.name} — ${i.peptide_identifier}` : i.name;
+      return (i.quantity || 1) > 1 ? `${label} x${i.quantity}` : label;
+    }).join(', ');
   }
 
   function isRecurring() {
@@ -557,6 +560,10 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       const itemShipping = !shippingApplied && shippingCents > 0 ? shippingCents : 0;
       shippingApplied = true;
 
+      // For peptides, reconstruct full name so auto-protocol parsing works
+      // e.g., "Peptide Therapy — 10 Day" + "BPC-157 (500mcg)" → "Peptide Therapy — 10 Day — BPC-157 (500mcg)"
+      const serviceName = item.peptide_identifier ? `${item.name} — ${item.peptide_identifier}` : item.name;
+
       const res = await fetch('/api/stripe/record-purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -566,7 +573,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           description: itemDiscountAmt > 0 ? `${itemName} (${discountSuffix})` : itemName,
           payment_method: 'stripe',
           service_category: item.category,
-          service_name: item.name,
+          service_name: serviceName,
           quantity: qty,
           delivery_method: item.delivery_method || null,
           duration_days: item.duration_days || null,
@@ -640,6 +647,9 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       const itemShipping = !shippingApplied && shippingCents > 0 ? shippingCents : 0;
       shippingApplied = true;
 
+      // For peptides, reconstruct full name so auto-protocol parsing works
+      const serviceName = item.peptide_identifier ? `${item.name} — ${item.peptide_identifier}` : item.name;
+
       const res = await fetch('/api/stripe/record-purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -649,7 +659,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           description: itemDiscountAmt > 0 ? `${itemName} (${discountSuffix})` : itemName,
           payment_method: 'stripe',
           service_category: item.category,
-          service_name: item.name,
+          service_name: serviceName,
           quantity: qty,
           shipping: itemShipping,
           skip_receipt: cartItems.length > 1,
@@ -687,12 +697,23 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
 
     for (const item of peptideItems) {
       try {
-        // Parse: "Peptide Protocol — 10 Day — BPC-157 (500mcg)"
+        // New format: name="Peptide Therapy — 10 Day", peptide_identifier="BPC-157 (500mcg)"
+        // Legacy format: name="Peptide Protocol — 10 Day — BPC-157 (500mcg)"
         const parts = item.name.split(' — ');
-        if (parts.length < 3) continue;
+        let durationStr, peptidePart;
 
-        const durationStr = parts[1].trim(); // "10 Day"
-        const peptidePart = parts.slice(2).join(' — ').trim(); // "BPC-157 (500mcg)"
+        if (item.peptide_identifier) {
+          // New format — peptide_identifier is a separate field
+          durationStr = parts[1]?.trim() || '10 Day';
+          peptidePart = item.peptide_identifier;
+        } else if (parts.length >= 3) {
+          // Legacy format — peptide name is embedded in the name
+          durationStr = parts[1].trim();
+          peptidePart = parts.slice(2).join(' — ').trim();
+        } else {
+          continue;
+        }
+
         const duration = parseInt(durationStr) || 10;
 
         // Split base name from dose detail
@@ -1318,7 +1339,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                           {cartItems.some(i => i.id === item.id) && (
                             <span style={modalStyles.inCartBadge}>&#10003;</span>
                           )}
-                          <div style={modalStyles.itemName}>{item.name}</div>
+                          <div style={modalStyles.itemName}>{item.peptide_identifier ? `${item.name} — ${item.peptide_identifier}` : item.name}</div>
                           <div style={modalStyles.itemPrice}>
                             {formatPrice(item.price)}
                             {item.recurring && <span style={modalStyles.recurringBadge}>/mo</span>}
@@ -1370,7 +1391,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                                       {cartItems.some(i => i.id === item.id) && (
                                         <span style={modalStyles.inCartBadge}>&#10003;</span>
                                       )}
-                                      <div style={modalStyles.peptideVariantLabel}>{item.name}</div>
+                                      <div style={modalStyles.peptideVariantLabel}>{item.peptide_identifier || item.name}</div>
                                       <div style={modalStyles.itemPrice}>{formatPrice(item.price)}</div>
                                     </button>
                                   ))}

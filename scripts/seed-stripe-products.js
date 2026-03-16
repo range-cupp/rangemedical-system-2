@@ -426,61 +426,64 @@ const PRODUCTS = [
   },
 
   // ── Peptide Therapy ──
+  // NOTE: Stripe product names are GENERIC ("Peptide Therapy") to protect merchant accounts.
+  // The specific peptide identity is stored in Stripe price metadata (peptide_identifier)
+  // and in the pos_services.peptide_identifier column — never in the customer-facing product name.
   {
-    name: 'BDNF Peptide Protocol',
-    description: 'BDNF (Brain-Derived Neurotrophic Factor) peptide protocol. Three-phase progression.',
+    name: 'BDNF Peptide Therapy',
+    description: 'Peptide therapy protocol. Three-phase progression.',
     category: 'peptide',
     prices: [
-      { amount: 15000, nickname: 'Phase 1' },
-      { amount: 20000, nickname: 'Phase 2' },
-      { amount: 25000, nickname: 'Phase 3' },
+      { amount: 15000, nickname: 'Phase 1', peptide_identifier: 'BDNF — Phase 1' },
+      { amount: 20000, nickname: 'Phase 2', peptide_identifier: 'BDNF — Phase 2' },
+      { amount: 25000, nickname: 'Phase 3', peptide_identifier: 'BDNF — Phase 3' },
     ],
   },
   {
-    name: 'Peptide Protocol — 10 Day',
-    description: '10-day peptide protocol. Pre-filled syringes, 1 injection per day.',
+    name: 'Peptide Therapy — 10 Day',
+    description: '10-day peptide therapy protocol. Pre-filled syringes, 1 injection per day.',
     category: 'peptide',
     prices: [
-      { amount: 15000, nickname: 'BPC-157 (500mcg)' },
-      { amount: 22500, nickname: 'BPC-157 (750mcg)' },
-      { amount: 25000, nickname: 'BPC-157 + Thymosin Beta-4' },
+      { amount: 15000, nickname: 'BPC-157 (500mcg)', peptide_identifier: 'BPC-157 (500mcg)' },
+      { amount: 22500, nickname: 'BPC-157 (750mcg)', peptide_identifier: 'BPC-157 (750mcg)' },
+      { amount: 25000, nickname: 'BPC-157 + Thymosin Beta-4', peptide_identifier: 'BPC-157 + Thymosin Beta-4' },
     ],
   },
   {
-    name: 'Peptide Protocol — 20 Day',
-    description: '20-day peptide protocol. Pre-filled syringes.',
+    name: 'Peptide Therapy — 20 Day',
+    description: '20-day peptide therapy protocol. Pre-filled syringes.',
     category: 'peptide',
     prices: [
-      { amount: 27500, nickname: 'BPC-157 (500mcg)' },
-      { amount: 40000, nickname: 'BPC-157 (750mcg)' },
-      { amount: 45000, nickname: 'BPC-157 + Thymosin Beta-4' },
-      { amount: 40000, nickname: 'MOTS-C (5mg)' },
-      { amount: 70000, nickname: 'MOTS-C (10mg)' },
+      { amount: 27500, nickname: 'BPC-157 (500mcg)', peptide_identifier: 'BPC-157 (500mcg)' },
+      { amount: 40000, nickname: 'BPC-157 (750mcg)', peptide_identifier: 'BPC-157 (750mcg)' },
+      { amount: 45000, nickname: 'BPC-157 + Thymosin Beta-4', peptide_identifier: 'BPC-157 + Thymosin Beta-4' },
+      { amount: 40000, nickname: 'MOTS-C (5mg)', peptide_identifier: 'MOTS-C (5mg)' },
+      { amount: 70000, nickname: 'MOTS-C (10mg)', peptide_identifier: 'MOTS-C (10mg)' },
     ],
   },
   {
-    name: 'Peptide Protocol — 30 Day',
-    description: '30-day peptide protocol. Pre-filled syringes. Some protocols require labs.',
+    name: 'Peptide Therapy — 30 Day',
+    description: '30-day peptide therapy protocol. Pre-filled syringes. Some protocols require labs.',
     category: 'peptide',
     prices: [
-      { amount: 40000, nickname: 'BPC-157 (500mcg)' },
-      { amount: 60000, nickname: 'BPC-157 (750mcg)' },
-      { amount: 67500, nickname: 'BPC-157 + Thymosin Beta-4' },
-      { amount: 50000, nickname: 'GLOW Blend (GHK-Cu + BPC-157 + TB-500)' },
-      { amount: 25000, nickname: 'GHK-Cu (1mg daily)' },
-      { amount: 35000, nickname: 'GHK-Cu (2mg daily)' },
-      { amount: 40000, nickname: '2X Blend (1mg × 20 inj)' },
-      { amount: 45000, nickname: '2X Blend (2mg × 20 inj)' },
-      { amount: 50000, nickname: '2X Blend (3mg × 20 inj)' },
-      { amount: 60000, nickname: '2X Blend (4mg × 20 inj)' },
-      { amount: 42500, nickname: '3X Blend (1mg × 20 inj)' },
-      { amount: 47500, nickname: '3X Blend (2mg × 20 inj)' },
-      { amount: 52500, nickname: '3X Blend (3mg × 20 inj)' },
-      { amount: 62500, nickname: '3X Blend (4mg × 20 inj)' },
-      { amount: 45000, nickname: '4X Blend (1mg × 20 inj)' },
-      { amount: 50000, nickname: '4X Blend (2mg × 20 inj)' },
-      { amount: 55000, nickname: '4X Blend (3mg × 20 inj)' },
-      { amount: 65000, nickname: '4X Blend (4mg × 20 inj)' },
+      { amount: 40000, nickname: 'BPC-157 (500mcg)', peptide_identifier: 'BPC-157 (500mcg)' },
+      { amount: 60000, nickname: 'BPC-157 (750mcg)', peptide_identifier: 'BPC-157 (750mcg)' },
+      { amount: 67500, nickname: 'BPC-157 + Thymosin Beta-4', peptide_identifier: 'BPC-157 + Thymosin Beta-4' },
+      { amount: 50000, nickname: 'GLOW Blend (GHK-Cu + BPC-157 + TB-500)', peptide_identifier: 'GLOW Blend (GHK-Cu + BPC-157 + TB-500)' },
+      { amount: 25000, nickname: 'GHK-Cu (1mg daily)', peptide_identifier: 'GHK-Cu (1mg daily)' },
+      { amount: 35000, nickname: 'GHK-Cu (2mg daily)', peptide_identifier: 'GHK-Cu (2mg daily)' },
+      { amount: 40000, nickname: '2X Blend (1mg × 20 inj)', peptide_identifier: '2X Blend (1mg × 20 inj)' },
+      { amount: 45000, nickname: '2X Blend (2mg × 20 inj)', peptide_identifier: '2X Blend (2mg × 20 inj)' },
+      { amount: 50000, nickname: '2X Blend (3mg × 20 inj)', peptide_identifier: '2X Blend (3mg × 20 inj)' },
+      { amount: 60000, nickname: '2X Blend (4mg × 20 inj)', peptide_identifier: '2X Blend (4mg × 20 inj)' },
+      { amount: 42500, nickname: '3X Blend (1mg × 20 inj)', peptide_identifier: '3X Blend (1mg × 20 inj)' },
+      { amount: 47500, nickname: '3X Blend (2mg × 20 inj)', peptide_identifier: '3X Blend (2mg × 20 inj)' },
+      { amount: 52500, nickname: '3X Blend (3mg × 20 inj)', peptide_identifier: '3X Blend (3mg × 20 inj)' },
+      { amount: 62500, nickname: '3X Blend (4mg × 20 inj)', peptide_identifier: '3X Blend (4mg × 20 inj)' },
+      { amount: 45000, nickname: '4X Blend (1mg × 20 inj)', peptide_identifier: '4X Blend (1mg × 20 inj)' },
+      { amount: 50000, nickname: '4X Blend (2mg × 20 inj)', peptide_identifier: '4X Blend (2mg × 20 inj)' },
+      { amount: 55000, nickname: '4X Blend (3mg × 20 inj)', peptide_identifier: '4X Blend (3mg × 20 inj)' },
+      { amount: 65000, nickname: '4X Blend (4mg × 20 inj)', peptide_identifier: '4X Blend (4mg × 20 inj)' },
     ],
   },
 
@@ -626,6 +629,7 @@ async function main() {
         metadata: {},
       };
       if (p.nickname) priceParams.nickname = p.nickname;
+      if (p.peptide_identifier) priceParams.metadata.peptide_identifier = p.peptide_identifier;
       if (p.commitment) priceParams.metadata.commitment = p.commitment;
       if (isRecurring) {
         priceParams.recurring = { interval: 'month', interval_count: 1 };
@@ -641,9 +645,20 @@ async function main() {
 
       stripeResults.push({ product: stripeProduct?.id, price: stripePrice?.id, name: product.name, nickname: p.nickname });
 
-      // Build the POS service row name
+      // Build the POS service row
+      // For peptides: name stays generic (Stripe-safe), peptide_identifier holds the specific compound
+      // For non-peptides: name includes the nickname as before
       let posName = product.name;
-      if (p.nickname) posName = `${product.name} — ${p.nickname}`;
+      let posPeptideId = null;
+      let posSubCategory = null;
+
+      if (p.peptide_identifier) {
+        // Peptide product — keep name generic, store specifics separately
+        posPeptideId = p.peptide_identifier;
+        posSubCategory = product.name; // group accordion by duration (e.g., "Peptide Therapy — 10 Day")
+      } else if (p.nickname) {
+        posName = `${product.name} — ${p.nickname}`;
+      }
 
       sortCounters[product.category]++;
 
@@ -655,6 +670,8 @@ async function main() {
         interval: isRecurring ? 'month' : null,
         active: true,
         sort_order: (catIndex * 1000) + sortCounters[product.category],
+        ...(posPeptideId ? { peptide_identifier: posPeptideId } : {}),
+        ...(posSubCategory ? { sub_category: posSubCategory } : {}),
       });
     }
 

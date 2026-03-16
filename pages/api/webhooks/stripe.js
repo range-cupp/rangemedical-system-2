@@ -472,8 +472,16 @@ export default async function handler(req, res) {
       for (const item of lineItems.data) {
         const product = item.price?.product;
         const category = (typeof product === 'object' ? product?.metadata?.category : null) || 'Other';
-        const serviceName = item.description || product?.name || 'Website Purchase';
+        let serviceName = item.description || product?.name || 'Website Purchase';
         const itemAmount = item.amount_total || 0;
+
+        // For peptides, the Stripe product name is generic ("Peptide Therapy — 30 Day").
+        // The specific peptide identity is in the price metadata. Reconstruct the full
+        // service name so auto-protocol parsing can identify the correct peptide/duration.
+        const peptideIdentifier = item.price?.metadata?.peptide_identifier;
+        if (peptideIdentifier && category === 'peptide') {
+          serviceName = `${serviceName} — ${peptideIdentifier}`;
+        }
 
         // Create purchase record
         const purchaseData = {

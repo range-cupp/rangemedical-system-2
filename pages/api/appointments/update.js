@@ -1,6 +1,7 @@
 // /pages/api/appointments/update.js
 // Update appointment status, notes, category
 // Supports both 'appointments' and 'clinic_appointments' tables
+// When status → checked_in: records checked_in_at timestamp, logs event, creates encounter note
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -10,7 +11,7 @@ const supabase = createClient(
 );
 
 const ALLOWED_TABLES = ['appointments', 'clinic_appointments'];
-const ALLOWED_STATUSES = ['scheduled', 'confirmed', 'showed', 'completed', 'no_show', 'cancelled'];
+const ALLOWED_STATUSES = ['scheduled', 'confirmed', 'checked_in', 'showed', 'completed', 'no_show', 'cancelled'];
 
 export default async function handler(req, res) {
   if (req.method !== 'PUT') {
@@ -32,7 +33,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const updates = { updated_at: new Date().toISOString() };
+    const now = new Date().toISOString();
+    const updates = { updated_at: now };
 
     if (status) updates.status = status;
     if (notes !== undefined) updates.notes = notes;
@@ -46,17 +48,77 @@ export default async function handler(req, res) {
       }
     }
 
+    // Record check-in timestamp when status changes to checked_in
+    if (status === 'checked_in') {
+      updates.checked_in_at = now;
+    }
+
     const { error } = await supabase
       .from(table)
       .update(updates)
       .eq('id', id);
 
     if (error) {
-      console.error('Error updating appointment:', error);
-      return res.status(500).json({ error: error.message });
+      // If checked_in_at column doesn't exist yet, retry without it
+      if (error.message?.includes('checked_in_at')) {
+        delete updates.checked_in_at;
+        const { error: retryError } = await supabase.from(table).update(updates).eq('id', id);
+        if (retryError) {
+          console.error('Error updating appointment (retry):', retryError);
+          return res.status(500).json({ error: retryError.message });
+        }
+      } else {
+        console.error('Error updating appointment:', error);
+        return res.status(500).json({ error: error.message });
+      }
     }
 
-    return res.status(200).json({ success: true });
+    // Log status change event in appointment_events
+    if (status) {
+      await supabase.from('appointment_events').insert({
+        appointment_id: id,
+        event_type: `status_${status}`,
+        new_status: status,
+        metadata: status === 'checked_in' ? { checked_in_at: now } : {},
+      }).catch(e => console.error('Event log error:', e));
+    }
+
+    // When checked in, create an encounter note on the patient record
+    if (status === 'checked_in') {
+      try {
+        // Fetch appointment details to get patient info
+        const { data: appt } = await supabase
+          .from(table)
+          .select('patient_id, patient_name, service_name, service_category, start_time')
+          .eq('id', id)
+          .single();
+
+        if (appt?.patient_id) {
+          const ptDate = new Date(now).toLocaleString('en-US', {
+            timeZone: 'America/Los_Angeles',
+            weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+            hour: 'numeric', minute: '2-digit',
+          });
+
+          const noteBody = `**Patient Checked In**\n\nService: ${appt.service_name || 'Appointment'}\nCheck-in Time: ${ptDate} PT\nScheduled Time: ${new Date(appt.start_time).toLocaleString('en-US', { timeZone: 'America/Los_Angeles', hour: 'numeric', minute: '2-digit' })} PT`;
+
+          await supabase.from('patient_notes').insert({
+            patient_id: appt.patient_id,
+            body: noteBody,
+            note_date: now,
+            source: 'encounter',
+            status: 'draft',
+            appointment_id: id,
+            encounter_service: appt.service_name || null,
+          });
+        }
+      } catch (noteErr) {
+        // Don't fail the status update if note creation fails
+        console.error('Encounter note creation error:', noteErr);
+      }
+    }
+
+    return res.status(200).json({ success: true, checked_in_at: status === 'checked_in' ? now : undefined });
   } catch (error) {
     console.error('Appointment update error:', error);
     return res.status(500).json({ error: 'Server error' });

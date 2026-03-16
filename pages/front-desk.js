@@ -223,7 +223,12 @@ function TodaySchedule({ onSelectPatient }) {
         body: JSON.stringify({ id: apptId, table: 'appointments', status: newStatus }),
       });
       if (res.ok) {
-        setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, status: newStatus } : a));
+        const data = await res.json();
+        setAppointments(prev => prev.map(a => a.id === apptId ? {
+          ...a,
+          status: newStatus,
+          ...(data.checked_in_at ? { checked_in_at: data.checked_in_at } : {}),
+        } : a));
       }
     } catch (e) { console.error('Status update failed:', e); }
     finally { setUpdating(null); }
@@ -238,6 +243,7 @@ function TodaySchedule({ onSelectPatient }) {
         const time = new Date(a.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' });
         const patientName = a.patients ? `${a.patients.first_name || ''} ${a.patients.last_name || ''}`.trim() : (a.patient_name || a.title || 'Unknown');
         const statusInfo = STATUS_FLOW.find(s => s.key === a.status) || STATUS_FLOW[0];
+        const checkInTime = a.checked_in_at ? new Date(a.checked_in_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' }) : null;
         return (
           <div key={a.id} style={{ position: 'relative' }}>
             <div
@@ -251,6 +257,7 @@ function TodaySchedule({ onSelectPatient }) {
               <span style={{ fontWeight: 600, color: '#333', minWidth: 48, flexShrink: 0 }}>{time}</span>
               <span style={{ color: '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                 {patientName}
+                {checkInTime && <span style={{ color: '#8b5cf6', fontSize: 9, fontWeight: 600, marginLeft: 4 }}>IN {checkInTime}</span>}
               </span>
               <span style={{ color: '#aaa', fontSize: 10, flexShrink: 0, maxWidth: 60, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {a.service_name || a.event_type_title || a.title || ''}

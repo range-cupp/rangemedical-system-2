@@ -159,10 +159,10 @@ function SidebarSection({ title, icon, count, badge, expanded, onToggle, childre
         style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px', cursor: 'pointer', userSelect: 'none' }}
         onMouseEnter={e => e.currentTarget.style.background = '#eff1f3'}
         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-        <span style={{ fontSize: 10, color: '#999', transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}>▶</span>
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#555', letterSpacing: 0.3 }}>{icon} {title}</span>
+        <span style={{ fontSize: 11, color: '#999', transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}>▶</span>
+        <span style={{ fontSize: 13, fontWeight: 700, color: '#555', letterSpacing: 0.3 }}>{icon} {title}</span>
         {count > 0 && (
-          <span style={{ fontSize: 9, fontWeight: 700, color: badge === 'red' ? '#fff' : '#666', background: badge === 'red' ? '#ef4444' : '#e8eaed', borderRadius: 10, padding: '1px 6px', marginLeft: 'auto' }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: badge === 'red' ? '#fff' : '#666', background: badge === 'red' ? '#ef4444' : '#e8eaed', borderRadius: 10, padding: '1px 6px', marginLeft: 'auto' }}>
             {count}
           </span>
         )}
@@ -236,8 +236,8 @@ function TodaySchedule({ onSelectPatient }) {
     }
   };
 
-  if (loading) return <div style={{ padding: '8px 14px', fontSize: 11, color: '#aaa' }}>Loading…</div>;
-  if (appointments.length === 0) return <div style={{ padding: '8px 14px', fontSize: 11, color: '#bbb' }}>No appointments today</div>;
+  if (loading) return <div style={{ padding: '8px 14px', fontSize: 13, color: '#aaa' }}>Loading…</div>;
+  if (appointments.length === 0) return <div style={{ padding: '8px 14px', fontSize: 13, color: '#bbb' }}>No appointments today</div>;
 
   return (
     <div style={{ maxHeight: 200, overflowY: 'auto', position: 'relative' }}>
@@ -262,22 +262,22 @@ function TodaySchedule({ onSelectPatient }) {
                 const pid = a.patient_id || a.patients?.id;
                 if (pid) onSelectPatient({ id: pid, name: patientName, phone: a.patients?.phone });
               }}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', cursor: 'pointer', fontSize: 11, opacity: updating === a.id ? 0.5 : 1, background: isOffsite ? '#fefce8' : 'transparent' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', cursor: 'pointer', fontSize: 13, opacity: updating === a.id ? 0.5 : 1, background: isOffsite ? '#fefce8' : 'transparent' }}
               onMouseEnter={e => { if (!isOffsite) e.currentTarget.style.background = '#eff1f3'; }}
               onMouseLeave={e => { e.currentTarget.style.background = isOffsite ? '#fefce8' : 'transparent'; }}>
               <span style={{ fontWeight: 600, color: '#333', minWidth: 48, flexShrink: 0 }}>{time}</span>
               <span style={{ color: '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                 {patientName}
-                {checkInTime && <span style={{ color: '#8b5cf6', fontSize: 9, fontWeight: 600, marginLeft: 4 }}>IN {checkInTime}</span>}
-                {locationLabel && <span style={{ color: '#b45309', fontSize: 8, fontWeight: 700, marginLeft: 4, background: '#fef3c7', padding: '1px 4px', borderRadius: 3, letterSpacing: 0.3 }}>{locationLabel.toUpperCase()}</span>}
+                {checkInTime && <span style={{ color: '#8b5cf6', fontSize: 11, fontWeight: 600, marginLeft: 4 }}>IN {checkInTime}</span>}
+                {locationLabel && <span style={{ color: '#b45309', fontSize: 10, fontWeight: 700, marginLeft: 4, background: '#fef3c7', padding: '1px 4px', borderRadius: 3, letterSpacing: 0.3 }}>{locationLabel.toUpperCase()}</span>}
               </span>
-              <span style={{ color: '#aaa', fontSize: 10, flexShrink: 0, maxWidth: 60, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ color: '#aaa', fontSize: 12, flexShrink: 0, maxWidth: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {a.service_name || a.event_type_title || a.title || ''}
               </span>
               <button
                 onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === a.id ? null : a.id); }}
                 style={{
-                  padding: '2px 6px', borderRadius: 4, border: 'none', fontSize: 9, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+                  padding: '2px 6px', borderRadius: 4, border: 'none', fontSize: 11, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
                   background: statusInfo.bg, color: statusInfo.color,
                 }}
               >
@@ -296,7 +296,7 @@ function TodaySchedule({ onSelectPatient }) {
                     key={s.key}
                     onClick={(e) => { e.stopPropagation(); updateStatus(a.id, s.key); }}
                     style={{
-                      padding: '6px 12px', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '6px 12px', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
                       background: a.status === s.key ? s.bg : 'transparent', fontWeight: a.status === s.key ? 700 : 400,
                     }}
                     onMouseEnter={e => { if (a.status !== s.key) e.currentTarget.style.background = '#f8f9fb'; }}
@@ -354,7 +354,7 @@ function TaskRow({ task, today, onComplete, onSelectPatient, expanded }) {
   return (
     <div key={task.id}
       onClick={() => { if (task.patient_id) onSelectPatient({ id: task.patient_id, name: task.patient_name || 'Patient' }); }}
-      style={{ display: 'flex', alignItems: 'flex-start', gap: 6, padding: '6px 10px 6px 14px', cursor: task.patient_id ? 'pointer' : 'default', fontSize: 11 }}
+      style={{ display: 'flex', alignItems: 'flex-start', gap: 6, padding: '6px 10px 6px 14px', cursor: task.patient_id ? 'pointer' : 'default', fontSize: 13 }}
       onMouseEnter={e => e.currentTarget.style.background = '#eff1f3'}
       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
       <button onClick={(e) => { e.stopPropagation(); onComplete(task.id); }}
@@ -366,7 +366,7 @@ function TaskRow({ task, today, onComplete, onSelectPatient, expanded }) {
           <span style={{ fontWeight: 600, color: '#333', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</span>
         </div>
         {(task.patient_name || task.due_date) && (
-          <div style={{ fontSize: 10, color: overdue ? '#ef4444' : dueToday ? '#f59e0b' : '#999', marginTop: 1 }}>
+          <div style={{ fontSize: 12, color: overdue ? '#ef4444' : dueToday ? '#f59e0b' : '#999', marginTop: 1 }}>
             {task.patient_name && <span>{task.patient_name}</span>}
             {task.patient_name && task.due_date && <span> · </span>}
             {task.due_date && <span>{overdue ? 'Overdue' : dueToday ? 'Due today' : `Due ${new Date(task.due_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}</span>}
@@ -405,8 +405,8 @@ function MyTasks({ employeeId, session, onSelectPatient }) {
     setTasks(prev => prev.filter(t => t.id !== taskId));
   };
 
-  if (loading) return <div style={{ padding: '8px 14px', fontSize: 11, color: '#aaa' }}>Loading…</div>;
-  if (tasks.length === 0) return <div style={{ padding: '8px 14px', fontSize: 11, color: '#bbb' }}>No pending tasks</div>;
+  if (loading) return <div style={{ padding: '8px 14px', fontSize: 13, color: '#aaa' }}>Loading…</div>;
+  if (tasks.length === 0) return <div style={{ padding: '8px 14px', fontSize: 13, color: '#bbb' }}>No pending tasks</div>;
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -569,10 +569,10 @@ function InboxSidebar({ selected, onSelect, employeeId, session, width, contactU
           style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px', cursor: 'pointer', userSelect: 'none', flexShrink: 0 }}
           onMouseEnter={e => e.currentTarget.style.background = '#eff1f3'}
           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-          <span style={{ fontSize: 10, color: '#999', transform: showConversations ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}>▶</span>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#555', letterSpacing: 0.3 }}>💬 MESSAGES</span>
+          <span style={{ fontSize: 11, color: '#999', transform: showConversations ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}>▶</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#555', letterSpacing: 0.3 }}>💬 MESSAGES</span>
           {unreadCount > 0 && (
-            <span style={{ fontSize: 9, fontWeight: 700, color: '#fff', background: '#ef4444', borderRadius: 10, padding: '1px 6px', marginLeft: 'auto' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: '#ef4444', borderRadius: 10, padding: '1px 6px', marginLeft: 'auto' }}>
               {unreadCount}
             </span>
           )}
@@ -585,11 +585,11 @@ function InboxSidebar({ selected, onSelect, employeeId, session, width, contactU
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Filter conversations..."
-                style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e0e0e0', borderRadius: 8, padding: '5px 8px', fontSize: 11, outline: 'none', background: '#fff', color: '#333' }}
+                style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e0e0e0', borderRadius: 8, padding: '5px 8px', fontSize: 13, outline: 'none', background: '#fff', color: '#333' }}
               />
               <button
                 onClick={() => { setShowNew(!showNew); setNewSearch(''); setNewResults([]); }}
-                style={{ width: '100%', marginTop: 4, padding: '5px 0', background: showNew ? '#333' : '#111', color: '#fff', border: 'none', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>
+                style={{ width: '100%', marginTop: 4, padding: '5px 0', background: showNew ? '#333' : '#111', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>
                 {showNew ? '↑ Cancel' : '+ New Conversation'}
               </button>
             </div>
@@ -599,7 +599,7 @@ function InboxSidebar({ selected, onSelect, employeeId, session, width, contactU
               <div style={{ padding: '0 10px 6px', borderBottom: '1px solid #e8eaed', flexShrink: 0 }}>
                 <input autoFocus value={newSearch} onChange={e => setNewSearch(e.target.value)}
                   placeholder="Search patient name..."
-                  style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #6366f1', borderRadius: 8, padding: '5px 8px', fontSize: 11, outline: 'none', background: '#fff' }} />
+                  style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #6366f1', borderRadius: 8, padding: '5px 8px', fontSize: 13, outline: 'none', background: '#fff' }} />
                 {newResults.map(p => (
                   <div key={p.id || p.phone} onClick={() => { onSelect(p); setShowNew(false); setNewSearch(''); }}
                     style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 4px', cursor: 'pointer', borderRadius: 6 }}
@@ -608,7 +608,7 @@ function InboxSidebar({ selected, onSelect, employeeId, session, width, contactU
                     <div style={{ width: 22, height: 22, borderRadius: '50%', background: avatarColor(p.name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flexShrink: 0 }}>
                       {initials(p.name).toUpperCase()}
                     </div>
-                    <div style={{ fontSize: 11, color: '#333', fontWeight: 500 }}>{p.name}</div>
+                    <div style={{ fontSize: 13, color: '#333', fontWeight: 500 }}>{p.name}</div>
                   </div>
                 ))}
               </div>
@@ -616,8 +616,8 @@ function InboxSidebar({ selected, onSelect, employeeId, session, width, contactU
 
             {/* Contact list — scrolls independently */}
             <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
-              {loading && <div style={{ padding: 12, textAlign: 'center', fontSize: 11, color: '#aaa' }}>Loading…</div>}
-              {!loading && filtered.length === 0 && <div style={{ padding: 12, textAlign: 'center', fontSize: 11, color: '#bbb' }}>No conversations</div>}
+              {loading && <div style={{ padding: 12, textAlign: 'center', fontSize: 13, color: '#aaa' }}>Loading…</div>}
+              {!loading && filtered.length === 0 && <div style={{ padding: 12, textAlign: 'center', fontSize: 13, color: '#bbb' }}>No conversations</div>}
               {filtered.map(c => {
                 const sel = isSelected(c);
                 const color = avatarColor(c.name);
@@ -642,10 +642,10 @@ function InboxSidebar({ selected, onSelect, employeeId, session, width, contactU
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 1 }}>
-                        <span style={{ fontSize: 12, fontWeight: c.unread > 0 ? 700 : 500, color: '#111', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 110 }}>{c.name}</span>
-                        <span style={{ fontSize: 9, color: '#bbb', flexShrink: 0 }}>{timeAgo(c.lastMessage)}</span>
+                        <span style={{ fontSize: 13, fontWeight: c.unread > 0 ? 700 : 500, color: '#111', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 130 }}>{c.name}</span>
+                        <span style={{ fontSize: 11, color: '#bbb', flexShrink: 0 }}>{timeAgo(c.lastMessage)}</span>
                       </div>
-                      <div style={{ fontSize: 10, color: c.unread > 0 ? '#555' : '#aaa', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <div style={{ fontSize: 12, color: c.unread > 0 ? '#555' : '#aaa', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {c.direction === 'inbound' ? '' : '↗ '}{c.preview || 'No messages yet'}
                       </div>
                     </div>

@@ -769,7 +769,7 @@ function BotPanel({ session, employee, selectedPatient }) {
           <span style={{ fontSize: 10, color: '#bbb' }}>AI-powered</span>
         </div>
         {selectedPatient && (
-          <a href={selectedPatient.id ? `/patients/${selectedPatient.id}` : '#'} target="_blank" rel="noopener noreferrer"
+          <a href={selectedPatient.id ? `/admin/patient/${selectedPatient.id}` : '#'} target="_blank" rel="noopener noreferrer"
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', background: color + '15', borderRadius: 20, width: 'fit-content', textDecoration: 'none', cursor: 'pointer' }}
             onMouseEnter={e => e.currentTarget.querySelector('.pt-name').style.textDecoration = 'underline'}
             onMouseLeave={e => e.currentTarget.querySelector('.pt-name').style.textDecoration = 'none'}>
@@ -860,7 +860,7 @@ function PatientBanner({ patient, onCharge, onLog, onDismiss }) {
         <div style={{ width: 64, height: 64, borderRadius: '50%', background: color, color: '#fff', fontSize: 22, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
           {initials(patient.name).toUpperCase()}
         </div>
-        <a href={patient.id ? `/patients/${patient.id}` : '#'} target="_blank" rel="noopener noreferrer"
+        <a href={patient.id ? `/admin/patient/${patient.id}` : '#'} target="_blank" rel="noopener noreferrer"
           style={{ fontSize: 20, fontWeight: 700, color: '#111', marginBottom: 4, textDecoration: 'none', display: 'block' }}
           onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
           onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}

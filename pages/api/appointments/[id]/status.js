@@ -91,7 +91,66 @@ export default async function handler(req, res) {
   }
 }
 
+async function createEncounterReminderTask(appointment) {
+  // Find provider employee by matching appointment.provider name (case-insensitive)
+  let assigneeId = null;
+
+  if (appointment.provider) {
+    const { data: employees } = await supabase
+      .from('employees')
+      .select('id, name')
+      .ilike('name', `%${appointment.provider.replace(/^Dr\.\s*/i, '').trim()}%`);
+
+    if (employees?.length > 0) {
+      assigneeId = employees[0].id;
+    }
+  }
+
+  // Fallback: look for the default provider (Dr. Burgess)
+  if (!assigneeId) {
+    const { data: defaultProvider } = await supabase
+      .from('employees')
+      .select('id, name')
+      .ilike('name', '%burgess%')
+      .single();
+    assigneeId = defaultProvider?.id || null;
+  }
+
+  // No assignee found — skip task creation
+  if (!assigneeId) {
+    console.warn('Encounter reminder task skipped — no provider employee found for:', appointment.provider);
+    return;
+  }
+
+  const apptDate = new Date(appointment.start_time).toLocaleDateString('en-US', {
+    weekday: 'short', month: 'short', day: 'numeric',
+    timeZone: 'America/Los_Angeles',
+  });
+
+  const serviceName = appointment.service_name || appointment.appointment_title || 'visit';
+  const patientName = appointment.patient_name || 'Patient';
+
+  await supabase.from('tasks').insert({
+    title: `Document encounter — ${patientName}`,
+    description: `Create encounter note for ${patientName}'s ${serviceName} on ${apptDate}. Appointment marked as completed.`,
+    assigned_to: assigneeId,
+    assigned_by: assigneeId,
+    patient_id: appointment.patient_id || null,
+    patient_name: patientName,
+    priority: 'high',
+    due_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0], // due tomorrow
+    status: 'pending',
+  });
+}
+
 async function processAppointmentEvent(appointment, newStatus, oldStatus) {
+  // Auto-create encounter documentation task when appointment is completed
+  if (newStatus === 'completed') {
+    createEncounterReminderTask(appointment).catch(err =>
+      console.error('Encounter reminder task error:', err)
+    );
+  }
+
   // Send cancellation SMS
   if (newStatus === 'cancelled' && appointment.patient_id) {
     const { data: patient } = await supabase

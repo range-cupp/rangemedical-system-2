@@ -44,6 +44,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
 import POSChargeModal from '../../components/POSChargeModal';
 import EncounterModal from '../../components/EncounterModal';
+import StandaloneEncounterModal from '../../components/StandaloneEncounterModal';
 import EncounterQuickView from '../../components/EncounterQuickView';
 import SignatureCanvas from '../../components/SignatureCanvas';
 import CycleProgressCard from '../../components/CycleProgressCard';
@@ -531,6 +532,7 @@ export default function PatientProfile() {
 
   // Notes state
   const [showAddNoteModal, setShowAddNoteModal] = useState(false);
+  const [showStandaloneEncounterModal, setShowStandaloneEncounterModal] = useState(false);
   const [noteInput, setNoteInput] = useState('');
   const [noteFormatted, setNoteFormatted] = useState('');
   const [noteFormatting, setNoteFormatting] = useState(false);
@@ -5004,7 +5006,17 @@ export default function PatientProfile() {
               <section className="card">
                 <div className="card-header">
                   <h3>Notes ({notes.length})</h3>
-                  <button className="btn-primary-sm" onClick={() => setShowAddNoteModal(true)}>+ Add Note</button>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      className="btn-secondary-sm"
+                      onClick={() => setShowStandaloneEncounterModal(true)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+                      title="Log an encounter not tied to a scheduled appointment"
+                    >
+                      📋 Log Encounter
+                    </button>
+                    <button className="btn-primary-sm" onClick={() => setShowAddNoteModal(true)}>+ Add Note</button>
+                  </div>
                 </div>
                 {notes.length === 0 ? (
                   <div className="empty">No notes yet</div>
@@ -7620,6 +7632,16 @@ export default function PatientProfile() {
             appointment={{ ...editingAppointment, patient_id: patient?.id }}
             currentUser={session?.user?.user_metadata?.full_name || session?.user?.email || 'Staff'}
             onClose={() => setEditingAppointment(null)}
+            onRefresh={fetchPatient}
+          />
+        )}
+
+        {/* Standalone Encounter Modal — create encounter note without a scheduled appointment */}
+        {showStandaloneEncounterModal && (
+          <StandaloneEncounterModal
+            patient={patient}
+            currentUser={session?.user?.user_metadata?.full_name || session?.user?.email || 'Staff'}
+            onClose={() => setShowStandaloneEncounterModal(false)}
             onRefresh={fetchPatient}
           />
         )}

@@ -214,17 +214,19 @@ function TodaySchedule({ onSelectPatient }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: apptId, table: 'appointments', status: newStatus }),
       });
+      const text = await res.text();
+      let data = {};
+      try { data = JSON.parse(text); } catch (_) {}
       if (res.ok) {
-        const data = await res.json();
         if (data.checked_in_at) {
           setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, checked_in_at: data.checked_in_at } : a));
         }
       } else {
-        console.error('Status update failed:', res.status);
+        console.error('Status update failed:', res.status, text);
         setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, status: oldStatus } : a));
       }
     } catch (e) {
-      console.error('Status update failed:', e);
+      console.error('Status update network error:', e);
       setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, status: oldStatus } : a));
     }
   };
@@ -260,21 +262,22 @@ function TodaySchedule({ onSelectPatient }) {
               <span style={{ color: '#aaa', fontSize: 12, flexShrink: 0, maxWidth: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {a.service_name || a.event_type_title || a.title || ''}
               </span>
-              {/* Native select for status — no custom dropdown needed */}
-              <select
-                value={a.status}
-                onClick={(e) => e.stopPropagation()}
-                onChange={(e) => { e.stopPropagation(); updateStatus(a.id, e.target.value); }}
-                style={{
-                  padding: '2px 4px', borderRadius: 4, border: 'none', fontSize: 11, fontWeight: 700,
-                  cursor: 'pointer', flexShrink: 0, appearance: 'auto',
-                  background: statusInfo.bg, color: statusInfo.color,
-                }}
-              >
-                {STATUS_FLOW.map(s => (
-                  <option key={s.key} value={s.key}>{s.label}</option>
-                ))}
-              </select>
+              {/* Status select — wrapped to fully isolate from parent row click */}
+              <span onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()} onMouseUp={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+                <select
+                  value={a.status}
+                  onChange={(e) => { e.stopPropagation(); updateStatus(a.id, e.target.value); }}
+                  style={{
+                    padding: '2px 4px', borderRadius: 4, border: 'none', fontSize: 11, fontWeight: 700,
+                    cursor: 'pointer', flexShrink: 0, appearance: 'auto',
+                    background: statusInfo.bg, color: statusInfo.color,
+                  }}
+                >
+                  {STATUS_FLOW.map(s => (
+                    <option key={s.key} value={s.key}>{s.label}</option>
+                  ))}
+                </select>
+              </span>
             </div>
           </div>
         );

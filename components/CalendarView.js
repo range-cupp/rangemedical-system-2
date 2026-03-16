@@ -1841,8 +1841,8 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 {appt.status === 'checked_in' && (
                   <button onClick={() => updateStatus(appt.id, 'in_progress')} style={{ ...styles.actionBtn, background: '#e0e7ff', color: '#3730a3' }}>Start</button>
                 )}
-                {['checked_in', 'in_progress'].includes(appt.status) && (
-                  <button onClick={() => updateStatus(appt.id, 'completed')} style={{ ...styles.actionBtn, background: '#dcfce7', color: '#166534' }}>Complete</button>
+                {['scheduled', 'confirmed', 'checked_in', 'in_progress'].includes(appt.status) && (
+                  <button onClick={() => updateStatus(appt.id, 'completed')} style={{ ...styles.actionBtn, background: '#dcfce7', color: '#166634' }}>Complete</button>
                 )}
                 <button onClick={() => { setRescheduleAppt(appt); setRescheduleDate(''); setRescheduleTime(''); }} style={{ ...styles.actionBtn, background: '#fff7ed', color: '#c2410c' }}>Reschedule</button>
                 {['scheduled', 'confirmed'].includes(appt.status) && (

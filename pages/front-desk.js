@@ -229,10 +229,73 @@ function TodaySchedule({ onSelectPatient }) {
   );
 }
 
+// ── Task row (shared between sidebar compact + expanded panel) ────
+function TaskRow({ task, today, onComplete, onSelectPatient, expanded }) {
+  const overdue = task.due_date && task.due_date < today;
+  const dueToday = task.due_date === today;
+  const priorityColors = { high: '#ef4444', medium: '#f59e0b', low: '#22c55e' };
+  const priorityLabels = { high: 'High', medium: 'Med', low: 'Low' };
+
+  if (expanded) {
+    return (
+      <div key={task.id}
+        onClick={() => { if (task.patient_id) onSelectPatient({ id: task.patient_id, name: task.patient_name || 'Patient' }); }}
+        style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 16px', cursor: task.patient_id ? 'pointer' : 'default', borderBottom: '1px solid #f0f0f0' }}
+        onMouseEnter={e => e.currentTarget.style.background = '#f8f9fb'}
+        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+        <button onClick={(e) => { e.stopPropagation(); onComplete(task.id); }}
+          style={{ width: 18, height: 18, borderRadius: 4, border: '2px solid #ccc', background: 'transparent', cursor: 'pointer', flexShrink: 0, marginTop: 2, padding: 0 }}
+          title="Complete task" />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#222', marginBottom: 3 }}>{task.title}</div>
+          {task.description && <div style={{ fontSize: 12, color: '#666', marginBottom: 4, lineHeight: 1.4 }}>{task.description}</div>}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 12 }}>
+            {task.patient_name && <span style={{ color: '#6366f1', fontWeight: 500 }}>{task.patient_name}</span>}
+            <span style={{ color: priorityColors[task.priority] || '#999', fontWeight: 600 }}>{priorityLabels[task.priority] || task.priority}</span>
+            {task.due_date && (
+              <span style={{ color: overdue ? '#ef4444' : dueToday ? '#f59e0b' : '#888', fontWeight: overdue ? 600 : 400 }}>
+                {overdue ? 'Overdue' : dueToday ? 'Due today' : `Due ${new Date(task.due_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+              </span>
+            )}
+            {task.assigned_by_name && <span style={{ color: '#aaa' }}>from {task.assigned_by_name}</span>}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Compact sidebar view
+  return (
+    <div key={task.id}
+      onClick={() => { if (task.patient_id) onSelectPatient({ id: task.patient_id, name: task.patient_name || 'Patient' }); }}
+      style={{ display: 'flex', alignItems: 'flex-start', gap: 6, padding: '6px 10px 6px 14px', cursor: task.patient_id ? 'pointer' : 'default', fontSize: 11 }}
+      onMouseEnter={e => e.currentTarget.style.background = '#eff1f3'}
+      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+      <button onClick={(e) => { e.stopPropagation(); onComplete(task.id); }}
+        style={{ width: 14, height: 14, borderRadius: 3, border: '1.5px solid #ccc', background: 'transparent', cursor: 'pointer', flexShrink: 0, marginTop: 1, padding: 0 }}
+        title="Complete task" />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ width: 5, height: 5, borderRadius: '50%', background: priorityColors[task.priority] || '#ccc', flexShrink: 0 }} />
+          <span style={{ fontWeight: 600, color: '#333', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</span>
+        </div>
+        {(task.patient_name || task.due_date) && (
+          <div style={{ fontSize: 10, color: overdue ? '#ef4444' : dueToday ? '#f59e0b' : '#999', marginTop: 1 }}>
+            {task.patient_name && <span>{task.patient_name}</span>}
+            {task.patient_name && task.due_date && <span> · </span>}
+            {task.due_date && <span>{overdue ? 'Overdue' : dueToday ? 'Due today' : `Due ${new Date(task.due_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}</span>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── My Tasks section ──────────────────────────────────────────────
 function MyTasks({ employeeId, session, onSelectPatient }) {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   const fetchTasks = useCallback(() => {
     if (!employeeId || !session?.access_token) return;
@@ -247,8 +310,7 @@ function MyTasks({ employeeId, session, onSelectPatient }) {
 
   useEffect(() => { fetchTasks(); }, [fetchTasks]);
 
-  const completeTask = async (e, taskId) => {
-    e.stopPropagation();
+  const completeTask = async (taskId) => {
     await fetch('/api/admin/tasks', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
@@ -263,39 +325,45 @@ function MyTasks({ employeeId, session, onSelectPatient }) {
   const today = new Date().toISOString().split('T')[0];
 
   return (
-    <div style={{ maxHeight: 200, overflowY: 'auto' }}>
-      {tasks.map(t => {
-        const overdue = t.due_date && t.due_date < today;
-        const dueToday = t.due_date === today;
-        const priorityColors = { high: '#ef4444', medium: '#f59e0b', low: '#22c55e' };
-        return (
-          <div key={t.id}
-            onClick={() => {
-              if (t.patient_id) onSelectPatient({ id: t.patient_id, name: t.patient_name || 'Patient' });
-            }}
-            style={{ display: 'flex', alignItems: 'flex-start', gap: 6, padding: '6px 10px 6px 14px', cursor: t.patient_id ? 'pointer' : 'default', fontSize: 11 }}
-            onMouseEnter={e => e.currentTarget.style.background = '#eff1f3'}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-            <button onClick={(e) => completeTask(e, t.id)}
-              style={{ width: 14, height: 14, borderRadius: 3, border: '1.5px solid #ccc', background: 'transparent', cursor: 'pointer', flexShrink: 0, marginTop: 1, padding: 0 }}
-              title="Complete task" />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ width: 5, height: 5, borderRadius: '50%', background: priorityColors[t.priority] || '#ccc', flexShrink: 0 }} />
-                <span style={{ fontWeight: 600, color: '#333', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
-              </div>
-              {(t.patient_name || t.due_date) && (
-                <div style={{ fontSize: 10, color: overdue ? '#ef4444' : dueToday ? '#f59e0b' : '#999', marginTop: 1 }}>
-                  {t.patient_name && <span>{t.patient_name}</span>}
-                  {t.patient_name && t.due_date && <span> · </span>}
-                  {t.due_date && <span>{overdue ? 'Overdue' : dueToday ? 'Due today' : `Due ${new Date(t.due_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}</span>}
-                </div>
-              )}
+    <>
+      <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+        {tasks.slice(0, 5).map(t => (
+          <TaskRow key={t.id} task={t} today={today} onComplete={completeTask} onSelectPatient={onSelectPatient} />
+        ))}
+        {tasks.length > 5 && !expanded && (
+          <div style={{ padding: '4px 14px 6px', fontSize: 10, color: '#888' }}>+{tasks.length - 5} more</div>
+        )}
+      </div>
+      <div style={{ padding: '2px 10px 6px', display: 'flex', justifyContent: 'flex-end' }}>
+        <button onClick={() => setExpanded(true)}
+          style={{ fontSize: 10, color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, padding: '2px 4px' }}>
+          Expand view
+        </button>
+      </div>
+
+      {/* Expanded task panel overlay */}
+      {expanded && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setExpanded(false)}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }} />
+          <div onClick={e => e.stopPropagation()}
+            style={{ position: 'relative', background: '#fff', borderRadius: 14, width: 520, maxHeight: '70vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #eee' }}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: '#111' }}>My Tasks ({tasks.length})</span>
+              <button onClick={() => setExpanded(false)}
+                style={{ background: 'none', border: 'none', fontSize: 20, color: '#999', cursor: 'pointer', padding: '0 4px', lineHeight: 1 }}>
+                x
+              </button>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              {tasks.map(t => (
+                <TaskRow key={t.id} task={t} today={today} onComplete={completeTask} onSelectPatient={(p) => { setExpanded(false); onSelectPatient(p); }} expanded />
+              ))}
             </div>
           </div>
-        );
-      })}
-    </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -495,11 +563,13 @@ function BotPanel({ session, employee, selectedPatient }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [listening, setListening] = useState(false);
   const messagesRef = useRef([]);
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const hasGreeted = useRef(false);
   const prevPatientRef = useRef(null);
+  const recognitionRef = useRef(null);
 
   useEffect(() => { messagesRef.current = messages; }, [messages]);
 
@@ -560,6 +630,54 @@ function BotPanel({ session, employee, selectedPatient }) {
       setSending(false);
     }
   }, [input, sending, session, selectedPatient]);
+
+  const toggleVoice = useCallback(() => {
+    if (listening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setListening(false);
+      return;
+    }
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setMessages(prev => [...prev, { role: 'bot', content: 'Voice input is not supported in this browser.', id: Date.now() }]);
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    recognitionRef.current = recognition;
+
+    let finalTranscript = '';
+    recognition.onresult = (event) => {
+      let interim = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        } else {
+          interim += event.results[i][0].transcript;
+        }
+      }
+      setInput(finalTranscript + interim);
+    };
+    recognition.onend = () => {
+      setListening(false);
+      recognitionRef.current = null;
+      if (finalTranscript.trim()) {
+        // Auto-send after speech ends
+        sendMessage(finalTranscript.trim());
+      }
+    };
+    recognition.onerror = (e) => {
+      setListening(false);
+      recognitionRef.current = null;
+      if (e.error !== 'no-speech') {
+        console.error('Speech recognition error:', e.error);
+      }
+    };
+    recognition.start();
+    setListening(true);
+  }, [listening, sendMessage]);
 
   const firstUser = messages.filter(m => m.role === 'user').length === 0;
   const color = selectedPatient ? avatarColor(selectedPatient.name) : null;
@@ -639,9 +757,13 @@ function BotPanel({ session, employee, selectedPatient }) {
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
           onInput={e => { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 96) + 'px'; }}
-          placeholder="Ask the assistant…"
-          style={{ flex: 1, border: '1px solid #e0e0e0', borderRadius: 10, padding: '8px 10px', fontSize: 13, resize: 'none', outline: 'none', fontFamily: 'inherit', lineHeight: 1.5, background: '#f7f8fa' }}
+          placeholder={listening ? 'Listening...' : 'Ask the assistant…'}
+          style={{ flex: 1, border: listening ? '1px solid #ef4444' : '1px solid #e0e0e0', borderRadius: 10, padding: '8px 10px', fontSize: 13, resize: 'none', outline: 'none', fontFamily: 'inherit', lineHeight: 1.5, background: listening ? '#fef2f2' : '#f7f8fa', transition: 'border 0.2s, background 0.2s' }}
         />
+        <button onClick={toggleVoice} title={listening ? 'Stop listening' : 'Voice input'}
+          style={{ width: 34, height: 34, borderRadius: '50%', border: 'none', background: listening ? '#ef4444' : '#f0f0f0', color: listening ? '#fff' : '#666', cursor: 'pointer', fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 0.15s', animation: listening ? 'pulse 1.5s ease-in-out infinite' : 'none' }}>
+          🎙
+        </button>
         <button onClick={() => sendMessage()}
           style={{ width: 34, height: 34, borderRadius: '50%', border: 'none', background: input.trim() && !sending ? '#111' : '#e0e0e0', color: input.trim() && !sending ? '#fff' : '#aaa', cursor: input.trim() && !sending ? 'pointer' : 'default', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 0.15s' }}>
           ↑
@@ -716,6 +838,10 @@ export default function FrontDesk() {
           @keyframes bounce {
             0%, 80%, 100% { transform: translateY(0); }
             40% { transform: translateY(-5px); }
+          }
+          @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
           }
           ::-webkit-scrollbar { width: 4px; }
           ::-webkit-scrollbar-track { background: transparent; }

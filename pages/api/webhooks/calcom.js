@@ -227,6 +227,7 @@ export default async function handler(req, res) {
             durationMinutes,
             location: bookingLocation,
             notes: serviceDetails.notes || null,
+            serviceSlug: eventTypeSlug,
           },
         }).catch(err => console.error('Patient confirmation notification failed:', err));
       }
@@ -353,6 +354,7 @@ export default async function handler(req, res) {
             startTime,
             endTime,
             durationMinutes,
+            serviceSlug: eventTypeSlug,
           },
         }).catch(err => console.error('Patient reschedule notification failed:', err));
       }

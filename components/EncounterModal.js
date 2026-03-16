@@ -19,6 +19,35 @@ function renderFormattedText(text) {
   });
 }
 
+// Convert **bold** markdown + newlines → HTML for contentEditable display
+function mdToHtml(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+}
+
+// Convert contentEditable HTML back to **bold** markdown for storage
+function htmlToMd(html) {
+  if (!html) return '';
+  return html
+    .replace(/<strong>([\s\S]*?)<\/strong>/gi, (_, inner) => `**${inner.replace(/<[^>]*>/g, '')}**`)
+    .replace(/<b>([\s\S]*?)<\/b>/gi, (_, inner) => `**${inner.replace(/<[^>]*>/g, '')}**`)
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<div><br\s*\/?><\/div>/gi, '\n')
+    .replace(/<div>([\s\S]*?)<\/div>/gi, '\n$1')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/<[^>]*>/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 export default function EncounterModal({ appointment, currentUser, onClose, onRefresh }) {
   // Check if current user can author notes
   const canAuthorNotes = NOTE_AUTHORS.some(email => currentUser?.toLowerCase()?.includes(email));
@@ -27,82 +56,109 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
   const [encounterNotes, setEncounterNotes] = useState([]);
   const [loadingNotes, setLoadingNotes] = useState(true);
   const [showNoteForm, setShowNoteForm] = useState(false);
-  const [noteInput, setNoteInput] = useState('');
+  const [noteIsEmpty, setNoteIsEmpty] = useState(true);
   const [noteType, setNoteType] = useState('soap');
   const [noteFormatting, setNoteFormatting] = useState(false);
   const [noteSaving, setNoteSaving] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef(null);
-  const noteTextareaRef = useRef(null);
+  const noteRef = useRef(null);
   const [showTemplateMenu, setShowTemplateMenu] = useState(false);
 
-  // Jump to next ?? placeholder in textarea (Tab key support)
-  const jumpToNextPlaceholder = (fromPos = null) => {
-    const textarea = noteTextareaRef.current;
-    if (!textarea) return false;
-    const text = noteInput;
-    const searchFrom = fromPos !== null ? fromPos : textarea.selectionStart;
-    // Search forward from cursor
-    let idx = text.indexOf('??', searchFrom);
-    // If not found, wrap around to beginning
-    if (idx === -1) idx = text.indexOf('??', 0);
-    if (idx === -1) return false;
-    // Use setTimeout to ensure state has settled
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(idx, idx + 2);
-    }, 0);
-    return true;
+  // Get markdown from contentEditable div
+  const getNoteMarkdown = () => htmlToMd(noteRef.current?.innerHTML || '');
+
+  // Select the next ?? placeholder in contentEditable
+  const selectNextPlaceholder = (el, fromStart = false) => {
+    if (!el) return false;
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+    let node;
+    let firstMatch = null;
+    while ((node = walker.nextNode())) {
+      const idx = node.textContent.indexOf('??');
+      if (idx !== -1) {
+        if (!firstMatch) firstMatch = { node, idx };
+        if (fromStart) break;
+      }
+    }
+    if (firstMatch) {
+      const range = document.createRange();
+      range.setStart(firstMatch.node, firstMatch.idx);
+      range.setEnd(firstMatch.node, firstMatch.idx + 2);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      return true;
+    }
+    return false;
   };
 
-  // Handle Tab key to jump between ?? placeholders
-  const handleTextareaKeyDown = (e) => {
-    if (e.key === 'Tab') {
-      const textarea = noteTextareaRef.current;
-      if (!textarea) return;
-      const text = noteInput;
-      // Only intercept Tab if there are ?? placeholders in the text
-      if (!text.includes('??')) return;
+  // Handle Tab key to jump between ?? placeholders in contentEditable
+  const handleNoteKeyDown = (e) => {
+    if (e.key === 'Tab' && noteRef.current?.innerText?.includes('??')) {
       e.preventDefault();
-      const currentPos = textarea.selectionStart;
-      // If current selection IS a ??, jump to the next one after it
-      const selected = text.slice(textarea.selectionStart, textarea.selectionEnd);
-      const searchFrom = selected === '??' ? currentPos + 2 : currentPos;
-      jumpToNextPlaceholder(searchFrom);
+      const sel = window.getSelection();
+      const el = noteRef.current;
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+      let node;
+      let passedCurrent = false;
+      let firstMatch = null;
+      const curNode = sel.anchorNode;
+      const curOff = sel.anchorOffset;
+      const selectedText = sel.toString();
+      const skipOffset = selectedText === '??' ? curOff + 2 : curOff;
+      while ((node = walker.nextNode())) {
+        const searchFrom = (node === curNode && !passedCurrent) ? skipOffset : 0;
+        const idx = node.textContent.indexOf('??', searchFrom);
+        if (idx !== -1 && !firstMatch) firstMatch = { node, idx };
+        if (idx !== -1 && passedCurrent) {
+          const range = document.createRange();
+          range.setStart(node, idx);
+          range.setEnd(node, idx + 2);
+          sel.removeAllRanges();
+          sel.addRange(range);
+          return;
+        }
+        if (node === curNode) passedCurrent = true;
+      }
+      // Wrap around
+      if (firstMatch) {
+        const range = document.createRange();
+        range.setStart(firstMatch.node, firstMatch.idx);
+        range.setEnd(firstMatch.node, firstMatch.idx + 2);
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
     }
   };
 
-  // Auto-select first ?? when template is loaded (offset = where appended text starts)
-  const selectFirstPlaceholder = (text, offset = 0) => {
-    const idx = text.indexOf('??');
-    if (idx === -1) return;
-    setTimeout(() => {
-      const textarea = noteTextareaRef.current;
-      if (!textarea) return;
-      textarea.focus();
-      textarea.setSelectionRange(offset + idx, offset + idx + 2);
-    }, 50);
+  // Load template into contentEditable (appends to existing content)
+  const loadTemplate = (body, defaultNoteType) => {
+    if (noteRef.current) {
+      const existing = noteRef.current.innerHTML.trim();
+      const separator = existing ? '<br><br><hr><br>' : '';
+      noteRef.current.innerHTML = (existing ? existing + separator : '') + mdToHtml(body);
+      setNoteIsEmpty(false);
+      if (defaultNoteType && !existing) setNoteType(defaultNoteType);
+      noteRef.current.focus();
+      setTimeout(() => {
+        if (!selectNextPlaceholder(noteRef.current, true)) {
+          const range = document.createRange();
+          const sel = window.getSelection();
+          range.selectNodeContents(noteRef.current);
+          range.collapse(false);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+      }, 50);
+    }
   };
 
-  // Toggle bold on selected text in textarea
+  // Toggle bold on selected text using execCommand
   const handleBoldToggle = () => {
-    const textarea = noteTextareaRef.current;
-    if (!textarea) return;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = noteInput;
-    if (start === end) return; // no selection
-    const selected = text.slice(start, end);
-    // If already bold, remove **
-    if (selected.startsWith('**') && selected.endsWith('**')) {
-      const unwrapped = selected.slice(2, -2);
-      setNoteInput(text.slice(0, start) + unwrapped + text.slice(end));
-    } else if (text.slice(start - 2, start) === '**' && text.slice(end, end + 2) === '**') {
-      setNoteInput(text.slice(0, start - 2) + selected + text.slice(end + 2));
-    } else {
-      setNoteInput(text.slice(0, start) + '**' + selected + '**' + text.slice(end));
-    }
-    setTimeout(() => textarea.focus(), 0);
+    if (!noteRef.current) return;
+    noteRef.current.focus();
+    document.execCommand('bold', false, null);
   };
 
   // Edit draft state
@@ -291,8 +347,15 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
           finalTranscript += event.results[i][0].transcript + ' ';
         }
       }
-      if (finalTranscript) {
-        setNoteInput(prev => prev + finalTranscript);
+      if (finalTranscript && noteRef.current) {
+        noteRef.current.focus();
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0 && noteRef.current.contains(sel.anchorNode)) {
+          document.execCommand('insertText', false, ' ' + finalTranscript);
+        } else {
+          noteRef.current.innerHTML += ' ' + finalTranscript;
+        }
+        setNoteIsEmpty(false);
       }
     };
     recognition.onerror = () => setIsRecording(false);
@@ -317,7 +380,8 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
 
   // AI format
   const handleFormat = async () => {
-    if (!noteInput.trim()) return;
+    const rawMarkdown = getNoteMarkdown();
+    if (!rawMarkdown.trim()) return;
     setNoteFormatting(true);
     try {
       // Include vitals so AI can place them in OBJECTIVE section of SOAP notes
@@ -336,14 +400,14 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          raw_text: noteInput,
+          raw_text: rawMarkdown,
           note_type: noteType,
           vitals: Object.keys(vitalsPayload).length > 0 ? vitalsPayload : undefined
         }),
       });
       const data = await res.json();
-      if (data.formatted) {
-        setNoteInput(data.formatted);
+      if (data.formatted && noteRef.current) {
+        noteRef.current.innerHTML = mdToHtml(data.formatted);
       }
     } catch (err) {
       console.error('Format error:', err);
@@ -354,7 +418,8 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
 
   // Save note
   const handleSaveNote = async () => {
-    if (!noteInput.trim()) return;
+    const noteMarkdown = getNoteMarkdown();
+    if (!noteMarkdown.trim()) return;
     setNoteSaving(true);
     try {
       const res = await fetch('/api/notes/create', {
@@ -362,8 +427,8 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           patient_id: appointment.patient_id,
-          body: noteInput,
-          raw_input: noteInput,
+          body: noteMarkdown,
+          raw_input: noteMarkdown,
           created_by: currentUser,
           appointment_id: appointment.id,
           encounter_service: appointment.service_name || appointment.appointment_title || '',
@@ -372,7 +437,8 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
       const data = await res.json();
       if (data.note) {
         setEncounterNotes(prev => [...prev, data.note]);
-        setNoteInput('');
+        if (noteRef.current) noteRef.current.innerHTML = '';
+        setNoteIsEmpty(true);
         setShowNoteForm(false);
         stopDictation();
         if (onRefresh) onRefresh();
@@ -727,6 +793,16 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
           outline: none; border-color: #111; box-shadow: 0 0 0 3px rgba(0,0,0,0.06);
         }
         .enc-textarea::placeholder { color: #c5c5c5; }
+        .enc-note-editor:empty::before {
+          content: attr(data-placeholder);
+          color: #c5c5c5;
+          pointer-events: none;
+        }
+        .enc-note-editor:focus {
+          outline: none;
+          border-color: #111 !important;
+          box-shadow: 0 0 0 3px rgba(0,0,0,0.06);
+        }
         .enc-mic-btn {
           position: absolute; right: 12px; top: 12px; width: 34px; height: 34px;
           border-radius: 50%; border: none; display: flex; align-items: center; justify-content: center;
@@ -1074,7 +1150,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                   <div className="enc-form-card">
                     <div className="enc-form-title">
                       <span>New Encounter Note</span>
-                      <button onClick={() => { setShowNoteForm(false); setNoteInput(''); stopDictation(); }} className="enc-close" style={{ width: 28, height: 28, fontSize: 16 }}>×</button>
+                      <button onClick={() => { setShowNoteForm(false); if (noteRef.current) noteRef.current.innerHTML = ''; setNoteIsEmpty(true); stopDictation(); }} className="enc-close" style={{ width: 28, height: 28, fontSize: 16 }}>×</button>
                     </div>
 
                     {/* Note type selector */}
@@ -1120,14 +1196,8 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                                       key={tmpl.key}
                                       className="enc-template-option"
                                       onClick={() => {
-                                        setNoteInput(prev => {
-                                          const separator = prev.trim() ? '\n\n---\n\n' : '';
-                                          const offset = prev.length + separator.length;
-                                          if (tmpl.defaultNoteType && !prev.trim()) setNoteType(tmpl.defaultNoteType);
-                                          setShowTemplateMenu(false);
-                                          selectFirstPlaceholder(tmpl.body, offset);
-                                          return prev + separator + tmpl.body;
-                                        });
+                                        loadTemplate(tmpl.body, tmpl.defaultNoteType);
+                                        setShowTemplateMenu(false);
                                       }}
                                     >
                                       {tmpl.label}
@@ -1146,14 +1216,8 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                                       key={tmpl.key}
                                       className="enc-template-option"
                                       onClick={() => {
-                                        setNoteInput(prev => {
-                                          const separator = prev.trim() ? '\n\n---\n\n' : '';
-                                          const offset = prev.length + separator.length;
-                                          if (tmpl.defaultNoteType && !prev.trim()) setNoteType(tmpl.defaultNoteType);
-                                          setShowTemplateMenu(false);
-                                          selectFirstPlaceholder(tmpl.body, offset);
-                                          return prev + separator + tmpl.body;
-                                        });
+                                        loadTemplate(tmpl.body, tmpl.defaultNoteType);
+                                        setShowTemplateMenu(false);
                                       }}
                                     >
                                       {tmpl.label}
@@ -1173,7 +1237,13 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                         <div className="enc-form-label">Quick Notes</div>
                         <div className="enc-quick-notes">
                           {template.quickNotes.map((qn, i) => (
-                            <button key={i} onClick={() => setNoteInput(prev => prev + (prev ? '\n' : '') + qn)} className="enc-quick-note">
+                            <button key={i} onClick={() => {
+                              if (noteRef.current) {
+                                const current = noteRef.current.innerHTML;
+                                noteRef.current.innerHTML = current.trim() ? current + '<br>' + qn : qn;
+                                setNoteIsEmpty(false);
+                              }
+                            }} className="enc-quick-note">
                               + {qn}
                             </button>
                           ))}
@@ -1198,22 +1268,34 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                       <span style={{ fontSize: 11, color: '#9ca3af', alignSelf: 'center', marginLeft: 4 }}>
                         Select text → B to bold
                       </span>
-                      {noteInput.includes('??') && (
+                      {noteRef.current?.innerText?.includes('??') && (
                         <span style={{ fontSize: 11, color: '#6d28d9', alignSelf: 'center', marginLeft: 12, fontWeight: 500 }}>
                           ⇥ Tab to jump between ?? fields
                         </span>
                       )}
                     </div>
 
-                    {/* Textarea with dictation */}
+                    {/* Rich text editor with dictation */}
                     <div className="enc-textarea-wrap">
-                      <textarea
-                        ref={noteTextareaRef}
-                        value={noteInput}
-                        onChange={e => setNoteInput(e.target.value)}
-                        onKeyDown={handleTextareaKeyDown}
-                        placeholder="Type your encounter note here, or click the microphone to dictate..."
-                        className="enc-textarea"
+                      <div
+                        ref={noteRef}
+                        className="enc-note-editor"
+                        contentEditable
+                        suppressContentEditableWarning
+                        data-placeholder="Type your encounter note here, or click the microphone to dictate..."
+                        onInput={() => {
+                          const text = noteRef.current?.innerText || '';
+                          setNoteIsEmpty(!text.trim());
+                        }}
+                        onKeyDown={handleNoteKeyDown}
+                        style={{
+                          width: '100%', minHeight: 180, resize: 'vertical', fontFamily: 'inherit', fontSize: 14,
+                          lineHeight: 1.7, padding: '14px 50px 14px 16px', borderRadius: 10,
+                          border: '1.5px solid #e5e7eb', background: '#fff', color: '#111',
+                          transition: 'border-color 0.15s, box-shadow 0.15s',
+                          overflowY: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                          boxSizing: 'border-box',
+                        }}
                       />
                       <button onClick={toggleDictation} type="button" className={`enc-mic-btn ${isRecording ? 'recording' : 'idle'}`} title={isRecording ? 'Stop dictation' : 'Start dictation'}>
                         🎤
@@ -1228,12 +1310,12 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
 
                     {/* Action buttons */}
                     <div className="enc-actions">
-                      <button onClick={handleFormat} disabled={!noteInput.trim() || noteFormatting} className="enc-btn enc-btn-ai">
+                      <button onClick={handleFormat} disabled={noteIsEmpty || noteFormatting} className="enc-btn enc-btn-ai">
                         {noteFormatting ? 'Formatting...' : '✨ Format with AI'}
                       </button>
                       <div className="enc-actions-right">
-                        <button onClick={() => { setShowNoteForm(false); setNoteInput(''); stopDictation(); }} className="enc-btn enc-btn-secondary">Cancel</button>
-                        <button onClick={handleSaveNote} disabled={!noteInput.trim() || noteSaving} className="enc-btn enc-btn-primary">
+                        <button onClick={() => { setShowNoteForm(false); if (noteRef.current) noteRef.current.innerHTML = ''; setNoteIsEmpty(true); stopDictation(); }} className="enc-btn enc-btn-secondary">Cancel</button>
+                        <button onClick={handleSaveNote} disabled={noteIsEmpty || noteSaving} className="enc-btn enc-btn-primary">
                           {noteSaving ? 'Saving...' : 'Save as Draft'}
                         </button>
                       </div>

@@ -151,7 +151,150 @@ function WalkinSearch({ onSelect }) {
 }
 
 // ── Inbox sidebar ─────────────────────────────────────────────────
-function InboxSidebar({ selected, onSelect }) {
+// ── Collapsible section header ─────────────────────────────────────
+function SidebarSection({ title, icon, count, badge, expanded, onToggle, children }) {
+  return (
+    <div style={{ borderBottom: '1px solid #e8eaed' }}>
+      <div onClick={onToggle}
+        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px', cursor: 'pointer', userSelect: 'none' }}
+        onMouseEnter={e => e.currentTarget.style.background = '#eff1f3'}
+        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+        <span style={{ fontSize: 10, color: '#999', transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}>▶</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#555', letterSpacing: 0.3 }}>{icon} {title}</span>
+        {count > 0 && (
+          <span style={{ fontSize: 9, fontWeight: 700, color: badge === 'red' ? '#fff' : '#666', background: badge === 'red' ? '#ef4444' : '#e8eaed', borderRadius: 10, padding: '1px 6px', marginLeft: 'auto' }}>
+            {count}
+          </span>
+        )}
+      </div>
+      {expanded && children}
+    </div>
+  );
+}
+
+// ── Today's Schedule section ──────────────────────────────────────
+function TodaySchedule({ onSelectPatient }) {
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+    fetch(`/api/app/schedule?date=${today}&days=1`)
+      .then(r => r.json())
+      .then(data => {
+        const appts = data.appointments || [];
+        // Sort by start_time
+        appts.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+        setAppointments(appts);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div style={{ padding: '8px 14px', fontSize: 11, color: '#aaa' }}>Loading…</div>;
+  if (appointments.length === 0) return <div style={{ padding: '8px 14px', fontSize: 11, color: '#bbb' }}>No appointments today</div>;
+
+  return (
+    <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+      {appointments.map(a => {
+        const time = new Date(a.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' });
+        const patientName = a.patients ? `${a.patients.first_name || ''} ${a.patients.last_name || ''}`.trim() : (a.patient_name || 'Unknown');
+        const statusColors = { checked_in: '#22c55e', confirmed: '#3b82f6', scheduled: '#f59e0b', rescheduled: '#f97316' };
+        const dotColor = statusColors[a.status] || '#ccc';
+        return (
+          <div key={a.id}
+            onClick={() => {
+              const pid = a.patient_id || a.patients?.id;
+              if (pid) onSelectPatient({ id: pid, name: patientName, phone: a.patients?.phone });
+            }}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 11 }}
+            onMouseEnter={e => e.currentTarget.style.background = '#eff1f3'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
+            <span style={{ fontWeight: 600, color: '#333', minWidth: 48, flexShrink: 0 }}>{time}</span>
+            <span style={{ color: '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+              {patientName}
+            </span>
+            <span style={{ color: '#aaa', fontSize: 10, flexShrink: 0, maxWidth: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {a.event_type_title || a.title || ''}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── My Tasks section ──────────────────────────────────────────────
+function MyTasks({ employeeId, onSelectPatient }) {
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchTasks = useCallback(() => {
+    if (!employeeId) return;
+    fetch(`/api/admin/tasks?filter=my&status=pending&employee_id=${employeeId}`)
+      .then(r => r.json())
+      .then(data => setTasks(data.tasks || []))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [employeeId]);
+
+  useEffect(() => { fetchTasks(); }, [fetchTasks]);
+
+  const completeTask = async (e, taskId) => {
+    e.stopPropagation();
+    await fetch('/api/admin/tasks', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: taskId, status: 'completed' }),
+    });
+    setTasks(prev => prev.filter(t => t.id !== taskId));
+  };
+
+  if (loading) return <div style={{ padding: '8px 14px', fontSize: 11, color: '#aaa' }}>Loading…</div>;
+  if (tasks.length === 0) return <div style={{ padding: '8px 14px', fontSize: 11, color: '#bbb' }}>No pending tasks</div>;
+
+  const today = new Date().toISOString().split('T')[0];
+
+  return (
+    <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+      {tasks.map(t => {
+        const overdue = t.due_date && t.due_date < today;
+        const dueToday = t.due_date === today;
+        const priorityColors = { high: '#ef4444', medium: '#f59e0b', low: '#22c55e' };
+        return (
+          <div key={t.id}
+            onClick={() => {
+              if (t.patient_id) onSelectPatient({ id: t.patient_id, name: t.patient_name || 'Patient' });
+            }}
+            style={{ display: 'flex', alignItems: 'flex-start', gap: 6, padding: '6px 10px 6px 14px', cursor: t.patient_id ? 'pointer' : 'default', fontSize: 11 }}
+            onMouseEnter={e => e.currentTarget.style.background = '#eff1f3'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+            <button onClick={(e) => completeTask(e, t.id)}
+              style={{ width: 14, height: 14, borderRadius: 3, border: '1.5px solid #ccc', background: 'transparent', cursor: 'pointer', flexShrink: 0, marginTop: 1, padding: 0 }}
+              title="Complete task" />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ width: 5, height: 5, borderRadius: '50%', background: priorityColors[t.priority] || '#ccc', flexShrink: 0 }} />
+                <span style={{ fontWeight: 600, color: '#333', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
+              </div>
+              {(t.patient_name || t.due_date) && (
+                <div style={{ fontSize: 10, color: overdue ? '#ef4444' : dueToday ? '#f59e0b' : '#999', marginTop: 1 }}>
+                  {t.patient_name && <span>{t.patient_name}</span>}
+                  {t.patient_name && t.due_date && <span> · </span>}
+                  {t.due_date && <span>{overdue ? 'Overdue' : dueToday ? 'Due today' : `Due ${new Date(t.due_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}</span>}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Sidebar with Schedule, Tasks, and Conversations ───────────────
+function InboxSidebar({ selected, onSelect, employeeId }) {
   const [contacts, setContacts] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -159,6 +302,15 @@ function InboxSidebar({ selected, onSelect }) {
   const [newSearch, setNewSearch] = useState('');
   const [newResults, setNewResults] = useState([]);
   const searchTO = useRef(null);
+
+  // Section collapse state — schedule and tasks open by default
+  const [showSchedule, setShowSchedule] = useState(true);
+  const [showTasks, setShowTasks] = useState(true);
+  const [showConversations, setShowConversations] = useState(true);
+
+  // Schedule + task counts for badges
+  const [scheduleCount, setScheduleCount] = useState(0);
+  const [taskCount, setTaskCount] = useState(0);
 
   useEffect(() => {
     fetch('/api/admin/conversations?days=90&limit=200')
@@ -177,6 +329,21 @@ function InboxSidebar({ selected, onSelect }) {
       .finally(() => setLoading(false));
   }, []);
 
+  // Fetch counts for badges
+  useEffect(() => {
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+    fetch(`/api/app/schedule?date=${today}&days=1`)
+      .then(r => r.json())
+      .then(data => setScheduleCount((data.appointments || []).length))
+      .catch(() => {});
+    if (employeeId) {
+      fetch(`/api/admin/unread-tasks?employee_id=${employeeId}`)
+        .then(r => r.json())
+        .then(data => setTaskCount(data.count || 0))
+        .catch(() => {});
+    }
+  }, [employeeId]);
+
   useEffect(() => {
     clearTimeout(searchTO.current);
     if (!newSearch || newSearch.length < 2) { setNewResults([]); return; }
@@ -190,85 +357,99 @@ function InboxSidebar({ selected, onSelect }) {
     }, 300);
   }, [newSearch]);
 
+  const unreadCount = contacts.filter(c => c.unread > 0).length;
   const filtered = contacts.filter(c => !search || c.name.toLowerCase().includes(search.toLowerCase()));
   const isSelected = (c) => selected && (selected.id ? selected.id === c.id : selected.phone === c.phone);
 
   return (
-    <div style={{ width: 240, flexShrink: 0, display: 'flex', flexDirection: 'column', background: '#f7f8fa', borderRight: '1px solid #e8eaed', height: '100%' }}>
-      {/* Search + new */}
-      <div style={{ padding: '12px 10px 8px' }}>
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Filter conversations..."
-          style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e0e0e0', borderRadius: 8, padding: '7px 10px', fontSize: 12, outline: 'none', background: '#fff', color: '#333' }}
-        />
-        <button
-          onClick={() => { setShowNew(!showNew); setNewSearch(''); setNewResults([]); }}
-          style={{ width: '100%', marginTop: 6, padding: '7px 0', background: showNew ? '#333' : '#111', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
-          {showNew ? '↑ Cancel' : '+ New Conversation'}
-        </button>
-      </div>
+    <div style={{ width: 260, flexShrink: 0, display: 'flex', flexDirection: 'column', background: '#f7f8fa', borderRight: '1px solid #e8eaed', height: '100%' }}>
 
-      {/* New conversation search */}
-      {showNew && (
-        <div style={{ padding: '0 10px 8px', borderBottom: '1px solid #e8eaed' }}>
-          <input autoFocus value={newSearch} onChange={e => setNewSearch(e.target.value)}
-            placeholder="Search patient name..."
-            style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #6366f1', borderRadius: 8, padding: '7px 10px', fontSize: 12, outline: 'none', background: '#fff' }} />
-          {newResults.map(p => (
-            <div key={p.id || p.phone} onClick={() => { onSelect(p); setShowNew(false); setNewSearch(''); }}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 4px', cursor: 'pointer', borderRadius: 6 }}
-              onMouseEnter={e => e.currentTarget.style.background = '#f0f0f0'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-              <div style={{ width: 26, height: 26, borderRadius: '50%', background: avatarColor(p.name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, flexShrink: 0 }}>
-                {initials(p.name).toUpperCase()}
-              </div>
-              <div style={{ fontSize: 12, color: '#333', fontWeight: 500 }}>{p.name}</div>
-            </div>
-          ))}
+      {/* Today's Schedule */}
+      <SidebarSection title="TODAY" icon="📅" count={scheduleCount} expanded={showSchedule} onToggle={() => setShowSchedule(!showSchedule)}>
+        <TodaySchedule onSelectPatient={onSelect} />
+      </SidebarSection>
+
+      {/* My Tasks */}
+      <SidebarSection title="TASKS" icon="✅" count={taskCount} badge={taskCount > 0 ? 'red' : null} expanded={showTasks} onToggle={() => setShowTasks(!showTasks)}>
+        <MyTasks employeeId={employeeId} onSelectPatient={onSelect} />
+      </SidebarSection>
+
+      {/* Conversations */}
+      <SidebarSection title="MESSAGES" icon="💬" count={unreadCount} badge={unreadCount > 0 ? 'red' : null} expanded={showConversations} onToggle={() => setShowConversations(!showConversations)}>
+        <div style={{ padding: '4px 10px 6px' }}>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Filter conversations..."
+            style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e0e0e0', borderRadius: 8, padding: '5px 8px', fontSize: 11, outline: 'none', background: '#fff', color: '#333' }}
+          />
+          <button
+            onClick={() => { setShowNew(!showNew); setNewSearch(''); setNewResults([]); }}
+            style={{ width: '100%', marginTop: 4, padding: '5px 0', background: showNew ? '#333' : '#111', color: '#fff', border: 'none', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>
+            {showNew ? '↑ Cancel' : '+ New Conversation'}
+          </button>
         </div>
-      )}
 
-      {/* Contact list */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
-        {loading && <div style={{ padding: 20, textAlign: 'center', fontSize: 12, color: '#aaa' }}>Loading…</div>}
-        {!loading && filtered.length === 0 && <div style={{ padding: 20, textAlign: 'center', fontSize: 12, color: '#bbb' }}>No conversations</div>}
-        {filtered.map(c => {
-          const sel = isSelected(c);
-          const color = avatarColor(c.name);
-          return (
-            <div key={c.id || c.phone}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #eff0f1', background: sel ? '#fff' : 'transparent', borderLeft: sel ? '3px solid #6366f1' : '3px solid transparent', transition: 'background 0.1s' }}
-              onMouseEnter={e => { if (!sel) e.currentTarget.style.background = '#eff1f3'; }}
-              onMouseLeave={e => { if (!sel) e.currentTarget.style.background = 'transparent'; }}
-              onClick={() => {
-                if (c.unread > 0) setContacts(prev => prev.map(x => (x.id === c.id && x.phone === c.phone) ? { ...x, unread: 0 } : x));
-                onSelect(c);
-              }}>
-              <div style={{ position: 'relative', flexShrink: 0 }}>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', background: color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700 }}>
-                  {initials(c.name).toUpperCase()}
+        {/* New conversation search */}
+        {showNew && (
+          <div style={{ padding: '0 10px 6px', borderBottom: '1px solid #e8eaed' }}>
+            <input autoFocus value={newSearch} onChange={e => setNewSearch(e.target.value)}
+              placeholder="Search patient name..."
+              style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #6366f1', borderRadius: 8, padding: '5px 8px', fontSize: 11, outline: 'none', background: '#fff' }} />
+            {newResults.map(p => (
+              <div key={p.id || p.phone} onClick={() => { onSelect(p); setShowNew(false); setNewSearch(''); }}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 4px', cursor: 'pointer', borderRadius: 6 }}
+                onMouseEnter={e => e.currentTarget.style.background = '#f0f0f0'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                <div style={{ width: 22, height: 22, borderRadius: '50%', background: avatarColor(p.name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flexShrink: 0 }}>
+                  {initials(p.name).toUpperCase()}
                 </div>
-                {c.unread > 0 && (
-                  <div style={{ position: 'absolute', top: -2, right: -2, width: 16, height: 16, borderRadius: '50%', background: '#ef4444', color: '#fff', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #f7f8fa' }}>
-                    {c.unread > 9 ? '9+' : c.unread}
+                <div style={{ fontSize: 11, color: '#333', fontWeight: 500 }}>{p.name}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Contact list */}
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {loading && <div style={{ padding: 12, textAlign: 'center', fontSize: 11, color: '#aaa' }}>Loading…</div>}
+          {!loading && filtered.length === 0 && <div style={{ padding: 12, textAlign: 'center', fontSize: 11, color: '#bbb' }}>No conversations</div>}
+          {filtered.map(c => {
+            const sel = isSelected(c);
+            const color = avatarColor(c.name);
+            return (
+              <div key={c.id || c.phone}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', cursor: 'pointer', borderBottom: '1px solid #eff0f1', background: sel ? '#fff' : 'transparent', borderLeft: sel ? '3px solid #6366f1' : '3px solid transparent', transition: 'background 0.1s' }}
+                onMouseEnter={e => { if (!sel) e.currentTarget.style.background = '#eff1f3'; }}
+                onMouseLeave={e => { if (!sel) e.currentTarget.style.background = 'transparent'; }}
+                onClick={() => {
+                  if (c.unread > 0) setContacts(prev => prev.map(x => (x.id === c.id && x.phone === c.phone) ? { ...x, unread: 0 } : x));
+                  onSelect(c);
+                }}>
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: '50%', background: color, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>
+                    {initials(c.name).toUpperCase()}
                   </div>
-                )}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                  <span style={{ fontSize: 13, fontWeight: c.unread > 0 ? 700 : 500, color: '#111', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120 }}>{c.name}</span>
-                  <span style={{ fontSize: 10, color: '#bbb', flexShrink: 0 }}>{timeAgo(c.lastMessage)}</span>
+                  {c.unread > 0 && (
+                    <div style={{ position: 'absolute', top: -2, right: -2, width: 14, height: 14, borderRadius: '50%', background: '#ef4444', color: '#fff', fontSize: 8, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #f7f8fa' }}>
+                      {c.unread > 9 ? '9+' : c.unread}
+                    </div>
+                  )}
                 </div>
-                <div style={{ fontSize: 11, color: c.unread > 0 ? '#555' : '#aaa', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {c.direction === 'inbound' ? '' : '↗ '}{c.preview || 'No messages yet'}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 1 }}>
+                    <span style={{ fontSize: 12, fontWeight: c.unread > 0 ? 700 : 500, color: '#111', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 110 }}>{c.name}</span>
+                    <span style={{ fontSize: 9, color: '#bbb', flexShrink: 0 }}>{timeAgo(c.lastMessage)}</span>
+                  </div>
+                  <div style={{ fontSize: 10, color: c.unread > 0 ? '#555' : '#aaa', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {c.direction === 'inbound' ? '' : '↗ '}{c.preview || 'No messages yet'}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      </SidebarSection>
     </div>
   );
 }
@@ -530,7 +711,7 @@ export default function FrontDesk() {
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
 
           {/* Inbox sidebar */}
-          <InboxSidebar selected={selectedPatient} onSelect={p => { setSelectedPatient(p); setWalkinPatient(null); }} />
+          <InboxSidebar selected={selectedPatient} onSelect={p => { setSelectedPatient(p); setWalkinPatient(null); }} employeeId={employee.id} />
 
           {/* Center: conversation or patient banner */}
           <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>

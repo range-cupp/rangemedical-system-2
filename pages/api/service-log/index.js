@@ -242,6 +242,8 @@ async function handlePost(req, res) {
     signature_url,
     injection_method, // IM or subq
     injection_frequency, // injections per week (e.g. 2, 3, 7)
+    fulfillment_method, // in_clinic or overnight
+    tracking_number, // shipping tracking number for overnighted pickups
   } = req.body;
 
   if (!patient_id || !category) {
@@ -301,20 +303,35 @@ async function handlePost(req, res) {
       lot_number: lot_number || null,
       expiration_date: expiration_date || null,
       signature_url: signature_url || null,
-      signed_at: signature_url ? new Date().toISOString() : null
+      signed_at: signature_url ? new Date().toISOString() : null,
+      fulfillment_method: fulfillment_method || null,
+      tracking_number: tracking_number || null,
     };
 
     // Try service_logs first, fall back to injection_logs
     let log, logError;
 
-    const { data: serviceLog, error: serviceLogError } = await supabase
+    let { data: serviceLog, error: serviceLogError } = await supabase
       .from('service_logs')
       .insert([logData])
       .select()
       .single();
 
+    // If fulfillment columns don't exist yet, retry without them
+    if (serviceLogError && serviceLogError.message?.includes('fulfillment_method')) {
+      delete logData.fulfillment_method;
+      delete logData.tracking_number;
+      ({ data: serviceLog, error: serviceLogError } = await supabase
+        .from('service_logs')
+        .insert([logData])
+        .select()
+        .single());
+    }
+
     if (serviceLogError && serviceLogError.code === '42P01') {
       // Table doesn't exist, use injection_logs
+      delete logData.fulfillment_method;
+      delete logData.tracking_number;
       const { data: injLog, error: injError } = await supabase
         .from('injection_logs')
         .insert([logData])

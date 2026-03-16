@@ -153,6 +153,8 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
     injection_method: '', // im or subq
     frequency: '', // injections per week
     duration: 60,
+    fulfillment_method: 'in_clinic', // in_clinic or overnight
+    tracking_number: '',
     notes: ''
   });
 
@@ -369,7 +371,11 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
       quantity: 1,
       pickup_type: 'vial',
       delivery_method: '',
+      injection_method: '',
+      frequency: '',
       duration: 60,
+      fulfillment_method: 'in_clinic',
+      tracking_number: '',
       notes: ''
     });
     setProtocolData({
@@ -612,6 +618,19 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
         } else if (item.serviceType.id === 'supplement') {
           payload.medication = item.formData.medication;
           payload.quantity = item.formData.quantity || 1;
+        }
+
+        // Add fulfillment method for pickups (in_clinic or overnight + tracking)
+        if (item.entryType === 'pickup' || item.entryType === 'med_pickup') {
+          payload.fulfillment_method = item.formData.fulfillment_method || 'in_clinic';
+          if (item.formData.fulfillment_method === 'overnight') {
+            payload.tracking_number = item.formData.tracking_number || null;
+            // Also append to notes for visibility
+            const trackNote = item.formData.tracking_number
+              ? `Overnighted — Tracking: ${item.formData.tracking_number}`
+              : 'Overnighted';
+            payload.notes = payload.notes ? `${payload.notes}\n${trackNote}` : trackNote;
+          }
         }
 
         if (item.createProtocol && item.protocolData) {
@@ -1420,6 +1439,41 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
                           </div>
                         )}
 
+                        {/* Fulfillment method for pickups */}
+                        {entryType === 'pickup' && (
+                          <>
+                            <div style={slcStyles.formGroup}>
+                              <label style={slcStyles.label}>Fulfillment</label>
+                              <div style={slcStyles.toggleGroup}>
+                                <button
+                                  style={{ ...slcStyles.toggleBtn, ...(formData.fulfillment_method === 'in_clinic' ? slcStyles.toggleBtnActive : {}) }}
+                                  onClick={() => setFormData(prev => ({ ...prev, fulfillment_method: 'in_clinic', tracking_number: '' }))}
+                                >
+                                  🏥 Picked Up In Clinic
+                                </button>
+                                <button
+                                  style={{ ...slcStyles.toggleBtn, ...(formData.fulfillment_method === 'overnight' ? slcStyles.toggleBtnActive : {}) }}
+                                  onClick={() => setFormData(prev => ({ ...prev, fulfillment_method: 'overnight' }))}
+                                >
+                                  📦 Overnighted
+                                </button>
+                              </div>
+                            </div>
+                            {formData.fulfillment_method === 'overnight' && (
+                              <div style={slcStyles.formGroup}>
+                                <label style={slcStyles.label}>Tracking Number</label>
+                                <input
+                                  type="text"
+                                  value={formData.tracking_number}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, tracking_number: e.target.value }))}
+                                  placeholder="Enter tracking number..."
+                                  style={slcStyles.input}
+                                />
+                              </div>
+                            )}
+                          </>
+                        )}
+
                         {/* Protocol fields for HRT */}
                         {showProtocolForm && (
                           <div style={slcStyles.protocolFields}>
@@ -1536,6 +1590,36 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
                                 <option value="4">4 weeks</option>
                               </select>
                             </div>
+                            {/* Fulfillment method */}
+                            <div style={slcStyles.formGroup}>
+                              <label style={slcStyles.label}>Fulfillment</label>
+                              <div style={slcStyles.toggleGroup}>
+                                <button
+                                  style={{ ...slcStyles.toggleBtn, ...(formData.fulfillment_method === 'in_clinic' ? slcStyles.toggleBtnActive : {}) }}
+                                  onClick={() => setFormData(prev => ({ ...prev, fulfillment_method: 'in_clinic', tracking_number: '' }))}
+                                >
+                                  🏥 Picked Up In Clinic
+                                </button>
+                                <button
+                                  style={{ ...slcStyles.toggleBtn, ...(formData.fulfillment_method === 'overnight' ? slcStyles.toggleBtnActive : {}) }}
+                                  onClick={() => setFormData(prev => ({ ...prev, fulfillment_method: 'overnight' }))}
+                                >
+                                  📦 Overnighted
+                                </button>
+                              </div>
+                            </div>
+                            {formData.fulfillment_method === 'overnight' && (
+                              <div style={slcStyles.formGroup}>
+                                <label style={slcStyles.label}>Tracking Number</label>
+                                <input
+                                  type="text"
+                                  value={formData.tracking_number}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, tracking_number: e.target.value }))}
+                                  placeholder="Enter tracking number..."
+                                  style={slcStyles.input}
+                                />
+                              </div>
+                            )}
                           </>
                         )}
                       </>
@@ -1742,6 +1826,36 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
                                 style={slcStyles.input}
                               />
                             </div>
+                            {/* Fulfillment method */}
+                            <div style={slcStyles.formGroup}>
+                              <label style={slcStyles.label}>Fulfillment</label>
+                              <div style={slcStyles.toggleGroup}>
+                                <button
+                                  style={{ ...slcStyles.toggleBtn, ...(formData.fulfillment_method === 'in_clinic' ? slcStyles.toggleBtnActive : {}) }}
+                                  onClick={() => setFormData(prev => ({ ...prev, fulfillment_method: 'in_clinic', tracking_number: '' }))}
+                                >
+                                  🏥 Picked Up In Clinic
+                                </button>
+                                <button
+                                  style={{ ...slcStyles.toggleBtn, ...(formData.fulfillment_method === 'overnight' ? slcStyles.toggleBtnActive : {}) }}
+                                  onClick={() => setFormData(prev => ({ ...prev, fulfillment_method: 'overnight' }))}
+                                >
+                                  📦 Overnighted
+                                </button>
+                              </div>
+                            </div>
+                            {formData.fulfillment_method === 'overnight' && (
+                              <div style={slcStyles.formGroup}>
+                                <label style={slcStyles.label}>Tracking Number</label>
+                                <input
+                                  type="text"
+                                  value={formData.tracking_number}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, tracking_number: e.target.value }))}
+                                  placeholder="Enter tracking number..."
+                                  style={slcStyles.input}
+                                />
+                              </div>
+                            )}
                           </>
                         )}
 
@@ -1767,6 +1881,36 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
                                 style={slcStyles.input}
                               />
                             </div>
+                            {/* Fulfillment method */}
+                            <div style={slcStyles.formGroup}>
+                              <label style={slcStyles.label}>Fulfillment</label>
+                              <div style={slcStyles.toggleGroup}>
+                                <button
+                                  style={{ ...slcStyles.toggleBtn, ...(formData.fulfillment_method === 'in_clinic' ? slcStyles.toggleBtnActive : {}) }}
+                                  onClick={() => setFormData(prev => ({ ...prev, fulfillment_method: 'in_clinic', tracking_number: '' }))}
+                                >
+                                  🏥 Picked Up In Clinic
+                                </button>
+                                <button
+                                  style={{ ...slcStyles.toggleBtn, ...(formData.fulfillment_method === 'overnight' ? slcStyles.toggleBtnActive : {}) }}
+                                  onClick={() => setFormData(prev => ({ ...prev, fulfillment_method: 'overnight' }))}
+                                >
+                                  📦 Overnighted
+                                </button>
+                              </div>
+                            </div>
+                            {formData.fulfillment_method === 'overnight' && (
+                              <div style={slcStyles.formGroup}>
+                                <label style={slcStyles.label}>Tracking Number</label>
+                                <input
+                                  type="text"
+                                  value={formData.tracking_number}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, tracking_number: e.target.value }))}
+                                  placeholder="Enter tracking number..."
+                                  style={slcStyles.input}
+                                />
+                              </div>
+                            )}
                           </>
                         )}
 

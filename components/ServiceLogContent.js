@@ -111,7 +111,7 @@ const PROTOCOL_CONFIG = {
 // MAIN COMPONENT
 // ============================================
 
-export default function ServiceLogContent() {
+export default function ServiceLogContent({ preselectedPatient = null, autoOpen = false, onClose = null }) {
   // View state
   const [viewCategory, setViewCategory] = useState('all');
   const [logs, setLogs] = useState([]);
@@ -181,9 +181,16 @@ export default function ServiceLogContent() {
   const [selectedProtocolId, setSelectedProtocolId] = useState(null);
   const [availableProtocols, setAvailableProtocols] = useState([]);
 
+  // Auto-open new entry modal when used from front desk
+  useEffect(() => {
+    if (autoOpen) {
+      openModal();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Load data
   useEffect(() => {
-    fetchLogs();
+    if (!autoOpen) fetchLogs();
     fetchPatients();
     fetchEmployees();
   }, [viewCategory]);
@@ -335,14 +342,26 @@ export default function ServiceLogContent() {
   // Modal functions
   const openModal = () => {
     setShowModal(true);
-    setModalStep(1);
-    setSelectedPatient(null);
-    setPatientSearch('');
-    setPatientProtocols([]);
     setVisitItems([]);
     setVisitDate(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }));
     setCurrentServiceType(null);
     resetFormData();
+
+    if (preselectedPatient && preselectedPatient.id) {
+      // Skip patient selection — go straight to visit builder
+      const name = preselectedPatient.name ||
+        `${preselectedPatient.first_name || ''} ${preselectedPatient.last_name || ''}`.trim() || 'Unknown';
+      setSelectedPatient({ ...preselectedPatient, displayName: name });
+      setPatientSearch(name);
+      setPatientProtocols([]);
+      fetchPatientProtocols(preselectedPatient.id);
+      setModalStep(2);
+    } else {
+      setModalStep(1);
+      setSelectedPatient(null);
+      setPatientSearch('');
+      setPatientProtocols([]);
+    }
   };
 
   const closeModal = () => {
@@ -357,6 +376,7 @@ export default function ServiceLogContent() {
     setAvailableProtocols([]);
     setDispensingData({ administered_by: '', lot_number: '', expiration_date: '' });
     setSignatureDataUrl(null);
+    if (onClose) onClose();
   };
 
   const resetFormData = () => {
@@ -890,14 +910,15 @@ export default function ServiceLogContent() {
         </div>
       )}
 
-      {/* Top bar with button */}
-      <div style={slcStyles.topBar}>
+      {/* Top bar with button — hidden when autoOpen (front desk mode) */}
+      {!autoOpen && <div style={slcStyles.topBar}>
         <button style={slcStyles.newEntryBtn} onClick={openModal}>
           + New Entry
         </button>
-      </div>
+      </div>}
 
       {/* Filters */}
+      {!autoOpen && (<>
       <div style={slcStyles.filters}>
         <div style={slcStyles.filterTabs}>
           <button
@@ -998,6 +1019,7 @@ export default function ServiceLogContent() {
           return new Date(l.entry_date || l.created_at) >= weekAgo;
         }).length}</strong></span>
       </div>
+      </>)}
 
       {/* ===== EDIT LOG MODAL ===== */}
       {editingLog && (

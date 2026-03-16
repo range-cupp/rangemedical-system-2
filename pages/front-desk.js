@@ -577,16 +577,15 @@ export default function FrontDesk() {
 
       {/* ── Log service modal ── */}
       {showLog && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
-          onClick={e => { if (e.target === e.currentTarget) setShowLog(false); }}>
-          <div style={{ background: '#fff', borderRadius: 14, width: '92%', maxWidth: 920, maxHeight: '90vh', overflow: 'auto', boxShadow: '0 24px 64px rgba(0,0,0,.22)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #e8e8e8', position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
-              <span style={{ fontSize: 16, fontWeight: 700, color: '#111' }}>Log Service</span>
-              <button onClick={() => setShowLog(false)} style={{ background: 'none', border: '1px solid #e0e0e0', borderRadius: 7, padding: '5px 14px', cursor: 'pointer', fontSize: 13, color: '#555' }}>Close</button>
-            </div>
-            <ServiceLogContent />
-          </div>
-        </div>
+        <ServiceLogContent
+          autoOpen
+          onClose={() => setShowLog(false)}
+          preselectedPatient={activePatient ? {
+            id: activePatient.id,
+            name: activePatient.name,
+            phone: activePatient.phone,
+          } : null}
+        />
       )}
     </>
   );

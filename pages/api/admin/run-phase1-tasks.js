@@ -241,21 +241,28 @@ export default async function handler(req, res) {
   const targetDate = date || new Date().toISOString().split('T')[0];
 
   try {
-    // 1. Find lab protocols for the target date
-    const { data: protocols, error: protoErr } = await supabase
-      .from('protocols')
-      .select('id, patient_id, program_name, created_at, patients(id, name, first_name, last_name)')
-      .eq('program_type', 'labs')
-      .eq('status', 'results_received')
+    // 1. Find labs imported on the target date (query labs table directly — avoids protocol status issues)
+    const { data: labRows, error: labErr } = await supabase
+      .from('labs')
+      .select('id, patient_id, test_date, patients(id, name, first_name, last_name)')
+      .eq('lab_provider', 'Primex')
       .gte('created_at', `${targetDate}T00:00:00.000Z`)
       .lte('created_at', `${targetDate}T23:59:59.999Z`);
 
-    if (protoErr) return res.status(500).json({ error: protoErr.message });
+    if (labErr) return res.status(500).json({ error: labErr.message });
 
-    if (!protocols || protocols.length === 0) {
+    // Deduplicate by patient_id (one patient may have multiple lab rows)
+    const seenPatients = new Map();
+    for (const row of (labRows || [])) {
+      if (row.patient_id && !seenPatients.has(row.patient_id)) {
+        seenPatients.set(row.patient_id, row);
+      }
+    }
+
+    if (seenPatients.size === 0) {
       return res.status(200).json({
         success: true,
-        message: `No results_received lab protocols found for ${targetDate}`,
+        message: `No Primex labs found imported on ${targetDate}`,
         tasksCreated: 0,
       });
     }
@@ -284,25 +291,26 @@ export default async function handler(req, res) {
     const tasks = [];
     const summary = [];
 
-    for (const proto of protocols) {
-      const pt = proto.patients;
+    for (const [patientId, labRow] of seenPatients) {
+      const pt = labRow.patients;
       const patientName = pt
         ? (pt.name || `${pt.first_name || ''} ${pt.last_name || ''}`.trim())
-        : proto.patient_id;
+        : patientId;
+      const testDate = labRow.test_date || targetDate;
 
       summary.push(patientName);
 
       let description;
       try {
-        description = await buildRichDescription(proto.patient_id, patientName, targetDate);
+        description = await buildRichDescription(patientId, patientName, testDate);
       } catch (e) {
-        description = `New lab results imported for ${patientName} (collected ${targetDate}). Review results, then use "Complete Review" to notify Tara.`;
+        description = `New lab results imported for ${patientName} (collected ${testDate}). Review results, then use "Complete Review" to notify Tara.`;
       }
 
       const base = {
         title: `🔬 Review labs — ${patientName}`,
         description,
-        patient_id:   proto.patient_id || null,
+        patient_id:   patientId,
         patient_name: patientName,
         priority:     'high',
         due_date:     due,

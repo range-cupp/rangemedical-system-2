@@ -1079,6 +1079,7 @@ export default function FrontDesk() {
   const [showCharge,      setShowCharge]           = useState(false);
   const [showLog,         setShowLog]              = useState(false);
   const [showBooking,     setShowBooking]          = useState(false);
+  const [showCalendar,    setShowCalendar]         = useState(false);
   const [showForms,       setShowForms]            = useState(false);
   const [sidebarWidth,    setSidebarWidth]         = useState(260);
   const [contactUpdate,   setContactUpdate]        = useState(null); // triggers sidebar contact rename
@@ -1150,6 +1151,10 @@ export default function FrontDesk() {
           <span onClick={() => router.push('/admin')} style={{ fontSize: 12, fontWeight: 800, color: '#fff', letterSpacing: 1, whiteSpace: 'nowrap', marginRight: 4, cursor: 'pointer', padding: '4px 8px', borderRadius: 5, background: 'rgba(255,255,255,.08)' }} title="Back to System">RM</span>
           <WalkinSearch onSelect={handleWalkin} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 4 }}>
+            <button onClick={() => setShowCalendar(true)}
+              style={{ padding: '6px 14px', borderRadius: 7, border: 'none', background: '#f59e0b', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              📅 Calendar
+            </button>
             <button onClick={() => setShowForms(true)}
               style={{ padding: '6px 14px', borderRadius: 7, border: 'none', background: '#3b82f6', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
               📋 Send Forms
@@ -1263,6 +1268,22 @@ export default function FrontDesk() {
                 wizardOnly
                 preselectedPatient={activePatient ? { id: activePatient.id, name: activePatient.name, email: activePatient.email, phone: activePatient.phone } : null}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Calendar modal ── */}
+      {showCalendar && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.45)' }} onClick={() => setShowCalendar(false)} />
+          <div style={{ position: 'relative', background: '#fff', borderRadius: 16, width: '95%', maxWidth: 1200, height: '90vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #eee' }}>
+              <div style={{ fontSize: 16, fontWeight: 700 }}>Schedule</div>
+              <button onClick={() => setShowCalendar(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#999', padding: '0 4px' }}>×</button>
+            </div>
+            <div style={{ height: 'calc(90vh - 57px)', overflow: 'auto' }}>
+              <CalendarView />
             </div>
           </div>
         </div>

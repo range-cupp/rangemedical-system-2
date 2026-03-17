@@ -223,13 +223,36 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
   const getAvailableInteractiveForms = () => {
     const name = (appointment?.service_name || appointment?.appointment_title || '').toLowerCase();
     const forms = [];
-    if (name.includes('peptide') || name.includes('bpc') || name.includes('tb-4') || name.includes('tb4') || name.includes('injection') || name.includes('b12') || name.includes('lipo')) {
-      forms.push('peptide_injection');
+    // IV Therapy
+    if (name.includes('iv') || name.includes('infusion') || name.includes('nad') || name.includes('drip')) {
+      forms.push('iv_therapy');
     }
+    // HRT
+    if (name.includes('hrt') || name.includes('testosterone') || name.includes('hormone') || name.includes('trt')) {
+      forms.push('hrt_followup');
+    }
+    // Weight Loss
     if (name.includes('weight') || name.includes('glp') || name.includes('sema') || name.includes('tirz') || name.includes('ozempic') || name.includes('mounjaro')) {
       forms.push('weight_loss');
     }
-    return forms;
+    // Peptide
+    if (name.includes('peptide') || name.includes('bpc') || name.includes('tb-4') || name.includes('tb4')) {
+      forms.push('peptide_injection');
+    }
+    // HBOT
+    if (name.includes('hbot') || name.includes('hyperbaric')) {
+      forms.push('hbot_session');
+    }
+    // RLT
+    if (name.includes('rlt') || name.includes('red light')) {
+      forms.push('rlt_session');
+    }
+    // General Injection (B12, Lipo, etc. — but not peptide/HRT specific)
+    if (name.includes('injection') || name.includes('b12') || name.includes('lipo') || name.includes('phlebotomy') || name.includes('blood draw')) {
+      forms.push('injection');
+    }
+    // Deduplicate
+    return [...new Set(forms)];
   };
   const availableInteractiveForms = getAvailableInteractiveForms();
 

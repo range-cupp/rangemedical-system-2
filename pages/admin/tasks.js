@@ -52,6 +52,12 @@ export default function TasksPage() {
   // SMS composer state per task: { [taskId]: { message, loading, sending, sent, error, open } }
   const [smsState, setSmsState] = useState({});
 
+  // Lab review state
+  const [labPanel, setLabPanel] = useState(null); // { type: 'results'|'pdf', labId, pdfUrl, patientName }
+  const [labReviewOpen, setLabReviewOpen] = useState(null); // task.id that has review panel open
+  const [labReviewForms, setLabReviewForms] = useState({}); // { [taskId]: { types, instructions, submitting, done, error } }
+  const [labInfoCache, setLabInfoCache] = useState({}); // { [patientId]: { labId, pdfUrl } }
+
   const openSmsComposer = (task) => {
     setSmsState(prev => ({ ...prev, [task.id]: { ...prev[task.id], open: true, sent: false, error: null } }));
   };
@@ -99,6 +105,68 @@ export default function TasksPage() {
       }
     } catch (err) {
       setSmsState(prev => ({ ...prev, [task.id]: { ...prev[task.id], sending: false, error: 'Send failed' } }));
+    }
+  };
+
+  // ── Lab review helpers ──────────────────────────────────────────────────────
+
+  const parseLabMeta = (description) => {
+    if (!description) return {};
+    const marker = '---LAB_META---';
+    const idx = description.indexOf(marker);
+    if (idx === -1) return {};
+    try { return JSON.parse(description.slice(idx + marker.length).trim()); } catch { return {}; }
+  };
+
+  const getDisplayDescription = (description) => {
+    if (!description) return '';
+    const marker = '---LAB_META---';
+    const idx = description.indexOf(marker);
+    return idx !== -1 ? description.slice(0, idx).trim() : description;
+  };
+
+  const fetchLabInfo = async (patientId) => {
+    if (labInfoCache[patientId]) return labInfoCache[patientId];
+    try {
+      const res = await fetch(`/api/admin/patient-lab-info?patient_id=${patientId}`, { headers: authHeaders() });
+      const data = await res.json();
+      if (data.success) {
+        setLabInfoCache(prev => ({ ...prev, [patientId]: data }));
+        return data;
+      }
+    } catch (e) { console.error('fetchLabInfo error:', e); }
+    return null;
+  };
+
+  const openLabPanel = async (type, task) => {
+    const info = await fetchLabInfo(task.patient_id);
+    setLabPanel({ type, labId: info?.labId, pdfUrl: info?.pdfUrl, patientName: task.patient_name });
+  };
+
+  const submitLabReview = async (taskId, patientId) => {
+    const form = labReviewForms[taskId] || {};
+    const types = form.types || [];
+    if (types.length === 0) {
+      setLabReviewForms(prev => ({ ...prev, [taskId]: { ...prev[taskId], error: 'Please select at least one consultation type.' } }));
+      return;
+    }
+    setLabReviewForms(prev => ({ ...prev, [taskId]: { ...prev[taskId], submitting: true, error: null } }));
+    try {
+      const res = await fetch('/api/admin/complete-lab-review', {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ task_id: taskId, patient_id: patientId, consultation_types: types, instructions: form.instructions || '' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setLabReviewForms(prev => ({ ...prev, [taskId]: { ...prev[taskId], submitting: false, done: true } }));
+        setLabReviewOpen(null);
+        setTimeout(() => fetchTasks(), 800);
+      } else {
+        setLabReviewForms(prev => ({ ...prev, [taskId]: { ...prev[taskId], submitting: false, error: data.error || 'Submit failed' } }));
+      }
+    } catch (e) {
+      setLabReviewForms(prev => ({ ...prev, [taskId]: { ...prev[taskId], submitting: false, error: 'Submit failed' } }));
     }
   };
 
@@ -595,17 +663,157 @@ export default function TasksPage() {
                             Details
                           </div>
                           <div style={{
-                            fontSize: '14px',
+                            fontSize: '13px',
                             color: '#374151',
-                            lineHeight: 1.6,
+                            lineHeight: 1.7,
                             whiteSpace: 'pre-wrap',
-                            background: '#f9fafb',
+                            background: task.category === 'labs' ? '#f8f7ff' : '#f9fafb',
                             padding: '10px 14px',
                             borderRadius: '8px',
-                            border: '1px solid #f0f0f0',
+                            border: `1px solid ${task.category === 'labs' ? '#e0d9ff' : '#f0f0f0'}`,
                           }}>
-                            {task.description}
+                            {task.category === 'labs' ? getDisplayDescription(task.description) : task.description}
                           </div>
+                        </div>
+                      )}
+
+                      {/* Lab review actions — View Lab, View PDF, Complete Review */}
+                      {task.category === 'labs' && task.patient_id && task.status !== 'completed' && (
+                        <div style={{ marginBottom: '14px' }}>
+                          {/* View buttons */}
+                          <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); openLabPanel('results', task); }}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                padding: '7px 14px', fontSize: '12px', fontWeight: 600,
+                                color: '#4c1d95', background: '#f5f3ff',
+                                border: '1px solid #c4b5fd', borderRadius: '8px', cursor: 'pointer',
+                              }}
+                            >
+                              🔬 View Lab Results
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); openLabPanel('pdf', task); }}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                padding: '7px 14px', fontSize: '12px', fontWeight: 600,
+                                color: '#1e3a5f', background: '#eff6ff',
+                                border: '1px solid #bfdbfe', borderRadius: '8px', cursor: 'pointer',
+                              }}
+                            >
+                              📄 View PDF
+                            </button>
+                          </div>
+
+                          {/* Complete Review section */}
+                          {!labReviewForms[task.id]?.done ? (
+                            <div>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setLabReviewOpen(labReviewOpen === task.id ? null : task.id); }}
+                                style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                  padding: '8px 18px', fontSize: '13px', fontWeight: 600,
+                                  color: '#fff', background: '#111',
+                                  border: 'none', borderRadius: '8px', cursor: 'pointer',
+                                  marginBottom: labReviewOpen === task.id ? '10px' : '0',
+                                }}
+                              >
+                                {labReviewOpen === task.id ? '▲ Close Review' : '✓ Complete Review'}
+                              </button>
+
+                              {labReviewOpen === task.id && (
+                                <div
+                                  onClick={(e) => e.stopPropagation()}
+                                  style={{
+                                    padding: '14px 16px',
+                                    background: '#fff',
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '10px',
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                                  }}
+                                >
+                                  <div style={{ fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                    Select consultation type(s) for Tara to schedule:
+                                  </div>
+                                  {['Schedule Telemedicine', 'Schedule In Person', 'Schedule Telephone Call'].map(type => {
+                                    const checked = (labReviewForms[task.id]?.types || []).includes(type);
+                                    return (
+                                      <label
+                                        key={type}
+                                        style={{
+                                          display: 'flex', alignItems: 'center', gap: '10px',
+                                          padding: '8px 10px', marginBottom: '6px',
+                                          background: checked ? '#f0fdf4' : '#f9fafb',
+                                          border: `1px solid ${checked ? '#86efac' : '#e5e7eb'}`,
+                                          borderRadius: '8px', cursor: 'pointer',
+                                          fontSize: '13px', fontWeight: checked ? 600 : 400,
+                                        }}
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={checked}
+                                          onChange={(e) => {
+                                            const current = labReviewForms[task.id]?.types || [];
+                                            const updated = e.target.checked ? [...current, type] : current.filter(t => t !== type);
+                                            setLabReviewForms(prev => ({ ...prev, [task.id]: { ...prev[task.id], types: updated } }));
+                                          }}
+                                          style={{ width: '16px', height: '16px', accentColor: '#16a34a' }}
+                                        />
+                                        {type}
+                                      </label>
+                                    );
+                                  })}
+
+                                  <div style={{ marginTop: '12px', marginBottom: '6px', fontSize: '12px', fontWeight: 600, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                    Instructions for Tara (optional):
+                                  </div>
+                                  <textarea
+                                    value={labReviewForms[task.id]?.instructions || ''}
+                                    onChange={(e) => setLabReviewForms(prev => ({ ...prev, [task.id]: { ...prev[task.id], instructions: e.target.value } }))}
+                                    placeholder="e.g. Patient prefers mornings, needs 60-min slot, follow up on medication question..."
+                                    style={{
+                                      width: '100%', padding: '10px 12px', fontSize: '13px',
+                                      border: '1px solid #d1d5db', borderRadius: '8px', outline: 'none',
+                                      resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5,
+                                      minHeight: '70px', boxSizing: 'border-box', background: '#fff',
+                                    }}
+                                  />
+
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px' }}>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); submitLabReview(task.id, task.patient_id); }}
+                                      disabled={labReviewForms[task.id]?.submitting}
+                                      style={{
+                                        display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                        padding: '9px 20px', fontSize: '13px', fontWeight: 700,
+                                        color: '#fff',
+                                        background: labReviewForms[task.id]?.submitting ? '#9ca3af' : '#16a34a',
+                                        border: 'none', borderRadius: '8px',
+                                        cursor: labReviewForms[task.id]?.submitting ? 'not-allowed' : 'pointer',
+                                      }}
+                                    >
+                                      {labReviewForms[task.id]?.submitting ? '⏳ Sending...' : '📨 Send to Tara & Chris'}
+                                    </button>
+                                  </div>
+                                  {labReviewForms[task.id]?.error && (
+                                    <div style={{ marginTop: '8px', fontSize: '12px', color: '#dc2626' }}>
+                                      {labReviewForms[task.id].error}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div style={{
+                              display: 'flex', alignItems: 'center', gap: '8px',
+                              padding: '10px 14px', background: '#f0fdf4',
+                              border: '1px solid #86efac', borderRadius: '8px',
+                              fontSize: '13px', fontWeight: 600, color: '#16a34a',
+                            }}>
+                              ✓ Review complete — Tara & Chris have been notified
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -1042,6 +1250,73 @@ export default function TasksPage() {
             </form>
           </div>
         </div>
+      )}
+      {/* Lab results / PDF slide-in panel */}
+      {labPanel && (
+        <>
+          <div
+            onClick={() => setLabPanel(null)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 200 }}
+          />
+          <div style={{
+            position: 'fixed', top: 0, right: 0, bottom: 0,
+            width: 'min(62%, 900px)',
+            background: '#fff', zIndex: 201,
+            boxShadow: '-4px 0 32px rgba(0,0,0,0.18)',
+            display: 'flex', flexDirection: 'column',
+            animation: 'slideInPanel 0.2s ease-out',
+          }}>
+            <style>{`@keyframes slideInPanel { from { transform: translateX(100%); } to { transform: translateX(0); } }`}</style>
+            {/* Panel header */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '14px 20px', borderBottom: '1px solid #e5e7eb', flexShrink: 0,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '16px', fontWeight: 700 }}>
+                  {labPanel.type === 'results' ? '🔬 Lab Results' : '📄 Lab Report PDF'}
+                </span>
+                {labPanel.patientName && (
+                  <span style={{ color: '#6b7280', fontSize: '13px' }}>— {labPanel.patientName}</span>
+                )}
+              </div>
+              <button
+                onClick={() => setLabPanel(null)}
+                style={{
+                  background: '#f3f4f6', border: 'none', borderRadius: '8px',
+                  width: '32px', height: '32px', cursor: 'pointer',
+                  fontSize: '16px', color: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Panel content */}
+            {labPanel.type === 'results' && labPanel.labId ? (
+              <iframe
+                src={`/patient/labs?id=${labPanel.labId}`}
+                style={{ flex: 1, border: 'none', display: 'block' }}
+                title="Lab Results"
+              />
+            ) : labPanel.type === 'pdf' && labPanel.pdfUrl ? (
+              <iframe
+                src={labPanel.pdfUrl}
+                style={{ flex: 1, border: 'none', display: 'block' }}
+                title="Lab PDF"
+              />
+            ) : (
+              <div style={{
+                flex: 1, display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center',
+                color: '#9ca3af', fontSize: '14px', gap: '8px',
+              }}>
+                <span style={{ fontSize: '32px' }}>{labPanel.type === 'results' ? '🔬' : '📄'}</span>
+                {labPanel.type === 'results' ? 'Lab results not found for this patient.' : 'No PDF found for this patient.'}
+              </div>
+            )}
+          </div>
+        </>
       )}
     </AdminLayout>
   );

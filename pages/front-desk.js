@@ -14,6 +14,7 @@ import { loadStripe } from '@stripe/stripe-js';
 const ConversationView = dynamic(() => import('../components/ConversationView'), { ssr: false });
 const ServiceLogContent = dynamic(() => import('../components/ServiceLogContent'), { ssr: false });
 const POSChargeModal    = dynamic(() => import('../components/POSChargeModal'),    { ssr: false });
+const CalendarView      = dynamic(() => import('../components/CalendarView'),      { ssr: false });
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
@@ -877,7 +878,7 @@ function BotPanel({ session, employee, selectedPatient }) {
 }
 
 // ── Patient info banner (walk-in / no conversation yet) ───────────
-function PatientBanner({ patient, onCharge, onLog, onDismiss }) {
+function PatientBanner({ patient, onCharge, onLog, onBook, onDismiss }) {
   const color = avatarColor(patient.name);
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#fafafa', padding: 40, gap: 20 }}>
@@ -894,6 +895,7 @@ function PatientBanner({ patient, onCharge, onLog, onDismiss }) {
         <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
           <button onClick={onCharge} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: '#059669', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>$ Charge</button>
           <button onClick={onLog} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: '#6366f1', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>✎ Log Service</button>
+          <button onClick={onBook} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: '#3b82f6', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Book</button>
           <button onClick={onDismiss} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid #e0e0e0', background: '#fff', color: '#555', fontSize: 13, cursor: 'pointer' }}>Dismiss</button>
         </div>
         <div style={{ marginTop: 14, fontSize: 11, color: '#aaa' }}>
@@ -1076,6 +1078,7 @@ export default function FrontDesk() {
   const [walkinPatient,   setWalkinPatient]        = useState(null); // from top search
   const [showCharge,      setShowCharge]           = useState(false);
   const [showLog,         setShowLog]              = useState(false);
+  const [showBooking,     setShowBooking]          = useState(false);
   const [showForms,       setShowForms]            = useState(false);
   const [sidebarWidth,    setSidebarWidth]         = useState(260);
   const [contactUpdate,   setContactUpdate]        = useState(null); // triggers sidebar contact rename
@@ -1198,6 +1201,7 @@ export default function FrontDesk() {
                 patient={walkinPatient}
                 onCharge={() => setShowCharge(true)}
                 onLog={() => setShowLog(true)}
+                onBook={() => setShowBooking(true)}
                 onDismiss={() => setWalkinPatient(null)}
               />
             ) : (
@@ -1243,6 +1247,25 @@ export default function FrontDesk() {
             phone: activePatient.phone,
           } : null}
         />
+      )}
+
+      {/* ── Booking modal ── */}
+      {showBooking && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.45)' }} onClick={() => setShowBooking(false)} />
+          <div style={{ position: 'relative', background: '#fff', borderRadius: 16, width: '90%', maxWidth: 520, maxHeight: '85vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #eee' }}>
+              <div style={{ fontSize: 16, fontWeight: 700 }}>Book Appointment</div>
+              <button onClick={() => setShowBooking(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#999', padding: '0 4px' }}>×</button>
+            </div>
+            <div style={{ padding: '0 0 8px' }}>
+              <CalendarView
+                wizardOnly
+                preselectedPatient={activePatient ? { id: activePatient.id, name: activePatient.name, email: activePatient.email, phone: activePatient.phone } : null}
+              />
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── Send Forms modal ── */}

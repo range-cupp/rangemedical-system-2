@@ -297,6 +297,38 @@ export default async function handler(req, res) {
       } catch (demoErr) {
         console.error('Demographics push error:', demoErr);
       }
+
+      // Add medical condition tags based on intake conditions
+      try {
+        const normalizedEmailForTags = email.toLowerCase().trim();
+        const { data: tagPatient } = await supabase
+          .from('patients')
+          .select('id, tags')
+          .eq('email', normalizedEmailForTags)
+          .maybeSingle();
+
+        if (tagPatient) {
+          const conditions = intakeData.conditions || {};
+          const conditionTags = [];
+          for (const [key, val] of Object.entries(conditions)) {
+            if (val && val.response === 'Yes') {
+              conditionTags.push(`condition:${key}`);
+            }
+          }
+
+          if (conditionTags.length > 0) {
+            const existingTags = tagPatient.tags || [];
+            const mergedTags = [...new Set([...existingTags, ...conditionTags])];
+            await supabase
+              .from('patients')
+              .update({ tags: mergedTags })
+              .eq('id', tagPatient.id);
+            console.log(`Tagged patient ${tagPatient.id} with conditions: ${conditionTags.join(', ')}`);
+          }
+        }
+      } catch (tagErr) {
+        console.error('Condition tagging error:', tagErr);
+      }
     }
 
     // 2. Generate PDF

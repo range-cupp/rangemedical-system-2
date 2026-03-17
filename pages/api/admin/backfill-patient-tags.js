@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     // 2. Get all assessment leads for tag data
     const { data: leads } = await supabase
       .from('assessment_leads')
-      .select('email, assessment_path, tags, intake_status');
+      .select('email, assessment_path, tags, intake_status, medical_history');
 
     // Build lead lookup by email
     const leadsByEmail = {};
@@ -70,6 +70,14 @@ export default async function handler(req, res) {
         }
         if (lead.intake_status === 'completed') {
           newTags.add('intake-completed');
+        }
+
+        // Medical condition tags from intake
+        const conditions = lead.medical_history?.conditions || {};
+        for (const [key, val] of Object.entries(conditions)) {
+          if (val && val.response === 'Yes') {
+            newTags.add(`condition:${key}`);
+          }
         }
       }
 

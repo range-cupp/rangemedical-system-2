@@ -37,7 +37,7 @@ export default function PatientsList() {
   useEffect(() => {
     let result = patients;
 
-    // Tag/program filter
+    // Tag/program/condition filter
     if (activeFilter !== 'all') {
       result = result.filter(p => {
         if (activeFilter === 'online') {
@@ -45,6 +45,10 @@ export default function PatientsList() {
         }
         if (activeFilter === 'walk-in') {
           return getSourceTag(p) === 'Walk-in';
+        }
+        // Condition filter
+        if (activeFilter.startsWith('condition:')) {
+          return (p.tags || []).includes(activeFilter);
         }
         // Program filter
         return (p.activePrograms || []).includes(activeFilter);
@@ -109,6 +113,29 @@ export default function PatientsList() {
     injection: { bg: '#fef3c7', text: '#92400e', label: 'Injection' },
   };
 
+  const CONDITION_LABELS = {
+    hypertension: 'High Blood Pressure',
+    highCholesterol: 'High Cholesterol',
+    heartDisease: 'Heart Disease',
+    diabetes: 'Diabetes',
+    thyroid: 'Thyroid Disorder',
+    depression: 'Depression/Anxiety',
+    eatingDisorder: 'Eating Disorder',
+    kidney: 'Kidney Disease',
+    liver: 'Liver Disease',
+    autoimmune: 'Autoimmune',
+    cancer: 'Cancer',
+  };
+
+  const CONDITION_STYLE = { bg: '#fef2f2', text: '#991b1b' };
+
+  const getConditionTags = (patient) => {
+    const tags = patient.tags || [];
+    return tags
+      .filter(t => t && t.startsWith('condition:'))
+      .map(t => t.replace('condition:', ''));
+  };
+
   const SOURCE_COLORS = {
     'Online Assessment': { bg: '#dbeafe', text: '#1e40af' },
     'Research': { bg: '#f3e8ff', text: '#7c3aed' },
@@ -137,6 +164,18 @@ export default function PatientsList() {
     { key: 'online', label: 'Online' },
     { key: 'walk-in', label: 'Walk-in' },
   ];
+
+  // Build dynamic condition filters from actual patient data
+  const conditionFilters = (() => {
+    const condSet = new Set();
+    patients.forEach(p => {
+      getConditionTags(p).forEach(c => condSet.add(c));
+    });
+    return [...condSet].sort().map(c => ({
+      key: `condition:${c}`,
+      label: CONDITION_LABELS[c] || c,
+    }));
+  })();
 
   // Merge functions
   const openMergeModal = () => {
@@ -309,6 +348,23 @@ export default function PatientsList() {
               </button>
             ))}
           </div>
+          {conditionFilters.length > 0 && (
+            <div style={{ ...styles.filterBar, marginTop: '6px' }}>
+              <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '500', padding: '5px 4px' }}>Conditions:</span>
+              {conditionFilters.map(f => (
+                <button
+                  key={f.key}
+                  onClick={() => setActiveFilter(activeFilter === f.key ? 'all' : f.key)}
+                  style={{
+                    ...styles.filterBtn,
+                    ...(activeFilter === f.key ? { background: '#991b1b', color: '#fff', borderColor: '#991b1b' } : { borderColor: '#fecaca', color: '#991b1b' }),
+                  }}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Patient List */}
@@ -322,6 +378,8 @@ export default function PatientsList() {
               const source = getSourceTag(patient);
               const sourceColor = SOURCE_COLORS[source] || SOURCE_COLORS['Walk-in'];
               const programs = patient.activePrograms || [];
+
+              const conditions = getConditionTags(patient);
 
               return (
                 <Link
@@ -348,6 +406,15 @@ export default function PatientsList() {
                             </span>
                           ) : null;
                         })}
+                        {conditions.map(cond => (
+                          <span
+                            key={cond}
+                            style={{ ...styles.tag, background: CONDITION_STYLE.bg, color: CONDITION_STYLE.text }}
+                            onClick={(e) => { e.preventDefault(); setActiveFilter(`condition:${cond}`); }}
+                          >
+                            {CONDITION_LABELS[cond] || cond}
+                          </span>
+                        ))}
                       </div>
                       {patient.created_at && (
                         <div style={styles.patientDate}>

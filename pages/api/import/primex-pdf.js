@@ -315,13 +315,17 @@ export default async function handler(req, res) {
       const match = findPatient(allPatients, info.last_name, info.first_name, info.dob);
       if (!match) {
         result.status = 'not_found';
-        result.message = `No patient found for "${info.last_name}, ${info.first_name}" (DOB: ${info.dob || 'unknown'})`;
+        result.message = `No patient found for "${info.last_name}, ${info.first_name}" (DOB: ${info.dob || 'unknown'}). ` +
+          `Add or update this patient's profile with matching first/last name or full name, then re-import.`;
         results.push(result);
         continue;
       }
 
       result.patient_id = match.id;
-      result.matched_name = `${match.first_name} ${match.last_name}`;
+      // Use whichever name field is populated — some patients only have 'name'
+      result.matched_name = (match.first_name || match.last_name)
+        ? `${match.first_name || ''} ${match.last_name || ''}`.trim()
+        : (match.name || match.id);
 
       // Check date
       if (!info.collected_date) {

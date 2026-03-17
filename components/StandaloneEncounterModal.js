@@ -404,7 +404,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
                 vitals={{}}
                 currentUser={form.provider || currentUser}
                 onCancel={() => setNoteMode('freetext')}
-                onSave={async ({ markdown, structured_data }) => {
+                onSave={async ({ markdown, structured_data, note_type, form_type }) => {
                   setSaving(true);
                   setError('');
                   const visitDateTime = new Date(form.visitDate + 'T12:00:00').toISOString();
@@ -418,10 +418,10 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
                         body: markdown,
                         created_by: form.provider || currentUser || 'Staff',
                         source: 'encounter',
-                        encounter_service: form.serviceType,
+                        encounter_service: form_type || form.serviceType,
                         appointment_id: null,
                         note_date: visitDateTime,
-                        structured_data: structured_data,
+                        structured_data: { ...structured_data, form_type: form_type || form.serviceType },
                       }),
                     });
                     const data = await res.json();

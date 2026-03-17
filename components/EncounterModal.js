@@ -1254,8 +1254,8 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                             raw_input: markdown,
                             created_by: currentUser,
                             appointment_id: appointment.id,
-                            encounter_service: appointment.service_name || appointment.appointment_title || '',
-                            structured_data: structured_data,
+                            encounter_service: form_type || appointment.service_name || appointment.appointment_title || '',
+                            structured_data: { ...structured_data, form_type },
                           }),
                         });
                         const data = await res.json();

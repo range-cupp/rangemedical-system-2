@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MB v2 Slide 06 — Three Ways to Take It</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1080px; height:1080px; overflow:hidden; background:#0A0A0A; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  .slide { width:1080px; height:1080px; position:relative; background:#0A0A0A; }
+  .slide::before { content:''; position:absolute; inset:0; background-image:radial-gradient(circle,rgba(255,255,255,0.045) 1px,transparent 1px); background-size:40px 40px; pointer-events:none; }
+
+  .top-bar { position:absolute; top:68px; left:72px; right:72px; display:flex; justify-content:space-between; align-items:center; z-index:2; }
+  .brand { font-size:22px; font-weight:700; letter-spacing:0.02em; color:rgba(255,255,255,0.4); }
+  .slide-num { font-size:20px; font-weight:500; color:rgba(255,255,255,0.22); }
+
+  .section-tag { position:absolute; top:130px; left:72px; font-size:18px; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; color:rgba(255,255,255,0.28); z-index:2; }
+  .section-rule { position:absolute; top:162px; left:72px; right:72px; height:1px; background:rgba(255,255,255,0.1); z-index:2; }
+
+  /* Headline block */
+  .headline-block { position:absolute; top:188px; left:72px; right:72px; z-index:2; }
+  .headline { font-size:80px; font-weight:800; letter-spacing:-3.5px; line-height:0.93; color:#FFFFFF; margin-bottom:18px; }
+  .headline em { font-style:normal; font-weight:300; color:rgba(255,255,255,0.35); }
+  .sub { font-size:30px; font-weight:400; color:rgba(255,255,255,0.42); line-height:1.5; max-width:740px; }
+
+  /* Three method rows */
+  .method { position:absolute; left:72px; right:72px; z-index:2; }
+  .method-rule { width:100%; height:1px; background:rgba(255,255,255,0.1); margin-bottom:22px; }
+  .method-inner { display:flex; align-items:flex-start; gap:36px; }
+  .method-num { font-size:18px; font-weight:700; letter-spacing:0.2em; color:rgba(255,255,255,0.2); width:36px; flex-shrink:0; padding-top:6px; }
+  .method-content { flex:1; }
+  .method-name { font-size:50px; font-weight:800; letter-spacing:-2px; line-height:1.0; color:#FFFFFF; margin-bottom:12px; }
+  .method-stats { display:flex; gap:40px; margin-bottom:10px; }
+  .method-stat { }
+  .stat-label { font-size:16px; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:rgba(255,255,255,0.22); margin-bottom:4px; }
+  .stat-val { font-size:26px; font-weight:600; color:rgba(255,255,255,0.62); }
+  .method-desc { font-size:26px; font-weight:400; line-height:1.5; color:rgba(255,255,255,0.35); }
+
+  .method-1 { top:464px; }
+  .method-2 { top:636px; }
+  .method-3 { top:808px; }
+
+  .bottom-bar { position:absolute; bottom:60px; left:72px; right:72px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,0.08); padding-top:18px; z-index:2; }
+  .tag { font-size:18px; font-weight:500; color:rgba(255,255,255,0.2); }
+  .cta { display:flex; align-items:center; gap:16px; }
+  .cta-text { font-size:17px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.4); }
+  .cta-pill { background:#FFFFFF; color:#0A0A0A; font-size:16px; font-weight:800; letter-spacing:0.1em; text-transform:uppercase; padding:12px 26px; border-radius:2px; }
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="top-bar">
+    <span class="brand">@chriscupppppp</span>
+    <span class="slide-num">06 / 06</span>
+  </div>
+  <div class="section-tag">How We Deliver It</div>
+  <div class="section-rule"></div>
+
+  <div class="headline-block">
+    <div class="headline">Same molecule.<br/><em>Different intent.</em></div>
+    <div class="sub">Three ways to take MB. Your provider picks what fits your protocol.</div>
+  </div>
+
+  <div class="method method-1">
+    <div class="method-rule"></div>
+    <div class="method-inner">
+      <div class="method-num">01</div>
+      <div class="method-content">
+        <div class="method-name">IV Infusion</div>
+        <div class="method-stats">
+          <div class="method-stat"><div class="stat-label">Bioavailability</div><div class="stat-val">100%</div></div>
+          <div class="method-stat"><div class="stat-label">Onset</div><div class="stat-val">Minutes</div></div>
+          <div class="method-stat"><div class="stat-label">Best For</div><div class="stat-val">Acute &amp; High-Impact</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="method method-2">
+    <div class="method-rule"></div>
+    <div class="method-inner">
+      <div class="method-num">02</div>
+      <div class="method-content">
+        <div class="method-name">Sublingual</div>
+        <div class="method-stats">
+          <div class="method-stat"><div class="stat-label">Bioavailability</div><div class="stat-val">High (bypasses GI)</div></div>
+          <div class="method-stat"><div class="stat-label">Onset</div><div class="stat-val">15&#8211;30 min</div></div>
+          <div class="method-stat"><div class="stat-label">Best For</div><div class="stat-val">Maintenance</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="method method-3">
+    <div class="method-rule"></div>
+    <div class="method-inner">
+      <div class="method-num">03</div>
+      <div class="method-content">
+        <div class="method-name">Oral Capsules</div>
+        <div class="method-stats">
+          <div class="method-stat"><div class="stat-label">Bioavailability</div><div class="stat-val">72&#8211;84%</div></div>
+          <div class="method-stat"><div class="stat-label">Onset</div><div class="stat-val">45&#8211;90 min</div></div>
+          <div class="method-stat"><div class="stat-label">Best For</div><div class="stat-val">Daily Protocol</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+  </div>
+</div>
+</body>
+</html>

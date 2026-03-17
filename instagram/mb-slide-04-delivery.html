@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MB Slide 04 — Three Ways to Take It</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1080px; height:1080px; overflow:hidden; background:#0A0A0A; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  .slide { width:1080px; height:1080px; position:relative; background:#0A0A0A; }
+  .slide::before { content:''; position:absolute; inset:0; background-image:radial-gradient(circle,rgba(255,255,255,0.055) 1px,transparent 1px); background-size:36px 36px; pointer-events:none; }
+
+  .top-bar { position:absolute; top:72px; left:72px; right:72px; display:flex; justify-content:space-between; z-index:2; }
+  .brand { font-size:20px; font-weight:700; letter-spacing:0.02em; color:rgba(255,255,255,0.45); }
+  .slide-num { font-size:18px; font-weight:500; color:rgba(255,255,255,0.25); }
+
+  .section-label { position:absolute; top:118px; left:72px; right:72px; display:flex; align-items:center; gap:14px; font-size:15px; font-weight:600; letter-spacing:0.18em; text-transform:uppercase; color:rgba(255,255,255,0.3); z-index:2; }
+  .section-label::after { content:''; flex:1; height:1px; background:rgba(255,255,255,0.1); }
+
+  .headline-block { position:absolute; top:158px; left:72px; right:72px; z-index:2; }
+  .headline { font-size:68px; font-weight:800; letter-spacing:-3px; color:#FFFFFF; line-height:1.0; margin-bottom:10px; }
+  .headline em { font-style:normal; font-weight:300; color:rgba(255,255,255,0.38); }
+  .sub-copy { font-size:20px; font-weight:400; color:rgba(255,255,255,0.42); line-height:1.55; max-width:680px; }
+
+  /* Three delivery cards */
+  .delivery-cards { position:absolute; top:380px; left:72px; right:72px; bottom:104px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; z-index:2; }
+
+  .d-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.09); border-radius:4px; padding:28px 24px; display:flex; flex-direction:column; }
+  .d-method { font-size:13px; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:rgba(255,255,255,0.3); margin-bottom:8px; }
+  .d-title { font-size:28px; font-weight:800; color:#FFFFFF; letter-spacing:-0.6px; line-height:1.1; margin-bottom:20px; padding-bottom:16px; border-bottom:1px solid rgba(255,255,255,0.08); }
+
+  .d-stat { display:flex; flex-direction:column; gap:3px; margin-bottom:12px; }
+  .d-stat-label { font-size:12px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color:rgba(255,255,255,0.25); }
+  .d-stat-value { font-size:17px; font-weight:600; color:rgba(255,255,255,0.75); }
+
+  .d-best { display:inline-block; background:rgba(255,255,255,0.08); border-radius:2px; padding:6px 12px; font-size:12px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:rgba(255,255,255,0.5); margin:10px 0 12px; }
+  .d-desc { font-size:15px; font-weight:400; line-height:1.6; color:rgba(255,255,255,0.38); border-top:1px solid rgba(255,255,255,0.06); padding-top:12px; flex:1; }
+
+  .bottom-bar { position:absolute; bottom:64px; left:72px; right:72px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,0.08); padding-top:20px; z-index:2; }
+  .tag { font-size:17px; font-weight:500; color:rgba(255,255,255,0.2); }
+  .cta { display:flex; align-items:center; gap:14px; }
+  .cta-text { font-size:15px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.45); }
+  .cta-pill { background:#FFFFFF; color:#0A0A0A; font-size:14px; font-weight:800; letter-spacing:0.1em; text-transform:uppercase; padding:10px 22px; border-radius:2px; }
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="top-bar">
+    <span class="brand">@chriscupppppp</span>
+    <span class="slide-num">04 / 04</span>
+  </div>
+  <div class="section-label">Three Ways to Take It</div>
+  <div class="headline-block">
+    <div class="headline">Same molecule.<br/><em>Different intent.</em></div>
+    <p class="sub-copy">We offer MB three ways. Each has a different speed, bioavailability, and use case. Your provider helps pick what fits your protocol.</p>
+  </div>
+
+  <div class="delivery-cards">
+    <div class="d-card">
+      <div class="d-method">Method 01</div>
+      <div class="d-title">IV<br/>Infusion</div>
+      <div class="d-stat"><div class="d-stat-label">Bioavailability</div><div class="d-stat-value">100%</div></div>
+      <div class="d-stat"><div class="d-stat-label">Onset</div><div class="d-stat-value">Minutes</div></div>
+      <div class="d-stat"><div class="d-stat-label">Typical Dose</div><div class="d-stat-value">0.5&#8211;1 mg/kg in saline</div></div>
+      <div class="d-best">Acute &amp; High-Impact</div>
+      <div class="d-desc">Maximum delivery. Ideal for post-viral recovery, neurological goals, or starting a protocol with immediate effect.</div>
+    </div>
+    <div class="d-card">
+      <div class="d-method">Method 02</div>
+      <div class="d-title">Sub-<br/>lingual</div>
+      <div class="d-stat"><div class="d-stat-label">Bioavailability</div><div class="d-stat-value">High (bypasses GI)</div></div>
+      <div class="d-stat"><div class="d-stat-label">Onset</div><div class="d-stat-value">15&#8211;30 minutes</div></div>
+      <div class="d-stat"><div class="d-stat-label">Typical Dose</div><div class="d-stat-value">5&#8211;20 mg solution</div></div>
+      <div class="d-best">Maintenance &amp; Flexibility</div>
+      <div class="d-desc">Hold under the tongue 1&#8211;2 minutes, then swallow. Faster than oral. No injection needed. Good for regular cognitive and energy maintenance.</div>
+    </div>
+    <div class="d-card">
+      <div class="d-method">Method 03</div>
+      <div class="d-title">Oral<br/>Capsules</div>
+      <div class="d-stat"><div class="d-stat-label">Bioavailability</div><div class="d-stat-value">72&#8211;84%</div></div>
+      <div class="d-stat"><div class="d-stat-label">Onset</div><div class="d-stat-value">45&#8211;90 minutes</div></div>
+      <div class="d-stat"><div class="d-stat-label">Typical Dose</div><div class="d-stat-value">5&#8211;50 mg daily</div></div>
+      <div class="d-best">Daily Protocol</div>
+      <div class="d-desc">Most convenient for ongoing daily use. Fully viable for long-term mitochondrial support and cognitive maintenance.</div>
+    </div>
+  </div>
+
+  <div class="bottom-bar">
+    <span class="tag">range-medical.com</span>
+    <div class="cta">
+      <span class="cta-text">Ask about Methylene Blue</span>
+      <span class="cta-pill">Book Now</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>

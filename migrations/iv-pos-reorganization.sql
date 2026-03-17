@@ -9,6 +9,17 @@
 --
 -- Run in Supabase SQL editor
 
+-- ── Remove duplicate pos_services entries (keep lowest id) ──────────────────
+
+DELETE FROM pos_services a
+USING pos_services b
+WHERE a.name = b.name
+  AND a.id > b.id;
+
+-- ── Ensure unique index exists for upsert ───────────────────────────────────
+
+CREATE UNIQUE INDEX IF NOT EXISTS pos_services_name_unique ON pos_services(name);
+
 -- ── Add Methylene Blue IV standalone ────────────────────────────────────────
 
 INSERT INTO pos_services (name, category, price_cents, recurring, description, sort_order) VALUES

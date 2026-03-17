@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MB Slide 03 — How It Works</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1080px; height:1080px; overflow:hidden; background:#FFFFFF; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  .slide { width:1080px; height:1080px; position:relative; background:#FFFFFF; }
+  .divider-line { position:absolute; left:540px; top:160px; bottom:104px; width:1px; background:rgba(0,0,0,0.07); z-index:1; }
+
+  .top-bar { position:absolute; top:72px; left:72px; right:72px; display:flex; justify-content:space-between; z-index:2; }
+  .brand { font-size:20px; font-weight:700; letter-spacing:0.02em; color:rgba(0,0,0,0.4); }
+  .slide-num { font-size:18px; font-weight:500; color:rgba(0,0,0,0.25); }
+
+  .section-label { position:absolute; top:118px; left:72px; right:72px; display:flex; align-items:center; gap:14px; font-size:15px; font-weight:600; letter-spacing:0.18em; text-transform:uppercase; color:rgba(0,0,0,0.35); z-index:2; }
+  .section-label::after { content:''; flex:1; height:1px; background:rgba(0,0,0,0.1); }
+
+  .col-left { position:absolute; top:158px; left:72px; width:444px; bottom:104px; display:flex; flex-direction:column; z-index:2; }
+  .col-right { position:absolute; top:158px; right:72px; width:444px; bottom:104px; display:flex; flex-direction:column; z-index:2; }
+
+  .col-tag { display:inline-block; background:#0A0A0A; color:#FFFFFF; font-size:13px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; padding:6px 12px; border-radius:2px; margin-bottom:14px; align-self:flex-start; }
+  .col-title { font-size:30px; font-weight:800; letter-spacing:-0.6px; color:#0A0A0A; line-height:1.1; margin-bottom:6px; }
+  .col-subtitle { font-size:15px; font-weight:500; color:rgba(0,0,0,0.35); padding-bottom:16px; border-bottom:1px solid rgba(0,0,0,0.08); }
+
+  .mechanism-list { list-style:none; flex:1; display:flex; flex-direction:column; }
+  .mechanism-item { flex:1; display:flex; flex-direction:column; justify-content:center; gap:6px; border-bottom:1px solid rgba(0,0,0,0.06); padding:8px 0; }
+  .mechanism-item:last-child { border-bottom:none; }
+
+  .mech-row { display:flex; align-items:center; gap:10px; }
+  .mech-dot { width:5px; height:5px; border-radius:50%; background:#0A0A0A; flex-shrink:0; }
+  .mech-label { font-size:18px; font-weight:700; color:#0A0A0A; }
+  .mech-desc { font-size:15px; font-weight:400; line-height:1.5; color:rgba(0,0,0,0.48); padding-left:15px; }
+
+  .bottom-bar { position:absolute; bottom:64px; left:72px; right:72px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(0,0,0,0.08); padding-top:18px; z-index:2; }
+  .tag { font-size:17px; font-weight:500; color:rgba(0,0,0,0.25); }
+  .next-label { font-size:17px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:rgba(0,0,0,0.3); }
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="divider-line"></div>
+  <div class="top-bar">
+    <span class="brand">@chriscupppppp</span>
+    <span class="slide-num">03 / 04</span>
+  </div>
+  <div class="section-label">How It Works</div>
+
+  <div class="col-left">
+    <div class="col-tag">At the Cell Level</div>
+    <div class="col-title">Mitochondrial<br/>Power</div>
+    <div class="col-subtitle">Electron carrier &nbsp;&middot;&nbsp; ATP amplifier</div>
+    <ul class="mechanism-list">
+      <li class="mechanism-item">
+        <div class="mech-row"><div class="mech-dot"></div><span class="mech-label">Electron Transport Chain</span></div>
+        <div class="mech-desc">MB plugs directly into your mitochondria and gets ATP production moving again.</div>
+      </li>
+      <li class="mechanism-item">
+        <div class="mech-row"><div class="mech-dot"></div><span class="mech-label">ROS Scavenging</span></div>
+        <div class="mech-desc">Neutralizes the free radicals that damage cells and accelerate aging.</div>
+      </li>
+      <li class="mechanism-item">
+        <div class="mech-row"><div class="mech-dot"></div><span class="mech-label">Cytochrome C Oxidase</span></div>
+        <div class="mech-desc">Boosts the final step of energy production. More output per cell.</div>
+      </li>
+      <li class="mechanism-item">
+        <div class="mech-row"><div class="mech-dot"></div><span class="mech-label">Hormetic Dosing</span></div>
+        <div class="mech-desc">Low doses stimulate. High doses suppress. Precision matters &#8212; why we administer it clinically.</div>
+      </li>
+    </ul>
+  </div>
+
+  <div class="col-right">
+    <div class="col-tag">At the Brain Level</div>
+    <div class="col-title">Neuroprotection<br/>&amp; Cognition</div>
+    <div class="col-subtitle">BBB-permeable &nbsp;&middot;&nbsp; Neuroactive</div>
+    <ul class="mechanism-list">
+      <li class="mechanism-item">
+        <div class="mech-row"><div class="mech-dot"></div><span class="mech-label">Blood-Brain Barrier</span></div>
+        <div class="mech-desc">MB reaches your brain directly. Most drugs and peptides cannot do this.</div>
+      </li>
+      <li class="mechanism-item">
+        <div class="mech-row"><div class="mech-dot"></div><span class="mech-label">Tau Protein Aggregation</span></div>
+        <div class="mech-desc">Blocks the buildup associated with Alzheimer's. Currently in active clinical trials.</div>
+      </li>
+      <li class="mechanism-item">
+        <div class="mech-row"><div class="mech-dot"></div><span class="mech-label">Monoamine Modulation</span></div>
+        <div class="mech-desc">Raises serotonin and dopamine by inhibiting the enzymes that break them down.</div>
+      </li>
+      <li class="mechanism-item">
+        <div class="mech-row"><div class="mech-dot"></div><span class="mech-label">Antiviral &amp; Antimicrobial</span></div>
+        <div class="mech-desc">Disrupts viral replication. Being studied for long COVID and post-viral syndromes.</div>
+      </li>
+    </ul>
+  </div>
+
+  <div class="bottom-bar">
+    <span class="tag">range-medical.com</span>
+    <span class="next-label">How we deliver it &rarr;</span>
+  </div>
+</div>
+</body>
+</html>

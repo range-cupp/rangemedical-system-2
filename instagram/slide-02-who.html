@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Slide 02 — Who It's For</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1080px; height:1080px; overflow:hidden; background:#F5F4F0; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  .slide { width:1080px; height:1080px; position:relative; background:#F5F4F0; }
+
+  .bg-num { position:absolute; top:10px; right:48px; font-size:380px; font-weight:900; color:rgba(0,0,0,0.04); line-height:1; letter-spacing:-20px; pointer-events:none; z-index:0; }
+
+  .top-bar { position:absolute; top:72px; left:72px; right:72px; display:flex; justify-content:space-between; z-index:2; }
+  .brand { font-size:20px; font-weight:700; letter-spacing:0.02em; color:rgba(0,0,0,0.4); }
+  .slide-num { font-size:18px; font-weight:500; color:rgba(0,0,0,0.25); }
+
+  .section-label { position:absolute; top:118px; left:72px; right:72px; display:flex; align-items:center; gap:14px; font-size:15px; font-weight:600; letter-spacing:0.18em; text-transform:uppercase; color:rgba(0,0,0,0.35); z-index:2; }
+  .section-label::after { content:''; flex:1; height:1px; background:rgba(0,0,0,0.12); }
+
+  .headline-block { position:absolute; top:158px; left:72px; right:72px; z-index:2; }
+  .headline { font-size:72px; font-weight:800; line-height:1.0; letter-spacing:-3.5px; color:#0A0A0A; margin-bottom:10px; }
+  .headline em { font-style:normal; font-weight:300; color:rgba(0,0,0,0.38); }
+  .sub-copy { font-size:22px; font-weight:400; line-height:1.55; color:rgba(0,0,0,0.48); max-width:600px; }
+
+  .cards { position:absolute; top:390px; left:72px; right:72px; bottom:104px; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:12px; z-index:2; }
+  .card { background:#FFFFFF; border:1px solid rgba(0,0,0,0.07); border-radius:4px; padding:28px; display:flex; flex-direction:column; gap:10px; }
+
+  .card-header { display:flex; align-items:center; gap:14px; }
+  .card-num { width:32px; height:32px; border:1.5px solid rgba(0,0,0,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:rgba(0,0,0,0.4); flex-shrink:0; }
+  .card-title { font-size:22px; font-weight:700; letter-spacing:-0.3px; color:#0A0A0A; line-height:1.2; }
+  .card-desc { font-size:18px; font-weight:400; line-height:1.6; color:rgba(0,0,0,0.5); }
+
+  .bottom-bar { position:absolute; bottom:64px; left:72px; right:72px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(0,0,0,0.08); padding-top:18px; z-index:2; }
+  .tag { font-size:17px; font-weight:500; color:rgba(0,0,0,0.25); }
+  .next-label { font-size:17px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:rgba(0,0,0,0.3); }
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="bg-num">02</div>
+  <div class="top-bar">
+    <span class="brand">@chriscupppppp</span>
+    <span class="slide-num">02 / 04</span>
+  </div>
+  <div class="section-label">Who It's For</div>
+  <div class="headline-block">
+    <div class="headline">Built for people<br/><em>who push harder.</em></div>
+    <p class="sub-copy">BPC-157/TB4 is for anyone conventional recovery hasn't helped.</p>
+  </div>
+  <div class="cards">
+    <div class="card">
+      <div class="card-header"><div class="card-num">01</div><div class="card-title">Athletes &amp; Active Patients</div></div>
+      <div class="card-desc">Tendons, ligaments, muscles that won't fully heal. This shortens the timeline.</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-num">02</div><div class="card-title">Post-Surgical Recovery</div></div>
+      <div class="card-desc">Faster tissue repair after surgery. Less downtime, better outcomes.</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-num">03</div><div class="card-title">Chronic Injury</div></div>
+      <div class="card-desc">Rotator cuffs, plantar fasciitis, Achilles. If it keeps coming back, this addresses why.</div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-num">04</div><div class="card-title">Gut &amp; Full-Body Inflammation</div></div>
+      <div class="card-desc">Leaky gut, IBD, body-wide inflammation. TB4 works when the problem isn't local.</div>
+    </div>
+  </div>
+  <div class="bottom-bar">
+    <span class="tag">range-medical.com</span>
+    <span class="next-label">How it works &rarr;</span>
+  </div>
+</div>
+</body>
+</html>

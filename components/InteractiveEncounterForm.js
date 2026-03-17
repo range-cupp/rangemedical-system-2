@@ -727,18 +727,25 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
 
           {section.type === 'fields' && (
             <div style={styles.fieldGrid}>
-              {section.fields.map((field) => (
-                <div key={field.key} style={{
-                  ...(field.type === 'button_group' || field.type === 'textarea' || field.type === 'multi_check' || field.type === 'peptide_search' || field.type === 'dose_select' || field.type === 'wl_dose_select' || field.type === 'trt_dose_select' || field.type === 'body_avatar'
-                    ? styles.fieldFull : styles.fieldHalf),
-                }}>
-                  <label style={styles.fieldLabel}>
-                    {field.label}
-                    {field.required && <span style={{ color: '#ef4444', marginLeft: 2 }}>*</span>}
-                  </label>
-                  {renderField(field, section.key)}
-                </div>
-              ))}
+              {section.fields.map((field) => {
+                // Conditional field: only show when parent field matches value
+                if (field.conditionalOn) {
+                  const parentVal = formData[section.key]?.[field.conditionalOn.field];
+                  if (parentVal !== field.conditionalOn.value) return null;
+                }
+                return (
+                  <div key={field.key} style={{
+                    ...(field.type === 'button_group' || field.type === 'textarea' || field.type === 'multi_check' || field.type === 'peptide_search' || field.type === 'dose_select' || field.type === 'wl_dose_select' || field.type === 'trt_dose_select' || field.type === 'body_avatar'
+                      ? styles.fieldFull : styles.fieldHalf),
+                  }}>
+                    <label style={styles.fieldLabel}>
+                      {field.label}
+                      {field.required && <span style={{ color: '#ef4444', marginLeft: 2 }}>*</span>}
+                    </label>
+                    {renderField(field, section.key)}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

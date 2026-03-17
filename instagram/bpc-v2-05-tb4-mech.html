@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>BPC v2 Slide 05 — How TB4 Works</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1080px; height:1080px; overflow:hidden; background:#0A0A0A; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  .slide { width:1080px; height:1080px; position:relative; background:#0A0A0A; }
+  .slide::before { content:''; position:absolute; inset:0; background-image:radial-gradient(circle,rgba(255,255,255,0.045) 1px,transparent 1px); background-size:40px 40px; pointer-events:none; }
+
+  .top-bar { position:absolute; top:68px; left:72px; right:72px; display:flex; justify-content:space-between; align-items:center; z-index:2; }
+  .brand { font-size:22px; font-weight:700; letter-spacing:0.02em; color:rgba(255,255,255,0.4); }
+  .slide-num { font-size:20px; font-weight:500; color:rgba(255,255,255,0.22); }
+
+  .section-tag { position:absolute; top:130px; left:72px; font-size:18px; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; color:rgba(255,255,255,0.28); z-index:2; }
+  .section-rule { position:absolute; top:162px; left:72px; right:72px; height:1px; background:rgba(255,255,255,0.1); z-index:2; }
+
+  .compound-label { position:absolute; top:188px; left:72px; z-index:2; }
+  .compound-name { font-size:54px; font-weight:800; letter-spacing:-2px; color:#FFFFFF; line-height:1.0; }
+  .compound-sub { font-size:24px; font-weight:400; color:rgba(255,255,255,0.35); margin-top:6px; }
+
+  .mech { position:absolute; left:72px; right:72px; z-index:2; }
+  .mech-rule { width:100%; height:1px; background:rgba(255,255,255,0.1); margin-bottom:28px; }
+  .mech-num { font-size:18px; font-weight:700; letter-spacing:0.2em; color:rgba(255,255,255,0.2); margin-bottom:10px; }
+  .mech-name { font-size:58px; font-weight:800; letter-spacing:-2.5px; line-height:1.0; color:#FFFFFF; margin-bottom:14px; }
+  .mech-desc { font-size:32px; font-weight:400; line-height:1.5; color:rgba(255,255,255,0.45); }
+
+  .mech-1 { top:308px; }
+  .mech-2 { top:530px; }
+  .mech-3 { top:748px; }
+
+  .bottom-bar { position:absolute; bottom:60px; left:72px; right:72px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,0.08); padding-top:18px; z-index:2; }
+  .tag { font-size:18px; font-weight:500; color:rgba(255,255,255,0.2); }
+  .next { font-size:18px; font-weight:600; letter-spacing:0.07em; text-transform:uppercase; color:rgba(255,255,255,0.28); }
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="top-bar">
+    <span class="brand">@chriscupppppp</span>
+    <span class="slide-num">05 / 06</span>
+  </div>
+  <div class="section-tag">How It Works</div>
+  <div class="section-rule"></div>
+
+  <div class="compound-label">
+    <div class="compound-name">Thymosin Beta 4</div>
+    <div class="compound-sub">Three things it does that BPC-157 can&#8217;t</div>
+  </div>
+
+  <div class="mech mech-1">
+    <div class="mech-rule"></div>
+    <div class="mech-num">01</div>
+    <div class="mech-name">Stem Cell Activation</div>
+    <div class="mech-desc">Mobilizes your own repair cells and sends them everywhere at once.</div>
+  </div>
+
+  <div class="mech mech-2">
+    <div class="mech-rule"></div>
+    <div class="mech-num">02</div>
+    <div class="mech-name">Brain &amp; Nerve Access</div>
+    <div class="mech-desc">Has direct neurological effects. Studied for stroke, TBI, and spinal cord recovery.</div>
+  </div>
+
+  <div class="mech mech-3">
+    <div class="mech-rule"></div>
+    <div class="mech-num">03</div>
+    <div class="mech-name">System-Wide Repair</div>
+    <div class="mech-desc">Reduces inflammation throughout your entire body &#8212; not just at one site.</div>
+  </div>
+
+  <div class="bottom-bar">
+    <span class="next">Why Together &#8594;</span>
+  </div>
+</div>
+</body>
+</html>

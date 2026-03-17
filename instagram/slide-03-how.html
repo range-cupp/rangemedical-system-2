@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Slide 03 — How It Works</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:1080px; height:1080px; overflow:hidden; background:#FFFFFF; font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased; }
+  .slide { width:1080px; height:1080px; position:relative; background:#FFFFFF; }
+  .divider-line { position:absolute; left:540px; top:160px; bottom:104px; width:1px; background:rgba(0,0,0,0.07); z-index:1; }
+
+  .top-bar { position:absolute; top:72px; left:72px; right:72px; display:flex; justify-content:space-between; z-index:2; }
+  .brand { font-size:20px; font-weight:700; letter-spacing:0.02em; color:rgba(0,0,0,0.4); }
+  .slide-num { font-size:18px; font-weight:500; color:rgba(0,0,0,0.25); }
+
+  .section-label { position:absolute; top:118px; left:72px; right:72px; display:flex; align-items:center; gap:14px; font-size:15px; font-weight:600; letter-spacing:0.18em; text-transform:uppercase; color:rgba(0,0,0,0.35); z-index:2; }
+  .section-label::after { content:''; flex:1; height:1px; background:rgba(0,0,0,0.1); }
+
+  .col-left { position:absolute; top:158px; left:72px; width:444px; bottom:104px; display:flex; flex-direction:column; z-index:2; }
+  .col-right { position:absolute; top:158px; right:72px; width:444px; bottom:104px; display:flex; flex-direction:column; z-index:2; }
+
+  .col-tag { display:inline-block; background:#0A0A0A; color:#FFFFFF; font-size:13px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; padding:6px 12px; border-radius:2px; margin-bottom:14px; align-self:flex-start; }
+  .col-title { font-size:32px; font-weight:800; letter-spacing:-0.8px; color:#0A0A0A; line-height:1.1; margin-bottom:6px; }
+  .col-subtitle { font-size:15px; font-weight:500; color:rgba(0,0,0,0.35); padding-bottom:16px; border-bottom:1px solid rgba(0,0,0,0.08); }
+
+  .mechanism-list { list-style:none; flex:1; display:flex; flex-direction:column; }
+  .mechanism-item { flex:1; display:flex; flex-direction:column; justify-content:center; gap:6px; border-bottom:1px solid rgba(0,0,0,0.06); padding:8px 0; }
+  .mechanism-item:last-child { border-bottom:none; }
+
+  .mech-row { display:flex; align-items:center; gap:10px; }
+  .mech-dot { width:5px; height:5px; border-radius:50%; background:#0A0A0A; flex-shrink:0; }
+  .mech-label { font-size:18px; font-weight:700; color:#0A0A0A; }
+  .mech-desc { font-size:15px; font-weight:400; line-height:1.5; color:rgba(0,0,0,0.48); padding-left:15px; }
+
+  .bottom-bar { position:absolute; bottom:64px; left:72px; right:72px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(0,0,0,0.08); padding-top:18px; z-index:2; }
+  .tag { font-size:17px; font-weight:500; color:rgba(0,0,0,0.25); }
+  .next-label { font-size:17px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:rgba(0,0,0,0.3); }
+</style>
+</head>
+<body>
+<div class="slide">
+  <div class="divider-line"></div>
+  <div class="top-bar">
+    <span class="brand">@chriscupppppp</span>
+    <span class="slide-num">03 / 04</span>
+  </div>
+  <div class="section-label">How It Works</div>
+
+  <div class="col-left">
+    <div class="col-tag">BPC-157</div>
+    <div class="col-title">Body Protection<br/>Compound</div>
+    <div class="col-subtitle">Local action &nbsp;&middot;&nbsp; Injury site</div>
+    <ul class="mechanism-list">
+      <li class="mechanism-item">
+        <div class="mech-row"><div class="mech-dot"></div><span class="mech-label">Angiogenesis</span></div>
+        <div class="mech-desc">Grows new blood vessels into the injury. More blood flow = faster healing.</div>
+      </li>
+      <li class="mechanism-item">
+        <div class="mech-row"><div class="mech-dot"></div><span class="mech-label">Tendon &amp; Ligament Repair</span></div>
+        <div class="mech-desc">Turns on growth hormone receptors at the injury site to rebuild structure.</div>
+      </li>
+      <li class="mechanism-item">
+        <div class="mech-row"><div class="mech-dot"></div><span class="mech-label">Gut Lining Protection</span></div>
+        <div class="mech-desc">Repairs the intestinal lining. Works for IBD, leaky gut, and NSAID damage.</div>
+      </li>
+      <li class="mechanism-item">
+        <div class="mech-row"><div class="mech-dot"></div><span class="mech-label">Anti-inflammatory</span></div>
+        <div class="mech-desc">Calms local inflammation without blocking the repair process.</div>
+      </li>
+    </ul>
+  </div>
+
+  <div class="col-right">
+    <div class="col-tag">Thymosin Beta 4</div>
+    <div class="col-title">Thymosin<br/>Beta 4</div>
+    <div class="col-subtitle">Systemic action &nbsp;&middot;&nbsp; Whole body</div>
+    <ul class="mechanism-list">
+      <li class="mechanism-item">
+        <div class="mech-row"><div class="mech-dot"></div><span class="mech-label">Actin Polymerization</span></div>
+        <div class="mech-desc">Reduces cell death and speeds tissue migration to injury sites.</div>
+      </li>
+      <li class="mechanism-item">
+        <div class="mech-row"><div class="mech-dot"></div><span class="mech-label">Stem Cell Mobilization</span></div>
+        <div class="mech-desc">Your own repair cells get activated and sent to damage sites throughout the body.</div>
+      </li>
+      <li class="mechanism-item">
+        <div class="mech-row"><div class="mech-dot"></div><span class="mech-label">Crosses Blood-Brain Barrier</span></div>
+        <div class="mech-desc">Reaches the brain and nervous system. Supports nerve repair and cognition.</div>
+      </li>
+      <li class="mechanism-item">
+        <div class="mech-row"><div class="mech-dot"></div><span class="mech-label">Systemic Anti-inflammatory</span></div>
+        <div class="mech-desc">Reduces inflammation body-wide &#8212; not just where it hurts.</div>
+      </li>
+    </ul>
+  </div>
+
+  <div class="bottom-bar">
+    <span class="tag">range-medical.com</span>
+    <span class="next-label">Why TB4 is different &rarr;</span>
+  </div>
+</div>
+</body>
+</html>

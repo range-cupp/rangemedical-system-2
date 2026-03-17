@@ -216,15 +216,17 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
         { label: 'Semaglutide', match: i => i.name.toLowerCase().includes('semaglutide') },
       ],
       iv_therapy: [
-        { label: 'NAD+', match: i => i.name.toLowerCase().includes('nad') },
-        { label: 'Drip IVs', match: i => !i.name.toLowerCase().includes('nad') && !i.name.toLowerCase().includes('shot') && !i.name.toLowerCase().includes('injection') },
-        { label: 'Injections', match: i => i.name.toLowerCase().includes('shot') || i.name.toLowerCase().includes('injection') },
+        { label: 'Signature Formulas', match: i => i.name.toLowerCase().startsWith('range iv') && i.name !== 'Range IV' },
+        { label: 'Base IV', match: i => i.name === 'Range IV' },
+        { label: 'Add-Ons', match: i => i.name.toLowerCase().includes('add-on') },
+        { label: 'Other', match: i => i.name.toLowerCase().includes('exosome') },
       ],
       specialty_iv: [
-        { label: 'NAD+ IV', match: i => i.name.toLowerCase().includes('nad+') },
+        { label: 'NAD+ IV', match: i => i.name.toLowerCase().includes('nad') },
         { label: 'High-Dose Vitamin C', match: i => i.name.toLowerCase().includes('vitamin c') },
         { label: 'Glutathione IV', match: i => i.name.toLowerCase().includes('glutathione') },
-        { label: 'Methylene Blue', match: i => i.name.toLowerCase().includes('methylene') },
+        { label: 'Methylene Blue', match: i => i.name.toLowerCase().includes('methylene') || i.name.toLowerCase().includes('mb ') },
+        { label: 'Pre-Screening', match: i => i.name.toLowerCase().includes('pre-screening') },
       ],
       red_light: [
         { label: 'Session Packs', match: i => !i.recurring },

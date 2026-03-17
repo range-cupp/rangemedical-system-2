@@ -218,6 +218,24 @@ function findPatient(patients, lastName, firstName, dob) {
   return null;
 }
 
+// Return up to 3 close candidates to help diagnose why a patient wasn't matched.
+// Shows patients whose last name starts with the same 3 letters.
+function getSuggestions(patients, lastName) {
+  const prefix = normalize(lastName).slice(0, 3);
+  return patients
+    .filter(p => {
+      const ln = normalize(p.last_name || (p.name || '').trim().split(/\s+/).pop());
+      return ln.startsWith(prefix);
+    })
+    .slice(0, 3)
+    .map(p => {
+      const display = (p.first_name || p.last_name)
+        ? `${p.first_name || ''} ${p.last_name || ''}`.trim()
+        : (p.name || p.id);
+      return `"${display}" (DOB: ${p.date_of_birth || 'unknown'})`;
+    });
+}
+
 // ── Main handler ──────────────────────────────────────────────────────────────
 
 export default async function handler(req, res) {
@@ -315,8 +333,11 @@ export default async function handler(req, res) {
       const match = findPatient(allPatients, info.last_name, info.first_name, info.dob);
       if (!match) {
         result.status = 'not_found';
-        result.message = `No patient found for "${info.last_name}, ${info.first_name}" (DOB: ${info.dob || 'unknown'}). ` +
-          `Add or update this patient's profile with matching first/last name or full name, then re-import.`;
+        const suggestions = getSuggestions(allPatients, info.last_name);
+        result.message = `No patient found for "${info.last_name}, ${info.first_name}" (DOB: ${info.dob || 'unknown'}).` +
+          (suggestions.length
+            ? ` Close matches in DB: ${suggestions.join('; ')}`
+            : ` No similar last names found in DB — patient may not be created yet.`);
         results.push(result);
         continue;
       }

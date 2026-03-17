@@ -526,7 +526,7 @@ const s = {
   page: { maxWidth: '960px', margin: '0 auto', padding: '2rem 1.5rem 4rem', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif" },
 
   // Progress bar
-  progressBar: { display: 'flex', justifyContent: 'center', gap: '2rem', marginBottom: '2.5rem', flexWrap: 'wrap' },
+  progressBar: { display: 'flex', justifyContent: 'center', gap: '2rem', marginBottom: '2.5rem', flexWrap: 'wrap', position: 'sticky', top: 0, zIndex: 100, background: '#fff', padding: '16px 0', borderBottom: '1px solid #e5e5e5', margin: '0 -1.5rem 2.5rem', paddingLeft: '1.5rem', paddingRight: '1.5rem' },
   progressStep: { display: 'flex', alignItems: 'center', gap: '6px', transition: 'opacity 0.3s' },
   progressDot: { width: '24px', height: '24px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 700, color: '#fff', transition: 'background 0.3s' },
   progressLabel: { fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#525252' },

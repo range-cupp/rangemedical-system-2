@@ -581,6 +581,7 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
           if (item.entryType === 'injection') {
             payload.dosage = item.formData.dosage;
             payload.weight = item.formData.weight ? parseFloat(item.formData.weight) : null;
+            payload.quantity = item.formData.quantity || 1;
           } else {
             payload.quantity = item.formData.quantity;
             payload.dosage = item.formData.dosage
@@ -1539,6 +1540,20 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
                                 {(WEIGHT_LOSS_MEDS.find(m => m.value === formData.medication)?.dosages || []).map(d => (
                                   <option key={d} value={d}>{d}</option>
                                 ))}
+                              </select>
+                            </div>
+
+                            <div style={slcStyles.formGroup}>
+                              <label style={slcStyles.label}>Number of Injections</label>
+                              <select
+                                value={formData.quantity || 1}
+                                onChange={(e) => setFormData(prev => ({ ...prev, quantity: parseInt(e.target.value) }))}
+                                style={slcStyles.select}
+                              >
+                                <option value={1}>1 injection (this week only)</option>
+                                <option value={2}>2 injections (2 weeks)</option>
+                                <option value={3}>3 injections (3 weeks)</option>
+                                <option value={4}>4 injections (4 weeks)</option>
                               </select>
                             </div>
                           </>

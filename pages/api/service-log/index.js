@@ -346,6 +346,45 @@ async function handlePost(req, res) {
 
     if (logError) throw logError;
 
+    // ── Weight loss multi-injection: create additional entries for future weeks ──
+    // When staff logs a weight loss injection with quantity > 1, it means the patient
+    // picked up multiple injections at once (e.g., 2 weeks' worth). Create individual
+    // service_log entries for each week so the protocol schedule fills correctly.
+    const wlMultiQty = isWeightLossType(category) && resolvedEntryType === 'injection' && quantity && parseInt(quantity) > 1 ? parseInt(quantity) : 0;
+    const additionalLogs = [];
+    if (wlMultiQty > 1) {
+      for (let i = 1; i < wlMultiQty; i++) {
+        const futureDate = new Date(logDate + 'T12:00:00');
+        futureDate.setDate(futureDate.getDate() + i * 7);
+        const futureDateStr = futureDate.toISOString().split('T')[0];
+        const extraLogData = {
+          patient_id,
+          category,
+          entry_type: 'injection',
+          entry_date: futureDateStr,
+          medication: medication || null,
+          dosage: dosage || null,
+          weight: null, // only first entry gets the weigh-in
+          quantity: 1,
+          notes: `Dispensed on ${logDate} (${wlMultiQty}-injection pickup, week ${i + 1} of ${wlMultiQty})`,
+          protocol_id: protocol_id || null,
+          administered_by: administered_by || null,
+          fulfillment_method: fulfillment_method || 'in_clinic',
+        };
+        const { data: extraLog, error: extraErr } = await supabase
+          .from('service_logs')
+          .insert([extraLogData])
+          .select()
+          .single();
+        if (!extraErr && extraLog) {
+          additionalLogs.push(extraLog);
+        } else {
+          console.error(`[service-log] Failed to create extra WL entry for ${futureDateStr}:`, extraErr);
+        }
+      }
+      console.log(`[service-log] Created ${additionalLogs.length} additional WL entries for multi-injection pickup`);
+    }
+
     // 2. Check for active package and decrement if found
     // Skip protocol logic for supplements — they're one-time purchases, not ongoing protocols
     const packageUpdate = category === 'supplement'
@@ -356,7 +395,7 @@ async function handlePost(req, res) {
     // Use resolvedEntryType (not raw entry_type) to ensure protocol updates always run
     let protocolUpdate = { updated: false };
 
-    console.log('[service-log] POST:', { patient_id, category, entry_type, resolvedEntryType, protocol_id, logDate });
+    console.log('[service-log] POST:', { patient_id, category, entry_type, resolvedEntryType, protocol_id, logDate, wlMultiQty });
     console.log('[service-log] packageUpdate:', JSON.stringify(packageUpdate));
 
     if (resolvedEntryType === 'pickup') {
@@ -366,10 +405,12 @@ async function handlePost(req, res) {
       // For injections/sessions, increment session count and update medication details
       // Pass package info so incrementOrCreateProtocol can avoid double-incrementing sessions_used
       // and can target the exact protocol that was already decremented
+      // For multi-injection WL entries, pass the quantity so sessions_used increments correctly
       protocolUpdate = await incrementOrCreateProtocol(
         patient_id, category, logDate, medication, dosage,
         protocol_id || (packageUpdate.decremented ? packageUpdate.protocol_id : null),
-        packageUpdate.decremented || false
+        packageUpdate.decremented || false,
+        wlMultiQty > 1 ? wlMultiQty : 1
       );
     }
 
@@ -380,6 +421,11 @@ async function handlePost(req, res) {
     // Only apply if this entry is the chronologically latest — don't let backdated entries overwrite.
     const targetProtocolId = protocol_id || protocolUpdate?.protocol_id || (packageUpdate.decremented ? packageUpdate.protocol_id : null);
     if (targetProtocolId && (resolvedEntryType === 'injection' || resolvedEntryType === 'session')) {
+      // For multi-injection WL entries, find the last entry date (furthest out)
+      const lastEntryDate = wlMultiQty > 1 && additionalLogs.length > 0
+        ? additionalLogs[additionalLogs.length - 1].entry_date
+        : logDate;
+
       const { data: latestForSafety } = await supabase
         .from('service_logs')
         .select('entry_date')
@@ -388,8 +434,8 @@ async function handlePost(req, res) {
         .order('entry_date', { ascending: false })
         .limit(1);
 
-      if (!latestForSafety?.[0] || logDate >= latestForSafety[0].entry_date) {
-        const nextDate = new Date(logDate + 'T12:00:00');
+      if (!latestForSafety?.[0] || lastEntryDate >= latestForSafety[0].entry_date) {
+        const nextDate = new Date(lastEntryDate + 'T12:00:00');
         nextDate.setDate(nextDate.getDate() + 7);
         const nextExpected = nextDate.toISOString().split('T')[0];
 
@@ -408,7 +454,7 @@ async function handlePost(req, res) {
           console.log('[service-log] Safety net: next_expected_date set to', nextExpected, 'for protocol', targetProtocolId);
         }
       } else {
-        console.log('[service-log] Safety net skipped: backdated entry', logDate, 'is older than latest', latestForSafety[0].entry_date);
+        console.log('[service-log] Safety net skipped: backdated entry', lastEntryDate, 'is older than latest', latestForSafety[0].entry_date);
       }
     }
 
@@ -916,7 +962,7 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
   }
 }
 
-async function incrementOrCreateProtocol(patient_id, category, logDate, medication, dosage, protocol_id = null, alreadyIncremented = false) {
+async function incrementOrCreateProtocol(patient_id, category, logDate, medication, dosage, protocol_id = null, alreadyIncremented = false, incrementBy = 1) {
   const programType = CATEGORY_TO_PROGRAM_TYPE[category];
   if (!programType) {
     return { updated: false, reason: 'Category not trackable' };
@@ -932,7 +978,7 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
       // explicitly linked to this protocol, honor it even if completed)
       const result = await supabase
         .from('protocols')
-        .select('id, sessions_used, total_sessions, injections_completed, frequency, injection_day, delivery_method, end_date, program_type, status')
+        .select('id, sessions_used, total_sessions, frequency, injection_day, delivery_method, end_date, program_type, status')
         .eq('id', protocol_id)
         .limit(1);
       protocols = result.data;
@@ -941,7 +987,7 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
       // Find active protocol by program_type (original behavior)
       const result = await supabase
         .from('protocols')
-        .select('id, sessions_used, total_sessions, injections_completed, frequency, injection_day, delivery_method, end_date, program_type, status')
+        .select('id, sessions_used, total_sessions, frequency, injection_day, delivery_method, end_date, program_type, status')
         .eq('patient_id', patient_id)
         .eq('program_type', programType)
         .eq('status', 'active')
@@ -969,10 +1015,9 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
     // If checkAndDecrementPackage already incremented sessions_used, don't double-count.
     // Just read the current values instead of incrementing again.
     // Use typeof check to handle sessions_used === 0 correctly (0 is falsy in JS)
-    const currentSessions = typeof protocol.sessions_used === 'number' ? protocol.sessions_used
-      : typeof protocol.injections_completed === 'number' ? protocol.injections_completed
-      : 0;
-    const newCount = alreadyIncremented ? currentSessions : currentSessions + 1;
+    // incrementBy supports multi-injection pickups (e.g., 2 WL injections at once = +2)
+    const currentSessions = typeof protocol.sessions_used === 'number' ? protocol.sessions_used : 0;
+    const newCount = alreadyIncremented ? currentSessions : currentSessions + incrementBy;
 
     const updateData = {
       updated_at: new Date().toISOString()
@@ -985,7 +1030,6 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
 
     if (!alreadyIncremented) {
       updateData.sessions_used = newCount;
-      updateData.injections_completed = newCount;
     }
 
     // Only update date-scheduling fields if this is the chronologically latest session.
@@ -1020,7 +1064,9 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
         else if (freq.includes('5 on')) dayInterval = 1;
 
         const nextDate = new Date(logDate + 'T12:00:00');
-        nextDate.setDate(nextDate.getDate() + dayInterval);
+        // For multi-injection pickups, skip ahead by incrementBy intervals
+        // e.g., 2 injections picked up = next due in 2 weeks, not 1
+        nextDate.setDate(nextDate.getDate() + dayInterval * incrementBy);
         updateData.next_expected_date = nextDate.toISOString().split('T')[0];
 
         // Extend end_date if next_expected_date is past it, so protocol doesn't show

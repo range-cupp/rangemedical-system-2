@@ -1230,42 +1230,20 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
                 {/* Dispensing Details */}
                 {visitItems.length > 0 && (
                   <div style={slcStyles.dispensingSection}>
-                    <div style={slcStyles.dispensingSectionTitle}>Dispensing Details</div>
-                    <div style={slcStyles.dispensingRow}>
-                      <div style={slcStyles.formGroup}>
-                        <label style={slcStyles.label}>Administered By</label>
-                        <select
-                          value={dispensingData.administered_by}
-                          onChange={(e) => setDispensingData({ ...dispensingData, administered_by: e.target.value })}
-                          style={slcStyles.input}
-                        >
-                          <option value="">Select staff</option>
-                          {employees.map(emp => (
-                            <option key={emp.id} value={emp.name}>{emp.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div style={slcStyles.formGroup}>
-                        <label style={slcStyles.label}>Lot #</label>
-                        <input
-                          type="text"
-                          placeholder="Lot number"
-                          value={dispensingData.lot_number}
-                          onChange={(e) => setDispensingData({ ...dispensingData, lot_number: e.target.value })}
-                          style={slcStyles.input}
-                        />
-                      </div>
-                      <div style={slcStyles.formGroup}>
-                        <label style={slcStyles.label}>Exp. Date</label>
-                        <input
-                          type="date"
-                          value={dispensingData.expiration_date}
-                          onChange={(e) => setDispensingData({ ...dispensingData, expiration_date: e.target.value })}
-                          style={slcStyles.input}
-                        />
-                      </div>
+                    <div style={slcStyles.dispensingSectionTitle}>DISPENSING DETAILS</div>
+                    <div style={slcStyles.formGroup}>
+                      <label style={slcStyles.label}>Administered / Dispensed By</label>
+                      <select
+                        value={dispensingData.administered_by}
+                        onChange={(e) => setDispensingData({ ...dispensingData, administered_by: e.target.value })}
+                        style={slcStyles.input}
+                      >
+                        <option value="">Select staff</option>
+                        {employees.map(emp => (
+                          <option key={emp.id} value={emp.name}>{emp.name}</option>
+                        ))}
+                      </select>
                     </div>
-
                   </div>
                 )}
 

@@ -204,21 +204,25 @@ export default async function handler(req, res) {
   try {
     // 1. Decode PDF
     const pdfBuffer = Buffer.from(pdfBase64.replace(/^data:application\/pdf;base64,/, ''), 'base64');
-    const pdfBytes = new Uint8Array(pdfBuffer);
+    // 2. Extract text from all pages using pdf-parse
+    // pdf-parse bundles its own pdfjs internally and handles all worker setup,
+    // making it reliable on Vercel serverless without any worker configuration.
+    // We use the pagerender callback to get the raw pdfjs page object per page
+    // so itemsToLines() (which uses getTextContent + positional transforms) works
+    // exactly as before — zero changes to the parsing logic downstream.
+    //
+    // NOTE: require the lib path directly to avoid pdf-parse's index.js loading
+    // a test file that doesn't exist in production (known Next.js quirk).
+    const pdfParse = require('pdf-parse/lib/pdf-parse.js');
 
-    // 2. Extract text from all pages using pdfjs-dist
-    const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.js');
-    const loadingTask = pdfjsLib.getDocument({ data: pdfBytes.slice() });
-    const pdfDoc = await loadingTask.promise;
-    const numPages = pdfDoc.numPages;
-
-    // Collect lines per page
     const pageLines = [];
-    for (let i = 1; i <= numPages; i++) {
-      const page = await pdfDoc.getPage(i);
-      const content = await page.getTextContent();
-      pageLines.push(itemsToLines(content.items));
-    }
+    await pdfParse(pdfBuffer, {
+      pagerender: async (pageData) => {
+        const content = await pageData.getTextContent();
+        pageLines.push(itemsToLines(content.items));
+        return ''; // pdf-parse expects a string return; we store lines ourselves
+      }
+    });
 
     // 3. Group pages by patient (accession number)
     // A new patient starts when the header line (LASTNAME, FIRSTNAME ...) appears on a page

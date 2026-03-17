@@ -1309,10 +1309,20 @@ export default function TasksPage() {
               <div style={{
                 flex: 1, display: 'flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'center',
-                color: '#9ca3af', fontSize: '14px', gap: '8px',
+                color: '#9ca3af', fontSize: '14px', gap: '12px', padding: '40px',
               }}>
                 <span style={{ fontSize: '32px' }}>{labPanel.type === 'results' ? '🔬' : '📄'}</span>
-                {labPanel.type === 'results' ? 'Lab results not found for this patient.' : 'No PDF found for this patient.'}
+                <div style={{ textAlign: 'center' }}>
+                  {labPanel.type === 'results'
+                    ? 'Lab results not found for this patient.'
+                    : 'No PDF on file for this patient yet.'}
+                </div>
+                {labPanel.type === 'pdf' && labPanel.labId && (
+                  <div style={{ fontSize: '12px', color: '#6b7280', textAlign: 'center', maxWidth: '300px' }}>
+                    The individual PDF may not have been split during the original import.
+                    Re-importing the Primex batch will generate it.
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -251,16 +251,22 @@ export default async function handler(req, res) {
 
     if (labErr) return res.status(500).json({ error: labErr.message });
 
-    // If no labs on that exact test_date, fall back to the most recent test_date available
+    // No fallback — only create tasks for the exact test_date specified
     if (!labRows || labRows.length === 0) {
-      const { data: recent, error: recentErr } = await supabase
+      // Return helpful debug info: show what test_dates do exist
+      const { data: available } = await supabase
         .from('labs')
-        .select('id, patient_id, test_date, patients(id, name, first_name, last_name)')
+        .select('test_date')
         .eq('lab_provider', 'Primex')
         .order('test_date', { ascending: false })
-        .limit(50);
-      if (recentErr) return res.status(500).json({ error: recentErr.message });
-      labRows = recent || [];
+        .limit(10);
+      const dates = [...new Set((available || []).map(r => r.test_date))];
+      return res.status(200).json({
+        success: false,
+        message: `No Primex labs found with test_date = ${targetDate}`,
+        hint: `Available test dates in DB: ${dates.join(', ') || 'none found'}`,
+        tasksCreated: 0,
+      });
     }
 
     // Deduplicate by patient_id (one patient may have multiple lab rows)

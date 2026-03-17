@@ -313,6 +313,59 @@ async function updateLabProtocol(req, res) {
       }
     }
 
+    // Sync: when provider marks labs as reviewed → create scheduling tasks for Tara + Damon
+    if (newStage === 'provider_reviewed' && data) {
+      try {
+        // Look up Tara and Damon IDs
+        const { data: staff } = await supabase
+          .from('employees')
+          .select('id, email')
+          .in('email', ['tara@range-medical.com', 'damon@range-medical.com'])
+          .eq('is_active', true);
+
+        const taraId  = staff?.find(e => e.email === 'tara@range-medical.com')?.id  || null;
+        const damonId = staff?.find(e => e.email === 'damon@range-medical.com')?.id || null;
+
+        // Look up patient name
+        const { data: patient } = await supabase
+          .from('patients')
+          .select('name, first_name, last_name')
+          .eq('id', data.patient_id)
+          .single();
+
+        const patientName = patient
+          ? (patient.name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim())
+          : data.patient_id;
+
+        // Due date: tomorrow
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const dueTomorrow = tomorrow.toISOString().split('T')[0];
+
+        const schedTask = {
+          title: `Contact ${patientName} — lab results ready`,
+          description: `Lab results for ${patientName} have been reviewed by the provider. Please contact the patient to let them know their results are ready and schedule a results consult.`,
+          patient_id: data.patient_id,
+          patient_name: patientName,
+          priority: 'high',
+          due_date: dueTomorrow,
+          status: 'pending',
+          category: 'labs',
+        };
+
+        const schedTasks = [];
+        if (taraId)  schedTasks.push({ ...schedTask, assigned_to: taraId,  assigned_by: taraId });
+        if (damonId) schedTasks.push({ ...schedTask, assigned_to: damonId, assigned_by: damonId });
+
+        if (schedTasks.length > 0) {
+          await supabase.from('tasks').insert(schedTasks);
+          console.log(`✓ Created ${schedTasks.length} scheduling task(s) for ${patientName}`);
+        }
+      } catch (syncErr) {
+        console.error('Scheduling task creation error (non-fatal):', syncErr);
+      }
+    }
+
     return res.status(200).json({ success: true, data });
 
   } catch (error) {

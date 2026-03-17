@@ -160,12 +160,21 @@ function normalize(s) {
 }
 
 function findPatient(patients, lastName, firstName, dob) {
-  // Exact match by last + first + dob
   const lastNorm = normalize(lastName);
   const firstNorm = normalize(firstName).slice(0, 4); // match first 4 chars of first name
   const dobStr = dob || '';
 
-  // 1. Try last + first + DOB
+  // Helper: extract last/first from a full "name" field (e.g. "Brian Steiner" → last=steiner, first=bria)
+  const nameMatch = (p) => {
+    if (!p.name) return false;
+    const parts = p.name.trim().split(/\s+/);
+    if (parts.length < 2) return false;
+    const pLast = normalize(parts[parts.length - 1]);
+    const pFirst = normalize(parts[0]).slice(0, 4);
+    return pLast === lastNorm && pFirst === firstNorm;
+  };
+
+  // 1. Try last + first + DOB (using first_name/last_name columns)
   if (dobStr) {
     const exact = patients.find(p =>
       normalize(p.last_name) === lastNorm &&
@@ -175,20 +184,36 @@ function findPatient(patients, lastName, firstName, dob) {
     if (exact) return exact;
   }
 
-  // 2. Try last + first (no DOB)
+  // 2. Try last + first via first_name/last_name columns (no DOB)
   const byName = patients.find(p =>
     normalize(p.last_name) === lastNorm &&
     normalize(p.first_name).startsWith(firstNorm)
   );
   if (byName) return byName;
 
-  // 3. Fuzzy last (first 5 chars) + first
+  // 3. Try matching against the full "name" column (e.g. "Brian Steiner")
+  //    Some patients are stored with only a name field, not split first/last
+  const byFullName = patients.find(p => nameMatch(p));
+  if (byFullName) return byFullName;
+
+  // 4. Fuzzy last (first 5 chars) + first via first_name/last_name
   const lastShort = lastNorm.slice(0, 5);
   const byFuzzy = patients.find(p =>
     normalize(p.last_name).startsWith(lastShort) &&
     normalize(p.first_name).startsWith(firstNorm)
   );
   if (byFuzzy) return byFuzzy;
+
+  // 5. Fuzzy match against full "name" column (first 5 of last)
+  const byFuzzyFull = patients.find(p => {
+    if (!p.name) return false;
+    const parts = p.name.trim().split(/\s+/);
+    if (parts.length < 2) return false;
+    const pLast = normalize(parts[parts.length - 1]);
+    const pFirst = normalize(parts[0]).slice(0, 4);
+    return pLast.startsWith(lastShort) && pFirst === firstNorm;
+  });
+  if (byFuzzyFull) return byFuzzyFull;
 
   return null;
 }
@@ -252,7 +277,7 @@ export default async function handler(req, res) {
 
     // 5. Load all patients from DB for matching + reviewer IDs for tasks
     const [{ data: allPatients }, reviewerIds] = await Promise.all([
-      supabase.from('patients').select('id, first_name, last_name, date_of_birth').order('last_name'),
+      supabase.from('patients').select('id, first_name, last_name, name, date_of_birth').order('last_name'),
       loadReviewerIds(supabase),
     ]);
 

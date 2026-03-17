@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { ENCOUNTER_FORMS, getFlatPeptideList, generateNoteMarkdown } from '../lib/encounter-form-config';
+import { WEIGHT_LOSS_DOSAGES } from '../lib/protocol-config';
 
 // Parse dose string like "250mcg" or "1.5mg" into { num, unit }
 function parseDose(doseStr) {
@@ -193,6 +194,7 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
   const [preview, setPreview] = useState(false);
   const [selectedMedInfo, setSelectedMedInfo] = useState(null);
   const [customDose, setCustomDose] = useState(false);
+  const [selectedWLMed, setSelectedWLMed] = useState('');
 
   // Auto-fill performed_by from currentUser
   useEffect(() => {
@@ -380,6 +382,78 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
         );
       }
 
+      case 'wl_dose_select': {
+        const wlMed = formData.medication?.medication_name || selectedWLMed;
+        const wlDoses = wlMed ? (WEIGHT_LOSS_DOSAGES[wlMed] || []) : [];
+
+        if (!wlMed) {
+          return (
+            <input
+              type="text"
+              value={value}
+              onChange={(e) => updateField(sectionKey, field.key, e.target.value)}
+              placeholder="Select a medication first"
+              style={{ ...styles.input, background: '#f9fafb', color: '#9ca3af' }}
+              disabled
+            />
+          );
+        }
+
+        if (customDose) {
+          return (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input
+                type="text"
+                value={value}
+                onChange={(e) => updateField(sectionKey, field.key, e.target.value)}
+                placeholder="e.g. 2.5mg"
+                style={{ ...styles.input, flex: 1 }}
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => setCustomDose(false)}
+                style={{ padding: '8px 12px', fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 8, background: '#fff', color: '#6b7280', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >
+                ← Presets
+              </button>
+            </div>
+          );
+        }
+
+        return (
+          <div>
+            <div style={styles.doseGrid}>
+              {wlDoses.map((dose) => (
+                <button
+                  key={dose}
+                  type="button"
+                  onClick={() => updateField(sectionKey, field.key, dose)}
+                  style={{
+                    ...styles.doseBtn,
+                    ...(value === dose ? styles.doseBtnActive : {}),
+                  }}
+                >
+                  {value === dose && <span style={{ marginRight: 4 }}>✓</span>}
+                  {dose}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setCustomDose(true)}
+                style={{
+                  ...styles.doseBtn,
+                  ...styles.doseBtnCustom,
+                  ...(value && !wlDoses.includes(value) ? styles.doseBtnActive : {}),
+                }}
+              >
+                Custom
+              </button>
+            </div>
+          </div>
+        );
+      }
+
       case 'text':
         return (
           <input
@@ -406,7 +480,15 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
         return (
           <select
             value={value}
-            onChange={(e) => updateField(sectionKey, field.key, e.target.value)}
+            onChange={(e) => {
+              updateField(sectionKey, field.key, e.target.value);
+              // If this is the WL medication selector, update dose options
+              if (field.key === 'medication_name' && WEIGHT_LOSS_DOSAGES[e.target.value]) {
+                setSelectedWLMed(e.target.value);
+                setCustomDose(false);
+                updateField(sectionKey, 'dose', '');
+              }
+            }}
             style={styles.select}
           >
             <option value="">Select...</option>
@@ -527,7 +609,7 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
             <div style={styles.fieldGrid}>
               {section.fields.map((field) => (
                 <div key={field.key} style={{
-                  ...(field.type === 'button_group' || field.type === 'textarea' || field.type === 'multi_check' || field.type === 'peptide_search' || field.type === 'dose_select'
+                  ...(field.type === 'button_group' || field.type === 'textarea' || field.type === 'multi_check' || field.type === 'peptide_search' || field.type === 'dose_select' || field.type === 'wl_dose_select'
                     ? styles.fieldFull : styles.fieldHalf),
                 }}>
                   <label style={styles.fieldLabel}>

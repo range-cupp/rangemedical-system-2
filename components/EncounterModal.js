@@ -226,7 +226,9 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
     if (name.includes('peptide') || name.includes('bpc') || name.includes('tb-4') || name.includes('tb4') || name.includes('injection') || name.includes('b12') || name.includes('lipo')) {
       forms.push('peptide_injection');
     }
-    // Future forms will be added here (iv_therapy, weight_loss, hbot, etc.)
+    if (name.includes('weight') || name.includes('glp') || name.includes('sema') || name.includes('tirz') || name.includes('ozempic') || name.includes('mounjaro')) {
+      forms.push('weight_loss');
+    }
     return forms;
   };
   const availableInteractiveForms = getAvailableInteractiveForms();

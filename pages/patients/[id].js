@@ -529,6 +529,10 @@ export default function PatientProfile() {
   const [patientEditForm, setPatientEditForm] = useState({});
   const [savingPatient, setSavingPatient] = useState(false);
 
+  // Condition tag management
+  const [showConditionModal, setShowConditionModal] = useState(false);
+  const [savingConditions, setSavingConditions] = useState(false);
+
   // Load data
   useEffect(() => {
     if (id) {
@@ -2024,6 +2028,54 @@ export default function PatientProfile() {
     }
   };
 
+  // ===== Condition tag management =====
+  const CONDITION_TAG_OPTIONS = [
+    { key: 'hypertension', label: 'High Blood Pressure' },
+    { key: 'highCholesterol', label: 'High Cholesterol' },
+    { key: 'heartDisease', label: 'Heart Disease' },
+    { key: 'diabetes', label: 'Diabetes' },
+    { key: 'thyroid', label: 'Thyroid Disorder' },
+    { key: 'depression', label: 'Depression/Anxiety' },
+    { key: 'eatingDisorder', label: 'Eating Disorder' },
+    { key: 'kidney', label: 'Kidney Disease' },
+    { key: 'liver', label: 'Liver Disease' },
+    { key: 'autoimmune', label: 'Autoimmune' },
+    { key: 'cancer', label: 'Cancer' },
+  ];
+
+  const getPatientConditionTags = () => {
+    return (patient?.tags || [])
+      .filter(t => t && t.startsWith('condition:'))
+      .map(t => t.replace('condition:', ''));
+  };
+
+  const toggleConditionTag = async (conditionKey) => {
+    if (!patient) return;
+    setSavingConditions(true);
+    const existing = patient.tags || [];
+    const tag = `condition:${conditionKey}`;
+    const hasTag = existing.includes(tag);
+    const newTags = hasTag
+      ? existing.filter(t => t !== tag)
+      : [...existing, tag];
+
+    try {
+      const res = await fetch(`/api/patients/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tags: newTags }),
+      });
+      if (res.ok) {
+        const { patient: updated } = await res.json();
+        setPatient(updated);
+      }
+    } catch (err) {
+      console.error('Condition tag update error:', err);
+    } finally {
+      setSavingConditions(false);
+    }
+  };
+
   // ===== Notes handlers =====
   const startDictation = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -2622,37 +2674,34 @@ export default function PatientProfile() {
           {(() => {
             // Pull medical data from the most recent intake
             const intake = intakes && intakes.length > 0 ? intakes[0] : null;
-            if (!intake) return null;
 
             // Resolve allergies from whichever field is populated
             let allergyText = null;
-            const noKnownAllergies = intake.has_allergies === false;
-            if (!noKnownAllergies) {
-              allergyText = (typeof intake.allergies === 'string' ? intake.allergies : null) ||
-                (intake.allergies && typeof intake.allergies === 'object' ? intake.allergies.text : null) ||
-                (intake.allergy_reactions ? `Allergies noted` : null) ||
-                null;
+            let noKnownAllergies = false;
+            if (intake) {
+              noKnownAllergies = intake.has_allergies === false;
+              if (!noKnownAllergies) {
+                allergyText = (typeof intake.allergies === 'string' ? intake.allergies : null) ||
+                  (intake.allergies && typeof intake.allergies === 'object' ? intake.allergies.text : null) ||
+                  (intake.allergy_reactions ? `Allergies noted` : null) ||
+                  null;
+              }
             }
 
             // Medications
-            const medsText = intake.current_medications || intake.medication_notes || null;
+            const medsText = intake ? (intake.current_medications || intake.medication_notes || null) : null;
 
-            // Medical conditions — parse JSONB object for any "Yes" conditions
-            let conditionsText = null;
-            if (intake.medical_conditions && typeof intake.medical_conditions === 'object') {
-              const activeConditions = Object.values(intake.medical_conditions)
-                .filter(c => c && c.response && c.response !== 'No')
-                .map(c => c.label);
-              if (activeConditions.length > 0) conditionsText = activeConditions.join(', ');
-            } else if (typeof intake.medical_conditions === 'string') {
-              conditionsText = intake.medical_conditions;
-            }
+            // Medical conditions — from patient tags (condition:xxx)
+            const conditionKeys = getPatientConditionTags();
+            const conditionLabels = conditionKeys.map(k => {
+              const opt = CONDITION_TAG_OPTIONS.find(o => o.key === k);
+              return opt ? opt.label : k;
+            });
 
             // HRT status
-            const hrtText = intake.on_hrt ? (intake.hrt_details || 'On HRT') : null;
+            const hrtText = intake && intake.on_hrt ? (intake.hrt_details || 'On HRT') : null;
 
-            const hasAlerts = allergyText || medsText || conditionsText || hrtText || noKnownAllergies;
-            if (!hasAlerts) return null;
+            const hasAlerts = allergyText || medsText || conditionLabels.length > 0 || hrtText || noKnownAllergies;
 
             const chipStyle = {
               display: 'inline-flex', alignItems: 'center', gap: '5px',
@@ -2684,21 +2733,85 @@ export default function PatientProfile() {
                     <strong>Meds:</strong> {medsText}
                   </span>
                 )}
-                {conditionsText && (
-                  <span style={{ ...chipStyle, background: '#fefce8', color: '#854d0e', border: '1px solid #fde68a' }}>
-                    <span style={{ fontSize: '13px' }}>🏥</span>
-                    <strong>Conditions:</strong> {conditionsText}
+                {conditionLabels.length > 0 && conditionLabels.map((label, i) => (
+                  <span key={conditionKeys[i]} style={{ ...chipStyle, background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca' }}>
+                    {label}
                   </span>
-                )}
+                ))}
                 {hrtText && (
                   <span style={{ ...chipStyle, background: '#faf5ff', color: '#6b21a8', border: '1px solid #e9d5ff' }}>
                     <span style={{ fontSize: '13px' }}>💉</span>
                     <strong>HRT:</strong> {hrtText}
                   </span>
                 )}
+                <button
+                  onClick={() => setShowConditionModal(true)}
+                  style={{
+                    ...chipStyle, background: '#f9fafb', color: '#6b7280', border: '1px solid #e5e7eb',
+                    cursor: 'pointer', fontSize: '11px',
+                  }}
+                >
+                  + Conditions
+                </button>
               </div>
             );
           })()}
+
+          {/* Condition Tag Modal */}
+          {showConditionModal && (
+            <div style={{
+              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+              background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', zIndex: 1000,
+            }}>
+              <div style={{
+                background: '#fff', borderRadius: '12px', width: '400px', maxWidth: '95vw',
+                padding: '20px', maxHeight: '80vh', overflow: 'auto',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>Medical Conditions</h3>
+                  <button onClick={() => setShowConditionModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#9ca3af' }}>×</button>
+                </div>
+                <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 16px' }}>
+                  Toggle conditions for this patient. Changes save immediately.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {CONDITION_TAG_OPTIONS.map(opt => {
+                    const isActive = getPatientConditionTags().includes(opt.key);
+                    return (
+                      <button
+                        key={opt.key}
+                        onClick={() => toggleConditionTag(opt.key)}
+                        disabled={savingConditions}
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          padding: '10px 14px', borderRadius: '8px', fontSize: '14px',
+                          border: isActive ? '2px solid #991b1b' : '1px solid #e5e7eb',
+                          background: isActive ? '#fef2f2' : '#fff',
+                          color: isActive ? '#991b1b' : '#374151',
+                          cursor: 'pointer', fontWeight: isActive ? '600' : '400',
+                          opacity: savingConditions ? 0.6 : 1,
+                        }}
+                      >
+                        <span>{opt.label}</span>
+                        {isActive && <span style={{ fontSize: '16px' }}>✓</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={() => setShowConditionModal(false)}
+                  style={{
+                    marginTop: '16px', width: '100%', padding: '10px',
+                    background: '#111', color: '#fff', border: 'none',
+                    borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer',
+                  }}
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Demographics */}
           {(showDemographics || editingPatient) && (

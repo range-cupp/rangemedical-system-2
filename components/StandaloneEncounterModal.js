@@ -5,6 +5,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { ENCOUNTER_TEMPLATES, getTemplatesForCategory } from '../lib/encounter-templates';
+import { ENCOUNTER_FORMS } from '../lib/encounter-form-config';
+import InteractiveEncounterForm from './InteractiveEncounterForm';
 
 const SERVICE_OPTIONS = Object.entries(ENCOUNTER_TEMPLATES).map(([key, val]) => ({
   value: key,
@@ -60,6 +62,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
   const [isRecording, setIsRecording] = useState(false);
   const [showTemplateMenu, setShowTemplateMenu] = useState(false);
   const [error, setError] = useState('');
+  const [noteMode, setNoteMode] = useState('freetext'); // 'freetext' | 'interactive'
 
   const noteRef = useRef(null);
   const recognitionRef = useRef(null);
@@ -279,7 +282,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
           position: 'fixed', top: '50%', left: '50%',
           transform: 'translate(-50%, -50%)',
           background: '#fff', borderRadius: 12,
-          width: '95%', maxWidth: 620,
+          width: '95%', maxWidth: noteMode === 'interactive' ? 780 : 620,
           maxHeight: '90vh', overflowY: 'auto',
           zIndex: 10001,
           boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
@@ -355,8 +358,93 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
             />
           </div>
 
-          {/* Template selector — only in form step */}
-          {step === 'form' && (() => {
+          {/* Interactive form mode toggle — show when service type has an interactive form */}
+          {ENCOUNTER_FORMS[form.serviceType] && step === 'form' && (
+            <div style={{ marginBottom: 16, display: 'flex', gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => setNoteMode('interactive')}
+                style={{
+                  flex: 1, padding: '12px 16px', borderRadius: 10, cursor: 'pointer',
+                  border: noteMode === 'interactive' ? '2px solid #6d28d9' : '2px solid #e5e7eb',
+                  background: noteMode === 'interactive' ? '#faf8ff' : '#fff',
+                  display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'inherit',
+                }}
+              >
+                <span style={{ fontSize: 20 }}>{ENCOUNTER_FORMS[form.serviceType].icon}</span>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111' }}>Interactive Form</div>
+                  <div style={{ fontSize: 11, color: '#6d28d9' }}>Guided fields — fastest</div>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setNoteMode('freetext')}
+                style={{
+                  flex: 1, padding: '12px 16px', borderRadius: 10, cursor: 'pointer',
+                  border: noteMode === 'freetext' ? '2px solid #111' : '2px solid #e5e7eb',
+                  background: noteMode === 'freetext' ? '#f9fafb' : '#fff',
+                  display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'inherit',
+                }}
+              >
+                <span style={{ fontSize: 20 }}>✏️</span>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#111' }}>Free Text</div>
+                  <div style={{ fontSize: 11, color: '#6b7280' }}>Templates & dictation</div>
+                </div>
+              </button>
+            </div>
+          )}
+
+          {/* Interactive form — replaces template/note/footer when active */}
+          {noteMode === 'interactive' && ENCOUNTER_FORMS[form.serviceType] && (
+            <div style={{ margin: '0 -24px -20px' }}>
+              <InteractiveEncounterForm
+                formType={form.serviceType}
+                vitals={{}}
+                currentUser={form.provider || currentUser}
+                onCancel={() => setNoteMode('freetext')}
+                onSave={async ({ markdown, structured_data }) => {
+                  setSaving(true);
+                  setError('');
+                  const visitDateTime = new Date(form.visitDate + 'T12:00:00').toISOString();
+                  try {
+                    const res = await fetch('/api/notes/create', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        patient_id: patient.id,
+                        raw_input: markdown,
+                        body: markdown,
+                        created_by: form.provider || currentUser || 'Staff',
+                        source: 'encounter',
+                        encounter_service: form.serviceType,
+                        appointment_id: null,
+                        note_date: visitDateTime,
+                        structured_data: structured_data,
+                      }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) {
+                      setError(data.error || 'Failed to save note');
+                      return;
+                    }
+                    onRefresh?.();
+                    onClose();
+                  } catch (err) {
+                    setError('Failed to save encounter note');
+                    console.error('Save error:', err);
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+              />
+              {error && <p style={{ padding: '0 24px 12px', color: '#dc2626', fontSize: 13 }}>{error}</p>}
+            </div>
+          )}
+
+          {/* Template selector — only in form step + freetext mode */}
+          {step === 'form' && noteMode === 'freetext' && (() => {
             const { matched, other } = getTemplatesForCategory(form.serviceType);
             const allTemplates = [...matched, ...other];
             if (allTemplates.length === 0) return null;
@@ -420,8 +508,8 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
             );
           })()}
 
-          {/* Note field */}
-          {step === 'form' ? (
+          {/* Note field — freetext mode only */}
+          {noteMode !== 'freetext' ? null : step === 'form' ? (
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Encounter Note
@@ -540,7 +628,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
           )}
 
           {/* Quick notes chips */}
-          {ENCOUNTER_TEMPLATES[form.serviceType]?.quickNotes?.length > 0 && step === 'form' && (
+          {noteMode === 'freetext' && ENCOUNTER_TEMPLATES[form.serviceType]?.quickNotes?.length > 0 && step === 'form' && (
             <div style={{ marginTop: 10 }}>
               <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 6px', fontWeight: 500 }}>Quick notes:</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -573,8 +661,8 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
           {error && <p style={{ marginTop: 12, color: '#dc2626', fontSize: 13 }}>{error}</p>}
         </div>
 
-        {/* Footer */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 24px', borderTop: '1px solid #e5e7eb', gap: 10 }}>
+        {/* Footer — freetext mode only (interactive form has its own save button) */}
+        {noteMode === 'freetext' && <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 24px', borderTop: '1px solid #e5e7eb', gap: 10 }}>
           <button
             onClick={onClose}
             style={{ padding: '8px 18px', border: '1px solid #d1d5db', borderRadius: 6, background: '#fff', color: '#374151', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}
@@ -611,7 +699,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
               {saving ? 'Saving...' : 'Save Encounter'}
             </button>
           </div>
-        </div>
+        </div>}
       </div>
     </>
   );

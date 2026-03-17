@@ -1562,49 +1562,27 @@ export default function PatientProfile() {
     setQuickWeightSaving(true);
     try {
       const { protocol, slotDate } = quickWeightModal;
+      // Use entry_type 'weight_check' so it does NOT increment sessions_used
+      // This is for when patients call/text their weight — the injection was already dispensed
       const res = await fetch('/api/service-log', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           patient_id: patient.id,
           category: 'weight_loss',
-          entry_type: 'injection',
+          entry_type: 'weight_check',
           entry_date: slotDate,
           medication: protocol.medication || protocol.selected_medication || null,
           dosage: protocol.selected_dose || null,
           weight: quickWeightForm.weight,
           notes: quickWeightForm.notes || null,
           protocol_id: protocol.id,
+          force: true,
         }),
       });
       if (res.ok) {
         setQuickWeightModal(null);
         fetchPatient();
-      } else {
-        const data = await res.json();
-        if (data.duplicate) {
-          // Force save if duplicate
-          const res2 = await fetch('/api/service-log', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              patient_id: patient.id,
-              category: 'weight_loss',
-              entry_type: 'injection',
-              entry_date: slotDate,
-              medication: protocol.medication || protocol.selected_medication || null,
-              dosage: protocol.selected_dose || null,
-              weight: quickWeightForm.weight,
-              notes: quickWeightForm.notes || null,
-              protocol_id: protocol.id,
-              force: true,
-            }),
-          });
-          if (res2.ok) {
-            setQuickWeightModal(null);
-            fetchPatient();
-          }
-        }
       }
     } catch (err) {
       console.error('Error saving quick weight:', err);
@@ -7831,7 +7809,7 @@ export default function PatientProfile() {
               </div>
               <div className="modal-body">
                 <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 16px' }}>
-                  Quick log for {patient?.first_name || patient?.name} — dose auto-fills from protocol ({quickWeightModal.protocol.selected_dose || 'current dose'}).
+                  Weight check-in for {patient?.first_name || patient?.name}. This logs their weight only — it won't count as an injection or change session count.
                 </p>
                 <div className="form-group">
                   <label>Weight (lbs) *</label>

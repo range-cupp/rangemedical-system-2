@@ -667,18 +667,18 @@ export default function TasksPage() {
                             color: '#374151',
                             lineHeight: 1.7,
                             whiteSpace: 'pre-wrap',
-                            background: task.category === 'labs' ? '#f8f7ff' : '#f9fafb',
+                            background: task.title?.includes('Review labs') ? '#f8f7ff' : '#f9fafb',
                             padding: '10px 14px',
                             borderRadius: '8px',
-                            border: `1px solid ${task.category === 'labs' ? '#e0d9ff' : '#f0f0f0'}`,
+                            border: `1px solid ${task.title?.includes('Review labs') ? '#e0d9ff' : '#f0f0f0'}`,
                           }}>
-                            {task.category === 'labs' ? getDisplayDescription(task.description) : task.description}
+                            {task.title?.includes('Review labs') ? getDisplayDescription(task.description) : task.description}
                           </div>
                         </div>
                       )}
 
                       {/* Lab review actions — View Lab, View PDF, Complete Review */}
-                      {task.category === 'labs' && task.patient_id && task.status !== 'completed' && (
+                      {task.title?.includes('Review labs') && task.patient_id && task.status !== 'completed' && (
                         <div style={{ marginBottom: '14px' }}>
                           {/* View buttons */}
                           <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>

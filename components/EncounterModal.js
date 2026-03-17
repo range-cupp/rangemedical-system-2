@@ -3,6 +3,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { NOTE_TYPES, ENCOUNTER_TEMPLATES, getTemplateForService, NURSE_TEMPLATES, getTemplatesForCategory } from '../lib/encounter-templates';
+import { ENCOUNTER_FORMS } from '../lib/encounter-form-config';
+import InteractiveEncounterForm from './InteractiveEncounterForm';
 
 // Users allowed to create/edit/sign encounter notes
 const NOTE_AUTHORS = ['burgess@range-medical.com', 'lily@range-medical.com', 'evan@range-medical.com', 'chris@range-medical.com'];
@@ -64,6 +66,8 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
   const recognitionRef = useRef(null);
   const noteRef = useRef(null);
   const [showTemplateMenu, setShowTemplateMenu] = useState(false);
+  const [noteMode, setNoteMode] = useState('choose'); // 'choose' | 'interactive' | 'freetext'
+  const [interactiveFormType, setInteractiveFormType] = useState(null);
 
   // Get markdown from contentEditable div
   const getNoteMarkdown = () => htmlToMd(noteRef.current?.innerHTML || '');
@@ -214,6 +218,18 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
   // Determine template from service name
   const templateKey = getTemplateForService(appointment?.service_name || appointment?.appointment_title || '');
   const template = ENCOUNTER_TEMPLATES[templateKey] || ENCOUNTER_TEMPLATES.general;
+
+  // Determine which interactive forms are available for this appointment type
+  const getAvailableInteractiveForms = () => {
+    const name = (appointment?.service_name || appointment?.appointment_title || '').toLowerCase();
+    const forms = [];
+    if (name.includes('peptide') || name.includes('bpc') || name.includes('tb-4') || name.includes('tb4') || name.includes('injection') || name.includes('b12') || name.includes('lipo')) {
+      forms.push('peptide_injection');
+    }
+    // Future forms will be added here (iv_therapy, weight_loss, hbot, etc.)
+    return forms;
+  };
+  const availableInteractiveForms = getAvailableInteractiveForms();
 
   // Set default note type from template
   useEffect(() => {
@@ -1138,19 +1154,116 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
 
                     {/* Add note button */}
                     {!showNoteForm && canAuthorNotes && (
-                      <button onClick={() => setShowNoteForm(true)} className="enc-btn enc-btn-primary" style={{ marginTop: 8 }}>
+                      <button onClick={() => { setShowNoteForm(true); setNoteMode(availableInteractiveForms.length > 0 ? 'choose' : 'freetext'); }} className="enc-btn enc-btn-primary" style={{ marginTop: 8 }}>
                         + Add Encounter Note
                       </button>
                     )}
                   </>
                 )}
 
-                {/* Note creation form */}
-                {showNoteForm && canAuthorNotes && (
+                {/* Note creation — mode chooser */}
+                {showNoteForm && canAuthorNotes && noteMode === 'choose' && (
+                  <div className="enc-form-card" style={{ textAlign: 'center', padding: 32 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                      <span style={{ fontSize: 16, fontWeight: 700, color: '#111' }}>How would you like to create this note?</span>
+                      <button onClick={() => { setShowNoteForm(false); setNoteMode('choose'); }} className="enc-close" style={{ width: 28, height: 28, fontSize: 16 }}>×</button>
+                    </div>
+                    <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
+                      {availableInteractiveForms.map(formKey => {
+                        const formDef = ENCOUNTER_FORMS[formKey];
+                        return (
+                          <button
+                            key={formKey}
+                            onClick={() => { setNoteMode('interactive'); setInteractiveFormType(formKey); }}
+                            style={{
+                              flex: 1, maxWidth: 260, padding: '24px 20px', borderRadius: 14,
+                              border: '2px solid #e9d5ff', background: '#faf8ff', cursor: 'pointer',
+                              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+                              transition: 'all 0.15s',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.borderColor = '#6d28d9'; e.currentTarget.style.background = '#f3e8ff'; }}
+                            onMouseLeave={e => { e.currentTarget.style.borderColor = '#e9d5ff'; e.currentTarget.style.background = '#faf8ff'; }}
+                          >
+                            <span style={{ fontSize: 32 }}>{formDef?.icon || '📋'}</span>
+                            <span style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>Interactive Form</span>
+                            <span style={{ fontSize: 12, color: '#6d28d9', fontWeight: 600 }}>{formDef?.label || formKey}</span>
+                            <span style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>Guided fields — fastest</span>
+                          </button>
+                        );
+                      })}
+                      <button
+                        onClick={() => setNoteMode('freetext')}
+                        style={{
+                          flex: 1, maxWidth: 260, padding: '24px 20px', borderRadius: 14,
+                          border: '2px solid #e5e7eb', background: '#fafafa', cursor: 'pointer',
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+                          transition: 'all 0.15s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#111'; e.currentTarget.style.background = '#f3f4f6'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.background = '#fafafa'; }}
+                      >
+                        <span style={{ fontSize: 32 }}>✏️</span>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>Free Text</span>
+                        <span style={{ fontSize: 12, color: '#6b7280', fontWeight: 600 }}>Templates & dictation</span>
+                        <span style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>Write from scratch</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Note creation — interactive form mode */}
+                {showNoteForm && canAuthorNotes && noteMode === 'interactive' && interactiveFormType && (
+                  <InteractiveEncounterForm
+                    formType={interactiveFormType}
+                    vitals={vitals}
+                    currentUser={currentUser}
+                    onCancel={() => { setNoteMode('choose'); setInteractiveFormType(null); }}
+                    onSave={async ({ markdown, structured_data, note_type, form_type }) => {
+                      try {
+                        const res = await fetch('/api/notes/create', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            patient_id: appointment.patient_id,
+                            body: markdown,
+                            raw_input: markdown,
+                            created_by: currentUser,
+                            appointment_id: appointment.id,
+                            encounter_service: appointment.service_name || appointment.appointment_title || '',
+                            structured_data: structured_data,
+                          }),
+                        });
+                        const data = await res.json();
+                        if (data.note) {
+                          setEncounterNotes(prev => [...prev, data.note]);
+                          setShowNoteForm(false);
+                          setNoteMode('choose');
+                          setInteractiveFormType(null);
+                          if (onRefresh) onRefresh();
+                        }
+                      } catch (err) {
+                        console.error('Save interactive note error:', err);
+                      }
+                    }}
+                  />
+                )}
+
+                {/* Note creation — free text mode */}
+                {showNoteForm && canAuthorNotes && noteMode === 'freetext' && (
                   <div className="enc-form-card">
                     <div className="enc-form-title">
-                      <span>New Encounter Note</span>
-                      <button onClick={() => { setShowNoteForm(false); if (noteRef.current) noteRef.current.innerHTML = ''; setNoteIsEmpty(true); stopDictation(); }} className="enc-close" style={{ width: 28, height: 28, fontSize: 16 }}>×</button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span>New Encounter Note</span>
+                        {availableInteractiveForms.length > 0 && (
+                          <button
+                            onClick={() => setNoteMode('choose')}
+                            style={{ fontSize: 12, color: '#6d28d9', background: '#f3e8ff', border: 'none', borderRadius: 20, padding: '3px 12px', cursor: 'pointer', fontWeight: 600 }}
+                          >
+                            ← Switch to Interactive Form
+                          </button>
+                        )}
+                      </div>
+                      <button onClick={() => { setShowNoteForm(false); setNoteMode('choose'); if (noteRef.current) noteRef.current.innerHTML = ''; setNoteIsEmpty(true); stopDictation(); }} className="enc-close" style={{ width: 28, height: 28, fontSize: 16 }}>×</button>
                     </div>
 
                     {/* Note type selector */}
@@ -1314,7 +1427,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                         {noteFormatting ? 'Formatting...' : '✨ Format with AI'}
                       </button>
                       <div className="enc-actions-right">
-                        <button onClick={() => { setShowNoteForm(false); if (noteRef.current) noteRef.current.innerHTML = ''; setNoteIsEmpty(true); stopDictation(); }} className="enc-btn enc-btn-secondary">Cancel</button>
+                        <button onClick={() => { setShowNoteForm(false); setNoteMode('choose'); if (noteRef.current) noteRef.current.innerHTML = ''; setNoteIsEmpty(true); stopDictation(); }} className="enc-btn enc-btn-secondary">Cancel</button>
                         <button onClick={handleSaveNote} disabled={noteIsEmpty || noteSaving} className="enc-btn enc-btn-primary">
                           {noteSaving ? 'Saving...' : 'Save as Draft'}
                         </button>

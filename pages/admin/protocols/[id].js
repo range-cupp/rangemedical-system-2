@@ -714,7 +714,12 @@ export default function ProtocolDetail() {
       // Also check protocol_logs via the /api/protocols endpoint
       const logsRes2 = await fetch(`/api/protocols/${protocolId}`);
       const logsData2 = await logsRes2.json();
-      const allLogs = logsData2.activityLogs || [];
+      // Include both activityLogs AND weightCheckins — patient check-ins with weight
+      // get routed to weightCheckins by the API, so we need both sources
+      const allLogs = [
+        ...(logsData2.activityLogs || []),
+        ...(logsData2.weightCheckins || [])
+      ];
       checkinLogs = allLogs.filter(l => l.log_type === 'peptide_checkin' || l.log_type === 'checkin');
     } catch (e) { /* ignore */ }
 

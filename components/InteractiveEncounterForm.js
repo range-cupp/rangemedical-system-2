@@ -6,8 +6,61 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { ENCOUNTER_FORMS, getFlatPeptideList, generateNoteMarkdown } from '../lib/encounter-form-config';
 
+// Parse dose string like "250mcg" or "1.5mg" into { num, unit }
+function parseDose(doseStr) {
+  if (!doseStr) return null;
+  // Handle compound doses like "500mcg/500mcg"
+  if (doseStr.includes('/')) return null;
+  const match = doseStr.match(/^([\d.]+)\s*(mcg|mg|ml|mL|IU|units?)$/i);
+  if (!match) return null;
+  return { num: parseFloat(match[1]), unit: match[2].toLowerCase() };
+}
+
+// Generate dose options between startingDose and maxDose
+function generateDoseOptions(startingDose, maxDose) {
+  const start = parseDose(startingDose);
+  const max = parseDose(maxDose);
+  if (!start || !max || start.unit !== max.unit) {
+    // Can't generate steps — return the raw values
+    const opts = [startingDose];
+    if (maxDose && maxDose !== startingDose) opts.push(maxDose);
+    return opts;
+  }
+  const unit = start.unit;
+  const range = max.num - start.num;
+  if (range <= 0) return [`${start.num}${unit}`];
+
+  // Pick a sensible step size
+  let step;
+  if (unit === 'mcg') {
+    if (range <= 100) step = 25;
+    else if (range <= 500) step = 50;
+    else if (range <= 1000) step = 100;
+    else step = 250;
+  } else if (unit === 'mg') {
+    if (range <= 1) step = 0.25;
+    else if (range <= 5) step = 0.5;
+    else if (range <= 10) step = 1;
+    else step = 2;
+  } else {
+    step = range / 4;
+  }
+
+  const options = [];
+  for (let d = start.num; d <= max.num + 0.001; d += step) {
+    const rounded = Math.round(d * 1000) / 1000;
+    // Format: remove trailing zeros (0.250 → 0.25, 1.000 → 1)
+    const formatted = rounded % 1 === 0 ? rounded.toString() : rounded.toString();
+    options.push(`${formatted}${unit}`);
+  }
+  // Ensure max dose is included
+  const maxStr = `${max.num}${unit}`;
+  if (!options.includes(maxStr)) options.push(maxStr);
+  return options;
+}
+
 // Peptide search component with autocomplete
-function PeptideSearch({ value, onChange }) {
+function PeptideSearch({ value, onChange, onSelectMedication }) {
   const [search, setSearch] = useState(value || '');
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedInfo, setSelectedInfo] = useState(null);
@@ -53,7 +106,10 @@ function PeptideSearch({ value, onChange }) {
           setSearch(e.target.value);
           setShowDropdown(true);
           setSelectedInfo(null);
-          if (!e.target.value.trim()) onChange('');
+          if (!e.target.value.trim()) {
+            onChange('');
+            onSelectMedication(null);
+          }
         }}
         onFocus={() => setShowDropdown(true)}
         placeholder="Search medications..."
@@ -76,6 +132,7 @@ function PeptideSearch({ value, onChange }) {
                       setSelectedInfo(item);
                       setShowDropdown(false);
                       onChange(item.value);
+                      onSelectMedication(item);
                     }}
                     style={{
                       ...styles.searchItem,
@@ -93,8 +150,7 @@ function PeptideSearch({ value, onChange }) {
       )}
       {selectedInfo && (
         <div style={styles.medInfoBar}>
-          <span style={styles.medInfoChip}>Dose range: {selectedInfo.startingDose} – {selectedInfo.maxDose}</span>
-          <span style={styles.medInfoChip}>Frequency: {selectedInfo.frequency}</span>
+          <span style={styles.medInfoChip}>📋 {selectedInfo.frequency}</span>
           {selectedInfo.notes && <span style={styles.medInfoChip}>{selectedInfo.notes}</span>}
         </div>
       )}
@@ -135,6 +191,8 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
   const [formData, setFormData] = useState(buildInitialState);
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState(false);
+  const [selectedMedInfo, setSelectedMedInfo] = useState(null);
+  const [customDose, setCustomDose] = useState(false);
 
   // Auto-fill performed_by from currentUser
   useEffect(() => {
@@ -227,8 +285,100 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
           <PeptideSearch
             value={value}
             onChange={(val) => updateField(sectionKey, field.key, val)}
+            onSelectMedication={(medInfo) => {
+              setSelectedMedInfo(medInfo);
+              setCustomDose(false);
+              // Auto-set dose to starting dose
+              if (medInfo) {
+                updateField('medication', 'dose', medInfo.startingDose);
+              } else {
+                updateField('medication', 'dose', '');
+              }
+            }}
           />
         );
+
+      case 'dose_select': {
+        const doseOptions = selectedMedInfo
+          ? generateDoseOptions(selectedMedInfo.startingDose, selectedMedInfo.maxDose)
+          : [];
+
+        if (!selectedMedInfo) {
+          return (
+            <input
+              type="text"
+              value={value}
+              onChange={(e) => updateField(sectionKey, field.key, e.target.value)}
+              placeholder="Select a medication first"
+              style={{ ...styles.input, background: '#f9fafb', color: '#9ca3af' }}
+              disabled
+            />
+          );
+        }
+
+        if (customDose) {
+          return (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input
+                type="text"
+                value={value}
+                onChange={(e) => updateField(sectionKey, field.key, e.target.value)}
+                placeholder={`e.g. ${selectedMedInfo.startingDose}`}
+                style={{ ...styles.input, flex: 1 }}
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setCustomDose(false);
+                  updateField(sectionKey, field.key, selectedMedInfo.startingDose);
+                }}
+                style={{ padding: '8px 12px', fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 8, background: '#fff', color: '#6b7280', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >
+                ← Presets
+              </button>
+            </div>
+          );
+        }
+
+        return (
+          <div>
+            <div style={styles.doseGrid}>
+              {doseOptions.map((dose) => (
+                <button
+                  key={dose}
+                  type="button"
+                  onClick={() => updateField(sectionKey, field.key, dose)}
+                  style={{
+                    ...styles.doseBtn,
+                    ...(value === dose ? styles.doseBtnActive : {}),
+                  }}
+                >
+                  {value === dose && <span style={{ marginRight: 4 }}>✓</span>}
+                  {dose}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setCustomDose(true)}
+                style={{
+                  ...styles.doseBtn,
+                  ...styles.doseBtnCustom,
+                  ...(value && !doseOptions.includes(value) ? styles.doseBtnActive : {}),
+                }}
+              >
+                Custom
+              </button>
+            </div>
+            {selectedMedInfo.startingDose !== selectedMedInfo.maxDose && (
+              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ background: '#ecfdf5', color: '#059669', padding: '2px 8px', borderRadius: 10, fontWeight: 600, fontSize: 10 }}>RANGE</span>
+                {selectedMedInfo.startingDose} → {selectedMedInfo.maxDose}
+              </div>
+            )}
+          </div>
+        );
+      }
 
       case 'text':
         return (
@@ -377,7 +527,7 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
             <div style={styles.fieldGrid}>
               {section.fields.map((field) => (
                 <div key={field.key} style={{
-                  ...(field.type === 'button_group' || field.type === 'textarea' || field.type === 'multi_check' || field.type === 'peptide_search'
+                  ...(field.type === 'button_group' || field.type === 'textarea' || field.type === 'multi_check' || field.type === 'peptide_search' || field.type === 'dose_select'
                     ? styles.fieldFull : styles.fieldHalf),
                 }}>
                   <label style={styles.fieldLabel}>
@@ -772,5 +922,34 @@ const styles = {
     background: '#ecfdf5',
     padding: '4px 10px',
     borderRadius: 20,
+  },
+  // Dose selector styles
+  doseGrid: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  doseBtn: {
+    padding: '9px 18px',
+    fontSize: 14,
+    fontWeight: 600,
+    border: '1.5px solid #e5e7eb',
+    borderRadius: 10,
+    background: '#fff',
+    color: '#374151',
+    cursor: 'pointer',
+    transition: 'all 0.15s',
+    fontFamily: 'inherit',
+  },
+  doseBtnActive: {
+    background: '#111',
+    color: '#fff',
+    borderColor: '#111',
+  },
+  doseBtnCustom: {
+    color: '#6d28d9',
+    borderColor: '#e9d5ff',
+    background: '#faf8ff',
+    fontSize: 13,
   },
 };

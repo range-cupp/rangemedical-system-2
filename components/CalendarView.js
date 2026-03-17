@@ -6,6 +6,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getCategoryStyle } from '../lib/protocol-config';
 import { APPOINTMENT_SERVICES, getAllServices, PROVIDERS, LOCATIONS, DEFAULT_LOCATION, LOCATION_ENABLED_CATEGORIES, REQUIRED_FORMS } from '../lib/appointment-services';
+import EncounterModal from './EncounterModal';
+import { useAuth } from './AuthProvider';
 
 // Form display names + consent_type normalization (inlined to avoid importing server-only form-bundles.js)
 const FORM_NAMES = {
@@ -62,6 +64,9 @@ const SESSION_BASED_CATEGORIES = ['rlt', 'hbot', 'iv', 'injection'];
 const HOURS = Array.from({ length: 15 }, (_, i) => i + 6); // 6 AM to 8 PM
 
 export default function CalendarView({ preselectedPatient = null, wizardOnly = false }) {
+  const { session } = useAuth();
+  const [encounterAppt, setEncounterAppt] = useState(null);
+
   // Calendar state
   const [viewMode, setViewMode] = useState('day');
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -1852,6 +1857,16 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               </div>
             )}
 
+            {/* Encounter Note button */}
+            <div style={{ marginTop: '12px' }}>
+              <button
+                onClick={() => { setSelectedAppt(null); setEncounterAppt(appt); }}
+                style={{ ...styles.actionBtn, width: '100%', background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', fontWeight: '600' }}
+              >
+                Encounter Note
+              </button>
+            </div>
+
             {/* Delete button — always visible, no notification sent */}
             <div style={{ marginTop: '12px', borderTop: '1px solid #f3f4f6', paddingTop: '12px' }}>
               <button onClick={() => deleteAppointment(appt.id)} style={{ ...styles.actionBtn, background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca', fontSize: '12px' }}>Delete (No Notification)</button>
@@ -3244,6 +3259,16 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
           }
         }
       `}</style>
+
+      {/* Encounter Note Modal */}
+      {encounterAppt && (
+        <EncounterModal
+          appointment={{ ...encounterAppt, patient_id: encounterAppt.patient_id }}
+          currentUser={session?.user?.user_metadata?.full_name || session?.user?.email || 'Staff'}
+          onClose={() => setEncounterAppt(null)}
+          onRefresh={() => fetchAppointments()}
+        />
+      )}
     </div>
   );
 }

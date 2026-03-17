@@ -5,15 +5,19 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import AdminLayout from '../../components/AdminLayout';
+import EncounterModal from '../../components/EncounterModal';
+import { useAuth } from '../../components/AuthProvider';
 
 // Dynamic import CalendarView (it uses browser APIs)
 const CalendarView = dynamic(() => import('../../components/CalendarView'), { ssr: false });
 
 export default function SchedulePage() {
+  const { session } = useAuth();
   const [tab, setTab] = useState('calendar');
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [renewalMap, setRenewalMap] = useState({}); // patient_id -> [renewals]
+  const [encounterAppt, setEncounterAppt] = useState(null);
 
   useEffect(() => {
     fetchAppointments();
@@ -142,7 +146,7 @@ export default function SchedulePage() {
               <th style={styles.th}>Provider</th>
               <th style={styles.th}>Location</th>
               <th style={styles.th}>Status</th>
-              <th style={{ ...styles.th, width: '60px' }}></th>
+              <th style={{ ...styles.th, width: '120px' }}></th>
             </tr>
           </thead>
           <tbody>
@@ -199,13 +203,31 @@ export default function SchedulePage() {
                     </div>
                   </td>
                   <td style={styles.td}>
-                    <button
-                      onClick={() => deleteAppointment(apt.id)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999', fontSize: '13px', padding: '4px' }}
-                      title="Delete (no notification)"
-                    >
-                      ✕
-                    </button>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      <button
+                        onClick={() => setEncounterAppt(apt)}
+                        style={{
+                          background: '#f0f9ff',
+                          border: '1px solid #bae6fd',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          color: '#0369a1',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          padding: '4px 10px',
+                        }}
+                        title="Create encounter note"
+                      >
+                        Encounter Note
+                      </button>
+                      <button
+                        onClick={() => deleteAppointment(apt.id)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999', fontSize: '13px', padding: '4px' }}
+                        title="Delete (no notification)"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -246,6 +268,16 @@ export default function SchedulePage() {
         renderAppointmentList(todayAppointments, 'No appointments today')
       ) : (
         renderAppointmentList(upcomingAppointments, 'No upcoming appointments')
+      )}
+
+      {/* Encounter Note Modal */}
+      {encounterAppt && (
+        <EncounterModal
+          appointment={{ ...encounterAppt, patient_id: encounterAppt.patient_id }}
+          currentUser={session?.user?.user_metadata?.full_name || session?.user?.email || 'Staff'}
+          onClose={() => setEncounterAppt(null)}
+          onRefresh={fetchAppointments}
+        />
       )}
     </AdminLayout>
   );

@@ -2900,6 +2900,7 @@ export default function PatientProfile() {
         <nav className="px-tabs">
           {[
             { key: 'overview', label: 'Overview', icon: '📋' },
+            { key: 'communications', label: 'Comms', icon: '💬', count: commsLog.filter(c => c.direction === 'inbound' && c.status !== 'read').length || 0 },
             { key: 'protocols', label: 'Protocols', icon: '💊', count: stats.activeCount || 0 },
             { key: 'medications', label: 'Medications', icon: '💉', count: (medications.length + prescriptions.length) || 0 },
             { key: 'labs', label: 'Labs', icon: '🔬' },
@@ -2910,7 +2911,6 @@ export default function PatientProfile() {
             { key: 'tasks', label: 'Tasks', icon: '✅', count: patientTasks.filter(t => t.status === 'pending').length || 0 },
             { key: 'symptoms', label: 'Symptoms', icon: '🩺', count: questionnaireResponses.length || 0 },
             { key: 'payments', label: 'Payments', icon: '💳' },
-            { key: 'communications', label: 'Comms', icon: '💬' },
           ].map(tab => (
             <button
               key={tab.key}
@@ -2995,6 +2995,62 @@ export default function PatientProfile() {
                   </div>
                 </section>
               )}
+
+              {/* Recent Messages Preview */}
+              <section className="card" style={{ marginBottom: '16px' }}>
+                <div className="card-header">
+                  <h3>Recent Messages</h3>
+                  <button onClick={() => setActiveTab('communications')} className="btn-text">View All →</button>
+                </div>
+                {commsLog.length === 0 ? (
+                  <div className="empty" style={{ padding: '20px 16px', textAlign: 'center' }}>No messages yet</div>
+                ) : (
+                  <div style={{ padding: '0 16px 12px' }}>
+                    {commsLog.slice(0, 5).map(msg => (
+                      <div
+                        key={msg.id}
+                        onClick={() => setActiveTab('communications')}
+                        style={{
+                          display: 'flex', alignItems: 'flex-start', gap: '10px',
+                          padding: '10px 12px', marginBottom: '6px',
+                          background: msg.direction === 'inbound' ? '#f0f9ff' : '#f8fafc',
+                          borderRadius: '8px', border: '1px solid #e2e8f0',
+                          cursor: 'pointer', transition: 'background 0.15s',
+                        }}
+                        onMouseOver={e => e.currentTarget.style.background = '#eef2ff'}
+                        onMouseOut={e => e.currentTarget.style.background = msg.direction === 'inbound' ? '#f0f9ff' : '#f8fafc'}
+                      >
+                        <span style={{ fontSize: '16px', marginTop: '2px', flexShrink: 0 }}>
+                          {msg.channel === 'sms' ? '💬' : msg.channel === 'email' ? '📧' : msg.channel === 'call' ? '📞' : '💬'}
+                        </span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                            <span style={{
+                              fontSize: '12px', fontWeight: 600,
+                              color: msg.direction === 'inbound' ? '#0369a1' : '#64748b',
+                            }}>
+                              {msg.direction === 'inbound' ? 'Patient' : 'Range Medical'}
+                              {msg.channel === 'email' && msg.subject ? ` — ${msg.subject}` : ''}
+                            </span>
+                            <span style={{ fontSize: '11px', color: '#94a3b8', flexShrink: 0 }}>
+                              {new Date(msg.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              {' '}
+                              {new Date(msg.created_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <div style={{
+                            fontSize: '13px', color: '#374151', lineHeight: '1.4',
+                            overflow: 'hidden', textOverflow: 'ellipsis',
+                            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                          }}>
+                            {msg.message || msg.subject || '(no content)'}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
 
               {/* Vitals Flowsheet + Weight Chart (Practice Fusion style) */}
               {vitalsHistory.length > 0 && (() => {

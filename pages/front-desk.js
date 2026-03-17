@@ -185,6 +185,13 @@ const STATUS_FLOW = [
 function TodaySchedule({ onSelectPatient }) {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [statusError, setStatusError] = useState(null);
+  const mountId = useRef(Math.random().toString(36).slice(2, 6));
+
+  useEffect(() => {
+    console.log('[TodaySchedule] MOUNTED, id:', mountId.current);
+    return () => console.log('[TodaySchedule] UNMOUNTED, id:', mountId.current);
+  }, []);
 
   useEffect(() => {
     const now = new Date();
@@ -192,11 +199,13 @@ function TodaySchedule({ onSelectPatient }) {
     const y = todayPT.getFullYear(), m = String(todayPT.getMonth() + 1).padStart(2, '0'), d = String(todayPT.getDate()).padStart(2, '0');
     const todayStart = `${y}-${m}-${d}T00:00:00`;
     const todayEnd = `${y}-${m}-${d}T23:59:59`;
+    console.log('[TodaySchedule] Fetching appointments...');
     fetch(`/api/appointments/list?start_date=${todayStart}&end_date=${todayEnd}`)
       .then(r => r.json())
       .then(data => {
         const appts = (data.appointments || []).filter(a => a.status !== 'cancelled');
         appts.sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+        console.log('[TodaySchedule] Loaded', appts.length, 'appointments');
         setAppointments(appts);
       })
       .catch(console.error)
@@ -206,6 +215,8 @@ function TodaySchedule({ onSelectPatient }) {
   const updateStatus = async (apptId, newStatus) => {
     const oldStatus = appointments.find(a => a.id === apptId)?.status;
     if (oldStatus === newStatus) return;
+    setStatusError(null);
+    console.log('[TodaySchedule] updateStatus:', apptId, oldStatus, '->', newStatus);
     // Optimistic update
     setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, status: newStatus } : a));
     try {
@@ -215,18 +226,24 @@ function TodaySchedule({ onSelectPatient }) {
         body: JSON.stringify({ id: apptId, table: 'appointments', status: newStatus }),
       });
       const text = await res.text();
+      console.log('[TodaySchedule] API response:', res.status, text);
       let data = {};
       try { data = JSON.parse(text); } catch (_) {}
       if (res.ok) {
+        console.log('[TodaySchedule] Status update SUCCESS');
         if (data.checked_in_at) {
           setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, checked_in_at: data.checked_in_at } : a));
         }
       } else {
-        console.error('Status update failed:', res.status, text);
+        const errMsg = `API ${res.status}: ${data.error || text.slice(0, 100)}`;
+        console.error('[TodaySchedule] Status update FAILED:', errMsg);
+        setStatusError(errMsg);
         setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, status: oldStatus } : a));
       }
     } catch (e) {
-      console.error('Status update network error:', e);
+      const errMsg = `Network: ${e.message}`;
+      console.error('[TodaySchedule] Status update ERROR:', errMsg);
+      setStatusError(errMsg);
       setAppointments(prev => prev.map(a => a.id === apptId ? { ...a, status: oldStatus } : a));
     }
   };
@@ -236,6 +253,11 @@ function TodaySchedule({ onSelectPatient }) {
 
   return (
     <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+      {statusError && (
+        <div onClick={() => setStatusError(null)} style={{ padding: '4px 10px', fontSize: 11, color: '#991b1b', background: '#fef2f2', borderBottom: '1px solid #fecaca', cursor: 'pointer' }}>
+          ⚠ {statusError} <span style={{ color: '#aaa' }}>(tap to dismiss)</span>
+        </div>
+      )}
       {appointments.map(a => {
         const time = new Date(a.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles' });
         const patientName = a.patients ? `${a.patients.first_name || ''} ${a.patients.last_name || ''}`.trim() : (a.patient_name || a.title || 'Unknown');

@@ -377,9 +377,6 @@ export default function PatientProfile() {
   const [showIntakeModal, setShowIntakeModal] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showChargeModal, setShowChargeModal] = useState(false);
-  const [showQuickLogModal, setShowQuickLogModal] = useState(false);
-  const [quickLogSubmitting, setQuickLogSubmitting] = useState(false);
-  const [quickLogResult, setQuickLogResult] = useState(null);
   const [generatingChart, setGeneratingChart] = useState(false);
   const [showQuickView, setShowQuickView] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -2550,8 +2547,7 @@ export default function PatientProfile() {
             </div>
             <div className="toolbar-divider" />
             <div className="toolbar-group">
-              <button onClick={() => { setShowQuickLogModal(true); setQuickLogResult(null); }} className="toolbar-btn toolbar-btn-orange" title="Quick log visit">⚡ <span className="toolbar-label">Log</span></button>
-              <button onClick={() => setShowBookingModal(true)} className="toolbar-btn toolbar-btn-blue" title="Book appointment">📅 <span className="toolbar-label">Book</span></button>
+<button onClick={() => setShowBookingModal(true)} className="toolbar-btn toolbar-btn-blue" title="Book appointment">📅 <span className="toolbar-label">Book</span></button>
               <button onClick={() => setShowChargeModal(true)} className="toolbar-btn toolbar-btn-green" title="Charge patient">💳 <span className="toolbar-label">Charge</span></button>
               <button onClick={() => setShowAddCreditModal(true)} className="toolbar-btn toolbar-btn-credit" title="Add account credit">🎁 <span className="toolbar-label">Credit</span></button>
               <button
@@ -7254,108 +7250,6 @@ export default function PatientProfile() {
           </div>
         )}
 
-        {/* Quick Log Modal */}
-        {showQuickLogModal && (
-          <div className="modal-overlay" onClick={() => setShowQuickLogModal(false)}>
-            <div className="modal" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
-              <div className="modal-header">
-                <h3>Quick Log — {patient?.name}</h3>
-                <button onClick={() => setShowQuickLogModal(false)} className="close-btn">×</button>
-              </div>
-              <div className="modal-body" style={{ padding: '16px 24px' }}>
-                {quickLogResult ? (
-                  <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                    <div style={{ fontSize: 40, marginBottom: 12 }}>{quickLogResult.success ? '✓' : '⚠'}</div>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: quickLogResult.success ? '#16a34a' : '#dc2626', marginBottom: 8 }}>
-                      {quickLogResult.success ? 'Visit Logged' : 'Error'}
-                    </div>
-                    <div style={{ fontSize: 13, color: '#666', marginBottom: 16 }}>{quickLogResult.message}</div>
-                    <button onClick={() => setShowQuickLogModal(false)} className="btn-primary">Done</button>
-                  </div>
-                ) : activeProtocols.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '20px 0', color: '#666' }}>
-                    <div style={{ fontSize: 32, marginBottom: 8 }}>📋</div>
-                    <div>No active protocols to log against.</div>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div style={{ fontSize: 13, color: '#666', marginBottom: 4 }}>Tap a protocol to log today's visit:</div>
-                    {activeProtocols.filter(p => p.program_type !== 'labs').map(protocol => {
-                      const typeMap = { hrt: 'testosterone', hrt_male: 'testosterone', hrt_female: 'testosterone', weight_loss: 'weight_loss', peptide: 'peptide', iv_therapy: 'iv_therapy', iv: 'iv_therapy', hbot: 'hbot', rlt: 'red_light', red_light: 'red_light', injection: 'vitamin' };
-                      const category = typeMap[protocol.program_type] || protocol.program_type;
-                      const entryTypeMap = { testosterone: 'pickup', weight_loss: 'pickup', peptide: 'pickup', iv_therapy: 'session', hbot: 'session', red_light: 'session', vitamin: 'injection' };
-                      const entryType = protocol.delivery_method === 'in_clinic' ? (category === 'testosterone' || category === 'weight_loss' || category === 'peptide' ? 'injection' : 'session') : (entryTypeMap[category] || 'session');
-                      const sessionsInfo = protocol.total_sessions ? `${protocol.sessions_used || 0}/${protocol.total_sessions}` : null;
-                      const isSubmitting = quickLogSubmitting === protocol.id;
-
-                      return (
-                        <button
-                          key={protocol.id}
-                          disabled={quickLogSubmitting}
-                          onClick={async () => {
-                            setQuickLogSubmitting(protocol.id);
-                            try {
-                              const today = new Date();
-                              const pacificDate = today.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
-                              const res = await fetch('/api/service-log', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                  patient_id: patient.id,
-                                  protocol_id: protocol.id,
-                                  category,
-                                  entry_type: entryType,
-                                  entry_date: pacificDate,
-                                  medication: protocol.medication || null,
-                                  dosage: protocol.selected_dose || protocol.dosage || null,
-                                  force: false,
-                                }),
-                              });
-                              const data = await res.json();
-                              if (data.duplicate) {
-                                setQuickLogResult({ success: false, message: `Already logged today for ${protocol.medication || protocol.program_name}. Go to Service Log to force-submit.` });
-                              } else if (data.success) {
-                                setQuickLogResult({ success: true, message: `${entryType.charAt(0).toUpperCase() + entryType.slice(1)} logged for ${protocol.medication || protocol.program_name}` });
-                              } else {
-                                setQuickLogResult({ success: false, message: data.error || 'Failed to log visit' });
-                              }
-                            } catch (err) {
-                              setQuickLogResult({ success: false, message: err.message });
-                            } finally {
-                              setQuickLogSubmitting(false);
-                            }
-                          }}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
-                            background: isSubmitting ? '#f3f4f6' : '#fff', border: '1px solid #e5e7eb', borderRadius: 10,
-                            cursor: quickLogSubmitting ? 'not-allowed' : 'pointer', textAlign: 'left', width: '100%',
-                            transition: 'all 0.15s', fontFamily: 'inherit',
-                          }}
-                          onMouseEnter={e => { if (!quickLogSubmitting) e.currentTarget.style.background = '#f9fafb'; }}
-                          onMouseLeave={e => { if (!quickLogSubmitting) e.currentTarget.style.background = '#fff'; }}
-                        >
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: 600, fontSize: 14, color: '#111' }}>
-                              {protocol.medication || protocol.program_name}
-                            </div>
-                            <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>
-                              {entryType === 'pickup' ? 'Pickup/Refill' : entryType === 'injection' ? 'Injection' : 'Session'}
-                              {protocol.selected_dose && ` · ${protocol.selected_dose}`}
-                              {sessionsInfo && ` · ${sessionsInfo} used`}
-                            </div>
-                          </div>
-                          <div style={{ fontSize: 12, color: '#2563eb', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                            {isSubmitting ? 'Logging...' : 'Log →'}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* POS Charge Modal */}
         <POSChargeModal

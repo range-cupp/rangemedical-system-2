@@ -43,10 +43,6 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const [selectedForms, setSelectedForms] = useState([]);
   const [sendingForms, setSendingForms] = useState(false);
   const [formsResult, setFormsResult] = useState(null);
-  const [showLogVisit, setShowLogVisit] = useState(false);
-  const [protocols, setProtocols] = useState([]);
-  const [loadingProtocols, setLoadingProtocols] = useState(false);
-  const [logResult, setLogResult] = useState(null);
   const [editingName, setEditingName] = useState(false);
   const [editName, setEditName] = useState('');
   const [savingName, setSavingName] = useState(false);
@@ -336,54 +332,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   };
 
   // ---- Log Visit ----
-  const openLogVisit = async () => {
-    setShowLogVisit(true);
-    setLogResult(null);
-    if (!patientId) return;
-    setLoadingProtocols(true);
-    try {
-      const res = await fetch(`/api/service-log/patient-protocols?patient_id=${patientId}`);
-      const data = await res.json();
-      setProtocols((data.protocols || []).filter(p => p.program_type !== 'labs'));
-    } catch (err) {
-      console.error('Error fetching protocols:', err);
-    } finally {
-      setLoadingProtocols(false);
-    }
-  };
 
-  const handleQuickLog = async (protocol) => {
-    setLogResult(null);
-    const typeMap = { hrt: 'testosterone', hrt_male: 'testosterone', weight_loss: 'weight_loss', peptide: 'peptide', iv: 'iv_therapy', iv_therapy: 'iv_therapy', specialty_iv: 'iv_therapy', hbot: 'hbot', rlt: 'rlt', red_light: 'rlt', injection: 'injection' };
-    const entryTypeMap = { testosterone: 'pickup', weight_loss: 'pickup', peptide: 'pickup' };
-    const category = typeMap[protocol.program_type] || protocol.program_type;
-    const entryType = protocol.delivery_method === 'in_clinic'
-      ? (['testosterone', 'peptide', 'injection'].includes(category) ? 'injection' : 'session')
-      : (entryTypeMap[category] || 'session');
-    try {
-      const res = await fetch('/api/service-log', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          patient_id: linkedPatientId || patientId,
-          patient_name: displayName || patientName,
-          category,
-          entry_type: entryType,
-          medication: protocol.medication || null,
-          protocol_id: protocol.id,
-        }),
-      });
-      if (res.status === 409) {
-        setLogResult({ success: false, message: 'Already logged today' });
-        return;
-      }
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to log');
-      setLogResult({ success: true, message: `${entryType === 'pickup' ? 'Pickup' : entryType === 'injection' ? 'Injection' : 'Session'} logged` });
-    } catch (err) {
-      setLogResult({ success: false, message: err.message });
-    }
-  };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -625,13 +574,6 @@ export default function ConversationView({ patientId, patientName, patientPhone,
             📋 Forms
           </button>
           <button
-            onClick={openLogVisit}
-            style={{ ...styles.actionBtn, background: '#fff7ed', color: '#c2410c', borderColor: '#fed7aa' }}
-            title="Log a visit for this patient"
-          >
-            ⚡ Log
-          </button>
-          <button
             onClick={() => setShowBooking(true)}
             style={styles.bookBtn}
             title="Book appointment for this patient"
@@ -726,61 +668,6 @@ export default function ConversationView({ patientId, patientName, patientPhone,
         </div>
       )}
 
-      {/* Log Visit Modal */}
-      {showLogVisit && (
-        <div style={styles.bookingOverlay} onClick={() => setShowLogVisit(false)}>
-          <div style={{ ...styles.bookingModal, maxWidth: '400px' }} onClick={e => e.stopPropagation()}>
-            <div style={styles.bookingHeader}>
-              <h3 style={{ margin: 0, fontSize: '16px' }}>Log Visit — {(displayName || patientName || '').split(' ')[0]}</h3>
-              <button onClick={() => setShowLogVisit(false)} style={styles.bookingClose}>×</button>
-            </div>
-            <div style={{ padding: '16px 20px' }}>
-              {loadingProtocols ? (
-                <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>Loading protocols...</div>
-              ) : protocols.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '20px', color: '#999', fontSize: '14px' }}>
-                  No active protocols found
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {protocols.map(p => (
-                    <button
-                      key={p.id}
-                      onClick={() => handleQuickLog(p)}
-                      style={{
-                        padding: '14px 16px', border: '1px solid #e5e7eb', borderRadius: '10px',
-                        background: '#fff', cursor: 'pointer', textAlign: 'left',
-                        fontFamily: 'inherit', transition: 'all 0.15s',
-                      }}
-                      onMouseEnter={e => { e.target.style.borderColor = '#93c5fd'; e.target.style.background = '#f0f9ff'; }}
-                      onMouseLeave={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.background = '#fff'; }}
-                    >
-                      <div style={{ fontWeight: 600, fontSize: '14px', color: '#111' }}>
-                        {p.program_name || p.medication || p.program_type}
-                      </div>
-                      <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
-                        {p.medication && p.medication !== p.program_name ? p.medication : ''}
-                        {p.delivery_method === 'in_clinic' ? 'In-clinic' : 'Take-home'}
-                        {p.dosage ? ` · ${p.dosage}` : ''}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-              {logResult && (
-                <div style={{
-                  padding: '10px 14px', borderRadius: '8px', marginTop: '10px', fontSize: '13px',
-                  background: logResult.success ? '#f0fdf4' : '#fef2f2',
-                  color: logResult.success ? '#16a34a' : '#dc2626',
-                  border: logResult.success ? '1px solid #bbf7d0' : '1px solid #fecaca',
-                }}>
-                  {logResult.message}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Messages */}
       <div style={styles.messagesContainer} ref={messagesContainerRef}>

@@ -6,6 +6,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { ENCOUNTER_FORMS, getFlatPeptideList, generateNoteMarkdown } from '../lib/encounter-form-config';
 import { WEIGHT_LOSS_DOSAGES, TESTOSTERONE_DOSES } from '../lib/protocol-config';
+import BodyAvatar from './BodyAvatar';
 
 // Parse dose string like "250mcg" or "1.5mg" into { num, unit }
 function parseDose(doseStr) {
@@ -531,6 +532,41 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
         );
       }
 
+      case 'body_avatar':
+        return (
+          <BodyAvatar
+            selectedZone={value || null}
+            onSelectZone={(zoneInfo) => {
+              updateField(sectionKey, field.key, zoneInfo.zoneId);
+              // Auto-fill location and orientation from avatar click
+              if (zoneInfo.location) {
+                updateField('iv_access', 'location', zoneInfo.location);
+              }
+              if (zoneInfo.side || zoneInfo.orientation) {
+                const currentOrientation = formData.iv_access?.orientation || [];
+                const newOrientation = [...currentOrientation];
+                if (zoneInfo.side && !newOrientation.includes(zoneInfo.side)) {
+                  // Remove existing Left/Right before adding new one
+                  const filtered = newOrientation.filter(o => o !== 'Left' && o !== 'Right');
+                  filtered.push(zoneInfo.side);
+                  if (zoneInfo.orientation && !filtered.includes(zoneInfo.orientation)) {
+                    // Remove existing Anterior/Posterior
+                    const filtered2 = filtered.filter(o => o !== 'Anterior' && o !== 'Posterior');
+                    filtered2.push(zoneInfo.orientation);
+                    updateField('iv_access', 'orientation', filtered2);
+                  } else {
+                    updateField('iv_access', 'orientation', filtered);
+                  }
+                } else if (zoneInfo.orientation && !newOrientation.includes(zoneInfo.orientation)) {
+                  const filtered = newOrientation.filter(o => o !== 'Anterior' && o !== 'Posterior');
+                  filtered.push(zoneInfo.orientation);
+                  updateField('iv_access', 'orientation', filtered);
+                }
+              }
+            }}
+          />
+        );
+
       case 'text':
         return (
           <input
@@ -693,7 +729,7 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
             <div style={styles.fieldGrid}>
               {section.fields.map((field) => (
                 <div key={field.key} style={{
-                  ...(field.type === 'button_group' || field.type === 'textarea' || field.type === 'multi_check' || field.type === 'peptide_search' || field.type === 'dose_select' || field.type === 'wl_dose_select' || field.type === 'trt_dose_select'
+                  ...(field.type === 'button_group' || field.type === 'textarea' || field.type === 'multi_check' || field.type === 'peptide_search' || field.type === 'dose_select' || field.type === 'wl_dose_select' || field.type === 'trt_dose_select' || field.type === 'body_avatar'
                     ? styles.fieldFull : styles.fieldHalf),
                 }}>
                   <label style={styles.fieldLabel}>

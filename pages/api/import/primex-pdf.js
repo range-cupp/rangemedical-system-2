@@ -164,15 +164,21 @@ function findPatient(patients, lastName, firstName, dob) {
   const firstNorm = normalize(firstName).slice(0, 4); // match first 4 chars of first name
   const dobStr = dob || '';
 
-  // Helper: extract last/first from a full "name" field (e.g. "Brian Steiner" → last=steiner, first=bria)
-  const nameMatch = (p) => {
-    if (!p.name) return false;
-    const parts = p.name.trim().split(/\s+/);
-    if (parts.length < 2) return false;
-    const pLast = normalize(parts[parts.length - 1]);
-    const pFirst = normalize(parts[0]).slice(0, 4);
-    return pLast === lastNorm && pFirst === firstNorm;
-  };
+  // Helper: extract {last, first} from a full "name" field.
+  // Handles both "First Last" and "Last, First" (comma-separated) formats.
+  function parseName(p) {
+    if (!p.name) return null;
+    const raw = p.name.trim();
+    if (raw.includes(',')) {
+      // "Last, First" format
+      const [rawLast, ...rest] = raw.split(',');
+      return { last: normalize(rawLast), first: normalize(rest.join(' ')).slice(0, 4) };
+    }
+    // "First Last" format
+    const parts = raw.split(/\s+/);
+    if (parts.length < 2) return null;
+    return { last: normalize(parts[parts.length - 1]), first: normalize(parts[0]).slice(0, 4) };
+  }
 
   // 1. Try last + first + DOB (using first_name/last_name columns)
   if (dobStr) {
@@ -191,10 +197,27 @@ function findPatient(patients, lastName, firstName, dob) {
   );
   if (byName) return byName;
 
-  // 3. Try matching against the full "name" column (e.g. "Brian Steiner")
-  //    Some patients are stored with only a name field, not split first/last
-  const byFullName = patients.find(p => nameMatch(p));
+  // 2b. Last name match only (when first_name column is null/empty) + DOB
+  if (dobStr) {
+    const byLastDob = patients.find(p =>
+      normalize(p.last_name) === lastNorm && p.date_of_birth === dobStr
+    );
+    if (byLastDob) return byLastDob;
+  }
+
+  // 3. Try matching against the full "name" column — handles both "First Last" and "Last, First"
+  const byFullName = patients.find(p => {
+    const n = parseName(p);
+    return n && n.last === lastNorm && n.first === firstNorm;
+  });
   if (byFullName) return byFullName;
+
+  // 3b. Full name column — last name only match (first_name may differ / be abbreviated)
+  const byFullNameLast = patients.find(p => {
+    const n = parseName(p);
+    return n && n.last === lastNorm;
+  });
+  if (byFullNameLast) return byFullNameLast;
 
   // 4. Fuzzy last (first 5 chars) + first via first_name/last_name
   const lastShort = lastNorm.slice(0, 5);
@@ -204,14 +227,10 @@ function findPatient(patients, lastName, firstName, dob) {
   );
   if (byFuzzy) return byFuzzy;
 
-  // 5. Fuzzy match against full "name" column (first 5 of last)
+  // 5. Fuzzy match against full "name" column (both formats)
   const byFuzzyFull = patients.find(p => {
-    if (!p.name) return false;
-    const parts = p.name.trim().split(/\s+/);
-    if (parts.length < 2) return false;
-    const pLast = normalize(parts[parts.length - 1]);
-    const pFirst = normalize(parts[0]).slice(0, 4);
-    return pLast.startsWith(lastShort) && pFirst === firstNorm;
+    const n = parseName(p);
+    return n && n.last.startsWith(lastShort) && n.first === firstNorm;
   });
   if (byFuzzyFull) return byFuzzyFull;
 
@@ -224,8 +243,22 @@ function getSuggestions(patients, lastName) {
   const prefix = normalize(lastName).slice(0, 3);
   return patients
     .filter(p => {
-      const ln = normalize(p.last_name || (p.name || '').trim().split(/\s+/).pop());
-      return ln.startsWith(prefix);
+      // Check last_name column first
+      if (p.last_name && normalize(p.last_name).startsWith(prefix)) return true;
+      // Fall back to name column — handle both "First Last" and "Last, First"
+      if (p.name) {
+        const raw = p.name.trim();
+        if (raw.includes(',')) {
+          // "Last, First" — last name is before the comma
+          const ln = normalize(raw.split(',')[0]);
+          return ln.startsWith(prefix);
+        }
+        // "First Last" — last name is last word
+        const parts = raw.split(/\s+/);
+        const ln = normalize(parts[parts.length - 1]);
+        return ln.startsWith(prefix);
+      }
+      return false;
     })
     .slice(0, 3)
     .map(p => {

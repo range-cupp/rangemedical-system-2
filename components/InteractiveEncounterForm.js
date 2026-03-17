@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { ENCOUNTER_FORMS, getFlatPeptideList, generateNoteMarkdown } from '../lib/encounter-form-config';
-import { WEIGHT_LOSS_DOSAGES } from '../lib/protocol-config';
+import { WEIGHT_LOSS_DOSAGES, TESTOSTERONE_DOSES } from '../lib/protocol-config';
 
 // Parse dose string like "250mcg" or "1.5mg" into { num, unit }
 function parseDose(doseStr) {
@@ -454,6 +454,83 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
         );
       }
 
+      case 'trt_dose_select': {
+        const patientSex = formData.medication?.patient_sex || '';
+        const sexKey = patientSex === 'Male' ? 'male' : patientSex === 'Female' ? 'female' : '';
+        const trtDoses = sexKey ? (TESTOSTERONE_DOSES[sexKey] || []) : [];
+
+        if (!patientSex) {
+          return (
+            <input
+              type="text"
+              value={value}
+              onChange={(e) => updateField(sectionKey, field.key, e.target.value)}
+              placeholder="Select patient sex first"
+              style={{ ...styles.input, background: '#f9fafb', color: '#9ca3af' }}
+              disabled
+            />
+          );
+        }
+
+        if (customDose) {
+          return (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input
+                type="text"
+                value={value}
+                onChange={(e) => updateField(sectionKey, field.key, e.target.value)}
+                placeholder="e.g. 0.5ml/100mg"
+                style={{ ...styles.input, flex: 1 }}
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => setCustomDose(false)}
+                style={{ padding: '8px 12px', fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 8, background: '#fff', color: '#6b7280', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >
+                ← Presets
+              </button>
+            </div>
+          );
+        }
+
+        return (
+          <div>
+            <div style={styles.doseGrid}>
+              {trtDoses.map((dose) => (
+                <button
+                  key={dose.value}
+                  type="button"
+                  onClick={() => updateField(sectionKey, field.key, dose.label)}
+                  style={{
+                    ...styles.doseBtn,
+                    ...(value === dose.label ? styles.doseBtnActive : {}),
+                  }}
+                >
+                  {value === dose.label && <span style={{ marginRight: 4 }}>✓</span>}
+                  {dose.label}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setCustomDose(true)}
+                style={{
+                  ...styles.doseBtn,
+                  ...styles.doseBtnCustom,
+                  ...(value && !trtDoses.find(d => d.label === value) ? styles.doseBtnActive : {}),
+                }}
+              >
+                Custom
+              </button>
+            </div>
+            <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ background: '#eff6ff', color: '#2563eb', padding: '2px 8px', borderRadius: 10, fontWeight: 600, fontSize: 10 }}>{patientSex.toUpperCase()}</span>
+              {trtDoses.length > 0 && `${trtDoses[0].label} → ${trtDoses[trtDoses.length - 1].label}`}
+            </div>
+          </div>
+        );
+      }
+
       case 'text':
         return (
           <input
@@ -505,7 +582,14 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
               <button
                 key={opt}
                 type="button"
-                onClick={() => updateField(sectionKey, field.key, opt)}
+                onClick={() => {
+                  updateField(sectionKey, field.key, opt);
+                  // Reset dose when patient sex changes (TRT forms)
+                  if (field.key === 'patient_sex') {
+                    updateField(sectionKey, 'dose', '');
+                    setCustomDose(false);
+                  }
+                }}
                 style={{
                   ...styles.groupBtn,
                   ...(value === opt ? styles.groupBtnActive : {}),
@@ -609,7 +693,7 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
             <div style={styles.fieldGrid}>
               {section.fields.map((field) => (
                 <div key={field.key} style={{
-                  ...(field.type === 'button_group' || field.type === 'textarea' || field.type === 'multi_check' || field.type === 'peptide_search' || field.type === 'dose_select' || field.type === 'wl_dose_select'
+                  ...(field.type === 'button_group' || field.type === 'textarea' || field.type === 'multi_check' || field.type === 'peptide_search' || field.type === 'dose_select' || field.type === 'wl_dose_select' || field.type === 'trt_dose_select'
                     ? styles.fieldFull : styles.fieldHalf),
                 }}>
                   <label style={styles.fieldLabel}>

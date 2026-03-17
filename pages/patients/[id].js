@@ -411,6 +411,12 @@ export default function PatientProfile() {
 
   // Log Entry modal state
   const [showServiceLog, setShowServiceLog] = useState(false);
+  const [serviceLogKey, setServiceLogKey] = useState(0);
+
+  // Quick weight log modal state (for missed WL sessions)
+  const [quickWeightModal, setQuickWeightModal] = useState(null); // { protocol, slotDate }
+  const [quickWeightForm, setQuickWeightForm] = useState({ weight: '', notes: '' });
+  const [quickWeightSaving, setQuickWeightSaving] = useState(false);
 
   // WL drip email + check-in state
   const [dripLogs, setDripLogs] = useState({});
@@ -1540,7 +1546,71 @@ export default function PatientProfile() {
   // Open Log Entry modal for a protocol (uses shared ServiceLogContent)
   const openLogEntryModal = (protocol, e) => {
     if (e) e.stopPropagation();
+    setServiceLogKey(prev => prev + 1);
     setShowServiceLog(true);
+  };
+
+  // Quick weight log for missed WL sessions (patient called/texted weight)
+  const openQuickWeightModal = (protocol, slotDate) => {
+    setQuickWeightModal({ protocol, slotDate });
+    setQuickWeightForm({ weight: '', notes: '' });
+    setQuickWeightSaving(false);
+  };
+
+  const handleQuickWeightSave = async () => {
+    if (!quickWeightModal || !quickWeightForm.weight) return;
+    setQuickWeightSaving(true);
+    try {
+      const { protocol, slotDate } = quickWeightModal;
+      const res = await fetch('/api/service-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: patient.id,
+          category: 'weight_loss',
+          entry_type: 'injection',
+          entry_date: slotDate,
+          medication: protocol.medication || protocol.selected_medication || null,
+          dosage: protocol.selected_dose || null,
+          weight: quickWeightForm.weight,
+          notes: quickWeightForm.notes || null,
+          protocol_id: protocol.id,
+        }),
+      });
+      if (res.ok) {
+        setQuickWeightModal(null);
+        fetchPatient();
+      } else {
+        const data = await res.json();
+        if (data.duplicate) {
+          // Force save if duplicate
+          const res2 = await fetch('/api/service-log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              patient_id: patient.id,
+              category: 'weight_loss',
+              entry_type: 'injection',
+              entry_date: slotDate,
+              medication: protocol.medication || protocol.selected_medication || null,
+              dosage: protocol.selected_dose || null,
+              weight: quickWeightForm.weight,
+              notes: quickWeightForm.notes || null,
+              protocol_id: protocol.id,
+              force: true,
+            }),
+          });
+          if (res2.ok) {
+            setQuickWeightModal(null);
+            fetchPatient();
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error saving quick weight:', err);
+    } finally {
+      setQuickWeightSaving(false);
+    }
   };
 
 
@@ -4299,8 +4369,8 @@ export default function PatientProfile() {
                                         } else if (!slot.isFuture) {
                                           return (
                                             <tr key={'missed-' + slot.num} style={{ background: '#fef2f2', cursor: 'pointer' }}
-                                              onClick={() => { openLogEntryModal(protocol, null); setLogEntryDate(slot.expStr); }}
-                                              title="Click to log this injection">
+                                              onClick={() => openQuickWeightModal(protocol, slot.expStr)}
+                                              title="Click to log weight for this session">
                                               <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
                                               <td style={{ color: '#dc2626' }}>{formatShortDate(slot.expStr)}</td>
                                               <td colSpan={3} style={{ color: '#dc2626', fontStyle: 'italic' }}>Missed — click to add</td>
@@ -7740,6 +7810,7 @@ export default function PatientProfile() {
         {/* ==================== LOG ENTRY MODAL (shared ServiceLogContent) ==================== */}
         {showServiceLog && patient && (
           <ServiceLogContent
+            key={serviceLogKey}
             autoOpen
             onClose={() => { setShowServiceLog(false); fetchPatient(); }}
             preselectedPatient={{
@@ -7748,6 +7819,65 @@ export default function PatientProfile() {
               phone: patient.phone,
             }}
           />
+        )}
+
+        {/* ==================== QUICK WEIGHT LOG MODAL ==================== */}
+        {quickWeightModal && (
+          <div className="modal-overlay" onClick={() => setQuickWeightModal(null)}>
+            <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
+              <div className="modal-header">
+                <h3>Log Weight — {formatShortDate(quickWeightModal.slotDate)}</h3>
+                <button onClick={() => setQuickWeightModal(null)} className="close-btn">&times;</button>
+              </div>
+              <div className="modal-body">
+                <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 16px' }}>
+                  Quick log for {patient?.first_name || patient?.name} — dose auto-fills from protocol ({quickWeightModal.protocol.selected_dose || 'current dose'}).
+                </p>
+                <div className="form-group">
+                  <label>Weight (lbs) *</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={quickWeightForm.weight}
+                    onChange={e => setQuickWeightForm({ ...quickWeightForm, weight: e.target.value })}
+                    placeholder="e.g. 148.5"
+                    autoFocus
+                    style={{ fontSize: 16 }}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Notes</label>
+                  <textarea
+                    value={quickWeightForm.notes}
+                    onChange={e => setQuickWeightForm({ ...quickWeightForm, notes: e.target.value })}
+                    rows={2}
+                    placeholder="e.g. Called in weight, no injection this week"
+                  />
+                </div>
+              </div>
+              <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
+                <button
+                  onClick={() => {
+                    setQuickWeightModal(null);
+                    openLogEntryModal(quickWeightModal.protocol, null);
+                  }}
+                  style={{ padding: '8px 14px', fontSize: '13px', fontWeight: 500, border: '1px solid #d1d5db', borderRadius: '6px', background: '#fff', color: '#374151', cursor: 'pointer' }}
+                >
+                  Full Service Log
+                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => setQuickWeightModal(null)} className="btn-secondary">Cancel</button>
+                  <button
+                    onClick={handleQuickWeightSave}
+                    disabled={quickWeightSaving || !quickWeightForm.weight}
+                    className="btn-primary"
+                  >
+                    {quickWeightSaving ? 'Saving...' : 'Save Weight'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Delete Patient Confirmation Modal */}

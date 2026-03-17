@@ -58,6 +58,10 @@ export default function TasksPage() {
   const [labReviewForms, setLabReviewForms] = useState({}); // { [taskId]: { types, instructions, submitting, done, error } }
   const [labInfoCache, setLabInfoCache] = useState({}); // { [patientId]: { labId, pdfUrl } }
 
+  // Bulk selection state
+  const [selectedTasks, setSelectedTasks] = useState(new Set());
+  const [bulkCompleting, setBulkCompleting] = useState(false);
+
   const openSmsComposer = (task) => {
     setSmsState(prev => ({ ...prev, [task.id]: { ...prev[task.id], open: true, sent: false, error: null } }));
   };
@@ -329,6 +333,42 @@ export default function TasksPage() {
     }
   };
 
+  const toggleSelect = (taskId, e) => {
+    e.stopPropagation();
+    setSelectedTasks(prev => {
+      const next = new Set(prev);
+      next.has(taskId) ? next.delete(taskId) : next.add(taskId);
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    if (selectedTasks.size === tasks.length) {
+      setSelectedTasks(new Set());
+    } else {
+      setSelectedTasks(new Set(tasks.map(t => t.id)));
+    }
+  };
+
+  const bulkComplete = async () => {
+    if (selectedTasks.size === 0) return;
+    setBulkCompleting(true);
+    try {
+      await Promise.all([...selectedTasks].map(id =>
+        fetch('/api/admin/tasks', {
+          method: 'PATCH',
+          headers: authHeaders(),
+          body: JSON.stringify({ id, status: 'completed' }),
+        })
+      ));
+      setSelectedTasks(new Set());
+      fetchTasks();
+    } catch (err) {
+      console.error('Bulk complete error:', err);
+    }
+    setBulkCompleting(false);
+  };
+
   const deleteTask = async (taskId) => {
     if (!confirm('Delete this task?')) return;
     try {
@@ -499,6 +539,50 @@ export default function TasksPage() {
           </div>
         )}
 
+        {/* Bulk action bar — appears when tasks are selected */}
+        {selectedTasks.size > 0 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '10px',
+            background: '#1a1a1a', color: '#fff',
+            padding: '10px 16px', borderRadius: '10px',
+            marginBottom: '10px', flexWrap: 'wrap',
+          }}>
+            <span style={{ fontSize: '13px', fontWeight: 600 }}>
+              {selectedTasks.size} task{selectedTasks.size !== 1 ? 's' : ''} selected
+            </span>
+            <button
+              onClick={bulkComplete}
+              disabled={bulkCompleting}
+              style={{
+                background: '#16a34a', color: '#fff', border: 'none',
+                padding: '6px 16px', borderRadius: '6px', fontSize: '13px',
+                fontWeight: 600, cursor: 'pointer', opacity: bulkCompleting ? 0.6 : 1,
+              }}
+            >
+              {bulkCompleting ? 'Completing…' : `✓ Complete ${selectedTasks.size} task${selectedTasks.size !== 1 ? 's' : ''}`}
+            </button>
+            <button
+              onClick={() => setSelectedTasks(new Set())}
+              style={{
+                background: 'transparent', color: '#9ca3af', border: '1px solid #374151',
+                padding: '6px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+            <div style={{ flex: 1 }} />
+            <button
+              onClick={selectAll}
+              style={{
+                background: 'transparent', color: '#9ca3af', border: 'none',
+                fontSize: '12px', cursor: 'pointer', textDecoration: 'underline',
+              }}
+            >
+              {selectedTasks.size === tasks.length ? 'Deselect all' : 'Select all'}
+            </button>
+          </div>
+        )}
+
         {/* Task list */}
         {loading ? (
           <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>Loading tasks...</div>
@@ -538,7 +622,19 @@ export default function TasksPage() {
                     }}
                     onClick={() => setExpandedTask(isExpanded ? null : task.id)}
                   >
-                    {/* Checkbox */}
+                    {/* Select checkbox */}
+                    <input
+                      type="checkbox"
+                      checked={selectedTasks.has(task.id)}
+                      onChange={(e) => toggleSelect(task.id, e)}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        width: '16px', height: '16px', flexShrink: 0,
+                        marginTop: '4px', cursor: 'pointer', accentColor: '#3b82f6',
+                      }}
+                    />
+
+                    {/* Complete toggle */}
                     <button
                       onClick={(e) => { e.stopPropagation(); toggleComplete(task); }}
                       style={{

@@ -217,7 +217,6 @@ export default async function handler(req, res) {
           priority:     'high',
           due_date:     c.due_date || defaultDueStr,
           status:       'pending',
-          category:     'labs',
         }));
 
       const { data: inserted, error: insertErr } = await supabase.from('tasks').insert(newTasks).select('id, title, assigned_to');
@@ -308,7 +307,6 @@ export default async function handler(req, res) {
         priority:     'high',
         due_date:     due,
         status:       'pending',
-        category:     'labs',
       };
 
       if (evanId)    tasks.push({ ...base, assigned_to: evanId,    assigned_by: evanId });

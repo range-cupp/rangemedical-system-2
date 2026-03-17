@@ -26,15 +26,24 @@ const supabase = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE
 async function main() {
   console.log(`\n=== Stripe Customer Sync ${DRY_RUN ? '(DRY RUN)' : ''} ===\n`);
 
-  // Step 1: Fetch all patients
+  // Step 1: Fetch ALL patients (paginate past 1000 row default)
   console.log('Step 1: Fetching patients from Supabase...');
-  const { data: patients, error: pErr } = await supabase
-    .from('patients')
-    .select('id, first_name, last_name, email, stripe_customer_id');
+  let patients = [];
+  let page = 0;
+  const PAGE_SIZE = 1000;
+  while (true) {
+    const { data: batch, error: pErr } = await supabase
+      .from('patients')
+      .select('id, name, first_name, last_name, email, stripe_customer_id')
+      .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
-  if (pErr) {
-    console.error('Failed to fetch patients:', pErr);
-    process.exit(1);
+    if (pErr) {
+      console.error('Failed to fetch patients:', pErr);
+      process.exit(1);
+    }
+    patients = patients.concat(batch);
+    if (batch.length < PAGE_SIZE) break;
+    page++;
   }
   console.log(`  Found ${patients.length} patients`);
 
@@ -50,6 +59,18 @@ async function main() {
       const key = p.email.toLowerCase().trim();
       if (!emailToPatients[key]) emailToPatients[key] = [];
       emailToPatients[key].push(p);
+    }
+  }
+
+  // Build name lookup map for unlinked patients
+  const nameToPatients = {};
+  for (const p of unlinked) {
+    // Use `name` column (primary) or fall back to first_name + last_name
+    const fullName = p.name || `${p.first_name || ''} ${p.last_name || ''}`.trim();
+    if (fullName) {
+      const key = fullName.toLowerCase().trim();
+      if (!nameToPatients[key]) nameToPatients[key] = [];
+      nameToPatients[key].push(p);
     }
   }
 
@@ -117,8 +138,36 @@ async function main() {
         matched.push({ patient, stripeCustomer: sc, matchType: 'email' });
         delete emailToPatients[email];
         delete idToPatient[patient.id];
+        // Remove from name map too
+        const pName = (patient.name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim()).toLowerCase().trim();
+        if (nameToPatients[pName]) {
+          nameToPatients[pName] = nameToPatients[pName].filter(p => p.id !== patient.id);
+          if (nameToPatients[pName].length === 0) delete nameToPatients[pName];
+        }
       } else if (candidates.length > 1) {
         ambiguous.push({ email, stripeId: sc.id, patientCount: candidates.length });
+      }
+      continue;
+    }
+
+    // Try name match (handles cases where Stripe has no email or different email)
+    const stripeName = sc.name?.toLowerCase()?.trim();
+    if (stripeName && nameToPatients[stripeName]) {
+      const candidates = nameToPatients[stripeName];
+      if (candidates.length === 1) {
+        const patient = candidates[0];
+        matched.push({ patient, stripeCustomer: sc, matchType: 'name' });
+        delete nameToPatients[stripeName];
+        delete idToPatient[patient.id];
+        if (patient.email) {
+          const key = patient.email.toLowerCase().trim();
+          if (emailToPatients[key]) {
+            emailToPatients[key] = emailToPatients[key].filter(p => p.id !== patient.id);
+            if (emailToPatients[key].length === 0) delete emailToPatients[key];
+          }
+        }
+      } else if (candidates.length > 1) {
+        ambiguous.push({ name: stripeName, stripeId: sc.id, patientCount: candidates.length });
       }
       continue;
     }
@@ -129,14 +178,14 @@ async function main() {
   // Step 4: Report matches
   console.log(`  Matched: ${matched.length}`);
   console.log(`  No match: ${noMatch.length}`);
-  console.log(`  Ambiguous (multiple patients same email): ${ambiguous.length}\n`);
+  console.log(`  Ambiguous (multiple patients same email/name): ${ambiguous.length}\n`);
 
   if (matched.length > 0) {
     console.log('--- MATCHES ---');
     console.log('Patient                          | Email                          | Stripe ID              | Match Type');
     console.log('-'.repeat(115));
     for (const m of matched) {
-      const name = `${m.patient.first_name || ''} ${m.patient.last_name || ''}`.trim().padEnd(32);
+      const name = (m.patient.name || `${m.patient.first_name || ''} ${m.patient.last_name || ''}`.trim()).padEnd(32);
       const email = (m.patient.email || '').padEnd(30);
       console.log(`${name} | ${email} | ${m.stripeCustomer.id.padEnd(22)} | ${m.matchType}`);
     }
@@ -146,7 +195,8 @@ async function main() {
   if (ambiguous.length > 0) {
     console.log('--- AMBIGUOUS (skipped) ---');
     for (const a of ambiguous) {
-      console.log(`  ${a.email} — ${a.patientCount} patients share this email (Stripe: ${a.stripeId})`);
+      const label = a.email || a.name || 'unknown';
+      console.log(`  ${label} — ${a.patientCount} patients share this ${a.email ? 'email' : 'name'} (Stripe: ${a.stripeId})`);
     }
     console.log('');
   }

@@ -329,6 +329,17 @@ export default function PatientProfile() {
   const [pinnedNoteExpanded, setPinnedNoteExpanded] = useState(false);
   const [pinnedNoteOverflows, setPinnedNoteOverflows] = useState(false);
   const pinnedNoteRef = useRef(null);
+  const pinnedNoteCallbackRef = (node) => {
+    pinnedNoteRef.current = node;
+    if (node && !pinnedNoteExpanded) {
+      // Use requestAnimationFrame to ensure layout is complete before measuring
+      requestAnimationFrame(() => {
+        if (pinnedNoteRef.current) {
+          setPinnedNoteOverflows(pinnedNoteRef.current.scrollHeight > pinnedNoteRef.current.clientHeight);
+        }
+      });
+    }
+  };
 
   // Protocol PDF modal
   const [showProtocolPdfModal, setShowProtocolPdfModal] = useState(false);
@@ -584,13 +595,17 @@ export default function PatientProfile() {
     return () => window.removeEventListener('keydown', handleEscape);
   }, [pdfSlideOut.open]);
 
-  // Check if pinned note content overflows the collapsed height
   const pinnedNote = notes.find(n => n.pinned);
+  // Re-check overflow when pinned note content or expanded state changes
   useEffect(() => {
     if (pinnedNoteRef.current && pinnedNote && !pinnedNoteExpanded) {
-      setPinnedNoteOverflows(pinnedNoteRef.current.scrollHeight > pinnedNoteRef.current.clientHeight);
+      requestAnimationFrame(() => {
+        if (pinnedNoteRef.current) {
+          setPinnedNoteOverflows(pinnedNoteRef.current.scrollHeight > pinnedNoteRef.current.clientHeight);
+        }
+      });
     }
-  }, [pinnedNote, pinnedNoteExpanded]);
+  }, [pinnedNote?.id, pinnedNote?.body, pinnedNoteExpanded]);
 
   const VALID_TRANSITIONS = {
     scheduled: ['confirmed', 'checked_in', 'showed', 'completed', 'cancelled', 'no_show'],
@@ -2841,7 +2856,7 @@ export default function PatientProfile() {
                     {pinnedNote.created_by && ` · ${pinnedNote.created_by}`}
                   </span>
                 </div>
-                <div ref={pinnedNoteRef} style={{
+                <div ref={pinnedNoteCallbackRef} style={{
                   fontSize: 14,
                   color: '#374151',
                   lineHeight: 1.5,

@@ -163,6 +163,8 @@ export default function ProtocolDetail() {
   const [sessionDate, setSessionDate] = useState(new Date().toISOString().split('T')[0]);
   const [sessionSaving, setSessionSaving] = useState(false);
   const [clinicalNotes, setClinicalNotes] = useState([]);
+  const [encounterNotes, setEncounterNotes] = useState([]); // All encounter notes for this patient (for matching to injection dates)
+  const [encounterSlideNote, setEncounterSlideNote] = useState(null); // Note to show in slide-out panel
   const [showAddClinicalNote, setShowAddClinicalNote] = useState(false);
   const [clinicalNoteInput, setClinicalNoteInput] = useState('');
   const [clinicalNoteSaving, setClinicalNoteSaving] = useState(false);
@@ -288,14 +290,23 @@ export default function ProtocolDetail() {
         setDripLogs([]);
       }
 
-      // Fetch clinical notes linked to this protocol
+      // Fetch clinical notes linked to this protocol + all encounter notes for this patient
       try {
-        const notesRes = await fetch(`/api/notes/by-protocol?protocol_id=${id}`);
+        const [notesRes, encRes] = await Promise.all([
+          fetch(`/api/notes/by-protocol?protocol_id=${id}`),
+          enrichedProtocol.patient_id
+            ? fetch(`/api/notes/by-patient?patient_id=${enrichedProtocol.patient_id}&source=encounter`)
+            : Promise.resolve(null),
+        ]);
         if (notesRes.ok) {
           const notesData = await notesRes.json();
           setClinicalNotes(notesData.notes || []);
         }
-      } catch { setClinicalNotes([]); }
+        if (encRes && encRes.ok) {
+          const encData = await encRes.json();
+          setEncounterNotes(encData.notes || []);
+        }
+      } catch { setClinicalNotes([]); setEncounterNotes([]); }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -861,6 +872,19 @@ export default function ProtocolDetail() {
     } finally {
       setSaving(false);
     }
+  };
+
+  // Find encounter note matching an injection log date (within ±1 day)
+  const findEncounterNoteForDate = (logDate) => {
+    if (!logDate || encounterNotes.length === 0) return null;
+    const target = new Date(logDate.length === 10 ? logDate + 'T12:00:00' : logDate);
+    for (const note of encounterNotes) {
+      if (!note.note_date) continue;
+      const noteDate = new Date(note.note_date);
+      const diffDays = Math.abs((target - noteDate) / (1000 * 60 * 60 * 24));
+      if (diffDays <= 1) return note;
+    }
+    return null;
   };
 
   // Clinical notes handlers
@@ -1541,6 +1565,22 @@ export default function ProtocolDetail() {
                                 Take Home
                               </span>
                             )}
+                            {/* View Encounter Note button */}
+                            {(() => {
+                              const matchedNote = findEncounterNoteForDate(log.log_date);
+                              return matchedNote ? (
+                                <span
+                                  onClick={(e) => { e.stopPropagation(); setEncounterSlideNote(matchedNote); }}
+                                  style={{
+                                    fontSize: '10px', fontWeight: '600', padding: '2px 6px',
+                                    borderRadius: '10px', background: '#f0fdf4', color: '#16a34a',
+                                    cursor: 'pointer', marginLeft: 'auto',
+                                  }}
+                                >
+                                  View Note
+                                </span>
+                              ) : null;
+                            })()}
                           </div>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '13px', color: '#6b7280' }}>
                             {dose && <span>💊 {dose}</span>}
@@ -3011,6 +3051,92 @@ export default function ProtocolDetail() {
               }}>{bloodDrawSaving ? 'Saving...' : bloodDrawModal.status === 'completed' ? 'Update Date' : 'Mark Complete'}</button>
             </div>
           </div>
+        </>
+      )}
+      {/* ── Encounter Note Slide-Out Panel ── */}
+      {encounterSlideNote && (
+        <>
+          <div
+            onClick={() => setEncounterSlideNote(null)}
+            style={{
+              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+              background: 'rgba(0,0,0,0.3)', zIndex: 999,
+            }}
+          />
+          <div style={{
+            position: 'fixed', top: 0, right: 0, bottom: 0, width: '520px', maxWidth: '90vw',
+            background: '#fff', zIndex: 1000, boxShadow: '-4px 0 24px rgba(0,0,0,0.12)',
+            display: 'flex', flexDirection: 'column', animation: 'slideInRight 0.2s ease-out',
+          }}>
+            <div style={{
+              padding: '20px 24px', borderBottom: '1px solid #e5e7eb',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#111' }}>Encounter Note</h3>
+                <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '4px' }}>
+                  {encounterSlideNote.note_date
+                    ? new Date(encounterSlideNote.note_date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'America/Los_Angeles' })
+                    : ''}
+                </div>
+              </div>
+              <button
+                onClick={() => setEncounterSlideNote(null)}
+                style={{
+                  background: 'none', border: 'none', fontSize: '24px', color: '#9ca3af',
+                  cursor: 'pointer', padding: '4px 8px', lineHeight: 1,
+                }}
+              >&times;</button>
+            </div>
+            <div style={{
+              padding: '20px 24px', flex: 1, overflowY: 'auto',
+            }}>
+              {/* Meta info */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+                {encounterSlideNote.created_by && (
+                  <span style={{ fontSize: '12px', padding: '3px 8px', borderRadius: '6px', background: '#f3f4f6', color: '#4b5563' }}>
+                    By: {encounterSlideNote.created_by}
+                  </span>
+                )}
+                {encounterSlideNote.encounter_service && (
+                  <span style={{ fontSize: '12px', padding: '3px 8px', borderRadius: '6px', background: '#ecfdf5', color: '#059669' }}>
+                    {encounterSlideNote.encounter_service}
+                  </span>
+                )}
+                {encounterSlideNote.status === 'signed' && (
+                  <span style={{ fontSize: '12px', padding: '3px 8px', borderRadius: '6px', background: '#eff6ff', color: '#2563eb' }}>
+                    Signed{encounterSlideNote.signed_by ? ` by ${encounterSlideNote.signed_by}` : ''}
+                  </span>
+                )}
+              </div>
+              {/* Note body */}
+              <div style={{
+                fontSize: '14px', lineHeight: '1.7', color: '#1f2937',
+                whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+              }}>
+                {encounterSlideNote.body || encounterSlideNote.raw_input || 'No note content.'}
+              </div>
+            </div>
+            {/* Footer with link to patient */}
+            {protocol?.patient_id && (
+              <div style={{
+                padding: '16px 24px', borderTop: '1px solid #e5e7eb',
+                display: 'flex', justifyContent: 'flex-end',
+              }}>
+                <Link href={`/admin/patient/${protocol.patient_id}?tab=notes`} style={{
+                  fontSize: '13px', color: '#2563eb', textDecoration: 'none', fontWeight: '500',
+                }}>
+                  View all notes →
+                </Link>
+              </div>
+            )}
+          </div>
+          <style jsx>{`
+            @keyframes slideInRight {
+              from { transform: translateX(100%); }
+              to { transform: translateX(0); }
+            }
+          `}</style>
         </>
       )}
     </AdminLayout>

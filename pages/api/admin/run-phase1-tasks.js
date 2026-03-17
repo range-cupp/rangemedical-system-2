@@ -241,15 +241,27 @@ export default async function handler(req, res) {
   const targetDate = date || new Date().toISOString().split('T')[0];
 
   try {
-    // 1. Find labs imported on the target date (query labs table directly — avoids protocol status issues)
-    const { data: labRows, error: labErr } = await supabase
+    // 1. Find Primex labs with test_date matching targetDate (or most recent if no date match)
+    //    Does NOT filter by created_at — works regardless of when the import happened.
+    let { data: labRows, error: labErr } = await supabase
       .from('labs')
       .select('id, patient_id, test_date, patients(id, name, first_name, last_name)')
       .eq('lab_provider', 'Primex')
-      .gte('created_at', `${targetDate}T00:00:00.000Z`)
-      .lte('created_at', `${targetDate}T23:59:59.999Z`);
+      .eq('test_date', targetDate);
 
     if (labErr) return res.status(500).json({ error: labErr.message });
+
+    // If no labs on that exact test_date, fall back to the most recent test_date available
+    if (!labRows || labRows.length === 0) {
+      const { data: recent, error: recentErr } = await supabase
+        .from('labs')
+        .select('id, patient_id, test_date, patients(id, name, first_name, last_name)')
+        .eq('lab_provider', 'Primex')
+        .order('test_date', { ascending: false })
+        .limit(50);
+      if (recentErr) return res.status(500).json({ error: recentErr.message });
+      labRows = recent || [];
+    }
 
     // Deduplicate by patient_id (one patient may have multiple lab rows)
     const seenPatients = new Map();
@@ -262,7 +274,7 @@ export default async function handler(req, res) {
     if (seenPatients.size === 0) {
       return res.status(200).json({
         success: true,
-        message: `No Primex labs found imported on ${targetDate}`,
+        message: `No Primex labs found for ${targetDate} (and no recent labs found either)`,
         tasksCreated: 0,
       });
     }

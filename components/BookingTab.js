@@ -35,12 +35,20 @@ const SERVICE_CATEGORIES = {
   ],
   'IV Therapy': [
     'range-iv',
-    'nad-iv-250',
+  ],
+  'Specialty IVs': [
+    'nad-iv-225',
     'nad-iv-500',
     'nad-iv-750',
     'nad-iv-1000',
-    'vitamin-c-iv',
-    'specialty-iv',
+    'vitamin-c-iv-25g',
+    'vitamin-c-iv-50g',
+    'vitamin-c-iv-75g',
+    'methylene-blue-iv',
+    'mb-combo-iv',
+    'glutathione-iv-1g',
+    'glutathione-iv-2g',
+    'glutathione-iv-3g',
   ],
   'Consultations': [
     'initial-consultation',
@@ -54,10 +62,11 @@ const CATEGORY_COLORS = {
   'Injections': { bg: '#fef3c7', text: '#92400e' },
   'Therapies': { bg: '#d1fae5', text: '#065f46' },
   'IV Therapy': { bg: '#ede9fe', text: '#5b21b6' },
+  'Specialty IVs': { bg: '#fdf2f8', text: '#9d174d' },
   'Consultations': { bg: '#fce7f3', text: '#9d174d' },
 };
 
-const CATEGORY_ORDER = ['Lab / Blood Draw', 'Injections', 'Therapies', 'IV Therapy', 'Consultations'];
+const CATEGORY_ORDER = ['Lab / Blood Draw', 'Injections', 'Therapies', 'IV Therapy', 'Specialty IVs', 'Consultations'];
 
 // ============================================
 // CASCADING DROPDOWN CONFIGS
@@ -81,9 +90,11 @@ const NAD_DOSES = [
   '50mg ($25)', '75mg ($37.50)', '100mg ($50)', '125mg ($62.50)', '150mg ($75)',
 ];
 
-const SPECIALTY_IV_TYPES = [
-  'Glutathione', 'MB + Vitamin C + Magnesium Combo',
-  'Exosome', 'BYO',
+const RANGE_IV_FORMULAS = [
+  'Immune Defense',
+  'Energy & Vitality',
+  'Muscle Recovery & Performance',
+  'Detox & Cellular Repair',
 ];
 
 // ============================================
@@ -116,7 +127,7 @@ function groupServicesByCategory(eventTypes) {
 }
 
 function needsCascading(slug) {
-  return slug === 'range-injections' || slug === 'nad-injection' || slug === 'specialty-iv';
+  return slug === 'range-injections' || slug === 'nad-injection' || slug === 'range-iv';
 }
 
 export default function BookingTab({ preselectedPatient = null }) {
@@ -136,7 +147,7 @@ export default function BookingTab({ preselectedPatient = null }) {
   const [injectionTier, setInjectionTier] = useState('');
   const [injectionType, setInjectionType] = useState('');
   const [nadDose, setNadDose] = useState('');
-  const [ivType, setIvType] = useState('');
+  const [rangeIvFormula, setRangeIvFormula] = useState('');
 
   // Data state
   const [patientSearch, setPatientSearch] = useState('');
@@ -279,7 +290,7 @@ export default function BookingTab({ preselectedPatient = null }) {
     setInjectionTier('');
     setInjectionType('');
     setNadDose('');
-    setIvType('');
+    setRangeIvFormula('');
 
     if (needsCascading(service.slug)) {
       // Stay on step 2 — show cascading dropdowns
@@ -318,7 +329,7 @@ export default function BookingTab({ preselectedPatient = null }) {
     const slug = selectedService.slug;
     if (slug === 'range-injections') return injectionTier && injectionType;
     if (slug === 'nad-injection') return !!nadDose;
-    if (slug === 'specialty-iv') return !!ivType;
+    if (slug === 'range-iv') return !!rangeIvFormula;
     return true;
   };
 
@@ -331,8 +342,8 @@ export default function BookingTab({ preselectedPatient = null }) {
     if (slug === 'nad-injection' && nadDose) {
       return { nadDose };
     }
-    if (slug === 'specialty-iv' && ivType) {
-      return { ivType };
+    if (slug === 'range-iv' && rangeIvFormula) {
+      return { rangeIvFormula };
     }
     return null;
   };
@@ -342,7 +353,7 @@ export default function BookingTab({ preselectedPatient = null }) {
     if (!details) return null;
     if (details.injectionTier) return `${details.injectionTier} — ${details.injectionType}`;
     if (details.nadDose) return `NAD+ ${details.nadDose}`;
-    if (details.ivType) return details.ivType;
+    if (details.rangeIvFormula) return `Range IV — ${details.rangeIvFormula}`;
     return null;
   };
 
@@ -445,7 +456,7 @@ export default function BookingTab({ preselectedPatient = null }) {
         setInjectionTier('');
         setInjectionType('');
         setNadDose('');
-        setIvType('');
+        setRangeIvFormula('');
         fetchUpcomingBookings();
         alert('Booking created successfully!');
       } else {
@@ -761,18 +772,18 @@ export default function BookingTab({ preselectedPatient = null }) {
                         </>
                       )}
 
-                      {/* Specialty IV: Type */}
-                      {selectedService.slug === 'specialty-iv' && (
+                      {/* Range IV: Formula */}
+                      {selectedService.slug === 'range-iv' && (
                         <>
-                          <label style={styles.label}>IV Type</label>
+                          <label style={styles.label}>Select Formula</label>
                           <select
-                            value={ivType}
-                            onChange={(e) => setIvType(e.target.value)}
+                            value={rangeIvFormula}
+                            onChange={(e) => setRangeIvFormula(e.target.value)}
                             style={styles.selectInput}
                           >
-                            <option value="">Select IV type...</option>
-                            {SPECIALTY_IV_TYPES.map(t => (
-                              <option key={t} value={t}>{t}</option>
+                            <option value="">Select formula...</option>
+                            {RANGE_IV_FORMULAS.map(f => (
+                              <option key={f} value={f}>{f}</option>
                             ))}
                           </select>
                         </>

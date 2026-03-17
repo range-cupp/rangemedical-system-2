@@ -47,6 +47,7 @@ import EncounterModal from '../../components/EncounterModal';
 import StandaloneEncounterModal from '../../components/StandaloneEncounterModal';
 import EncounterQuickView from '../../components/EncounterQuickView';
 import CycleProgressCard from '../../components/CycleProgressCard';
+import ServiceLogContent from '../../components/ServiceLogContent';
 import { PROTOCOL_TYPES } from '../../lib/protocol-types';
 
 // Parse **bold** markdown into React elements
@@ -60,43 +61,6 @@ function renderFormattedText(text) {
     return part;
   });
 }
-
-// Map protocol.category → service-log category
-const CATEGORY_TO_SVC = {
-  hrt: 'testosterone',
-  weight_loss: 'weight_loss',
-  peptide: 'peptide',
-  iv: 'iv_therapy',
-  hbot: 'hbot',
-  rlt: 'red_light',
-  injection: 'vitamin',
-};
-
-// HRT dosages & delivery from protocol-types
-const HRT_OPTIONS = {
-  male: { dosages: PROTOCOL_TYPES.hrt_male.dosages, deliveryMethods: PROTOCOL_TYPES.hrt_male.deliveryMethods },
-  female: { dosages: PROTOCOL_TYPES.hrt_female.dosages, deliveryMethods: PROTOCOL_TYPES.hrt_female.deliveryMethods },
-  oral: { dosages: [{ value: '30_day_supply', label: '30 Day Supply' }], deliveryMethods: [{ value: 'oral_tablets', label: 'Oral Tablets — 30 Day Supply' }] },
-};
-
-// Weight loss meds with dosages
-const WL_MEDS = WEIGHT_LOSS_MEDICATIONS.map(med => ({
-  value: med, label: med, dosages: WEIGHT_LOSS_DOSAGES[med] || []
-}));
-
-// Vitamin injection options
-const _injMeds = PROTOCOL_TYPES.single_injection?.medications || [];
-const VITAMIN_OPTS = [
-  ..._injMeds.map(m => ({ value: m, label: m })),
-  { value: 'NAD+ 50mg', label: 'NAD+ 50mg' },
-  { value: 'NAD+ 100mg', label: 'NAD+ 100mg' },
-  { value: 'Lipo-C', label: 'Lipo-C' },
-  { value: 'Taurine', label: 'Taurine' },
-  { value: 'Toradol', label: 'Toradol' },
-];
-
-// IV therapy options
-const IV_OPTS = (PROTOCOL_TYPES.iv_therapy?.medications || []).map(m => ({ value: m, label: m }));
 
 // Drip email info
 const WL_DRIP_EMAILS = [
@@ -438,14 +402,7 @@ export default function PatientProfile() {
   const [confirmDeleteInjection, setConfirmDeleteInjection] = useState(false);
 
   // Log Entry modal state
-  const [showLogEntryModal, setShowLogEntryModal] = useState(false);
-  const [logEntryProtocol, setLogEntryProtocol] = useState(null);
-  const [logEntryType, setLogEntryType] = useState('injection');
-  const [logEntryDate, setLogEntryDate] = useState('');
-  const [logForm, setLogForm] = useState({ hrt_type: 'male', medication: '', dosage: '', custom_dosage: '', weight: '', quantity: 1, delivery_method: '', injection_method: '', frequency: '', duration: 60, notes: '' });
-  const [logDispensing, setLogDispensing] = useState({ administered_by: '', lot_number: '', expiration_date: '' });
-  const [logSubmitting, setLogSubmitting] = useState(false);
-  const [logEmployees, setLogEmployees] = useState([]);
+  const [showServiceLog, setShowServiceLog] = useState(false);
 
   // WL drip email + check-in state
   const [dripLogs, setDripLogs] = useState({});
@@ -572,7 +529,6 @@ export default function PatientProfile() {
       fetchPeptides();
       fetchLabDocuments();
       fetchCreditBalance();
-      fetchLogEmployees();
     }
   }, [id]);
 
@@ -635,17 +591,6 @@ export default function PatientProfile() {
       setPinnedNoteOverflows(pinnedNoteRef.current.scrollHeight > pinnedNoteRef.current.clientHeight);
     }
   }, [pinnedNote, pinnedNoteExpanded]);
-
-  const fetchLogEmployees = async () => {
-    try {
-      const res = await fetch('/api/admin/employees?basic=true');
-      if (!res.ok) return;
-      const data = await res.json();
-      if (data.employees) setLogEmployees(data.employees.filter(e => e.is_active));
-    } catch (err) {
-      console.error('Error fetching employees:', err);
-    }
-  };
 
   const VALID_TRANSITIONS = {
     scheduled: ['confirmed', 'checked_in', 'showed', 'completed', 'cancelled', 'no_show'],
@@ -1576,134 +1521,12 @@ export default function PatientProfile() {
     }
   };
 
-  // Open Log Entry modal for a protocol
+  // Open Log Entry modal for a protocol (uses shared ServiceLogContent)
   const openLogEntryModal = (protocol, e) => {
     if (e) e.stopPropagation();
-    const svcCat = CATEGORY_TO_SVC[protocol.category] || protocol.category;
-    let defaultType = 'injection';
-    if (['hbot', 'rlt', 'iv'].includes(protocol.category)) defaultType = 'session';
-    else if (protocol.delivery_method === 'take_home') defaultType = 'pickup';
-    const medLower = (protocol.medication || '').toLowerCase();
-    const hrtType = (medLower.includes('booster') || medLower.includes('oral')) ? 'oral' : ((protocol.program_type || '').includes('female') || medLower.includes('female') ? 'female' : 'male');
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
-    setLogEntryProtocol({ ...protocol, svcCat });
-    setLogEntryType(defaultType);
-    setLogEntryDate(today);
-    setLogForm({ hrt_type: hrtType, medication: protocol.medication || '', dosage: protocol.current_dose || protocol.selected_dose || protocol.starting_dose || '', custom_dosage: '', weight: '', quantity: 1, delivery_method: protocol.supply_type || '', injection_method: protocol.injection_method || '', frequency: protocol.frequency || protocol.injection_frequency || '', duration: protocol.category === 'rlt' ? 20 : 60, notes: '' });
-    setLogDispensing({ administered_by: '', lot_number: '', expiration_date: '' });
-    setLogSignature(null);
-    setShowLogEntryModal(true);
+    setShowServiceLog(true);
   };
 
-  // Submit log entry to service-log API
-  const handleSubmitLogEntry = async () => {
-    if (!logEntryProtocol || !patient) return;
-    setLogSubmitting(true);
-    try {
-      const svcCat = logEntryProtocol.svcCat;
-      const payload = {
-        patient_id: patient.id,
-        category: svcCat,
-        entry_type: logEntryType,
-        entry_date: logEntryDate,
-        notes: logForm.notes || null,
-        protocol_id: logEntryProtocol.id,
-        administered_by: logDispensing.administered_by || null,
-        lot_number: logDispensing.lot_number || null,
-        expiration_date: logDispensing.expiration_date || null,
-        signature_url: null,
-      };
-      if (svcCat === 'testosterone') {
-        payload.medication = logForm.hrt_type === 'oral' ? 'Testosterone Booster (Oral)' : logForm.hrt_type === 'male' ? 'Male HRT' : 'Female HRT';
-        payload.injection_method = logForm.injection_method || null;
-        payload.injection_frequency = logForm.frequency ? parseInt(logForm.frequency) : null;
-        if (logForm.hrt_type === 'oral') {
-          // Oral testosterone — simple pickup
-          payload.entry_type = 'pickup';
-          payload.delivery_method = 'oral_tablets';
-          payload.quantity = 1;
-          payload.supply_type = 'oral_30day';
-          payload.dosage = '30 Day Supply';
-        } else if (logEntryType === 'injection') {
-          payload.dosage = logForm.dosage === 'custom' ? logForm.custom_dosage : logForm.dosage;
-        } else {
-          const dm = logForm.delivery_method || '';
-          const isVial = dm.startsWith('vial');
-          const qty = isVial ? 1 : (dm.startsWith('prefilled_') ? parseInt(dm.replace('prefilled_', '')) : (logForm.quantity || 1));
-          payload.delivery_method = dm;
-          payload.quantity = qty;
-          payload.supply_type = isVial ? dm : qty >= 8 ? 'prefilled_4week' : qty >= 4 ? 'prefilled_2week' : 'prefilled';
-          if (isVial) {
-            const vialMl = dm === 'vial_5ml' ? 5 : 10;
-            payload.dosage = `1 vial (${vialMl}ml) @ ${logForm.dosage}`;
-          } else {
-            payload.dosage = `${qty} prefilled @ ${logForm.dosage}`;
-          }
-        }
-      } else if (svcCat === 'weight_loss') {
-        payload.medication = logForm.medication;
-        if (logEntryType === 'injection') {
-          payload.dosage = logForm.dosage;
-          payload.weight = logForm.weight ? parseFloat(logForm.weight) : null;
-        } else {
-          payload.quantity = logForm.quantity;
-          payload.dosage = logForm.dosage ? `${logForm.quantity} week supply @ ${logForm.dosage}` : `${logForm.quantity} week supply`;
-        }
-      } else if (svcCat === 'vitamin') {
-        payload.medication = logForm.medication;
-        payload.quantity = logForm.quantity || 1;
-        payload.dosage = logForm.quantity > 1 ? `${logForm.quantity} injections` : 'Standard';
-      } else if (svcCat === 'peptide') {
-        payload.medication = logForm.medication;
-        if (logEntryType === 'injection') {
-          payload.dosage = logForm.dosage || 'Standard';
-        } else if (logEntryType === 'med_pickup') {
-          payload.entry_type = 'pickup';
-          payload.quantity = logForm.quantity || 1;
-          payload.dosage = logForm.dosage || 'Standard';
-          payload.supply_type = 'medication';
-        } else {
-          payload.quantity = logForm.quantity || 1;
-          payload.dosage = logForm.dosage ? `${logForm.quantity} vial(s) @ ${logForm.dosage}` : `${logForm.quantity} vial(s)`;
-        }
-      } else if (svcCat === 'iv_therapy') {
-        payload.medication = logForm.medication;
-        payload.duration = logForm.duration;
-      } else if (svcCat === 'hbot') {
-        payload.medication = 'HBOT Session';
-        payload.duration = 60;
-      } else if (svcCat === 'red_light') {
-        payload.medication = 'Red Light Session';
-        payload.duration = logForm.duration || 20;
-      }
-      const res = await fetch('/api/service-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      const data = await res.json();
-      if (data.success) {
-        setShowLogEntryModal(false);
-        fetchPatient();
-      } else if (data.duplicate) {
-        // Duplicate entry detected — ask user if they want to force
-        const forceIt = confirm(`This entry was already logged for today. Log another entry anyway?`);
-        if (forceIt) {
-          payload.force = true;
-          const res2 = await fetch('/api/service-log', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-          const data2 = await res2.json();
-          if (data2.success) {
-            setShowLogEntryModal(false);
-            fetchPatient();
-          } else {
-            alert('Error: ' + (data2.error || 'Failed to log entry'));
-          }
-        }
-      } else {
-        alert('Error: ' + (data.error || 'Failed to log entry'));
-      }
-    } catch (err) {
-      console.error('Error submitting log entry:', err);
-      alert('Error: ' + err.message);
-    }
-    setLogSubmitting(false);
-  };
 
   // Fetch drip email logs for a weight loss protocol
   const fetchDripLogs = async (protocolId) => {
@@ -7836,277 +7659,17 @@ export default function PatientProfile() {
           </div>
         )}
 
-        {/* ==================== LOG ENTRY MODAL ==================== */}
-        {showLogEntryModal && logEntryProtocol && (
-          <div className="modal-overlay" onClick={() => setShowLogEntryModal(false)}>
-            <div className="modal" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
-              <div className="modal-header">
-                <h3>Log Entry — {logEntryProtocol.program_name || logEntryProtocol.medication}</h3>
-                <button onClick={() => setShowLogEntryModal(false)} className="close-btn">&times;</button>
-              </div>
-              <div className="modal-body">
-                {/* Date */}
-                <div className="form-group">
-                  <label>Date</label>
-                  <input type="date" value={logEntryDate} onChange={e => setLogEntryDate(e.target.value)} />
-                </div>
-
-                {/* Entry type toggle (HRT, WL) */}
-                {['testosterone', 'weight_loss'].includes(logEntryProtocol.svcCat) && (
-                  <div className="form-group">
-                    <label>Type</label>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button onClick={() => setLogEntryType('injection')} style={{ flex: 1, padding: '8px 0', border: '1px solid', borderColor: logEntryType === 'injection' ? '#000' : '#d1d5db', borderRadius: 6, background: logEntryType === 'injection' ? '#000' : '#fff', color: logEntryType === 'injection' ? '#fff' : '#333', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>In-Clinic Injection</button>
-                      <button onClick={() => setLogEntryType('pickup')} style={{ flex: 1, padding: '8px 0', border: '1px solid', borderColor: logEntryType === 'pickup' ? '#000' : '#d1d5db', borderRadius: 6, background: logEntryType === 'pickup' ? '#000' : '#fff', color: logEntryType === 'pickup' ? '#fff' : '#333', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Medication Pickup</button>
-                    </div>
-                  </div>
-                )}
-                {logEntryProtocol.svcCat === 'peptide' && (
-                  <div className="form-group">
-                    <label>Type</label>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button onClick={() => setLogEntryType('injection')} style={{ flex: 1, padding: '8px 0', border: '1px solid', borderColor: logEntryType === 'injection' ? '#000' : '#d1d5db', borderRadius: 6, background: logEntryType === 'injection' ? '#000' : '#fff', color: logEntryType === 'injection' ? '#fff' : '#333', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Injection</button>
-                      <button onClick={() => setLogEntryType('pickup')} style={{ flex: 1, padding: '8px 0', border: '1px solid', borderColor: logEntryType === 'pickup' ? '#000' : '#d1d5db', borderRadius: 6, background: logEntryType === 'pickup' ? '#000' : '#fff', color: logEntryType === 'pickup' ? '#fff' : '#333', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Vial Pickup</button>
-                      <button onClick={() => setLogEntryType('med_pickup')} style={{ flex: 1, padding: '8px 0', border: '1px solid', borderColor: logEntryType === 'med_pickup' ? '#000' : '#d1d5db', borderRadius: 6, background: logEntryType === 'med_pickup' ? '#000' : '#fff', color: logEntryType === 'med_pickup' ? '#fff' : '#333', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Med Pickup</button>
-                    </div>
-                  </div>
-                )}
-
-                {/* ---- TESTOSTERONE / HRT ---- */}
-                {logEntryProtocol.svcCat === 'testosterone' && (
-                  <>
-                    <div className="form-group">
-                      <label>HRT Type</label>
-                      <select value={logForm.hrt_type} onChange={e => setLogForm(p => ({ ...p, hrt_type: e.target.value, dosage: '' }))}>
-                        <option value="male">Male HRT (200mg/ml)</option>
-                        <option value="female">Female HRT (100mg/ml)</option>
-                        <option value="oral">Testosterone Booster (Oral)</option>
-                      </select>
-                    </div>
-                    {logForm.hrt_type !== 'oral' && (
-                      <>
-                        <div className="form-group">
-                          <label>Dose (per injection)</label>
-                          <select value={logForm.dosage} onChange={e => setLogForm(p => ({ ...p, dosage: e.target.value }))}>
-                            <option value="">Select dosage...</option>
-                            {(HRT_OPTIONS[logForm.hrt_type]?.dosages || []).map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
-                          </select>
-                          {logForm.dosage === 'custom' && (
-                            <input type="text" placeholder="Enter custom dosage..." value={logForm.custom_dosage} onChange={e => setLogForm(p => ({ ...p, custom_dosage: e.target.value }))} style={{ marginTop: 6 }} />
-                          )}
-                        </div>
-                        <div className="form-group">
-                          <label>Injection Method</label>
-                          <div style={{ display: 'flex', gap: 6 }}>
-                            {['IM', 'SubQ'].map(m => (
-                              <button key={m} onClick={() => setLogForm(p => ({ ...p, injection_method: m.toLowerCase(), frequency: m === 'SubQ' ? '7' : (p.frequency === '7' ? '2' : p.frequency) }))} style={{ flex: 1, padding: '8px 0', border: '1px solid', borderColor: logForm.injection_method === m.toLowerCase() ? '#1e40af' : '#d1d5db', borderRadius: 6, background: logForm.injection_method === m.toLowerCase() ? '#1e40af' : '#fff', color: logForm.injection_method === m.toLowerCase() ? '#fff' : '#333', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{m === 'IM' ? 'Intramuscular (IM)' : 'Subcutaneous (SubQ)'}</button>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="form-group">
-                          <label>Injection Frequency</label>
-                          <select value={logForm.frequency} onChange={e => setLogForm(p => ({ ...p, frequency: e.target.value }))}>
-                            <option value="">Select frequency...</option>
-                            <option value="2">2x per week</option>
-                            <option value="3">3x per week</option>
-                            <option value="7">Daily (SubQ)</option>
-                          </select>
-                        </div>
-                        {logEntryType === 'pickup' && (
-                          <div className="form-group">
-                            <label>Supply Type</label>
-                            <select value={logForm.delivery_method} onChange={e => setLogForm(p => ({ ...p, delivery_method: e.target.value }))}>
-                              <option value="">Select...</option>
-                              {(HRT_OPTIONS[logForm.hrt_type]?.deliveryMethods || []).map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
-                            </select>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </>
-                )}
-
-                {/* ---- WEIGHT LOSS ---- */}
-                {logEntryProtocol.svcCat === 'weight_loss' && (
-                  <>
-                    <div className="form-group">
-                      <label>Medication</label>
-                      <select value={logForm.medication} onChange={e => setLogForm(p => ({ ...p, medication: e.target.value, dosage: '' }))}>
-                        {WL_MEDS.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
-                      </select>
-                    </div>
-                    {logEntryType === 'injection' && (
-                      <>
-                        <div className="form-group">
-                          <label>Current Weight (lbs)</label>
-                          <input type="number" step="0.1" value={logForm.weight} onChange={e => setLogForm(p => ({ ...p, weight: e.target.value }))} placeholder="e.g. 215.5" />
-                        </div>
-                        <div className="form-group">
-                          <label>Dosage</label>
-                          <select value={logForm.dosage} onChange={e => setLogForm(p => ({ ...p, dosage: e.target.value }))}>
-                            <option value="">Select dosage...</option>
-                            {(WL_MEDS.find(m => m.value === logForm.medication)?.dosages || []).map(d => <option key={d} value={d}>{d}</option>)}
-                          </select>
-                        </div>
-                      </>
-                    )}
-                    {logEntryType === 'pickup' && (
-                      <>
-                        <div className="form-group">
-                          <label>Dosage</label>
-                          <select value={logForm.dosage} onChange={e => setLogForm(p => ({ ...p, dosage: e.target.value }))}>
-                            <option value="">Select dosage...</option>
-                            {Array.from({ length: 30 }, (_, i) => { const mg = (i + 1) * 0.5; const label = mg % 1 === 0 ? `${mg}mg` : `${mg.toFixed(1)}mg`; return <option key={mg} value={label}>{label}</option>; })}
-                          </select>
-                        </div>
-                        <div className="form-group">
-                          <label>Supply Duration</label>
-                          <select value={logForm.quantity} onChange={e => setLogForm(p => ({ ...p, quantity: parseInt(e.target.value) }))}>
-                            <option value="1">1 week</option>
-                            <option value="2">2 weeks</option>
-                            <option value="3">3 weeks</option>
-                            <option value="4">4 weeks</option>
-                          </select>
-                        </div>
-                      </>
-                    )}
-                  </>
-                )}
-
-                {/* ---- VITAMIN / INJECTION ---- */}
-                {logEntryProtocol.svcCat === 'vitamin' && (
-                  <>
-                    <div className="form-group">
-                      <label>Injection</label>
-                      <select value={logForm.medication} onChange={e => setLogForm(p => ({ ...p, medication: e.target.value }))}>
-                        <option value="">Select injection...</option>
-                        {VITAMIN_OPTS.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label>Quantity</label>
-                      <select value={logForm.quantity} onChange={e => setLogForm(p => ({ ...p, quantity: parseInt(e.target.value) }))}>
-                        <option value="1">1 injection</option>
-                        <option value="2">2 injections</option>
-                        <option value="3">3 injections</option>
-                        <option value="4">4 pack</option>
-                        <option value="8">8 pack</option>
-                        <option value="10">10 pack</option>
-                        <option value="12">12 pack</option>
-                      </select>
-                    </div>
-                  </>
-                )}
-
-                {/* ---- PEPTIDE ---- */}
-                {logEntryProtocol.svcCat === 'peptide' && (
-                  <>
-                    <div className="form-group">
-                      <label>Peptide</label>
-                      <select value={logForm.medication} onChange={e => setLogForm(p => ({ ...p, medication: e.target.value }))}>
-                        <option value="">Select peptide...</option>
-                        {logForm.medication && !PEPTIDE_OPTIONS.flatMap(g => g.options).find(o => o.value === logForm.medication) && (
-                          <option value={logForm.medication}>{logForm.medication} (from protocol)</option>
-                        )}
-                        {PEPTIDE_OPTIONS.map(group => (
-                          <optgroup key={group.group} label={group.group}>
-                            {group.options.map(opt => <option key={opt.value} value={opt.value}>{opt.value}</option>)}
-                          </optgroup>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label>Dosage</label>
-                      <input type="text" value={logForm.dosage} onChange={e => setLogForm(p => ({ ...p, dosage: e.target.value }))} placeholder="e.g. 500mcg, 1mg..." />
-                    </div>
-                    {(logEntryType === 'pickup' || logEntryType === 'med_pickup') && (
-                      <div className="form-group">
-                        <label>Quantity</label>
-                        <input type="number" min="1" value={logForm.quantity} onChange={e => setLogForm(p => ({ ...p, quantity: parseInt(e.target.value) || 1 }))} />
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {/* ---- IV THERAPY ---- */}
-                {logEntryProtocol.svcCat === 'iv_therapy' && (
-                  <>
-                    <div className="form-group">
-                      <label>IV Type</label>
-                      <select value={logForm.medication} onChange={e => setLogForm(p => ({ ...p, medication: e.target.value }))}>
-                        <option value="">Select IV...</option>
-                        {IV_OPTS.map(iv => <option key={iv.value} value={iv.value}>{iv.label}</option>)}
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label>Duration</label>
-                      <select value={logForm.duration} onChange={e => setLogForm(p => ({ ...p, duration: parseInt(e.target.value) }))}>
-                        <option value="30">30 minutes</option>
-                        <option value="45">45 minutes</option>
-                        <option value="60">60 minutes</option>
-                        <option value="90">90 minutes</option>
-                        <option value="120">120 minutes</option>
-                        <option value="180">180 minutes (NAD+)</option>
-                      </select>
-                    </div>
-                  </>
-                )}
-
-                {/* ---- HBOT ---- */}
-                {logEntryProtocol.svcCat === 'hbot' && (
-                  <div className="form-hint" style={{ marginBottom: 16, background: '#f0f9ff', border: '1px solid #bae6fd', color: '#0369a1' }}>
-                    60-minute session at 2.0 ATA
-                  </div>
-                )}
-
-                {/* ---- RED LIGHT ---- */}
-                {logEntryProtocol.svcCat === 'red_light' && (
-                  <div className="form-group">
-                    <label>Duration</label>
-                    <select value={logForm.duration} onChange={e => setLogForm(p => ({ ...p, duration: parseInt(e.target.value) }))}>
-                      <option value="10">10 minutes</option>
-                      <option value="15">15 minutes</option>
-                      <option value="20">20 minutes</option>
-                    </select>
-                  </div>
-                )}
-
-                {/* Notes */}
-                <div className="form-group">
-                  <label>Notes (optional)</label>
-                  <textarea value={logForm.notes} onChange={e => setLogForm(p => ({ ...p, notes: e.target.value }))} rows={2} />
-                </div>
-
-                {/* Dispensing Details */}
-                <div className="form-section-label">Dispensing Details</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label>Administered By</label>
-                    <select value={logDispensing.administered_by} onChange={e => setLogDispensing(p => ({ ...p, administered_by: e.target.value }))}>
-                      <option value="">Select staff</option>
-                      {logEmployees.map(emp => (
-                        <option key={emp.id} value={emp.name}>{emp.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label>Lot #</label>
-                    <input type="text" value={logDispensing.lot_number} onChange={e => setLogDispensing(p => ({ ...p, lot_number: e.target.value }))} />
-                  </div>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label>Exp Date</label>
-                    <input type="date" value={logDispensing.expiration_date} onChange={e => setLogDispensing(p => ({ ...p, expiration_date: e.target.value }))} />
-                  </div>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button onClick={() => setShowLogEntryModal(false)} className="btn-secondary">Cancel</button>
-                <button onClick={handleSubmitLogEntry} disabled={logSubmitting} className="btn-primary">
-                  {logSubmitting ? 'Saving...' : 'Save Entry'}
-                </button>
-              </div>
-            </div>
-          </div>
+        {/* ==================== LOG ENTRY MODAL (shared ServiceLogContent) ==================== */}
+        {showServiceLog && patient && (
+          <ServiceLogContent
+            autoOpen
+            onClose={() => { setShowServiceLog(false); fetchPatient(); }}
+            preselectedPatient={{
+              id: patient.id,
+              name: `${patient.first_name || ''} ${patient.last_name || ''}`.trim() || patient.name,
+              phone: patient.phone,
+            }}
+          />
         )}
 
         {/* Delete Patient Confirmation Modal */}

@@ -4286,9 +4286,11 @@ export default function PatientProfile() {
                                       }
 
                                       // Check if all injections were dispensed at once (bulk shipment)
-                                      // A single pickup log with quantity >= total means all were sent together
+                                      // Only true if there's a single pickup log with quantity >= total sessions
+                                      // Do NOT use sessions_used — that triggers even for weekly in-clinic patients
+                                      // who just missed a weight check on one week
                                       const bulkPickup = wlLogs.find(l => l.quantity && l.quantity >= totalSlots);
-                                      const allDispensed = bulkPickup || (protocol.sessions_used >= totalSlots);
+                                      const allDispensed = !!bulkPickup;
 
                                       // Build full slot schedule
                                       const freqLower = (protocol.frequency || '').toLowerCase();

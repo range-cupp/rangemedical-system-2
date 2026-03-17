@@ -159,7 +159,6 @@ export default async function handler(req, res) {
       const { data: oldTasks, error: findErr } = await supabase
         .from('tasks')
         .select('id, title, patient_id, patient_name, assigned_to, due_date')
-        .eq('category', 'labs')
         .eq('status', 'pending')
         .like('title', '%Review labs%');
 

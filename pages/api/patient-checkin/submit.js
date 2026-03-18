@@ -104,26 +104,7 @@ export default async function handler(req, res) {
 
     const totalSessions = protocol.total_sessions || 4;
 
-    // Write to service_logs first so the recalculate below counts it
-    // Create log entry in protocol_logs
-    const { error: logError } = await supabase
-      .from('protocol_logs')
-      .insert({
-        protocol_id: protocol.id,
-        patient_id: patient.id,
-        log_type: 'checkin',
-        log_date: today,
-        weight: parsedWeight,
-        notes: logNotes
-      })
-      .select()
-      .single();
-
-    if (logError) {
-      console.error('Error creating protocol log:', logError);
-    }
-
-    // Write to service_logs (single source of truth for all sessions)
+    // Write to service_logs (single source of truth for all activity)
     const { error: serviceLogError } = await supabase
       .from('service_logs')
       .insert({

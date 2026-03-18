@@ -55,21 +55,21 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to fetch protocols' });
     }
 
-    // Get last check-in for each protocol (if any)
+    // Get last activity for each protocol from service_logs (single source of truth)
     const protocolIds = protocols.map(p => p.id);
-    
+
     const { data: logs, error: logsError } = await supabase
-      .from('protocol_logs')
-      .select('protocol_id, log_date')
+      .from('service_logs')
+      .select('protocol_id, entry_date')
       .in('protocol_id', protocolIds)
-      .order('log_date', { ascending: false });
+      .order('entry_date', { ascending: false });
 
     // Create a map of last check-in by protocol
     const lastCheckinMap = {};
     if (logs) {
       logs.forEach(log => {
         if (!lastCheckinMap[log.protocol_id]) {
-          lastCheckinMap[log.protocol_id] = log.log_date;
+          lastCheckinMap[log.protocol_id] = log.entry_date;
         }
       });
     }

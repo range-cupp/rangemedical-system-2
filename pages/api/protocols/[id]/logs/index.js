@@ -1,6 +1,7 @@
 // /pages/api/protocols/[id]/logs/index.js
 // Protocol Logs API - GET all logs, POST new log
 // Range Medical
+// UPDATED: 2026-03-17 — Consolidated to service_logs as single source of truth
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -16,28 +17,48 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Protocol ID required' });
   }
 
-  // GET - Get all logs for a protocol
+  // GET - Get all logs for a protocol (activity from service_logs + system from protocol_logs)
   if (req.method === 'GET') {
     try {
-      const { data, error } = await supabase
+      // Activity logs from service_logs
+      const { data: activityLogs, error: slError } = await supabase
+        .from('service_logs')
+        .select('id, protocol_id, patient_id, entry_date, entry_type, weight, medication, dosage, notes, created_at')
+        .eq('protocol_id', id)
+        .order('entry_date', { ascending: false });
+
+      // System/audit logs from protocol_logs (drip_email, blood_draw, etc.)
+      const { data: systemLogs, error: plError } = await supabase
         .from('protocol_logs')
         .select('*')
         .eq('protocol_id', id)
+        .not('log_type', 'in', '("checkin","injection","weigh_in","session","missed","peptide_checkin","refill")')
         .order('log_date', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching logs:', error);
-        return res.status(500).json({ error: 'Failed to fetch logs' });
-      }
+      // Normalize and merge
+      const normalizedActivity = (activityLogs || []).map(l => ({
+        ...l,
+        log_date: l.entry_date,
+        log_type: l.entry_type,
+        source: 'service_logs',
+      }));
 
-      return res.status(200).json(data || []);
+      const normalizedSystem = (systemLogs || []).map(l => ({
+        ...l,
+        source: 'protocol_logs',
+      }));
+
+      const allLogs = [...normalizedActivity, ...normalizedSystem]
+        .sort((a, b) => new Date(b.log_date || b.entry_date) - new Date(a.log_date || a.entry_date));
+
+      return res.status(200).json(allLogs);
     } catch (error) {
       console.error('Error:', error);
       return res.status(500).json({ error: 'Server error' });
     }
   }
 
-  // POST - Create new log entry
+  // POST - Create new log entry (writes to service_logs)
   if (req.method === 'POST') {
     try {
       const { patient_id, log_date, log_type, weight, notes, logged_by } = req.body;
@@ -46,18 +67,40 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Date is required' });
       }
 
-      // Create the log entry
+      // Get protocol to derive category
+      const { data: protocol } = await supabase
+        .from('protocols')
+        .select('program_type, medication, selected_dose, sessions_used, total_sessions')
+        .eq('id', id)
+        .single();
+
+      const programType = (protocol?.program_type || '').toLowerCase();
+      let category = 'weight_loss';
+      if (programType.includes('hrt') || programType === 'hrt') category = 'testosterone';
+      else if (programType === 'peptide') category = 'peptide';
+      else if (programType.includes('iv')) category = 'iv_therapy';
+      else if (programType.includes('hbot')) category = 'hbot';
+      else if (programType.includes('red_light')) category = 'red_light';
+      else if (programType.includes('weight')) category = 'weight_loss';
+
+      // Map log_type to entry_type
+      const entryType = log_type === 'weigh_in' ? 'weight_check'
+        : log_type === 'session' ? 'session'
+        : 'injection';
+
       const { data: log, error: logError } = await supabase
-        .from('protocol_logs')
+        .from('service_logs')
         .insert({
           protocol_id: id,
           patient_id: patient_id,
-          log_date: log_date,
-          log_type: log_type || 'injection',
+          category,
+          entry_type: entryType,
+          entry_date: log_date,
+          medication: protocol?.medication || null,
+          dosage: protocol?.selected_dose || null,
           weight: weight ? parseFloat(weight) : null,
           notes: notes || null,
-          logged_by: logged_by || null,
-          created_at: new Date().toISOString()
+          created_by: logged_by || null,
         })
         .select()
         .single();
@@ -68,14 +111,7 @@ export default async function handler(req, res) {
       }
 
       // If this is an injection/session, update the protocol's sessions_used
-      if (log_type === 'injection' || log_type === 'session') {
-        // Get current protocol
-        const { data: protocol } = await supabase
-          .from('protocols')
-          .select('sessions_used, total_sessions')
-          .eq('id', id)
-          .single();
-
+      if (entryType === 'injection' || entryType === 'session') {
         if (protocol) {
           const newSessionsUsed = (protocol.sessions_used || 0) + 1;
           const updates = {
@@ -83,7 +119,6 @@ export default async function handler(req, res) {
             updated_at: new Date().toISOString()
           };
 
-          // If all sessions used, mark as completed
           if (protocol.total_sessions && newSessionsUsed >= protocol.total_sessions) {
             updates.status = 'completed';
           }

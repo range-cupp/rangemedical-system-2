@@ -53,31 +53,30 @@ export default async function handler(req, res) {
 
     const protocolIds = protocols.map(p => p.id);
 
-    // Get injection counts per protocol
+    // Get injection counts per protocol (from service_logs — single source of truth)
     let injectionCountMap = {};
     const { data: injectionCounts } = await supabase
-      .from('protocol_logs')
+      .from('service_logs')
       .select('protocol_id')
       .in('protocol_id', protocolIds)
-      .eq('log_type', 'injection');
+      .in('entry_type', ['injection', 'session']);
 
     (injectionCounts || []).forEach(log => {
       injectionCountMap[log.protocol_id] = (injectionCountMap[log.protocol_id] || 0) + 1;
     });
 
-    // Get latest refill date per protocol from logs - sorted by LOG_DATE not created_at
+    // Get latest refill/pickup date per protocol from service_logs
     let lastRefillMap = {};
     const { data: refillLogs } = await supabase
-      .from('protocol_logs')
-      .select('protocol_id, log_date')
+      .from('service_logs')
+      .select('protocol_id, entry_date')
       .in('protocol_id', protocolIds)
-      .eq('log_type', 'refill')
-      .order('log_date', { ascending: false });
+      .eq('entry_type', 'pickup')
+      .order('entry_date', { ascending: false });
 
     (refillLogs || []).forEach(log => {
-      // Only keep the first (most recent by log_date) for each protocol
       if (!lastRefillMap[log.protocol_id]) {
-        lastRefillMap[log.protocol_id] = log.log_date;
+        lastRefillMap[log.protocol_id] = log.entry_date;
       }
     });
 

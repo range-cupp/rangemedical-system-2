@@ -1,6 +1,7 @@
 // /pages/api/protocols/[id]/logs/[logId].js
-// Delete a protocol log entry
+// Update or delete a protocol log entry
 // Range Medical
+// UPDATED: 2026-03-17 — Consolidated to service_logs as single source of truth
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -16,22 +17,34 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Protocol ID and Log ID required' });
   }
 
-  // PUT - Update log_date on an existing log entry
+  // PUT - Update entry_date on an existing log entry
   if (req.method === 'PUT') {
     const { log_date } = req.body;
     if (!log_date) {
       return res.status(400).json({ error: 'log_date is required' });
     }
     try {
+      // Try service_logs first
       const { data, error } = await supabase
-        .from('protocol_logs')
-        .update({ log_date })
+        .from('service_logs')
+        .update({ entry_date: log_date })
         .eq('id', logId)
         .eq('protocol_id', protocolId)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // Fallback to protocol_logs for system/audit entries
+        const { data: plData, error: plError } = await supabase
+          .from('protocol_logs')
+          .update({ log_date })
+          .eq('id', logId)
+          .eq('protocol_id', protocolId)
+          .select()
+          .single();
+        if (plError) throw plError;
+        return res.status(200).json(plData);
+      }
       return res.status(200).json(data);
     } catch (error) {
       console.error('Error updating log:', error);
@@ -55,24 +68,27 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Protocol not found' });
     }
 
-    // Delete the log entry
-    const { error: deleteError } = await supabase
-      .from('protocol_logs')
+    // Try to delete from service_logs first
+    const { error: slError } = await supabase
+      .from('service_logs')
       .delete()
       .eq('id', logId)
       .eq('protocol_id', protocolId);
 
-    if (deleteError) {
-      throw deleteError;
+    if (slError) {
+      // Fallback to protocol_logs for system/audit entries
+      const { error: plError } = await supabase
+        .from('protocol_logs')
+        .delete()
+        .eq('id', logId)
+        .eq('protocol_id', protocolId);
+      if (plError) throw plError;
     }
 
     // Decrement sessions_used
     const newSessionsUsed = Math.max(0, (protocol.sessions_used || 1) - 1);
-    
-    // Update protocol
     const updates = { sessions_used: newSessionsUsed };
-    
-    // If protocol was completed but now has unused sessions, reactivate it
+
     if (protocol.status === 'completed' && newSessionsUsed > 0) {
       updates.status = 'active';
     }

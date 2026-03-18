@@ -90,24 +90,7 @@ export default async function handler(req, res) {
       logNotes += ` | Notes: ${notes.trim()}`;
     }
 
-    // Create log entry in protocol_logs
-    const logEntry = {
-      protocol_id: protocol.id,
-      patient_id: patient.id,
-      log_type: 'peptide_checkin',
-      log_date: today,
-      notes: logNotes
-    };
-
-    const { error: logError } = await supabase
-      .from('protocol_logs')
-      .insert(logEntry);
-
-    if (logError) {
-      console.error('Error creating protocol log:', logError);
-    }
-
-    // Also write to service_logs
+    // Write to service_logs (single source of truth)
     const { error: serviceLogError } = await supabase
       .from('service_logs')
       .insert({

@@ -61,32 +61,32 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to fetch protocols' });
     }
 
-    // Get protocol logs for last check-in dates and current weights
+    // Get service_logs for last activity dates and current weights (single source of truth)
     const protocolIds = protocols.map(p => p.id);
-    
+
     const { data: logs, error: logsError } = await supabase
-      .from('protocol_logs')
-      .select('protocol_id, log_date, weight, log_type')
+      .from('service_logs')
+      .select('protocol_id, entry_date, weight, entry_type')
       .in('protocol_id', protocolIds)
-      .order('log_date', { ascending: false });
+      .order('entry_date', { ascending: false });
 
     // Create maps for last activity and current weight
     const lastCheckinMap = {};
     const lastInjectionMap = {};
     const currentWeightMap = {};
-    
+
     if (logs) {
       logs.forEach(log => {
-        // Track last check-in (patient self-report - both checkin and weigh_in types)
-        if ((log.log_type === 'checkin' || log.log_type === 'weigh_in') && !lastCheckinMap[log.protocol_id]) {
-          lastCheckinMap[log.protocol_id] = log.log_date;
+        // Track last check-in (patient self-report: weight_check or checkin types)
+        if ((log.entry_type === 'weight_check' || log.entry_type === 'checkin') && !lastCheckinMap[log.protocol_id]) {
+          lastCheckinMap[log.protocol_id] = log.entry_date;
         }
-        
-        // Track last injection (staff logged)
-        if ((log.log_type === 'injection' || log.log_type === 'session') && !lastInjectionMap[log.protocol_id]) {
-          lastInjectionMap[log.protocol_id] = log.log_date;
+
+        // Track last injection/pickup (staff logged)
+        if ((log.entry_type === 'injection' || log.entry_type === 'session' || log.entry_type === 'pickup') && !lastInjectionMap[log.protocol_id]) {
+          lastInjectionMap[log.protocol_id] = log.entry_date;
         }
-        
+
         // Track current weight (most recent weight from any log)
         if (log.weight && !currentWeightMap[log.protocol_id]) {
           currentWeightMap[log.protocol_id] = log.weight;

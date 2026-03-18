@@ -78,30 +78,35 @@ export default async function handler(req, res) {
     const ghlContactId = protocol.patients?.ghl_contact_id;
     const patientName = protocol.patients?.name || protocol.patient_name || 'Unknown';
 
-    // Determine log type - default to injection for session-based
+    // Determine entry type - map log_type to service_logs entry_type
     const finalLogType = log_type || 'injection';
-    
-    // Create log entry
+    const entryType = finalLogType === 'weigh_in' ? 'weight_check' : (finalLogType === 'session' ? 'session' : 'injection');
+
+    // Map program_type to service_logs category
+    const programType = (protocol.program_type || '').toLowerCase();
+    let category = 'weight_loss';
+    if (programType.includes('hrt') || programType === 'hrt') category = 'testosterone';
+    else if (programType === 'peptide') category = 'peptide';
+    else if (programType.includes('iv')) category = 'iv_therapy';
+    else if (programType.includes('hbot')) category = 'hbot';
+    else if (programType.includes('red_light')) category = 'red_light';
+    else if (programType.includes('weight')) category = 'weight_loss';
+
+    // Create log entry in service_logs (single source of truth)
     const logEntry = {
-      protocol_id: id,
       patient_id: protocol.patient_id,
-      log_type: finalLogType,
-      log_date: log_date || new Date().toISOString().split('T')[0],
-      notes: notes || null
+      protocol_id: id,
+      category,
+      entry_type: entryType,
+      entry_date: log_date || new Date().toISOString().split('T')[0],
+      medication: protocol.medication || null,
+      dosage: dose || protocol.selected_dose || null,
+      weight: weight ? parseFloat(weight) : null,
+      notes: notes || null,
     };
-    
-    // Add weight if provided (for both injection and weigh_in logs)
-    if (weight) {
-      logEntry.weight = parseFloat(weight);
-    }
-    
-    // Add dose if provided (for injection logs)
-    if (dose) {
-      logEntry.dose = dose;
-    }
 
     const { data: insertedLog, error: logError } = await supabase
-      .from('protocol_logs')
+      .from('service_logs')
       .insert(logEntry)
       .select()
       .single();
@@ -114,8 +119,8 @@ export default async function handler(req, res) {
     let newSessionsUsed = protocol.sessions_used || 0;
     let protocolCompleted = false;
 
-    // Only increment sessions_used for injection/session logs, not weigh_ins
-    if (protocol.total_sessions && finalLogType !== 'weigh_in') {
+    // Only increment sessions_used for injection/session logs, not weight_checks
+    if (protocol.total_sessions && entryType !== 'weight_check') {
       newSessionsUsed = (protocol.sessions_used || 0) + 1;
       
       const updates = {
@@ -157,7 +162,7 @@ export default async function handler(req, res) {
     // ============================================
     // SYNC TO GHL
     // ============================================
-    if (ghlContactId && finalLogType !== 'weigh_in') {
+    if (ghlContactId && entryType !== 'weight_check') {
       console.log('Syncing session to GHL:', ghlContactId);
       
       try {

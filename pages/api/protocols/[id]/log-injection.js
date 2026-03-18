@@ -1,6 +1,7 @@
 // /pages/api/protocols/[id]/log-injection.js
 // Log an injection for a weight loss protocol (supports backfilling historical data)
 // Range Medical
+// UPDATED: 2026-03-17 — Consolidated to service_logs as single source of truth
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -25,104 +26,48 @@ export default async function handler(req, res) {
 
   const { id } = req.query;
 
-  // DELETE — clear/remove an injection log entry
+  // DELETE — remove an injection log entry
   if (req.method === 'DELETE') {
     const { log_id, source } = req.body;
     if (!log_id) {
       return res.status(400).json({ error: 'log_id required' });
     }
     try {
-      let deletedDate = null;
+      // Fetch entry before deleting
+      const { data: entry } = await supabase
+        .from('service_logs')
+        .select('entry_date')
+        .eq('id', log_id)
+        .single();
 
-      // Delete from the appropriate table, capturing the date for cross-table cleanup
-      if (source === 'service_log') {
-        // Fetch entry before deleting to get the date
-        const { data: slEntry } = await supabase
-          .from('service_logs')
-          .select('entry_date')
-          .eq('id', log_id)
-          .single();
-        deletedDate = slEntry?.entry_date || null;
+      // Delete from service_logs
+      const { error: delErr } = await supabase
+        .from('service_logs')
+        .delete()
+        .eq('id', log_id);
 
-        const { error: slErr } = await supabase
-          .from('service_logs')
+      if (delErr) {
+        // Fallback: try injection_logs (legacy)
+        const { error: ilErr } = await supabase
+          .from('injection_logs')
           .delete()
           .eq('id', log_id);
-        if (slErr) {
-          const { error: ilErr } = await supabase
-            .from('injection_logs')
-            .delete()
-            .eq('id', log_id);
-          if (ilErr) {
-            console.error('Delete service log error:', slErr, ilErr);
-            return res.status(500).json({ error: 'Failed to delete log entry' });
-          }
-        }
-
-        // Clean up matching protocol_logs entry by date
-        if (deletedDate) {
-          await supabase
-            .from('protocol_logs')
-            .delete()
-            .eq('protocol_id', id)
-            .eq('log_date', deletedDate)
-            .catch(() => {});
-        }
-      } else {
-        // Fetch protocol_logs entry before deleting to get the date
-        const { data: plEntry } = await supabase
-          .from('protocol_logs')
-          .select('log_date')
-          .eq('id', log_id)
-          .eq('protocol_id', id)
-          .single();
-        deletedDate = plEntry?.log_date || null;
-
-        const { error: delErr } = await supabase
-          .from('protocol_logs')
-          .delete()
-          .eq('id', log_id)
-          .eq('protocol_id', id);
-        if (delErr) {
-          console.error('Delete protocol log error:', delErr);
+        if (ilErr) {
+          console.error('Delete log error:', delErr, ilErr);
           return res.status(500).json({ error: 'Failed to delete log entry' });
-        }
-
-        // Clean up matching service_logs entry by date
-        if (deletedDate) {
-          await supabase
-            .from('service_logs')
-            .delete()
-            .eq('protocol_id', id)
-            .eq('entry_date', deletedDate)
-            .catch(() => {});
         }
       }
 
-      // Recount from both tables and use whichever is higher
-      const { count: plCount } = await supabase
-        .from('protocol_logs')
-        .select('*', { count: 'exact', head: true })
-        .eq('protocol_id', id)
-        .in('log_type', ['checkin', 'injection']);
-
+      // Recount sessions from service_logs only
       const { count: slCount } = await supabase
         .from('service_logs')
         .select('*', { count: 'exact', head: true })
         .eq('protocol_id', id)
         .in('entry_type', ['injection', 'session']);
 
-      const newSessionsUsed = Math.max(plCount || 0, slCount || 0);
+      const newSessionsUsed = slCount || 0;
 
-      // Find the most recent remaining injection date for recalculating next_expected_date
-      const { data: latestPL } = await supabase
-        .from('protocol_logs')
-        .select('log_date')
-        .eq('protocol_id', id)
-        .in('log_type', ['checkin', 'injection'])
-        .order('log_date', { ascending: false })
-        .limit(1);
-
+      // Find the most recent remaining injection date
       const { data: latestSL } = await supabase
         .from('service_logs')
         .select('entry_date')
@@ -131,10 +76,7 @@ export default async function handler(req, res) {
         .order('entry_date', { ascending: false })
         .limit(1);
 
-      const plDate = latestPL?.[0]?.log_date || null;
-      const slDate = latestSL?.[0]?.entry_date || null;
-      const lastDate = plDate && slDate ? (plDate > slDate ? plDate : slDate)
-        : plDate || slDate || null;
+      const lastDate = latestSL?.[0]?.entry_date || null;
 
       const updateData = {
         sessions_used: newSessionsUsed,
@@ -147,19 +89,11 @@ export default async function handler(req, res) {
         nextDate.setDate(nextDate.getDate() + 7);
         updateData.next_expected_date = nextDate.toISOString().split('T')[0];
       } else {
-        // All injections cleared — reset dates
         updateData.last_visit_date = null;
         updateData.next_expected_date = null;
       }
 
-      const { error: updateErr } = await supabase
-        .from('protocols')
-        .update(updateData)
-        .eq('id', id);
-
-      if (updateErr) {
-        console.error('Update protocol after delete error:', updateErr);
-      }
+      await supabase.from('protocols').update(updateData).eq('id', id);
 
       console.log(`✓ Injection cleared for protocol ${id}: sessions_used=${newSessionsUsed}, last_visit=${lastDate}`);
 
@@ -174,7 +108,7 @@ export default async function handler(req, res) {
     }
   }
 
-  // PATCH — update an existing log entry (date, weight, dose, and/or delivery method)
+  // PATCH — update an existing log entry (date, weight, dose, type)
   if (req.method === 'PATCH') {
     const { log_id, log_date: newDate, source, log_type: newLogType, weight: newWeight, update_weight, dose: newDose, update_dose } = req.body;
     if (!log_id) {
@@ -184,86 +118,19 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'At least one field to update required' });
     }
     try {
-      let updated = null;
-      let updateErr = null;
+      // Build update fields for service_logs
+      const updateFields = {};
+      if (newDate) updateFields.entry_date = newDate;
+      if (newLogType) updateFields.entry_type = newLogType === 'injection' ? 'injection' : 'pickup';
+      if (update_weight) updateFields.weight = newWeight;
+      if (update_dose) updateFields.dosage = newDose;
 
-      if (source === 'service_log') {
-        // Build update fields for service_logs (entry_date, entry_type, weight, dosage)
-        const updateFields = {};
-        if (newDate) updateFields.entry_date = newDate;
-        if (newLogType) updateFields.entry_type = newLogType === 'injection' ? 'injection' : 'pickup';
-        if (update_weight) updateFields.weight = newWeight;
-        if (update_dose) updateFields.dosage = newDose;
-
-        const { data: slData, error: slErr } = await supabase
-          .from('service_logs')
-          .update(updateFields)
-          .eq('id', log_id)
-          .select()
-          .single();
-
-        if (!slErr && slData) {
-          updated = slData;
-        } else {
-          // Try injection_logs table
-          const { data: ilData, error: ilErr } = await supabase
-            .from('injection_logs')
-            .update(updateFields)
-            .eq('id', log_id)
-            .select()
-            .single();
-
-          if (!ilErr && ilData) {
-            updated = ilData;
-          } else {
-            updateErr = slErr || ilErr;
-          }
-        }
-      } else {
-        // Build update fields for protocol_logs (log_date, log_type, weight)
-        const updateFields = {};
-        if (newDate) updateFields.log_date = newDate;
-        if (newLogType) updateFields.log_type = newLogType;
-        if (update_weight) updateFields.weight = newWeight;
-
-        // For protocol_logs, dose is stored in the notes field as "Dose: Xmg"
-        if (update_dose) {
-          // First fetch the current notes to update the dose segment
-          const { data: currentLog } = await supabase
-            .from('protocol_logs')
-            .select('notes')
-            .eq('id', log_id)
-            .eq('protocol_id', id)
-            .single();
-
-          let currentNotes = (currentLog?.notes || '');
-          if (newDose) {
-            // Replace existing dose or prepend
-            if (/Dose:\s*[^|]+/.test(currentNotes)) {
-              currentNotes = currentNotes.replace(/Dose:\s*[^|]+/, `Dose: ${newDose}`).trim();
-            } else {
-              currentNotes = currentNotes ? `Dose: ${newDose} | ${currentNotes}` : `Dose: ${newDose}`;
-            }
-          } else {
-            // Clear dose from notes
-            currentNotes = currentNotes.replace(/Dose:\s*[^|]*\|?\s*/, '').trim();
-            // Clean up trailing pipe
-            currentNotes = currentNotes.replace(/^\|\s*/, '').replace(/\s*\|\s*$/, '').trim();
-          }
-          updateFields.notes = currentNotes;
-        }
-
-        const result = await supabase
-          .from('protocol_logs')
-          .update(updateFields)
-          .eq('id', log_id)
-          .eq('protocol_id', id)
-          .select()
-          .single();
-
-        updated = result.data;
-        updateErr = result.error;
-      }
+      const { data: updated, error: updateErr } = await supabase
+        .from('service_logs')
+        .update(updateFields)
+        .eq('id', log_id)
+        .select()
+        .single();
 
       if (updateErr || !updated) {
         console.error('Update log entry error:', updateErr);
@@ -277,6 +144,7 @@ export default async function handler(req, res) {
     }
   }
 
+  // POST — log a new injection
   const { log_date, weight, dose, side_effects, notes, delivery_method, blood_pressure, missed, force } = req.body;
 
   if (!id) {
@@ -290,15 +158,15 @@ export default async function handler(req, res) {
   try {
     // ── Duplicate check (skip if missed or force:true) ──
     if (!force && !missed) {
-      const { data: existingPL } = await supabase
-        .from('protocol_logs')
-        .select('id, log_date, log_type')
+      const { data: existingSL } = await supabase
+        .from('service_logs')
+        .select('id, entry_date, entry_type')
         .eq('protocol_id', id)
-        .eq('log_date', log_date)
-        .in('log_type', ['checkin', 'injection'])
+        .eq('entry_date', log_date)
+        .in('entry_type', ['injection', 'session', 'weight_check'])
         .limit(1);
 
-      if (existingPL && existingPL.length > 0) {
+      if (existingSL && existingSL.length > 0) {
         return res.status(409).json({
           success: false,
           duplicate: true,
@@ -348,50 +216,52 @@ export default async function handler(req, res) {
       logNotes += notes.trim();
     }
 
-    // Determine log type based on delivery method (or missed)
-    const logType = missed ? 'missed' : (delivery_method === 'in_clinic' ? 'injection' : 'checkin');
+    // Determine entry type
+    const entryType = missed ? 'missed' : (delivery_method === 'in_clinic' ? 'injection' : 'injection');
 
-    // Insert log entry FIRST
-    const logEntry = {
-      protocol_id: id,
-      patient_id: protocol.patient_id,
-      log_type: logType,
-      log_date: log_date,
-      weight: weight || null,
-      notes: logNotes || null  // Will be set after counting
-    };
-
+    // Insert into service_logs (single source of truth)
     const { data: insertedLog, error: logError } = await supabase
-      .from('protocol_logs')
-      .insert(logEntry)
+      .from('service_logs')
+      .insert({
+        patient_id: protocol.patient_id,
+        protocol_id: id,
+        category: 'weight_loss',
+        entry_type: entryType,
+        entry_date: log_date,
+        medication: protocol.medication || null,
+        dosage: dose || protocol.selected_dose || null,
+        weight: weight || null,
+        notes: logNotes || null,
+      })
       .select()
       .single();
 
     if (logError) {
       console.error('Log insert error:', logError);
+      return res.status(500).json({ error: 'Failed to create log entry' });
     }
 
-    // Count actual injection/checkin logs for this protocol (race-condition-safe)
+    // Count injection/session logs for this protocol from service_logs
     const { count: logCount } = await supabase
-      .from('protocol_logs')
+      .from('service_logs')
       .select('*', { count: 'exact', head: true })
       .eq('protocol_id', id)
-      .in('log_type', ['checkin', 'injection']);
+      .in('entry_type', ['injection', 'session']);
 
     const newSessionsUsed = logCount || ((protocol.sessions_used || 0) + 1);
     const sessionsRemaining = totalSessions - newSessionsUsed;
 
-    // Update log notes with correct injection number
+    // Update log notes with injection number if no notes were provided
     if (insertedLog && !logNotes) {
       await supabase
-        .from('protocol_logs')
+        .from('service_logs')
         .update({ notes: `Injection #${newSessionsUsed}` })
         .eq('id', insertedLog.id);
     }
 
     // Update protocol sessions_used + next_expected_date + last_visit_date
     const nextExpected = new Date(log_date + 'T12:00:00');
-    nextExpected.setDate(nextExpected.getDate() + 7); // Weekly injections
+    nextExpected.setDate(nextExpected.getDate() + 7);
     const nextExpectedStr = nextExpected.toISOString().split('T')[0];
 
     const protocolUpdate = {
@@ -400,7 +270,6 @@ export default async function handler(req, res) {
       updated_at: new Date().toISOString(),
     };
 
-    // Set next_expected_date for non-missed injections
     if (!missed) {
       protocolUpdate.next_expected_date = nextExpectedStr;
     }
@@ -413,26 +282,6 @@ export default async function handler(req, res) {
     if (updateError) {
       console.error('Update protocol error:', updateError);
       return res.status(500).json({ error: 'Failed to update protocol' });
-    }
-
-    // Also create service_logs entry (single source of truth for session tracking)
-    if (!missed) {
-      const { error: slError } = await supabase
-        .from('service_logs')
-        .insert({
-          patient_id: protocol.patient_id,
-          protocol_id: id,
-          category: 'weight_loss',
-          entry_type: logType === 'checkin' ? 'pickup' : 'injection',
-          entry_date: log_date,
-          medication: protocol.medication || null,
-          dosage: dose || protocol.selected_dose || null,
-          weight: weight || null,
-          notes: logNotes || `Injection #${newSessionsUsed}`,
-        });
-      if (slError) {
-        console.error('Service log sync error:', slError);
-      }
     }
 
     const patientName = protocol.patients?.name || 'Unknown';

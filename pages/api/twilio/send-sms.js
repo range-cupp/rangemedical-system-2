@@ -47,10 +47,41 @@ export default async function handler(req, res) {
     ghlContactId = patient?.ghl_contact_id || null;
   }
 
-  // Send via configured provider (or explicit override from UI toggle)
-  const result = await sendSMS({ to: normalizedTo, message, provider });
+  try {
+    // Send via configured provider (or explicit override from UI toggle)
+    const result = await sendSMS({ to: normalizedTo, message, provider });
 
-  if (result.success) {
+    if (result.success) {
+      await logComm({
+        channel: 'sms',
+        messageType: message_type || 'direct_sms',
+        message,
+        source: `send-sms(${result.provider || 'unknown'})`,
+        provider: result.provider || null,
+        patientId: patient_id || null,
+        patientName: patient_name || null,
+        recipient: normalizedTo,
+        ghlContactId,
+        twilioMessageSid: result.messageSid || null,
+        direction: 'outbound',
+      });
+
+      // Clear needs_response on all prior inbound messages for this patient
+      // This is a STAFF reply — automations don't go through this route
+      if (patient_id) {
+        await supabase
+          .from('comms_log')
+          .update({ needs_response: false })
+          .eq('patient_id', patient_id)
+          .eq('needs_response', true)
+          .catch(() => {});
+      }
+
+      return res.status(200).json({ success: true, via: result.provider || 'unknown', messageSid: result.messageSid });
+    }
+
+    // Log the failure
+    console.error('SMS send failed:', result.error, 'provider:', result.provider);
     await logComm({
       channel: 'sms',
       messageType: message_type || 'direct_sms',
@@ -61,39 +92,14 @@ export default async function handler(req, res) {
       patientName: patient_name || null,
       recipient: normalizedTo,
       ghlContactId,
-      twilioMessageSid: result.messageSid || null,
+      status: 'error',
+      errorMessage: result.error,
       direction: 'outbound',
     });
 
-    // Clear needs_response on all prior inbound messages for this patient
-    // This is a STAFF reply — automations don't go through this route
-    if (patient_id) {
-      await supabase
-        .from('comms_log')
-        .update({ needs_response: false })
-        .eq('patient_id', patient_id)
-        .eq('needs_response', true)
-        .catch(() => {});
-    }
-
-    return res.status(200).json({ success: true, via: result.provider || 'unknown', messageSid: result.messageSid });
+    return res.status(500).json({ error: 'Failed to send SMS', details: result.error });
+  } catch (err) {
+    console.error('send-sms unhandled error:', err.message, err.stack);
+    return res.status(500).json({ error: 'Failed to send SMS', details: err.message });
   }
-
-  // Log the failure
-  await logComm({
-    channel: 'sms',
-    messageType: message_type || 'direct_sms',
-    message,
-    source: `send-sms(${result.provider || 'unknown'})`,
-      provider: result.provider || null,
-    patientId: patient_id || null,
-    patientName: patient_name || null,
-    recipient: normalizedTo,
-    ghlContactId,
-    status: 'error',
-    errorMessage: result.error,
-    direction: 'outbound',
-  });
-
-  return res.status(500).json({ error: 'Failed to send SMS', details: result.error });
 }

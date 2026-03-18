@@ -110,7 +110,8 @@ export default function SMSComposeModal({
           onClose();
         }, 2000);
       } else {
-        setError(data.error || 'Failed to send SMS');
+        const details = data.details ? ` (${data.details})` : '';
+        setError((data.error || 'Failed to send SMS') + details);
         setSending(false);
       }
     } catch (err) {

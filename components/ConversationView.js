@@ -715,6 +715,9 @@ export default function ConversationView({ patientId, patientName, patientPhone,
             const isCall = item.channel === 'call';
             const msgLabel = getMessageLabel(item);
             const isGHL = item.source === 'ghl'; // legacy GHL messages still show badge
+            // Automated outbound = cron jobs, webhook auto-replies, etc. (not staff-sent)
+            const isAutomated = isOutbound && item.source && !item.source.startsWith('send-sms') && item.source !== 'staff_app';
+            const isInboundNeedsResponse = !isOutbound && item.needs_response;
 
             // Call events — centered timeline card
             if (isCall) {
@@ -765,19 +768,31 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                   onClick={() => setSelectedMessage(item)}
                   style={{
                     ...styles.bubble,
-                    ...(isOutbound ? styles.outboundBubble : styles.inboundBubble),
+                    ...(isOutbound
+                      ? (isAutomated ? styles.automatedBubble : styles.outboundBubble)
+                      : (isInboundNeedsResponse ? styles.inboundNeedsResponseBubble : styles.inboundBubble)),
                     cursor: 'pointer',
                   }}
                 >
+                  {/* Automated badge or needs-response indicator */}
+                  {isAutomated && (
+                    <div style={styles.automatedLabel}>Auto</div>
+                  )}
+                  {isInboundNeedsResponse && (
+                    <div style={styles.needsResponseLabel}>Needs Response</div>
+                  )}
                   {msgLabel && (
                     <div style={{
                       ...styles.bubbleLabel,
-                      color: isOutbound ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.4)',
+                      color: isAutomated ? 'rgba(100,116,139,0.7)' : isOutbound ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.4)',
                     }}>
                       {msgLabel}
                     </div>
                   )}
-                  <div style={styles.bubbleText}>{item.message || ''}</div>
+                  <div style={{
+                    ...styles.bubbleText,
+                    color: isAutomated ? '#64748b' : undefined,
+                  }}>{item.message || ''}</div>
                   <div style={{
                     ...styles.bubbleMeta,
                     textAlign: isOutbound ? 'right' : 'left',
@@ -1179,10 +1194,38 @@ const styles = {
     color: '#fff',
     borderBottomRightRadius: '4px',
   },
+  automatedBubble: {
+    background: '#f1f5f9',
+    color: '#64748b',
+    borderBottomRightRadius: '4px',
+    border: '1px dashed #cbd5e1',
+  },
   inboundBubble: {
     background: '#e5e7eb',
     color: '#111',
     borderBottomLeftRadius: '4px',
+  },
+  inboundNeedsResponseBubble: {
+    background: '#fff7ed',
+    color: '#111',
+    borderBottomLeftRadius: '4px',
+    border: '1px solid #fb923c',
+  },
+  automatedLabel: {
+    fontSize: '9px',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    color: '#94a3b8',
+    marginBottom: '3px',
+  },
+  needsResponseLabel: {
+    fontSize: '9px',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    color: '#ea580c',
+    marginBottom: '3px',
   },
   bubbleLabel: {
     fontSize: '10px',

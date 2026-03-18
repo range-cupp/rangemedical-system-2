@@ -19,6 +19,7 @@ export default function CommunicationsPage() {
   const [channelFilter, setChannelFilter] = useState('all');
   const [selectedComm, setSelectedComm] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [responseFilter, setResponseFilter] = useState('needs_response'); // 'all' | 'needs_response'
   const PATIENTS_PER_PAGE = 20;
 
   // Activity log pagination
@@ -64,6 +65,7 @@ export default function CommunicationsPage() {
         direction: c.last_direction,
         recipient: c.recipient || null,
         unreadCount: c.unread_count || 0,
+        needsResponseCount: c.needs_response_count || 0,
       }));
 
       setPatients(sorted);
@@ -293,10 +295,17 @@ export default function CommunicationsPage() {
     }
   };
 
-  // Filter patients by search
-  const allFilteredPatients = patientSearch
+  // Count patients needing response for the badge
+  const needsResponseTotal = patients.filter(p => p.needsResponseCount > 0).length;
+
+  // Filter patients by search and response filter
+  let allFilteredPatients = patientSearch
     ? patients.filter(p => (p.name || '').toLowerCase().includes(patientSearch.toLowerCase()))
     : patients;
+
+  if (responseFilter === 'needs_response') {
+    allFilteredPatients = allFilteredPatients.filter(p => p.needsResponseCount > 0);
+  }
 
   // Paginate
   const totalPages = Math.ceil(allFilteredPatients.length / PATIENTS_PER_PAGE);
@@ -337,8 +346,31 @@ export default function CommunicationsPage() {
       {/* === CONVERSATIONS TAB === */}
       {tab === 'conversations' && !selectedPatient && (
         <div style={styles.fullContainer}>
-          {/* Search bar + Mark All Read */}
+          {/* Response filter pills + Search bar */}
           <div style={styles.searchBar}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+              <button
+                onClick={() => { setResponseFilter('needs_response'); setCurrentPage(1); }}
+                style={{
+                  ...styles.responseFilterBtn,
+                  ...(responseFilter === 'needs_response' ? styles.responseFilterBtnActive : {}),
+                }}
+              >
+                Needs Response
+                {needsResponseTotal > 0 && (
+                  <span style={styles.needsResponseBadgeInline}>{needsResponseTotal}</span>
+                )}
+              </button>
+              <button
+                onClick={() => { setResponseFilter('all'); setCurrentPage(1); }}
+                style={{
+                  ...styles.responseFilterBtn,
+                  ...(responseFilter === 'all' ? styles.responseFilterBtnAllActive : {}),
+                }}
+              >
+                All Conversations
+              </button>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <input
                 type="text"
@@ -376,28 +408,36 @@ export default function CommunicationsPage() {
                 {paginatedPatients.map(p => {
                   const key = p.id || (p.ghl_contact_id ? `ghl_${p.ghl_contact_id}` : p.name);
                   const hasUnread = p.unreadCount > 0;
+                  const needsResponse = p.needsResponseCount > 0;
                   return (
                     <div
                       key={key}
                       onClick={() => selectPatient(p)}
                       style={{
                         ...styles.patientCard,
-                        ...(hasUnread ? styles.patientCardUnread : {}),
+                        ...(needsResponse ? styles.patientCardNeedsResponse : hasUnread ? styles.patientCardUnread : {}),
                       }}
                     >
                       <div style={styles.patientCardTop}>
                         <div style={styles.patientCardLeft}>
-                          {hasUnread && <span style={styles.unreadDot} />}
+                          {needsResponse ? (
+                            <span style={styles.needsResponseDot} />
+                          ) : hasUnread ? (
+                            <span style={styles.unreadDot} />
+                          ) : null}
                           <span style={{
                             ...styles.patientName,
-                            fontWeight: hasUnread ? '700' : '500',
+                            fontWeight: needsResponse || hasUnread ? '700' : '500',
                           }}>{p.name}</span>
                           {p.recipient && (
                             <span style={styles.patientPhone}>{p.recipient}</span>
                           )}
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {hasUnread && (
+                          {needsResponse && (
+                            <span style={styles.needsResponseBadge}>Action Needed</span>
+                          )}
+                          {hasUnread && !needsResponse && (
                             <span style={styles.unreadCountBadge}>{p.unreadCount}</span>
                           )}
                           <span style={styles.patientTime}>{formatRelativeTime(p.lastMessage)}</span>
@@ -405,10 +445,13 @@ export default function CommunicationsPage() {
                       </div>
                       <div style={{
                         ...styles.patientPreview,
-                        color: hasUnread ? '#111' : '#999',
-                        fontWeight: hasUnread ? '500' : '400',
+                        color: needsResponse ? '#111' : hasUnread ? '#111' : '#999',
+                        fontWeight: needsResponse || hasUnread ? '500' : '400',
                       }}>
-                        {p.direction === 'inbound' && <span style={styles.inboundDot}>● </span>}
+                        {p.direction === 'inbound' && <span style={{
+                          ...styles.inboundDot,
+                          color: needsResponse ? '#ea580c' : '#3b82f6',
+                        }}>● </span>}
                         {p.lastPreview || 'No messages'}
                       </div>
                     </div>
@@ -852,11 +895,22 @@ const styles = {
     background: '#f0f7ff',
     borderLeft: '3px solid #3b82f6',
   },
+  patientCardNeedsResponse: {
+    background: '#fff7ed',
+    borderLeft: '3px solid #ea580c',
+  },
   unreadDot: {
     width: '8px',
     height: '8px',
     borderRadius: '50%',
     background: '#3b82f6',
+    flexShrink: 0,
+  },
+  needsResponseDot: {
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
+    background: '#ea580c',
     flexShrink: 0,
   },
   unreadCountBadge: {
@@ -871,6 +925,58 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: '0 6px',
+    lineHeight: 1,
+  },
+  needsResponseBadge: {
+    background: '#ea580c',
+    color: '#fff',
+    fontSize: '10px',
+    fontWeight: '700',
+    borderRadius: '10px',
+    padding: '3px 8px',
+    lineHeight: 1,
+    whiteSpace: 'nowrap',
+    letterSpacing: '0.3px',
+    textTransform: 'uppercase',
+  },
+  responseFilterBtn: {
+    padding: '6px 14px',
+    border: '1px solid #e5e5e5',
+    borderRadius: '16px',
+    background: '#fff',
+    fontSize: '13px',
+    cursor: 'pointer',
+    color: '#666',
+    fontWeight: '400',
+    fontFamily: 'inherit',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+  },
+  responseFilterBtnActive: {
+    background: '#ea580c',
+    color: '#fff',
+    border: '1px solid #ea580c',
+    fontWeight: '600',
+  },
+  responseFilterBtnAllActive: {
+    background: '#111',
+    color: '#fff',
+    border: '1px solid #111',
+    fontWeight: '500',
+  },
+  needsResponseBadgeInline: {
+    background: 'rgba(255,255,255,0.3)',
+    color: '#fff',
+    fontSize: '11px',
+    fontWeight: '700',
+    minWidth: '18px',
+    height: '18px',
+    borderRadius: '9px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '0 5px',
     lineHeight: 1,
   },
   markAllReadBtn: {

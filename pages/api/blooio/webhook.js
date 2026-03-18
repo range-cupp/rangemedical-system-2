@@ -216,6 +216,7 @@ async function handleInboundMessage(body) {
     status: 'received',
     recipient: senderPhone,
     direction: 'inbound',
+    needs_response: true,
   };
 
   // Add optional columns (may not exist yet)

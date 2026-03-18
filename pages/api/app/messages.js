@@ -21,7 +21,7 @@ export default async function handler(req, res) {
       // Full SMS thread for a specific patient
       const { data: messages, error } = await supabase
         .from('comms_log')
-        .select('id, patient_id, direction, message, created_at, status, channel, read_at, sent_by_employee_name')
+        .select('id, patient_id, direction, message, created_at, status, channel, read_at, sent_by_employee_name, needs_response, source')
         .eq('patient_id', patient_id)
         .eq('channel', 'sms')
         .order('created_at', { ascending: false })
@@ -76,19 +76,30 @@ export default async function handler(req, res) {
       if (conversations.length >= 100) break;
     }
 
-    // Count unread inbound SMS per patient
+    // Count unread + needs_response inbound SMS per patient
     const patientIds = conversations.map(c => c.patient_id).filter(Boolean);
     let unreadMap = {};
+    let needsResponseMap = {};
     if (patientIds.length > 0) {
-      const { data: unread } = await supabase
-        .from('comms_log')
-        .select('patient_id')
-        .in('patient_id', patientIds)
-        .eq('channel', 'sms')
-        .eq('direction', 'inbound')
-        .is('read_at', null);
+      const [{ data: unread }, { data: needsResp }] = await Promise.all([
+        supabase
+          .from('comms_log')
+          .select('patient_id')
+          .in('patient_id', patientIds)
+          .eq('channel', 'sms')
+          .eq('direction', 'inbound')
+          .is('read_at', null),
+        supabase
+          .from('comms_log')
+          .select('patient_id')
+          .in('patient_id', patientIds)
+          .eq('needs_response', true),
+      ]);
       for (const row of unread || []) {
         unreadMap[row.patient_id] = (unreadMap[row.patient_id] || 0) + 1;
+      }
+      for (const row of needsResp || []) {
+        needsResponseMap[row.patient_id] = (needsResponseMap[row.patient_id] || 0) + 1;
       }
     }
 
@@ -96,6 +107,7 @@ export default async function handler(req, res) {
       conversations: conversations.map(c => ({
         ...c,
         unread_count: unreadMap[c.patient_id] || 0,
+        needs_response_count: needsResponseMap[c.patient_id] || 0,
       })),
     });
   }
@@ -123,6 +135,15 @@ export default async function handler(req, res) {
           recipient: normalizedTo,
           created_at: new Date().toISOString(),
         });
+
+        // Clear needs_response on all prior inbound messages for this patient
+        // This is a STAFF reply from the mobile app
+        await supabase
+          .from('comms_log')
+          .update({ needs_response: false })
+          .eq('patient_id', patient_id)
+          .eq('needs_response', true)
+          .catch(() => {});
       }
 
       if (!result.success) throw new Error(result.error || 'Failed to send');

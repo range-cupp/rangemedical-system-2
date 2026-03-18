@@ -35,12 +35,13 @@ export default async function handler(req, res) {
       return fallbackConversations(req, res, daysNum, limitNum, since, supabase);
     }
 
-    // Step 2: Get unread counts + actual phone numbers from patients table
+    // Step 2: Get unread counts, needs_response counts, and actual phone numbers
     const patientIds = (convRows || []).map(r => r.patient_id).filter(Boolean);
     let unreadMap = {};
+    let needsResponseMap = {};
     let phoneMap = {};
     if (patientIds.length > 0) {
-      const [{ data: unreadRows }, { data: patientRows }] = await Promise.all([
+      const [{ data: unreadRows }, { data: needsResponseRows }, { data: patientRows }] = await Promise.all([
         supabase
           .from('comms_log')
           .select('patient_id')
@@ -48,12 +49,20 @@ export default async function handler(req, res) {
           .eq('direction', 'inbound')
           .is('read_at', null),
         supabase
+          .from('comms_log')
+          .select('patient_id')
+          .in('patient_id', patientIds)
+          .eq('needs_response', true),
+        supabase
           .from('patients')
           .select('id, phone')
           .in('id', patientIds),
       ]);
       for (const row of unreadRows || []) {
         unreadMap[row.patient_id] = (unreadMap[row.patient_id] || 0) + 1;
+      }
+      for (const row of needsResponseRows || []) {
+        needsResponseMap[row.patient_id] = (needsResponseMap[row.patient_id] || 0) + 1;
       }
       for (const row of patientRows || []) {
         if (row.phone) phoneMap[row.id] = row.phone;
@@ -65,6 +74,7 @@ export default async function handler(req, res) {
       // Use the patient's actual phone from patients table, fall back to comms_log recipient
       recipient: (r.patient_id && phoneMap[r.patient_id]) || r.recipient,
       unread_count: unreadMap[r.patient_id] || 0,
+      needs_response_count: needsResponseMap[r.patient_id] || 0,
     }));
 
     return res.status(200).json({ conversations });
@@ -81,7 +91,7 @@ async function fallbackConversations(req, res, daysNum, limitNum, since, supabas
   // Fetch last 500 SMS entries — enough to cover all active conversations
   const { data: logs, error } = await supabase
     .from('comms_log')
-    .select('id, patient_id, ghl_contact_id, patient_name, direction, message, created_at, read_at, recipient, channel')
+    .select('id, patient_id, ghl_contact_id, patient_name, direction, message, created_at, read_at, recipient, channel, needs_response')
     .eq('channel', 'sms')
     .gte('created_at', since.toISOString())
     .order('created_at', { ascending: false })
@@ -91,6 +101,7 @@ async function fallbackConversations(req, res, daysNum, limitNum, since, supabas
 
   const patientMap = {};
   const unreadCounts = {};
+  const needsResponseCounts = {};
   const phoneToKeys = {};
 
   for (const log of logs || []) {
@@ -111,6 +122,10 @@ async function fallbackConversations(req, res, daysNum, limitNum, since, supabas
 
     if (log.direction === 'inbound' && !log.read_at) {
       unreadCounts[key] = (unreadCounts[key] || 0) + 1;
+    }
+
+    if (log.needs_response) {
+      needsResponseCounts[key] = (needsResponseCounts[key] || 0) + 1;
     }
 
     if (!patientMap[key] || new Date(log.created_at) > new Date(patientMap[key].last_message_at)) {
@@ -154,13 +169,16 @@ async function fallbackConversations(req, res, daysNum, limitNum, since, supabas
       if (!preferred.recipient && other.recipient) preferred.recipient = other.recipient;
 
       unreadCounts[preferredKey] = (unreadCounts[preferredKey] || 0) + (unreadCounts[key] || 0);
+      needsResponseCounts[preferredKey] = (needsResponseCounts[preferredKey] || 0) + (needsResponseCounts[key] || 0);
       delete patientMap[key];
       delete unreadCounts[key];
+      delete needsResponseCounts[key];
     }
   }
 
   for (const key of Object.keys(patientMap)) {
     patientMap[key].unread_count = unreadCounts[key] || 0;
+    patientMap[key].needs_response_count = needsResponseCounts[key] || 0;
   }
 
   // Look up actual phone numbers from patients table to avoid comms_log mismatches
@@ -183,6 +201,9 @@ async function fallbackConversations(req, res, daysNum, limitNum, since, supabas
 
   const conversations = Object.values(patientMap)
     .sort((a, b) => {
+      // Needs response first, then unread, then by date
+      if (a.needs_response_count > 0 && b.needs_response_count === 0) return -1;
+      if (a.needs_response_count === 0 && b.needs_response_count > 0) return 1;
       if (a.unread_count > 0 && b.unread_count === 0) return -1;
       if (a.unread_count === 0 && b.unread_count > 0) return 1;
       return new Date(b.last_message_at) - new Date(a.last_message_at);

@@ -102,6 +102,7 @@ export default async function handler(req, res) {
         recipient: From, // store the sender's phone
         direction: 'inbound',
         provider: 'twilio',
+        needs_response: true,
       });
 
     if (insertError) {

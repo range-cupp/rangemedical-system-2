@@ -53,6 +53,13 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const messagesContainerRef = useRef(null);
   const shouldScrollRef = useRef(false);
 
+  // Sync internal state when props change (e.g. navigating between patients)
+  useEffect(() => {
+    setLinkedPatientId(patientId);
+    setDisplayName(patientName);
+    setEditingName(false);
+  }, [patientId, patientName]);
+
   useEffect(() => {
     if (patientId || patientPhone) {
       shouldScrollRef.current = true;

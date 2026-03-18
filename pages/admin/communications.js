@@ -317,7 +317,9 @@ export default function CommunicationsPage() {
     : patients;
 
   if (responseFilter === 'needs_response') {
-    allFilteredPatients = allFilteredPatients.filter(p => p.needsResponseCount > 0);
+    allFilteredPatients = allFilteredPatients.filter(p => p.needsResponseCount > 0 ||
+      (selectedPatient && ((p.id && p.id === selectedPatient.id) || (!p.id && (p.phone || p.recipient) === (selectedPatient.phone || selectedPatient.recipient))))
+    );
   }
 
   // Paginate

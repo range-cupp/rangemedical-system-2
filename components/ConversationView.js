@@ -49,6 +49,8 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const [linkedPatientId, setLinkedPatientId] = useState(patientId);
   const [displayName, setDisplayName] = useState(patientName);
   const [clearingAction, setClearingAction] = useState(false);
+  const [showClearNote, setShowClearNote] = useState(false);
+  const [clearNote, setClearNote] = useState('');
   const nameInputRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const shouldScrollRef = useRef(false);
@@ -58,6 +60,8 @@ export default function ConversationView({ patientId, patientName, patientPhone,
     setLinkedPatientId(patientId);
     setDisplayName(patientName);
     setEditingName(false);
+    setShowClearNote(false);
+    setClearNote('');
   }, [patientId, patientName]);
 
   useEffect(() => {
@@ -425,6 +429,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
     if (t === 'direct_sms') return null;
     if (t === 'inbound_sms') return null;
     if (t === 'ghl_sms') return null;
+    if (t === 'internal_note') return null; // handled by its own card style
     // Show automated message type labels
     const label = t.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     if (label && label !== 'Message' && label !== 'Sms') return label;
@@ -434,7 +439,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const isPhoneOnly = !linkedPatientId && patientPhone;
   const hasNeedsResponse = messages.some(m => m.needs_response);
 
-  const clearNeedsResponse = async () => {
+  const clearNeedsResponse = async (note) => {
     const pid = linkedPatientId || patientId;
     if (!pid) return;
     setClearingAction(true);
@@ -442,7 +447,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
       const resp = await fetch('/api/admin/clear-needs-response', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ patientId: pid }),
+        body: JSON.stringify({ patientId: pid, note: note || '' }),
       });
       const contentType = resp.headers.get('content-type') || '';
       if (!resp.ok || !contentType.includes('application/json')) {
@@ -452,7 +457,26 @@ export default function ConversationView({ patientId, patientName, patientPhone,
       const result = await resp.json();
       if (result.success) {
         // Update local message state to remove needs_response flags
-        setMessages(prev => prev.map(m => ({ ...m, needs_response: false })));
+        setMessages(prev => {
+          const updated = prev.map(m => ({ ...m, needs_response: false }));
+          // Add the internal note as a visible entry if one was provided
+          if (note && result.noteId) {
+            updated.push({
+              id: result.noteId,
+              channel: 'sms',
+              message_type: 'internal_note',
+              message: note,
+              direction: 'outbound',
+              source: 'internal_note',
+              status: 'sent',
+              created_at: new Date().toISOString(),
+              needs_response: false,
+            });
+          }
+          return updated;
+        });
+        setShowClearNote(false);
+        setClearNote('');
       }
     } catch (err) {
       console.error('Error clearing needs_response:', err);
@@ -620,14 +644,13 @@ export default function ConversationView({ patientId, patientName, patientPhone,
               </button>
             )}
           </div>
-          {hasNeedsResponse && (
+          {hasNeedsResponse && !showClearNote && (
             <button
-              onClick={clearNeedsResponse}
-              disabled={clearingAction}
+              onClick={() => setShowClearNote(true)}
               style={styles.clearActionBtn}
               title="Mark as handled — no response needed"
             >
-              {clearingAction ? '...' : '✓ Clear Action'}
+              ✓ Clear Action
             </button>
           )}
           <button
@@ -653,6 +676,53 @@ export default function ConversationView({ patientId, patientName, patientPhone,
           </button>
         </div>
       </div>
+
+      {/* Clear Action Note Bar */}
+      {showClearNote && (
+        <div style={styles.clearNoteBar}>
+          <div style={styles.clearNoteLabel}>Why is no response needed?</div>
+          <div style={styles.clearNoteQuickBtns}>
+            {['Called in', 'Handled in person', 'Answered via email', 'No action needed'].map(q => (
+              <button
+                key={q}
+                onClick={() => setClearNote(q)}
+                style={{
+                  ...styles.clearNoteQuickBtn,
+                  ...(clearNote === q ? { background: '#ea580c', color: '#fff', borderColor: '#ea580c' } : {}),
+                }}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+          <div style={styles.clearNoteInputRow}>
+            <input
+              value={clearNote}
+              onChange={e => setClearNote(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && clearNote.trim()) clearNeedsResponse(clearNote.trim()); }}
+              placeholder="Or type a custom note..."
+              style={styles.clearNoteInput}
+              autoFocus
+            />
+            <button
+              onClick={() => clearNeedsResponse(clearNote.trim())}
+              disabled={clearingAction || !clearNote.trim()}
+              style={{
+                ...styles.clearNoteSubmitBtn,
+                opacity: clearNote.trim() ? 1 : 0.4,
+              }}
+            >
+              {clearingAction ? '...' : 'Clear'}
+            </button>
+            <button
+              onClick={() => { setShowClearNote(false); setClearNote(''); }}
+              style={styles.clearNoteCancelBtn}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Inline Booking Modal */}
       {showBooking && (
@@ -780,8 +850,20 @@ export default function ConversationView({ patientId, patientName, patientPhone,
             const msgLabel = getMessageLabel(item);
             const isGHL = item.source === 'ghl'; // legacy GHL messages still show badge
             // Automated outbound = cron jobs, webhook auto-replies, etc. (not staff-sent)
-            const isAutomated = isOutbound && item.source && !item.source.startsWith('send-sms') && item.source !== 'staff_app';
+            const isAutomated = isOutbound && item.source && !item.source.startsWith('send-sms') && item.source !== 'staff_app' && item.source !== 'internal_note';
             const isInboundNeedsResponse = !isOutbound && item.needs_response;
+            const isInternalNote = item.message_type === 'internal_note' || item.source === 'internal_note';
+
+            // Internal notes — centered card with distinct style
+            if (isInternalNote) {
+              return (
+                <div key={item.id || idx} style={styles.internalNoteCard}>
+                  <span style={styles.internalNoteIcon}>📝</span>
+                  <span style={styles.internalNoteText}>{item.message}</span>
+                  <span style={styles.internalNoteTime}>{formatTime(item.created_at)}</span>
+                </div>
+              );
+            }
 
             // Call events — centered timeline card
             if (isCall) {
@@ -1342,6 +1424,101 @@ const styles = {
   },
   statusDot: {
     fontSize: '10px',
+  },
+  // Internal note style (centered card)
+  internalNoteCard: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    padding: '8px 16px',
+    marginBottom: '8px',
+    background: '#fffbeb',
+    border: '1px dashed #f59e0b',
+    borderRadius: '8px',
+    marginLeft: '40px',
+    marginRight: '40px',
+  },
+  internalNoteIcon: {
+    fontSize: '14px',
+  },
+  internalNoteText: {
+    fontSize: '13px',
+    fontWeight: '500',
+    color: '#92400e',
+    fontStyle: 'italic',
+  },
+  internalNoteTime: {
+    fontSize: '11px',
+    color: '#b45309',
+    flexShrink: 0,
+  },
+  // Clear note bar
+  clearNoteBar: {
+    padding: '12px 16px',
+    background: '#fff7ed',
+    borderBottom: '1px solid #fb923c',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+  clearNoteLabel: {
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#9a3412',
+  },
+  clearNoteQuickBtns: {
+    display: 'flex',
+    gap: '6px',
+    flexWrap: 'wrap',
+  },
+  clearNoteQuickBtn: {
+    padding: '4px 10px',
+    border: '1px solid #fed7aa',
+    borderRadius: '14px',
+    background: '#fff',
+    fontSize: '12px',
+    cursor: 'pointer',
+    color: '#9a3412',
+    fontFamily: 'inherit',
+  },
+  clearNoteInputRow: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center',
+  },
+  clearNoteInput: {
+    flex: 1,
+    padding: '8px 12px',
+    border: '1px solid #fed7aa',
+    borderRadius: '6px',
+    fontSize: '13px',
+    outline: 'none',
+    fontFamily: 'inherit',
+    background: '#fff',
+  },
+  clearNoteSubmitBtn: {
+    padding: '8px 16px',
+    border: 'none',
+    borderRadius: '6px',
+    background: '#ea580c',
+    color: '#fff',
+    fontSize: '13px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    flexShrink: 0,
+  },
+  clearNoteCancelBtn: {
+    padding: '8px 12px',
+    border: '1px solid #e5e5e5',
+    borderRadius: '6px',
+    background: '#fff',
+    color: '#666',
+    fontSize: '13px',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    flexShrink: 0,
   },
   // Call event style (centered timeline event)
   callEvent: {

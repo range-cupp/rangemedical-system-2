@@ -441,13 +441,13 @@ export default function ConversationView({ patientId, patientName, patientPhone,
 
   const clearNeedsResponse = async (note) => {
     const pid = linkedPatientId || patientId;
-    if (!pid) return;
+    if (!pid && !patientPhone) return;
     setClearingAction(true);
     try {
       const resp = await fetch('/api/admin/clear-needs-response', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ patientId: pid, note: note || '' }),
+        body: JSON.stringify({ patientId: pid || null, phone: patientPhone || null, note: note || '' }),
       });
       const contentType = resp.headers.get('content-type') || '';
       if (!resp.ok || !contentType.includes('application/json')) {

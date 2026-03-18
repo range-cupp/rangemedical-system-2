@@ -68,6 +68,10 @@
     {
       "path": "/api/cron/lab-prep-reminder",
       "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/cron/start-funnel-nudge",
+      "schedule": "0 16 * * *"
     }
   ]
 }

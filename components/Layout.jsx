@@ -66,8 +66,8 @@ export default function Layout({ children, title, description }) {
               <Link href="/grand-opening" className="rm-nav-link">Grand Opening</Link>
             </div>
 
-            <Link href="/range-assessment" className="rm-nav-cta">
-              Take Assessment
+            <Link href="/start" className="rm-nav-cta">
+              Start Here
             </Link>
           </nav>
 
@@ -116,7 +116,7 @@ export default function Layout({ children, title, description }) {
           )}
           <Link href="/lab-panels" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Labs & Testing</Link>
           <Link href="/grand-opening" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Grand Opening</Link>
-          <Link href="/range-assessment" className="rm-mobile-cta" onClick={() => setMobileMenuOpen(false)}>Take Assessment</Link>
+          <Link href="/start" className="rm-mobile-cta" onClick={() => setMobileMenuOpen(false)}>Start Here</Link>
         </div>
       </header>
 
@@ -141,7 +141,7 @@ export default function Layout({ children, title, description }) {
           <div className="rm-footer-col">
             <h4>Start Here</h4>
             <ul>
-              <li><Link href="/range-assessment">Take Assessment</Link></li>
+              <li><Link href="/start">Start Here</Link></li>
               <li><Link href="/injury-recovery">Injury Recovery</Link></li>
               <li><Link href="/lab-panels">Labs & Testing</Link></li>
             </ul>

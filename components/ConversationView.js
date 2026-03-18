@@ -48,6 +48,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const [savingName, setSavingName] = useState(false);
   const [linkedPatientId, setLinkedPatientId] = useState(patientId);
   const [displayName, setDisplayName] = useState(patientName);
+  const [clearingAction, setClearingAction] = useState(false);
   const nameInputRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const shouldScrollRef = useRef(false);
@@ -424,6 +425,26 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   };
 
   const isPhoneOnly = !linkedPatientId && patientPhone;
+  const hasNeedsResponse = messages.some(m => m.needs_response);
+
+  const clearNeedsResponse = async () => {
+    const pid = linkedPatientId || patientId;
+    if (!pid) return;
+    setClearingAction(true);
+    try {
+      await fetch('/api/admin/clear-needs-response', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patientId: pid }),
+      });
+      // Update local message state to remove needs_response flags
+      setMessages(prev => prev.map(m => ({ ...m, needs_response: false })));
+    } catch (err) {
+      console.error('Error clearing needs_response:', err);
+    } finally {
+      setClearingAction(false);
+    }
+  };
 
   const handleSaveName = async () => {
     const parts = editName.trim().split(/\s+/);
@@ -574,6 +595,16 @@ export default function ConversationView({ patientId, patientName, patientPhone,
               </button>
             )}
           </div>
+          {hasNeedsResponse && (
+            <button
+              onClick={clearNeedsResponse}
+              disabled={clearingAction}
+              style={styles.clearActionBtn}
+              title="Mark as handled — no response needed"
+            >
+              {clearingAction ? '...' : '✓ Clear Action'}
+            </button>
+          )}
           <button
             onClick={() => { setShowForms(true); setFormsResult(null); setSelectedForms([]); }}
             style={styles.actionBtn}
@@ -1083,6 +1114,18 @@ const styles = {
     background: '#000',
     color: '#fff',
     borderColor: '#000',
+  },
+  clearActionBtn: {
+    background: '#fff7ed',
+    color: '#ea580c',
+    border: '1px solid #fb923c',
+    borderRadius: '6px',
+    padding: '6px 12px',
+    fontSize: '12px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    flexShrink: 0,
+    fontFamily: 'inherit',
   },
   actionBtn: {
     background: '#f0f9ff',

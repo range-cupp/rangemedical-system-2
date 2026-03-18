@@ -11,7 +11,7 @@ import { findMatchingPeptide, findPeptideInfo } from '../lib/protocol-config';
 const CATEGORY_ORDER = [
   'programs', 'combo_membership', 'hbot', 'red_light', 'hrt', 'weight_loss',
   'iv_therapy', 'specialty_iv', 'injection_standard', 'injection_premium',
-  'injection_pack', 'nad_injection', 'peptide', 'vials', 'labs', 'assessment', 'other', 'gift_card', 'custom',
+  'injection_pack', 'nad_injection', 'peptide', 'vials', 'supplements', 'labs', 'assessment', 'other', 'gift_card', 'custom',
 ];
 const CATEGORY_LABELS = {
   programs: 'Programs',
@@ -28,6 +28,7 @@ const CATEGORY_LABELS = {
   nad_injection: 'NAD+ Injections',
   peptide: 'Peptides',
   vials: 'Vials',
+  supplements: 'Supplements',
   labs: 'Lab Panels',
   assessment: 'Assessment',
   other: 'Other',

@@ -589,7 +589,7 @@ const PRODUCTS = [
 const CATEGORY_ORDER = [
   'programs', 'combo_membership', 'hbot', 'red_light', 'hrt', 'weight_loss',
   'iv_therapy', 'specialty_iv', 'injection_standard', 'injection_premium',
-  'injection_pack', 'nad_injection', 'sleep', 'peptide', 'vials', 'labs', 'regenerative', 'assessment',
+  'injection_pack', 'nad_injection', 'sleep', 'peptide', 'vials', 'supplements', 'labs', 'regenerative', 'assessment',
 ];
 
 // ─────────────────────────────────────────────

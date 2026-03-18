@@ -41,14 +41,26 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'opt_in must be true or false' });
     }
 
-    // Find patient
-    const { data: patient, error: patientError } = await supabase
+    // Find patient by GHL contact ID first, then fall back to patient UUID
+    let patient = null;
+    const { data: ghlPatient } = await supabase
       .from('patients')
       .select('id, name, first_name, ghl_contact_id')
       .eq('ghl_contact_id', contact_id)
       .single();
 
-    if (patientError || !patient) {
+    if (ghlPatient) {
+      patient = ghlPatient;
+    } else {
+      const { data: uuidPatient } = await supabase
+        .from('patients')
+        .select('id, name, first_name, ghl_contact_id')
+        .eq('id', contact_id)
+        .single();
+      patient = uuidPatient;
+    }
+
+    if (!patient) {
       return res.status(404).json({ error: 'Patient not found' });
     }
 

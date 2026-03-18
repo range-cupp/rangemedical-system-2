@@ -53,14 +53,26 @@ export default async function handler(req, res) {
     const today = new Date().toISOString().split('T')[0];
     const feelingNum = parseInt(feeling);
 
-    // Find patient
-    const { data: patient, error: patientError } = await supabase
+    // Find patient by GHL contact ID first, then fall back to patient UUID
+    let patient = null;
+    const { data: ghlPatient } = await supabase
       .from('patients')
       .select('id, name, ghl_contact_id')
       .eq('ghl_contact_id', contact_id)
       .single();
 
-    if (patientError || !patient) {
+    if (ghlPatient) {
+      patient = ghlPatient;
+    } else {
+      const { data: uuidPatient } = await supabase
+        .from('patients')
+        .select('id, name, ghl_contact_id')
+        .eq('id', contact_id)
+        .single();
+      patient = uuidPatient;
+    }
+
+    if (!patient) {
       return res.status(404).json({ error: 'Patient not found' });
     }
 

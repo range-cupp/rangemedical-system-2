@@ -507,6 +507,14 @@ export default function CommunicationsPage() {
             onNext={() => navigatePatient(1)}
             hasPrev={allFilteredPatients.findIndex(p => (p.id && p.id === selectedPatient?.id) || (!p.id && p.name === selectedPatient?.name)) > 0}
             hasNext={allFilteredPatients.findIndex(p => (p.id && p.id === selectedPatient?.id) || (!p.id && p.name === selectedPatient?.name)) < allFilteredPatients.length - 1}
+            onNeedsResponseCleared={(clearedId, clearedPhone) => {
+              setPatients(prev => prev.map(p => {
+                if ((clearedId && p.id === clearedId) || (clearedPhone && !p.id && (p.phone === clearedPhone || p.recipient === clearedPhone))) {
+                  return { ...p, needsResponseCount: 0 };
+                }
+                return p;
+              }));
+            }}
           />
         </div>
       )}

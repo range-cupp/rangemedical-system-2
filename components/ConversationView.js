@@ -23,7 +23,7 @@ const FORM_OPTIONS = [
   { id: 'exosome-iv', name: 'Exosome IV Consent' },
 ];
 
-export default function ConversationView({ patientId, patientName, patientPhone, ghlContactId, onBack, onPatientLinked, onPrev, onNext, hasPrev, hasNext }) {
+export default function ConversationView({ patientId, patientName, patientPhone, ghlContactId, onBack, onPatientLinked, onPrev, onNext, hasPrev, hasNext, onNeedsResponseCleared }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newMessage, setNewMessage] = useState('');
@@ -477,6 +477,8 @@ export default function ConversationView({ patientId, patientName, patientPhone,
         });
         setShowClearNote(false);
         setClearNote('');
+        // Notify parent so conversation list updates without refresh
+        if (onNeedsResponseCleared) onNeedsResponseCleared(linkedPatientId || patientId, patientPhone);
       }
     } catch (err) {
       console.error('Error clearing needs_response:', err);

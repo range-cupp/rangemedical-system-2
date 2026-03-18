@@ -3208,7 +3208,7 @@ export default function PatientProfile() {
                             overflow: 'hidden', textOverflow: 'ellipsis',
                             display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
                           }}>
-                            {msg.message || msg.subject || '(no content)'}
+                            {(msg.message || msg.subject || '(no content)').replace(/<[^>]*>/g, '').substring(0, 200)}
                           </div>
                         </div>
                       </div>

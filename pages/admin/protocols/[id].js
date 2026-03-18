@@ -7,7 +7,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../../lib/hrt-lab-schedule';
-import { isRecoveryPeptide, isGHPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS, INJECTION_METHODS, HRT_SUPPLY_TYPES, HRT_SECONDARY_MEDICATIONS } from '../../../lib/protocol-config';
+import { isRecoveryPeptide, isGHPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS, INJECTION_METHODS, HRT_SUPPLY_TYPES, HRT_SECONDARY_MEDICATIONS, PEPTIDE_OPTIONS, WEIGHT_LOSS_MEDICATIONS } from '../../../lib/protocol-config';
 import { PROTOCOL_TYPES, detectProtocolType, getDBProgramType, getDeliveryLabel } from '../../../lib/protocol-types';
 import AdminLayout from '../../../components/AdminLayout';
 
@@ -169,6 +169,13 @@ export default function ProtocolDetail() {
   const [clinicalNoteInput, setClinicalNoteInput] = useState('');
   const [clinicalNoteSaving, setClinicalNoteSaving] = useState(false);
   const [clinicalNoteFormatting, setClinicalNoteFormatting] = useState(false);
+  const [exchangeModal, setExchangeModal] = useState(false);
+  const [exchangeForm, setExchangeForm] = useState({ medication: '', dosage: '', frequency: 'daily', duration: '', reason: '', reasonNote: '', protocolType: '' });
+  const [exchangeSaving, setExchangeSaving] = useState(false);
+  const [addSessionsModal, setAddSessionsModal] = useState(false);
+  const [addSessionsCount, setAddSessionsCount] = useState('');
+  const [addSessionsNotes, setAddSessionsNotes] = useState('');
+  const [addSessionsSaving, setAddSessionsSaving] = useState(false);
 
   useEffect(() => {
     if (id) fetchProtocol();
@@ -879,6 +886,33 @@ export default function ProtocolDetail() {
     }
   };
 
+  const handleAddSessions = async () => {
+    const count = parseInt(addSessionsCount);
+    if (!count || count < 1) return;
+    setAddSessionsSaving(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/protocols/${id}/add-sessions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionsToAdd: count, mode: 'add', notes: addSessionsNotes || undefined })
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to add sessions');
+      }
+      setSuccess(`Added ${count} session${count !== 1 ? 's' : ''} to protocol`);
+      setAddSessionsModal(false);
+      setAddSessionsCount('');
+      setAddSessionsNotes('');
+      fetchProtocol();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setAddSessionsSaving(false);
+    }
+  };
+
   // Find encounter note matching an injection log date (within ±1 day)
   const findEncounterNoteForDate = (logDate) => {
     if (!logDate || encounterNotes.length === 0) return null;
@@ -1016,7 +1050,8 @@ export default function ProtocolDetail() {
     : currentDay;
 
   const isActive = protocol?.status === 'active';
-  const isComplete = isOngoing ? false : (isWeightLoss
+  const isExchanged = protocol?.status === 'exchanged';
+  const isComplete = isExchanged ? true : isOngoing ? false : (isWeightLoss
     ? wlInjectionsRemaining <= 0
     : isSessionBased
       ? sessionsRemaining <= 0
@@ -1036,7 +1071,10 @@ export default function ProtocolDetail() {
           <div>
             <Link href="/admin/protocols" style={styles.backLink}>← Protocols</Link>
             <h1 style={styles.title}>{protocol?.patient_name || 'Patient'}</h1>
-            <p style={styles.subtitle}>{protocol?.program_name || PROTOCOL_TYPES[form.protocolType]?.name}</p>
+            <p style={styles.subtitle}>
+              {protocol?.program_name || PROTOCOL_TYPES[form.protocolType]?.name}
+              {isExchanged && <span style={{ marginLeft: 8, padding: '2px 8px', background: '#fbbf24', color: '#78350f', borderRadius: 4, fontSize: 11, fontWeight: 700 }}>EXCHANGED</span>}
+            </p>
           </div>
           <div style={styles.headerActions}>
             {protocol?.patient_id && (
@@ -1045,7 +1083,10 @@ export default function ProtocolDetail() {
               </Link>
             )}
             {!isEditing ? (
-              <button onClick={() => setIsEditing(true)} style={styles.editBtn}>Edit</button>
+              <>
+                <button onClick={() => setAddSessionsModal(true)} style={styles.headerBtn}>+ Add Sessions</button>
+                <button onClick={() => setIsEditing(true)} style={styles.editBtn}>Edit</button>
+              </>
             ) : (
               <>
                 <button onClick={() => { setIsEditing(false); fetchProtocol(); }} style={styles.headerBtn}>Cancel</button>
@@ -1083,8 +1124,8 @@ export default function ProtocolDetail() {
                 </div>
                 <div style={styles.dayStatus}>
                   {isComplete ? (
-                    <span style={styles.completeText}>
-                      {isWeightLoss ? 'All Injections Complete' : isSessionBased ? 'All Sessions Used' : 'Protocol Complete'}
+                    <span style={{ ...styles.completeText, color: isExchanged ? '#f59e0b' : '#22c55e' }}>
+                      {isExchanged ? '🔄 Exchanged' : isWeightLoss ? 'All Injections Complete' : isSessionBased ? 'All Sessions Used' : 'Protocol Complete'}
                     </span>
                   ) : isWeightLoss ? (
                     <span style={styles.activeText}>
@@ -2732,6 +2773,49 @@ export default function ProtocolDetail() {
                     </div>
                   );
                 })()}
+
+                {/* Exchange Protocol */}
+                {protocol?.status === 'active' && (
+                  <button
+                    onClick={() => {
+                      setExchangeForm({
+                        medication: '', dosage: '', frequency: 'daily', duration: '30',
+                        reason: '', reasonNote: '',
+                        protocolType: protocol.program_type === 'weight_loss' ? 'peptide' : protocol.program_type
+                      });
+                      setExchangeModal(true);
+                    }}
+                    style={{ ...styles.actionBtnSecondary, border: '1px solid #fbbf24', background: '#fffbeb', color: '#92400e', cursor: 'pointer', fontWeight: '600' }}
+                  >
+                    🔄 Exchange Protocol
+                  </button>
+                )}
+
+                {/* Exchanged status indicator */}
+                {protocol?.status === 'exchanged' && (
+                  <div style={{ padding: '10px 14px', background: '#fffbeb', border: '1px solid #fbbf24', borderRadius: '8px', fontSize: '13px', color: '#92400e', textAlign: 'center' }}>
+                    🔄 Exchanged{protocol.exchange_reason ? ` — ${protocol.exchange_reason.replace(/_/g, ' ')}` : ''}
+                    {protocol.exchanged_to && (
+                      <div style={{ marginTop: '6px' }}>
+                        <Link href={`/admin/protocols/${protocol.exchanged_to}`} style={{ color: '#2563eb', textDecoration: 'underline', fontSize: '12px' }}>
+                          View new protocol →
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Exchanged-from indicator */}
+                {protocol?.exchanged_from && (
+                  <div style={{ padding: '10px 14px', background: '#f0f9ff', border: '1px solid #93c5fd', borderRadius: '8px', fontSize: '13px', color: '#1e40af', textAlign: 'center' }}>
+                    ↩️ Created via exchange
+                    <div style={{ marginTop: '6px' }}>
+                      <Link href={`/admin/protocols/${protocol.exchanged_from}`} style={{ color: '#2563eb', textDecoration: 'underline', fontSize: '12px' }}>
+                        View original protocol →
+                      </Link>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -3142,6 +3226,265 @@ export default function ProtocolDetail() {
               to { transform: translateX(0); }
             }
           `}</style>
+        </>
+      )}
+      {/* Add Sessions Modal */}
+      {addSessionsModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        }} onClick={() => setAddSessionsModal(false)}>
+          <div style={{
+            background: '#fff', borderRadius: '14px', padding: '28px', width: '400px',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.2)'
+          }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '4px' }}>Add Sessions</h3>
+            <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '20px' }}>
+              {protocol?.program_name} — Currently {protocol?.total_sessions || 0} total sessions
+            </p>
+
+            <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '6px' }}>Sessions to Add</label>
+            <input
+              type="number"
+              min="1"
+              value={addSessionsCount}
+              onChange={e => setAddSessionsCount(e.target.value)}
+              placeholder="e.g. 4"
+              style={{
+                width: '100%', padding: '10px 12px', borderRadius: '8px',
+                border: '1px solid #d1d5db', fontSize: '14px', marginBottom: '6px',
+                boxSizing: 'border-box'
+              }}
+            />
+            {addSessionsCount && parseInt(addSessionsCount) > 0 && (
+              <p style={{ fontSize: '12px', color: '#16a34a', marginBottom: '16px' }}>
+                New total: {(protocol?.total_sessions || 0) + parseInt(addSessionsCount)} sessions
+              </p>
+            )}
+
+            <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '6px', marginTop: '12px' }}>Notes (optional)</label>
+            <input
+              type="text"
+              value={addSessionsNotes}
+              onChange={e => setAddSessionsNotes(e.target.value)}
+              placeholder="e.g. Catch-up for Dec/Jan billing"
+              style={{
+                width: '100%', padding: '10px 12px', borderRadius: '8px',
+                border: '1px solid #d1d5db', fontSize: '14px', marginBottom: '20px',
+                boxSizing: 'border-box'
+              }}
+            />
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setAddSessionsModal(false)}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db',
+                  background: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: 500
+                }}
+              >Cancel</button>
+              <button
+                onClick={handleAddSessions}
+                disabled={addSessionsSaving || !addSessionsCount || parseInt(addSessionsCount) < 1}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: '8px', border: 'none',
+                  background: '#2563eb', color: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: 600,
+                  opacity: (!addSessionsCount || parseInt(addSessionsCount) < 1) ? 0.5 : 1
+                }}
+              >{addSessionsSaving ? 'Adding...' : 'Add Sessions'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Exchange Protocol Modal */}
+      {exchangeModal && (
+        <>
+          <div onClick={() => setExchangeModal(false)} style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 10000
+          }} />
+          <div style={{
+            position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+            background: '#fff', borderRadius: 12, padding: 24, zIndex: 10001,
+            width: '90%', maxWidth: 500, boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            maxHeight: '90vh', overflowY: 'auto'
+          }}>
+            <h3 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 700 }}>
+              🔄 Exchange Protocol
+            </h3>
+            <p style={{ margin: '0 0 16px', color: '#6b7280', fontSize: 13 }}>
+              Replacing: <strong>{protocol?.medication || protocol?.program_name}</strong>
+            </p>
+
+            {/* Reason */}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Reason for Exchange</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                {[
+                  { value: 'adverse_reaction', label: 'Adverse Reaction' },
+                  { value: 'patient_preference', label: 'Patient Preference' },
+                  { value: 'provider_recommendation', label: 'Provider Rec.' },
+                  { value: 'other', label: 'Other' }
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setExchangeForm(f => ({ ...f, reason: opt.value }))}
+                    style={{
+                      padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13,
+                      fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                      background: exchangeForm.reason === opt.value ? '#000' : '#fff',
+                      color: exchangeForm.reason === opt.value ? '#fff' : '#374151'
+                    }}
+                  >{opt.label}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Note */}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Note (optional)</label>
+              <input
+                type="text"
+                value={exchangeForm.reasonNote}
+                onChange={e => setExchangeForm(f => ({ ...f, reasonNote: e.target.value }))}
+                placeholder="e.g., nausea after first dose"
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 6, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            {/* Protocol Type */}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>New Protocol Type</label>
+              <select
+                value={exchangeForm.protocolType}
+                onChange={e => setExchangeForm(f => ({ ...f, protocolType: e.target.value, medication: '' }))}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 6, fontSize: 14, background: '#fff', boxSizing: 'border-box' }}
+              >
+                <option value="peptide">Peptide</option>
+                <option value="weight_loss">Weight Loss</option>
+              </select>
+            </div>
+
+            {/* New Medication */}
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>New Medication</label>
+              {exchangeForm.protocolType === 'weight_loss' ? (
+                <select
+                  value={exchangeForm.medication}
+                  onChange={e => setExchangeForm(f => ({ ...f, medication: e.target.value }))}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 6, fontSize: 14, background: '#fff', boxSizing: 'border-box' }}
+                >
+                  <option value="">Select medication...</option>
+                  {WEIGHT_LOSS_MEDICATIONS.map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+              ) : (
+                <select
+                  value={exchangeForm.medication}
+                  onChange={e => {
+                    const selected = e.target.value;
+                    // Auto-fill dosage from config
+                    let dose = '';
+                    for (const group of PEPTIDE_OPTIONS) {
+                      const opt = group.options.find(o => o.value === selected);
+                      if (opt) { dose = opt.startingDose; break; }
+                    }
+                    setExchangeForm(f => ({ ...f, medication: selected, dosage: dose }));
+                  }}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 6, fontSize: 14, background: '#fff', boxSizing: 'border-box' }}
+                >
+                  <option value="">Select medication...</option>
+                  {PEPTIDE_OPTIONS.map(group => (
+                    <optgroup key={group.group} label={group.group}>
+                      {group.options.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.value} ({opt.startingDose})</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* Dosage & Duration row */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Dosage</label>
+                <input
+                  type="text"
+                  value={exchangeForm.dosage}
+                  onChange={e => setExchangeForm(f => ({ ...f, dosage: e.target.value }))}
+                  placeholder="e.g., 500mcg/500mcg"
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 6, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Duration (days)</label>
+                <input
+                  type="number"
+                  value={exchangeForm.duration}
+                  onChange={e => setExchangeForm(f => ({ ...f, duration: e.target.value }))}
+                  placeholder="30"
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 6, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                />
+              </div>
+            </div>
+
+            {/* Frequency */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Frequency</label>
+              <select
+                value={exchangeForm.frequency}
+                onChange={e => setExchangeForm(f => ({ ...f, frequency: e.target.value }))}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 6, fontSize: 14, background: '#fff', boxSizing: 'border-box' }}
+              >
+                <option value="daily">Daily</option>
+                <option value="2x_daily">2x Daily</option>
+                <option value="2x_weekly">2x Weekly</option>
+                <option value="weekly">Weekly</option>
+              </select>
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setExchangeModal(false)} style={{
+                padding: '10px 20px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14,
+                cursor: 'pointer', background: '#fff', fontFamily: 'inherit'
+              }}>Cancel</button>
+              <button
+                onClick={async () => {
+                  if (!exchangeForm.medication) { setError('Select a new medication'); return; }
+                  if (!exchangeForm.reason) { setError('Select a reason for exchange'); return; }
+                  setExchangeSaving(true);
+                  setError('');
+                  try {
+                    const resp = await fetch(`/api/admin/protocols/${id}/exchange`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(exchangeForm)
+                    });
+                    const data = await resp.json();
+                    if (data.success) {
+                      setExchangeModal(false);
+                      router.push(`/admin/protocols/${data.newProtocol.id}`);
+                    } else {
+                      setError(data.error || 'Exchange failed');
+                    }
+                  } catch (err) {
+                    setError(err.message);
+                  }
+                  setExchangeSaving(false);
+                }}
+                disabled={exchangeSaving}
+                style={{
+                  padding: '10px 24px', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 600,
+                  cursor: exchangeSaving ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+                  background: '#f59e0b', color: '#fff', opacity: exchangeSaving ? 0.6 : 1
+                }}
+              >{exchangeSaving ? 'Exchanging...' : 'Confirm Exchange'}</button>
+            </div>
+          </div>
         </>
       )}
     </AdminLayout>

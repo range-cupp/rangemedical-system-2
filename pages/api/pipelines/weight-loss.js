@@ -41,6 +41,8 @@ export default async function handler(req, res) {
         total_sessions,
         sessions_used,
         starting_weight,
+        next_expected_date,
+        last_visit_date,
         notes,
         created_at,
         patients (
@@ -171,6 +173,8 @@ export default async function handler(req, res) {
         injections_remaining: injectionsRemaining,
         starting_weight: p.starting_weight || earliestWeightMap[p.id] || null,
         current_weight: currentWeightMap[p.id] || null,
+        next_expected_date: p.next_expected_date || null,
+        last_visit_date: p.last_visit_date || null,
         status: isCompleted ? 'completed' : 'active',
         notes: p.notes,
         created_at: p.created_at

@@ -23,6 +23,19 @@ function getDaysSinceActivity(protocol) {
 
 function getStatus(protocol) {
   if (protocol.status === 'completed' || protocol.injections_remaining <= 0) return 'complete';
+
+  // Take-home patients: use supply-based status (next_expected_date = when supply runs out)
+  if (protocol.delivery_method === 'take_home' && protocol.next_expected_date) {
+    const now = new Date();
+    const supplyEnd = new Date(protocol.next_expected_date + 'T00:00:00');
+    const daysUntilRefill = Math.ceil((supplyEnd - now) / (1000 * 60 * 60 * 24));
+    if (daysUntilRefill > 7) return 'on_track';
+    if (daysUntilRefill > 0) return 'due_soon';
+    // Supply has run out — they're overdue for refill
+    return 'overdue';
+  }
+
+  // In-clinic + take-home without next_expected_date: use activity-based status
   const days = getDaysSinceActivity(protocol);
   if (days === null) return 'new';
   if (days > 10) return 'overdue';

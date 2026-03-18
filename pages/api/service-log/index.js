@@ -17,6 +17,42 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Sync weight to patient_vitals when logged via service_log
+async function syncWeightToVitals(patient_id, weight, entry_date, recorded_by) {
+  if (!patient_id || !weight) return;
+  try {
+    const logDate = entry_date || new Date().toISOString().split('T')[0];
+    // Check if vitals already exist for this date
+    const dayStart = logDate + 'T00:00:00Z';
+    const dayEnd = logDate + 'T23:59:59Z';
+    const { data: existing } = await supabase
+      .from('patient_vitals')
+      .select('id')
+      .eq('patient_id', patient_id)
+      .gte('recorded_at', dayStart)
+      .lte('recorded_at', dayEnd)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase
+        .from('patient_vitals')
+        .update({ weight_lbs: parseFloat(weight), recorded_by: recorded_by || 'Service Log' })
+        .eq('id', existing.id);
+    } else {
+      await supabase
+        .from('patient_vitals')
+        .insert({
+          patient_id,
+          weight_lbs: parseFloat(weight),
+          recorded_by: recorded_by || 'Service Log',
+          recorded_at: new Date(logDate + 'T12:00:00Z').toISOString(),
+        });
+    }
+  } catch (err) {
+    console.error('syncWeightToVitals error (non-fatal):', err.message);
+  }
+}
+
 // Map category to program_type for protocols
 const CATEGORY_TO_PROGRAM_TYPE = {
   'testosterone': 'hrt',
@@ -346,6 +382,11 @@ async function handlePost(req, res) {
 
     if (logError) throw logError;
 
+    // ── Sync weight to patient_vitals (bidirectional sync) ──
+    if (weight) {
+      await syncWeightToVitals(patient_id, weight, logDate, administered_by);
+    }
+
     // ── Weight loss multi-injection: create additional entries for future weeks ──
     // When staff logs a weight loss injection with quantity > 1, it means the patient
     // picked up multiple injections at once (e.g., 2 weeks' worth). Create individual
@@ -536,6 +577,11 @@ async function handlePut(req, res) {
     }
 
     if (error) throw error;
+
+    // Sync weight to patient_vitals if updated
+    if (log && weight) {
+      await syncWeightToVitals(log.patient_id, weight, log.entry_date);
+    }
 
     return res.status(200).json({ success: true, log });
   } catch (err) {

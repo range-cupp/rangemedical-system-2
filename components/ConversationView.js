@@ -685,11 +685,9 @@ export default function ConversationView({ patientId, patientName, patientPhone,
             {['Called in', 'Handled in person', 'Answered via email', 'No action needed'].map(q => (
               <button
                 key={q}
-                onClick={() => setClearNote(q)}
-                style={{
-                  ...styles.clearNoteQuickBtn,
-                  ...(clearNote === q ? { background: '#ea580c', color: '#fff', borderColor: '#ea580c' } : {}),
-                }}
+                onClick={() => clearNeedsResponse(q)}
+                disabled={clearingAction}
+                style={styles.clearNoteQuickBtn}
               >
                 {q}
               </button>
@@ -700,7 +698,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
               value={clearNote}
               onChange={e => setClearNote(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && clearNote.trim()) clearNeedsResponse(clearNote.trim()); }}
-              placeholder="Or type a custom note..."
+              placeholder="Or type a custom reason and press Enter..."
               style={styles.clearNoteInput}
               autoFocus
             />
@@ -712,7 +710,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                 opacity: clearNote.trim() ? 1 : 0.4,
               }}
             >
-              {clearingAction ? '...' : 'Clear'}
+              {clearingAction ? '...' : 'Submit'}
             </button>
             <button
               onClick={() => { setShowClearNote(false); setClearNote(''); }}

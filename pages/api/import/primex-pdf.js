@@ -326,9 +326,27 @@ export default async function handler(req, res) {
       group.biomarkers = parseBiomarkers(allLines);
     }
 
-    // 5. Load all patients from DB for matching + reviewer IDs for tasks
-    const [{ data: allPatients }, reviewerIds] = await Promise.all([
-      supabase.from('patients').select('id, first_name, last_name, name, date_of_birth').order('last_name'),
+    // 5. Load ALL patients from DB for matching + reviewer IDs for tasks
+    // Supabase defaults to 1000 rows — paginate to get all patients
+    async function loadAllPatients() {
+      const all = [];
+      const pageSize = 1000;
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from('patients')
+          .select('id, first_name, last_name, name, date_of_birth')
+          .order('last_name')
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        all.push(...(data || []));
+        if (!data || data.length < pageSize) break;
+        from += pageSize;
+      }
+      return all;
+    }
+    const [allPatients, reviewerIds] = await Promise.all([
+      loadAllPatients(),
       loadReviewerIds(supabase),
     ]);
 

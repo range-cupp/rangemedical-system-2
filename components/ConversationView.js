@@ -188,6 +188,14 @@ export default function ConversationView({ patientId, patientName, patientPhone,
         }),
       });
 
+      // Guard against non-JSON responses (e.g. HTML error pages)
+      const contentType = syncRes.headers.get('content-type') || '';
+      if (!syncRes.ok || !contentType.includes('application/json')) {
+        console.warn('Twilio sync-calls returned non-JSON response');
+        setCallsSynced(true);
+        return;
+      }
+
       const syncData = await syncRes.json();
 
       if (syncData.synced > 0) {

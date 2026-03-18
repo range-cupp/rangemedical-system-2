@@ -9,6 +9,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { logComm } from '../../../lib/comms-log';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
+import { isInQuietHours } from '../../../lib/quiet-hours';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -40,6 +41,12 @@ export default async function handler(req, res) {
 
   if (!isAuthorized) {
     return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  // Check quiet hours (skip if outside 8am-8pm Pacific, unless forced)
+  const force = req.query?.force === 'true';
+  if (!force && isInQuietHours()) {
+    return res.status(200).json({ skipped: true, reason: 'Outside Pacific send window (8 AM – 8 PM)' });
   }
 
   const results = { sent: [], skipped: [], errors: [] };

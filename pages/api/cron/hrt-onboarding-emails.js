@@ -39,6 +39,12 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  // Check quiet hours (skip if outside 8am-8pm Pacific, unless forced)
+  const force = req.query?.force === 'true';
+  if (!force && isInQuietHours()) {
+    return res.status(200).json({ skipped: true, reason: 'Outside Pacific send window (8 AM – 8 PM)' });
+  }
+
   try {
     const now = new Date();
     const pacificDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));

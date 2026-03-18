@@ -19,7 +19,7 @@
     },
     {
       "path": "/api/cron/wl-drip-emails",
-      "schedule": "0 14 * * *"
+      "schedule": "0 15 * * *"
     },
     {
       "path": "/api/cron/injection-reminders",

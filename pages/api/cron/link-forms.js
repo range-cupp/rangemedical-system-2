@@ -5,6 +5,8 @@
 // Uses shared patient matching utility (ghl_contact_id > email > phone > name)
 // Run twice daily via Vercel cron (6am + 6pm PT)
 // GET /api/cron/link-forms?key=YOUR_CRON_SECRET
+// No quiet-hours gate — DB-only operation, no patient comms
+// Supports ?force=true for manual testing
 
 import { createClient } from '@supabase/supabase-js';
 import { buildPatientLookupMaps, findPatientFromMaps } from '../../../lib/find-patient';

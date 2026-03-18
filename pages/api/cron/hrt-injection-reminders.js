@@ -87,11 +87,12 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  // Check time window
-  if (!isWithinAllowedHours()) {
+  // Check time window (skip if outside 8am-6pm Pacific, unless forced)
+  const force = req.query?.force === 'true';
+  if (!force && !isWithinAllowedHours()) {
     return res.status(200).json({
       success: true,
-      message: 'Outside allowed hours (9am-6pm PST). No reminders sent.',
+      message: 'Outside allowed hours (8am-6pm Pacific). No reminders sent.',
       skipped: true
     });
   }

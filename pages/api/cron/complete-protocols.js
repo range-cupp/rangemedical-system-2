@@ -1,6 +1,8 @@
 // /pages/api/cron/complete-protocols.js
 // Auto-complete protocols that have passed their end date
 // Run daily via Vercel Cron or external scheduler
+// No quiet-hours gate — DB-only operation, no patient comms
+// Supports ?force=true for manual testing
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';

@@ -1,7 +1,9 @@
 // /pages/api/twilio/webhook.js
 // Receive inbound SMS from Twilio
 // Stores messages in comms_log for conversation view
-// Auto-replies to HRT IV scheduling prompts when patient replies YES
+// Auto-replies:
+//   1. HRT IV scheduling prompts — patient replies YES → sends booking link
+//   2. Lab prep reminders — patient replies READY → sends lab prep instructions link
 // Range Medical System V2
 
 import { createClient } from '@supabase/supabase-js';
@@ -15,6 +17,9 @@ const supabase = createClient(
 
 // Positive reply keywords for scheduling prompt
 const POSITIVE_REPLIES = ['yes', 'y', 'yeah', 'sure', 'yep', 'yea', 'ok', 'okay'];
+
+// Lab prep reply keywords (includes POSITIVE_REPLIES + lab-specific)
+const LAB_PREP_REPLIES = ['ready', 'got it', ...POSITIVE_REPLIES];
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -175,6 +180,71 @@ export default async function handler(req, res) {
 
           if (linkResult.success) {
             console.log(`HRT IV scheduling link sent to ${patient.name} (${From})`);
+          }
+        }
+      }
+    }
+
+    // ================================================================
+    // AUTO-REPLY: Lab Prep Reminder
+    // If patient replies READY/YES to a recent lab prep reminder, send instructions link
+    // ================================================================
+    if (patient?.id && Body) {
+      const normalizedBody = (Body || '').trim().toLowerCase();
+
+      if (LAB_PREP_REPLIES.includes(normalizedBody)) {
+        // Check for a recent (last 3 days) unanswered lab_prep_reminder
+        const threeDaysAgo = new Date();
+        threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+        const { data: pendingReminder } = await supabase
+          .from('comms_log')
+          .select('id, created_at')
+          .eq('patient_id', patient.id)
+          .eq('message_type', 'lab_prep_reminder')
+          .eq('direction', 'outbound')
+          .neq('status', 'replied')
+          .gte('created_at', threeDaysAgo.toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (pendingReminder) {
+          const firstName = patient.first_name || (patient.name || '').split(' ')[0] || 'there';
+          console.log(`Lab prep READY reply from ${patient.name} — sending instructions link`);
+
+          const prepMessage = `Here are your lab prep instructions: https://www.range-medical.com/lab-prep \u2014 Fast 10\u201312 hours, water & black coffee OK. Questions? Call (949) 997-3988. See you tomorrow! \u2014 Range Medical`;
+
+          const prepResult = await sendSMS({ to: From, message: prepMessage }).catch(err => {
+            console.error('Lab prep instructions SMS error:', err);
+            return { success: false, error: err.message };
+          });
+
+          // Log the instructions link SMS
+          await logComm({
+            channel: 'sms',
+            messageType: 'lab_prep_instructions_sent',
+            message: prepMessage,
+            source: 'twilio/webhook',
+            patientId: patient.id,
+            patientName: patient.name,
+            recipient: From,
+            status: prepResult.success ? 'sent' : 'error',
+            errorMessage: prepResult.error || null,
+            twilioMessageSid: prepResult.messageSid || null,
+            provider: prepResult.provider || null,
+            direction: 'outbound',
+          }).catch(() => {});
+
+          // Mark the original reminder as replied (prevents duplicate sends)
+          await supabase
+            .from('comms_log')
+            .update({ status: 'replied' })
+            .eq('id', pendingReminder.id)
+            .catch(() => {});
+
+          if (prepResult.success) {
+            console.log(`Lab prep instructions sent to ${patient.name} (${From})`);
           }
         }
       }

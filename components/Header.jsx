@@ -12,6 +12,7 @@ export default function Header() {
     { href: '/weight-loss', label: 'Weight Loss' },
     { href: '/cellular-energy-reset', label: 'Cellular Energy Reset' },
     { href: '/iv-therapy', label: 'IV Therapy' },
+    { href: '/injection-therapy', label: 'Injection Therapy' },
     { href: '/peptide-therapy', label: 'Peptide Therapy' },
     { href: '/nad-therapy', label: 'NAD+ Therapy' },
     { href: '/hyperbaric-oxygen-therapy', label: 'Hyperbaric Oxygen' },

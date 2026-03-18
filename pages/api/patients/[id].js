@@ -352,7 +352,19 @@ export default async function handler(req, res) {
       const sessions = sessionsResult.data || [];
       const symptomResponses = symptomResult.data || [];
       const questionnaireResponses = questionnaireResult.data || [];
-      const medicalDocuments = medicalDocumentsResult.data || [];
+      const medicalDocumentsRaw = medicalDocumentsResult.data || [];
+      // Generate signed URLs for documents stored in Supabase Storage
+      const medicalDocuments = await Promise.all(
+        medicalDocumentsRaw.map(async (doc) => {
+          if (doc.file_path) {
+            const { data: urlData } = await supabase.storage
+              .from('patient-documents')
+              .createSignedUrl(doc.file_path, 60 * 60);
+            return { ...doc, document_url: urlData?.signedUrl || doc.document_url };
+          }
+          return doc;
+        })
+      );
       const assessments = assessmentsResult.data || [];
       const weightLossLogs = weightLossLogsResult.data || [];
       const serviceLogs = serviceLogsResult.data || [];

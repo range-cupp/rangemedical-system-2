@@ -9,7 +9,7 @@ const supabase = createClient(
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
@@ -113,6 +113,49 @@ export default async function handler(req, res) {
         error: 'Internal server error',
         details: error.message 
       });
+    }
+  }
+
+  if (req.method === 'DELETE') {
+    try {
+      const { id } = req.query;
+
+      if (!id) {
+        return res.status(400).json({ success: false, error: 'Missing document id' });
+      }
+
+      // Get document record to find file_path
+      const { data: doc, error: fetchError } = await supabase
+        .from('medical_documents')
+        .select('id, file_path')
+        .eq('id', id)
+        .single();
+
+      if (fetchError || !doc) {
+        return res.status(404).json({ success: false, error: 'Document not found' });
+      }
+
+      // Delete from storage if file_path exists
+      if (doc.file_path) {
+        await supabase.storage.from('patient-documents').remove([doc.file_path]);
+      }
+
+      // Delete database record
+      const { error: deleteError } = await supabase
+        .from('medical_documents')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) {
+        console.error('Delete error:', deleteError);
+        return res.status(500).json({ success: false, error: 'Failed to delete document' });
+      }
+
+      return res.status(200).json({ success: true });
+
+    } catch (error) {
+      console.error('Server error:', error);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
     }
   }
 

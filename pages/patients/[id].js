@@ -506,6 +506,15 @@ export default function PatientProfile() {
 
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
+
+  // Document upload state (Docs tab)
+  const [showDocUploadModal, setShowDocUploadModal] = useState(false);
+  const [docUploadForm, setDocUploadForm] = useState({
+    file: null, documentName: '', documentType: 'MRI Report', notes: ''
+  });
+  const [docUploading, setDocUploading] = useState(false);
+  const [docUploadError, setDocUploadError] = useState(null);
+
   const [sendingSymptoms, setSendingSymptoms] = useState(false);
   const [symptomsSent, setSymptomsSent] = useState(false);
   const fileInputRef = useRef(null);
@@ -1946,6 +1955,73 @@ export default function PatientProfile() {
         body: JSON.stringify({ documentId }),
       });
       if (res.ok) setLabDocuments(labDocuments.filter(d => d.id !== documentId));
+    } catch (err) {
+      console.error('Delete error:', err);
+    }
+  };
+
+  // --- Document upload handlers (Docs tab) ---
+  const handleDocFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const allowed = ['application/pdf', 'image/jpeg', 'image/png'];
+    if (allowed.includes(file.type)) {
+      setDocUploadForm({ ...docUploadForm, file, documentName: docUploadForm.documentName || file.name.replace(/\.[^.]+$/, '') });
+      setDocUploadError(null);
+    } else {
+      setDocUploadError('Please select a PDF, JPG, or PNG file');
+    }
+  };
+
+  const handleDocUpload = async () => {
+    if (!docUploadForm.file) return setDocUploadError('Please select a file');
+    if (!docUploadForm.documentName.trim()) return setDocUploadError('Please enter a document name');
+
+    setDocUploading(true);
+    setDocUploadError(null);
+
+    try {
+      const reader = new FileReader();
+      const fileData = await new Promise((resolve, reject) => {
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(docUploadForm.file);
+      });
+
+      const res = await fetch(`/api/patients/${id}/upload-document`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileData,
+          fileName: docUploadForm.file.name,
+          fileType: docUploadForm.file.type,
+          documentName: docUploadForm.documentName.trim(),
+          documentType: docUploadForm.documentType,
+          notes: docUploadForm.notes,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+
+      // Refresh patient data to get new document with signed URL
+      await fetchPatient();
+      setDocUploadForm({ file: null, documentName: '', documentType: 'MRI Report', notes: '' });
+      setShowDocUploadModal(false);
+    } catch (err) {
+      setDocUploadError(err.message);
+    } finally {
+      setDocUploading(false);
+    }
+  };
+
+  const handleDeleteMedicalDoc = async (docId) => {
+    if (!confirm('Delete this document?')) return;
+    try {
+      const res = await fetch(`/api/medical-documents?id=${docId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setMedicalDocuments(medicalDocuments.filter(d => d.id !== docId));
+      }
     } catch (err) {
       console.error('Delete error:', err);
     }
@@ -5098,24 +5174,37 @@ export default function PatientProfile() {
               </section>
 
               {/* Medical Documents Section */}
-              {medicalDocuments.length > 0 && (
-                <section className="card">
-                  <div className="card-header">
-                    <h3>Medical Documents ({medicalDocuments.length})</h3>
-                  </div>
+              <section className="card">
+                <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3>Uploaded Documents ({medicalDocuments.length})</h3>
+                  <button className="btn-primary-sm" onClick={() => { setDocUploadForm({ file: null, documentName: '', documentType: 'MRI Report', notes: '' }); setDocUploadError(null); setShowDocUploadModal(true); }}>
+                    + Upload Document
+                  </button>
+                </div>
+                {medicalDocuments.length === 0 ? (
+                  <div className="empty">No documents uploaded yet. Click "Upload Document" to add MRI reports, imaging, referrals, and more.</div>
+                ) : (
                   <div className="document-list">
                     {medicalDocuments.map(doc => (
                       <div key={doc.id} className="document-card">
                         <div className="document-header">
-                          <span className="document-icon">📄</span>
+                          <span className="document-icon">{
+                            (doc.document_type || '').toLowerCase().includes('mri') ? '🧠' :
+                            (doc.document_type || '').toLowerCase().includes('imaging') ? '📷' :
+                            (doc.document_type || '').toLowerCase().includes('referral') ? '📨' :
+                            (doc.document_type || '').toLowerCase().includes('insurance') ? '🏥' :
+                            (doc.document_type || '').toLowerCase().includes('lab') ? '🔬' : '📄'
+                          }</span>
                           <div>
                             <strong>{doc.document_name || 'Document'}</strong>
                             <span className="document-type">{doc.document_type || 'General'}</span>
                           </div>
                         </div>
+                        {doc.notes && <div style={{ padding: '4px 12px 0', fontSize: 12, color: '#666' }}>{doc.notes}</div>}
                         <div className="document-details">
                           <span>{formatDate(doc.uploaded_at)}</span>
                           {doc.uploaded_by && <span>by {doc.uploaded_by}</span>}
+                          {doc.file_size && <span>{(doc.file_size / 1024).toFixed(0)} KB</span>}
                         </div>
                         <div className="document-actions" style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                           {doc.document_url && <button onClick={() => openPdfViewer(doc.document_url, doc.document_name || 'Document')} className="btn-secondary-sm">View</button>}
@@ -5125,12 +5214,13 @@ export default function PatientProfile() {
                               Send
                             </button>
                           )}
+                          <button onClick={() => handleDeleteMedicalDoc(doc.id)} className="btn-secondary-sm" style={{ fontSize: 11, padding: '3px 8px', color: '#dc2626' }}>Delete</button>
                         </div>
                       </div>
                     ))}
                   </div>
-                </section>
-              )}
+                )}
+              </section>
             </>
           )}
 
@@ -7392,6 +7482,51 @@ export default function PatientProfile() {
               <div className="modal-footer">
                 <button onClick={() => setShowUploadModal(false)} className="btn-secondary">Cancel</button>
                 <button onClick={handleUploadDocument} disabled={uploading || !uploadForm.file} className="btn-primary">{uploading ? 'Uploading...' : 'Upload'}</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Upload Document Modal (Docs tab) */}
+        {showDocUploadModal && (
+          <div className="modal-overlay" onClick={() => setShowDocUploadModal(false)}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Upload Document</h3>
+                <button onClick={() => setShowDocUploadModal(false)} className="close-btn">&times;</button>
+              </div>
+              <div className="modal-body">
+                {docUploadError && <div className="error-box">{docUploadError}</div>}
+                <div className="form-group">
+                  <label>File (PDF, JPG, or PNG) *</label>
+                  <input type="file" accept="application/pdf,image/jpeg,image/png" onChange={handleDocFileSelect} />
+                  {docUploadForm.file && <div className="file-selected">Selected: {docUploadForm.file.name} ({(docUploadForm.file.size / 1024).toFixed(0)} KB)</div>}
+                </div>
+                <div className="form-group">
+                  <label>Document Name *</label>
+                  <input type="text" value={docUploadForm.documentName} onChange={e => setDocUploadForm({...docUploadForm, documentName: e.target.value})} placeholder="e.g. MRI Report - Left Knee" />
+                </div>
+                <div className="form-group">
+                  <label>Document Type</label>
+                  <select value={docUploadForm.documentType} onChange={e => setDocUploadForm({...docUploadForm, documentType: e.target.value})}>
+                    <option value="MRI Report">MRI Report</option>
+                    <option value="Imaging">Imaging</option>
+                    <option value="X-Ray">X-Ray</option>
+                    <option value="Referral">Referral</option>
+                    <option value="Lab Report">Lab Report</option>
+                    <option value="Insurance">Insurance</option>
+                    <option value="Medical Record">Medical Record</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Notes</label>
+                  <textarea value={docUploadForm.notes} onChange={e => setDocUploadForm({...docUploadForm, notes: e.target.value})} rows={2} placeholder="Optional notes about this document" />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button onClick={() => setShowDocUploadModal(false)} className="btn-secondary">Cancel</button>
+                <button onClick={handleDocUpload} disabled={docUploading || !docUploadForm.file} className="btn-primary">{docUploading ? 'Uploading...' : 'Upload'}</button>
               </div>
             </div>
           </div>

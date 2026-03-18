@@ -52,6 +52,7 @@ export default function Layout({ children, title, description }) {
                   <Link href="/peptide-therapy">Peptide Therapy</Link>
                   <Link href="/nad-therapy">NAD+ Therapy</Link>
                   <Link href="/iv-therapy">IV Therapy</Link>
+                  <Link href="/injection-therapy">Injection Therapy</Link>
                   <Link href="/cellular-energy-reset">Cellular Reset</Link>
                   <Link href="/hyperbaric-oxygen-therapy">Hyperbaric Oxygen</Link>
                   <Link href="/red-light-therapy">Red Light Therapy</Link>
@@ -104,6 +105,7 @@ export default function Layout({ children, title, description }) {
               <Link href="/peptide-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Peptide Therapy</Link>
               <Link href="/nad-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>NAD+ Therapy</Link>
               <Link href="/iv-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>IV Therapy</Link>
+              <Link href="/injection-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Injection Therapy</Link>
               <Link href="/cellular-energy-reset" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Cellular Reset</Link>
               <Link href="/hyperbaric-oxygen-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Hyperbaric Oxygen</Link>
               <Link href="/red-light-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Red Light Therapy</Link>
@@ -152,6 +154,7 @@ export default function Layout({ children, title, description }) {
               <li><Link href="/peptide-therapy">Peptide Therapy</Link></li>
               <li><Link href="/nad-therapy">NAD+ Therapy</Link></li>
               <li><Link href="/iv-therapy">IV Therapy</Link></li>
+              <li><Link href="/injection-therapy">Injection Therapy</Link></li>
               <li><Link href="/cellular-energy-reset">Cellular Reset</Link></li>
             </ul>
           </div>

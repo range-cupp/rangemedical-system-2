@@ -439,13 +439,21 @@ export default function ConversationView({ patientId, patientName, patientPhone,
     if (!pid) return;
     setClearingAction(true);
     try {
-      await fetch('/api/admin/clear-needs-response', {
+      const resp = await fetch('/api/admin/clear-needs-response', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ patientId: pid }),
       });
-      // Update local message state to remove needs_response flags
-      setMessages(prev => prev.map(m => ({ ...m, needs_response: false })));
+      const contentType = resp.headers.get('content-type') || '';
+      if (!resp.ok || !contentType.includes('application/json')) {
+        console.error('Clear needs_response failed:', resp.status);
+        return;
+      }
+      const result = await resp.json();
+      if (result.success) {
+        // Update local message state to remove needs_response flags
+        setMessages(prev => prev.map(m => ({ ...m, needs_response: false })));
+      }
     } catch (err) {
       console.error('Error clearing needs_response:', err);
     } finally {

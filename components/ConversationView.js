@@ -23,7 +23,7 @@ const FORM_OPTIONS = [
   { id: 'exosome-iv', name: 'Exosome IV Consent' },
 ];
 
-export default function ConversationView({ patientId, patientName, patientPhone, ghlContactId, onBack, onPatientLinked }) {
+export default function ConversationView({ patientId, patientName, patientPhone, ghlContactId, onBack, onPatientLinked, onPrev, onNext, hasPrev, hasNext }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newMessage, setNewMessage] = useState('');
@@ -495,6 +495,16 @@ export default function ConversationView({ patientId, patientName, patientPhone,
           {onBack && (
             <button onClick={onBack} style={styles.backBtn} title="Back to list">
               ←
+            </button>
+          )}
+          {onPrev && (
+            <button onClick={onPrev} disabled={!hasPrev} style={{ ...styles.navBtn, opacity: hasPrev ? 1 : 0.3 }} title="Previous conversation">
+              ‹
+            </button>
+          )}
+          {onNext && (
+            <button onClick={onNext} disabled={!hasNext} style={{ ...styles.navBtn, opacity: hasNext ? 1 : 0.3 }} title="Next conversation">
+              ›
             </button>
           )}
           <div>
@@ -1080,6 +1090,18 @@ const styles = {
     color: '#333',
     flexShrink: 0,
     lineHeight: 1,
+  },
+  navBtn: {
+    background: 'none',
+    border: '1px solid #ddd',
+    borderRadius: '8px',
+    padding: '6px 8px',
+    fontSize: '20px',
+    cursor: 'pointer',
+    color: '#333',
+    flexShrink: 0,
+    lineHeight: 1,
+    fontWeight: '600',
   },
   headerRight: {
     display: 'flex',

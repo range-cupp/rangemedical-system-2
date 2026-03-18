@@ -206,6 +206,19 @@ export default function CommunicationsPage() {
     setSelectedPatient(null);
   };
 
+  // Navigate to next/previous patient in the filtered list
+  const navigatePatient = (direction) => {
+    if (!selectedPatient) return;
+    const currentIdx = allFilteredPatients.findIndex(p =>
+      (p.id && p.id === selectedPatient.id) ||
+      (!p.id && p.name === selectedPatient.name)
+    );
+    if (currentIdx === -1) return;
+    const nextIdx = currentIdx + direction;
+    if (nextIdx < 0 || nextIdx >= allFilteredPatients.length) return;
+    selectPatient(allFilteredPatients[nextIdx]);
+  };
+
   const formatRelativeTime = (dateStr) => {
     if (!dateStr) return '';
     const now = new Date();
@@ -490,6 +503,10 @@ export default function CommunicationsPage() {
             patientPhone={selectedPatient?.phone || selectedPatient?.recipient}
             ghlContactId={selectedPatient?.ghl_contact_id}
             onBack={handleBack}
+            onPrev={() => navigatePatient(-1)}
+            onNext={() => navigatePatient(1)}
+            hasPrev={allFilteredPatients.findIndex(p => (p.id && p.id === selectedPatient?.id) || (!p.id && p.name === selectedPatient?.name)) > 0}
+            hasNext={allFilteredPatients.findIndex(p => (p.id && p.id === selectedPatient?.id) || (!p.id && p.name === selectedPatient?.name)) < allFilteredPatients.length - 1}
           />
         </div>
       )}

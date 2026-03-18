@@ -102,6 +102,66 @@ export default async function handler(req, res) {
       result = data;
     }
 
+    // ── Sync weight to service_logs if patient has active weight loss protocol ──
+    if (w) {
+      try {
+        const { data: wlProtocol } = await supabase
+          .from('protocols')
+          .select('id, medication, selected_dose, starting_weight')
+          .eq('patient_id', patient_id)
+          .ilike('program_type', 'weight_loss%')
+          .in('status', ['active', 'in_progress'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (wlProtocol) {
+          const logDate = new Date().toISOString().split('T')[0];
+
+          // Upsert weight_check in service_logs for today
+          const { data: existingLog } = await supabase
+            .from('service_logs')
+            .select('id')
+            .eq('patient_id', patient_id)
+            .eq('category', 'weight_loss')
+            .eq('entry_date', logDate)
+            .maybeSingle();
+
+          if (existingLog) {
+            await supabase
+              .from('service_logs')
+              .update({ weight: w, updated_at: new Date().toISOString() })
+              .eq('id', existingLog.id);
+          } else {
+            await supabase
+              .from('service_logs')
+              .insert({
+                patient_id,
+                protocol_id: wlProtocol.id,
+                category: 'weight_loss',
+                entry_type: 'weight_check',
+                entry_date: logDate,
+                medication: wlProtocol.medication || null,
+                dosage: wlProtocol.selected_dose || null,
+                weight: w,
+                notes: `Via vitals by ${recorded_by || 'Staff'}`,
+              });
+          }
+
+          // Auto-set starting_weight if missing
+          if (!wlProtocol.starting_weight) {
+            await supabase
+              .from('protocols')
+              .update({ starting_weight: w, updated_at: new Date().toISOString() })
+              .eq('id', wlProtocol.id);
+          }
+        }
+      } catch (syncErr) {
+        // Don't fail vitals save if sync fails
+        console.error('Weight→service_logs sync error (non-fatal):', syncErr.message);
+      }
+    }
+
     return res.status(200).json({ success: true, vitals: result });
 
   } catch (error) {

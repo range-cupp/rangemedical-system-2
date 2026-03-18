@@ -1544,10 +1544,14 @@ export default function PatientProfile() {
   };
 
   // Open Log Entry modal for a protocol (uses shared ServiceLogContent)
+  // Force clean unmount/remount to avoid stale state preventing reopen
   const openLogEntryModal = (protocol, e) => {
     if (e) e.stopPropagation();
-    setServiceLogKey(prev => prev + 1);
-    setShowServiceLog(true);
+    setShowServiceLog(false);
+    setTimeout(() => {
+      setServiceLogKey(prev => prev + 1);
+      setShowServiceLog(true);
+    }, 0);
   };
 
   // Quick weight log for missed WL sessions (patient called/texted weight)
@@ -3782,7 +3786,7 @@ export default function PatientProfile() {
                       const isWeightLoss = protocol.category === 'weight_loss';
                       const wlLogs = isWeightLoss
                         ? weightLossLogs
-                            .filter(l => l.protocol_id === protocol.id || !l.protocol_id)
+                            .filter(l => l.protocol_id === protocol.id || (!l.protocol_id && l.category === 'weight_loss'))
                             .sort((a, b) => new Date(a.entry_date) - new Date(b.entry_date))
                         : [];
                       const chartData = wlLogs.filter(l => l.weight).map(l => ({

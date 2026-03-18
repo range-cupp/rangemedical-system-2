@@ -8,6 +8,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { sendAppointmentNotification } from '../../../lib/appointment-notifications';
+import { sendProviderNotification } from '../../../lib/provider-notifications';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -50,6 +51,8 @@ const CALCOM_APPOINTMENT_ACTIONS = {
   'initial-consultation': 'log',
   'initial-consultation-peptide': 'log',
   'follow-up-consultation': 'log',
+  'follow-up-consultation-telemedicine': 'log',
+  'follow-up-consultation-phone': 'log',
   'injection-medical': 'log',
 
   // Lab journey — update lab pipeline stage
@@ -193,7 +196,8 @@ export default async function handler(req, res) {
         'nad-iv-250': 'iv', 'nad-iv-500': 'iv', 'nad-iv-750': 'iv', 'nad-iv-1000': 'iv',
         'vitamin-c-iv': 'iv', 'vitamin-c-iv-25g': 'iv', 'vitamin-c-iv-50g': 'iv', 'vitamin-c-iv-75g': 'iv',
         'methylene-blue-iv': 'iv', 'mb-combo-iv': 'iv', 'glutathione-iv': 'iv', 'specialty-iv': 'iv',
-        'initial-consultation': 'other', 'follow-up-consultation': 'other',
+        'initial-consultation': 'other', 'follow-up-consultation': 'follow_up_consultation',
+        'follow-up-consultation-telemedicine': 'follow_up_consultation', 'follow-up-consultation-phone': 'follow_up_consultation',
       };
       await supabase.from('appointments').upsert({
         patient_id: patientId,
@@ -216,12 +220,19 @@ export default async function handler(req, res) {
         await executeAction(action, patientId, eventTypeSlug, serviceDetails);
       }
 
-      // Send staff notification (fire-and-forget)
+      // Send staff notification email (fire-and-forget)
       sendStaffNotification('created', {
         staffEmail, staffName, patientName: attendee.name,
         serviceName: eventTitle, startTime, durationMinutes,
         serviceDetails, bookingDate
       }).catch(err => console.error('Staff notification failed:', err));
+
+      // Send provider SMS notification (fire-and-forget)
+      sendProviderNotification({
+        type: 'created',
+        staff: { name: staffName, email: staffEmail },
+        appointment: { patientName: attendee.name, serviceName: eventTitle, startTime },
+      }).catch(err => console.error('Provider SMS notification failed:', err));
 
       // Send patient notification — email + SMS with quiet hours (fire-and-forget)
       if (attendee.email && !attendee.email.endsWith('@booking.rangemedical.com')) {
@@ -288,6 +299,13 @@ export default async function handler(req, res) {
         serviceDetails, bookingDate
       }).catch(err => console.error('Staff cancel notification failed:', err));
 
+      // Send provider SMS for cancellation (fire-and-forget)
+      sendProviderNotification({
+        type: 'cancelled',
+        staff: { name: staffName, email: staffEmail },
+        appointment: { patientName: attendee.name, serviceName: eventTitle, startTime },
+      }).catch(err => console.error('Provider SMS cancel failed:', err));
+
       // Send patient cancellation notification (fire-and-forget)
       if (attendee.email && !attendee.email.endsWith('@booking.rangemedical.com')) {
         sendAppointmentNotification({
@@ -345,6 +363,13 @@ export default async function handler(req, res) {
         serviceName: eventTitle, startTime, durationMinutes,
         serviceDetails, bookingDate
       }).catch(err => console.error('Staff reschedule notification failed:', err));
+
+      // Send provider SMS for reschedule (fire-and-forget)
+      sendProviderNotification({
+        type: 'rescheduled',
+        staff: { name: staffName, email: staffEmail },
+        appointment: { patientName: attendee.name, serviceName: eventTitle, startTime },
+      }).catch(err => console.error('Provider SMS reschedule failed:', err));
 
       // Send patient reschedule notification (fire-and-forget)
       if (attendee.email && !attendee.email.endsWith('@booking.rangemedical.com')) {

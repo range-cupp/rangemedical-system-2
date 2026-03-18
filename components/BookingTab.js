@@ -54,6 +54,8 @@ const SERVICE_CATEGORIES = {
     'initial-consultation',
     'initial-consultation-peptide',
     'follow-up-consultation',
+    'follow-up-consultation-telemedicine',
+    'follow-up-consultation-phone',
   ],
 };
 

@@ -46,7 +46,9 @@ const EVENT_TYPES = [
   // CONSULTATIONS
   { slug: 'initial-consultation', title: 'Initial Consultation', length: 30, description: 'Initial consultation with Dr. Burgess to discuss your health goals.', locations: LOCATION_IN_PERSON },
   { slug: 'initial-consultation-peptide', title: 'Initial Consultation - Peptide', length: 30, description: 'Initial peptide therapy consultation with Dr. Burgess.', locations: LOCATION_IN_PERSON },
-  { slug: 'follow-up-consultation', title: 'Follow-Up Consultation', length: 30, description: 'Follow-up consultation with Dr. Burgess.', locations: LOCATION_IN_PERSON },
+  { slug: 'follow-up-consultation', title: 'Follow-Up Consultation', length: 20, description: 'Follow-up consultation at Range Medical.', locations: LOCATION_IN_PERSON },
+  { slug: 'follow-up-consultation-telemedicine', title: 'Follow-Up Consultation — Telemedicine', length: 20, description: 'In-clinic telemedicine follow-up consultation.', locations: LOCATION_VIDEO },
+  { slug: 'follow-up-consultation-phone', title: 'Follow-Up Consultation — Phone', length: 20, description: 'Telephone follow-up consultation.', locations: LOCATION_PHONE },
 ];
 
 // Slugs that are NOT in our 25-type plan — should be hidden

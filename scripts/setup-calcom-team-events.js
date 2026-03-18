@@ -60,7 +60,9 @@ const EVENT_TYPES = [
   // CONSULTATIONS (all Dr. Burgess only)
   { slug: 'initial-consultation', title: 'Initial Consultation', length: 45, desc: 'Initial consultation with Dr. Burgess to discuss your health goals.', loc: LOC_IN_PERSON, hosts: fixedHost(DAMIEN) },
   { slug: 'initial-consultation-peptide', title: 'Initial Consultation - Peptide', length: 45, desc: 'Initial peptide therapy consultation with Dr. Burgess.', loc: LOC_IN_PERSON, hosts: fixedHost(DAMIEN) },
-  { slug: 'follow-up-consultation', title: 'Follow-Up Consultation', length: 45, desc: 'Follow-up consultation with Dr. Burgess.', loc: LOC_IN_PERSON, hosts: fixedHost(DAMIEN) },
+  { slug: 'follow-up-consultation', title: 'Follow-Up Consultation', length: 20, desc: 'Follow-up consultation at Range Medical.', loc: LOC_IN_PERSON, hosts: hosts([DAMIEN, CHRIS]) },
+  { slug: 'follow-up-consultation-telemedicine', title: 'Follow-Up Consultation — Telemedicine', length: 20, desc: 'In-clinic telemedicine follow-up consultation.', loc: [{ type: 'address', address: 'Range Medical — Telemedicine, 1901 Westcliff Dr Suite 9 & 10, Newport Beach, CA 92660', public: true }], hosts: hosts([DAMIEN, CHRIS]) },
+  { slug: 'follow-up-consultation-phone', title: 'Follow-Up Consultation — Phone', length: 20, desc: 'Telephone follow-up consultation.', loc: LOC_PHONE, hosts: hosts([DAMIEN, CHRIS]) },
   { slug: 'initial-lab-review', title: 'Initial Lab Review', length: 45, desc: 'Review your initial lab results with Dr. Burgess.', loc: LOC_IN_PERSON, hosts: fixedHost(DAMIEN) },
   { slug: 'follow-up-lab-review', title: 'Follow Up Lab Review', length: 45, desc: 'Follow-up lab review with Dr. Burgess.', loc: LOC_IN_PERSON, hosts: fixedHost(DAMIEN) },
   { slug: 'initial-lab-review-telemedicine', title: 'Initial Lab Review - Tele-Medicine', length: 45, desc: 'Virtual initial lab review with Dr. Burgess.', loc: LOC_VIDEO, hosts: fixedHost(DAMIEN) },

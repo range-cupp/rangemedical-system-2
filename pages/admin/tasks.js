@@ -7,6 +7,701 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Sparkles, Mic, MicOff, Phone, MessageSquare, Send, Loader2 } from 'lucide-react';
 import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
 import { useAuth } from '../../components/AuthProvider';
+import { NOTE_TYPES, ENCOUNTER_TEMPLATES, getTemplateForService, getTemplatesForCategory } from '../../lib/encounter-templates';
+import { ENCOUNTER_FORMS } from '../../lib/encounter-form-config';
+import InteractiveEncounterForm from '../../components/InteractiveEncounterForm';
+
+// ── Markdown helpers (shared with EncounterModal) ─────────────────────────────
+function mdToHtml(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+}
+function htmlToMd(html) {
+  if (!html) return '';
+  return html
+    .replace(/<strong>([\s\S]*?)<\/strong>/gi, (_, inner) => `**${inner.replace(/<[^>]*>/g, '')}**`)
+    .replace(/<b>([\s\S]*?)<\/b>/gi, (_, inner) => `**${inner.replace(/<[^>]*>/g, '')}**`)
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<div><br\s*\/?><\/div>/gi, '\n')
+    .replace(/<div>([\s\S]*?)<\/div>/gi, '\n$1')
+    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/<[^>]*>/g, '').replace(/\n{3,}/g, '\n\n').trim();
+}
+function renderFormattedText(text) {
+  if (!text) return text;
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
+
+// ── Inline Encounter Editor ───────────────────────────────────────────────────
+// Renders inside a "Document encounter" task when expanded
+function InlineEncounterEditor({ task, session, currentUser, onTaskComplete }) {
+  const [appointment, setAppointment] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [notes, setNotes] = useState([]);
+  const [loadingNotes, setLoadingNotes] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [noteMode, setNoteMode] = useState('choose'); // 'choose' | 'interactive' | 'freetext'
+  const [interactiveFormType, setInteractiveFormType] = useState(null);
+  const [noteType, setNoteType] = useState('soap');
+  const [noteIsEmpty, setNoteIsEmpty] = useState(true);
+  const [noteFormatting, setNoteFormatting] = useState(false);
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [showTemplateMenu, setShowTemplateMenu] = useState(false);
+  const noteRef = useRef(null);
+  const recognitionRef = useRef(null);
+
+  // Edit & sign state
+  const [editingNoteId, setEditingNoteId] = useState(null);
+  const [editNoteInput, setEditNoteInput] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+  const [addendumParentId, setAddendumParentId] = useState(null);
+  const [addendumInput, setAddendumInput] = useState('');
+  const [addendumSaving, setAddendumSaving] = useState(false);
+
+  const canAuthorNotes = ['burgess@range-medical.com', 'lily@range-medical.com', 'evan@range-medical.com', 'chris@range-medical.com']
+    .some(email => currentUser?.toLowerCase()?.includes(email));
+
+  const getNoteMarkdown = () => htmlToMd(noteRef.current?.innerHTML || '');
+
+  // Fetch appointment details
+  useEffect(() => {
+    if (!task.appointment_id) { setLoading(false); return; }
+    fetch(`/api/appointments/${task.appointment_id}`, {
+      headers: { Authorization: `Bearer ${session?.access_token}` },
+    })
+      .then(r => r.json())
+      .then(data => { setAppointment(data.appointment || data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [task.appointment_id, session]);
+
+  // Fetch existing encounter notes
+  useEffect(() => {
+    if (!task.appointment_id) { setLoadingNotes(false); return; }
+    fetch(`/api/notes/by-appointment?appointment_id=${task.appointment_id}`)
+      .then(r => r.json())
+      .then(data => { setNotes(data.notes || []); setLoadingNotes(false); })
+      .catch(() => setLoadingNotes(false));
+  }, [task.appointment_id]);
+
+  // Determine template and interactive forms from service name
+  const serviceName = appointment?.service_name || appointment?.appointment_title || '';
+  const templateKey = getTemplateForService(serviceName);
+  const template = ENCOUNTER_TEMPLATES[templateKey] || ENCOUNTER_TEMPLATES.general;
+
+  const getAvailableForms = () => {
+    const name = serviceName.toLowerCase();
+    const forms = [];
+    if (name.includes('iv') || name.includes('infusion') || name.includes('nad') || name.includes('drip')) forms.push('iv_therapy');
+    if (name.includes('hrt') || name.includes('testosterone') || name.includes('hormone') || name.includes('trt')) forms.push('hrt_followup');
+    if (name.includes('weight') || name.includes('glp') || name.includes('sema') || name.includes('tirz') || name.includes('ozempic') || name.includes('mounjaro')) forms.push('weight_loss');
+    if (name.includes('peptide') || name.includes('bpc') || name.includes('tb-4') || name.includes('tb4')) forms.push('peptide_injection');
+    if (name.includes('hbot') || name.includes('hyperbaric')) forms.push('hbot_session');
+    if (name.includes('rlt') || name.includes('red light')) forms.push('rlt_session');
+    if (name.includes('injection') || name.includes('b12') || name.includes('lipo') || name.includes('phlebotomy') || name.includes('blood draw')) forms.push('injection');
+    return [...new Set(forms)];
+  };
+  const availableForms = getAvailableForms();
+
+  useEffect(() => {
+    if (template.defaultNoteType) setNoteType(template.defaultNoteType);
+  }, [template.defaultNoteType]);
+
+  // Tab key for ?? placeholders
+  const handleNoteKeyDown = (e) => {
+    if (e.key === 'Tab' && noteRef.current?.innerText?.includes('??')) {
+      e.preventDefault();
+      const sel = window.getSelection();
+      const el = noteRef.current;
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+      let node, passedCurrent = false, firstMatch = null;
+      const curNode = sel.anchorNode;
+      const selectedText = sel.toString();
+      const skipOffset = selectedText === '??' ? sel.anchorOffset + 2 : sel.anchorOffset;
+      while ((node = walker.nextNode())) {
+        const searchFrom = (node === curNode && !passedCurrent) ? skipOffset : 0;
+        const idx = node.textContent.indexOf('??', searchFrom);
+        if (idx !== -1 && !firstMatch) firstMatch = { node, idx };
+        if (idx !== -1 && passedCurrent) {
+          const range = document.createRange();
+          range.setStart(node, idx); range.setEnd(node, idx + 2);
+          sel.removeAllRanges(); sel.addRange(range);
+          return;
+        }
+        if (node === curNode) passedCurrent = true;
+      }
+      if (firstMatch) {
+        const range = document.createRange();
+        range.setStart(firstMatch.node, firstMatch.idx); range.setEnd(firstMatch.node, firstMatch.idx + 2);
+        sel.removeAllRanges(); sel.addRange(range);
+      }
+    }
+  };
+
+  const loadTemplate = (body, defaultNoteType) => {
+    if (noteRef.current) {
+      const existing = noteRef.current.innerHTML.trim();
+      const separator = existing ? '<br><br><hr><br>' : '';
+      noteRef.current.innerHTML = (existing ? existing + separator : '') + mdToHtml(body);
+      setNoteIsEmpty(false);
+      if (defaultNoteType && !existing) setNoteType(defaultNoteType);
+      noteRef.current.focus();
+      setTimeout(() => {
+        // Try to select first ?? placeholder
+        const walker = document.createTreeWalker(noteRef.current, NodeFilter.SHOW_TEXT, null, false);
+        let n;
+        while ((n = walker.nextNode())) {
+          const idx = n.textContent.indexOf('??');
+          if (idx !== -1) {
+            const range = document.createRange();
+            range.setStart(n, idx); range.setEnd(n, idx + 2);
+            const sel = window.getSelection();
+            sel.removeAllRanges(); sel.addRange(range);
+            return;
+          }
+        }
+      }, 50);
+    }
+  };
+
+  // Dictation
+  const startDictation = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) { alert('Voice dictation not supported. Use Chrome.'); return; }
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true; recognition.interimResults = true; recognition.lang = 'en-US';
+    recognition.onresult = (event) => {
+      let finalTranscript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript + ' ';
+      }
+      if (finalTranscript && noteRef.current) {
+        noteRef.current.focus();
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0 && noteRef.current.contains(sel.anchorNode)) {
+          document.execCommand('insertText', false, ' ' + finalTranscript);
+        } else {
+          noteRef.current.innerHTML += ' ' + finalTranscript;
+        }
+        setNoteIsEmpty(false);
+      }
+    };
+    recognition.onerror = () => setIsRecording(false);
+    recognition.onend = () => setIsRecording(false);
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsRecording(true);
+  };
+  const stopDictation = () => {
+    if (recognitionRef.current) { recognitionRef.current.stop(); recognitionRef.current = null; }
+    setIsRecording(false);
+  };
+  const toggleDictation = () => { isRecording ? stopDictation() : startDictation(); };
+
+  // AI Format
+  const handleFormat = async () => {
+    const raw = getNoteMarkdown();
+    if (!raw.trim()) return;
+    setNoteFormatting(true);
+    try {
+      const res = await fetch('/api/notes/format', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ raw_text: raw, note_type: noteType }),
+      });
+      const data = await res.json();
+      if (data.formatted && noteRef.current) noteRef.current.innerHTML = mdToHtml(data.formatted);
+    } catch (err) { console.error('Format error:', err); }
+    finally { setNoteFormatting(false); }
+  };
+
+  // Save note
+  const handleSaveNote = async () => {
+    const body = getNoteMarkdown();
+    if (!body.trim()) return;
+    setNoteSaving(true);
+    try {
+      const patientId = appointment?.patient_id || task.patient_id;
+      const res = await fetch('/api/notes/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: patientId,
+          body, raw_input: body,
+          created_by: currentUser,
+          appointment_id: task.appointment_id,
+          encounter_service: serviceName,
+        }),
+      });
+      const data = await res.json();
+      if (data.note) {
+        setNotes(prev => [...prev, data.note]);
+        if (noteRef.current) noteRef.current.innerHTML = '';
+        setNoteIsEmpty(true);
+        setShowForm(false);
+        stopDictation();
+      }
+    } catch (err) { console.error('Save note error:', err); }
+    finally { setNoteSaving(false); }
+  };
+
+  // Sign note
+  const handleSignNote = async (noteId) => {
+    if (!confirm('Sign and lock this note? You can add addendums after signing.')) return;
+    try {
+      const res = await fetch('/api/notes/sign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note_id: noteId, signed_by: currentUser }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNotes(prev => prev.map(n => n.id === noteId ? { ...n, status: 'signed', signed_by: currentUser, signed_at: new Date().toISOString() } : n));
+        // Auto-complete task after signing
+        if (onTaskComplete) onTaskComplete();
+      } else {
+        alert(data.error || 'Failed to sign note');
+      }
+    } catch (err) { console.error('Sign error:', err); }
+  };
+
+  // Edit draft
+  const handleEditSave = async () => {
+    if (!editNoteInput.trim() || !editingNoteId) return;
+    setEditSaving(true);
+    try {
+      const res = await fetch(`/api/notes/${editingNoteId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body: editNoteInput }),
+      });
+      const data = await res.json();
+      if (data.note) {
+        setNotes(prev => prev.map(n => n.id === editingNoteId ? { ...n, body: editNoteInput } : n));
+        setEditingNoteId(null);
+        setEditNoteInput('');
+      }
+    } catch (err) { console.error('Edit save error:', err); }
+    finally { setEditSaving(false); }
+  };
+
+  // Save addendum
+  const handleSaveAddendum = async () => {
+    if (!addendumInput.trim() || !addendumParentId) return;
+    setAddendumSaving(true);
+    try {
+      const res = await fetch('/api/notes/addendum', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          parent_note_id: addendumParentId,
+          body: addendumInput,
+          created_by: currentUser,
+          appointment_id: task.appointment_id,
+        }),
+      });
+      const data = await res.json();
+      if (data.note) {
+        setNotes(prev => [...prev, data.note]);
+        setAddendumParentId(null);
+        setAddendumInput('');
+      }
+    } catch (err) { console.error('Addendum save error:', err); }
+    finally { setAddendumSaving(false); }
+  };
+
+  const formatShortDate = (d) => {
+    if (!d) return '';
+    return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  // ── Styles ───────────────────────────────────────────────────────────────────
+  const s = {
+    container: { marginTop: '14px', borderTop: '1px solid #e5e7eb', paddingTop: '14px' },
+    sectionLabel: { fontSize: '11px', fontWeight: 700, color: '#6d28d9', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' },
+    noteCard: { marginBottom: '10px', padding: '14px 16px', border: '1px solid #eee', borderRadius: '10px', background: '#fff' },
+    noteCardAddendum: { background: '#fffef5', borderColor: '#fde68a' },
+    noteHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' },
+    noteMeta: { fontSize: '12px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '8px' },
+    noteBody: { whiteSpace: 'pre-wrap', fontSize: '13px', lineHeight: 1.7, color: '#1f2937' },
+    noteActions: { display: 'flex', gap: '8px', marginTop: '12px', paddingTop: '10px', borderTop: '1px solid #f5f5f5' },
+    badgeSigned: { padding: '2px 8px', borderRadius: '20px', fontSize: '10px', fontWeight: 600, background: '#ecfdf5', color: '#059669' },
+    badgeDraft: { padding: '2px 8px', borderRadius: '20px', fontSize: '10px', fontWeight: 600, background: '#f3f4f6', color: '#6b7280' },
+    badgeAddendum: { padding: '2px 8px', borderRadius: '20px', fontSize: '10px', fontWeight: 600, background: '#fef3c7', color: '#b45309' },
+    btn: { padding: '6px 12px', fontSize: '12px', fontWeight: 600, borderRadius: '7px', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' },
+    btnPrimary: { background: '#111', color: '#fff' },
+    btnSecondary: { background: '#fff', color: '#374151', border: '1px solid #d1d5db' },
+    btnSign: { background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' },
+    btnGhost: { background: 'none', color: '#6b7280', border: '1px solid #e5e7eb' },
+    btnAi: { background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: '#fff', border: 'none' },
+    formCard: { marginTop: '12px', padding: '16px', border: '1px solid #e5e7eb', borderRadius: '12px', background: '#fafbfc' },
+    formLabel: { fontSize: '11px', fontWeight: 600, color: '#6b7280', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' },
+    typePills: { display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '4px' },
+    typePill: (active) => ({
+      padding: '5px 12px', fontSize: '11px', fontWeight: 600, borderRadius: '20px',
+      border: `1.5px solid ${active ? '#111' : '#e5e7eb'}`,
+      background: active ? '#111' : '#fff', color: active ? '#fff' : '#6b7280',
+      cursor: 'pointer',
+    }),
+    templateBtn: {
+      display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 12px',
+      fontSize: '12px', fontWeight: 600, borderRadius: '8px',
+      border: '1.5px dashed #d1d5db', background: '#fafbfc', color: '#374151',
+      cursor: 'pointer', width: '100%', textAlign: 'left',
+    },
+    templateDropdown: {
+      position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 50,
+      background: '#fff', border: '1px solid #e5e7eb', borderRadius: '10px',
+      boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: '280px', overflowY: 'auto',
+    },
+    templateGroupLabel: { padding: '8px 14px 4px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#9ca3af' },
+    templateOption: {
+      display: 'block', width: '100%', padding: '8px 14px', fontSize: '12px', fontWeight: 500,
+      border: 'none', background: 'none', color: '#374151', cursor: 'pointer', textAlign: 'left',
+    },
+    quickNote: {
+      padding: '3px 10px', fontSize: '11px', borderRadius: '16px',
+      border: '1px solid #e5e7eb', background: '#fff', color: '#374151', cursor: 'pointer',
+    },
+    editorWrap: { position: 'relative', marginBottom: '12px' },
+    editor: {
+      width: '100%', minHeight: '150px', fontFamily: 'inherit', fontSize: '13px',
+      lineHeight: 1.7, padding: '12px 44px 12px 14px', borderRadius: '10px',
+      border: '1.5px solid #e5e7eb', background: '#fff', color: '#111',
+      overflowY: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-word', boxSizing: 'border-box',
+    },
+    micBtn: (recording) => ({
+      position: 'absolute', right: '10px', top: '10px', width: '30px', height: '30px',
+      borderRadius: '50%', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: '14px', cursor: 'pointer',
+      background: recording ? '#dc2626' : '#f3f4f6', color: recording ? '#fff' : '#6b7280',
+      ...(recording ? { animation: 'pulse 1.5s infinite' } : {}),
+    }),
+    actions: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' },
+    actionsRight: { display: 'flex', gap: '8px' },
+    // Addendum
+    addendumForm: { marginTop: '12px', padding: '12px', background: '#fffef5', borderRadius: '8px', border: '1px solid #fde68a' },
+    addendumTextarea: {
+      width: '100%', resize: 'vertical', fontFamily: 'inherit', fontSize: '13px', lineHeight: 1.6,
+      padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #fde68a', background: '#fff', minHeight: '70px', boxSizing: 'border-box',
+    },
+    // Mode chooser
+    modeBtn: (highlight) => ({
+      flex: 1, maxWidth: '220px', padding: '20px 16px', borderRadius: '12px',
+      border: `2px solid ${highlight ? '#e9d5ff' : '#e5e7eb'}`,
+      background: highlight ? '#faf8ff' : '#fafafa', cursor: 'pointer',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
+    }),
+  };
+
+  if (loading) return <div style={{ ...s.container, color: '#9ca3af', fontSize: '13px' }}>Loading encounter...</div>;
+  if (!task.appointment_id) return <div style={{ ...s.container, color: '#9ca3af', fontSize: '13px' }}>No appointment linked — open patient profile to document.</div>;
+
+  return (
+    <div style={s.container} onClick={e => e.stopPropagation()}>
+      <div style={s.sectionLabel}>
+        <span>📋</span> Encounter Note {serviceName && <span style={{ fontWeight: 400, textTransform: 'none', color: '#9ca3af' }}>— {serviceName}</span>}
+      </div>
+
+      {/* Existing notes */}
+      {loadingNotes ? (
+        <div style={{ fontSize: '12px', color: '#9ca3af' }}>Loading notes...</div>
+      ) : (
+        <>
+          {notes.map(note => (
+            <div key={note.id} style={{ ...s.noteCard, ...(note.source === 'addendum' ? s.noteCardAddendum : {}) }}>
+              <div style={s.noteHeader}>
+                <div style={s.noteMeta}>
+                  <span>{formatShortDate(note.note_date || note.created_at)}</span>
+                  {note.created_by && <span style={{ color: '#6b7280' }}>by {note.created_by}</span>}
+                  {note.source === 'addendum' && <span style={s.badgeAddendum}>Addendum</span>}
+                </div>
+                <span style={note.status === 'signed' ? s.badgeSigned : s.badgeDraft}>
+                  {note.status === 'signed' ? `✓ Signed${note.signed_by ? ` by ${note.signed_by}` : ''}` : 'Draft'}
+                </span>
+              </div>
+
+              {editingNoteId === note.id ? (
+                <div>
+                  <textarea
+                    value={editNoteInput}
+                    onChange={e => setEditNoteInput(e.target.value)}
+                    style={{ ...s.addendumTextarea, borderColor: '#e5e7eb', minHeight: '100px' }}
+                  />
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                    <button onClick={handleEditSave} disabled={!editNoteInput.trim() || editSaving} style={{ ...s.btn, ...s.btnPrimary, opacity: (!editNoteInput.trim() || editSaving) ? 0.5 : 1 }}>
+                      {editSaving ? 'Saving...' : 'Save Changes'}
+                    </button>
+                    <button onClick={() => { setEditingNoteId(null); setEditNoteInput(''); }} style={{ ...s.btn, ...s.btnSecondary }}>Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <div style={s.noteBody}>{renderFormattedText(note.body)}</div>
+              )}
+
+              {editingNoteId !== note.id && canAuthorNotes && (
+                <div style={s.noteActions}>
+                  {note.status !== 'signed' && note.created_by === currentUser && (
+                    <>
+                      <button onClick={() => { setEditingNoteId(note.id); setEditNoteInput(note.body); }} style={{ ...s.btn, ...s.btnSecondary }}>✏️ Edit</button>
+                      <button onClick={() => handleSignNote(note.id)} style={{ ...s.btn, ...s.btnSign }}>✍ Sign & Lock</button>
+                    </>
+                  )}
+                  {note.status === 'signed' && (
+                    <button onClick={() => setAddendumParentId(note.id)} style={{ ...s.btn, ...s.btnGhost }}>+ Add Addendum</button>
+                  )}
+                </div>
+              )}
+
+              {addendumParentId === note.id && (
+                <div style={s.addendumForm}>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: '#b45309', marginBottom: '8px' }}>Addendum to signed note</div>
+                  <textarea
+                    value={addendumInput}
+                    onChange={e => setAddendumInput(e.target.value)}
+                    rows={3}
+                    placeholder="Type addendum..."
+                    style={s.addendumTextarea}
+                  />
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                    <button onClick={handleSaveAddendum} disabled={!addendumInput.trim() || addendumSaving} style={{ ...s.btn, ...s.btnPrimary, opacity: (!addendumInput.trim() || addendumSaving) ? 0.5 : 1 }}>
+                      {addendumSaving ? 'Saving...' : 'Save Addendum'}
+                    </button>
+                    <button onClick={() => { setAddendumParentId(null); setAddendumInput(''); }} style={{ ...s.btn, ...s.btnSecondary }}>Cancel</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* Add note button */}
+          {!showForm && canAuthorNotes && (
+            <button
+              onClick={() => { setShowForm(true); setNoteMode(availableForms.length > 0 ? 'choose' : 'freetext'); }}
+              style={{ ...s.btn, ...s.btnPrimary, marginTop: notes.length > 0 ? '6px' : '0' }}
+            >
+              + {notes.length > 0 ? 'Add Another Note' : 'Start Encounter Note'}
+            </button>
+          )}
+
+          {/* Mode chooser */}
+          {showForm && noteMode === 'choose' && (
+            <div style={{ ...s.formCard, textAlign: 'center', padding: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 700, color: '#111' }}>How would you like to create this note?</span>
+                <button onClick={() => { setShowForm(false); setNoteMode('choose'); }} style={{ ...s.btn, background: '#f3f4f6', color: '#6b7280', border: 'none', width: '26px', height: '26px', padding: 0, justifyContent: 'center', borderRadius: '6px', fontSize: '14px' }}>×</button>
+              </div>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                {availableForms.map(formKey => {
+                  const formDef = ENCOUNTER_FORMS[formKey];
+                  return (
+                    <button
+                      key={formKey}
+                      onClick={() => { setNoteMode('interactive'); setInteractiveFormType(formKey); }}
+                      style={s.modeBtn(true)}
+                    >
+                      <span style={{ fontSize: '28px' }}>{formDef?.icon || '📋'}</span>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#111' }}>Interactive Form</span>
+                      <span style={{ fontSize: '11px', color: '#6d28d9', fontWeight: 600 }}>{formDef?.label || formKey}</span>
+                      <span style={{ fontSize: '11px', color: '#9ca3af' }}>Guided fields — fastest</span>
+                    </button>
+                  );
+                })}
+                <button onClick={() => setNoteMode('freetext')} style={s.modeBtn(false)}>
+                  <span style={{ fontSize: '28px' }}>✏️</span>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#111' }}>Free Text</span>
+                  <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 600 }}>Templates & dictation</span>
+                  <span style={{ fontSize: '11px', color: '#9ca3af' }}>Write from scratch</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Interactive form mode */}
+          {showForm && noteMode === 'interactive' && interactiveFormType && (
+            <div style={s.formCard}>
+              <InteractiveEncounterForm
+                formType={interactiveFormType}
+                vitals={{}}
+                currentUser={currentUser}
+                onCancel={() => { setNoteMode('choose'); setInteractiveFormType(null); }}
+                onSave={async ({ markdown, structured_data, note_type, form_type }) => {
+                  try {
+                    const patientId = appointment?.patient_id || task.patient_id;
+                    const res = await fetch('/api/notes/create', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        patient_id: patientId,
+                        body: markdown, raw_input: markdown,
+                        created_by: currentUser,
+                        appointment_id: task.appointment_id,
+                        encounter_service: form_type || serviceName,
+                        structured_data: { ...structured_data, form_type },
+                      }),
+                    });
+                    const data = await res.json();
+                    if (data.note) {
+                      setNotes(prev => [...prev, data.note]);
+                      setShowForm(false);
+                      setNoteMode('choose');
+                      setInteractiveFormType(null);
+                    }
+                  } catch (err) { console.error('Save interactive note error:', err); }
+                }}
+              />
+            </div>
+          )}
+
+          {/* Free text mode */}
+          {showForm && noteMode === 'freetext' && (
+            <div style={s.formCard}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 700, color: '#111' }}>New Encounter Note</span>
+                  {availableForms.length > 0 && (
+                    <button onClick={() => setNoteMode('choose')} style={{ fontSize: '11px', color: '#6d28d9', background: '#f3e8ff', border: 'none', borderRadius: '20px', padding: '3px 10px', cursor: 'pointer', fontWeight: 600 }}>
+                      ← Interactive Form
+                    </button>
+                  )}
+                </div>
+                <button onClick={() => { setShowForm(false); setNoteMode('choose'); if (noteRef.current) noteRef.current.innerHTML = ''; setNoteIsEmpty(true); stopDictation(); }} style={{ ...s.btn, background: '#f3f4f6', color: '#6b7280', border: 'none', width: '26px', height: '26px', padding: 0, justifyContent: 'center', borderRadius: '6px', fontSize: '14px' }}>×</button>
+              </div>
+
+              {/* Note type pills */}
+              <div style={{ marginBottom: '14px' }}>
+                <div style={s.formLabel}>Note Type</div>
+                <div style={s.typePills}>
+                  {Object.entries(NOTE_TYPES).map(([key, type]) => (
+                    <button key={key} onClick={() => setNoteType(key)} style={s.typePill(noteType === key)}>{type.label}</button>
+                  ))}
+                </div>
+                <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>{NOTE_TYPES[noteType]?.description}</div>
+              </div>
+
+              {/* Template selector */}
+              {(() => {
+                const { matched, other } = getTemplatesForCategory(templateKey);
+                return (
+                  <div style={{ position: 'relative', marginBottom: '14px' }}>
+                    <button type="button" onClick={() => setShowTemplateMenu(!showTemplateMenu)} style={s.templateBtn}>
+                      <span style={{ fontSize: '14px' }}>📋</span>
+                      <span>Use a Note Template</span>
+                      <span style={{ marginLeft: 'auto', fontSize: '10px', color: '#9ca3af' }}>{showTemplateMenu ? '▲' : '▼'}</span>
+                    </button>
+                    {showTemplateMenu && (
+                      <div style={s.templateDropdown}>
+                        {matched.length > 0 && (
+                          <>
+                            <div style={s.templateGroupLabel}>Suggested for this visit</div>
+                            {matched.map(tmpl => (
+                              <button key={tmpl.key} onClick={() => { loadTemplate(tmpl.body, tmpl.defaultNoteType); setShowTemplateMenu(false); }} style={s.templateOption}
+                                onMouseEnter={e => e.target.style.background = '#f3f4f6'} onMouseLeave={e => e.target.style.background = 'none'}
+                              >{tmpl.label}</button>
+                            ))}
+                            {other.length > 0 && <div style={{ height: '1px', background: '#f0f0f0', margin: '4px 0' }} />}
+                          </>
+                        )}
+                        {other.length > 0 && (
+                          <>
+                            <div style={s.templateGroupLabel}>{matched.length > 0 ? 'Other Templates' : 'All Templates'}</div>
+                            {other.map(tmpl => (
+                              <button key={tmpl.key} onClick={() => { loadTemplate(tmpl.body, tmpl.defaultNoteType); setShowTemplateMenu(false); }} style={s.templateOption}
+                                onMouseEnter={e => e.target.style.background = '#f3f4f6'} onMouseLeave={e => e.target.style.background = 'none'}
+                              >{tmpl.label}</button>
+                            ))}
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Quick notes */}
+              {template.quickNotes && template.quickNotes.length > 0 && (
+                <div style={{ marginBottom: '14px' }}>
+                  <div style={s.formLabel}>Quick Notes</div>
+                  <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                    {template.quickNotes.map((qn, i) => (
+                      <button key={i} onClick={() => {
+                        if (noteRef.current) {
+                          const current = noteRef.current.innerHTML;
+                          noteRef.current.innerHTML = current.trim() ? current + '<br>' + qn : qn;
+                          setNoteIsEmpty(false);
+                        }
+                      }} style={s.quickNote}
+                        onMouseEnter={e => { e.target.style.background = '#f0f0f0'; e.target.style.borderColor = '#d1d5db'; }}
+                        onMouseLeave={e => { e.target.style.background = '#fff'; e.target.style.borderColor = '#e5e7eb'; }}
+                      >+ {qn}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Bold button */}
+              <div style={{ display: 'flex', gap: '4px', marginBottom: '6px', alignItems: 'center' }}>
+                <button type="button" onClick={() => { noteRef.current?.focus(); document.execCommand('bold', false, null); }}
+                  title="Bold selected text" style={{ padding: '3px 9px', fontSize: '12px', fontWeight: 800, border: '1px solid #d1d5db', borderRadius: '6px', background: '#f9fafb', color: '#374151', cursor: 'pointer', fontFamily: 'serif' }}
+                >B</button>
+                <span style={{ fontSize: '10px', color: '#9ca3af', marginLeft: '4px' }}>Select text → B to bold</span>
+              </div>
+
+              {/* Rich text editor */}
+              <div style={s.editorWrap}>
+                <div
+                  ref={noteRef}
+                  contentEditable
+                  suppressContentEditableWarning
+                  data-placeholder="Type your encounter note here, or click the microphone to dictate..."
+                  onInput={() => setNoteIsEmpty(!(noteRef.current?.innerText || '').trim())}
+                  onKeyDown={handleNoteKeyDown}
+                  style={s.editor}
+                />
+                <button onClick={toggleDictation} type="button" title={isRecording ? 'Stop dictation' : 'Start dictation'} style={s.micBtn(isRecording)}>
+                  🎤
+                </button>
+              </div>
+              {isRecording && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', margin: '-8px 0 12px', background: '#fef2f2', borderRadius: '8px', fontSize: '12px', color: '#dc2626', fontWeight: 500 }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#dc2626', animation: 'pulse 1s infinite' }} />
+                  Recording — Click microphone to stop
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div style={s.actions}>
+                <button onClick={handleFormat} disabled={noteIsEmpty || noteFormatting} style={{ ...s.btn, ...s.btnAi, opacity: (noteIsEmpty || noteFormatting) ? 0.5 : 1 }}>
+                  {noteFormatting ? 'Formatting...' : '✨ Format with AI'}
+                </button>
+                <div style={s.actionsRight}>
+                  <button onClick={() => { setShowForm(false); setNoteMode('choose'); if (noteRef.current) noteRef.current.innerHTML = ''; setNoteIsEmpty(true); stopDictation(); }} style={{ ...s.btn, ...s.btnSecondary }}>Cancel</button>
+                  <button onClick={handleSaveNote} disabled={noteIsEmpty || noteSaving} style={{ ...s.btn, ...s.btnPrimary, opacity: (noteIsEmpty || noteSaving) ? 0.5 : 1 }}>
+                    {noteSaving ? 'Saving...' : 'Save as Draft'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* No notes and no form — empty state */}
+          {notes.length === 0 && !showForm && !canAuthorNotes && (
+            <div style={{ fontSize: '13px', color: '#9ca3af' }}>No encounter notes yet.</div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
 
 const PRIORITY_CONFIG = {
   urgent: { label: 'Urgent', bg: '#fef2f2', text: '#dc2626', border: '#fecaca' },
@@ -479,6 +1174,16 @@ export default function TasksPage() {
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
+        }
+        [data-placeholder]:empty::before {
+          content: attr(data-placeholder);
+          color: #c5c5c5;
+          pointer-events: none;
+        }
+        [contenteditable]:focus {
+          outline: none;
+          border-color: #111 !important;
+          box-shadow: 0 0 0 3px rgba(0,0,0,0.06);
         }
       `}</style>
       <div style={{ maxWidth: '900px', margin: '0 auto' }}>
@@ -1079,6 +1784,16 @@ export default function TasksPage() {
                           </div>
                         )}
                       </div>
+
+                      {/* Inline encounter editor for "Document encounter" tasks */}
+                      {task.title?.startsWith('Document encounter') && task.status !== 'completed' && (
+                        <InlineEncounterEditor
+                          task={task}
+                          session={session}
+                          currentUser={employee?.email || ''}
+                          onTaskComplete={() => toggleComplete(task)}
+                        />
+                      )}
                     </div>
                   )}
                 </div>

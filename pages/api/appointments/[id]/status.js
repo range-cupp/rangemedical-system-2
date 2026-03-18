@@ -137,6 +137,7 @@ async function createEncounterReminderTask(appointment) {
     assigned_by: assigneeId,
     patient_id: appointment.patient_id || null,
     patient_name: patientName,
+    appointment_id: appointment.id,
     priority: 'high',
     due_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0], // due tomorrow
     status: 'pending',

@@ -13,11 +13,17 @@ const TABS = [
   { id: 'in_clinic', label: 'In-Clinic' },
 ];
 
+function getDaysSinceActivity(protocol) {
+  // Use the most recent activity (lowest days value) from checkin or injection/pickup
+  const c = protocol.days_since_last_checkin;
+  const i = protocol.days_since_last_injection;
+  if (c !== null && i !== null) return Math.min(c, i);
+  return c ?? i ?? null;
+}
+
 function getStatus(protocol) {
   if (protocol.status === 'completed' || protocol.injections_remaining <= 0) return 'complete';
-  const days = protocol.delivery_method === 'in_clinic'
-    ? protocol.days_since_last_injection
-    : protocol.days_since_last_checkin;
+  const days = getDaysSinceActivity(protocol);
   if (days === null) return 'new';
   if (days > 10) return 'overdue';
   if (days >= 7) return 'due_soon';
@@ -105,8 +111,8 @@ export default function WeightLossTracker() {
     const sb = statusOrder[getStatus(b)] ?? 5;
     if (sa !== sb) return sa - sb;
     // Secondary: by days since activity (most overdue first)
-    const aDays = a.delivery_method === 'in_clinic' ? a.days_since_last_injection : a.days_since_last_checkin;
-    const bDays = b.delivery_method === 'in_clinic' ? b.days_since_last_injection : b.days_since_last_checkin;
+    const aDays = getDaysSinceActivity(a);
+    const bDays = getDaysSinceActivity(b);
     return (bDays || -1) - (aDays || -1);
   });
 
@@ -247,7 +253,7 @@ export default function WeightLossTracker() {
                 {filtered.map(p => {
                   const status = getStatus(p);
                   const cfg = STATUS_CONFIG[status];
-                  const days = p.delivery_method === 'in_clinic' ? p.days_since_last_injection : p.days_since_last_checkin;
+                  const days = getDaysSinceActivity(p);
                   const weightChange = (p.current_weight && p.starting_weight) ? (p.current_weight - p.starting_weight) : null;
                   const progressPct = p.total_injections > 0 ? Math.round((p.injections_used / p.total_injections) * 100) : 0;
 

@@ -593,10 +593,11 @@ export default function StartPage() {
 
           <div className={`start-video-wrap ${animClass('hero-video')}`} data-anim-id="hero-video">
             <iframe
-              src="https://www.youtube.com/embed/kxxQLE_B4yw"
-              title="Not Feeling Like Yourself? Start Here | Range Medical"
+              src="https://www.youtube.com/embed/kxxQLE_B4yw?si=oJeVa5P7deoPIAkp&controls=0"
+              title="YouTube video player"
               frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
               allowFullScreen
               style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
             />

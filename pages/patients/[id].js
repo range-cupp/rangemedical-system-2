@@ -4382,20 +4382,38 @@ export default function PatientProfile() {
                                       const freqLower = (protocol.frequency || '').toLowerCase();
                                       const intervalDays = freqLower.includes('bi') ? 14 : 7;
                                       const startDate = new Date(startStr + 'T12:00:00');
-                                      const usedIds = new Set();
 
-                                      const slots = Array.from({ length: totalSlots }, (_, i) => {
+                                      // Build slots first
+                                      const slotsRaw = Array.from({ length: totalSlots }, (_, i) => {
                                         const expDate = new Date(startDate);
                                         expDate.setDate(expDate.getDate() + i * intervalDays);
                                         const expStr = expDate.toISOString().split('T')[0];
-                                        const matchLog = wlLogs.find(l => {
-                                          if (usedIds.has(l.id)) return false;
-                                          const d = new Date(l.entry_date + 'T12:00:00');
-                                          return Math.abs(d - expDate) <= 4 * 24 * 60 * 60 * 1000;
-                                        });
-                                        if (matchLog) usedIds.add(matchLog.id);
-                                        return { num: i + 1, expDate, expStr, log: matchLog || null, isFuture: expDate > todayDate };
+                                        return { num: i + 1, expDate, expStr, log: null, isFuture: expDate > todayDate };
                                       });
+
+                                      // Greedy nearest-slot matching: sort logs by date, assign each to nearest available slot
+                                      const sortedLogs = [...wlLogs].sort((a, b) => a.entry_date.localeCompare(b.entry_date));
+                                      const usedIds = new Set();
+                                      const usedSlots = new Set();
+                                      sortedLogs.forEach(log => {
+                                        const logDate = new Date(log.entry_date + 'T12:00:00');
+                                        let bestIdx = -1;
+                                        let bestDist = Infinity;
+                                        slotsRaw.forEach((slot, idx) => {
+                                          if (usedSlots.has(idx)) return;
+                                          const dist = Math.abs(logDate - slot.expDate);
+                                          if (dist < bestDist) {
+                                            bestDist = dist;
+                                            bestIdx = idx;
+                                          }
+                                        });
+                                        if (bestIdx >= 0) {
+                                          slotsRaw[bestIdx].log = log;
+                                          usedSlots.add(bestIdx);
+                                          usedIds.add(log.id);
+                                        }
+                                      });
+                                      const slots = slotsRaw;
 
                                       const rows = slots.map(slot => {
                                         // If all dispensed at once (bulk shipment), show each slot as dispensed

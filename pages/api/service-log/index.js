@@ -591,6 +591,11 @@ async function handlePut(req, res) {
       await syncWeightToVitals(log.patient_id, weight, log.entry_date);
     }
 
+    // Recalculate protocol state after edit (date/weight changes affect tracking)
+    if (log?.protocol_id) {
+      await recalcProtocolAfterEdit(log.protocol_id);
+    }
+
     return res.status(200).json({ success: true, log });
   } catch (err) {
     console.error('Error updating log:', err);
@@ -704,6 +709,40 @@ async function recalcProtocolAfterDelete(protocolId, patientId, category) {
     }
   } catch (err) {
     console.error('recalcProtocolAfterDelete error:', err);
+  }
+}
+
+// Recalculate protocol state after an edit (date/weight change)
+async function recalcProtocolAfterEdit(protocolId) {
+  try {
+    // Find the most recent injection/session date
+    const { data: latestSL } = await supabase
+      .from('service_logs')
+      .select('entry_date')
+      .eq('protocol_id', protocolId)
+      .in('entry_type', ['injection', 'session'])
+      .order('entry_date', { ascending: false })
+      .limit(1);
+
+    const lastDate = latestSL?.[0]?.entry_date || null;
+
+    const updateData = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (lastDate) {
+      updateData.last_visit_date = lastDate;
+      const nextDate = new Date(lastDate + 'T12:00:00');
+      nextDate.setDate(nextDate.getDate() + 7);
+      updateData.next_expected_date = nextDate.toISOString().split('T')[0];
+    }
+
+    await supabase
+      .from('protocols')
+      .update(updateData)
+      .eq('id', protocolId);
+  } catch (err) {
+    console.error('recalcProtocolAfterEdit error:', err);
   }
 }
 

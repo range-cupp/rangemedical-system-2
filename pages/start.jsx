@@ -1,6 +1,6 @@
 // pages/start.jsx
 // "Start Here" funnel — one front door for every inquiry
-// Three doors: Injury, Energy/Hormones, Labs
+// Two doors: Injury Recovery vs Energy/Hormones/Weight
 
 import Layout from '../components/Layout';
 import Head from 'next/head';
@@ -17,26 +17,18 @@ const DOORS = [
   {
     id: 'injury',
     icon: '🩹',
-    title: "I'm rehabbing an injury or slow recovery",
-    subtitle: 'Sports injuries, post-surgical recovery, chronic pain, or just not healing like you should.',
+    title: 'Injury Recovery',
+    subtitle: 'Sports injuries, post-surgical recovery, chronic pain, or just not healing like you should. We usually start with a focused recovery visit — no labs up front.',
     color: '#DC2626',
     bgColor: '#FEF2F2',
   },
   {
     id: 'energy',
     icon: '⚡',
-    title: 'My main issue is energy, hormones, or long-term health',
-    subtitle: 'Fatigue, brain fog, weight gain, low libido, or just not feeling like yourself anymore.',
+    title: 'Energy, Hormones, or Weight Loss',
+    subtitle: "Fatigue, brain fog, weight gain, low libido, or just not feeling like yourself. We start with labs — you'll choose an Essential or Elite panel on the next screen.",
     color: '#16A34A',
     bgColor: '#F0FDF4',
-  },
-  {
-    id: 'labs',
-    icon: '🔬',
-    title: 'I already have recent labs and want guidance',
-    subtitle: 'You have lab results and want a provider to review them and build a plan.',
-    color: '#2563EB',
-    bgColor: '#EFF6FF',
   },
 ];
 
@@ -118,7 +110,7 @@ export default function StartPage() {
     try {
       // Upload lab file if present
       let labFileUrl = null;
-      if (form.labFile && selectedDoor === 'labs') {
+      if (form.labFile && form.hasRecentLabs) {
         const fileExt = form.labFile.name.split('.').pop();
         const filePath = `${Date.now()}-${form.firstName.toLowerCase()}-${form.lastName.toLowerCase()}.${fileExt}`;
 
@@ -267,8 +259,10 @@ export default function StartPage() {
           }
           .start-doors-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             gap: 20px;
+            max-width: 700px;
+            margin: 0 auto;
           }
           .start-door-card {
             border: 2px solid #e5e5e5;
@@ -681,9 +675,7 @@ export default function StartPage() {
                     placeholder={
                       selectedDoor === 'injury'
                         ? 'e.g., Torn ACL 3 months ago, still can\'t run...'
-                        : selectedDoor === 'energy'
-                        ? 'e.g., Exhausted by 2pm every day, brain fog, gained 15 lbs...'
-                        : 'e.g., Got bloodwork done last month, testosterone came back low...'
+                        : 'e.g., Exhausted by 2pm every day, brain fog, gained 15 lbs...'
                     }
                   />
                 </div>
@@ -704,24 +696,22 @@ export default function StartPage() {
                   </div>
                 </div>
 
-                {selectedDoor !== 'labs' && (
-                  <div className="start-field">
-                    <div className="start-toggle-row">
-                      <span className="start-toggle-label">Do you have recent labs?</span>
-                      <label className="start-toggle">
-                        <input
-                          type="checkbox"
-                          checked={form.hasRecentLabs}
-                          onChange={(e) => handleChange('hasRecentLabs', e.target.checked)}
-                        />
-                        <div className="start-toggle-track" />
-                        <div className="start-toggle-knob" />
-                      </label>
-                    </div>
+                <div className="start-field">
+                  <div className="start-toggle-row">
+                    <span className="start-toggle-label">Do you have recent labs?</span>
+                    <label className="start-toggle">
+                      <input
+                        type="checkbox"
+                        checked={form.hasRecentLabs}
+                        onChange={(e) => handleChange('hasRecentLabs', e.target.checked)}
+                      />
+                      <div className="start-toggle-track" />
+                      <div className="start-toggle-knob" />
+                    </label>
                   </div>
-                )}
+                </div>
 
-                {(selectedDoor === 'labs' || form.hasRecentLabs) && (
+                {form.hasRecentLabs && (
                   <div className="start-field">
                     <label>Upload your lab results (optional)</label>
                     <label className="start-file-upload">
@@ -770,18 +760,18 @@ export default function StartPage() {
           <div className="start-steps">
             <div className={`start-step ${animClass('step-1')}`} data-anim-id="step-1">
               <div className="start-step-num">1</div>
-              <h4>Tell us your problem</h4>
-              <p>Pick the door that fits you and fill out the short form above.</p>
+              <h4>Tell us your main problem</h4>
+              <p>Pick the path that fits you and fill out the short form above.</p>
             </div>
             <div className={`start-step ${animClass('step-2')}`} data-anim-id="step-2">
               <div className="start-step-num">2</div>
-              <h4>We look at labs</h4>
-              <p>Yours or ones we order. Real data, not guesswork.</p>
+              <h4>Choose your first step</h4>
+              <p>Injury recovery starts with a focused visit. Energy and hormones start with labs.</p>
             </div>
             <div className={`start-step ${animClass('step-3')}`} data-anim-id="step-3">
               <div className="start-step-num">3</div>
               <h4>Get a written plan</h4>
-              <p>A simple, clear plan your provider walks you through.</p>
+              <p>After your visit or lab review, you get a clear plan your provider walks you through.</p>
             </div>
           </div>
         </section>

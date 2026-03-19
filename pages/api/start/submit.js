@@ -21,8 +21,7 @@ function capitalizeName(name) {
 
 const PATH_LABELS = {
   injury: 'Injury & Recovery',
-  energy: 'Energy & Optimization',
-  labs: 'Labs Review',
+  energy: 'Energy, Hormones & Weight Loss',
 };
 
 export default async function handler(req, res) {
@@ -48,7 +47,7 @@ export default async function handler(req, res) {
     if (!firstName || !lastName || !email || !phone || !path) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-    if (!['injury', 'energy', 'labs'].includes(path)) {
+    if (!['injury', 'energy'].includes(path)) {
       return res.status(400).json({ error: 'Invalid path' });
     }
 

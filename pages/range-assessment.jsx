@@ -441,6 +441,23 @@ export default function RangeAssessment() {
     if (panel === 'essential' || panel === 'elite') {
       setSelectedPanel(panel);
     }
+
+    // Pre-fill contact info from /start funnel (so people don't enter it twice)
+    try {
+      const saved = localStorage.getItem('range_start_lead');
+      if (saved) {
+        const lead = JSON.parse(saved);
+        if (lead.firstName && lead.email) {
+          setFormData(prev => ({
+            ...prev,
+            firstName: prev.firstName || lead.firstName,
+            lastName: prev.lastName || lead.lastName,
+            email: prev.email || lead.email,
+            phone: prev.phone || lead.phone,
+          }));
+        }
+      }
+    } catch (e) { /* localStorage not available */ }
   }, [path, panel]);
 
   // Scroll to top when step changes

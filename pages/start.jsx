@@ -152,6 +152,18 @@ export default function StartPage() {
         throw new Error(data.error || 'Something went wrong');
       }
 
+      // Save contact info so assessment page can pre-fill (no double-entry)
+      try {
+        localStorage.setItem('range_start_lead', JSON.stringify({
+          firstName: form.firstName.trim(),
+          lastName: form.lastName.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim(),
+          path: selectedDoor,
+          leadId: data.leadId || null,
+        }));
+      } catch (e) { /* localStorage not available — non-blocking */ }
+
       // Redirect to path-specific thank-you page
       router.push(`/start/${selectedDoor}?name=${encodeURIComponent(form.firstName.trim())}`);
     } catch (err) {

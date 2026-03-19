@@ -87,6 +87,7 @@ export default function EnergyCheckout() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [referredBy, setReferredBy] = useState('');
 
   // Payment
   const [clientSecret, setClientSecret] = useState(null);
@@ -153,6 +154,7 @@ export default function EnergyCheckout() {
           urgency: 7,
           hasRecentLabs: false,
           consentSms: true,
+          referredBy: referredBy || null,
         }),
       });
       const startData = await startRes.json();
@@ -318,9 +320,13 @@ export default function EnergyCheckout() {
               <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#525252', marginBottom: 4 }}>Email *</label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box' }} />
             </div>
-            <div style={{ marginBottom: 24 }}>
+            <div style={{ marginBottom: 14 }}>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#525252', marginBottom: 4 }}>Phone *</label>
               <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(949) 555-1234" style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#525252', marginBottom: 4 }}>Who referred you? <span style={{ fontWeight: 400, color: '#a3a3a3' }}>(optional)</span></label>
+              <input type="text" value={referredBy} onChange={e => setReferredBy(e.target.value)} placeholder="Name of person or provider" style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box' }} />
             </div>
 
             <button

@@ -41,6 +41,7 @@ export default async function handler(req, res) {
       hasRecentLabs,
       labFileUrl,
       consentSms,
+      referredBy,
     } = req.body;
 
     // Validate
@@ -55,6 +56,7 @@ export default async function handler(req, res) {
     const capLast = capitalizeName(lastName);
     const normalizedEmail = email.toLowerCase().trim();
     const tags = [`start-${path}`];
+    if (referredBy) tags.push(`referred_by:${referredBy.trim()}`);
 
     // 1. Save to start_leads
     let savedLead = null;
@@ -222,6 +224,7 @@ export default async function handler(req, res) {
             <tr><td style="padding:8px 0;color:#737373;">Has Recent Labs:</td><td style="padding:8px 0;color:#171717;">${hasRecentLabs ? 'Yes' : 'No'}</td></tr>
             ${labFileUrl ? `<tr><td style="padding:8px 0;color:#737373;">Lab File:</td><td style="padding:8px 0;"><a href="${labFileUrl}" style="color:#2563eb;">View uploaded file</a></td></tr>` : ''}
             <tr><td style="padding:8px 0;color:#737373;">SMS Consent:</td><td style="padding:8px 0;color:#171717;">${consentSms ? 'Yes' : 'No'}</td></tr>
+            ${referredBy ? `<tr><td style="padding:8px 0;color:#737373;">Referred By:</td><td style="padding:8px 0;color:#171717;font-weight:600;">${referredBy}</td></tr>` : ''}
           </table>
         </td></tr>
 
@@ -256,7 +259,7 @@ export default async function handler(req, res) {
         if (damon) {
           await supabase.from('tasks').insert({
             title: `New Start Lead: ${capFirst} ${capLast} (${PATH_LABELS[path]})`,
-            description: `${capFirst} ${capLast} submitted the Start Here form.\nPath: ${PATH_LABELS[path]}\nPhone: ${phone}\nEmail: ${normalizedEmail}\nConcern: ${mainConcern || 'Not provided'}\nUrgency: ${urgency}/10`,
+            description: `${capFirst} ${capLast} submitted the Start Here form.\nPath: ${PATH_LABELS[path]}\nPhone: ${phone}\nEmail: ${normalizedEmail}\nConcern: ${mainConcern || 'Not provided'}\nUrgency: ${urgency}/10${referredBy ? `\nReferred by: ${referredBy}` : ''}`,
             assigned_to: damon.id,
             assigned_by: damon.id,
             patient_id: patientId || null,

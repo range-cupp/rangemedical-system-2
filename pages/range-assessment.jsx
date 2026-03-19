@@ -2077,13 +2077,23 @@ export default function RangeAssessment() {
                       style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
                     />
                   </div>
-                  <div style={{ marginBottom: 24 }}>
+                  <div style={{ marginBottom: 16 }}>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#525252', marginBottom: 6 }}>Phone *</label>
                     <input
                       type="tel"
                       value={formData.phone}
                       onChange={(e) => handleInputChange('phone', e.target.value)}
                       placeholder="(949) 555-1234"
+                      style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                    />
+                  </div>
+                  <div style={{ marginBottom: 24 }}>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#525252', marginBottom: 6 }}>Who referred you? <span style={{ fontWeight: 400, color: '#a3a3a3' }}>(optional)</span></label>
+                    <input
+                      type="text"
+                      value={formData.referredBy || ''}
+                      onChange={(e) => handleInputChange('referredBy', e.target.value)}
+                      placeholder="Name of person or provider"
                       style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
                     />
                   </div>

@@ -260,7 +260,7 @@ function AddCardForm({ patientId, onCardSaved }) {
 export default function PatientProfile() {
   const router = useRouter();
   const { id } = router.query || {};
-  const { session } = useAuth();
+  const { session, employee } = useAuth();
 
   // Email & SMS compose modals
   const [emailModalOpen, setEmailModalOpen] = useState(false);
@@ -2288,7 +2288,7 @@ export default function PatientProfile() {
           patient_id: id,
           raw_input: noteInput,
           body: noteInput,
-          created_by: 'Staff',
+          created_by: employee?.name || 'Staff',
           note_category: addNoteCategory,
         }),
       });

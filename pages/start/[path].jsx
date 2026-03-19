@@ -6,6 +6,7 @@
 import Layout from '../../components/Layout';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useState } from 'react';
 import { useRouter } from 'next/router';
 
 const PATH_CONFIG = {
@@ -59,6 +60,56 @@ export default function StartThankYou() {
 
   const firstName = name || 'there';
   const isInjury = path === 'injury';
+
+  // Biomarker chart state
+  const [bioTab, setBioTab] = useState('men');
+  const [expandedMarker, setExpandedMarker] = useState(null);
+
+  const biomarkerInfo = {
+    "Complete Metabolic Panel (CMP)": "Evaluates kidney and liver function, blood sugar, and electrolyte balance. Helps detect diabetes, kidney disease, and liver problems early.",
+    "Lipid Panel": "Measures cholesterol and triglycerides. Essential for assessing cardiovascular risk and guiding heart health strategies.",
+    "CBC with Differential": "Counts red cells, white cells, and platelets. Detects anemia, infection, immune issues, and blood disorders.",
+    "Estradiol": "The primary estrogen hormone. In men, high levels can cause fatigue and weight gain. In women, it's key for reproductive and bone health.",
+    "HbA1c": "Shows your average blood sugar over 3 months. The gold standard for detecting pre-diabetes and diabetes risk.",
+    "Insulin, Fasting": "Reveals how well your body manages blood sugar. High fasting insulin is an early warning sign of metabolic dysfunction.",
+    "PSA, Total": "Prostate-specific antigen screening. Important for monitoring prostate health and detecting issues early.",
+    "SHBG": "Sex hormone binding globulin affects how much testosterone is available to your body. Key for understanding hormone balance.",
+    "T3, Free": "The active thyroid hormone. Low T3 causes fatigue, weight gain, and brain fog even when TSH looks normal.",
+    "T4, Total": "The main thyroid hormone your body converts to T3. Helps assess overall thyroid function.",
+    "Testosterone, Free": "The testosterone actually available for your body to use. More clinically relevant than total testosterone alone.",
+    "Testosterone, Total": "Your overall testosterone production. Low levels cause fatigue, low libido, muscle loss, and mood changes.",
+    "TPO Antibodies": "Detects autoimmune thyroid disease (Hashimoto's). Often elevated years before thyroid numbers go abnormal.",
+    "TSH": "Thyroid-stimulating hormone. The first-line thyroid test, but doesn't tell the whole story on its own.",
+    "Vitamin D, 25-OH": "Critical for immune function, mood, bone health, and hormone production. Most people are deficient.",
+    "Apolipoprotein A-1": "The protein in 'good' HDL cholesterol. Higher levels are protective against heart disease.",
+    "Apolipoprotein B": "The protein in 'bad' LDL particles. A better predictor of heart disease risk than standard cholesterol.",
+    "CRP-HS (Inflammation)": "High-sensitivity inflammation marker. Elevated CRP indicates systemic inflammation linked to heart disease and chronic illness.",
+    "Cortisol": "Your primary stress hormone. Chronic high or low cortisol affects energy, sleep, weight, and immune function.",
+    "DHEA-S": "A precursor hormone that declines with age. Supports energy, mood, immune function, and hormone balance.",
+    "Ferritin": "Your iron storage protein. Low ferritin causes fatigue even when iron looks normal. High levels indicate inflammation.",
+    "Folate": "Essential B-vitamin for DNA synthesis and methylation. Low levels linked to fatigue, mood issues, and heart disease.",
+    "FSH": "Follicle-stimulating hormone. Helps assess fertility, menopause status, and pituitary function.",
+    "GGT": "A sensitive liver enzyme. Elevated early in liver stress, alcohol use, or bile duct issues.",
+    "Homocysteine": "An amino acid linked to heart disease and stroke when elevated. Also indicates B-vitamin status.",
+    "IGF-1": "Insulin-like growth factor reflects growth hormone status. Important for metabolism, muscle, and longevity.",
+    "Iron & TIBC": "Measures iron levels and binding capacity. Helps diagnose anemia and iron overload conditions.",
+    "LH": "Luteinizing hormone. Works with FSH to regulate reproductive function and hormone production.",
+    "Lipoprotein(a)": "A genetic cardiovascular risk factor. High Lp(a) significantly increases heart attack and stroke risk.",
+    "Magnesium": "Essential mineral for 300+ body functions. Deficiency causes muscle cramps, anxiety, sleep issues, and fatigue.",
+    "PSA, Free & Total": "More detailed prostate screening. The free-to-total ratio helps distinguish cancer from benign conditions.",
+    "Sed Rate": "Erythrocyte sedimentation rate measures inflammation. Elevated in autoimmune conditions and infections.",
+    "T4, Free": "The unbound, active form of T4. More accurate than total T4 for assessing thyroid function.",
+    "Thyroglobulin Antibodies": "Another marker for autoimmune thyroid disease. Often tested alongside TPO antibodies.",
+    "Uric Acid": "High levels cause gout and are linked to metabolic syndrome, kidney stones, and heart disease.",
+    "Vitamin B-12": "Essential for energy, nerve function, and red blood cell production. Deficiency is common and often missed.",
+    "Progesterone": "Balances estrogen and supports mood, sleep, and reproductive health. Important throughout the menstrual cycle.",
+    "DHT": "Dihydrotestosterone, a potent androgen. Relevant for hair loss, acne, and hormone balance assessment.",
+  };
+
+  const menEssential = ["Complete Metabolic Panel (CMP)","Lipid Panel","CBC with Differential","Estradiol","HbA1c","Insulin, Fasting","PSA, Total","SHBG","T3, Free","T4, Total","Testosterone, Free","Testosterone, Total","TPO Antibodies","TSH","Vitamin D, 25-OH"];
+  const menEliteExtra = ["Apolipoprotein A-1","Apolipoprotein B","CRP-HS (Inflammation)","Cortisol","DHEA-S","Ferritin","Folate","FSH","GGT","Homocysteine","IGF-1","Iron & TIBC","LH","Lipoprotein(a)","Magnesium","PSA, Free & Total","Sed Rate","T4, Free","Thyroglobulin Antibodies","Uric Acid","Vitamin B-12"];
+  const womenEssential = ["Complete Metabolic Panel (CMP)","Lipid Panel","CBC with Differential","Estradiol","FSH","LH","HbA1c","Insulin, Fasting","Progesterone","SHBG","T3, Free","T4, Total","Testosterone, Free","Testosterone, Total","TPO Antibodies","TSH","Vitamin D, 25-OH"];
+  const womenEliteExtra = ["Apolipoprotein A-1","Apolipoprotein B","CRP-HS (Inflammation)","Cortisol","DHEA-S","DHT","Ferritin","Folate","GGT","Homocysteine","IGF-1","Iron & TIBC","Lipoprotein(a)","Magnesium","Sed Rate","T4, Free","Thyroglobulin Antibodies","Uric Acid","Vitamin B-12"];
 
   return (
     <Layout
@@ -462,11 +513,144 @@ export default function StartThankYou() {
             line-height: 1.5;
           }
 
+          /* Biomarker chart */
+          .ty-bio-section {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 0 20px 48px;
+          }
+          .ty-bio-section h2 {
+            text-align: center;
+            font-size: 22px;
+            font-weight: 700;
+            margin: 0 0 4px;
+          }
+          .ty-bio-subtitle {
+            text-align: center;
+            font-size: 14px;
+            color: #737373;
+            margin: 0 0 20px;
+          }
+          .ty-bio-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 16px;
+          }
+          .ty-bio-tab {
+            padding: 10px 24px;
+            border: 2px solid #e5e5e5;
+            background: #fff;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #525252;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+          }
+          .ty-bio-tab:hover { border-color: #d4d4d4; }
+          .ty-bio-tab.active {
+            background: #171717;
+            border-color: #171717;
+            color: #fff;
+          }
+          .ty-bio-chart {
+            background: #fff;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            overflow: hidden;
+          }
+          .ty-bio-header {
+            display: grid;
+            grid-template-columns: 1fr 80px 80px;
+            background: #fafafa;
+            border-bottom: 2px solid #e5e5e5;
+            font-weight: 600;
+            font-size: 13px;
+          }
+          .ty-bio-header .ty-bio-name-col {
+            padding: 12px 16px;
+            color: #171717;
+          }
+          .ty-bio-header .ty-bio-check-col {
+            padding: 12px 8px;
+            text-align: center;
+            color: #525252;
+          }
+          .ty-bio-header .ty-bio-elite-col {
+            background: #171717;
+            color: #fff;
+          }
+          .ty-bio-body {
+            max-height: 500px;
+            overflow-y: auto;
+          }
+          .ty-bio-row {
+            display: grid;
+            grid-template-columns: 1fr 80px 80px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background 0.15s;
+          }
+          .ty-bio-row:hover { background: #f5f5f5; }
+          .ty-bio-row.expanded { background: #fefce8 !important; }
+          .ty-bio-row-elite { background: #fafafa; }
+          .ty-bio-row-elite:hover { background: #f0f0f0; }
+          .ty-bio-row-elite.expanded { background: #fef9c3 !important; }
+          .ty-bio-name-col {
+            padding: 10px 16px;
+            font-size: 14px;
+            color: #171717;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+          }
+          .ty-bio-arrow {
+            color: #a3a3a3;
+            font-size: 18px;
+            font-weight: 600;
+            transform: rotate(90deg);
+            transition: transform 0.2s;
+            margin-left: 8px;
+          }
+          .ty-bio-arrow.up { transform: rotate(-90deg); }
+          .ty-bio-check-col {
+            padding: 10px 8px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .ty-bio-row .ty-bio-elite-col {
+            background: rgba(0,0,0,0.02);
+          }
+          .ty-bio-row-elite .ty-bio-elite-col {
+            background: rgba(0,0,0,0.04);
+          }
+          .ty-bio-check { color: #22c55e; font-size: 16px; font-weight: 700; }
+          .ty-bio-dash { color: #d4d4d4; font-size: 14px; }
+          .ty-bio-desc {
+            padding: 12px 16px;
+            background: #fefce8;
+            border-bottom: 1px solid #fde68a;
+          }
+          .ty-bio-desc-elite { background: #fef9c3; }
+          .ty-bio-desc p {
+            margin: 0;
+            font-size: 13px;
+            color: #525252;
+            line-height: 1.6;
+          }
+
           @media (max-width: 768px) {
             .ty-hero { padding: 60px 20px 40px; }
             .ty-hero h1 { font-size: 28px; }
             .ty-panels-grid { grid-template-columns: 1fr; }
             .ty-fit-grid { grid-template-columns: 1fr !important; }
+            .ty-bio-header { grid-template-columns: 1fr 60px 60px; }
+            .ty-bio-row { grid-template-columns: 1fr 60px 60px; }
+            .ty-bio-name-col { font-size: 13px; padding: 10px 12px; }
           }
         `}</style>
       </Head>
@@ -765,6 +949,64 @@ export default function StartThankYou() {
               <p><strong>Both panels include</strong> your blood work, a 1:1 provider review, and a personalized written plan.</p>
               <p style={{ marginTop: 8 }}>Not sure which? Start with Essential. If your provider thinks you need more, they'll explain why.</p>
             </div>
+
+            {/* Biomarker comparison chart */}
+            <section className="ty-bio-section">
+              <h2>What we test — and why</h2>
+              <p className="ty-bio-subtitle">Tap any biomarker to see why it matters.</p>
+
+              <div className="ty-bio-tabs">
+                <button className={`ty-bio-tab ${bioTab === 'men' ? 'active' : ''}`} onClick={() => { setBioTab('men'); setExpandedMarker(null); }}>Men's Panels</button>
+                <button className={`ty-bio-tab ${bioTab === 'women' ? 'active' : ''}`} onClick={() => { setBioTab('women'); setExpandedMarker(null); }}>Women's Panels</button>
+              </div>
+
+              <div className="ty-bio-chart">
+                <div className="ty-bio-header">
+                  <div className="ty-bio-name-col">Biomarker</div>
+                  <div className="ty-bio-check-col">Essential</div>
+                  <div className="ty-bio-check-col ty-bio-elite-col">Elite</div>
+                </div>
+
+                <div className="ty-bio-body">
+                  {(bioTab === 'men' ? menEssential : womenEssential).map((marker, i) => (
+                    <div key={`e-${i}`}>
+                      <div
+                        className={`ty-bio-row ${expandedMarker === `e-${i}` ? 'expanded' : ''}`}
+                        onClick={() => setExpandedMarker(expandedMarker === `e-${i}` ? null : `e-${i}`)}
+                      >
+                        <div className="ty-bio-name-col">
+                          <span>{marker}</span>
+                          <span className={`ty-bio-arrow ${expandedMarker === `e-${i}` ? 'up' : ''}`}>›</span>
+                        </div>
+                        <div className="ty-bio-check-col"><span className="ty-bio-check">✓</span></div>
+                        <div className="ty-bio-check-col ty-bio-elite-col"><span className="ty-bio-check">✓</span></div>
+                      </div>
+                      {expandedMarker === `e-${i}` && biomarkerInfo[marker] && (
+                        <div className="ty-bio-desc"><p>{biomarkerInfo[marker]}</p></div>
+                      )}
+                    </div>
+                  ))}
+                  {(bioTab === 'men' ? menEliteExtra : womenEliteExtra).map((marker, i) => (
+                    <div key={`x-${i}`}>
+                      <div
+                        className={`ty-bio-row ty-bio-row-elite ${expandedMarker === `x-${i}` ? 'expanded' : ''}`}
+                        onClick={() => setExpandedMarker(expandedMarker === `x-${i}` ? null : `x-${i}`)}
+                      >
+                        <div className="ty-bio-name-col">
+                          <span>{marker}</span>
+                          <span className={`ty-bio-arrow ${expandedMarker === `x-${i}` ? 'up' : ''}`}>›</span>
+                        </div>
+                        <div className="ty-bio-check-col"><span className="ty-bio-dash">—</span></div>
+                        <div className="ty-bio-check-col ty-bio-elite-col"><span className="ty-bio-check">✓</span></div>
+                      </div>
+                      {expandedMarker === `x-${i}` && biomarkerInfo[marker] && (
+                        <div className="ty-bio-desc ty-bio-desc-elite"><p>{biomarkerInfo[marker]}</p></div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
 
             <div className="ty-cta-section" style={{ paddingTop: 20 }}>
               <p className="ty-or">

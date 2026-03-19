@@ -11,8 +11,8 @@ import { useRouter } from 'next/router';
 const PATH_CONFIG = {
   injury: {
     title: 'Injury & Recovery',
-    headline: "Here's how we support your rehab and speed up recovery.",
-    description: "Watch the short video below to see how Range Medical helps patients recover faster from injuries, surgeries, and chronic pain — then request your focused recovery visit.",
+    headline: "We don't replace good rehab. We support and enhance it.",
+    description: "Watch the short video below to see how Range Medical adds the right tools to help your body calm down and heal faster — then book your Recovery Visit.",
     color: '#DC2626',
     bgColor: '#FEF2F2',
     badgeText: 'Injury & Recovery Path',
@@ -468,6 +468,7 @@ export default function StartThankYou() {
             .ty-hero { padding: 60px 20px 40px; }
             .ty-hero h1 { font-size: 28px; }
             .ty-panels-grid { grid-template-columns: 1fr; }
+            .ty-fit-grid { grid-template-columns: 1fr !important; }
           }
         `}</style>
       </Head>
@@ -495,40 +496,133 @@ export default function StartThankYou() {
           </div>
         </section>
 
-        {/* --- INJURY PATH: Simple CTA to book recovery visit --- */}
+        {/* --- INJURY PATH --- */}
         {isInjury && (
           <>
-            <div className="ty-cta-section">
-              <Link href="/range-assessment" className="ty-cta-btn">
-                Request a Recovery Visit
+            {/* What Range does */}
+            <section className="ty-why-labs">
+              <div className="ty-why-labs-inner">
+                <h2>How Range fits into your recovery</h2>
+                <p>
+                  Most people we see are already working with a chiropractor, physical therapist,
+                  or bodyworker — and they feel better, but not as fast as they want. They can't get
+                  back to their level of training, sport, or activity. Every time they push again,
+                  the pain reminds them they're not fully healed.
+                </p>
+                <p style={{ fontWeight: 600, color: '#171717' }}>
+                  Our job is to look at your injury story, see what you've already tried, and add
+                  the right tools to help your body calm down and heal better. You keep your team —
+                  we add what's missing.
+                </p>
+                <p>
+                  In Newport Beach, we work alongside the providers you already trust. In San Clemente,
+                  you can get body work, physical therapy, chiropractic, and medical support together
+                  in the same location.
+                </p>
+              </div>
+            </section>
+
+            {/* What's in the Recovery Visit — prominent callout */}
+            <section className="ty-included-callout">
+              <div className="ty-included-inner">
+                <h3>What happens in your Recovery Visit:</h3>
+                <div className="ty-included-items">
+                  <div className="ty-included-item">
+                    <div className="ty-included-icon">🗣️</div>
+                    <div>
+                      <strong>We listen to your story</strong>
+                      <p>How you got hurt. What makes it better or worse. What treatment you've had so far.</p>
+                    </div>
+                  </div>
+                  <div className="ty-included-item">
+                    <div className="ty-included-icon">🔍</div>
+                    <div>
+                      <strong>We look at how you move</strong>
+                      <p>A focused exam to see what your body can and can't do right now — so we're not just guessing.</p>
+                    </div>
+                  </div>
+                  <div className="ty-included-item">
+                    <div className="ty-included-icon">📋</div>
+                    <div>
+                      <strong>We review your current plan</strong>
+                      <p>Whether you're already working with a provider or starting fresh, we look at what you're doing and how we can support it.</p>
+                    </div>
+                  </div>
+                  <div className="ty-included-item">
+                    <div className="ty-included-icon">✍️</div>
+                    <div>
+                      <strong>You leave with a written recovery plan</strong>
+                      <p>In plain language: what we think is going on, what services at Range might help, and what the next 4–6 weeks should look like.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* No labs note */}
+            <div className="ty-both-include">
+              <p><strong>A quick note on labs:</strong> For most injury-only cases, we do not start with blood work.
+              We can usually get a clear picture from your story, movement exam, and how your body responds to treatment.
+              If your provider feels something deeper is slowing healing, they'll explain why labs might make sense.</p>
+            </div>
+
+            {/* CTA */}
+            <div className="ty-cta-section" style={{ paddingTop: 24 }}>
+              <Link href="/range-assessment?path=injury" className="ty-cta-btn">
+                Book a Recovery Visit
               </Link>
+              <p className="ty-or" style={{ marginTop: 8 }}>
+                Newport Beach &amp; San Clemente available
+              </p>
               <p className="ty-or">
                 Or call/text <a href="tel:9499973988">(949) 997-3988</a>
               </p>
             </div>
 
+            {/* Who this is for */}
+            <section className="ty-why-labs" style={{ paddingTop: 0 }}>
+              <div className="ty-why-labs-inner ty-fit-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+                <div>
+                  <h4 style={{ fontSize: 14, fontWeight: 700, color: '#16a34a', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>This is right for you if:</h4>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                    <li style={{ fontSize: 14, color: '#525252', padding: '3px 0' }}>✓ You're tired of guessing and hoping an injury will just "work itself out"</li>
+                    <li style={{ fontSize: 14, color: '#525252', padding: '3px 0' }}>✓ You're doing rehab but want everything working in the same direction</li>
+                    <li style={{ fontSize: 14, color: '#525252', padding: '3px 0' }}>✓ You want a clear, realistic plan for the next few weeks</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 style={{ fontSize: 14, fontWeight: 700, color: '#dc2626', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Not for you if:</h4>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                    <li style={{ fontSize: 14, color: '#525252', padding: '3px 0' }}>✗ You're looking for a quick fix without putting in any work</li>
+                    <li style={{ fontSize: 14, color: '#525252', padding: '3px 0' }}>✗ You're not willing to follow through on a plan</li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            {/* Step by step */}
             <section className="ty-expect">
               <div className="ty-expect-card">
-                <h3>What happens next</h3>
+                <h3>How it works from here</h3>
                 <div className="ty-expect-item">
                   <div className="ty-expect-num">1</div>
                   <div className="ty-expect-text">
-                    <h4>Watch the video above</h4>
-                    <p>It explains how we help people recover from injuries faster.</p>
+                    <h4>Choose a time that works for you</h4>
+                    <p>Click the button above. You'll see available times for Newport Beach or San Clemente.</p>
                   </div>
                 </div>
                 <div className="ty-expect-item">
                   <div className="ty-expect-num">2</div>
                   <div className="ty-expect-text">
-                    <h4>Book your recovery visit</h4>
-                    <p>We go through your story, do an exam, and build a recovery plan. No labs needed up front.</p>
+                    <h4>Enter your info and confirm</h4>
+                    <p>Quick form so we know who you are. We'll text and email you with appointment details and what to bring (like imaging reports or notes from current providers).</p>
                   </div>
                 </div>
                 <div className="ty-expect-item">
                   <div className="ty-expect-num">3</div>
                   <div className="ty-expect-text">
-                    <h4>Get your plan</h4>
-                    <p>A clear, written recovery protocol your provider walks you through.</p>
+                    <h4>Come in for your Recovery Visit</h4>
+                    <p>You meet with your provider, we go through your story, exam, and options — and you leave with a clear recovery plan in writing.</p>
                   </div>
                 </div>
               </div>

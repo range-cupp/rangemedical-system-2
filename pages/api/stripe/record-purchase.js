@@ -137,6 +137,8 @@ export default async function handler(req, res) {
       delivery_method,
       duration_days,
       shipping,
+      fulfillment_method,
+      tracking_number,
     } = req.body;
 
     if (!patient_id || (amount === undefined || amount === null)) {
@@ -211,6 +213,8 @@ export default async function handler(req, res) {
           deliveryMethod: delivery_method || null,
           durationDays: duration_days || null,
           quantity: quantity || 1,
+          fulfillmentMethod: fulfillment_method || null,
+          trackingNumber: tracking_number || null,
         });
       } catch (err) {
         console.error('Auto-protocol failed:', err);

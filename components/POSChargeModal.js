@@ -74,6 +74,10 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   // Shipping state (in dollars, converted to cents for charge)
   const [shippingAmount, setShippingAmount] = useState('');
 
+  // Fulfillment state (for peptide take-home orders)
+  const [fulfillmentMethod, setFulfillmentMethod] = useState('in_clinic'); // 'in_clinic' or 'overnight'
+  const [trackingNumber, setTrackingNumber] = useState('');
+
   // Payment state
   const [savedCards, setSavedCards] = useState([]);
   const [selectedCard, setSelectedCard] = useState(null);
@@ -581,6 +585,8 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           delivery_method: item.delivery_method || null,
           duration_days: item.duration_days || null,
           shipping: itemShipping,
+          fulfillment_method: item.category === 'peptide' ? fulfillmentMethod : null,
+          tracking_number: item.category === 'peptide' && fulfillmentMethod === 'overnight' ? trackingNumber : null,
           skip_receipt: true, // consolidated receipt sent below
           ...(itemDiscountAmt > 0 ? {
             discount_type: item.itemDiscountType,
@@ -665,6 +671,8 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           service_name: serviceName,
           quantity: qty,
           shipping: itemShipping,
+          fulfillment_method: item.category === 'peptide' ? fulfillmentMethod : null,
+          tracking_number: item.category === 'peptide' && fulfillmentMethod === 'overnight' ? trackingNumber : null,
           skip_receipt: cartItems.length > 1,
           ...(itemDiscountAmt > 0 ? {
             discount_type: item.itemDiscountType,
@@ -1959,6 +1967,48 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                 </span>
               )}
             </div>
+
+            {/* Fulfillment Method — peptide items only */}
+            {cartItems.some(i => i.category === 'peptide') && (
+              <div style={{ marginBottom: '16px', padding: '12px', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
+                <div style={{ fontSize: '12px', fontWeight: '600', color: '#555', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Fulfillment</div>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: fulfillmentMethod === 'overnight' ? '10px' : '0' }}>
+                  <button
+                    type="button"
+                    onClick={() => setFulfillmentMethod('in_clinic')}
+                    style={{
+                      flex: 1, padding: '8px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: '500', cursor: 'pointer',
+                      border: fulfillmentMethod === 'in_clinic' ? '2px solid #2E75B6' : '1px solid #ddd',
+                      background: fulfillmentMethod === 'in_clinic' ? '#EBF3FB' : '#fff',
+                      color: fulfillmentMethod === 'in_clinic' ? '#2E75B6' : '#666',
+                    }}
+                  >
+                    🏥 Picked Up In Clinic
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFulfillmentMethod('overnight')}
+                    style={{
+                      flex: 1, padding: '8px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: '500', cursor: 'pointer',
+                      border: fulfillmentMethod === 'overnight' ? '2px solid #e67e22' : '1px solid #ddd',
+                      background: fulfillmentMethod === 'overnight' ? '#FFF5EB' : '#fff',
+                      color: fulfillmentMethod === 'overnight' ? '#e67e22' : '#666',
+                    }}
+                  >
+                    📦 Overnighted
+                  </button>
+                </div>
+                {fulfillmentMethod === 'overnight' && (
+                  <input
+                    type="text"
+                    placeholder="Tracking number (optional)"
+                    value={trackingNumber}
+                    onChange={e => setTrackingNumber(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box' }}
+                  />
+                )}
+              </div>
+            )}
 
             {loadingCards ? (
               <div style={modalStyles.loading}>Loading saved cards...</div>

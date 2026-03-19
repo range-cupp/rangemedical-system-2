@@ -405,7 +405,7 @@ export default function PatientProfile() {
 
   // Edit injection modal state
   const [editInjectionModal, setEditInjectionModal] = useState(null);
-  const [editInjectionForm, setEditInjectionForm] = useState({ entry_date: '', dosage: '', weight: '', notes: '' });
+  const [editInjectionForm, setEditInjectionForm] = useState({ entry_date: '', dosage: '', weight: '', notes: '', fulfillment_method: 'in_clinic', tracking_number: '' });
   const [editInjectionSaving, setEditInjectionSaving] = useState(false);
   const [confirmDeleteInjection, setConfirmDeleteInjection] = useState(false);
 
@@ -1505,6 +1505,8 @@ export default function PatientProfile() {
       dosage: log.dosage || '',
       weight: log.weight || '',
       notes: log.notes || '',
+      fulfillment_method: log.fulfillment_method || 'in_clinic',
+      tracking_number: log.tracking_number || '',
     });
     setConfirmDeleteInjection(false);
   };
@@ -1522,6 +1524,8 @@ export default function PatientProfile() {
           weight: editInjectionForm.weight || null,
           medication: editInjectionModal.medication,
           notes: editInjectionForm.notes || null,
+          fulfillment_method: editInjectionForm.fulfillment_method || null,
+          tracking_number: editInjectionForm.fulfillment_method === 'overnight' ? (editInjectionForm.tracking_number || null) : null,
         }),
       });
       if (res.ok) {
@@ -6494,6 +6498,47 @@ export default function PatientProfile() {
                   <label>Notes</label>
                   <textarea value={editInjectionForm.notes} onChange={e => setEditInjectionForm({ ...editInjectionForm, notes: e.target.value })} rows={2} placeholder="Optional notes..." />
                 </div>
+                {/* Fulfillment Method */}
+                {(editInjectionModal.entry_type === 'pickup' || editInjectionModal.category === 'peptide' || editInjectionModal.category === 'weight_loss') && (
+                  <div className="form-group">
+                    <label>Fulfillment</label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setEditInjectionForm({ ...editInjectionForm, fulfillment_method: 'in_clinic' })}
+                        style={{
+                          flex: 1, padding: '8px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, cursor: 'pointer',
+                          border: editInjectionForm.fulfillment_method === 'in_clinic' ? '2px solid #2E75B6' : '1px solid #ddd',
+                          background: editInjectionForm.fulfillment_method === 'in_clinic' ? '#EBF3FB' : '#fff',
+                          color: editInjectionForm.fulfillment_method === 'in_clinic' ? '#2E75B6' : '#666',
+                        }}
+                      >
+                        🏥 In Clinic
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditInjectionForm({ ...editInjectionForm, fulfillment_method: 'overnight' })}
+                        style={{
+                          flex: 1, padding: '8px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, cursor: 'pointer',
+                          border: editInjectionForm.fulfillment_method === 'overnight' ? '2px solid #e67e22' : '1px solid #ddd',
+                          background: editInjectionForm.fulfillment_method === 'overnight' ? '#FFF5EB' : '#fff',
+                          color: editInjectionForm.fulfillment_method === 'overnight' ? '#e67e22' : '#666',
+                        }}
+                      >
+                        📦 Overnighted
+                      </button>
+                    </div>
+                    {editInjectionForm.fulfillment_method === 'overnight' && (
+                      <input
+                        type="text"
+                        placeholder="Tracking number (optional)"
+                        value={editInjectionForm.tracking_number}
+                        onChange={e => setEditInjectionForm({ ...editInjectionForm, tracking_number: e.target.value })}
+                        style={{ marginTop: '8px', width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box' }}
+                      />
+                    )}
+                  </div>
+                )}
               </div>
               <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
                 <div>

@@ -536,7 +536,9 @@ async function handlePut(req, res) {
     quantity,
     supply_type,
     duration,
-    notes
+    notes,
+    fulfillment_method,
+    tracking_number,
   } = req.body;
 
   try {
@@ -549,8 +551,14 @@ async function handlePut(req, res) {
       quantity: quantity ? parseInt(quantity) : null,
       supply_type: supply_type || null,
       duration: duration ? parseInt(duration) : null,
-      notes: notes || null
+      notes: notes || null,
     };
+
+    // Add fulfillment fields if provided
+    if (fulfillment_method !== undefined) {
+      updateData.fulfillment_method = fulfillment_method || null;
+      updateData.tracking_number = tracking_number || null;
+    }
 
     // Try service_logs first
     let log, error;

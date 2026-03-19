@@ -180,8 +180,8 @@ export default function StartPage() {
 
       // Redirect based on path
       if (selectedDoor === 'injury') {
-        // Send to existing injury-recovery page with source tracking
-        router.push('/injury-recovery?from=start');
+        // Go straight into the injury assessment questions (contact info auto-filled, step 0 skipped)
+        router.push('/range-assessment?path=injury&from=start');
       } else {
         // Energy path goes to lab panel selection page
         router.push(`/start/${selectedDoor}?name=${encodeURIComponent(form.firstName.trim())}`);

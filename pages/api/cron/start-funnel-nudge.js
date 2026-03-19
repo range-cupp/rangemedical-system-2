@@ -53,7 +53,7 @@ export default async function handler(req, res) {
         if (!normalized) continue;
 
         const nextStepUrl = lead.path === 'injury'
-          ? 'https://range-medical.com/injury-recovery?from=start'
+          ? 'https://range-medical.com/range-assessment?path=injury&from=start'
           : `https://range-medical.com/start/energy?name=${encodeURIComponent(lead.first_name)}`;
 
         const message = lead.path === 'injury'
@@ -110,7 +110,7 @@ export default async function handler(req, res) {
         if (!normalized) continue;
 
         const nextStepUrl = lead.path === 'injury'
-          ? 'https://range-medical.com/injury-recovery?from=start'
+          ? 'https://range-medical.com/range-assessment?path=injury&from=start'
           : `https://range-medical.com/start/energy?name=${encodeURIComponent(lead.first_name)}`;
 
         const message = lead.path === 'injury'

@@ -443,7 +443,7 @@ export default function RangeAssessment() {
       setSelectedPanel(panel);
     }
 
-    // Pre-fill contact info from /start funnel (so people don't enter it twice)
+    // Pre-fill contact info from /start funnel and skip step 0
     try {
       const saved = localStorage.getItem('range_start_lead');
       if (saved) {
@@ -456,6 +456,10 @@ export default function RangeAssessment() {
             email: prev.email || lead.email,
             phone: prev.phone || lead.phone,
           }));
+          // Skip contact info step — they already entered it on /start
+          if (from === 'start') {
+            setStep(1);
+          }
         }
       }
     } catch (e) { /* localStorage not available */ }

@@ -54,7 +54,7 @@ export default async function handler(req, res) {
     const capFirst = capitalizeName(firstName);
     const capLast = capitalizeName(lastName);
     const normalizedEmail = email.toLowerCase().trim();
-    const tags = [`start-${path}`, '$50_off_start_funnel'];
+    const tags = [`start-${path}`];
 
     // 1. Save to start_leads
     let savedLead = null;
@@ -140,8 +140,8 @@ export default async function handler(req, res) {
           : `https://range-medical.com/start/energy?name=${encodeURIComponent(capFirst)}`;
 
         const message = path === 'injury'
-          ? `Got your info, ${capFirst}. Your $50 off is locked in.\n\nYour next step is a quick assessment — we'll ask a few questions about your injury and show you the best recovery options.\n\nStart here:\n${nextStepUrl}\n\n- Range Medical`
-          : `Got your info, ${capFirst}. Your $50 off is locked in.\n\nI just sent a short video that explains your next step. When you're ready, use this link to pick your lab panel:\n\n${nextStepUrl}\n\n- Range Medical`;
+          ? `Got your info, ${capFirst}.\n\nYour next step is a quick assessment — we'll ask a few questions about your injury and show you the best recovery options.\n\nStart here:\n${nextStepUrl}\n\n- Range Medical`
+          : `Got your info, ${capFirst}.\n\nI just sent a short video that explains your next step. When you're ready, use this link to pick your lab panel:\n\n${nextStepUrl}\n\n- Range Medical`;
 
         const smsResult = await sendSMS({ to: normalized, message });
 

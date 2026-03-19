@@ -866,24 +866,6 @@ export default function StartThankYou() {
               </div>
             </section>
 
-            {/* $50 off promo banner */}
-            <div style={{ maxWidth: 700, margin: '0 auto', padding: '0 20px 24px' }}>
-              <div style={{
-                background: 'linear-gradient(135deg, #171717 0%, #2d2d2d 100%)',
-                borderRadius: 12,
-                padding: '20px 24px',
-                textAlign: 'center',
-                position: 'relative',
-                overflow: 'hidden',
-              }}>
-                <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, background: 'rgba(34,197,94,0.15)', borderRadius: '50%' }} />
-                <div style={{ position: 'absolute', bottom: -10, left: -10, width: 50, height: 50, background: 'rgba(34,197,94,0.1)', borderRadius: '50%' }} />
-                <p style={{ fontSize: 13, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#22c55e', margin: '0 0 6px', position: 'relative' }}>Limited Time — March Only</p>
-                <p style={{ fontSize: 22, fontWeight: 700, color: '#fff', margin: '0 0 4px', position: 'relative' }}>Get $50 off your lab panel</p>
-                <p style={{ fontSize: 14, color: '#a3a3a3', margin: 0, position: 'relative' }}>Choose your panel below and the discount is applied at checkout.</p>
-              </div>
-            </div>
-
             {/* Panel selection */}
             <section className="ty-panels">
               <h2>Pick your panel</h2>
@@ -921,7 +903,7 @@ export default function StartThankYou() {
                     href="/start/energy-checkout?panel=essential"
                     className="ty-panel-btn ty-panel-btn-outline"
                   >
-                    Choose Essential — $300 <span style={{ fontSize: 12, textDecoration: 'line-through', opacity: 0.6, marginLeft: 4 }}>$350</span>
+                    Choose Essential — $350
                   </Link>
                 </div>
 
@@ -957,7 +939,7 @@ export default function StartThankYou() {
                     href="/start/energy-checkout?panel=elite"
                     className="ty-panel-btn"
                   >
-                    Choose Elite — $700 <span style={{ fontSize: 12, textDecoration: 'line-through', opacity: 0.6, marginLeft: 4 }}>$750</span>
+                    Choose Elite — $750
                   </Link>
                 </div>
               </div>

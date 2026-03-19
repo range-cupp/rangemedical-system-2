@@ -1,5 +1,5 @@
 // pages/start/energy-checkout.jsx
-// Energy panel checkout: $50 off + contact info → Stripe payment → book lab draw
+// Energy panel checkout: contact info → Stripe payment → book lab draw
 // Reached from /start/energy after clicking a panel
 
 import Layout from '../../components/Layout';
@@ -16,8 +16,8 @@ const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 const ASSESSMENT_EVENT_TYPE_ID = process.env.NEXT_PUBLIC_ASSESSMENT_EVENT_TYPE_ID;
 
 const PANEL_INFO = {
-  essential: { name: 'Essential Panel', basePrice: 350, discountedPrice: 300 },
-  elite: { name: 'Elite Panel', basePrice: 750, discountedPrice: 700 },
+  essential: { name: 'Essential Panel', basePrice: 350, discountedPrice: 350 },
+  elite: { name: 'Elite Panel', basePrice: 750, discountedPrice: 750 },
 };
 
 // Stripe payment form (must be inside <Elements>)
@@ -164,7 +164,7 @@ export default function EnergyCheckout() {
         leadId: startData.leadId || null,
       }));
 
-      // Create payment intent with $50 discount
+      // Create payment intent
       const payRes = await fetch('/api/assessment/energy-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -172,7 +172,6 @@ export default function EnergyCheckout() {
           leadId: startData.leadId || null,
           email, firstName, lastName, phone,
           panelType: panel,
-          discount: 50,
         }),
       });
       const payData = await payRes.json();
@@ -290,22 +289,17 @@ export default function EnergyCheckout() {
 
       <div style={{ maxWidth: 540, margin: '0 auto', padding: '72px 20px 80px', color: '#171717' }}>
 
-        {/* ── STEP: CONTACT + $50 OFF ── */}
+        {/* ── STEP: CONTACT ── */}
         {step === 'contact' && (
           <>
             <div style={{ textAlign: 'center', marginBottom: 32 }}>
               <span style={{ display: 'inline-block', background: '#f0fdf4', color: '#16a34a', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '6px 14px', borderRadius: 6, marginBottom: 12 }}>
                 {panelInfo.name}
               </span>
-              <h1 style={{ fontSize: 30, fontWeight: 700, margin: '0 0 8px' }}>Lock in $50 off</h1>
+              <h1 style={{ fontSize: 30, fontWeight: 700, margin: '0 0 8px' }}>Enter your info to get started</h1>
               <p style={{ fontSize: 16, color: '#525252', margin: 0 }}>
-                Enter your info to get your {panelInfo.name} for <strong>${panelInfo.discountedPrice}</strong> instead of ${panelInfo.basePrice}.
+                Your {panelInfo.name} includes blood work, a 1:1 provider review, and a personalized written plan.
               </p>
-            </div>
-
-            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '16px 20px', marginBottom: 24, textAlign: 'center' }}>
-              <span style={{ fontSize: 22, fontWeight: 700, color: '#16a34a', display: 'block', marginBottom: 2 }}>$50 off — pay ${panelInfo.discountedPrice}</span>
-              <p style={{ fontSize: 14, color: '#525252', margin: 0 }}>Includes blood work, 1:1 provider review, and your written plan.</p>
             </div>
 
             {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: '12px 16px', borderRadius: 8, fontSize: 14, marginBottom: 16 }}>{error}</div>}
@@ -353,7 +347,7 @@ export default function EnergyCheckout() {
           <>
             <div style={{ textAlign: 'center', marginBottom: 28 }}>
               <span style={{ display: 'inline-block', background: '#f0fdf4', color: '#16a34a', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '6px 14px', borderRadius: 6, marginBottom: 12 }}>
-                {panelInfo.name} — ${panelInfo.discountedPrice}
+                {panelInfo.name} — ${panelInfo.basePrice}
               </span>
               <h1 style={{ fontSize: 28, fontWeight: 700, margin: '0 0 8px' }}>Payment</h1>
               <p style={{ fontSize: 15, color: '#525252', margin: 0 }}>

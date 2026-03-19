@@ -342,7 +342,7 @@ export default function RangeAssessment() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [isCompletingIntake, setIsCompletingIntake] = useState(false);
   const [leadId, setLeadId] = useState(null);
-  const [showStartContact, setShowStartContact] = useState(false); // $50 off contact step for start funnel
+  const [showStartContact, setShowStartContact] = useState(false); // contact step for start funnel
   const [startContactSubmitting, setStartContactSubmitting] = useState(false);
 
   // Payment & scheduling state (both paths)
@@ -758,7 +758,7 @@ export default function RangeAssessment() {
           firstName: formData.firstName,
           lastName: formData.lastName,
           phone: formData.phone,
-          discount: fromStartFunnel ? 50 : 0,
+          discount: 0,
         }),
       });
       const data = await response.json();
@@ -2036,27 +2036,11 @@ export default function RangeAssessment() {
               </div>
             )}
 
-            {/* Next Step — with $50 off contact form for start funnel users */}
+            {/* Next Step — contact form for start funnel users */}
             <div className="inj-res-next-card">
               {fromStartFunnel && !formData.email ? (
                 <>
-                  {/* $50 off promo banner */}
-                  <div style={{
-                    background: 'linear-gradient(135deg, #171717 0%, #2d2d2d 100%)',
-                    borderRadius: 12,
-                    padding: '24px 28px',
-                    textAlign: 'center',
-                    marginBottom: '2rem',
-                    position: 'relative',
-                    overflow: 'hidden',
-                  }}>
-                    <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, background: 'rgba(34,197,94,0.15)', borderRadius: '50%' }} />
-                    <p style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#22c55e', margin: '0 0 8px', position: 'relative' }}>Limited Time Offer</p>
-                    <p style={{ fontSize: 28, fontWeight: 700, color: '#fff', margin: '0 0 4px', position: 'relative' }}>$50 off your visit</p>
-                    <p style={{ fontSize: 15, color: '#a3a3a3', margin: 0, position: 'relative' }}>Pay <strong style={{ color: '#fff' }}>$200</strong> instead of <span style={{ textDecoration: 'line-through' }}>$250</span></p>
-                  </div>
-
-                  <h3 style={{ fontSize: '1.25rem', margin: '0 0 0.5rem' }}>Enter your info to continue</h3>
+                  <h3 style={{ fontSize: '1.25rem', margin: '0 0 0.5rem' }}>Enter your info to book your visit</h3>
                   <p style={{ color: '#737373', fontSize: '0.9375rem', margin: '0 0 1.5rem' }}>We'll text you what to do next — no spam, no runaround.</p>
 
                   {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: '12px 16px', borderRadius: 8, fontSize: 14, marginBottom: 16 }}>{error}</div>}
@@ -2151,7 +2135,7 @@ export default function RangeAssessment() {
                           body: JSON.stringify({
                             leadId: assessResult.leadId, email: formData.email,
                             firstName: formData.firstName, lastName: formData.lastName,
-                            phone: formData.phone, discount: 50,
+                            phone: formData.phone,
                           }),
                         });
                         const payData = await payRes.json();
@@ -2166,11 +2150,11 @@ export default function RangeAssessment() {
                     }}
                     style={{ border: 'none', cursor: 'pointer', fontFamily: 'inherit', opacity: startContactSubmitting ? 0.6 : 1 }}
                   >
-                    {startContactSubmitting ? 'Setting up your visit...' : 'Continue — $200 (Save $50)'}
+                    {startContactSubmitting ? 'Setting up your visit...' : 'Continue to Payment — $250'}
                   </button>
 
                   <p style={{ fontSize: 13, color: '#a3a3a3', marginTop: 12, textAlign: 'center', lineHeight: 1.5 }}>
-                    Your $200 goes directly toward your treatment protocol.<br />
+                    Your $250 goes directly toward your treatment protocol.<br />
                     By continuing, you agree to receive texts from Range Medical.
                   </p>
                 </>
@@ -2179,7 +2163,7 @@ export default function RangeAssessment() {
                   {/* Standard flow (direct visitors or contact already collected) */}
                   <h3>Next Step: Book Your In-Clinic Visit</h3>
                   <p>
-                    Based on your answers, we'll go over your treatment options in person — including peptide protocols like the BPC-157 / TB-4 10-day program. Your <strong>{fromStartFunnel ? '$200' : '$250'}</strong> visit fee goes directly toward whichever protocol you choose.
+                    Based on your answers, we'll go over your treatment options in person — including peptide protocols like the BPC-157 / TB-4 10-day program. Your <strong>$250</strong> visit fee goes directly toward whichever protocol you choose.
                   </p>
                   <button
                     className="inj-res-cta"
@@ -2191,10 +2175,10 @@ export default function RangeAssessment() {
                     }}
                     style={{ border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
                   >
-                    {fromStartFunnel ? 'Book Visit — $200 ($50 off applied!)' : 'Book Visit — $250'}
+                    Book Visit — $250
                   </button>
                   <p style={{ fontSize: '0.85rem', color: '#a3a3a3', marginTop: '0.75rem' }}>
-                    This {fromStartFunnel ? '$200' : '$250'} goes directly toward your treatment protocol.
+                    This $250 goes directly toward your treatment protocol.
                   </p>
                 </>
               )}

@@ -17,17 +17,19 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { leadId, email, firstName, lastName, phone, panelType } = req.body;
+    const { leadId, email, firstName, lastName, phone, panelType, discount } = req.body;
 
-    if (!leadId || !email || !firstName || !lastName) {
-      return res.status(400).json({ error: 'leadId, email, firstName, and lastName are required' });
+    if (!email || !firstName || !lastName) {
+      return res.status(400).json({ error: 'email, firstName, and lastName are required' });
     }
 
     if (!panelType || !PANEL_CONFIG[panelType]) {
       return res.status(400).json({ error: 'panelType must be "essential" or "elite"' });
     }
 
-    const { amount, label } = PANEL_CONFIG[panelType];
+    const { amount: baseAmount, label } = PANEL_CONFIG[panelType];
+    const discountCents = Math.min((discount || 0) * 100, baseAmount);
+    const amount = baseAmount - discountCents;
     const normalizedEmail = email.toLowerCase().trim();
 
     let customerId = null;
@@ -60,16 +62,21 @@ export default async function handler(req, res) {
     }
 
     let paymentIntent;
+    const displayAmount = `$${(amount / 100).toFixed(0)}`;
     const intentParams = {
       amount,
       currency: 'usd',
       customer: customerId,
-      description: `Lab Panel \u2014 ${label}`,
+      description: discountCents > 0
+        ? `Lab Panel — ${label} (${displayAmount} after $${discount} start funnel discount)`
+        : `Lab Panel — ${label}`,
       metadata: {
-        lead_id: leadId,
+        lead_id: leadId || 'start_funnel',
         assessment_path: 'energy',
         panel_type: panelType,
         patient_email: normalizedEmail,
+        discount_applied: discountCents > 0 ? `${discount}` : '0',
+        source: discountCents > 0 ? 'start_funnel' : 'direct',
       },
     };
 
@@ -83,14 +90,16 @@ export default async function handler(req, res) {
       paymentIntent = await stripe.paymentIntents.create(intentParams);
     }
 
-    await supabase
-      .from('assessment_leads')
-      .update({
-        stripe_payment_intent_id: paymentIntent.id,
-        payment_status: 'pending',
-        payment_amount_cents: amount,
-      })
-      .eq('id', leadId);
+    if (leadId) {
+      await supabase
+        .from('assessment_leads')
+        .update({
+          stripe_payment_intent_id: paymentIntent.id,
+          payment_status: 'pending',
+          payment_amount_cents: amount,
+        })
+        .eq('id', leadId);
+    }
 
     console.log(`Energy lab payment intent created: ${paymentIntent.id} for lead ${leadId} (${label} panel, $${amount / 100})`);
 

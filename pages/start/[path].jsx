@@ -900,10 +900,10 @@ export default function StartThankYou() {
                     </ul>
                   </div>
                   <Link
-                    href="/range-assessment?path=energy&panel=essential"
+                    href="/start/energy-checkout?panel=essential"
                     className="ty-panel-btn ty-panel-btn-outline"
                   >
-                    Choose Essential — $350
+                    Choose Essential — $300 <span style={{ fontSize: 12, textDecoration: 'line-through', opacity: 0.6, marginLeft: 4 }}>$350</span>
                   </Link>
                 </div>
 
@@ -936,10 +936,10 @@ export default function StartThankYou() {
                     </ul>
                   </div>
                   <Link
-                    href="/range-assessment?path=energy&panel=elite"
+                    href="/start/energy-checkout?panel=elite"
                     className="ty-panel-btn"
                   >
-                    Choose Elite — $750
+                    Choose Elite — $700 <span style={{ fontSize: 12, textDecoration: 'line-through', opacity: 0.6, marginLeft: 4 }}>$750</span>
                   </Link>
                 </div>
               </div>
@@ -1016,26 +1016,26 @@ export default function StartThankYou() {
 
             <section className="ty-expect">
               <div className="ty-expect-card">
-                <h3>How it works, step by step</h3>
+                <h3>How it works</h3>
                 <div className="ty-expect-item">
                   <div className="ty-expect-num">1</div>
                   <div className="ty-expect-text">
-                    <h4>Pick Essential or Elite</h4>
-                    <p>Click the one that fits you best above. You'll enter your info and complete your purchase.</p>
+                    <h4>Pick your panel and check out</h4>
+                    <p>Click Essential or Elite above. Enter your info, pay, and book your blood draw — all in one step.</p>
                   </div>
                 </div>
                 <div className="ty-expect-item">
                   <div className="ty-expect-num">2</div>
                   <div className="ty-expect-text">
                     <h4>Get your blood drawn</h4>
-                    <p>We'll text you clear instructions. Show up, get the labs done, and that's it for that step.</p>
+                    <p>We'll text you lab prep instructions and intake forms. Show up, get the draw done. Results in 5-7 business days.</p>
                   </div>
                 </div>
                 <div className="ty-expect-item">
                   <div className="ty-expect-num">3</div>
                   <div className="ty-expect-text">
-                    <h4>Results visit + your plan</h4>
-                    <p>When results are back, you meet with your provider 1:1. We review your labs together, connect them to your symptoms, and give you your written plan. No rushing, no "your labs are normal, good luck."</p>
+                    <h4>1:1 review + your plan</h4>
+                    <p>Meet with your provider. We review labs together, connect them to how you feel, and give you a clear written plan.</p>
                   </div>
                 </div>
               </div>

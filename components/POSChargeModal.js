@@ -429,9 +429,9 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       return customDescription || 'Custom charge';
     }
     if (cartItems.length === 0) return '';
+    // Use generic names only — no peptide identifiers (Stripe-safe)
     return cartItems.map(i => {
-      const label = i.peptide_identifier ? `${i.name} — ${i.peptide_identifier}` : i.name;
-      return (i.quantity || 1) > 1 ? `${label} x${i.quantity}` : label;
+      return (i.quantity || 1) > 1 ? `${i.name} x${i.quantity}` : i.name;
     }).join(', ');
   }
 

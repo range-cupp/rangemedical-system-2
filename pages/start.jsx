@@ -96,6 +96,24 @@ export default function StartPage() {
       return;
     }
     setError('');
+
+    // Injury path: skip contact info — go straight to assessment questions
+    // Contact info will be collected after recommendation, before payment
+    if (selectedDoor === 'injury') {
+      try {
+        localStorage.setItem('range_start_lead', JSON.stringify({
+          path: 'injury',
+          mainConcern: form.mainConcern.trim(),
+          urgency: form.urgency,
+          hasRecentLabs: form.hasRecentLabs,
+          fromStart: true,
+        }));
+      } catch (e) {}
+      router.push('/range-assessment?path=injury&from=start');
+      return;
+    }
+
+    // Energy path: show contact info step
     setFormStep(2);
     setTimeout(() => {
       formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -710,7 +728,7 @@ export default function StartPage() {
 
           <div className={`start-video-wrap ${animClass('hero-video')}`} data-anim-id="hero-video">
             <iframe
-              src="https://www.youtube.com/embed/NKce39USIn4?si=6HETgP5XHeCypRWi&controls=0"
+              src="https://www.youtube.com/embed/NKce39USIn4?si=6HETgP5XHeCypRWi&controls=0&rel=0"
               title="YouTube video player"
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"

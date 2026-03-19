@@ -342,6 +342,8 @@ export default function RangeAssessment() {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [isCompletingIntake, setIsCompletingIntake] = useState(false);
   const [leadId, setLeadId] = useState(null);
+  const [showStartContact, setShowStartContact] = useState(false); // $50 off contact step for start funnel
+  const [startContactSubmitting, setStartContactSubmitting] = useState(false);
 
   // Payment & scheduling state (both paths)
   const [clientSecret, setClientSecret] = useState(null);
@@ -448,6 +450,7 @@ export default function RangeAssessment() {
       const saved = localStorage.getItem('range_start_lead');
       if (saved) {
         const lead = JSON.parse(saved);
+        // If contact info exists (energy path), pre-fill it
         if (lead.firstName && lead.email) {
           setFormData(prev => ({
             ...prev,
@@ -456,13 +459,16 @@ export default function RangeAssessment() {
             email: prev.email || lead.email,
             phone: prev.phone || lead.phone,
           }));
-          // Skip contact info step — they already entered it on /start
-          if (from === 'start') {
-            setStep(1);
-          }
         }
       }
     } catch (e) { /* localStorage not available */ }
+
+    // Skip step 0 (contact info) for start funnel users
+    // Injury: contact info collected after recommendation
+    // Energy: contact info already collected on /start
+    if (from === 'start') {
+      setStep(1);
+    }
   }, [path, panel]);
 
   // Scroll to top when step changes
@@ -603,6 +609,14 @@ export default function RangeAssessment() {
     setError('');
 
     try {
+      // For injury start funnel users: skip API submit here (no contact info yet)
+      // Their assessment lead will be created when they enter contact info after recommendation
+      if (fromStartFunnel && selectedPath === 'injury' && !formData.email) {
+        setIsSubmitting(false);
+        setShowInjuryResults(true);
+        return;
+      }
+
       const response = await fetch('/api/assessment/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -744,6 +758,7 @@ export default function RangeAssessment() {
           firstName: formData.firstName,
           lastName: formData.lastName,
           phone: formData.phone,
+          discount: fromStartFunnel ? 50 : 0,
         }),
       });
       const data = await response.json();
@@ -2021,27 +2036,180 @@ export default function RangeAssessment() {
               </div>
             )}
 
-            {/* Next Step */}
+            {/* Next Step — with $50 off contact form for start funnel users */}
             <div className="inj-res-next-card">
-              <h3>Next Step: Book Your In-Clinic Visit</h3>
-              <p>
-                Based on your answers, we'll go over your treatment options in person — including peptide protocols like the BPC-157 / TB-4 10-day program. Your <strong>$250</strong> visit fee goes directly toward whichever protocol you choose.
-              </p>
-              <button
-                className="inj-res-cta"
-                onClick={() => {
-                  setShowInjuryResults(false);
-                  setShowPayment(true);
-                  initializePayment();
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-                style={{ border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-              >
-                Book Visit — $250
-              </button>
-              <p style={{ fontSize: '0.85rem', color: '#a3a3a3', marginTop: '0.75rem' }}>
-                This $250 goes directly toward your treatment protocol.
-              </p>
+              {fromStartFunnel && !formData.email ? (
+                <>
+                  {/* $50 off contact collection for start funnel */}
+                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '16px 20px', marginBottom: '1.5rem', textAlign: 'center' }}>
+                    <span style={{ fontSize: 22, fontWeight: 700, color: '#16a34a', display: 'block', marginBottom: 2 }}>$50 off your visit</span>
+                    <p style={{ fontSize: 14, color: '#525252', margin: 0 }}>Enter your info below to lock in $50 off — pay $200 instead of $250.</p>
+                  </div>
+
+                  <h3>Where should we send your plan?</h3>
+                  <p>We'll text you what to do next — no spam, no runaround.</p>
+
+                  {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: '10px 14px', borderRadius: 8, fontSize: 14, marginBottom: 14 }}>{error}</div>}
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#525252', marginBottom: 4 }}>First name *</label>
+                      <input
+                        type="text"
+                        value={formData.firstName}
+                        onChange={(e) => handleInputChange('firstName', e.target.value)}
+                        placeholder="First name"
+                        style={{ width: '100%', padding: '10px 12px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#525252', marginBottom: 4 }}>Last name *</label>
+                      <input
+                        type="text"
+                        value={formData.lastName}
+                        onChange={(e) => handleInputChange('lastName', e.target.value)}
+                        placeholder="Last name"
+                        style={{ width: '100%', padding: '10px 12px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#525252', marginBottom: 4 }}>Email *</label>
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      placeholder="you@email.com"
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div style={{ marginBottom: 20 }}>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#525252', marginBottom: 4 }}>Phone *</label>
+                    <input
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      placeholder="(949) 555-1234"
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <button
+                    className="inj-res-cta"
+                    disabled={startContactSubmitting}
+                    onClick={async () => {
+                      // Validate
+                      if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone) {
+                        setError('Please fill in all fields.');
+                        return;
+                      }
+                      setError('');
+                      setStartContactSubmitting(true);
+                      try {
+                        // 1. Submit to /api/start/submit to create lead + patient + send auto-text
+                        const startData = JSON.parse(localStorage.getItem('range_start_lead') || '{}');
+                        const startRes = await fetch('/api/start/submit', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            firstName: formData.firstName,
+                            lastName: formData.lastName,
+                            email: formData.email,
+                            phone: formData.phone,
+                            path: 'injury',
+                            mainConcern: startData.mainConcern || '',
+                            urgency: startData.urgency || 7,
+                            hasRecentLabs: startData.hasRecentLabs || false,
+                            consentSms: true,
+                          }),
+                        });
+                        const startResult = await startRes.json();
+
+                        // 2. Submit the assessment to create the assessment_lead
+                        const assessRes = await fetch('/api/assessment/submit', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            ...formData,
+                            assessmentPath: 'injury',
+                            referralSource: 'start_funnel',
+                          }),
+                        });
+                        const assessResult = await assessRes.json();
+                        if (assessResult.leadId) {
+                          setLeadId(assessResult.leadId);
+                        }
+
+                        // 3. Save to localStorage for downstream use
+                        localStorage.setItem('range_start_lead', JSON.stringify({
+                          ...startData,
+                          firstName: formData.firstName,
+                          lastName: formData.lastName,
+                          email: formData.email,
+                          phone: formData.phone,
+                          leadId: assessResult.leadId || startResult.leadId || null,
+                        }));
+
+                        // 4. Go to payment ($200)
+                        setShowInjuryResults(false);
+                        setShowPayment(true);
+                        // Initialize payment will be called after leadId is set
+                        const payRes = await fetch('/api/assessment/payment-intent', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            leadId: assessResult.leadId,
+                            email: formData.email,
+                            firstName: formData.firstName,
+                            lastName: formData.lastName,
+                            phone: formData.phone,
+                            discount: 50,
+                          }),
+                        });
+                        const payData = await payRes.json();
+                        if (payData.clientSecret) {
+                          setClientSecret(payData.clientSecret);
+                        }
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      } catch (err) {
+                        console.error('Start funnel contact submit error:', err);
+                        setError('Something went wrong. Please try again.');
+                      } finally {
+                        setStartContactSubmitting(false);
+                      }
+                    }}
+                    style={{ border: 'none', cursor: 'pointer', fontFamily: 'inherit', opacity: startContactSubmitting ? 0.6 : 1 }}
+                  >
+                    {startContactSubmitting ? 'Saving...' : 'Lock In $50 Off & Book Visit — $200'}
+                  </button>
+                  <p style={{ fontSize: '0.85rem', color: '#a3a3a3', marginTop: '0.75rem', textAlign: 'center' }}>
+                    This $200 goes directly toward your treatment protocol.
+                  </p>
+                </>
+              ) : (
+                <>
+                  {/* Standard flow (direct visitors or contact already collected) */}
+                  <h3>Next Step: Book Your In-Clinic Visit</h3>
+                  <p>
+                    Based on your answers, we'll go over your treatment options in person — including peptide protocols like the BPC-157 / TB-4 10-day program. Your <strong>{fromStartFunnel ? '$200' : '$250'}</strong> visit fee goes directly toward whichever protocol you choose.
+                  </p>
+                  <button
+                    className="inj-res-cta"
+                    onClick={() => {
+                      setShowInjuryResults(false);
+                      setShowPayment(true);
+                      initializePayment();
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    style={{ border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    {fromStartFunnel ? 'Book Visit — $200 ($50 off applied!)' : 'Book Visit — $250'}
+                  </button>
+                  <p style={{ fontSize: '0.85rem', color: '#a3a3a3', marginTop: '0.75rem' }}>
+                    This {fromStartFunnel ? '$200' : '$250'} goes directly toward your treatment protocol.
+                  </p>
+                </>
+              )}
               <p className="inj-res-contact">
                 Questions? Call us at <a href="tel:9499973988">(949) 997-3988</a>
               </p>

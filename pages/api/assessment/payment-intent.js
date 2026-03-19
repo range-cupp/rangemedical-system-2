@@ -16,11 +16,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { leadId, email, firstName, lastName, phone } = req.body;
+    const { leadId, email, firstName, lastName, phone, discount } = req.body;
 
     if (!leadId || !email || !firstName || !lastName) {
       return res.status(400).json({ error: 'leadId, email, firstName, and lastName are required' });
     }
+
+    // Apply discount (e.g., $50 off from start funnel)
+    const discountCents = Math.min((discount || 0) * 100, 25000); // cap at full amount
+    const amountCents = 25000 - discountCents;
 
     const normalizedEmail = email.toLowerCase().trim();
 
@@ -58,17 +62,22 @@ export default async function handler(req, res) {
       }
     }
 
-    // Create PaymentIntent for $250
+    // Create PaymentIntent
+    const displayAmount = `$${(amountCents / 100).toFixed(0)}`;
     let paymentIntent;
     const intentParams = {
-      amount: 25000, // $250.00
+      amount: amountCents,
       currency: 'usd',
       customer: customerId,
-      description: 'In-Clinic Visit — Injury & Recovery (applied toward treatment)',
+      description: discountCents > 0
+        ? `In-Clinic Visit — Injury & Recovery (${displayAmount} after $${discount} start funnel discount)`
+        : 'In-Clinic Visit — Injury & Recovery (applied toward treatment)',
       metadata: {
         lead_id: leadId,
         assessment_path: 'injury',
         patient_email: normalizedEmail,
+        discount_applied: discountCents > 0 ? `${discount}` : '0',
+        source: discountCents > 0 ? 'start_funnel' : 'direct',
       },
     };
 
@@ -90,7 +99,7 @@ export default async function handler(req, res) {
       .update({
         stripe_payment_intent_id: paymentIntent.id,
         payment_status: 'pending',
-        payment_amount_cents: 25000,
+        payment_amount_cents: amountCents,
       })
       .eq('id', leadId);
 

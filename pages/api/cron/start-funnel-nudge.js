@@ -52,7 +52,9 @@ export default async function handler(req, res) {
         const normalized = normalizePhone(lead.phone);
         if (!normalized) continue;
 
-        const nextStepUrl = `https://range-medical.com/start/${lead.path}?name=${encodeURIComponent(lead.first_name)}`;
+        const nextStepUrl = lead.path === 'injury'
+          ? 'https://range-medical.com/injury-recovery?from=start'
+          : `https://range-medical.com/start/energy?name=${encodeURIComponent(lead.first_name)}`;
 
         const message = lead.path === 'injury'
           ? `Hey ${lead.first_name}, just checking in. Ready to book your Recovery Visit? Pick a time here:\n\n${nextStepUrl}\n\n- Range Medical`
@@ -107,7 +109,9 @@ export default async function handler(req, res) {
         const normalized = normalizePhone(lead.phone);
         if (!normalized) continue;
 
-        const nextStepUrl = `https://range-medical.com/start/${lead.path}?name=${encodeURIComponent(lead.first_name)}`;
+        const nextStepUrl = lead.path === 'injury'
+          ? 'https://range-medical.com/injury-recovery?from=start'
+          : `https://range-medical.com/start/energy?name=${encodeURIComponent(lead.first_name)}`;
 
         const message = lead.path === 'injury'
           ? `Hi ${lead.first_name}, wanted to reach out one last time. If you're still dealing with that injury, we're here when you're ready to book your Recovery Visit:\n\n${nextStepUrl}\n\nOr just reply to this text.\n\n- Range Medical`

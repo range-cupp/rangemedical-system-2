@@ -2,10 +2,17 @@ import Layout from '../components/Layout';
 import Link from 'next/link';
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import ResearchModal from '../components/ResearchModal';
 import { getStudiesByService } from '../data/researchStudies';
 
 export default function InjuryRecovery() {
+  const router = useRouter();
+  const fromStart = router.query.from === 'start';
+  const assessmentLink = fromStart
+    ? '/range-assessment?path=injury&from=start'
+    : '/range-assessment?path=injury';
+
   const [openFaq, setOpenFaq] = useState(null);
   const [isVisible, setIsVisible] = useState({});
   const [selectedStudy, setSelectedStudy] = useState(null);
@@ -432,7 +439,7 @@ export default function InjuryRecovery() {
             <p className="inj-cta-text">
               Take the online assessment ($250, credited toward treatment). It takes 2 minutes and we'll show you exactly which recovery tools fit your situation.
             </p>
-            <Link href="/range-assessment?path=injury" className="inj-btn-white">Take Assessment</Link>
+            <Link href={assessmentLink} className="inj-btn-white">Take Assessment</Link>
             <p className="inj-cta-location">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a3a3a3" strokeWidth="2">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>

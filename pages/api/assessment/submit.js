@@ -38,7 +38,8 @@ export default async function handler(req, res) {
       triedHormoneTherapy,
       goals,
       // Additional
-      additionalInfo
+      additionalInfo,
+      referralSource
     } = req.body;
 
     // Validate required fields
@@ -48,6 +49,7 @@ export default async function handler(req, res) {
 
     // Build tags based on responses
     const tags = [`assessment_${assessmentPath}`];
+    if (referralSource === 'start_funnel') tags.push('from_start_funnel');
 
     if (assessmentPath === 'injury') {
       if (injuryType) tags.push(`injury_type_${injuryType}`);
@@ -125,6 +127,7 @@ export default async function handler(req, res) {
 
         // Build patient tags from assessment
         const patientTags = ['research-lead', `assessment-${assessmentPath}`];
+        if (referralSource === 'start_funnel') patientTags.push('from_start_funnel');
 
         if (existingPatient) {
           patientId = existingPatient.id;

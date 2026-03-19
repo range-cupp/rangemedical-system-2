@@ -164,8 +164,14 @@ export default function StartPage() {
         }));
       } catch (e) { /* localStorage not available — non-blocking */ }
 
-      // Redirect to path-specific thank-you page
-      router.push(`/start/${selectedDoor}?name=${encodeURIComponent(form.firstName.trim())}`);
+      // Redirect based on path
+      if (selectedDoor === 'injury') {
+        // Send to existing injury-recovery page with source tracking
+        router.push('/injury-recovery?from=start');
+      } else {
+        // Energy path goes to lab panel selection page
+        router.push(`/start/${selectedDoor}?name=${encodeURIComponent(form.firstName.trim())}`);
+      }
     } catch (err) {
       console.error('Submit error:', err);
       setError(err.message || 'Something went wrong. Please try again.');

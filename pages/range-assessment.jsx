@@ -327,7 +327,8 @@ const goalLabels = {
 
 export default function RangeAssessment() {
   const router = useRouter();
-  const { path, panel } = router.query;
+  const { path, panel, from } = router.query;
+  const fromStartFunnel = from === 'start';
 
   const [selectedPath, setSelectedPath] = useState(null);
   const [step, setStep] = useState(0);
@@ -603,7 +604,8 @@ export default function RangeAssessment() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          assessmentPath: selectedPath
+          assessmentPath: selectedPath,
+          referralSource: fromStartFunnel ? 'start_funnel' : undefined,
         })
       });
 

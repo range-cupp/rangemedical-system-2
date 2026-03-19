@@ -8,6 +8,7 @@ import crypto from 'crypto';
 import { sendBlooioMessage } from '../../../lib/blooio';
 import { getPendingMessages, markPendingMessageSent } from '../../../lib/blooio-optin';
 import { identifyStaff, handleStaffMessage } from '../../../lib/staff-bot';
+import { shouldAutoReply, generateReply } from '../../../lib/patient-bot';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -239,6 +240,53 @@ async function handleInboundMessage(body) {
 
   // Auto-send any pending link messages now that patient has replied
   await sendPendingMessages(senderPhone, patient);
+
+  // ================================================================
+  // PATIENT AUTO-REPLY BOT
+  // AI-powered auto-response — generates a helpful reply using Claude
+  // keeps needs_response=true so staff still sees the conversation
+  // ================================================================
+  if (messageText && process.env.PATIENT_BOT_ENABLED === 'true') {
+    try {
+      const { shouldReply, reason } = shouldAutoReply(messageText);
+
+      if (shouldReply) {
+        const reply = await generateReply(messageText, patient?.id);
+
+        if (reply) {
+          const sendResult = await sendBlooioMessage({ to: senderPhone, message: reply });
+
+          // Log the auto-reply to comms_log
+          const botRow = {
+            patient_id: patient?.id || null,
+            patient_name: patient
+              ? (patient.first_name && patient.last_name
+                  ? `${patient.first_name} ${patient.last_name}`
+                  : patient.name)
+              : senderPhone,
+            ghl_contact_id: patient?.ghl_contact_id || null,
+            channel: 'sms',
+            message_type: 'patient_bot_reply',
+            message: reply,
+            source: 'patient-bot',
+            status: sendResult.success ? 'sent' : 'error',
+            error_message: sendResult.error || null,
+            recipient: senderPhone,
+            direction: 'outbound',
+            provider: 'blooio',
+          };
+          if (sendResult.messageSid) botRow.twilio_message_sid = sendResult.messageSid;
+          await supabase.from('comms_log').insert(botRow).catch(() => {});
+
+          console.log(`Patient bot auto-replied to ${patient?.name || senderPhone}: "${reply.substring(0, 80)}..."`);
+        }
+      } else {
+        console.log(`Patient bot skipped (${reason}): "${messageText.substring(0, 50)}"`);
+      }
+    } catch (botErr) {
+      console.error('Patient bot error (non-fatal):', botErr.message);
+    }
+  }
 
   // ================================================================
   // AUTO-REPLY: HRT IV Scheduling Prompt

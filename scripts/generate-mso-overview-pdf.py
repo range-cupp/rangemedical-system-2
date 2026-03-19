@@ -238,7 +238,7 @@ story.append(Spacer(1, 16))
 # ── Intro
 story.append(Paragraph(
     "Range MSO LLC is a <b>Management Services Organization</b> that owns the technology, equipment, "
-    "intellectual property, and brand behind the Range Medical network. The MSO provides management services "
+    "intellectual property, and brand behind the Range MSO network. The MSO provides management services "
     "to independently owned physician practices (PCs) through long-term Management Services Agreements. "
     "This structure separates the <b>scalable business assets</b> from the <b>clinical operations</b> \u2014 "
     "creating a model that is easier to grow, easier to value, and easier to acquire.",
@@ -263,7 +263,7 @@ story += detail_block(
     "Why an MSO?",
     [
         "In healthcare, physicians must own the clinical practice \u2014 but the <i>business</i> behind the practice "
-        "can be owned separately. The MSO structure allows Range Medical to separate scalable assets (software, "
+        "can be owned separately. The MSO structure allows Range MSO to separate scalable assets (software, "
         "equipment, brand, IP) from the clinical entity, which is subject to regulatory restrictions on ownership.",
 
         "This matters because <b>MSOs trade at 8\u201312x EBITDA</b> in acquisition, while standalone medical practices "
@@ -309,7 +309,7 @@ story += detail_block(
 story += detail_block(
     "Range Recovery Method \u2014 Clinical Intellectual Property",
     [
-        "The Range Recovery Method is the proprietary clinical protocol system behind all Range Medical treatments. "
+        "The Range Recovery Method is the proprietary clinical protocol system behind all Range MSO treatments. "
         "It encompasses standardized protocols for hormone replacement therapy, peptide therapy, IV therapy, hyperbaric "
         "oxygen therapy, red light therapy, and performance optimization programs.",
 
@@ -382,7 +382,7 @@ story += detail_block(
         "not dependent on patient volume at any single location.",
 
         "The MSA also defines service-level obligations, term length, renewal conditions, and termination provisions. "
-        "Each new PC in the Range Medical network signs the same standard MSA, making expansion repeatable.",
+        "Each new PC in the Range MSO network signs the same standard MSA, making expansion repeatable.",
     ],
     "The MSA is what makes the MSO model work. It converts clinical revenue into management fee revenue at the MSO level \u2014 the entity investors own. The longer the MSA term and the more PCs under contract, the more predictable and valuable the revenue stream."
 )
@@ -423,7 +423,7 @@ story += detail_block(
 story += detail_block(
     "San Clemente Medical PC",
     [
-        "The San Clemente location is under development as the second PC in the Range Medical network. This location will be "
+        "The San Clemente location is under development as the second PC in the Range MSO network. This location will be "
         "<b>co-located with the Sunday Red / Tiger Woods brand</b> \u2014 a premium performance and wellness facility that provides "
         "built-in foot traffic, brand credibility, and a high-value patient demographic.",
 
@@ -500,13 +500,13 @@ story += detail_block(
         "on any single clinician. Private equity and strategic acquirers pay premium multiples for this structure because it "
         "de-risks the investment.",
     ],
-    "The entire Range Medical business model is designed to build enterprise value at the MSO level \u2014 where the valuation multiples reward scalable, asset-heavy, contract-based business models."
+    "The entire Range MSO business model is designed to build enterprise value at the MSO level \u2014 where the valuation multiples reward scalable, asset-heavy, contract-based business models."
 )
 
 story += detail_block(
     "Repeatable Expansion Model",
     [
-        "Every new Range Medical location follows the same playbook: a physician-owned PC signs a standard Management Services "
+        "Every new Range MSO location follows the same playbook: a physician-owned PC signs a standard Management Services "
         "Agreement, gets access to the Range System software, deploys MSO-owned equipment, and operates under the Range Recovery "
         "Method protocols.",
 
@@ -520,7 +520,7 @@ story += detail_block(
 story += detail_block(
     "Asset Protection Through Separation",
     [
-        "By holding technology, equipment, and IP at the MSO level \u2014 separate from the clinical entities \u2014 Range Medical "
+        "By holding technology, equipment, and IP at the MSO level \u2014 separate from the clinical entities \u2014 Range MSO "
         "creates a structural liability shield. Clinical malpractice claims against a PC cannot reach MSO-held assets. The software, "
         "equipment, and brand remain protected regardless of clinical outcomes at any individual location.",
 

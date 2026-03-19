@@ -96,7 +96,7 @@ export default async function handler(req, res) {
     let sessions = null;
 
     if (protocolType === 'peptide') {
-      const days = parseInt(duration) || 10;
+      const days = parseInt(duration) || 30;
       // Use explicit totalSessions from POS if provided (e.g., 20 inj for 5-on/2-off),
       // otherwise fall back to calendar days
       sessions = totalSessions ? parseInt(totalSessions) : days;
@@ -141,7 +141,9 @@ export default async function handler(req, res) {
     // Build protocol name
     let protocolName = '';
     if (protocolType === 'peptide') {
-      const durationLabel = duration || 10;
+      const days = parseInt(duration) || 30;
+      // For 90-day protocols (monthly payments), label as "90-Day" program
+      const durationLabel = days >= 90 ? '90' : days;
       if (isGHPeptide(medication)) {
         protocolName = `${durationLabel}-Day GH Protocol`;
       } else if (isRecoveryPeptide(medication)) {

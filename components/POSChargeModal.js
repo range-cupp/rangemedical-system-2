@@ -717,7 +717,19 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           continue;
         }
 
-        const duration = parseInt(durationStr) || 10;
+        // Extract duration: try item.duration_days first, then parse from name
+        // Handles "Recovery 30 Day", "30 Day Protocol", "Monthly" (=30), "90 Day Program", "As Needed" (=30)
+        let duration = item.duration_days;
+        if (!duration) {
+          const dayMatch = durationStr.match(/(\d+)/);
+          if (dayMatch) {
+            duration = parseInt(dayMatch[1]);
+          } else if (durationStr.toLowerCase().includes('monthly') || durationStr.toLowerCase().includes('as needed')) {
+            duration = 30;
+          } else {
+            duration = 30; // safe default for peptide protocols
+          }
+        }
 
         // Split base name from dose detail
         const parenMatch = peptidePart.match(/^(.+?)\s*\((.+)\)$/);

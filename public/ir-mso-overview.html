@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Range MSO LLC — Business Structure Overview</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black: #0A0A0A;
+    --dark: #1A1A1A;
+    --charcoal: #2A2A2A;
+    --mid: #606060;
+    --muted: #888888;
+    --light-border: #E0E0E0;
+    --light-bg: #F6F6F6;
+    --white: #FFFFFF;
+    --accent: #1B4D3E;
+    --accent-light: #2E6B35;
+    --accent-bg: #F0F5F2;
+    --gold: #B8860B;
+    --gold-light: #F5F0E0;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+    --shadow-lg: 0 4px 20px rgba(0,0,0,0.10);
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--dark);
+    background: var(--white);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    border-bottom: 1px solid var(--light-border);
+    padding: 28px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .header-left h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--black);
+    letter-spacing: -0.5px;
+  }
+  .header-left p {
+    font-size: 13px;
+    color: var(--mid);
+    margin-top: 2px;
+    letter-spacing: 0.3px;
+  }
+  .confidential-badge {
+    background: var(--gold-light);
+    color: var(--gold);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border-radius: 4px;
+    border: 1px solid rgba(184,134,11,0.2);
+    white-space: nowrap;
+  }
+
+  /* ── MAIN CONTENT ── */
+  .content { padding: 40px; max-width: 1100px; margin: 0 auto; }
+
+  /* ── SECTION LABELS ── */
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .section-rule {
+    height: 1px;
+    background: var(--light-border);
+    margin-bottom: 20px;
+  }
+
+  /* ── ENTITY CARDS ── */
+  .entity-row {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .entity-card {
+    background: var(--white);
+    border: 1px solid var(--light-border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    box-shadow: var(--shadow-sm);
+  }
+  .entity-card:hover {
+    border-color: var(--accent);
+    box-shadow: var(--shadow);
+    transform: translateY(-1px);
+  }
+  .entity-card.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent), var(--shadow);
+  }
+  .entity-card .card-tag {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--white);
+    background: var(--accent);
+    padding: 3px 8px;
+    border-radius: 3px;
+    display: inline-block;
+    margin-bottom: 8px;
+  }
+  .entity-card .card-tag.gold { background: var(--gold); }
+  .entity-card .card-tag.charcoal { background: var(--charcoal); }
+  .entity-card h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--black);
+    margin-bottom: 4px;
+  }
+  .entity-card p {
+    font-size: 12px;
+    color: var(--mid);
+    line-height: 1.5;
+  }
+  .entity-card .stats {
+    display: flex;
+    gap: 16px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .entity-card .stat {
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .entity-card .stat strong {
+    color: var(--dark);
+    font-weight: 600;
+  }
+
+  .card-full { flex: 1 1 100%; max-width: 100%; }
+  .card-third { flex: 1 1 calc(33.333% - 12px); min-width: 220px; }
+  .card-half { flex: 1 1 calc(50% - 8px); min-width: 280px; }
+
+  /* ── FLOW INDICATOR ── */
+  .flow-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 16px 0;
+    margin: 8px 0;
+  }
+  .flow-line {
+    flex: 1;
+    height: 1px;
+    background: repeating-linear-gradient(90deg, var(--light-border) 0, var(--light-border) 6px, transparent 6px, transparent 12px);
+  }
+  .flow-box {
+    background: var(--accent-bg);
+    border: 1px solid rgba(46,107,53,0.2);
+    border-radius: var(--radius-sm);
+    padding: 10px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .flow-box:hover {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-sm);
+  }
+  .flow-box.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  .flow-box .flow-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .flow-box .flow-sub {
+    font-size: 10px;
+    color: var(--mid);
+    margin-top: 2px;
+  }
+
+  /* ── CONNECTOR ARROWS ── */
+  .connector {
+    display: flex;
+    justify-content: center;
+    padding: 4px 0;
+  }
+  .connector .arrow {
+    width: 2px;
+    height: 24px;
+    background: var(--light-border);
+    position: relative;
+  }
+  .connector .arrow::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid var(--light-border);
+  }
+
+  /* ── DETAIL PANEL ── */
+  .detail-panel {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease;
+    margin: 0;
+  }
+  .detail-panel.open {
+    max-height: 800px;
+    opacity: 1;
+    margin: 16px 0;
+  }
+  .detail-inner {
+    background: var(--light-bg);
+    border: 1px solid var(--light-border);
+    border-radius: var(--radius);
+    padding: 28px 32px;
+    transform: translateY(8px);
+    transition: transform 0.3s ease;
+  }
+  .detail-panel.open .detail-inner {
+    transform: translateY(0);
+  }
+  .detail-inner h4 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--black);
+    margin-bottom: 8px;
+  }
+  .detail-inner p {
+    font-size: 13px;
+    color: var(--dark);
+    line-height: 1.7;
+    margin-bottom: 10px;
+  }
+  .detail-inner p:last-child { margin-bottom: 0; }
+  .investor-note {
+    background: var(--accent-bg);
+    border-left: 3px solid var(--accent);
+    padding: 10px 14px;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    font-size: 12px !important;
+    color: var(--accent) !important;
+    font-weight: 500;
+  }
+
+  /* ── DOUBLE ARROW ── */
+  .double-arrow {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 0;
+  }
+  .double-arrow .arrow-up, .double-arrow .arrow-down {
+    width: 2px;
+    height: 18px;
+    background: var(--light-border);
+    position: relative;
+  }
+  .double-arrow .arrow-up::after {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 5px solid var(--accent);
+  }
+  .double-arrow .arrow-down::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid var(--accent);
+  }
+  .double-arrow .arrow-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+
+  /* ── VALUE PROPS ── */
+  .value-row {
+    display: flex;
+    gap: 16px;
+    margin: 0 0 12px;
+    flex-wrap: wrap;
+  }
+  .value-card {
+    flex: 1 1 calc(25% - 12px);
+    min-width: 200px;
+    background: var(--light-bg);
+    border: 1px solid var(--light-border);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+  }
+  .value-card .value-icon {
+    font-size: 28px;
+    margin-bottom: 10px;
+  }
+  .value-card h4 {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--black);
+    margin-bottom: 4px;
+  }
+  .value-card p {
+    font-size: 11px;
+    color: var(--mid);
+    line-height: 1.5;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    border-top: 1px solid var(--light-border);
+    padding: 20px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* ── INTRO TEXT ── */
+  .intro {
+    font-size: 14px;
+    color: var(--mid);
+    line-height: 1.7;
+    max-width: 820px;
+    margin-bottom: 32px;
+  }
+  .intro strong { color: var(--dark); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    .header { padding: 20px 20px; }
+    .content { padding: 24px 20px; }
+    .footer { padding: 16px 20px; }
+    .entity-card { padding: 16px 18px; }
+    .card-third, .card-half { flex: 1 1 100%; min-width: 0; }
+    .value-card { flex: 1 1 100%; min-width: 0; }
+    .detail-inner { padding: 20px; }
+    .flow-indicator { flex-direction: column; gap: 8px; }
+    .flow-line { width: 60%; height: 1px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<div class="header">
+  <div class="header-left">
+    <h1>Range MSO LLC</h1>
+    <p>Management Services Organization &middot; Newport Beach, CA</p>
+  </div>
+  <div class="confidential-badge">Confidential &mdash; Investor Use Only</div>
+</div>
+
+<!-- ── CONTENT ── -->
+<div class="content">
+
+  <p class="intro">
+    Range MSO LLC is a <strong>Management Services Organization</strong> that owns the technology, equipment, intellectual property, and brand behind the Range Medical network. The MSO provides management services to independently owned physician practices (PCs) through long-term Management Services Agreements. This structure separates the <strong>scalable business assets</strong> from the <strong>clinical operations</strong> &mdash; creating a model that is easier to grow, easier to value, and easier to acquire.
+  </p>
+
+  <!-- ── THE MSO ── -->
+  <div class="section-label">Holding Entity</div>
+  <div class="section-rule"></div>
+
+  <div class="entity-row">
+    <div class="entity-card card-full" data-detail="mso">
+      <span class="card-tag">Holding Entity</span>
+      <h3>Range MSO LLC</h3>
+      <p>California LLC &mdash; owns all non-clinical business assets, provides management services to affiliated physician practices</p>
+      <div class="stats">
+        <span class="stat"><strong>2</strong> locations</span>
+        <span class="stat"><strong>3</strong> proprietary assets</span>
+        <span class="stat"><strong>MSA</strong> revenue model</span>
+      </div>
+    </div>
+  </div>
+  <div class="detail-panel" id="detail-mso">
+    <div class="detail-inner">
+      <h4>Why an MSO?</h4>
+      <p>In healthcare, physicians must own the clinical practice &mdash; but the <em>business</em> behind the practice can be owned separately. The MSO structure allows Range Medical to separate scalable assets (software, equipment, brand, IP) from the clinical entity, which is subject to regulatory restrictions on ownership.</p>
+      <p>This matters because <strong>MSOs trade at 8&ndash;12x EBITDA</strong> in acquisition, while standalone medical practices typically trade at 1&ndash;2x. The premium reflects the fact that an MSO's revenue comes from long-term management contracts with predictable fee structures &mdash; not from the clinical license of any single physician. Software, IP, equipment, and brand transfer cleanly in a sale.</p>
+      <p class="investor-note">The MSO is the investable entity. It holds the assets that create enterprise value and generate management fee revenue from every PC in the network.</p>
+    </div>
+  </div>
+
+  <div class="connector"><div class="arrow"></div></div>
+
+  <!-- ── MSO ASSETS ── -->
+  <div class="section-label">MSO-Owned Assets</div>
+  <div class="section-rule"></div>
+
+  <div class="entity-row">
+    <div class="entity-card card-third" data-detail="software">
+      <span class="card-tag">Technology</span>
+      <h3>Range System</h3>
+      <p>Proprietary clinic management software &mdash; CRM, patient tracking, lab integration, protocol management</p>
+    </div>
+    <div class="entity-card card-third" data-detail="ip">
+      <span class="card-tag">Clinical IP</span>
+      <h3>Range Recovery Method</h3>
+      <p>Proprietary clinical protocols for regenerative medicine, peptide therapy, HRT, and performance optimization</p>
+    </div>
+    <div class="entity-card card-third" data-detail="equipment">
+      <span class="card-tag">Equipment</span>
+      <h3>Equipment Portfolio</h3>
+      <p>HBOT chambers, red light therapy, DEXA scanning, IV therapy stations &mdash; deployed across locations</p>
+    </div>
+  </div>
+  <div class="detail-panel" id="detail-software">
+    <div class="detail-inner">
+      <h4>Range System &mdash; Proprietary Software Platform</h4>
+      <p>The Range System is a custom-built clinic management platform that handles patient intake, protocol management, lab result tracking, service logging, automated communications, and operational workflows. It replaces generic EMR/CRM software with a purpose-built system designed around regenerative medicine workflows.</p>
+      <p>The software is owned at the MSO level and <strong>licensed to each PC via the Management Services Agreement</strong>. This creates a SaaS-like revenue layer: the MSO charges a software licensing fee on top of the base management fee for each location. As the network grows, software revenue scales with zero marginal cost per additional location.</p>
+      <p class="investor-note">Software ownership at the MSO level means the technology asset transfers cleanly in an acquisition. It also creates a recurring revenue stream that is independent of any single physician or location.</p>
+    </div>
+  </div>
+  <div class="detail-panel" id="detail-ip">
+    <div class="detail-inner">
+      <h4>Range Recovery Method &mdash; Clinical Intellectual Property</h4>
+      <p>The Range Recovery Method is the proprietary clinical protocol system behind all Range Medical treatments. It encompasses standardized protocols for hormone replacement therapy, peptide therapy, IV therapy, hyperbaric oxygen therapy, red light therapy, and performance optimization programs.</p>
+      <p>Critically, this IP <strong>vests in the MSO, not in any individual</strong>. Clinical protocols developed by affiliated physicians become MSO property under the operating agreement. This means the clinical methodology &mdash; the core differentiator that drives patient outcomes and word-of-mouth growth &mdash; is a transferable business asset.</p>
+      <p class="investor-note">In an acquisition, the clinical IP transfers with the MSO. No individual can walk away with the protocols. This is the difference between buying a brand and buying a practice that depends on one doctor's personal knowledge.</p>
+    </div>
+  </div>
+  <div class="detail-panel" id="detail-equipment">
+    <div class="detail-inner">
+      <h4>Equipment Portfolio &mdash; MSO-Level Asset Ownership</h4>
+      <p>All major clinical equipment &mdash; hyperbaric oxygen therapy chambers, red light therapy devices, DEXA body composition scanners, and IV therapy stations &mdash; is purchased and owned by the MSO, then deployed to PC locations under the Management Services Agreement.</p>
+      <p>MSO-level ownership serves two purposes: it <strong>protects equipment from clinical liability</strong> (malpractice claims against a PC cannot reach MSO-held assets), and it <strong>consolidates all capital assets on one balance sheet</strong> for cleaner financial reporting and simpler asset transfer in a sale.</p>
+      <p class="investor-note">Equipment stays with the MSO regardless of what happens at the PC level. If a physician leaves or a PC transitions, the equipment remains an MSO asset &mdash; deployed to the next affiliated practice.</p>
+    </div>
+  </div>
+
+  <!-- ── MSA FLOW ── -->
+  <div class="flow-indicator">
+    <div class="flow-line"></div>
+    <div class="flow-box" data-detail="msa">
+      <div class="flow-title">Management Services Agreement</div>
+      <div class="flow-sub">Fees flow up &middot; Services flow down</div>
+    </div>
+    <div class="flow-line"></div>
+  </div>
+  <div class="detail-panel" id="detail-msa">
+    <div class="detail-inner">
+      <h4>Management Services Agreement (MSA)</h4>
+      <p>The MSA is the contract that connects the MSO to each affiliated physician practice. It defines the relationship: the MSO provides management services (software, equipment, staffing, billing, marketing, compliance infrastructure), and the PC pays a recurring management fee for those services.</p>
+      <p>This is the <strong>core revenue mechanism</strong> of the MSO model. Management fees are structured as a percentage of collections or a flat monthly rate &mdash; creating predictable, recurring revenue that is contractually defined and not dependent on patient volume at any single location.</p>
+      <p>The MSA also defines service-level obligations, term length, renewal conditions, and termination provisions. Each new PC in the Range Medical network signs the same standard MSA, making expansion repeatable.</p>
+      <p class="investor-note">The MSA is what makes the MSO model work. It converts clinical revenue into management fee revenue at the MSO level &mdash; the entity investors own. The longer the MSA term and the more PCs under contract, the more predictable and valuable the revenue stream.</p>
+    </div>
+  </div>
+
+  <div class="double-arrow">
+    <div class="arrow-up"></div>
+    <span class="arrow-label">Fees</span>
+    <div class="arrow-down"></div>
+    <span class="arrow-label">Services</span>
+  </div>
+
+  <!-- ── PHYSICIAN PRACTICES ── -->
+  <div class="section-label">Affiliated Physician Practices</div>
+  <div class="section-rule"></div>
+
+  <div class="entity-row">
+    <div class="entity-card card-half" data-detail="newport">
+      <span class="card-tag charcoal">Operational</span>
+      <h3>Newport Beach Medical PC</h3>
+      <p>Physician-owned professional corporation &middot; Full-service regenerative medicine clinic</p>
+      <div class="stats">
+        <span class="stat"><strong>1901 Westcliff Dr</strong></span>
+        <span class="stat">Suite 10, Newport Beach</span>
+      </div>
+    </div>
+    <div class="entity-card card-half" data-detail="sanclemente">
+      <span class="card-tag gold">Under Development</span>
+      <h3>San Clemente Medical PC</h3>
+      <p>Physician-owned professional corporation &middot; Co-located with Sunday Red / Tiger Woods brand</p>
+      <div class="stats">
+        <span class="stat"><strong>San Clemente, CA</strong></span>
+        <span class="stat">Premium co-location</span>
+      </div>
+    </div>
+  </div>
+  <div class="detail-panel" id="detail-newport">
+    <div class="detail-inner">
+      <h4>Newport Beach Medical PC</h4>
+      <p>The Newport Beach PC is a physician-owned professional corporation that operates the clinical practice at 1901 Westcliff Drive, Suite 10 in Newport Beach. The physician of record owns and controls the PC, as required by California medical practice law. The PC handles all patient care, prescribing, and clinical decision-making.</p>
+      <p>The MSO provides management services to the Newport Beach PC under a long-term Management Services Agreement. The PC pays a management fee to the MSO in exchange for the Range System software, equipment access, operational staffing, billing, marketing, and compliance infrastructure. The physician focuses on medicine; the MSO handles the business.</p>
+      <p class="investor-note">This separation is key to the model. The PC generates clinical revenue. The MSO captures management fee revenue. The MSO's value scales with the number of PCs under contract &mdash; not with the number of patients at any single location.</p>
+    </div>
+  </div>
+  <div class="detail-panel" id="detail-sanclemente">
+    <div class="detail-inner">
+      <h4>San Clemente Medical PC</h4>
+      <p>The San Clemente location is under development as the second PC in the Range Medical network. This location will be <strong>co-located with the Sunday Red / Tiger Woods brand</strong> &mdash; a premium performance and wellness facility that provides built-in foot traffic, brand credibility, and a high-value patient demographic.</p>
+      <p>The San Clemente PC will operate under the same MSA structure as Newport Beach: physician-owned PC, management services provided by the MSO, same software platform, same clinical protocols, same equipment portfolio. This is the repeatable expansion model &mdash; each new location plugs into the existing MSO infrastructure.</p>
+      <p class="investor-note">The Sunday Red co-location represents a significant brand and distribution advantage. The MSO captures management fee revenue from this location just like Newport Beach &mdash; expanding the revenue base without expanding the overhead proportionally.</p>
+    </div>
+  </div>
+
+  <!-- ── REVENUE MODEL ── -->
+  <div style="margin-top: 40px;"></div>
+  <div class="section-label">How Revenue Flows</div>
+  <div class="section-rule"></div>
+
+  <div class="value-row">
+    <div class="value-card">
+      <div class="value-icon">&#127973;</div>
+      <h4>Patients Visit PC</h4>
+      <p>Patients receive care at the physician-owned practice location</p>
+    </div>
+    <div class="value-card">
+      <div class="value-icon">&#128176;</div>
+      <h4>PC Collects Revenue</h4>
+      <p>Clinical revenue from services, treatments, and programs</p>
+    </div>
+    <div class="value-card">
+      <div class="value-icon">&#128196;</div>
+      <h4>MSA Fee to MSO</h4>
+      <p>PC pays recurring management fee to the MSO per the MSA</p>
+    </div>
+    <div class="value-card">
+      <div class="value-icon">&#128200;</div>
+      <h4>MSO Scales</h4>
+      <p>Each new PC adds another management fee stream to the MSO</p>
+    </div>
+  </div>
+
+  <!-- ── WHY MSO ── -->
+  <div style="margin-top: 40px;"></div>
+  <div class="section-label">Why This Structure</div>
+  <div class="section-rule"></div>
+
+  <div class="entity-row">
+    <div class="entity-card card-third" data-detail="why-valuation">
+      <span class="card-tag">Valuation</span>
+      <h3>8&ndash;12x EBITDA</h3>
+      <p>MSOs trade at premium multiples vs. 1&ndash;2x for standalone practices</p>
+    </div>
+    <div class="entity-card card-third" data-detail="why-scalable">
+      <span class="card-tag">Scalability</span>
+      <h3>Repeatable Model</h3>
+      <p>Same MSA, same software, same protocols &mdash; each new location plugs in</p>
+    </div>
+    <div class="entity-card card-third" data-detail="why-protection">
+      <span class="card-tag">Protection</span>
+      <h3>Asset Separation</h3>
+      <p>MSO assets shielded from clinical liability &mdash; clean transfer in acquisition</p>
+    </div>
+  </div>
+  <div class="detail-panel" id="detail-why-valuation">
+    <div class="detail-inner">
+      <h4>Premium Valuation Multiples</h4>
+      <p>Standalone medical practices typically sell for 1&ndash;2x EBITDA because their value is tied to a specific physician, location, and patient panel. When the doctor leaves, the value walks out the door.</p>
+      <p>MSOs trade at <strong>8&ndash;12x EBITDA</strong> because they own the transferable assets: software, IP, brand, equipment, and long-term management contracts. The revenue is contractual, the assets are transferable, and the model is not dependent on any single clinician. Private equity and strategic acquirers pay premium multiples for this structure because it de-risks the investment.</p>
+      <p class="investor-note">The entire Range Medical business model is designed to build enterprise value at the MSO level &mdash; where the valuation multiples reward scalable, asset-heavy, contract-based business models.</p>
+    </div>
+  </div>
+  <div class="detail-panel" id="detail-why-scalable">
+    <div class="detail-inner">
+      <h4>Repeatable Expansion Model</h4>
+      <p>Every new Range Medical location follows the same playbook: a physician-owned PC signs a standard Management Services Agreement, gets access to the Range System software, deploys MSO-owned equipment, and operates under the Range Recovery Method protocols.</p>
+      <p>The MSO doesn't need to rebuild infrastructure for each location. The software platform, clinical protocols, compliance frameworks, and operational playbooks are <strong>already built</strong>. Each new PC adds management fee revenue to the MSO with minimal incremental overhead.</p>
+      <p class="investor-note">Scalability is the multiplier. The fixed costs of the MSO (software development, IP, brand) are amortized across every PC in the network. Margin improves with each new location.</p>
+    </div>
+  </div>
+  <div class="detail-panel" id="detail-why-protection">
+    <div class="detail-inner">
+      <h4>Asset Protection Through Separation</h4>
+      <p>By holding technology, equipment, and IP at the MSO level &mdash; separate from the clinical entities &mdash; Range Medical creates a structural liability shield. Clinical malpractice claims against a PC cannot reach MSO-held assets. The software, equipment, and brand remain protected regardless of clinical outcomes at any individual location.</p>
+      <p>In an acquisition, this separation means the <strong>buyer acquires the MSO and gets all the valuable assets</strong> without inheriting the clinical liabilities of any individual practice. The PCs can transition, physicians can change, but the MSO's assets and contracts remain intact.</p>
+      <p class="investor-note">Asset separation is not just a legal nicety &mdash; it's a structural requirement for premium valuation. Acquirers need to know exactly what they're buying and that it's insulated from clinical risk.</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── FOOTER ── -->
+<div class="footer">
+  <span>1901 Westcliff Drive, Suite 10, Newport Beach, CA 92660</span>
+  <span>Confidential &middot; Effective March 13, 2026</span>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const clickables = document.querySelectorAll('[data-detail]');
+
+  clickables.forEach(el => {
+    el.addEventListener('click', function() {
+      const detailId = 'detail-' + this.dataset.detail;
+      const panel = document.getElementById(detailId);
+      if (!panel) return;
+
+      const wasOpen = panel.classList.contains('open');
+
+      // Close all panels and deselect all cards
+      document.querySelectorAll('.detail-panel.open').forEach(p => p.classList.remove('open'));
+      document.querySelectorAll('.entity-card.selected, .flow-box.selected').forEach(c => c.classList.remove('selected'));
+
+      // If it wasn't open, open it
+      if (!wasOpen) {
+        panel.classList.add('open');
+        this.classList.add('selected');
+        // Smooth scroll so detail panel is visible below the clicked card
+        setTimeout(() => {
+          panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+      }
+    });
+  });
+});
+</script>
+
+</body>
+</html>

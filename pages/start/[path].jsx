@@ -299,6 +299,106 @@ export default function StartThankYou() {
             color: #171717;
           }
 
+          /* Why labs first */
+          .ty-why-labs {
+            max-width: 620px;
+            margin: 0 auto;
+            padding: 0 20px 48px;
+          }
+          .ty-why-labs-inner {
+            background: #fafafa;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            padding: 32px;
+          }
+          .ty-why-labs h2 {
+            font-size: 22px;
+            font-weight: 700;
+            margin: 0 0 12px;
+          }
+          .ty-why-labs p {
+            font-size: 15px;
+            color: #525252;
+            line-height: 1.7;
+            margin: 0 0 12px;
+          }
+          .ty-why-labs p:last-child { margin-bottom: 0; }
+
+          /* What's included callout */
+          .ty-included-callout {
+            max-width: 620px;
+            margin: 0 auto;
+            padding: 0 20px 48px;
+          }
+          .ty-included-inner {
+            background: #171717;
+            border-radius: 12px;
+            padding: 32px;
+            color: #fff;
+          }
+          .ty-included-inner h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0 0 24px;
+            color: #fff;
+          }
+          .ty-included-items {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+          }
+          .ty-included-item {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+          }
+          .ty-included-icon {
+            font-size: 24px;
+            min-width: 32px;
+            text-align: center;
+          }
+          .ty-included-item strong {
+            display: block;
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 2px;
+          }
+          .ty-included-item p {
+            font-size: 14px;
+            color: #a3a3a3;
+            line-height: 1.5;
+            margin: 0;
+          }
+
+          /* Panel "who should pick" */
+          .ty-panel-who {
+            text-align: left;
+            margin: 0 0 16px;
+            padding: 12px 14px;
+            background: #f5f5f5;
+            border-radius: 8px;
+          }
+          .ty-panel-who h4 {
+            font-size: 13px;
+            font-weight: 600;
+            color: #525252;
+            margin: 0 0 6px;
+          }
+          .ty-panel-who ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+          }
+          .ty-panel-who li {
+            font-size: 13px;
+            color: #525252;
+            padding: 2px 0;
+          }
+          .ty-panel-who li::before {
+            content: "\\2192  ";
+            color: #a3a3a3;
+          }
+
           /* Both include */
           .ty-both-include {
             max-width: 600px;
@@ -439,103 +539,166 @@ export default function StartThankYou() {
         {/* --- ENERGY PATH: Essential vs Elite lab panel selection --- */}
         {!isInjury && (
           <>
+            {/* Why labs first */}
+            <section className="ty-why-labs">
+              <div className="ty-why-labs-inner">
+                <h2>Why we start with labs</h2>
+                <p>
+                  Most places either treat only the symptoms or glance at a few basic labs and say
+                  "you're fine." We do it differently. We match how you feel with what your labs
+                  actually show — so we can see what's really going on with your energy, hormones,
+                  and metabolism.
+                </p>
+                <p style={{ fontWeight: 600, color: '#171717' }}>
+                  Think of it like this: if your body is a car, right now you're driving with
+                  the check engine light on, but nobody's plugged into the engine. These panels
+                  are us plugging in.
+                </p>
+              </div>
+            </section>
+
+            {/* What's included callout — prominent */}
+            <section className="ty-included-callout">
+              <div className="ty-included-inner">
+                <h3>Whichever panel you choose, you get:</h3>
+                <div className="ty-included-items">
+                  <div className="ty-included-item">
+                    <div className="ty-included-icon">🩸</div>
+                    <div>
+                      <strong>Your blood work</strong>
+                      <p>Through our lab partners. No surprise bills, no random add-ons.</p>
+                    </div>
+                  </div>
+                  <div className="ty-included-item">
+                    <div className="ty-included-icon">👨‍⚕️</div>
+                    <div>
+                      <strong>A 1:1 visit with your provider</strong>
+                      <p>Not a rushed appointment. We review your labs together, connect them to your symptoms, and answer every question.</p>
+                    </div>
+                  </div>
+                  <div className="ty-included-item">
+                    <div className="ty-included-icon">📋</div>
+                    <div>
+                      <strong>A written plan in plain language</strong>
+                      <p>You leave knowing exactly what's going on and what to do about it. Hormones, weight loss, energy, sleep — clear next steps and timelines.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Panel selection */}
             <section className="ty-panels">
-              <h2>Choose your lab panel</h2>
-              <p>Both include a 1:1 provider review and a written plan.</p>
+              <h2>Pick your panel</h2>
+              <p>One payment. Labs, provider review, and written plan included.</p>
 
               <div className="ty-panels-grid">
                 {/* Essential Panel */}
                 <div className="ty-panel-card">
                   <div className="ty-panel-name">Essential Panel</div>
                   <div className="ty-panel-price">$350</div>
-                  <div className="ty-panel-note">Great starting point for most people</div>
+                  <div className="ty-panel-note">Smart starting point for most people</div>
                   <p className="ty-panel-desc">
-                    Covers the core hormones, thyroid, metabolic markers, and inflammation
-                    levels that explain most fatigue, weight, and mood issues.
+                    Designed for you if you've been feeling off for a while and want real answers.
+                    We look at the key markers that drive energy, hormones, inflammation, and
+                    metabolism — enough to see the big picture and build a solid plan.
                   </p>
+                  <div className="ty-panel-who">
+                    <h4>Choose Essential if:</h4>
+                    <ul>
+                      <li>You're tired, foggy, or gaining weight</li>
+                      <li>You haven't done deeper labs before</li>
+                      <li>You want a smart, solid starting point</li>
+                    </ul>
+                  </div>
                   <div className="ty-panel-includes">
-                    <h4>Includes</h4>
+                    <h4>What we test</h4>
                     <ul>
                       <li>Testosterone (total + free)</li>
                       <li>Thyroid panel (TSH, T3, T4)</li>
                       <li>Metabolic markers</li>
                       <li>Inflammation markers</li>
-                      <li>1:1 provider review</li>
-                      <li>Written treatment plan</li>
                     </ul>
                   </div>
                   <Link
-                    href="https://link.range-medical.com/payment-link/698365fcc80eaf78e79b8ef7"
+                    href="/range-assessment?path=energy&panel=essential"
                     className="ty-panel-btn ty-panel-btn-outline"
                   >
-                    Choose Essential
+                    Choose Essential — $350
                   </Link>
                 </div>
 
                 {/* Elite Panel */}
                 <div className="ty-panel-card recommended">
-                  <div className="ty-panel-badge">Most Comprehensive</div>
+                  <div className="ty-panel-badge">Full Deep Dive</div>
                   <div className="ty-panel-name">Elite Panel</div>
                   <div className="ty-panel-price">$750</div>
-                  <div className="ty-panel-note">Full deep dive for complex cases</div>
+                  <div className="ty-panel-note">Every stone turned over</div>
                   <p className="ty-panel-desc">
-                    Everything in Essential plus advanced hormones, nutrient levels,
-                    organ function, and longevity markers. For high performers or anyone
-                    who wants every stone turned.
+                    For you if you've been struggling for years, tried a bunch of different
+                    things, or you're the kind of person who wants the full picture from day one.
+                    Goes deeper and wider — more data, more context, more insight.
                   </p>
+                  <div className="ty-panel-who">
+                    <h4>Choose Elite if:</h4>
+                    <ul>
+                      <li>You've been chasing this for years</li>
+                      <li>You've already done basic labs before</li>
+                      <li>You want the full deep dive from day one</li>
+                    </ul>
+                  </div>
                   <div className="ty-panel-includes">
-                    <h4>Includes everything in Essential, plus</h4>
+                    <h4>Everything in Essential, plus</h4>
                     <ul>
                       <li>Estradiol, DHEA-S, SHBG</li>
                       <li>Full nutrient panel (B12, D, iron)</li>
                       <li>Liver and kidney function</li>
                       <li>Advanced lipids</li>
-                      <li>1:1 provider review</li>
-                      <li>Written treatment plan</li>
                     </ul>
                   </div>
                   <Link
-                    href="https://link.range-medical.com/payment-link/698365ba6503ca98c6834212"
+                    href="/range-assessment?path=energy&panel=elite"
                     className="ty-panel-btn"
                   >
-                    Choose Elite
+                    Choose Elite — $750
                   </Link>
                 </div>
               </div>
             </section>
 
             <div className="ty-both-include">
-              <p><strong>Both panels include</strong> your lab draw, a 1:1 review with your provider, and a personalized written plan.</p>
+              <p><strong>Both panels include</strong> your blood work, a 1:1 provider review, and a personalized written plan.</p>
+              <p style={{ marginTop: 8 }}>Not sure which? Start with Essential. If your provider thinks you need more, they'll explain why.</p>
             </div>
 
             <div className="ty-cta-section" style={{ paddingTop: 20 }}>
               <p className="ty-or">
-                Not sure which panel? Call/text <a href="tel:9499973988">(949) 997-3988</a> and we'll help you decide.
+                Questions? Call/text <a href="tel:9499973988">(949) 997-3988</a>
               </p>
             </div>
 
             <section className="ty-expect">
               <div className="ty-expect-card">
-                <h3>What happens next</h3>
+                <h3>How it works, step by step</h3>
                 <div className="ty-expect-item">
                   <div className="ty-expect-num">1</div>
                   <div className="ty-expect-text">
-                    <h4>Watch the video above</h4>
-                    <p>It explains our two lab panels and how we use them to build your plan.</p>
+                    <h4>Pick Essential or Elite</h4>
+                    <p>Click the one that fits you best above. You'll enter your info and complete your purchase.</p>
                   </div>
                 </div>
                 <div className="ty-expect-item">
                   <div className="ty-expect-num">2</div>
                   <div className="ty-expect-text">
-                    <h4>Pick your panel and schedule your lab draw</h4>
-                    <p>Choose Essential or Elite above. We'll get your blood drawn at a local lab.</p>
+                    <h4>Get your blood drawn</h4>
+                    <p>We'll text you clear instructions. Show up, get the labs done, and that's it for that step.</p>
                   </div>
                 </div>
                 <div className="ty-expect-item">
                   <div className="ty-expect-num">3</div>
                   <div className="ty-expect-text">
-                    <h4>Review results + get your plan</h4>
-                    <p>Your provider reviews your labs 1:1 and gives you a clear, written plan.</p>
+                    <h4>Results visit + your plan</h4>
+                    <p>When results are back, you meet with your provider 1:1. We review your labs together, connect them to your symptoms, and give you your written plan. No rushing, no "your labs are normal, good luck."</p>
                   </div>
                 </div>
               </div>

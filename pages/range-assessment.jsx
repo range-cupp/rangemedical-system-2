@@ -327,7 +327,7 @@ const goalLabels = {
 
 export default function RangeAssessment() {
   const router = useRouter();
-  const { path } = router.query;
+  const { path, panel } = router.query;
 
   const [selectedPath, setSelectedPath] = useState(null);
   const [step, setStep] = useState(0);
@@ -438,7 +438,10 @@ export default function RangeAssessment() {
     if (path === 'injury' || path === 'energy') {
       setSelectedPath(path);
     }
-  }, [path]);
+    if (panel === 'essential' || panel === 'elite') {
+      setSelectedPanel(panel);
+    }
+  }, [path, panel]);
 
   // Scroll to top when step changes
   useEffect(() => {

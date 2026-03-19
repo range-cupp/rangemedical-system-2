@@ -473,7 +473,13 @@
     .tab-bar { padding: 0 12px; overflow-x: auto; }
     .tab-btn { padding: 12px 16px; font-size: 12px; white-space: nowrap; }
     .content { padding: 24px 20px; }
-    .card-fifth { flex: 1 1 calc(50% - 8px); min-width: 150px; }
+    .entity-row {
+      flex-direction: column;
+    }
+    .card-third, .card-half, .card-fifth {
+      flex: 1 1 100%;
+      min-width: 0;
+    }
     .branch-container { flex-direction: column; }
     .footer { padding: 16px 20px; }
     .detail-inner { padding: 20px; }
@@ -981,7 +987,8 @@
     });
   });
 
-  // Detail panel toggling
+  // Detail panel toggling — on mobile, move panel directly after the clicked card
+  const isMobile = () => window.innerWidth <= 768;
   const clickables = document.querySelectorAll('[data-detail]');
 
   clickables.forEach(card => {
@@ -998,11 +1005,15 @@
 
       // If it wasn't open, open it
       if (!wasOpen) {
+        // On mobile, reposition the detail panel directly after the clicked card
+        if (isMobile()) {
+          card.insertAdjacentElement('afterend', panel);
+        }
         panel.classList.add('open');
         card.classList.add('selected');
-        // Smooth scroll into view after animation starts
+        // Smooth scroll: show the card at top with detail below it
         setTimeout(() => {
-          panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          card.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 100);
       }
     });

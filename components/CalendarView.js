@@ -146,20 +146,22 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     setLoading(true);
     try {
       let startDate, endDate;
+      // Get Pacific timezone offset for correct UTC comparison
+      const tzOffset = getPacificOffset(currentDate);
       if (viewMode === 'day') {
-        startDate = formatDateISO(currentDate) + 'T00:00:00';
-        endDate = formatDateISO(currentDate) + 'T23:59:59';
+        startDate = formatDateISO(currentDate) + 'T00:00:00' + tzOffset;
+        endDate = formatDateISO(currentDate) + 'T23:59:59' + tzOffset;
       } else if (viewMode === 'week') {
         const weekStart = getWeekStart(currentDate);
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekEnd.getDate() + 6);
-        startDate = formatDateISO(weekStart) + 'T00:00:00';
-        endDate = formatDateISO(weekEnd) + 'T23:59:59';
+        startDate = formatDateISO(weekStart) + 'T00:00:00' + tzOffset;
+        endDate = formatDateISO(weekEnd) + 'T23:59:59' + tzOffset;
       } else {
         const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
         const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-        startDate = formatDateISO(monthStart) + 'T00:00:00';
-        endDate = formatDateISO(monthEnd) + 'T23:59:59';
+        startDate = formatDateISO(monthStart) + 'T00:00:00' + tzOffset;
+        endDate = formatDateISO(monthEnd) + 'T23:59:59' + tzOffset;
       }
 
       const res = await fetch(`/api/appointments/list?start_date=${startDate}&end_date=${endDate}`);
@@ -3276,6 +3278,15 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
 // ===================== Utility Functions =====================
 function formatDateISO(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function getPacificOffset(date) {
+  // Determine if date is in PDT or PST by checking the timezone offset
+  // Create a date formatter that uses America/Los_Angeles
+  const fmt = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', timeZoneName: 'short' });
+  const parts = fmt.formatToParts(date);
+  const tzName = parts.find(p => p.type === 'timeZoneName')?.value;
+  return tzName === 'PDT' ? '-07:00' : '-08:00';
 }
 
 function formatTime(iso) {

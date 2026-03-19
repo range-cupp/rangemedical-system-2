@@ -1,7 +1,7 @@
 // pages/start/[path].jsx
-// Path-specific thank-you / VSL pages after /start form submission
-// Injury → focused recovery visit (no labs up front)
+// Energy path thank-you / VSL page after /start form submission
 // Energy → Essential vs Elite lab panel selection with pricing
+// Note: Injury path has its own dedicated page at /start/injury.jsx
 
 import Layout from '../../components/Layout';
 import Head from 'next/head';

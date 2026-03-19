@@ -46,6 +46,7 @@ export default function StartPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const formRef = useRef(null);
+  const [visibleIds, setVisibleIds] = useState(new Set());
 
   const [form, setForm] = useState({
     firstName: '',
@@ -59,23 +60,33 @@ export default function StartPage() {
     consentSms: false,
   });
 
-  // Scroll-based animations
+  // Scroll-based animations — track visibility in React state so re-renders don't strip it
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
+            const id = entry.target.dataset.animId;
+            if (id) {
+              setVisibleIds((prev) => {
+                const next = new Set(prev);
+                next.add(id);
+                return next;
+              });
+            }
             observer.unobserve(entry.target);
           }
         });
       },
       { threshold: 0.12 }
     );
-    const elements = document.querySelectorAll('.start-page .start-animate');
+    const elements = document.querySelectorAll('.start-page [data-anim-id]');
     elements.forEach((el) => observer.observe(el));
     return () => elements.forEach((el) => observer.unobserve(el));
   }, []);
+
+  const animClass = (id) =>
+    `start-animate${visibleIds.has(id) ? ' visible' : ''}`;
 
   const handleDoorClick = (doorId) => {
     setSelectedDoor(doorId);
@@ -569,12 +580,12 @@ export default function StartPage() {
       <div className="start-page">
         {/* Hero */}
         <section className="start-hero">
-          <h1 className="start-animate">Not feeling like yourself?<br />Start here.</h1>
-          <p className="start-animate">
+          <h1 className={animClass('hero-h1')} data-anim-id="hero-h1">Not feeling like yourself?<br />Start here.</h1>
+          <p className={animClass('hero-p')} data-anim-id="hero-p">
             Tell us what you're dealing with, and we'll show you the best next step. Takes about 3 minutes.
           </p>
 
-          <div className="start-video-wrap start-animate">
+          <div className={`start-video-wrap ${animClass('hero-video')}`} data-anim-id="hero-video">
             <div className="start-video-placeholder">
               <div className="play-icon">
                 <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" /></svg>
@@ -586,14 +597,15 @@ export default function StartPage() {
 
         {/* Pick Your Door */}
         <section className="start-doors">
-          <h2 className="start-animate">What brings you in?</h2>
-          <p className="start-animate">Pick the one that fits best. We'll take it from there.</p>
+          <h2 className={animClass('doors-h2')} data-anim-id="doors-h2">What brings you in?</h2>
+          <p className={animClass('doors-p')} data-anim-id="doors-p">Pick the one that fits best. We'll take it from there.</p>
 
           <div className="start-doors-grid">
             {DOORS.map((door) => (
               <div
                 key={door.id}
-                className={`start-door-card start-animate ${selectedDoor === door.id ? 'selected' : ''}`}
+                className={`start-door-card ${animClass(`door-${door.id}`)} ${selectedDoor === door.id ? 'selected' : ''}`}
+                data-anim-id={`door-${door.id}`}
                 style={
                   selectedDoor === door.id
                     ? { borderColor: door.color, background: door.bgColor }
@@ -754,19 +766,19 @@ export default function StartPage() {
 
         {/* How It Works */}
         <section className="start-how">
-          <h2 className="start-animate">How Range Works</h2>
+          <h2 className={animClass('how-h2')} data-anim-id="how-h2">How Range Works</h2>
           <div className="start-steps">
-            <div className="start-step start-animate">
+            <div className={`start-step ${animClass('step-1')}`} data-anim-id="step-1">
               <div className="start-step-num">1</div>
               <h4>Tell us your problem</h4>
               <p>Pick the door that fits you and fill out the short form above.</p>
             </div>
-            <div className="start-step start-animate">
+            <div className={`start-step ${animClass('step-2')}`} data-anim-id="step-2">
               <div className="start-step-num">2</div>
               <h4>We look at labs</h4>
               <p>Yours or ones we order. Real data, not guesswork.</p>
             </div>
-            <div className="start-step start-animate">
+            <div className={`start-step ${animClass('step-3')}`} data-anim-id="step-3">
               <div className="start-step-num">3</div>
               <h4>Get a written plan</h4>
               <p>A simple, clear plan your provider walks you through.</p>

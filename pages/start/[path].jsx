@@ -111,9 +111,7 @@ export default function StartThankYou() {
             overflow: hidden;
             background: #000;
             aspect-ratio: 16/9;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            position: relative;
           }
           .ty-video-placeholder {
             text-align: center;
@@ -487,12 +485,15 @@ export default function StartThankYou() {
           <p className="ty-desc">{config.description}</p>
 
           <div className="ty-video-wrap">
-            <div className="ty-video-placeholder">
-              <div className="play-icon">
-                <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" /></svg>
-              </div>
-              <span>Video coming soon</span>
-            </div>
+            <iframe
+              src="https://www.youtube.com/embed/oQP7l6fNt64?si=vpphiyniMtvbvAd6&controls=0"
+              title="YouTube video player"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+            />
           </div>
         </section>
 

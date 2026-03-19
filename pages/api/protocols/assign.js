@@ -618,7 +618,7 @@ export default async function handler(req, res) {
         selected_dose: selectedDose || null,
         starting_dose: selectedDose || null, // Track initial dose for WL protocols
         frequency: frequency || template?.frequency,
-        delivery_method: deliveryMethod || template?.delivery_method || null,
+        delivery_method: deliveryMethod || template?.delivery_method || (programType === 'injection' ? 'in_clinic' : null),
         start_date: startDate,
         end_date: endDate,
         total_sessions: finalTotalSessions,

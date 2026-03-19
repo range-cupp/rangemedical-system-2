@@ -438,6 +438,8 @@ export default function RangeAssessment() {
   });
 
   useEffect(() => {
+    if (!router.isReady) return;
+
     if (path === 'injury' || path === 'energy') {
       setSelectedPath(path);
     }
@@ -445,12 +447,11 @@ export default function RangeAssessment() {
       setSelectedPanel(panel);
     }
 
-    // Pre-fill contact info from /start funnel and skip step 0
+    // Pre-fill contact info from /start funnel
     try {
       const saved = localStorage.getItem('range_start_lead');
       if (saved) {
         const lead = JSON.parse(saved);
-        // If contact info exists (energy path), pre-fill it
         if (lead.firstName && lead.email) {
           setFormData(prev => ({
             ...prev,
@@ -464,12 +465,10 @@ export default function RangeAssessment() {
     } catch (e) { /* localStorage not available */ }
 
     // Skip step 0 (contact info) for start funnel users
-    // Injury: contact info collected after recommendation
-    // Energy: contact info already collected on /start
     if (from === 'start') {
       setStep(1);
     }
-  }, [path, panel]);
+  }, [router.isReady, path, panel, from]);
 
   // Scroll to top when step changes
   useEffect(() => {
@@ -2821,14 +2820,14 @@ export default function RangeAssessment() {
 
                 <button
                   className="ra-path-card"
-                  onClick={() => setSelectedPath('energy')}
+                  onClick={() => router.push('/start/energy')}
                 >
                   <div className="ra-path-icon">
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                     </svg>
                   </div>
-                  <h3>Energy & Optimization</h3>
+                  <h3>Energy, Hormones & Weight Loss</h3>
                   <p>You're tired, foggy, or just don't feel like yourself. You want answers and a plan.</p>
                   <span className="ra-path-arrow">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

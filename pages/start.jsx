@@ -82,12 +82,11 @@ export default function StartPage() {
     `start-animate${visibleIds.has(id) ? ' visible' : ''}`;
 
   const handleDoorClick = (doorId) => {
-    setSelectedDoor(doorId);
-    setFormStep(1);
-    setError('');
-    setTimeout(() => {
-      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
+    if (doorId === 'injury') {
+      router.push('/range-assessment?path=injury&from=start');
+    } else {
+      router.push('/start/energy');
+    }
   };
 
   const handleContinueToContact = () => {
@@ -765,191 +764,7 @@ export default function StartPage() {
           </div>
         </section>
 
-        {/* Inline Form — Two Steps */}
-        {selectedDoor && (
-          <section className="start-form-section" ref={formRef}>
-            <div className="start-form-card">
-
-              {/* Step indicator */}
-              <div className="start-step-indicator">
-                <div className={`start-step-dot ${formStep === 1 ? 'active' : 'done'}`}>
-                  {formStep > 1 ? '✓' : '1'}
-                </div>
-                <div className={`start-step-line ${formStep > 1 ? 'done' : ''}`} />
-                <div className={`start-step-dot ${formStep === 2 ? 'active' : 'upcoming'}`}>2</div>
-              </div>
-
-              {/* ─── STEP 1: Questions ─── */}
-              {formStep === 1 && (
-                <>
-                  <h3>Tell us what's going on</h3>
-                  <p>Answer a few quick questions so we know how to help.</p>
-
-                  {error && <div className="start-error">{error}</div>}
-
-                  <div className="start-field">
-                    <label>What's bothering you most right now? *</label>
-                    <textarea
-                      value={form.mainConcern}
-                      onChange={(e) => handleChange('mainConcern', e.target.value)}
-                      placeholder={
-                        selectedDoor === 'injury'
-                          ? 'e.g., Torn ACL 3 months ago, still can\'t run...'
-                          : 'e.g., Exhausted by 2pm every day, brain fog, gained 15 lbs...'
-                      }
-                    />
-                  </div>
-
-                  <div className="start-field">
-                    <label>How important is it to fix this in the next 90 days?</label>
-                    <div className="start-urgency">
-                      <span style={{ fontSize: 13, color: '#a3a3a3' }}>Not urgent</span>
-                      <input
-                        type="range"
-                        min="1"
-                        max="10"
-                        value={form.urgency}
-                        onChange={(e) => handleChange('urgency', parseInt(e.target.value))}
-                      />
-                      <span style={{ fontSize: 13, color: '#a3a3a3' }}>Critical</span>
-                      <span className="start-urgency-val">{form.urgency}</span>
-                    </div>
-                  </div>
-
-                  <div className="start-field">
-                    <div className="start-toggle-row">
-                      <span className="start-toggle-label">Do you have recent labs?</span>
-                      <label className="start-toggle">
-                        <input
-                          type="checkbox"
-                          checked={form.hasRecentLabs}
-                          onChange={(e) => handleChange('hasRecentLabs', e.target.checked)}
-                        />
-                        <div className="start-toggle-track" />
-                        <div className="start-toggle-knob" />
-                      </label>
-                    </div>
-                  </div>
-
-                  {form.hasRecentLabs && (
-                    <div className="start-field">
-                      <label>Upload your lab results (optional)</label>
-                      <label className="start-file-upload">
-                        <input
-                          type="file"
-                          accept=".pdf,.jpg,.jpeg,.png"
-                          onChange={(e) => handleChange('labFile', e.target.files[0] || null)}
-                        />
-                        {form.labFile ? (
-                          <p className="file-name">{form.labFile.name}</p>
-                        ) : (
-                          <p>Click to upload PDF, JPG, or PNG</p>
-                        )}
-                      </label>
-                    </div>
-                  )}
-
-                  <button
-                    type="button"
-                    className="start-continue-btn"
-                    onClick={handleContinueToContact}
-                  >
-                    Continue
-                  </button>
-                </>
-              )}
-
-              {/* ─── STEP 2: Contact info + $50 offer ─── */}
-              {formStep === 2 && (
-                <>
-                  <button
-                    type="button"
-                    className="start-back-link"
-                    onClick={() => { setFormStep(1); setError(''); }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                    Back
-                  </button>
-
-                  <div className="start-offer-banner">
-                    <span className="offer-amount">$50 off your first visit</span>
-                    <p>Enter your info below to lock in $50 off your first visit or lab panel at Range Medical.</p>
-                  </div>
-
-                  <h3>Where should we send your next step?</h3>
-                  <p>We'll text you what to do next — no spam, no runaround.</p>
-
-                  <form onSubmit={handleSubmit}>
-                    {error && <div className="start-error">{error}</div>}
-
-                    <div className="start-form-row">
-                      <div className="start-field">
-                        <label>First name *</label>
-                        <input
-                          type="text"
-                          value={form.firstName}
-                          onChange={(e) => handleChange('firstName', e.target.value)}
-                          placeholder="First name"
-                        />
-                      </div>
-                      <div className="start-field">
-                        <label>Last name *</label>
-                        <input
-                          type="text"
-                          value={form.lastName}
-                          onChange={(e) => handleChange('lastName', e.target.value)}
-                          placeholder="Last name"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="start-form-row">
-                      <div className="start-field">
-                        <label>Email *</label>
-                        <input
-                          type="email"
-                          value={form.email}
-                          onChange={(e) => handleChange('email', e.target.value)}
-                          placeholder="you@email.com"
-                        />
-                      </div>
-                      <div className="start-field">
-                        <label>Phone *</label>
-                        <input
-                          type="tel"
-                          value={form.phone}
-                          onChange={(e) => handleChange('phone', e.target.value)}
-                          placeholder="(949) 555-1234"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="start-consent">
-                      <input
-                        type="checkbox"
-                        id="consent-sms"
-                        checked={form.consentSms}
-                        onChange={(e) => handleChange('consentSms', e.target.checked)}
-                      />
-                      <label htmlFor="consent-sms">
-                        I agree to receive text messages from Range Medical about my inquiry.
-                        Message & data rates may apply. Reply STOP to opt out.
-                      </label>
-                    </div>
-
-                    <button
-                      type="submit"
-                      className="start-submit-btn"
-                      disabled={submitting}
-                    >
-                      {submitting ? 'Sending...' : 'Get My Next Step + $50 Off'}
-                    </button>
-                  </form>
-                </>
-              )}
-            </div>
-          </section>
-        )}
+        {/* No form — doors navigate directly */}
 
         {/* How It Works */}
         <section className="start-how">
@@ -957,18 +772,18 @@ export default function StartPage() {
           <div className="start-steps">
             <div className={`start-step ${animClass('step-1')}`} data-anim-id="step-1">
               <div className="start-step-num">1</div>
-              <h4>Tell us your main problem</h4>
-              <p>Pick the path that fits you and fill out the short form above.</p>
+              <h4>Pick your path</h4>
+              <p>Injury recovery or energy, hormones, and weight loss. Click the one that fits you above.</p>
             </div>
             <div className={`start-step ${animClass('step-2')}`} data-anim-id="step-2">
               <div className="start-step-num">2</div>
-              <h4>Choose your first step</h4>
-              <p>Injury recovery starts with a focused visit. Energy and hormones start with labs.</p>
+              <h4>We figure out what's going on</h4>
+              <p>A focused visit for injuries. Labs and a provider review for energy and hormones.</p>
             </div>
             <div className={`start-step ${animClass('step-3')}`} data-anim-id="step-3">
               <div className="start-step-num">3</div>
               <h4>Get a written plan</h4>
-              <p>After your visit or lab review, you get a clear plan your provider walks you through.</p>
+              <p>Clear next steps your provider walks you through. No guesswork.</p>
             </div>
           </div>
         </section>

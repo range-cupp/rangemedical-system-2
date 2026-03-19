@@ -593,7 +593,7 @@ export default function StartPage() {
 
           <div className={`start-video-wrap ${animClass('hero-video')}`} data-anim-id="hero-video">
             <iframe
-              src="https://www.youtube.com/embed/kxxQLE_B4yw?si=oJeVa5P7deoPIAkp&controls=0"
+              src="https://www.youtube.com/embed/NKce39USIn4?si=6HETgP5XHeCypRWi&controls=0"
               title="YouTube video player"
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"

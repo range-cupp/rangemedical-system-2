@@ -276,7 +276,8 @@ async function handleInboundMessage(body) {
             provider: 'blooio',
           };
           if (sendResult.messageSid) botRow.twilio_message_sid = sendResult.messageSid;
-          await supabase.from('comms_log').insert(botRow).catch(() => {});
+          const { error: botLogErr } = await supabase.from('comms_log').insert(botRow);
+          if (botLogErr) console.error('Patient bot log error:', botLogErr.message);
 
           console.log(`Patient bot auto-replied to ${patient?.name || senderPhone}: "${reply.substring(0, 80)}..."`);
         }

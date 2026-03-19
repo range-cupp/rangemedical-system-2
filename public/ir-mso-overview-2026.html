@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Range MSO LLC — Investor Overview</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black: #0A0A0A;
+    --dark: #1A1A1A;
+    --charcoal: #2A2A2A;
+    --mid: #606060;
+    --muted: #888888;
+    --light-border: #E0E0E0;
+    --light-bg: #F6F6F6;
+    --white: #FFFFFF;
+    --accent: #1B4D3E;
+    --accent-light: #2E6B35;
+    --accent-bg: #F0F5F2;
+    --gold: #B8860B;
+    --gold-light: #F5F0E0;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+    --shadow-lg: 0 4px 20px rgba(0,0,0,0.10);
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--dark);
+    background: var(--white);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    border-bottom: 1px solid var(--light-border);
+    padding: 28px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .header-left h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--black);
+    letter-spacing: -0.5px;
+  }
+  .header-left p {
+    font-size: 13px;
+    color: var(--mid);
+    margin-top: 2px;
+    letter-spacing: 0.3px;
+  }
+  .confidential-badge {
+    background: var(--gold-light);
+    color: var(--gold);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border-radius: 4px;
+    border: 1px solid rgba(184,134,11,0.2);
+    white-space: nowrap;
+  }
+
+  /* ── TABS ── */
+  .tab-bar {
+    display: flex;
+    border-bottom: 1px solid var(--light-border);
+    padding: 0 40px;
+    gap: 0;
+    background: var(--light-bg);
+  }
+  .tab-btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    color: var(--mid);
+    background: none;
+    border: none;
+    padding: 14px 24px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    position: relative;
+    top: 1px;
+  }
+  .tab-btn:hover { color: var(--dark); }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    background: var(--white);
+  }
+
+  /* ── MAIN CONTENT ── */
+  .content { padding: 40px; max-width: 1100px; margin: 0 auto; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── SECTION LABELS ── */
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .section-rule {
+    height: 1px;
+    background: var(--light-border);
+    margin-bottom: 20px;
+  }
+
+  /* ── ENTITY CARDS ── */
+  .entity-row {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .entity-card {
+    background: var(--white);
+    border: 1px solid var(--light-border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    box-shadow: var(--shadow-sm);
+  }
+  .entity-card:hover {
+    border-color: var(--accent);
+    box-shadow: var(--shadow);
+    transform: translateY(-1px);
+  }
+  .entity-card.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent), var(--shadow);
+  }
+  .entity-card .card-tag {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--white);
+    background: var(--accent);
+    padding: 3px 8px;
+    border-radius: 3px;
+    display: inline-block;
+    margin-bottom: 8px;
+  }
+  .entity-card .card-tag.gold { background: var(--gold); }
+  .entity-card .card-tag.charcoal { background: var(--charcoal); }
+  .entity-card h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--black);
+    margin-bottom: 4px;
+  }
+  .entity-card p {
+    font-size: 12px;
+    color: var(--mid);
+    line-height: 1.5;
+  }
+  .entity-card .stats {
+    display: flex;
+    gap: 16px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .entity-card .stat {
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .entity-card .stat strong {
+    color: var(--dark);
+    font-weight: 600;
+  }
+
+  .card-full { flex: 1 1 100%; max-width: 100%; }
+  .card-third { flex: 1 1 calc(33.333% - 12px); min-width: 220px; }
+  .card-half { flex: 1 1 calc(50% - 8px); min-width: 280px; }
+  .card-fifth { flex: 1 1 calc(20% - 13px); min-width: 170px; }
+
+  /* ── FLOW INDICATOR ── */
+  .flow-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 16px 0;
+    margin: 8px 0;
+  }
+  .flow-line {
+    flex: 1;
+    height: 1px;
+    background: repeating-linear-gradient(90deg, var(--light-border) 0, var(--light-border) 6px, transparent 6px, transparent 12px);
+  }
+  .flow-box {
+    background: var(--accent-bg);
+    border: 1px solid rgba(46,107,53,0.2);
+    border-radius: var(--radius-sm);
+    padding: 10px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .flow-box:hover {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-sm);
+  }
+  .flow-box.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  .flow-box .flow-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .flow-box .flow-sub {
+    font-size: 10px;
+    color: var(--mid);
+    margin-top: 2px;
+  }
+
+  /* ── CONNECTOR ARROWS ── */
+  .connector {
+    display: flex;
+    justify-content: center;
+    padding: 4px 0;
+  }
+  .connector .arrow {
+    width: 2px;
+    height: 24px;
+    background: var(--light-border);
+    position: relative;
+  }
+  .connector .arrow::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid var(--light-border);
+  }
+
+  /* ── DETAIL PANEL ── */
+  .detail-panel {
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease;
+    margin: 0;
+  }
+  .detail-panel.open {
+    max-height: 600px;
+    opacity: 1;
+    margin: 16px 0;
+  }
+  .detail-inner {
+    background: var(--light-bg);
+    border: 1px solid var(--light-border);
+    border-radius: var(--radius);
+    padding: 28px 32px;
+    transform: translateY(8px);
+    transition: transform 0.3s ease;
+  }
+  .detail-panel.open .detail-inner {
+    transform: translateY(0);
+  }
+  .detail-inner h4 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--black);
+    margin-bottom: 8px;
+  }
+  .detail-inner p {
+    font-size: 13px;
+    color: var(--dark);
+    line-height: 1.7;
+    margin-bottom: 10px;
+  }
+  .detail-inner p:last-child { margin-bottom: 0; }
+  .detail-inner .investor-note {
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 500;
+    border-left: 3px solid var(--accent);
+    padding-left: 12px;
+    margin-top: 12px;
+  }
+
+  /* ── TAB 2: DECISION TREE ── */
+  .tree-container { max-width: 800px; margin: 0 auto; }
+  .tree-node {
+    background: var(--white);
+    border: 1px solid var(--light-border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: var(--shadow-sm);
+    margin: 0 auto;
+    max-width: 500px;
+  }
+  .tree-node:hover {
+    border-color: var(--accent);
+    box-shadow: var(--shadow);
+  }
+  .tree-node.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent), var(--shadow);
+  }
+  .tree-node h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--black);
+  }
+  .tree-node p {
+    font-size: 11px;
+    color: var(--mid);
+    margin-top: 3px;
+  }
+  .tree-node .node-tag {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 3px;
+    display: inline-block;
+    margin-bottom: 6px;
+  }
+  .node-tag.question { background: #EEF2FF; color: #4338CA; }
+  .node-tag.path-yes { background: #FEF3C7; color: #92400E; }
+  .node-tag.path-no { background: #ECFDF5; color: #065F46; }
+  .node-tag.outcome { background: #F0F5F2; color: var(--accent); }
+  .node-tag.escalation { background: #FEF2F2; color: #991B1B; }
+
+  .branch-container {
+    display: flex;
+    gap: 24px;
+    margin-top: 8px;
+  }
+  .branch-side {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .branch-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 4px;
+  }
+  .branch-label.yes { background: #FEF3C7; color: #92400E; }
+  .branch-label.no { background: #ECFDF5; color: #065F46; }
+
+  .connector-h {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    width: 100%;
+    padding: 4px 0;
+  }
+  .connector-h .line-left, .connector-h .line-right {
+    flex: 1;
+    height: 1px;
+    background: var(--light-border);
+  }
+
+  /* ── TAB 3: TABLE ── */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 8px;
+  }
+  .data-table thead th {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    padding: 10px 16px;
+    border-bottom: 2px solid var(--light-border);
+  }
+  .data-table tbody td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--light-border);
+    color: var(--dark);
+  }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+  .data-table tbody tr:nth-child(even) { background: var(--light-bg); }
+  .data-table .member-name {
+    font-weight: 600;
+    color: var(--black);
+  }
+  .data-table .pct {
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .summary-row {
+    display: flex;
+    gap: 20px;
+    margin-top: 32px;
+    flex-wrap: wrap;
+  }
+  .summary-card {
+    flex: 1 1 calc(50% - 10px);
+    min-width: 280px;
+    background: var(--light-bg);
+    border: 1px solid var(--light-border);
+    border-radius: var(--radius);
+    padding: 24px 28px;
+  }
+  .summary-card h4 {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--black);
+    margin-bottom: 10px;
+  }
+  .summary-card p {
+    font-size: 13px;
+    color: var(--dark);
+    line-height: 1.7;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    border-top: 1px solid var(--light-border);
+    padding: 20px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .footer p {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    .header { padding: 20px 20px; }
+    .tab-bar { padding: 0 12px; overflow-x: auto; }
+    .tab-btn { padding: 12px 16px; font-size: 12px; white-space: nowrap; }
+    .content { padding: 24px 20px; }
+    .card-fifth { flex: 1 1 calc(50% - 8px); min-width: 150px; }
+    .branch-container { flex-direction: column; }
+    .footer { padding: 16px 20px; }
+    .detail-inner { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <h1>Range MSO LLC</h1>
+    <p>Management Services Organization &middot; Newport Beach, CA</p>
+  </div>
+  <div class="confidential-badge">Confidential &mdash; Investor Use Only</div>
+</div>
+
+<!-- TABS -->
+<div class="tab-bar">
+  <button class="tab-btn active" data-tab="structure">Corporate Structure</button>
+  <button class="tab-btn" data-tab="governance">Governance &amp; Decisions</button>
+  <button class="tab-btn" data-tab="ownership">Ownership &amp; Capital</button>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     TAB 1: CORPORATE STRUCTURE
+     ═══════════════════════════════════════════════════════════════════════ -->
+<div class="tab-panel active" id="tab-structure">
+
+  <!-- MSO Holding Entity -->
+  <div class="section-label">Holding Entity</div>
+  <div class="section-rule"></div>
+  <div class="entity-row">
+    <div class="entity-card card-full" data-detail="mso">
+      <span class="card-tag">Holding Entity</span>
+      <h3>Range MSO LLC</h3>
+      <p>Owns all non-clinical assets: software, equipment, brand, intellectual property, and management contracts</p>
+      <div class="stats">
+        <span class="stat"><strong>$250K</strong> capital raised</span>
+        <span class="stat"><strong>5</strong> members</span>
+        <span class="stat"><strong>2</strong> locations</span>
+        <span class="stat"><strong>Delaware</strong> LLC</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector"><div class="arrow"></div></div>
+
+  <!-- Assets -->
+  <div class="section-label">MSO-Owned Assets</div>
+  <div class="section-rule"></div>
+  <div class="entity-row">
+    <div class="entity-card card-third" data-detail="system">
+      <span class="card-tag gold">Software</span>
+      <h3>Range System</h3>
+      <p>Proprietary clinic management platform &mdash; CRM, patient portal, protocol engine, lab integration</p>
+    </div>
+    <div class="entity-card card-third" data-detail="method">
+      <span class="card-tag gold">Clinical IP</span>
+      <h3>Range Recovery Method</h3>
+      <p>Proprietary clinical protocols for HRT, peptides, weight loss, and regenerative medicine</p>
+    </div>
+    <div class="entity-card card-third" data-detail="equipment">
+      <span class="card-tag gold">Equipment</span>
+      <h3>Equipment Portfolio</h3>
+      <p>HBOT chambers, red light therapy, DEXA scanners, IV stations &mdash; all MSO balance sheet</p>
+    </div>
+  </div>
+
+  <!-- Detail panel for assets row -->
+  <div class="detail-panel" id="detail-mso">
+    <div class="detail-inner">
+      <h4>Range MSO LLC &mdash; The Holding Entity</h4>
+      <p>Range MSO LLC is a Management Services Organization &mdash; a structure specifically designed for healthcare. The MSO owns everything <em>except</em> the medical license itself: the software, the equipment, the brand, the clinical protocols, and the management contracts with physician-owned practices.</p>
+      <p>This structure matters because it separates business value from clinical liability. If a malpractice claim is filed, it hits the medical PC &mdash; not the MSO that holds the assets. More importantly for investors, MSOs trade at <strong>4&ndash;8x EBITDA multiples</strong> in M&amp;A, compared to 1&ndash;2x for standalone medical practices. The reason: an MSO's revenue is contractual (via management services agreements), its assets are transferable, and it can scale across locations without requiring each buyer to hold a medical license.</p>
+      <p class="investor-note">Investor takeaway: Your equity is in the entity that holds all scalable, transferable value &mdash; not in a physician-dependent practice.</p>
+    </div>
+  </div>
+  <div class="detail-panel" id="detail-system">
+    <div class="detail-inner">
+      <h4>Range System &mdash; Proprietary Software</h4>
+      <p>Range System is a custom-built clinic management platform developed in-house. It handles patient intake, protocol management, lab result ingestion, service logging, consent workflows, and the patient portal. Unlike off-the-shelf EMR software, it's purpose-built for regenerative medicine clinics and fully owned by the MSO.</p>
+      <p>The software creates a <strong>SaaS licensing opportunity</strong>: each new clinic location (whether owned or under management agreement) pays a software license fee on top of the standard management services fee. This dual-revenue layer &mdash; management fee plus software fee &mdash; increases per-location economics and makes each new location more valuable to the MSO.</p>
+      <p class="investor-note">Investor takeaway: Proprietary software owned at the MSO level means recurring license revenue per location, increasing margins as the network grows.</p>
+    </div>
+  </div>
+  <div class="detail-panel" id="detail-method">
+    <div class="detail-inner">
+      <h4>Range Recovery Method &mdash; Clinical Intellectual Property</h4>
+      <p>The Range Recovery Method is a proprietary set of clinical protocols covering hormone replacement, peptide therapy, weight management, IV therapy, and regenerative treatments. These protocols were developed within the Range Medical system and represent the clinic's differentiated clinical approach.</p>
+      <p>Critically, this IP is <strong>vested in the MSO, not in any individual physician or member</strong>. This means the clinical methodology transfers cleanly in an acquisition &mdash; a buyer gets the protocols, the training framework, and the clinical playbook as part of the MSO purchase. There is no key-person risk on the IP itself.</p>
+      <p class="investor-note">Investor takeaway: Clinical IP vested in the MSO means it travels with the entity in a sale &mdash; no renegotiation, no key-person dependency.</p>
+    </div>
+  </div>
+  <div class="detail-panel" id="detail-equipment">
+    <div class="detail-inner">
+      <h4>Equipment Portfolio &mdash; MSO-Level Ownership</h4>
+      <p>All major clinical equipment &mdash; hyperbaric oxygen therapy (HBOT) chambers, red light therapy devices, DEXA body composition scanners, and IV therapy stations &mdash; is owned directly by the MSO and leased to the medical PCs under the management services agreement.</p>
+      <p>This structure serves two purposes. First, it <strong>insulates equipment assets from clinical liability</strong> &mdash; a malpractice claim against the PC cannot reach the MSO's equipment. Second, it <strong>consolidates all capital assets on one balance sheet</strong>, making the MSO's asset position cleaner for valuation and easier to finance against.</p>
+      <p class="investor-note">Investor takeaway: Equipment owned at the MSO level is protected from clinical liability and consolidated for cleaner valuation.</p>
+    </div>
+  </div>
+
+  <!-- Flow Indicator -->
+  <div class="flow-indicator">
+    <div class="flow-line"></div>
+    <div class="flow-box" data-detail="msa">
+      <div class="flow-title">Management Services Agreement</div>
+      <div class="flow-sub">Fees flow up &uarr; &nbsp;&middot;&nbsp; Services flow down &darr;</div>
+    </div>
+    <div class="flow-line"></div>
+  </div>
+  <div class="detail-panel" id="detail-msa">
+    <div class="detail-inner">
+      <h4>Management Services Agreement (MSA)</h4>
+      <p>The MSA is the contractual backbone of the MSO model. Each physician-owned medical PC enters into a long-term management services agreement with Range MSO LLC. Under this agreement, the MSO provides all non-clinical services &mdash; software, equipment, billing, marketing, compliance infrastructure, staffing, and operational management &mdash; in exchange for a management fee (typically a percentage of collected revenue).</p>
+      <p>Fees flow <strong>up</strong> from the PC to the MSO. Services flow <strong>down</strong> from the MSO to the PC. This creates a clean, contractual revenue stream for the MSO that is predictable, recurring, and not dependent on any single physician's continued participation.</p>
+      <p class="investor-note">Investor takeaway: The MSA creates recurring contractual revenue for the MSO &mdash; the entity you own equity in &mdash; from every active clinic location.</p>
+    </div>
+  </div>
+
+  <div class="connector"><div class="arrow"></div></div>
+
+  <!-- Medical PCs -->
+  <div class="section-label">Client Medical Practices</div>
+  <div class="section-rule"></div>
+  <div class="entity-row">
+    <div class="entity-card card-half" data-detail="nb-pc">
+      <span class="card-tag charcoal">Medical PC</span>
+      <h3>Newport Beach Medical PC</h3>
+      <p>Physician of record: Dr. Damien Burgess &middot; Operational since 2024</p>
+      <div class="stats">
+        <span class="stat"><strong>Active</strong> patients</span>
+        <span class="stat"><strong>MSA</strong> in place</span>
+      </div>
+    </div>
+    <div class="entity-card card-half" data-detail="sc-pc">
+      <span class="card-tag charcoal">Medical PC</span>
+      <h3>San Clemente Medical PC</h3>
+      <p>Under development &middot; Co-located with Sunday Red / Tiger Woods brand</p>
+      <div class="stats">
+        <span class="stat"><strong>2026</strong> target launch</span>
+        <span class="stat"><strong>MSA</strong> planned</span>
+      </div>
+    </div>
+  </div>
+  <div class="detail-panel" id="detail-nb-pc">
+    <div class="detail-inner">
+      <h4>Newport Beach Medical PC</h4>
+      <p>The Newport Beach location is the operating flagship of the Range Medical network. It is structured as a physician-owned professional corporation (PC), with Dr. Damien Burgess as the physician of record. California's corporate practice of medicine doctrine requires that medical practices be owned by licensed physicians &mdash; the PC satisfies this requirement.</p>
+      <p>The PC handles all clinical operations: patient care, prescribing, medical decision-making, and regulatory compliance. All non-clinical functions &mdash; software, equipment, marketing, billing, HR, operations &mdash; are provided by Range MSO LLC under the management services agreement. The MSO charges a management fee for these services, which creates the MSO's revenue stream.</p>
+      <p class="investor-note">Investor takeaway: The PC is the clinical shell. The MSO captures the business economics through the management fee structure.</p>
+    </div>
+  </div>
+  <div class="detail-panel" id="detail-sc-pc">
+    <div class="detail-inner">
+      <h4>San Clemente Medical PC &mdash; Expansion Location</h4>
+      <p>The San Clemente location is currently under development and will operate under the same MSO/PC structure as Newport Beach. It will have its own physician-owned PC entering into a management services agreement with Range MSO LLC.</p>
+      <p>This location is <strong>co-located with the Sunday Red / Tiger Woods brand</strong>, creating a premium positioning for the clinic within a high-visibility wellness and performance environment. The co-location provides built-in foot traffic, brand association, and a clientele aligned with Range Medical's regenerative and performance medicine focus.</p>
+      <p>The same MSA structure means the MSO captures management fees from both locations, and the Range System software generates a license fee at each site &mdash; doubling the MSO's recurring revenue base.</p>
+      <p class="investor-note">Investor takeaway: Second location doubles MSO fee income with the same overhead structure &mdash; plus a premier co-location that would be nearly impossible to replicate.</p>
+    </div>
+  </div>
+
+  <div class="connector"><div class="arrow"></div></div>
+
+  <!-- Members -->
+  <div class="section-label">MSO Members</div>
+  <div class="section-rule"></div>
+  <div class="entity-row">
+    <div class="entity-card card-fifth" data-detail="member-chris">
+      <span class="card-tag">30%</span>
+      <h3>Cupp LLC</h3>
+      <p>Chris Cupp &middot; Technology, Ops &amp; Business Management</p>
+    </div>
+    <div class="entity-card card-fifth" data-detail="member-damien">
+      <span class="card-tag">30%</span>
+      <h3>Damien Burgess</h3>
+      <p>Physician Services &amp; Medical Directorship</p>
+    </div>
+    <div class="entity-card card-fifth" data-detail="member-rey">
+      <span class="card-tag">30%</span>
+      <h3>H. Rey Gubernick</h3>
+      <p>Clinical Protocols &amp; Business Development</p>
+    </div>
+    <div class="entity-card card-fifth" data-detail="member-dave">
+      <span class="card-tag gold">5%</span>
+      <h3>Dave Doyle</h3>
+      <p>$125,000 cash</p>
+    </div>
+    <div class="entity-card card-fifth" data-detail="member-gene">
+      <span class="card-tag gold">5%</span>
+      <h3>Gene Brezeale</h3>
+      <p>$125,000 cash</p>
+    </div>
+  </div>
+  <div class="detail-panel" id="detail-member-chris">
+    <div class="detail-inner">
+      <h4>Cupp LLC (Chris Cupp) &mdash; 30% Ownership</h4>
+      <p>Chris Cupp holds 30% of Range MSO LLC through his entity Cupp LLC. His contribution is operational: he built and continues to develop the Range System software platform, manages all business operations, handles investor relations, oversees financial management, and is leading the San Clemente expansion.</p>
+      <p>As Co-Managing Member, Chris has autonomous authority over the business and technology domain &mdash; including the software platform, financial operations, marketing, equipment procurement, HR, and legal/admin functions. This domain authority means day-to-day business decisions don't require committee approval, keeping the operation fast and responsive.</p>
+      <p class="investor-note">Investor takeaway: Chris's 30% reflects the technology asset he built (Range System) plus ongoing operational leadership &mdash; the business engine of the MSO.</p>
+    </div>
+  </div>
+  <div class="detail-panel" id="detail-member-damien">
+    <div class="detail-inner">
+      <h4>Damien Burgess &mdash; 30% Ownership</h4>
+      <p>Dr. Damien Burgess holds 30% of Range MSO LLC. He serves as the physician of record for the Newport Beach Medical PC and provides medical directorship across the Range Medical network. His contribution is clinical: physician services, regulatory compliance, credentialing, and oversight of all medical operations.</p>
+      <p>As Co-Managing Member, Damien has autonomous authority over the medical operations domain &mdash; clinical protocols, physician compliance, credentialing, Range Recovery Method deployment, clinical equipment protocols, and medical vendor relationships. This ensures clinical decisions are made by a licensed physician without business-side delays.</p>
+      <p class="investor-note">Investor takeaway: Damien's 30% reflects the medical license and clinical expertise required to operate &mdash; the regulatory foundation the MSO structure depends on.</p>
+    </div>
+  </div>
+  <div class="detail-panel" id="detail-member-rey">
+    <div class="detail-inner">
+      <h4>H. Rey Gubernick &mdash; 30% Ownership</h4>
+      <p>Rey Gubernick holds 30% of Range MSO LLC. His contribution spans clinical protocol development and business development. Rey is instrumental in developing the Range Recovery Method protocols and in driving the partnerships and client acquisition that fuel growth &mdash; including the Sunday Red / Tiger Woods co-location relationship for the San Clemente expansion.</p>
+      <p>Rey's role bridges the clinical and business sides of the operation, ensuring that protocol development aligns with market demand and that business development efforts are grounded in genuine clinical differentiation.</p>
+      <p class="investor-note">Investor takeaway: Rey's 30% reflects the dual contribution of clinical IP development and the business relationships that drive expansion &mdash; particularly the high-value San Clemente co-location.</p>
+    </div>
+  </div>
+  <div class="detail-panel" id="detail-member-dave">
+    <div class="detail-inner">
+      <h4>Dave Doyle &mdash; 5% Ownership</h4>
+      <p>Dave Doyle holds 5% of Range MSO LLC in exchange for a $125,000 cash capital contribution. This is a pure financial investment &mdash; Dave does not hold a managing role and does not have autonomous decision-making authority.</p>
+      <p>Dave's capital contribution funds operational infrastructure and working capital for the MSO's growth. As a minority member, Dave has voting rights on major decisions (sale of assets, new members, significant debt, dissolution) and benefits from the same transfer protections and buy-sell provisions as all members.</p>
+      <p class="investor-note">Investor takeaway: 5% for $125K values the MSO at $2.5M pre-money &mdash; reflecting current operations, IP, and contracted expansion.</p>
+    </div>
+  </div>
+  <div class="detail-panel" id="detail-member-gene">
+    <div class="detail-inner">
+      <h4>Gene Brezeale &mdash; 5% Ownership</h4>
+      <p>Gene Brezeale holds 5% of Range MSO LLC in exchange for a $125,000 cash capital contribution. Like Dave Doyle, this is a financial investment with no managing authority.</p>
+      <p>Gene's contribution provides additional growth capital for the MSO, supporting equipment acquisition, software development, and the San Clemente expansion. Gene holds identical rights and protections to all other members under the operating agreement, including voting rights on major decisions and buy-sell protections at fair market value.</p>
+      <p class="investor-note">Investor takeaway: Same $2.5M implied valuation. Two financial investors at identical terms demonstrates consistent pricing discipline.</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     TAB 2: GOVERNANCE & DECISIONS
+     ═══════════════════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-governance">
+
+  <div class="section-label">Decision Flow</div>
+  <div class="section-rule"></div>
+
+  <div class="tree-container">
+
+    <!-- Node 1: Decision starts -->
+    <div class="tree-node" data-detail="gov-start">
+      <span class="node-tag question">Start</span>
+      <h3>A decision needs to be made</h3>
+      <p>Any operational, financial, or strategic question facing the MSO</p>
+    </div>
+    <div class="detail-panel" id="detail-gov-start">
+      <div class="detail-inner">
+        <h4>How Decisions Work at Range MSO</h4>
+        <p>The governance framework is designed to balance two things investors care about: <strong>speed</strong> (day-to-day decisions happen fast, without committee bottleneck) and <strong>protection</strong> (major decisions that affect equity value require broad consent). Every decision the MSO faces enters this flow.</p>
+        <p class="investor-note">Investor takeaway: This isn't governance theater &mdash; it's a practical system that keeps the business moving while protecting your position on decisions that matter.</p>
+      </div>
+    </div>
+
+    <div class="connector"><div class="arrow"></div></div>
+
+    <!-- Node 2: Major decision? -->
+    <div class="tree-node" data-detail="gov-major">
+      <span class="node-tag question">Decision Point</span>
+      <h3>Is this a major decision?</h3>
+      <p>Sale of assets &middot; admitting new members &middot; debt over $100K &middot; dissolution &middot; amending the agreement</p>
+    </div>
+    <div class="detail-panel" id="detail-gov-major">
+      <div class="detail-inner">
+        <h4>What Counts as a "Major Decision"</h4>
+        <p>The operating agreement specifically defines five categories of major decisions: (1) sale or disposition of substantial MSO assets, (2) admitting new members or issuing additional equity, (3) incurring debt exceeding $100,000, (4) voluntary dissolution of the MSO, and (5) amending the operating agreement itself.</p>
+        <p>These categories are chosen because they're the decisions that directly affect your ownership stake, your dilution exposure, the MSO's debt profile, and its continued existence. Everything else is an operational decision handled through the fast-path system below.</p>
+        <p class="investor-note">Investor takeaway: The "major decision" threshold is specifically drawn around the actions that could dilute you, leverage the entity beyond comfort, or change the deal you agreed to.</p>
+      </div>
+    </div>
+
+    <div class="connector"><div class="arrow"></div></div>
+
+    <!-- Branch: YES / NO -->
+    <div class="branch-container">
+
+      <!-- NO PATH -->
+      <div class="branch-side">
+        <span class="branch-label no">No &mdash; Operational</span>
+        <div class="connector"><div class="arrow"></div></div>
+
+        <div class="tree-node" data-detail="gov-domain" style="max-width: 340px;">
+          <span class="node-tag path-no">Question</span>
+          <h3>Is it within one domain?</h3>
+          <p>Medical ops vs. business &amp; technology</p>
+        </div>
+        <div class="detail-panel" id="detail-gov-domain">
+          <div class="detail-inner">
+            <h4>The Domain Split</h4>
+            <p>Operational decisions are divided into two clear domains, each controlled by one Co-Managing Member:</p>
+            <p><strong>Damien's Domain (Medical Operations):</strong> Clinical protocols, physician compliance, credentialing, Range Recovery Method deployment, HBOT/red light/DEXA clinical protocols, clinical vendor relationships, and medical regulatory compliance.</p>
+            <p><strong>Chris's Domain (Business &amp; Technology):</strong> Range System platform, financial management, investor relations, marketing, equipment procurement, MSA negotiation, patient management infrastructure, CRM, lab integration, compliance workflows, HR, legal/admin, and the San Clemente expansion.</p>
+            <p>This split eliminates the most common source of startup paralysis: two leaders who both need to approve everything. Each domain has a single accountable owner who can move without waiting for the other.</p>
+            <p class="investor-note">Investor takeaway: Domain authority means the business moves at the speed of the person closest to the decision, not the speed of the slowest approver.</p>
+          </div>
+        </div>
+
+        <div class="connector"><div class="arrow"></div></div>
+
+        <div class="branch-container">
+          <div class="branch-side">
+            <span class="branch-label no" style="font-size: 10px;">Yes &mdash; Single Domain</span>
+            <div class="connector"><div class="arrow"></div></div>
+            <div class="tree-node" data-detail="gov-solo" style="max-width: 280px;">
+              <span class="node-tag outcome">Fast Path</span>
+              <h3>Co-Managing Member acts alone</h3>
+              <p>No approval needed</p>
+            </div>
+            <div class="detail-panel" id="detail-gov-solo">
+              <div class="detail-inner">
+                <h4>Fast Path &mdash; Single Domain Authority</h4>
+                <p>When a decision falls clearly within one Co-Managing Member's domain, that person has full authority to act without seeking approval from the other managing member or from the broader membership. This is the "fast path" &mdash; the default for the vast majority of day-to-day decisions.</p>
+                <p>Examples: Chris approves a new software feature, hires an operations manager, or negotiates a marketing contract. Damien approves a new clinical protocol, credentials a nurse practitioner, or selects a medical supply vendor. Neither needs to wait for the other.</p>
+                <p class="investor-note">Investor takeaway: The business runs without bottleneck on routine decisions. Speed is an asset, not a risk, when domains are clearly defined.</p>
+              </div>
+            </div>
+          </div>
+          <div class="branch-side">
+            <span class="branch-label yes" style="font-size: 10px;">No &mdash; Cross-Domain</span>
+            <div class="connector"><div class="arrow"></div></div>
+            <div class="tree-node" data-detail="gov-joint" style="max-width: 280px;">
+              <span class="node-tag outcome">Joint</span>
+              <h3>Both Co-Managing Members agree</h3>
+              <p>Joint approval required</p>
+            </div>
+            <div class="detail-panel" id="detail-gov-joint">
+              <div class="detail-inner">
+                <h4>Joint Approval &mdash; Cross-Domain Decisions</h4>
+                <p>When a decision spans both domains &mdash; for example, purchasing new clinical equipment (Chris's procurement authority) that changes a clinical protocol (Damien's medical authority) &mdash; both Co-Managing Members must agree. This prevents one side from unilaterally making decisions that materially affect the other's domain.</p>
+                <p>If the two Co-Managing Members reach a <strong>deadlock</strong> on a cross-domain operational decision, it escalates to a member vote decided by simple majority of ownership units. This ensures no operational decision can be permanently blocked by disagreement between two people.</p>
+                <p class="investor-note">Investor takeaway: Cross-domain decisions require partnership, but deadlock has a clear resolution path &mdash; no decision stays stuck.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- YES PATH -->
+      <div class="branch-side">
+        <span class="branch-label yes">Yes &mdash; Major</span>
+        <div class="connector"><div class="arrow"></div></div>
+
+        <div class="tree-node" data-detail="gov-approve" style="max-width: 340px;">
+          <span class="node-tag path-yes">Required</span>
+          <h3>Both Co-Managing Members approve in writing</h3>
+          <p>Written consent &mdash; no verbal agreements</p>
+        </div>
+        <div class="detail-panel" id="detail-gov-approve">
+          <div class="detail-inner">
+            <h4>Written Co-Managing Member Approval</h4>
+            <p>For any major decision, both Co-Managing Members &mdash; Chris and Damien &mdash; must provide written approval. Verbal agreements are not sufficient. This requirement creates a clear paper trail and ensures both operational leaders have consciously evaluated and agreed to the action before it proceeds.</p>
+            <p>This is the first of two gates. Even after both Co-Managing Members agree, the decision still requires member-level approval before it can be executed.</p>
+            <p class="investor-note">Investor takeaway: No major decision happens on a handshake. Written approval from both managing members is the first protection layer.</p>
+          </div>
+        </div>
+
+        <div class="connector"><div class="arrow"></div></div>
+
+        <div class="tree-node" data-detail="gov-vote" style="max-width: 340px;">
+          <span class="node-tag path-yes">Required</span>
+          <h3>70% member vote required</h3>
+          <p>Supermajority of all membership units</p>
+        </div>
+        <div class="detail-panel" id="detail-gov-vote">
+          <div class="detail-inner">
+            <h4>70% Supermajority Member Vote</h4>
+            <p>After both Co-Managing Members approve in writing, the decision must also pass a vote of members holding at least 70% of total membership units. With the current cap table (three 30% holders and two 5% holders), this means at least two of the three 30% holders must vote in favor, plus at least one 5% holder if needed to clear 70%.</p>
+            <p>The 70% threshold is deliberately set above a simple majority to prevent any two members from pushing through major decisions without broader consensus &mdash; but below unanimity to prevent a single minority holder from blocking legitimate action.</p>
+            <p class="investor-note">Investor takeaway: The 70% threshold means your equity can't be diluted, the entity can't take on major debt, and the agreement can't be changed without supermajority consent that includes people beyond just the managing members.</p>
+          </div>
+        </div>
+
+        <div class="connector"><div class="arrow"></div></div>
+
+        <div class="tree-node" data-detail="gov-deadlock" style="max-width: 340px;">
+          <span class="node-tag escalation">If Deadlock</span>
+          <h3>Non-binding mediation</h3>
+          <p>Orange County, CA &rarr; then judicial resolution (OC state or federal court)</p>
+        </div>
+        <div class="detail-panel" id="detail-gov-deadlock">
+          <div class="detail-inner">
+            <h4>Deadlock Resolution &mdash; Major Decisions</h4>
+            <p>If a major decision cannot clear both gates (managing member written approval + 70% member vote), the operating agreement provides a structured escalation path. First, the parties enter <strong>non-binding mediation</strong> in Orange County, California. Mediation is designed to resolve disputes without litigation, preserving business relationships and avoiding the cost and distraction of court.</p>
+            <p>If mediation fails to resolve the deadlock, the matter proceeds to <strong>judicial resolution</strong> in Orange County state or federal court. Specifying the jurisdiction in advance prevents forum-shopping and ensures any dispute is resolved in the MSO's home jurisdiction.</p>
+            <p class="investor-note">Investor takeaway: There is no scenario where a major decision is permanently stuck. The path from deadlock to resolution is defined, jurisdictionally specific, and designed to protect all members equally.</p>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /branch-container -->
+  </div><!-- /tree-container -->
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     TAB 3: OWNERSHIP & CAPITAL
+     ═══════════════════════════════════════════════════════════════════════ -->
+<div class="tab-panel" id="tab-ownership">
+
+  <div class="section-label">Membership Units</div>
+  <div class="section-rule"></div>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Member</th>
+        <th>Units %</th>
+        <th>Capital Contribution</th>
+        <th>Form</th>
+        <th>Role</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="member-name">Cupp LLC (Chris Cupp)</td>
+        <td class="pct">30%</td>
+        <td>Services &amp; IP</td>
+        <td>Sweat equity</td>
+        <td>Co-Managing Member &mdash; Technology, Ops &amp; Business Management</td>
+      </tr>
+      <tr>
+        <td class="member-name">Damien Burgess</td>
+        <td class="pct">30%</td>
+        <td>Services</td>
+        <td>Sweat equity</td>
+        <td>Co-Managing Member &mdash; Physician Services &amp; Medical Directorship</td>
+      </tr>
+      <tr>
+        <td class="member-name">H. Rey Gubernick</td>
+        <td class="pct">30%</td>
+        <td>Services &amp; IP</td>
+        <td>Sweat equity</td>
+        <td>Clinical Protocol Development &amp; Business Development</td>
+      </tr>
+      <tr>
+        <td class="member-name">Dave Doyle</td>
+        <td class="pct">5%</td>
+        <td>$125,000</td>
+        <td>Cash</td>
+        <td>Financial investor</td>
+      </tr>
+      <tr>
+        <td class="member-name">Gene Brezeale</td>
+        <td class="pct">5%</td>
+        <td>$125,000</td>
+        <td>Cash</td>
+        <td>Financial investor</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="summary-row">
+    <div class="summary-card">
+      <h4>Transfer Restrictions</h4>
+      <p>No membership interest may be transferred without <strong>joint approval of both Co-Managing Members</strong> plus a <strong>70% supermajority member vote</strong>. Before any approved transfer, existing members have a <strong>30-day right of first refusal</strong> to purchase the interest on the same terms offered by the outside buyer.</p>
+      <p style="margin-top: 10px; font-size: 12px; color: var(--accent); font-weight: 500;">This prevents unwanted third parties from entering the cap table and gives existing members the first opportunity to consolidate ownership.</p>
+    </div>
+    <div class="summary-card">
+      <h4>Buy-Sell on Exit</h4>
+      <p>Upon a triggering event (death, disability, voluntary withdrawal, or involuntary removal), the MSO has a <strong>90-day buyout option</strong> to purchase the departing member's interest at <strong>fair market value</strong> determined by an independent certified appraiser (CBV or ABV credentialed).</p>
+      <p style="margin-top: 8px;">Payment terms: <strong>24-month structured payout</strong> at the Wall Street Journal prime rate. This protects the MSO from a sudden cash drain while ensuring the departing member receives fair value on a defined timeline.</p>
+      <p style="margin-top: 10px; font-size: 12px; color: var(--accent); font-weight: 500;">Independent appraisal eliminates negotiation &mdash; the price is what a credentialed third party says it's worth, not what either side argues for.</p>
+    </div>
+  </div>
+
+</div>
+
+</div><!-- /content -->
+
+<!-- FOOTER -->
+<div class="footer">
+  <p>1901 Westcliff Drive, Suite 10, Newport Beach, CA 92660</p>
+  <p>Confidential &middot; Effective March 13, 2026</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════
+     JAVASCRIPT
+     ═══════════════════════════════════════════════════════════════════════ -->
+<script>
+(function() {
+  // Tab switching
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  const tabPanels = document.querySelectorAll('.tab-panel');
+
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabBtns.forEach(b => b.classList.remove('active'));
+      tabPanels.forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      // Close all detail panels when switching tabs
+      document.querySelectorAll('.detail-panel').forEach(dp => dp.classList.remove('open'));
+      document.querySelectorAll('.entity-card, .tree-node, .flow-box').forEach(c => c.classList.remove('selected'));
+    });
+  });
+
+  // Detail panel toggling
+  const clickables = document.querySelectorAll('[data-detail]');
+
+  clickables.forEach(card => {
+    card.addEventListener('click', () => {
+      const detailId = 'detail-' + card.dataset.detail;
+      const panel = document.getElementById(detailId);
+      if (!panel) return;
+
+      const wasOpen = panel.classList.contains('open');
+
+      // Close all panels and deselect all cards
+      document.querySelectorAll('.detail-panel').forEach(dp => dp.classList.remove('open'));
+      document.querySelectorAll('.entity-card, .tree-node, .flow-box').forEach(c => c.classList.remove('selected'));
+
+      // If it wasn't open, open it
+      if (!wasOpen) {
+        panel.classList.add('open');
+        card.classList.add('selected');
+        // Smooth scroll into view after animation starts
+        setTimeout(() => {
+          panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 100);
+      }
+    });
+  });
+})();
+</script>
+
+</body>
+</html>

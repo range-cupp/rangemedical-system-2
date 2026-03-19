@@ -188,7 +188,7 @@ def detail_block(title, paragraphs, note_text=None):
 
 def build_header(story):
     hdr = Table([[
-        Paragraph("RANGE MEDICAL", clinic_s),
+        Paragraph("RANGE MSO BUSINESS MODEL", clinic_s),
         Paragraph("range-medical.com  \u2022  (949) 997-3988<br/>1901 Westcliff Drive, Suite 10, Newport Beach, CA", contact_s),
     ]], colWidths=[2.8*inch, 4.2*inch])
     hdr.setStyle(TableStyle([
@@ -205,8 +205,7 @@ def build_footer(story):
     tbl = Table([[
         Paragraph("<b>Questions or concerns?</b><br/>Call or text: (949) 997-3988<br/>range-medical.com", foot_bold_s),
         Paragraph(
-            "This document is confidential and intended for investor use only. "
-            "It is not a substitute for personalized legal or financial advice.",
+            "This document is not a substitute for personalized legal or financial advice.",
             foot_s),
     ]], colWidths=[2.2*inch, 4.8*inch])
     tbl.setStyle(TableStyle([
@@ -231,17 +230,8 @@ doc = SimpleDocTemplate(
 story = []
 build_header(story)
 
-# ── Title + Confidential badge
-title_row = Table([[
-    Paragraph("Range MSO LLC", title_s),
-    Paragraph("CONFIDENTIAL \u2014 INVESTOR USE ONLY", confid_s),
-]], colWidths=[4.5*inch, 2.5*inch])
-title_row.setStyle(TableStyle([
-    ('VALIGN',(0,0),(-1,-1),'BOTTOM'),
-    ('LEFTPADDING',(0,0),(-1,-1),0),('RIGHTPADDING',(0,0),(-1,-1),0),
-    ('TOPPADDING',(0,0),(-1,-1),0),('BOTTOMPADDING',(0,0),(-1,-1),0),
-]))
-story.append(title_row)
+# ── Title
+story.append(Paragraph("Range MSO LLC", title_s))
 story.append(Paragraph("Management Services Organization \u2022 Newport Beach, CA", subtitle_s))
 story.append(Spacer(1, 16))
 

@@ -72,7 +72,7 @@ export default function StartInjury() {
         const twoHoursFromNow = new Date(Date.now() + 2 * 60 * 60 * 1000);
         const filtered = {};
         Object.entries(data.slots).forEach(([dateKey, dateSlots]) => {
-          const valid = dateSlots.filter(s => new Date(s.time) >= twoHoursFromNow);
+          const valid = dateSlots.filter(s => new Date(s.start) >= twoHoursFromNow);
           if (valid.length > 0) filtered[dateKey] = valid;
         });
         setAvailableSlots(filtered);
@@ -336,17 +336,23 @@ export default function StartInjury() {
             margin: 0 0 14px;
           }
           .inj-upload-zone {
+            display: block;
             border: 2px dashed #d4d4d4;
             border-radius: 10px;
-            padding: 24px;
+            padding: 32px 24px;
             text-align: center;
             cursor: pointer;
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, background 0.2s;
           }
           .inj-upload-zone:hover {
             border-color: #a3a3a3;
+            background: #fafafa;
           }
           .inj-upload-zone input { display: none; }
+          .inj-upload-zone .inj-upload-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+          }
           .inj-upload-zone p {
             margin: 0;
             font-size: 14px;
@@ -695,6 +701,13 @@ export default function StartInjury() {
                   multiple
                   onChange={handleFileChange}
                 />
+                <div className="inj-upload-icon">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#a3a3a3" strokeWidth="1.5">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="17 8 12 3 7 8" />
+                    <line x1="12" y1="3" x2="12" y2="15" />
+                  </svg>
+                </div>
                 <p>Click to upload PDF, JPG, PNG, or DICOM files</p>
               </label>
 
@@ -756,10 +769,10 @@ export default function StartInjury() {
                   {Object.values(availableSlots).flat().map((slot, i) => (
                     <button
                       key={i}
-                      className={`inj-slot-btn ${selectedSlot?.time === slot.time ? 'active' : ''}`}
+                      className={`inj-slot-btn ${selectedSlot?.time === slot.start ? 'active' : ''}`}
                       onClick={() => setSelectedSlot(slot)}
                     >
-                      {formatTime(slot.time)}
+                      {formatTime(slot.start)}
                     </button>
                   ))}
                 </div>

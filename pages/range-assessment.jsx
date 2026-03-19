@@ -2040,57 +2040,67 @@ export default function RangeAssessment() {
             <div className="inj-res-next-card">
               {fromStartFunnel && !formData.email ? (
                 <>
-                  {/* $50 off contact collection for start funnel */}
-                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '16px 20px', marginBottom: '1.5rem', textAlign: 'center' }}>
-                    <span style={{ fontSize: 22, fontWeight: 700, color: '#16a34a', display: 'block', marginBottom: 2 }}>$50 off your visit</span>
-                    <p style={{ fontSize: 14, color: '#525252', margin: 0 }}>Enter your info below to lock in $50 off — pay $200 instead of $250.</p>
+                  {/* $50 off promo banner */}
+                  <div style={{
+                    background: 'linear-gradient(135deg, #171717 0%, #2d2d2d 100%)',
+                    borderRadius: 12,
+                    padding: '24px 28px',
+                    textAlign: 'center',
+                    marginBottom: '2rem',
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}>
+                    <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, background: 'rgba(34,197,94,0.15)', borderRadius: '50%' }} />
+                    <p style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#22c55e', margin: '0 0 8px', position: 'relative' }}>Limited Time Offer</p>
+                    <p style={{ fontSize: 28, fontWeight: 700, color: '#fff', margin: '0 0 4px', position: 'relative' }}>$50 off your visit</p>
+                    <p style={{ fontSize: 15, color: '#a3a3a3', margin: 0, position: 'relative' }}>Pay <strong style={{ color: '#fff' }}>$200</strong> instead of <span style={{ textDecoration: 'line-through' }}>$250</span></p>
                   </div>
 
-                  <h3>Where should we send your plan?</h3>
-                  <p>We'll text you what to do next — no spam, no runaround.</p>
+                  <h3 style={{ fontSize: '1.25rem', margin: '0 0 0.5rem' }}>Enter your info to continue</h3>
+                  <p style={{ color: '#737373', fontSize: '0.9375rem', margin: '0 0 1.5rem' }}>We'll text you what to do next — no spam, no runaround.</p>
 
-                  {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: '10px 14px', borderRadius: 8, fontSize: 14, marginBottom: 14 }}>{error}</div>}
+                  {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: '12px 16px', borderRadius: 8, fontSize: 14, marginBottom: 16 }}>{error}</div>}
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
                     <div>
-                      <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#525252', marginBottom: 4 }}>First name *</label>
+                      <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#525252', marginBottom: 6 }}>First name *</label>
                       <input
                         type="text"
                         value={formData.firstName}
                         onChange={(e) => handleInputChange('firstName', e.target.value)}
                         placeholder="First name"
-                        style={{ width: '100%', padding: '10px 12px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                        style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
                       />
                     </div>
                     <div>
-                      <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#525252', marginBottom: 4 }}>Last name *</label>
+                      <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#525252', marginBottom: 6 }}>Last name *</label>
                       <input
                         type="text"
                         value={formData.lastName}
                         onChange={(e) => handleInputChange('lastName', e.target.value)}
                         placeholder="Last name"
-                        style={{ width: '100%', padding: '10px 12px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                        style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
                       />
                     </div>
                   </div>
-                  <div style={{ marginBottom: 14 }}>
-                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#525252', marginBottom: 4 }}>Email *</label>
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#525252', marginBottom: 6 }}>Email *</label>
                     <input
                       type="email"
                       value={formData.email}
                       onChange={(e) => handleInputChange('email', e.target.value)}
                       placeholder="you@email.com"
-                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                      style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
                     />
                   </div>
-                  <div style={{ marginBottom: 20 }}>
-                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#525252', marginBottom: 4 }}>Phone *</label>
+                  <div style={{ marginBottom: 24 }}>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#525252', marginBottom: 6 }}>Phone *</label>
                     <input
                       type="tel"
                       value={formData.phone}
                       onChange={(e) => handleInputChange('phone', e.target.value)}
                       placeholder="(949) 555-1234"
-                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                      style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
                     />
                   </div>
 
@@ -2098,7 +2108,6 @@ export default function RangeAssessment() {
                     className="inj-res-cta"
                     disabled={startContactSubmitting}
                     onClick={async () => {
-                      // Validate
                       if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone) {
                         setError('Please fill in all fields.');
                         return;
@@ -2106,70 +2115,47 @@ export default function RangeAssessment() {
                       setError('');
                       setStartContactSubmitting(true);
                       try {
-                        // 1. Submit to /api/start/submit to create lead + patient + send auto-text
                         const startData = JSON.parse(localStorage.getItem('range_start_lead') || '{}');
                         const startRes = await fetch('/api/start/submit', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({
-                            firstName: formData.firstName,
-                            lastName: formData.lastName,
-                            email: formData.email,
-                            phone: formData.phone,
-                            path: 'injury',
-                            mainConcern: startData.mainConcern || '',
-                            urgency: startData.urgency || 7,
-                            hasRecentLabs: startData.hasRecentLabs || false,
+                            firstName: formData.firstName, lastName: formData.lastName,
+                            email: formData.email, phone: formData.phone,
+                            path: 'injury', mainConcern: startData.mainConcern || '',
+                            urgency: startData.urgency || 7, hasRecentLabs: startData.hasRecentLabs || false,
                             consentSms: true,
                           }),
                         });
                         const startResult = await startRes.json();
 
-                        // 2. Submit the assessment to create the assessment_lead
                         const assessRes = await fetch('/api/assessment/submit', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            ...formData,
-                            assessmentPath: 'injury',
-                            referralSource: 'start_funnel',
-                          }),
+                          body: JSON.stringify({ ...formData, assessmentPath: 'injury', referralSource: 'start_funnel' }),
                         });
                         const assessResult = await assessRes.json();
-                        if (assessResult.leadId) {
-                          setLeadId(assessResult.leadId);
-                        }
+                        if (assessResult.leadId) setLeadId(assessResult.leadId);
 
-                        // 3. Save to localStorage for downstream use
                         localStorage.setItem('range_start_lead', JSON.stringify({
-                          ...startData,
-                          firstName: formData.firstName,
-                          lastName: formData.lastName,
-                          email: formData.email,
-                          phone: formData.phone,
+                          ...startData, firstName: formData.firstName, lastName: formData.lastName,
+                          email: formData.email, phone: formData.phone,
                           leadId: assessResult.leadId || startResult.leadId || null,
                         }));
 
-                        // 4. Go to payment ($200)
                         setShowInjuryResults(false);
                         setShowPayment(true);
-                        // Initialize payment will be called after leadId is set
                         const payRes = await fetch('/api/assessment/payment-intent', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({
-                            leadId: assessResult.leadId,
-                            email: formData.email,
-                            firstName: formData.firstName,
-                            lastName: formData.lastName,
-                            phone: formData.phone,
-                            discount: 50,
+                            leadId: assessResult.leadId, email: formData.email,
+                            firstName: formData.firstName, lastName: formData.lastName,
+                            phone: formData.phone, discount: 50,
                           }),
                         });
                         const payData = await payRes.json();
-                        if (payData.clientSecret) {
-                          setClientSecret(payData.clientSecret);
-                        }
+                        if (payData.clientSecret) setClientSecret(payData.clientSecret);
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       } catch (err) {
                         console.error('Start funnel contact submit error:', err);
@@ -2180,10 +2166,12 @@ export default function RangeAssessment() {
                     }}
                     style={{ border: 'none', cursor: 'pointer', fontFamily: 'inherit', opacity: startContactSubmitting ? 0.6 : 1 }}
                   >
-                    {startContactSubmitting ? 'Saving...' : 'Lock In $50 Off & Book Visit — $200'}
+                    {startContactSubmitting ? 'Setting up your visit...' : 'Continue — $200 (Save $50)'}
                   </button>
-                  <p style={{ fontSize: '0.85rem', color: '#a3a3a3', marginTop: '0.75rem', textAlign: 'center' }}>
-                    This $200 goes directly toward your treatment protocol.
+
+                  <p style={{ fontSize: 13, color: '#a3a3a3', marginTop: 12, textAlign: 'center', lineHeight: 1.5 }}>
+                    Your $200 goes directly toward your treatment protocol.<br />
+                    By continuing, you agree to receive texts from Range Medical.
                   </p>
                 </>
               ) : (

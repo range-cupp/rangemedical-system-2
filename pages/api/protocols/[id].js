@@ -192,7 +192,9 @@ async function updateProtocol(id, updates, res) {
     'first_followup_weeks',
     // HRT onboarding
     'injection_method',
-    'onboarding_start_date'
+    'onboarding_start_date',
+    // HRT billing
+    'last_payment_date'
   ];
 
   // Date fields that need special handling (convert empty string to null)
@@ -203,7 +205,8 @@ async function updateProtocol(id, updates, res) {
     'last_visit_date',
     'next_expected_date',
     'cycle_start_date',
-    'onboarding_start_date'
+    'onboarding_start_date',
+    'last_payment_date'
   ];
 
   // Filter to only allowed fields

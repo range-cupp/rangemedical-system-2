@@ -487,7 +487,7 @@ export default function PatientProfile() {
     // Peptide vial fields
     numVials: '', dosesPerVial: '',
     // HRT vial-specific fields
-    dosePerInjection: '', injectionsPerWeek: 2, vialSize: '', supplyType: '', lastRefillDate: '',
+    dosePerInjection: '', injectionsPerWeek: 2, vialSize: '', supplyType: '', lastRefillDate: '', lastPaymentDate: '',
     // HRT injection method (IM or SubQ)
     injectionMethod: '',
     // In-clinic scheduling fields
@@ -1659,6 +1659,7 @@ export default function PatientProfile() {
       vialSize: protocol.vial_size || '',
       supplyType: supplyType,
       lastRefillDate: protocol.last_refill_date || '',
+      lastPaymentDate: protocol.last_payment_date || '',
       // HRT injection method
       injectionMethod: protocol.injection_method || '',
       // In-clinic scheduling fields
@@ -1715,6 +1716,7 @@ export default function PatientProfile() {
           vial_size: editForm.vialSize ? parseFloat(editForm.vialSize) : null,
           supply_type: editForm.supplyType || null,
           last_refill_date: dateOrNull(editForm.lastRefillDate),
+          last_payment_date: dateOrNull(editForm.lastPaymentDate),
           // HRT injection method
           injection_method: editForm.injectionMethod || null,
           // In-clinic scheduling fields
@@ -7311,6 +7313,12 @@ export default function PatientProfile() {
                       <div className="form-group">
                         <label>Last Refill Date</label>
                         <input type="date" value={editForm.lastRefillDate} onChange={e => setEditForm({...editForm, lastRefillDate: e.target.value})} />
+                      </div>
+                    </div>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Last Payment Date</label>
+                        <input type="date" value={editForm.lastPaymentDate} onChange={e => setEditForm({...editForm, lastPaymentDate: e.target.value})} />
                       </div>
                     </div>
                   </>

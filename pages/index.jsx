@@ -162,8 +162,8 @@ export default function Home() {
                   <li>Get a clear protocol recommendation</li>
                   <li>Free — no cost to start</li>
                 </ul>
-                <Link href="/range-assessment?path=injury" className="home-door-btn">
-                  Take Assessment
+                <Link href="/range-assessment?path=injury&from=start" className="home-door-btn">
+                  Start Here
                 </Link>
               </div>
 
@@ -174,16 +174,16 @@ export default function Home() {
                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                   </svg>
                 </div>
-                <h3>Energy & Optimization</h3>
+                <h3>Energy, Hormones & Weight Loss</h3>
                 <p>You're tired, foggy, or just don't feel like yourself. You want answers and a plan.</p>
                 <ul className="home-door-list">
-                  <li>Connect symptoms to root causes</li>
-                  <li>Review labs if you have them</li>
-                  <li>Get a personalized program</li>
-                  <li>Free — no cost to start</li>
+                  <li>We start with labs — real data, not guesswork</li>
+                  <li>1:1 provider review of your results</li>
+                  <li>Written plan in plain language</li>
+                  <li>Essential ($350) or Elite ($750)</li>
                 </ul>
-                <Link href="/range-assessment?path=energy" className="home-door-btn">
-                  Take Assessment
+                <Link href="/start/energy" className="home-door-btn">
+                  Start Here
                 </Link>
               </div>
             </div>
@@ -371,23 +371,23 @@ export default function Home() {
           <div className="home-container">
             <h2>Ready to Feel Like Yourself Again?</h2>
             <p className="home-cta-text">
-              Pick the door that fits your situation. Both start with a $250 Range Assessment (credited toward any treatment).
+              Pick the path that fits your situation.
             </p>
             <div className="home-cta-buttons">
-              <Link href="/range-assessment?path=injury" style={{
+              <Link href="/range-assessment?path=injury&from=start" style={{
                 display: 'inline-block', background: '#ffffff', color: '#000000',
                 padding: '1rem 2rem', borderRadius: '8px', fontWeight: 600,
                 fontSize: '0.9375rem', textDecoration: 'none'
               }}>
                 Injury & Recovery
               </Link>
-              <Link href="/range-assessment?path=energy" style={{
+              <Link href="/start/energy" style={{
                 display: 'inline-block', background: 'transparent', color: '#ffffff',
                 padding: '1rem 2rem', borderRadius: '8px', fontWeight: 600,
                 fontSize: '0.9375rem', textDecoration: 'none',
                 border: '1px solid rgba(255,255,255,0.7)'
               }}>
-                Energy & Optimization
+                Energy, Hormones & Weight Loss
               </Link>
             </div>
             <p className="home-cta-location">

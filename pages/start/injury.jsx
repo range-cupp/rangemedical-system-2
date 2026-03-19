@@ -130,7 +130,7 @@ export default function StartInjury() {
         body: JSON.stringify({
           leadId: leadInfo.leadId,
           eventTypeId: ASSESSMENT_EVENT_TYPE_ID,
-          start: selectedSlot.time,
+          start: selectedSlot.start,
           patientName: `${leadInfo.firstName} ${leadInfo.lastName}`,
           patientEmail: leadInfo.email,
           patientPhone: leadInfo.phone,
@@ -149,9 +149,13 @@ export default function StartInjury() {
     }
   };
 
-  // Format slot time
+  // Format slot time — always Pacific
   const formatTime = (iso) => {
-    return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    return new Date(iso).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone: 'America/Los_Angeles',
+    });
   };
 
   // Format date for display
@@ -769,7 +773,7 @@ export default function StartInjury() {
                   {Object.values(availableSlots).flat().map((slot, i) => (
                     <button
                       key={i}
-                      className={`inj-slot-btn ${selectedSlot?.time === slot.start ? 'active' : ''}`}
+                      className={`inj-slot-btn ${selectedSlot?.start === slot.start ? 'active' : ''}`}
                       onClick={() => setSelectedSlot(slot)}
                     >
                       {formatTime(slot.start)}
@@ -791,7 +795,7 @@ export default function StartInjury() {
               onClick={handleBooking}
               disabled={isBooking || !leadInfo}
             >
-              {isBooking ? 'Booking...' : `Confirm Recovery Assessment — ${formatTime(selectedSlot.time)}`}
+              {isBooking ? 'Booking...' : `Confirm Recovery Assessment — ${formatTime(selectedSlot.start)}`}
             </button>
           )}
 

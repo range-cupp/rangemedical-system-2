@@ -592,12 +592,14 @@ export default function StartPage() {
           </p>
 
           <div className={`start-video-wrap ${animClass('hero-video')}`} data-anim-id="hero-video">
-            <div className="start-video-placeholder">
-              <div className="play-icon">
-                <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21" /></svg>
-              </div>
-              <span>Video coming soon</span>
-            </div>
+            <iframe
+              src="https://www.youtube.com/embed/kxxQLE_B4yw"
+              title="Not Feeling Like Yourself? Start Here | Range Medical"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+            />
           </div>
         </section>
 

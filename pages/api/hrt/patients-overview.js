@@ -1,6 +1,10 @@
 // /pages/api/hrt/patients-overview.js
 // Comprehensive HRT patient overview for staff dashboard
-// Returns all HRT protocols with patient info, medication, labs, and schedule status
+// Pulls from the SAME source of truth as /api/pipelines/hrt.js:
+//   - protocols table for program data
+//   - service_logs table for actual pickup dates (single source of truth)
+//   - labs + protocol_logs + buildAdaptiveHRTSchedule for lab schedule
+// Range Medical
 
 import { createClient } from '@supabase/supabase-js';
 import { buildAdaptiveHRTSchedule } from '../../../lib/hrt-lab-schedule';
@@ -16,23 +20,28 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Get all HRT protocols (all statuses) with patient info
+    // Same filter as /api/pipelines/hrt.js — matches all HRT variants
     const { data: protocols, error: protocolsError } = await supabase
       .from('protocols')
       .select(`
         id,
         patient_id,
         program_type,
+        program_name,
         status,
         start_date,
         end_date,
         medication,
-        dose_amount,
-        dose_frequency,
+        selected_dose,
         delivery_method,
+        supply_type,
         hrt_type,
-        last_refill_date,
+        labs_completed,
+        baseline_labs_date,
+        eight_week_labs_date,
+        last_labs_date,
         next_expected_date,
+        notes,
         created_at,
         patients!inner (
           id,
@@ -45,8 +54,7 @@ export default async function handler(req, res) {
           gender
         )
       `)
-      .ilike('program_type', '%hrt%')
-      .order('status', { ascending: true })
+      .or('program_type.eq.hrt,program_type.ilike.%hrt%,program_name.ilike.%hrt%')
       .order('created_at', { ascending: false });
 
     if (protocolsError) {
@@ -60,33 +68,83 @@ export default async function handler(req, res) {
       });
     }
 
+    const protocolIds = protocols.map(p => p.id);
+
+    // ── Service logs: single source of truth for pickups + injections ──
+    // Same approach as /api/pipelines/hrt.js
+    const { data: pickupLogs } = await supabase
+      .from('service_logs')
+      .select('protocol_id, entry_date')
+      .in('protocol_id', protocolIds)
+      .eq('entry_type', 'pickup')
+      .order('entry_date', { ascending: false });
+
+    const lastPickupMap = {};
+    (pickupLogs || []).forEach(log => {
+      if (!lastPickupMap[log.protocol_id]) {
+        lastPickupMap[log.protocol_id] = log.entry_date;
+      }
+    });
+
+    const { data: injectionLogs } = await supabase
+      .from('service_logs')
+      .select('protocol_id')
+      .in('protocol_id', protocolIds)
+      .in('entry_type', ['injection', 'session']);
+
+    const injectionCountMap = {};
+    (injectionLogs || []).forEach(log => {
+      injectionCountMap[log.protocol_id] = (injectionCountMap[log.protocol_id] || 0) + 1;
+    });
+
+    // ── Batch-fetch labs and blood draw logs per patient ──
+    const patientIds = [...new Set(protocols.map(p => p.patient_id))];
+
+    const { data: allLabs } = await supabase
+      .from('labs')
+      .select('id, patient_id, test_date, collection_date, lab_date, completed_date, panel_type, status')
+      .in('patient_id', patientIds)
+      .order('test_date', { ascending: false });
+
+    const { data: allBloodDrawLogs } = await supabase
+      .from('protocol_logs')
+      .select('id, protocol_id, log_date, notes')
+      .in('protocol_id', protocolIds)
+      .eq('log_type', 'blood_draw');
+
+    const { data: allLabProtocols } = await supabase
+      .from('protocols')
+      .select('id, patient_id, start_date, status')
+      .in('patient_id', patientIds)
+      .eq('program_type', 'labs');
+
+    // Index by patient/protocol
+    const labsByPatient = {};
+    (allLabs || []).forEach(l => {
+      if (!labsByPatient[l.patient_id]) labsByPatient[l.patient_id] = [];
+      labsByPatient[l.patient_id].push(l);
+    });
+    const bloodDrawsByProtocol = {};
+    (allBloodDrawLogs || []).forEach(l => {
+      if (!bloodDrawsByProtocol[l.protocol_id]) bloodDrawsByProtocol[l.protocol_id] = [];
+      bloodDrawsByProtocol[l.protocol_id].push(l);
+    });
+    const labProtocolsByPatient = {};
+    (allLabProtocols || []).forEach(l => {
+      if (!labProtocolsByPatient[l.patient_id]) labProtocolsByPatient[l.patient_id] = [];
+      labProtocolsByPatient[l.patient_id].push(l);
+    });
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const results = [];
 
     for (const protocol of protocols) {
-      // Get blood draw logs
-      const { data: bloodDrawLogs } = await supabase
-        .from('protocol_logs')
-        .select('id, log_date, notes')
-        .eq('protocol_id', protocol.id)
-        .eq('log_type', 'blood_draw');
+      const labs = labsByPatient[protocol.patient_id] || [];
+      const bloodDrawLogs = bloodDrawsByProtocol[protocol.id] || [];
+      const labProtocols = labProtocolsByPatient[protocol.patient_id] || [];
 
-      // Get all labs for this patient
-      const { data: labs } = await supabase
-        .from('labs')
-        .select('id, test_date, collection_date, lab_date, completed_date, panel_type, status')
-        .eq('patient_id', protocol.patient_id)
-        .order('test_date', { ascending: false });
-
-      // Get lab protocols for this patient
-      const { data: labProtocols } = await supabase
-        .from('protocols')
-        .select('id, start_date, status')
-        .eq('patient_id', protocol.patient_id)
-        .eq('program_type', 'labs');
-
-      // Build adaptive lab schedule (only for active protocols)
+      // ── Lab schedule (adaptive) ──
       let schedule = [];
       let nextDraw = null;
       let labStatus = 'n/a';
@@ -94,9 +152,9 @@ export default async function handler(req, res) {
         schedule = buildAdaptiveHRTSchedule(
           protocol.start_date,
           8,
-          bloodDrawLogs || [],
-          labs || [],
-          labProtocols || []
+          bloodDrawLogs,
+          labs,
+          labProtocols
         );
         const overdueDraw = schedule.find(d => d.status === 'overdue');
         const upcomingDraw = schedule.find(d => d.status === 'upcoming');
@@ -114,19 +172,22 @@ export default async function handler(req, res) {
       }
 
       // Most recent lab
-      const mostRecentLab = (labs || []).find(l => l.test_date || l.collection_date || l.lab_date);
+      const mostRecentLab = labs.find(l => l.test_date || l.collection_date || l.lab_date);
       const lastLabDate = mostRecentLab
         ? (mostRecentLab.collection_date || mostRecentLab.test_date || mostRecentLab.lab_date)
         : null;
 
-      // Medication status
+      // ── Medication pickup — from service_logs (same as hrt pipeline) ──
+      const lastPickupDate = lastPickupMap[protocol.id] || protocol.start_date;
+      let daysSincePickup = null;
+      if (lastPickupDate) {
+        const pickupDate = new Date(lastPickupDate + 'T00:00:00');
+        daysSincePickup = Math.floor((today - pickupDate) / (1000 * 60 * 60 * 24));
+      }
+
+      // Med status from next_expected_date
       let medStatus = 'n/a';
-      let daysSinceRefill = null;
       if (protocol.status === 'active') {
-        if (protocol.last_refill_date) {
-          const refillDate = new Date(protocol.last_refill_date + 'T00:00:00');
-          daysSinceRefill = Math.floor((today - refillDate) / (1000 * 60 * 60 * 24));
-        }
         if (protocol.next_expected_date) {
           const nextDate = new Date(protocol.next_expected_date + 'T00:00:00');
           const daysUntilRefill = Math.floor((nextDate - today) / (1000 * 60 * 60 * 24));
@@ -138,16 +199,21 @@ export default async function handler(req, res) {
             medStatus = 'on_track';
           }
         } else {
-          medStatus = protocol.last_refill_date ? 'on_track' : 'no_data';
+          medStatus = lastPickupDate ? 'on_track' : 'no_data';
         }
       }
 
-      // Calculate program duration
+      // Program week
       let programWeek = null;
       if (protocol.start_date) {
         const startDate = new Date(protocol.start_date + 'T00:00:00');
         programWeek = Math.floor((today - startDate) / (1000 * 60 * 60 * 24 * 7));
       }
+
+      // Normalize supply type (same as hrt pipeline)
+      let supplyType = protocol.supply_type || 'prefilled_4week';
+      if (supplyType === 'vial') supplyType = 'vial_10ml';
+      if (supplyType === 'prefilled') supplyType = 'prefilled_4week';
 
       results.push({
         protocol_id: protocol.id,
@@ -164,15 +230,20 @@ export default async function handler(req, res) {
         end_date: protocol.end_date,
         program_week: programWeek,
         medication: protocol.medication,
-        dose_amount: protocol.dose_amount,
-        dose_frequency: protocol.dose_frequency,
+        current_dose: protocol.selected_dose || null,
+        supply_type: supplyType,
         delivery_method: protocol.delivery_method,
-        last_refill_date: protocol.last_refill_date,
+        last_pickup_date: lastPickupDate,
         next_expected_date: protocol.next_expected_date,
-        days_since_refill: daysSinceRefill,
+        days_since_pickup: daysSincePickup,
+        total_injections: injectionCountMap[protocol.id] || 0,
         med_status: medStatus,
         last_lab_date: lastLabDate,
         last_lab_panel: mostRecentLab?.panel_type || null,
+        labs_completed: protocol.labs_completed || !!protocol.eight_week_labs_date,
+        baseline_labs_date: protocol.baseline_labs_date,
+        eight_week_labs_date: protocol.eight_week_labs_date,
+        last_labs_date: protocol.last_labs_date,
         next_draw_label: nextDraw?.label || null,
         next_draw_target: nextDraw?.targetDate || null,
         lab_status: labStatus,

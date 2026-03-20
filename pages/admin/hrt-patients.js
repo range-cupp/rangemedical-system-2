@@ -86,9 +86,9 @@ export default function HRTPatients() {
         aVal = a.last_lab_date ? new Date(a.last_lab_date).getTime() : 0;
         bVal = b.last_lab_date ? new Date(b.last_lab_date).getTime() : 0;
         return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
-      case 'last_refill_date':
-        aVal = a.last_refill_date ? new Date(a.last_refill_date).getTime() : 0;
-        bVal = b.last_refill_date ? new Date(b.last_refill_date).getTime() : 0;
+      case 'last_pickup_date':
+        aVal = a.last_pickup_date ? new Date(a.last_pickup_date).getTime() : 0;
+        bVal = b.last_pickup_date ? new Date(b.last_pickup_date).getTime() : 0;
         return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
       case 'start_date':
         aVal = a.start_date ? new Date(a.start_date).getTime() : 0;
@@ -236,8 +236,8 @@ export default function HRTPatients() {
                 <th style={sharedStyles.th}>Program</th>
                 <th style={sharedStyles.th}>Status</th>
                 <th style={sharedStyles.th}>Medication / Dosage</th>
-                <th style={{ ...sharedStyles.th, cursor: 'pointer' }} onClick={() => handleSort('last_refill_date')}>
-                  Last Pickup{sortArrow('last_refill_date')}
+                <th style={{ ...sharedStyles.th, cursor: 'pointer' }} onClick={() => handleSort('last_pickup_date')}>
+                  Last Pickup{sortArrow('last_pickup_date')}
                 </th>
                 <th style={{ ...sharedStyles.th, cursor: 'pointer' }} onClick={() => handleSort('med_status')}>
                   Med Status{sortArrow('med_status')}
@@ -377,19 +377,19 @@ function PatientRow({ patient: p, formatDate, daysAgo, daysUntil, expanded, onTo
         {/* Medication / Dosage */}
         <td style={sharedStyles.td}>
           <div style={{ fontSize: 13, fontWeight: 500 }}>{p.medication || '—'}</div>
-          {(p.dose_amount || p.dose_frequency) && (
+          {p.current_dose && (
             <div style={{ fontSize: 11, color: '#666', marginTop: 2 }}>
-              {[p.dose_amount, p.dose_frequency].filter(Boolean).join(' · ')}
+              {p.current_dose}
             </div>
           )}
         </td>
 
         {/* Last Pickup */}
         <td style={sharedStyles.td}>
-          <div style={{ fontSize: 13 }}>{formatDate(p.last_refill_date)}</div>
-          {p.last_refill_date && (
+          <div style={{ fontSize: 13 }}>{formatDate(p.last_pickup_date)}</div>
+          {p.last_pickup_date && (
             <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>
-              {daysAgo(p.last_refill_date)}
+              {daysAgo(p.last_pickup_date)}
             </div>
           )}
         </td>
@@ -429,6 +429,12 @@ function PatientRow({ patient: p, formatDate, daysAgo, daysUntil, expanded, onTo
                   <div style={styles.expandedDetail}>Started: {formatDate(p.start_date)}</div>
                   {p.delivery_method && (
                     <div style={styles.expandedDetail}>Delivery: {p.delivery_method.replace(/_/g, ' ')}</div>
+                  )}
+                  {p.supply_type && (
+                    <div style={styles.expandedDetail}>Supply: {p.supply_type.replace(/_/g, ' ')}</div>
+                  )}
+                  {p.total_injections > 0 && (
+                    <div style={styles.expandedDetail}>Total Injections: {p.total_injections}</div>
                   )}
                   <button
                     onClick={(e) => { e.stopPropagation(); onNavigate(); }}

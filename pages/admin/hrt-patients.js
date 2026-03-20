@@ -367,6 +367,19 @@ function PatientRow({ patient: p, formatDate, daysAgo, daysUntil, expanded, onTo
               Week {p.program_week}
             </div>
           )}
+          {p.range_iv && (
+            <div style={{
+              fontSize: 10,
+              marginTop: 3,
+              padding: '1px 6px',
+              borderRadius: 4,
+              display: 'inline-block',
+              background: p.range_iv === 'available' ? '#dcfce7' : p.range_iv === 'used' ? '#f3f4f6' : '#fef3c7',
+              color: p.range_iv === 'available' ? '#166534' : p.range_iv === 'used' ? '#6b7280' : '#92400e',
+            }}>
+              IV {p.range_iv === 'available' ? 'available' : p.range_iv === 'used' ? 'used' : 'expired'}
+            </div>
+          )}
         </td>
 
         {/* Status */}

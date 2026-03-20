@@ -41,6 +41,8 @@ export default async function handler(req, res) {
         eight_week_labs_date,
         last_labs_date,
         next_expected_date,
+        total_sessions,
+        sessions_used,
         notes,
         created_at,
         patients!inner (
@@ -68,7 +70,47 @@ export default async function handler(req, res) {
       });
     }
 
-    const protocolIds = protocols.map(p => p.id);
+    // ── Separate real HRT protocols from Range IV perk protocols ──
+    // The query matches program_name containing 'hrt' which catches
+    // Range IV perk protocols (program_name: 'Range IV — HRT Membership Perk').
+    // We need to show only actual HRT protocols as primary rows, with
+    // Range IV status attached as metadata.
+    const isRangeIVPerk = (p) => {
+      const pt = (p.program_type || '').toLowerCase();
+      return (pt === 'iv' || pt === 'iv_therapy') && (p.medication || '').toLowerCase().includes('range iv');
+    };
+
+    const hrtProtocols = [];
+    const ivPerksByPatient = {};
+
+    for (const p of protocols) {
+      if (isRangeIVPerk(p)) {
+        if (!ivPerksByPatient[p.patient_id]) ivPerksByPatient[p.patient_id] = [];
+        ivPerksByPatient[p.patient_id].push(p);
+      } else {
+        hrtProtocols.push(p);
+      }
+    }
+
+    // Deduplicate HRT protocols by patient — keep the most recent active one
+    const hrtByPatient = {};
+    for (const p of hrtProtocols) {
+      const existing = hrtByPatient[p.patient_id];
+      if (!existing) {
+        hrtByPatient[p.patient_id] = p;
+      } else {
+        // Prefer active over inactive, then most recent
+        const existingActive = existing.status === 'active';
+        const currentActive = p.status === 'active';
+        if (currentActive && !existingActive) {
+          hrtByPatient[p.patient_id] = p;
+        }
+        // Both same status — keep the one already stored (created_at desc from query)
+      }
+    }
+
+    const dedupedProtocols = Object.values(hrtByPatient);
+    const protocolIds = dedupedProtocols.map(p => p.id);
 
     // ── Service logs: single source of truth for pickups + injections ──
     // Same approach as /api/pipelines/hrt.js
@@ -98,7 +140,7 @@ export default async function handler(req, res) {
     });
 
     // ── Batch-fetch labs and blood draw logs per patient ──
-    const patientIds = [...new Set(protocols.map(p => p.patient_id))];
+    const patientIds = [...new Set(dedupedProtocols.map(p => p.patient_id))];
 
     const { data: allLabs } = await supabase
       .from('labs')
@@ -139,7 +181,7 @@ export default async function handler(req, res) {
     today.setHours(0, 0, 0, 0);
     const results = [];
 
-    for (const protocol of protocols) {
+    for (const protocol of dedupedProtocols) {
       const labs = labsByPatient[protocol.patient_id] || [];
       const bloodDrawLogs = bloodDrawsByProtocol[protocol.id] || [];
       const labProtocols = labProtocolsByPatient[protocol.patient_id] || [];
@@ -215,6 +257,19 @@ export default async function handler(req, res) {
       if (supplyType === 'vial') supplyType = 'vial_10ml';
       if (supplyType === 'prefilled') supplyType = 'prefilled_4week';
 
+      // ── Range IV perk status for this patient ──
+      const patientIVPerks = ivPerksByPatient[protocol.patient_id] || [];
+      const activeIVPerk = patientIVPerks.find(p => p.status === 'active');
+      const hasRangeIV = patientIVPerks.length > 0;
+      let rangeIVStatus = null;
+      if (activeIVPerk) {
+        const sessionsUsed = activeIVPerk.sessions_used || 0;
+        const totalSessions = activeIVPerk.total_sessions || 1;
+        rangeIVStatus = sessionsUsed >= totalSessions ? 'used' : 'available';
+      } else if (hasRangeIV) {
+        rangeIVStatus = 'expired';
+      }
+
       results.push({
         protocol_id: protocol.id,
         patient_id: protocol.patient_id,
@@ -248,6 +303,7 @@ export default async function handler(req, res) {
         next_draw_target: nextDraw?.targetDate || null,
         lab_status: labStatus,
         schedule,
+        range_iv: hasRangeIV ? rangeIVStatus : null,
       });
     }
 

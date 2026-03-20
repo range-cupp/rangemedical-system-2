@@ -6,6 +6,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import TemplateMessages from './TemplateMessages';
+import { useAuth } from './AuthProvider';
 
 const CalendarView = dynamic(() => import('./CalendarView'), { ssr: false });
 
@@ -43,6 +44,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const [selectedForms, setSelectedForms] = useState([]);
   const [sendingForms, setSendingForms] = useState(false);
   const [formsResult, setFormsResult] = useState(null);
+  const { session } = useAuth();
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [taskForm, setTaskForm] = useState({ title: '', description: '', assigned_to: '', priority: 'medium', due_date: '' });
   const [taskEmployees, setTaskEmployees] = useState([]);
@@ -116,7 +118,9 @@ export default function ConversationView({ patientId, patientName, patientPhone,
     setTaskForm({ title: '', description: '', assigned_to: '', priority: 'medium', due_date: '' });
     if (taskEmployees.length === 0) {
       try {
-        const res = await fetch('/api/admin/employees?basic=true');
+        const res = await fetch('/api/admin/employees?basic=true', {
+          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+        });
         if (res.ok) {
           const data = await res.json();
           setTaskEmployees(Array.isArray(data.employees) ? data.employees : Array.isArray(data) ? data : []);
@@ -132,7 +136,10 @@ export default function ConversationView({ patientId, patientName, patientPhone,
     try {
       const res = await fetch('/api/admin/tasks', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({
           title: taskForm.title.trim(),
           description: taskForm.description?.trim() || null,

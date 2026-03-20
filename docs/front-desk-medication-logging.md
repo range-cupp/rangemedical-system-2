@@ -11,7 +11,7 @@ There are only two things front desk needs to do:
 | What's Happening | Where to Do It |
 |---|---|
 | Patient is **paying for medication** (weight loss, peptides) | **POS** (Charge button on patient profile) |
-| Patient is **picking up HRT medication** (vial or prefilled syringes) | **Medications page** (Admin → Medications → Dispense) |
+| Patient is **picking up HRT program medications** (testosterone, HCG, etc.) | **Medications page** (Admin → Medications → Dispense) |
 
 Everything else is automatic:
 - **In-clinic sessions** (IV, HBOT, Red Light) → auto-logged when the appointment is marked completed
@@ -52,11 +52,11 @@ Make sure you pick the right product — "BPC-157 / TB4 Vial" and "GLOW Vial" ar
 
 ---
 
-## 3. HRT / Testosterone
+## 3. HRT Program Medications (Testosterone, HCG, Gonadorelin, Nandrolone, etc.)
 
 **Where:** Medications page
 
-HRT monthly payments are automatic through subscriptions. You do not process HRT payments. Your only job is logging when medication actually leaves the clinic.
+HRT monthly payments are automatic through subscriptions. You do not process HRT payments. Your only job is logging when any HRT program medication actually leaves the clinic — whether that's testosterone, HCG, or any other medication in their program.
 
 **When a patient picks up their vial or prefilled syringes (or you ship it):**
 
@@ -89,7 +89,7 @@ Just make sure the appointment gets marked completed — that's it.
 ## Don'ts
 
 - **Don't use Custom Charge for medication** — the medication name won't get tracked
-- **Don't forget to Dispense HRT** — payments are automatic, but dispensing is not
+- **Don't forget to Dispense HRT program medications** — payments are automatic, but dispensing is not
 - **Don't manually create service log entries** — the system handles this automatically for all types
 - **Don't skip the POS for comped medication** — run it as a $0 charge so it's tracked
 - **Don't mix up peptide products** — each one is a different medication, select the right one
@@ -102,7 +102,7 @@ Just make sure the appointment gets marked completed — that's it.
 |---|---|---|
 | Weight loss (take-home) | POS charge + fulfillment | Yes — from POS |
 | Peptide vial (take-home) | POS charge + fulfillment | Yes — from POS |
-| HRT vial/prefilled (take-home) | Medications → Dispense | Yes — from Dispense |
+| HRT program meds (take-home) | Medications → Dispense | Yes — from Dispense |
 | IV therapy session | None — mark appointment completed | Yes — from appointment |
 | HBOT session | None — mark appointment completed | Yes — from appointment |
 | Red Light session | None — mark appointment completed | Yes — from appointment |

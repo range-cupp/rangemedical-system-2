@@ -95,7 +95,7 @@ export default async function handler(req, res) {
       }
 
       return {
-        name: p.item_name,
+        name: p.description || p.item_name,
         quantity: qty,
         unitPriceCents,
         discountLabel,

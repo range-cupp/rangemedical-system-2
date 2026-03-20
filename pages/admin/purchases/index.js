@@ -135,6 +135,7 @@ function PurchasesInner({ embedded } = {}) {
   const [editingShipping, setEditingShipping] = useState(null);
   const [shippingValue, setShippingValue] = useState('');
   const [activeProtocolsByPatient, setActiveProtocolsByPatient] = useState({});
+  const [resendingReceipt, setResendingReceipt] = useState(null);
   const autoLinkedRef = useRef(new Set());
 
   useEffect(() => {
@@ -198,6 +199,28 @@ function PurchasesInner({ embedded } = {}) {
       console.error('Error saving shipping:', err);
     }
     setEditingShipping(null);
+  };
+
+  const resendReceipt = async (purchaseId) => {
+    setResendingReceipt(purchaseId);
+    try {
+      const res = await fetch('/api/receipt/resend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ purchase_id: purchaseId })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert(`Receipt sent to ${data.email} (${data.items} item${data.items > 1 ? 's' : ''}, ${data.total})`);
+      } else {
+        alert(`Failed to send receipt: ${data.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Resend receipt error:', err);
+      alert('Failed to send receipt');
+    } finally {
+      setResendingReceipt(null);
+    }
   };
 
   // Filter purchases
@@ -297,6 +320,7 @@ function PurchasesInner({ embedded } = {}) {
                     <th style={styles.th}>Item</th>
                     <th style={styles.th}>Category</th>
                     <th style={styles.th}>Amount</th>
+                    <th style={styles.th}>Receipt</th>
                     <th style={styles.th}>Shipping</th>
                     <th style={styles.th}>Protocol</th>
                   </tr>
@@ -320,6 +344,16 @@ function PurchasesInner({ embedded } = {}) {
                       </td>
                       <td style={styles.td}>
                         <span style={styles.amount}>${displayAmt(purchase).toFixed(2)}</span>
+                      </td>
+                      <td style={styles.td}>
+                        <button
+                          onClick={() => resendReceipt(purchase.id)}
+                          disabled={resendingReceipt === purchase.id}
+                          style={styles.receiptBtn}
+                          title="Resend receipt email"
+                        >
+                          {resendingReceipt === purchase.id ? '...' : '📧'}
+                        </button>
                       </td>
                       <td style={styles.td}>
                         {editingShipping === purchase.id ? (
@@ -2002,6 +2036,15 @@ const styles = {
     fontSize: '12px',
     fontWeight: '500',
     cursor: 'pointer'
+  },
+  receiptBtn: {
+    background: 'none',
+    border: '1px solid #e5e5e5',
+    borderRadius: '6px',
+    padding: '4px 8px',
+    cursor: 'pointer',
+    fontSize: '14px',
+    lineHeight: '1',
   },
   saleBadge: {
     display: 'inline-block',

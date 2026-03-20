@@ -71,7 +71,7 @@ async function sendReceiptEmail(purchase) {
         month: 'long',
         day: 'numeric',
       }),
-      description: purchase.item_name,
+      description: purchase.description || purchase.item_name,
       originalAmountCents: purchase.original_amount ? Math.round(purchase.original_amount * 100) : Math.round(purchase.amount * 100),
       discountLabel,
       amountPaidCents: Math.round(purchase.amount * 100),
@@ -139,6 +139,7 @@ export default async function handler(req, res) {
       shipping,
       fulfillment_method,
       tracking_number,
+      item_description,
     } = req.body;
 
     if (!patient_id || (amount === undefined || amount === null)) {
@@ -174,6 +175,7 @@ export default async function handler(req, res) {
       source: 'stripe_pos',
       purchase_date: new Date().toISOString().split('T')[0],
       shipping: shipping || 0,
+      description: item_description || null,
     };
 
     // Add discount fields if present

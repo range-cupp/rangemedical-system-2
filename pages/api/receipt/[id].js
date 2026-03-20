@@ -1,4 +1,6 @@
 // GET /api/receipt/[id] — Returns PDF receipt for a purchase
+// If the purchase is part of a consolidated transaction (same stripe_payment_intent_id),
+// the PDF will show all items from that transaction.
 import { createClient } from '@supabase/supabase-js';
 import stripe from '../../../lib/stripe';
 import { generateReceiptPdf } from '../../../lib/receipt-pdf';
@@ -19,7 +21,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Fetch purchase
+    // Fetch the requested purchase
     const { data: purchase, error: purchaseError } = await supabase
       .from('purchases')
       .select('*')
@@ -29,6 +31,22 @@ export default async function handler(req, res) {
     if (purchaseError || !purchase) {
       return res.status(404).json({ error: 'Purchase not found' });
     }
+
+    // Check if this purchase is part of a consolidated transaction
+    let allPurchases = [purchase];
+    if (purchase.stripe_payment_intent_id) {
+      const { data: siblings } = await supabase
+        .from('purchases')
+        .select('*')
+        .eq('stripe_payment_intent_id', purchase.stripe_payment_intent_id)
+        .order('created_at', { ascending: true });
+
+      if (siblings && siblings.length > 1) {
+        allPurchases = siblings;
+      }
+    }
+
+    const isMultiItem = allPurchases.length > 1;
 
     // Fetch patient info
     const { data: patient } = await supabase
@@ -57,42 +75,82 @@ export default async function handler(req, res) {
       }
     }
 
-    // Build discount label
-    let discountLabel = null;
-    if (purchase.discount_type === 'percent') {
-      discountLabel = `${purchase.discount_amount}% off`;
-    } else if (purchase.discount_type === 'dollar') {
-      discountLabel = `$${purchase.discount_amount} off`;
+    let pdfParams;
+
+    if (isMultiItem) {
+      // Build line items for consolidated receipt
+      const items = allPurchases.map(p => {
+        const qty = p.quantity || 1;
+        const unitPriceCents = p.original_amount
+          ? Math.round(p.original_amount * 100 / qty)
+          : Math.round(p.amount * 100 / qty);
+        const lineTotalCents = Math.round(p.amount * 100);
+
+        let discountLabel = null;
+        if (p.discount_type === 'percent') {
+          discountLabel = `${p.discount_amount}% off`;
+        } else if (p.discount_type === 'dollar') {
+          discountLabel = `$${p.discount_amount} off`;
+        }
+
+        // Use description if available, otherwise item_name
+        const name = p.description || p.item_name || 'Service';
+
+        return { name, quantity: qty, unitPriceCents, discountLabel, lineTotalCents };
+      });
+
+      const totalAmountCents = allPurchases.reduce((sum, p) => sum + Math.round(p.amount * 100), 0);
+
+      pdfParams = {
+        firstName,
+        patientName: patient?.name || null,
+        patientPhone: patient?.phone || null,
+        patientAddress,
+        invoiceId: allPurchases[0].id,
+        date: new Date(purchase.purchase_date).toLocaleDateString('en-US', {
+          year: 'numeric', month: 'long', day: 'numeric',
+        }),
+        items,
+        amountPaidCents: totalAmountCents,
+        cardBrand,
+        cardLast4,
+      };
+    } else {
+      // Single-item receipt
+      const rawAmt = parseFloat(purchase.amount) || 0;
+      const rawPaid = parseFloat(purchase.amount_paid);
+      const resolvedPaid = (!isNaN(rawPaid) && rawPaid > 0 && rawPaid < rawAmt) ? rawPaid : rawAmt;
+      const amountPaidCents = Math.round(resolvedPaid * 100);
+      const originalAmountCents = purchase.original_amount
+        ? Math.round(parseFloat(purchase.original_amount) * 100)
+        : (resolvedPaid < rawAmt ? Math.round(rawAmt * 100) : amountPaidCents);
+
+      let discountLabel = null;
+      if (purchase.discount_type === 'percent') {
+        discountLabel = `${purchase.discount_amount}% off`;
+      } else if (purchase.discount_type === 'dollar') {
+        discountLabel = `$${purchase.discount_amount} off`;
+      }
+
+      pdfParams = {
+        firstName,
+        patientName: patient?.name || null,
+        patientPhone: patient?.phone || null,
+        patientAddress,
+        invoiceId: purchase.id,
+        date: new Date(purchase.purchase_date).toLocaleDateString('en-US', {
+          year: 'numeric', month: 'long', day: 'numeric',
+        }),
+        description: purchase.description || purchase.item_name,
+        originalAmountCents,
+        discountLabel,
+        amountPaidCents,
+        cardBrand,
+        cardLast4,
+      };
     }
 
-    // Use amount_paid when it's less than amount (discount/partial payment applied).
-    // For multi-item GHL invoices, amount_paid is the invoice total — use per-line amount instead.
-    const rawAmt = parseFloat(purchase.amount) || 0;
-    const rawPaid = parseFloat(purchase.amount_paid);
-    const resolvedPaid = (!isNaN(rawPaid) && rawPaid > 0 && rawPaid < rawAmt) ? rawPaid : rawAmt;
-    const amountPaidCents = Math.round(resolvedPaid * 100);
-    const originalAmountCents = purchase.original_amount
-      ? Math.round(parseFloat(purchase.original_amount) * 100)
-      : (resolvedPaid < rawAmt ? Math.round(rawAmt * 100) : amountPaidCents);
-
-    const pdfBytes = await generateReceiptPdf({
-      firstName,
-      patientName: patient?.name || null,
-      patientPhone: patient?.phone || null,
-      patientAddress,
-      invoiceId: purchase.id,
-      date: new Date(purchase.purchase_date).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      }),
-      description: purchase.description,
-      originalAmountCents,
-      discountLabel,
-      amountPaidCents,
-      cardBrand,
-      cardLast4,
-    });
+    const pdfBytes = await generateReceiptPdf(pdfParams);
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'inline; filename="Range-Medical-Receipt.pdf"');

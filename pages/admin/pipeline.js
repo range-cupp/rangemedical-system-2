@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import AdminLayout from '../../components/AdminLayout';
+import AdminLayout, { overlayClickProps } from '../../components/AdminLayout';
 import LabsPipelineTab from '../../components/LabsPipelineTab';
 import { WEIGHT_LOSS_DOSAGES, TESTOSTERONE_DOSES } from '../../lib/protocol-config';
 
@@ -449,6 +449,7 @@ export default function UnifiedPipeline() {
         break;
       case 'hrt':
         payload.medication = protocolForm.hrt_medication;
+        payload.hrt_type = protocolForm.hrt_type || 'male';
         if (protocolForm.hrt_medication === 'Testosterone Booster (Oral)') {
           payload.delivery_method = 'take_home';
           payload.program_name = '30 Day Program';
@@ -1344,7 +1345,7 @@ export default function UnifiedPipeline() {
         )}
 
         {startModal && (
-          <div style={styles.modalOverlay} onClick={closeStartModal}>
+          <div style={styles.modalOverlay} {...overlayClickProps(closeStartModal)}>
             <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
               <h2 style={styles.modalTitle}>➕ Start New Protocol</h2>
               {!selectedPatient ? (
@@ -1394,7 +1395,7 @@ export default function UnifiedPipeline() {
         )}
 
         {logModal && (
-          <div style={styles.modalOverlay} onClick={closeLogModal}>
+          <div style={styles.modalOverlay} {...overlayClickProps(closeLogModal)}>
             <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
               <h2 style={styles.modalTitle}>➕ Log Activity</h2>
               <div style={styles.selectedPatientBadge}><div><div style={{ fontWeight: '600' }}>{logModal.patient_name}</div><div style={{ fontSize: '12px', color: '#6b7280' }}>{getCategoryBadge(logModal.category).emoji} {logModal.medication || logModal.program_name}</div></div></div>
@@ -1410,7 +1411,7 @@ export default function UnifiedPipeline() {
         )}
 
         {renewModal && (
-          <div style={styles.modalOverlay} onClick={closeRenewModal}>
+          <div style={styles.modalOverlay} {...overlayClickProps(closeRenewModal)}>
             <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
               <h2 style={styles.modalTitle}>⏳ Extend Peptide Protocol</h2>
               <div style={styles.selectedPatientBadge}><div><div style={{ fontWeight: '600' }}>{renewModal.protocol.patient_name}</div><div style={{ fontSize: '12px', color: '#6b7280' }}>{renewModal.protocol.medication || renewModal.protocol.program_name}</div></div></div>
@@ -1436,7 +1437,7 @@ export default function UnifiedPipeline() {
         )}
 
         {editModal && (
-          <div style={styles.modalOverlay} onClick={closeEditModal}>
+          <div style={styles.modalOverlay} {...overlayClickProps(closeEditModal)}>
             <div style={styles.modal} onClick={e => e.stopPropagation()}>
               <h2 style={styles.modalTitle}>Edit Protocol</h2>
               <div style={{ marginBottom: '12px', padding: '8px', background: '#f3f4f6', borderRadius: '6px' }}><strong>{editModal.patient_name}</strong> - {editModal.category?.toUpperCase()}</div>

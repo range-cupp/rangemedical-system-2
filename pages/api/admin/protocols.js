@@ -34,6 +34,7 @@ export default async function handler(req, res) {
     const selected_dose = body.selected_dose || body.dose_amount || null;
     const frequency = body.frequency || body.dose_frequency || 'daily';
     const delivery_method = body.delivery_method || body.injection_location || 'take_home';
+    const hrt_type = body.hrt_type || null;
 
     // Validate required fields - only patient_name and program_type are truly required
     if (!patient_name || !program_type) {
@@ -218,9 +219,10 @@ export default async function handler(req, res) {
       patient_name,
       patient_email,
       patient_phone,
-      program_name: program_name || program_type,
+      program_name: isHRTProtocol(program_type) ? 'HRT Protocol' : (program_name || program_type),
       program_type,
       medication,
+      hrt_type: isHRTProtocol(program_type) ? (hrt_type || 'male') : null,
       secondary_medications: typeof secondary_medications === 'string' ? secondary_medications : JSON.stringify(secondary_medications),
       selected_dose,
       frequency,

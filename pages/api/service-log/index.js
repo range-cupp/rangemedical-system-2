@@ -1143,12 +1143,17 @@ async function createProtocolFromPickup(patient_id, category, programType, logDa
     const nextDate = new Date(pickupDate);
     nextDate.setDate(nextDate.getDate() + daysUntilNext);
 
+    // Determine HRT type from medication name
+    const isHRT = programType === 'hrt';
+    const isFemale = isHRT && medication && medication.toLowerCase().includes('100mg');
+    const hrtType = isHRT ? (isFemale ? 'female' : 'male') : null;
+
     const { data: protocol, error } = await supabase
       .from('protocols')
       .insert({
         patient_id,
         program_type: programType,
-        program_name: medication || getCategoryDisplayName(category),
+        program_name: isHRT ? 'HRT Protocol' : (medication || getCategoryDisplayName(category)),
         medication: medication || null,
         selected_dose: dosage || null,
         status: 'active',
@@ -1158,6 +1163,8 @@ async function createProtocolFromPickup(patient_id, category, programType, logDa
         last_visit_date: logDate,
         next_expected_date: nextDate.toISOString().split('T')[0],
         supply_type: supply_type || null,
+        hrt_type: hrtType,
+        secondary_medications: isHRT ? '[]' : null,
         created_at: new Date().toISOString()
       })
       .select()
@@ -1188,12 +1195,17 @@ async function createProtocolFromSession(patient_id, category, programType, logD
     sessionDate.setDate(sessionDate.getDate() + 7);
     const nextExpectedDate = sessionDate.toISOString().split('T')[0];
 
+    // Determine HRT type from medication name
+    const isHRT = programType === 'hrt';
+    const isFemaleSession = isHRT && medication && medication.toLowerCase().includes('100mg');
+    const hrtTypeSession = isHRT ? (isFemaleSession ? 'female' : 'male') : null;
+
     const { data: protocol, error } = await supabase
       .from('protocols')
       .insert({
         patient_id,
         program_type: programType,
-        program_name: medication || getCategoryDisplayName(category),
+        program_name: isHRT ? 'HRT Protocol' : (medication || getCategoryDisplayName(category)),
         medication: medication || null,
         selected_dose: dosage || null,
         status: 'active',
@@ -1203,6 +1215,8 @@ async function createProtocolFromSession(patient_id, category, programType, logD
         delivery_method: 'in_clinic',
         sessions_used: 1,
         injections_completed: 1,
+        hrt_type: hrtTypeSession,
+        secondary_medications: isHRT ? '[]' : null,
         created_at: new Date().toISOString()
       })
       .select()
@@ -1228,7 +1242,7 @@ async function createProtocolFromSession(patient_id, category, programType, logD
 
 function getCategoryDisplayName(category) {
   const names = {
-    'testosterone': 'HRT - Testosterone',
+    'testosterone': 'HRT Protocol',
     'weight_loss': 'Weight Loss Program',
     'vitamin': 'Vitamin Injections',
     'peptide': 'Peptide Therapy',

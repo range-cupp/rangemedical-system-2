@@ -33,7 +33,9 @@ export default async function handler(req, res) {
       supply_type,
       total_sessions,
       start_date,
-      notes
+      notes,
+      hrt_type,
+      secondary_medications
     } = body;
 
     if (!patient_id) {
@@ -125,10 +127,11 @@ export default async function handler(req, res) {
     }
 
     // Build protocol record - only include columns that exist in the table
+    const isHRT = isHRTType(program_type);
     const protocolData = {
       patient_id,
       program_type,
-      program_name: resolved_program_name || getProgramName(program_type),
+      program_name: isHRT ? 'HRT Protocol' : (resolved_program_name || getProgramName(program_type)),
       medication: medication || null,
       selected_dose: dose || null,
       starting_dose: dose || null,
@@ -144,6 +147,12 @@ export default async function handler(req, res) {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
+
+    // HRT-specific fields
+    if (isHRT) {
+      protocolData.hrt_type = hrt_type || 'male';
+      protocolData.secondary_medications = secondary_medications ? (typeof secondary_medications === 'string' ? secondary_medications : JSON.stringify(secondary_medications)) : '[]';
+    }
 
     console.log('Inserting protocol:', JSON.stringify(protocolData, null, 2));
 

@@ -3,6 +3,7 @@
 // Range Medical System V2
 
 import { useState, useEffect, useRef } from 'react';
+import { overlayClickProps } from './AdminLayout';
 
 // Category display names
 const CATEGORY_LABELS = {
@@ -281,7 +282,7 @@ export default function InvoiceModal({ isOpen, onClose, onInvoiceCreated, presel
   if (!isOpen) return null;
 
   return (
-    <div style={styles.overlay} onClick={onClose}>
+    <div style={styles.overlay} {...overlayClickProps(onClose)}>
       <div style={styles.modal} onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div style={styles.header}>

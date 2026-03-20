@@ -7,6 +7,7 @@ import { useState, useRef, useEffect } from 'react';
 import { ENCOUNTER_TEMPLATES, getTemplatesForCategory } from '../lib/encounter-templates';
 import { ENCOUNTER_FORMS } from '../lib/encounter-form-config';
 import InteractiveEncounterForm from './InteractiveEncounterForm';
+import { overlayClickProps } from './AdminLayout';
 
 const SERVICE_OPTIONS = Object.entries(ENCOUNTER_TEMPLATES).map(([key, val]) => ({
   value: key,
@@ -273,7 +274,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
   return (
     <>
       {/* Overlay */}
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 10000 }} />
+      <div {...overlayClickProps(onClose)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 10000 }} />
 
       {/* Modal */}
       <div

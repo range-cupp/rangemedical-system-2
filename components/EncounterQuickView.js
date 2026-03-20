@@ -5,6 +5,7 @@
 import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { getCategoryStyle } from '../lib/protocol-config';
+import { overlayClickProps } from './AdminLayout';
 
 export default function EncounterQuickView({ appointments, notes, protocols, onClose, onOpenEncounter }) {
   const [activeTab, setActiveTab] = useState('encounters');
@@ -247,7 +248,7 @@ export default function EncounterQuickView({ appointments, notes, protocols, onC
         }
       `}</style>
 
-      <div className="eqv-overlay" onClick={onClose}>
+      <div className="eqv-overlay" {...overlayClickProps(onClose)}>
         <div className="eqv-modal" onClick={e => e.stopPropagation()}>
           {/* Header */}
           <div className="eqv-header">

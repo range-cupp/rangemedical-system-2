@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { overlayClickProps } from './AdminLayout';
 
 const statusColors = {
   active: { background: '#dcfce7', color: '#166534' },
@@ -169,7 +170,7 @@ export default function ProtocolSlidePanel({ isOpen, onClose, protocolId, cardDa
       {/* Overlay */}
       <div
         style={panelStyles.overlay}
-        onClick={onClose}
+        {...overlayClickProps(onClose)}
       />
 
       {/* Panel */}

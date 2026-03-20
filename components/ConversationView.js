@@ -7,6 +7,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import TemplateMessages from './TemplateMessages';
 import { useAuth } from './AuthProvider';
+import { overlayClickProps } from './AdminLayout';
 
 const CalendarView = dynamic(() => import('./CalendarView'), { ssr: false });
 
@@ -837,7 +838,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
 
       {/* Inline Booking Modal */}
       {showBooking && (
-        <div style={styles.bookingOverlay} onClick={() => setShowBooking(false)}>
+        <div style={styles.bookingOverlay} {...overlayClickProps(() => setShowBooking(false))}>
           <div style={styles.bookingModal} onClick={e => e.stopPropagation()}>
             <div style={styles.bookingHeader}>
               <h3 style={{ margin: 0, fontSize: '16px' }}>Book Appointment — {displayName || patientName}</h3>
@@ -860,7 +861,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
 
       {/* Send Forms Modal */}
       {showForms && (
-        <div style={styles.bookingOverlay} onClick={() => setShowForms(false)}>
+        <div style={styles.bookingOverlay} {...overlayClickProps(() => setShowForms(false))}>
           <div style={{ ...styles.bookingModal, maxWidth: '420px' }} onClick={e => e.stopPropagation()}>
             <div style={styles.bookingHeader}>
               <h3 style={{ margin: 0, fontSize: '16px' }}>Send Forms — {(displayName || patientName || '').split(' ')[0]}</h3>
@@ -915,7 +916,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
 
       {/* Create Task Modal */}
       {showTaskModal && (
-        <div style={styles.bookingOverlay} onClick={() => setShowTaskModal(false)}>
+        <div style={styles.bookingOverlay} {...overlayClickProps(() => setShowTaskModal(false))}>
           <div style={{ ...styles.bookingModal, maxWidth: '460px' }} onClick={e => e.stopPropagation()}>
             <div style={styles.bookingHeader}>
               <h3 style={{ margin: 0, fontSize: '16px' }}>Create Task — {(displayName || patientName || '').split(' ')[0]}</h3>
@@ -1183,7 +1184,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
 
       {/* Message detail modal */}
       {selectedMessage && (
-        <div style={styles.modalOverlay} onClick={() => setSelectedMessage(null)}>
+        <div style={styles.modalOverlay} {...overlayClickProps(() => setSelectedMessage(null))}>
           <div style={styles.modal} onClick={e => e.stopPropagation()}>
             <div style={styles.modalHeader}>
               <div style={styles.modalHeaderLeft}>

@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
+import { overlayClickProps } from '../../components/AdminLayout';
 
 export default function PatientPortal() {
   const [patient, setPatient] = useState(null);
@@ -537,7 +538,7 @@ function CheckInModal({ data, onChange, onSave, onClose, saving }) {
   ];
 
   return (
-    <div style={styles.modalOverlay} onClick={onClose}>
+    <div style={styles.modalOverlay} {...overlayClickProps(onClose)}>
       <div style={styles.modal} onClick={e => e.stopPropagation()}>
         <div style={styles.modalHeader}>
           <h2 style={styles.modalTitle}>Weekly Check-in</h2>

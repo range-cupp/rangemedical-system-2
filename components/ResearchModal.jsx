@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { overlayClickProps } from './AdminLayout';
 
 export default function ResearchModal({
   isOpen,
@@ -59,7 +60,7 @@ export default function ResearchModal({
 
   return (
     <>
-      <div className="research-modal-overlay" onClick={handleClose} />
+      <div className="research-modal-overlay" {...overlayClickProps(handleClose)} />
       <div className="research-modal">
         <button className="research-modal-close" onClick={handleClose} aria-label="Close">×</button>
 

@@ -3,7 +3,7 @@
 // Range Medical System
 
 import { useState, useEffect, useCallback } from 'react';
-import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
+import AdminLayout, { sharedStyles, overlayClickProps } from '../../components/AdminLayout';
 import { useAuth } from '../../components/AuthProvider';
 
 const PERMISSIONS = {
@@ -323,7 +323,7 @@ export default function EmployeesPage() {
 
       {/* Add Employee Modal */}
       {addModal && (
-        <div style={sharedStyles.modalOverlay} onClick={() => setAddModal(false)}>
+        <div style={sharedStyles.modalOverlay} {...overlayClickProps(() => setAddModal(false))}>
           <div style={sharedStyles.modal} onClick={e => e.stopPropagation()}>
             <div style={sharedStyles.modalHeader}>
               <h2 style={sharedStyles.modalTitle}>Add Employee</h2>
@@ -408,7 +408,7 @@ export default function EmployeesPage() {
 
       {/* Edit Employee Modal */}
       {editModal && (
-        <div style={sharedStyles.modalOverlay} onClick={() => setEditModal(null)}>
+        <div style={sharedStyles.modalOverlay} {...overlayClickProps(() => setEditModal(null))}>
           <div style={sharedStyles.modal} onClick={e => e.stopPropagation()}>
             <div style={sharedStyles.modalHeader}>
               <h2 style={sharedStyles.modalTitle}>Edit {editModal.name}</h2>

@@ -228,7 +228,7 @@ function useNewPatientNotifications(router) {
     const startPolling = () => {
       if (interval) clearInterval(interval);
       checkNewPatients();
-      interval = setInterval(checkNewPatients, 120000); // Poll every 2 minutes
+      interval = setInterval(checkNewPatients, 180000); // Poll every 3 minutes (less urgent)
     };
 
     const handleVisibility = () => {

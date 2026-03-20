@@ -1969,11 +1969,27 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
               )}
             </div>
 
-            {/* Fulfillment Method — all take-home medication (peptides, weight loss, HRT) */}
+            {/* Fulfillment Method — all medication categories */}
             {cartItems.some(i => ['peptide', 'weight_loss', 'hrt', 'vials'].includes(i.category)) && (
               <div style={{ marginBottom: '16px', padding: '12px', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
                 <div style={{ fontSize: '12px', fontWeight: '600', color: '#555', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Fulfillment</div>
-                <div style={{ display: 'flex', gap: '8px', marginBottom: fulfillmentMethod === 'overnight' ? '10px' : '0' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: fulfillmentMethod === 'overnight' ? '10px' : '0' }}>
+                  {/* In-Clinic Injections — only for weight loss */}
+                  {cartItems.some(i => i.category === 'weight_loss') && (
+                    <button
+                      type="button"
+                      onClick={() => setFulfillmentMethod('in_clinic_injections')}
+                      style={{
+                        flex: 1, padding: '8px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: '500', cursor: 'pointer',
+                        border: fulfillmentMethod === 'in_clinic_injections' ? '2px solid #7c3aed' : '1px solid #ddd',
+                        background: fulfillmentMethod === 'in_clinic_injections' ? '#f5f3ff' : '#fff',
+                        color: fulfillmentMethod === 'in_clinic_injections' ? '#7c3aed' : '#666',
+                        minWidth: cartItems.some(i => i.category === 'weight_loss') ? 'calc(33% - 6px)' : undefined,
+                      }}
+                    >
+                      In-Clinic Injections
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setFulfillmentMethod('in_clinic')}
@@ -1984,7 +2000,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                       color: fulfillmentMethod === 'in_clinic' ? '#2E75B6' : '#666',
                     }}
                   >
-                    🏥 Picked Up In Clinic
+                    Picked Up In Clinic
                   </button>
                   <button
                     type="button"
@@ -1996,16 +2012,21 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                       color: fulfillmentMethod === 'overnight' ? '#e67e22' : '#666',
                     }}
                   >
-                    📦 Overnighted
+                    Overnighted
                   </button>
                 </div>
+                {fulfillmentMethod === 'in_clinic_injections' && (
+                  <div style={{ fontSize: '12px', color: '#7c3aed', marginTop: '6px', fontStyle: 'italic' }}>
+                    Patient comes in weekly for injections. Sessions will be logged as appointments are completed.
+                  </div>
+                )}
                 {fulfillmentMethod === 'overnight' && (
                   <input
                     type="text"
                     placeholder="Tracking number (optional)"
                     value={trackingNumber}
                     onChange={e => setTrackingNumber(e.target.value)}
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box', marginTop: '6px' }}
                   />
                 )}
               </div>

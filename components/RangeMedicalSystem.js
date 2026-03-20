@@ -11,6 +11,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Calendar, TrendingUp, Users, DollarSign, AlertCircle, Activity, Syringe, Droplet, Sun, Wind, FileText, Bell, ChevronRight, X, Loader, Trash2, Zap } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { formatPhone } from '../lib/format-utils';
+import { overlayClickProps } from './AdminLayout';
 
 const supabaseClient = createClient(
   'https://teivfptpozltpqwahgdl.supabase.co',
@@ -3519,7 +3520,7 @@ const RangeMedicalSystem = () => {
               zIndex: 999,
               animation: 'fadeIn 0.3s ease'
             }}
-            onClick={closeIntakePanel}
+            {...overlayClickProps(closeIntakePanel)}
           />
 
           {/* Side Panel */}
@@ -3941,7 +3942,7 @@ const RangeMedicalSystem = () => {
               zIndex: 999,
               animation: 'fadeIn 0.3s ease'
             }}
-            onClick={closeConsentPanel}
+            {...overlayClickProps(closeConsentPanel)}
           />
 
           {/* Side Panel */}

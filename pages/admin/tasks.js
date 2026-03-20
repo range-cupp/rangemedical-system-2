@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Sparkles, Mic, MicOff, Phone, MessageSquare, Send, Loader2 } from 'lucide-react';
-import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
+import AdminLayout, { sharedStyles, overlayClickProps } from '../../components/AdminLayout';
 import { useAuth } from '../../components/AuthProvider';
 import { NOTE_TYPES, ENCOUNTER_TEMPLATES, getTemplateForService, getTemplatesForCategory } from '../../lib/encounter-templates';
 import { ENCOUNTER_FORMS } from '../../lib/encounter-form-config';
@@ -1815,7 +1815,7 @@ export default function TasksPage() {
 
       {/* Create Task Modal */}
       {showCreate && (
-        <div style={sharedStyles.modalOverlay} onClick={() => setShowCreate(false)}>
+        <div style={sharedStyles.modalOverlay} {...overlayClickProps(() => setShowCreate(false))}>
           <div style={{ ...sharedStyles.modal, maxWidth: '520px' }} onClick={e => e.stopPropagation()}>
             <div style={sharedStyles.modalHeader}>
               <h2 style={sharedStyles.modalTitle}>New Task</h2>

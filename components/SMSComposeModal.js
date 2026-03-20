@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { Sparkles, FileText } from 'lucide-react';
-import { sharedStyles } from './AdminLayout';
+import { sharedStyles, overlayClickProps } from './AdminLayout';
 import TemplateMessages from './TemplateMessages';
 
 export default function SMSComposeModal({
@@ -125,7 +125,7 @@ export default function SMSComposeModal({
   const charCount = body.length;
 
   return (
-    <div style={sharedStyles.modalOverlay} onClick={onClose}>
+    <div style={sharedStyles.modalOverlay} {...overlayClickProps(onClose)}>
       <div style={{ ...sharedStyles.modal, maxWidth: '520px' }} onClick={e => e.stopPropagation()}>
         <div style={sharedStyles.modalHeader}>
           <h2 style={sharedStyles.modalTitle}>

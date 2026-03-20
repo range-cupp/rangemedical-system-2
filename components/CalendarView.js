@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getCategoryStyle } from '../lib/protocol-config';
+import { overlayClickProps } from './AdminLayout';
 import { APPOINTMENT_SERVICES, getAllServices, PROVIDERS, LOCATIONS, DEFAULT_LOCATION, LOCATION_ENABLED_CATEGORIES, REQUIRED_FORMS } from '../lib/appointment-services';
 import EncounterModal from './EncounterModal';
 import { useAuth } from './AuthProvider';
@@ -1524,7 +1525,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     const appt = selectedAppt;
 
     return (
-      <div style={styles.popoverOverlay} onClick={() => { setSelectedAppt(null); setRescheduleAppt(null); }}>
+      <div style={styles.popoverOverlay} {...overlayClickProps(() => { setSelectedAppt(null); setRescheduleAppt(null); })}>
         <div ref={popoverRef} style={styles.popover} onClick={e => e.stopPropagation()}>
           <div style={styles.popoverHeader}>
             <h3 style={{ margin: 0, fontSize: '16px' }}>Appointment Details</h3>
@@ -2988,7 +2989,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
 
         return (
           <>
-            <div onClick={closeDrawer} style={{
+            <div {...overlayClickProps(closeDrawer)} style={{
               position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', zIndex: 9998
             }} />
             <div style={{

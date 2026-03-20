@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Sparkles, Paperclip, X, FileText } from 'lucide-react';
-import { sharedStyles } from './AdminLayout';
+import { sharedStyles, overlayClickProps } from './AdminLayout';
 import TemplateMessages from './TemplateMessages';
 
 export default function EmailComposeModal({
@@ -169,7 +169,7 @@ export default function EmailComposeModal({
   if (!isOpen) return null;
 
   return (
-    <div style={sharedStyles.modalOverlay} onClick={onClose}>
+    <div style={sharedStyles.modalOverlay} {...overlayClickProps(onClose)}>
       <div style={{ ...sharedStyles.modal, maxWidth: '560px' }} onClick={e => e.stopPropagation()}>
         <div style={sharedStyles.modalHeader}>
           <h2 style={sharedStyles.modalTitle}>

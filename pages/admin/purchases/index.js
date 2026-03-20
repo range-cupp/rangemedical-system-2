@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import AdminLayout from '../../../components/AdminLayout';
+import AdminLayout, { overlayClickProps } from '../../../components/AdminLayout';
 import { PROTOCOL_TYPES, CATEGORY_TO_TYPE, getDBProgramType } from '../../../lib/protocol-types';
 import { MEMBERSHIP_FREQUENCY_OPTIONS, isRecoveryPeptide, isGHPeptide } from '../../../lib/protocol-config';
 
@@ -901,7 +901,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
   };
 
   return (
-    <div style={modalStyles.overlay} onClick={onClose}>
+    <div style={modalStyles.overlay} {...overlayClickProps(onClose)}>
       <div style={modalStyles.modal} onClick={e => e.stopPropagation()}>
         <div style={modalStyles.header}>
           <div>
@@ -1592,7 +1592,7 @@ function AddToExistingModal({ purchase, onClose, onSuccess }) {
   };
 
   return (
-    <div style={modalStyles.overlay} onClick={onClose}>
+    <div style={modalStyles.overlay} {...overlayClickProps(onClose)}>
       <div style={{ ...modalStyles.modal, maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
         <div style={modalStyles.header}>
           <div>
@@ -1841,7 +1841,7 @@ function LogSessionModal({ purchase, onClose, onSuccess }) {
   };
 
   return (
-    <div style={modalStyles.overlay} onClick={onClose}>
+    <div style={modalStyles.overlay} {...overlayClickProps(onClose)}>
       <div style={{ ...modalStyles.modal, maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
         <div style={modalStyles.header}>
           <div>

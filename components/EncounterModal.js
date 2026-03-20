@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { NOTE_TYPES, ENCOUNTER_TEMPLATES, getTemplateForService, NURSE_TEMPLATES, getTemplatesForCategory } from '../lib/encounter-templates';
 import { ENCOUNTER_FORMS } from '../lib/encounter-form-config';
 import InteractiveEncounterForm from './InteractiveEncounterForm';
+import { overlayClickProps } from './AdminLayout';
 
 // Users allowed to create/edit/sign encounter notes
 const NOTE_AUTHORS = ['burgess@range-medical.com', 'lily@range-medical.com', 'evan@range-medical.com', 'chris@range-medical.com'];
@@ -910,7 +911,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
         }
       `}</style>
 
-      <div className="enc-overlay" onClick={onClose}>
+      <div className="enc-overlay" {...overlayClickProps(onClose)}>
         <div className="enc-modal" onClick={e => e.stopPropagation()}>
           {/* Header */}
           <div className="enc-header">

@@ -7,6 +7,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import { overlayClickProps } from '../../components/AdminLayout';
 
 export default function PatientDashboard() {
   const router = useRouter();
@@ -706,7 +707,7 @@ function LogInjectionModal({ type, patient, onClose, onSuccess }) {
   };
 
   return (
-    <div style={styles.modalOverlay} onClick={onClose}>
+    <div style={styles.modalOverlay} {...overlayClickProps(onClose)}>
       <div style={styles.modal} onClick={e => e.stopPropagation()}>
         <div style={styles.modalHeader}>
           <h2 style={styles.modalTitle}>Log Injection</h2>

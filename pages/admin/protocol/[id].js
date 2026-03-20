@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
+import { overlayClickProps } from '../../../components/AdminLayout';
 
 export default function ProtocolDetail() {
   const router = useRouter();
@@ -452,7 +453,7 @@ export default function ProtocolDetail() {
 
       {/* Edit Modal */}
       {showEditModal && (
-        <div style={styles.modalOverlay} onClick={() => setShowEditModal(false)}>
+        <div style={styles.modalOverlay} {...overlayClickProps(() => setShowEditModal(false))}>
           <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalHeader}>
               <h3 style={styles.modalTitle}>Edit Protocol</h3>

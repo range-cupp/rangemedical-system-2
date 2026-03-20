@@ -3,7 +3,7 @@
 // Range Medical System
 
 import { useState, useEffect } from 'react';
-import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
+import AdminLayout, { sharedStyles, overlayClickProps } from '../../components/AdminLayout';
 import { FileText, Plus, Edit2, Trash2, Search } from 'lucide-react';
 
 const DEFAULT_CATEGORIES = [
@@ -247,7 +247,7 @@ export default function SnippetsPage() {
 
       {/* Create/Edit Modal */}
       {editModal && (
-        <div style={sharedStyles.modalOverlay} onClick={() => setEditModal(null)}>
+        <div style={sharedStyles.modalOverlay} {...overlayClickProps(() => setEditModal(null))}>
           <div style={{ ...sharedStyles.modal, maxWidth: 560 }} onClick={e => e.stopPropagation()}>
             <div style={sharedStyles.modalHeader}>
               <h2 style={sharedStyles.modalTitle}>

@@ -5,6 +5,7 @@
 // UPDATED: 2026-02-24 - Category groups by slug, cascading dropdowns
 
 import { formatPhone } from '../lib/format-utils';
+import { overlayClickProps } from './AdminLayout';
 
 import { useState, useEffect } from 'react';
 
@@ -1242,7 +1243,7 @@ export default function BookingTab({ preselectedPatient = null }) {
 
       {/* Cancel Confirmation Modal */}
       {cancelConfirm && (
-        <div style={styles.modalOverlay} onClick={() => setCancelConfirm(null)}>
+        <div style={styles.modalOverlay} {...overlayClickProps(() => setCancelConfirm(null))}>
           <div style={styles.modal} onClick={e => e.stopPropagation()}>
             <h3 style={styles.modalTitle}>Cancel Booking</h3>
             <p style={styles.modalText}>
@@ -1265,7 +1266,7 @@ export default function BookingTab({ preselectedPatient = null }) {
 
       {/* Reschedule Modal */}
       {rescheduleModal && (
-        <div style={styles.modalOverlay} onClick={() => { setRescheduleModal(null); setRescheduleSlot(null); }}>
+        <div style={styles.modalOverlay} {...overlayClickProps(() => { setRescheduleModal(null); setRescheduleSlot(null); })}>
           <div style={{ ...styles.modal, maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
             <h3 style={styles.modalTitle}>Reschedule Booking</h3>
             <p style={styles.modalText}>

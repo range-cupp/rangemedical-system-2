@@ -4,7 +4,7 @@
 // Range Medical System
 
 import { useState, useEffect, useCallback } from 'react';
-import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
+import AdminLayout, { sharedStyles, overlayClickProps } from '../../components/AdminLayout';
 import { useAuth } from '../../components/AuthProvider';
 
 const DAY_ORDER = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -483,7 +483,7 @@ export default function ProviderSchedulePage() {
 
       {/* Edit Hours Modal */}
       {editProvider && editSchedule && (
-        <div style={sharedStyles.modalOverlay} onClick={() => { setEditProvider(null); setEditSchedule(null); }}>
+        <div style={sharedStyles.modalOverlay} {...overlayClickProps(() => { setEditProvider(null); setEditSchedule(null); })}>
           <div style={{ ...sharedStyles.modal, maxWidth: '540px' }} onClick={e => e.stopPropagation()}>
             <div style={sharedStyles.modalHeader}>
               <div>
@@ -564,7 +564,7 @@ export default function ProviderSchedulePage() {
 
       {/* Block Schedule Modal */}
       {overrideProvider && overrideSchedule && (
-        <div style={sharedStyles.modalOverlay} onClick={() => { setOverrideProvider(null); setOverrideSchedule(null); }}>
+        <div style={sharedStyles.modalOverlay} {...overlayClickProps(() => { setOverrideProvider(null); setOverrideSchedule(null); })}>
           <div style={{ ...sharedStyles.modal, maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
             <div style={sharedStyles.modalHeader}>
               <div>

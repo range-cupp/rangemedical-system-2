@@ -2,7 +2,7 @@
 // Knowledge Base Manager — rebuilt with Send Forms UI framework
 
 import { useState, useEffect } from 'react';
-import AdminLayout from '../../components/AdminLayout';
+import AdminLayout, { overlayClickProps } from '../../components/AdminLayout';
 import { useAuth } from '../../components/AuthProvider';
 
 const CATEGORIES = [
@@ -247,7 +247,7 @@ export default function KnowledgePage() {
       </div>
 
       {showForm && (
-        <div className="kb-overlay" onClick={() => setShowForm(false)}>
+        <div className="kb-overlay" {...overlayClickProps(() => setShowForm(false))}>
           <div className="kb-modal" onClick={(e) => e.stopPropagation()}>
             <div className="kb-modal-header">
               <h3 className="kb-modal-title">{editing ? 'Edit Entry' : 'New Knowledge Entry'}</h3>

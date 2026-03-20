@@ -3,7 +3,7 @@
 // Range Medical System
 
 import { useState, useRef } from 'react';
-import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
+import AdminLayout, { sharedStyles, overlayClickProps } from '../../components/AdminLayout';
 import { Printer, Mail, MessageSquare, Search, X, FileText, Package, FlaskConical, BookOpen } from 'lucide-react';
 
 // ── Document Registry ──
@@ -332,7 +332,7 @@ export default function DocumentsPage() {
 
       {/* Send Modal */}
       {sendModal && (
-        <div style={sharedStyles.modalOverlay} onClick={() => setSendModal(null)}>
+        <div style={sharedStyles.modalOverlay} {...overlayClickProps(() => setSendModal(null))}>
           <div style={{ ...sharedStyles.modal, maxWidth: 480 }} onClick={e => e.stopPropagation()}>
             <div style={sharedStyles.modalHeader}>
               <h2 style={sharedStyles.modalTitle}>

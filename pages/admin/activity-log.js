@@ -3,7 +3,7 @@
 // Range Medical - 2026-01-28
 
 import { useState, useEffect } from 'react';
-import AdminLayout from '../../components/AdminLayout';
+import AdminLayout, { overlayClickProps } from '../../components/AdminLayout';
 
 export default function ActivityLog() {
   const [logs, setLogs] = useState([]);
@@ -302,7 +302,7 @@ export default function ActivityLog() {
         </div>
 
         {editModal && (
-          <div style={styles.modalOverlay} onClick={closeEditModal}>
+          <div style={styles.modalOverlay} {...overlayClickProps(closeEditModal)}>
             <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
               <h2 style={styles.modalTitle}>✏️ Edit Log Entry</h2>
               <div style={styles.patientBadge}>

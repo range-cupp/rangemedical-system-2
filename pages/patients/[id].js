@@ -3,13 +3,12 @@
 // Single source of truth for all patient data
 
 import { useState, useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { formatPhone } from '../../lib/format-utils';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import AdminLayout, { overlayClickProps } from '../../components/AdminLayout';
-import EmailComposeModal from '../../components/EmailComposeModal';
-import SMSComposeModal from '../../components/SMSComposeModal';
 import { useAuth } from '../../components/AuthProvider';
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -37,17 +36,21 @@ import {
 } from '../../lib/protocol-config';
 import { getHRTLabSchedule, matchDrawsToLogs, buildAdaptiveHRTSchedule, isHRTProtocol } from '../../lib/hrt-lab-schedule';
 import { isRecoveryPeptide, isGHPeptide } from '../../lib/protocol-config';
-import CalendarView from '../../components/CalendarView';
-import LabDashboard from '../../components/labs/LabDashboard';
-import ConversationView from '../../components/ConversationView';
 import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
-import POSChargeModal from '../../components/POSChargeModal';
-import EncounterModal from '../../components/EncounterModal';
-import StandaloneEncounterModal from '../../components/StandaloneEncounterModal';
-import EncounterQuickView from '../../components/EncounterQuickView';
 import CycleProgressCard from '../../components/CycleProgressCard';
-import ServiceLogContent from '../../components/ServiceLogContent';
+
+// Lazy-load heavy components that aren't needed on initial render
+const CalendarView = dynamic(() => import('../../components/CalendarView'), { ssr: false });
+const LabDashboard = dynamic(() => import('../../components/labs/LabDashboard'), { ssr: false });
+const ConversationView = dynamic(() => import('../../components/ConversationView'), { ssr: false });
+const POSChargeModal = dynamic(() => import('../../components/POSChargeModal'), { ssr: false });
+const EncounterModal = dynamic(() => import('../../components/EncounterModal'), { ssr: false });
+const StandaloneEncounterModal = dynamic(() => import('../../components/StandaloneEncounterModal'), { ssr: false });
+const EncounterQuickView = dynamic(() => import('../../components/EncounterQuickView'), { ssr: false });
+const ServiceLogContent = dynamic(() => import('../../components/ServiceLogContent'), { ssr: false });
+const EmailComposeModal = dynamic(() => import('../../components/EmailComposeModal'), { ssr: false });
+const SMSComposeModal = dynamic(() => import('../../components/SMSComposeModal'), { ssr: false });
 import { PROTOCOL_TYPES } from '../../lib/protocol-types';
 
 // Parse **bold** markdown into React elements
@@ -716,14 +719,22 @@ export default function PatientProfile() {
         const hrtProtos = allProtos.filter(p => isHRTProtocol(p.program_type) && p.start_date);
         if (hrtProtos.length > 0) {
           const schedules = {};
-          for (const p of hrtProtos) {
-            try {
+          // Fetch all HRT protocol data in parallel (not sequential)
+          const results = await Promise.allSettled(
+            hrtProtos.map(async (p) => {
               const protoRes = await fetch(`/api/protocols/${p.id}`);
               const protoData = await protoRes.json();
+              return { proto: p, protoData };
+            })
+          );
+          for (const result of results) {
+            if (result.status === 'fulfilled') {
+              const { proto: p, protoData } = result.value;
               const bloodDrawLogs = (protoData.activityLogs || []).filter(l => l.log_type === 'blood_draw');
               const firstFollowup = protoData.protocol?.first_followup_weeks || p.first_followup_weeks || 8;
               schedules[p.id] = buildAdaptiveHRTSchedule(p.start_date, firstFollowup, bloodDrawLogs, data.labs || [], data.labProtocols || []);
-            } catch {
+            } else {
+              const p = hrtProtos[results.indexOf(result)];
               const firstFollowup = p.first_followup_weeks || 8;
               const schedule = getHRTLabSchedule(p.start_date, firstFollowup);
               schedules[p.id] = schedule.map(s => ({ ...s, status: 'upcoming', completedDate: null, logId: null }));

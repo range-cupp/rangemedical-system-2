@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import AdminLayout from '../../components/AdminLayout';
+import AdminLayout, { overlayClickProps } from '../../components/AdminLayout';
 
 const ConversationView = dynamic(() => import('../../components/ConversationView'), { ssr: false });
 
@@ -731,7 +731,7 @@ export default function CommunicationsPage() {
 
           {/* Message detail modal */}
           {selectedComm && (
-            <div style={styles.modalOverlay} onClick={() => setSelectedComm(null)}>
+            <div style={styles.modalOverlay} {...overlayClickProps(() => setSelectedComm(null))}>
               <div style={styles.modal} onClick={e => e.stopPropagation()}>
                 <div style={styles.modalHeader}>
                   <div style={styles.modalHeaderLeft}>

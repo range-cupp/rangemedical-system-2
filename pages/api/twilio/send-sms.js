@@ -69,12 +69,13 @@ export default async function handler(req, res) {
       // Clear needs_response on all prior inbound messages for this patient
       // This is a STAFF reply — automations don't go through this route
       if (patient_id) {
-        await supabase
-          .from('comms_log')
-          .update({ needs_response: false })
-          .eq('patient_id', patient_id)
-          .eq('needs_response', true)
-          .catch(() => {});
+        try {
+          await supabase
+            .from('comms_log')
+            .update({ needs_response: false })
+            .eq('patient_id', patient_id)
+            .eq('needs_response', true);
+        } catch (_) { /* non-fatal */ }
       }
 
       return res.status(200).json({ success: true, via: result.provider || 'unknown', messageSid: result.messageSid });

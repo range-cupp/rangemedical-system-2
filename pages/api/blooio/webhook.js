@@ -169,7 +169,7 @@ async function handleInboundMessage(body) {
     // Pass 1: DB-level match
     const { data: phoneMatch } = await supabase
       .from('patients')
-      .select('id, name, first_name, last_name, phone, ghl_contact_id')
+      .select('id, name, first_name, last_name, phone, ghl_contact_id, bot_paused')
       .or(`phone.ilike.%${normalizedFrom},phone.eq.+1${normalizedFrom},phone.eq.${normalizedFrom}`)
       .limit(1)
       .maybeSingle();
@@ -181,7 +181,7 @@ async function handleInboundMessage(body) {
       const areaCode = normalizedFrom.substring(0, 3);
       const { data: candidates } = await supabase
         .from('patients')
-        .select('id, name, first_name, last_name, phone, ghl_contact_id')
+        .select('id, name, first_name, last_name, phone, ghl_contact_id, bot_paused')
         .ilike('phone', `%${areaCode}%`)
         .limit(500);
 
@@ -246,7 +246,7 @@ async function handleInboundMessage(body) {
   // AI-powered auto-response — generates a helpful reply using Claude
   // keeps needs_response=true so staff still sees the conversation
   // ================================================================
-  if (messageText && process.env.PATIENT_BOT_ENABLED === 'true') {
+  if (messageText && process.env.PATIENT_BOT_ENABLED === 'true' && !patient?.bot_paused) {
     try {
       const { shouldReply, reason } = shouldAutoReply(messageText);
 
@@ -287,6 +287,8 @@ async function handleInboundMessage(body) {
     } catch (botErr) {
       console.error('Patient bot error (non-fatal):', botErr.message);
     }
+  } else if (patient?.bot_paused && messageText) {
+    console.log(`Patient bot paused for ${patient.name || 'unknown'} — skipping auto-reply`);
   }
 
   // ================================================================

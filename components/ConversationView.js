@@ -51,6 +51,8 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const [clearingAction, setClearingAction] = useState(false);
   const [showClearNote, setShowClearNote] = useState(false);
   const [clearNote, setClearNote] = useState('');
+  const [botPaused, setBotPaused] = useState(false);
+  const [togglingBot, setTogglingBot] = useState(false);
   const nameInputRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const shouldScrollRef = useRef(false);
@@ -62,6 +64,14 @@ export default function ConversationView({ patientId, patientName, patientPhone,
     setEditingName(false);
     setShowClearNote(false);
     setClearNote('');
+    setBotPaused(false);
+    // Fetch bot_paused status for this patient
+    if (patientId) {
+      fetch(`/api/admin/patient-bot-status?patientId=${patientId}`)
+        .then(r => r.json())
+        .then(d => { if (d.bot_paused !== undefined) setBotPaused(d.bot_paused); })
+        .catch(() => {});
+    }
   }, [patientId, patientName]);
 
   useEffect(() => {
@@ -224,6 +234,25 @@ export default function ConversationView({ patientId, patientName, patientPhone,
     } catch (err) {
       console.error('Error syncing Twilio calls:', err);
       setCallsSynced(true);
+    }
+  };
+
+  const toggleBot = async () => {
+    const pid = linkedPatientId || patientId;
+    if (!pid) return;
+    setTogglingBot(true);
+    try {
+      const res = await fetch('/api/admin/toggle-bot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patientId: pid, paused: !botPaused }),
+      });
+      const data = await res.json();
+      if (data.success) setBotPaused(data.bot_paused);
+    } catch (err) {
+      console.error('Toggle bot error:', err);
+    } finally {
+      setTogglingBot(false);
     }
   };
 
@@ -654,6 +683,21 @@ export default function ConversationView({ patientId, patientName, patientPhone,
               title="Mark as handled — no response needed"
             >
               ✓ Clear Action
+            </button>
+          )}
+          {(linkedPatientId || patientId) && (
+            <button
+              onClick={toggleBot}
+              disabled={togglingBot}
+              style={{
+                ...styles.actionBtn,
+                background: botPaused ? '#fee2e2' : '#ecfdf5',
+                color: botPaused ? '#dc2626' : '#059669',
+                border: `1px solid ${botPaused ? '#fca5a5' : '#6ee7b7'}`,
+              }}
+              title={botPaused ? 'Bot is paused — click to resume auto-replies' : 'Bot is active — click to pause auto-replies'}
+            >
+              {botPaused ? '⏸ Bot Off' : '⚡ Bot On'}
             </button>
           )}
           <button

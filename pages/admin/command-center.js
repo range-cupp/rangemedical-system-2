@@ -4,7 +4,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
-import AdminLayout from '../../components/AdminLayout';
+import AdminLayout, { overlayClickProps } from '../../components/AdminLayout';
 import EmailComposeModal from '../../components/EmailComposeModal';
 import { useAuth } from '../../components/AuthProvider';
 import ServiceLogContent from '../../components/ServiceLogContent';
@@ -1245,7 +1245,7 @@ export default function CommandCenter() {
 
     // Category-specific fields
     if (logCategory === 'testosterone') {
-      payload.medication = `Testosterone (${firstVisitData.hrtType === 'male' ? '200mg/ml' : '100mg/ml'})`;
+      payload.medication = firstVisitData.hrtType === 'male' ? 'Testosterone Cypionate (200mg/ml)' : 'Testosterone Cypionate (100mg/ml)';
       const dosage = firstVisitData.dosage === 'custom'
         ? firstVisitData.custom_dosage
         : (firstVisitData.dosage || assignForm.selectedDose || '');
@@ -1380,11 +1380,11 @@ export default function CommandCenter() {
   // Service-log-style medication options — sourced from protocol-config.js (single source of truth)
   const SL_TESTOSTERONE_OPTIONS = {
     male: {
-      label: 'Male HRT (200mg/ml)',
+      label: 'Testosterone Cypionate (200mg/ml)',
       dosages: [...TESTOSTERONE_DOSES.male, { value: 'custom', label: 'Custom dose' }]
     },
     female: {
-      label: 'Female HRT (100mg/ml)',
+      label: 'Testosterone Cypionate (100mg/ml)',
       dosages: [...TESTOSTERONE_DOSES.female, { value: 'custom', label: 'Custom dose' }]
     }
   };
@@ -1605,13 +1605,13 @@ export default function CommandCenter() {
               : null,
             // Weight loss specific fields
             wlMedication: assignForm.wlMedication || null,
-            medication: isHRTTemplate() ? HRT_MEDICATIONS[0] : (assignForm.wlMedication || assignForm.ivType || null),
+            medication: isHRTTemplate() ? ((assignForm.hrtType || 'male') === 'male' ? 'Testosterone Cypionate (200mg/ml)' : 'Testosterone Cypionate (100mg/ml)') : (assignForm.wlMedication || assignForm.ivType || null),
             pickupFrequencyDays: assignForm.pickupFrequency ? parseInt(assignForm.pickupFrequency) : null,
             injectionFrequencyDays: assignForm.injectionFrequency ? parseInt(assignForm.injectionFrequency) : null,
             injectionDay: assignForm.injectionDay || null,
             checkinReminderEnabled: assignForm.checkinReminderEnabled || false,
             // HRT specific fields
-            secondaryMedication: isHRTTemplate() ? (assignForm.hrtSecondaryMedication || null) : undefined,
+            secondaryMedications: isHRTTemplate() ? (assignForm.hrtSecondaryMedications || []) : undefined,
             hrtType: isHRTTemplate() ? (assignForm.hrtType || 'male') : undefined,
             supplyType: isHRTTemplate() ? (assignForm.supplyType || null) : undefined,
             dosePerInjection: isHRTTemplate() ? parseDoseVolume(assignForm.customDose || assignForm.selectedDose) : undefined,
@@ -1798,7 +1798,7 @@ export default function CommandCenter() {
           hrt_followup_date: editingProtocol.hrt_followup_date || null,
           hrt_reminders_enabled: editingProtocol.hrt_reminders_enabled || false,
           hrt_reminder_schedule: editingProtocol.hrt_reminder_schedule || null,
-          secondary_medication: editingProtocol.secondary_medication || null,
+          secondary_medications: editingProtocol.secondary_medications || [],
           // Peptide vial fields
           num_vials: editingProtocol.num_vials ? parseInt(editingProtocol.num_vials) : null,
           doses_per_vial: editingProtocol.doses_per_vial ? parseInt(editingProtocol.doses_per_vial) : null
@@ -2267,14 +2267,14 @@ export default function CommandCenter() {
                           {protocolDetailPanel.protocol.medication || '-'}
                         </span>
                       </div>
-                      {protocolDetailPanel.protocol.secondary_medication && (
+                      {(() => { const sm = protocolDetailPanel.protocol.secondary_medications; const meds = !sm ? [] : Array.isArray(sm) ? sm : (() => { try { return JSON.parse(sm); } catch { return sm ? [sm] : []; } })(); return meds.length > 0 ? (
                         <div style={styles.protocolDetailItem}>
-                          <span style={styles.protocolDetailLabel}>Secondary Med</span>
+                          <span style={styles.protocolDetailLabel}>Secondary Meds</span>
                           <span style={styles.protocolDetailValue}>
-                            {protocolDetailPanel.protocol.secondary_medication}
+                            {meds.join(', ')}
                           </span>
                         </div>
-                      )}
+                      ) : null; })()}
                       <div style={styles.protocolDetailItem}>
                         <span style={styles.protocolDetailLabel}>Dose</span>
                         <span style={styles.protocolDetailValue}>
@@ -2997,7 +2997,7 @@ export default function CommandCenter() {
 
       {/* SMS Check-in Preview Modal */}
       {smsModal.open && smsModal.protocol && (
-        <div style={styles.modalOverlay} onClick={closeSmsModal}>
+        <div style={styles.modalOverlay} {...overlayClickProps(closeSmsModal)}>
           <div style={{ ...styles.modal, maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
             <div style={styles.modalHeader}>
               <h3 style={styles.modalTitle}>Send Check-in Text</h3>
@@ -3090,7 +3090,7 @@ export default function CommandCenter() {
 
       {/* Missed Week Modal (Weight Loss) */}
       {missedModal.open && missedModal.protocol && (
-        <div style={styles.modalOverlay} onClick={closeMissedModal}>
+        <div style={styles.modalOverlay} {...overlayClickProps(closeMissedModal)}>
           <div style={{ ...styles.modal, maxWidth: '460px' }} onClick={e => e.stopPropagation()}>
             <div style={styles.modalHeader}>
               <h3 style={{ ...styles.modalTitle, color: '#DC2626' }}>Log Missed Week</h3>
@@ -3200,7 +3200,7 @@ export default function CommandCenter() {
 
       {/* Assign Protocol Modal */}
       {showAssignModal && selectedPatient && (
-        <div style={styles.modalOverlay} onClick={() => setShowAssignModal(false)}>
+        <div style={styles.modalOverlay} {...overlayClickProps(() => setShowAssignModal(false))}>
           <div style={styles.modal} onClick={e => e.stopPropagation()}>
             <div style={styles.modalHeader}>
               <h3 style={styles.modalTitle}>Assign Protocol</h3>
@@ -3233,7 +3233,7 @@ export default function CommandCenter() {
                   value={assignForm.templateId}
                   onChange={e => {
                     const newTemplateId = e.target.value;
-                    const resetForm = {...assignForm, templateId: newTemplateId, peptideId: '', selectedDose: '', wlMedication: '', pickupFrequency: '', injectionDay: '', checkinReminderEnabled: false, frequency: '', deliveryMethod: '', ivType: '', hrtType: 'male', hrtReminderSchedule: 'mon_thu', hrtRemindersEnabled: true, followupDate: '', supplyType: 'prefilled', hrtQuantity: 8, membershipFrequency: '', hrtSecondaryMedication: '', dosesPerVial: '', numVials: ''};
+                    const resetForm = {...assignForm, templateId: newTemplateId, peptideId: '', selectedDose: '', wlMedication: '', pickupFrequency: '', injectionDay: '', checkinReminderEnabled: false, frequency: '', deliveryMethod: '', ivType: '', hrtType: 'male', hrtReminderSchedule: 'mon_thu', hrtRemindersEnabled: true, followupDate: '', supplyType: 'prefilled', hrtQuantity: 8, membershipFrequency: '', hrtSecondaryMedications: [], dosesPerVial: '', numVials: ''};
                     // Auto-detect membership frequency from template name
                     if (newTemplateId) {
                       let selectedTpl = null;
@@ -3354,17 +3354,26 @@ export default function CommandCenter() {
                 </div>
 
                 <div style={styles.modalFormGroup}>
-                  <label style={styles.formLabel}>Secondary Medication</label>
-                  <select
-                    value={assignForm.hrtSecondaryMedication || ''}
-                    onChange={e => setAssignForm({...assignForm, hrtSecondaryMedication: e.target.value})}
-                    style={styles.formSelect}
-                  >
-                    <option value="">None</option>
-                    {HRT_SECONDARY_MEDICATIONS.map(m => (
-                      <option key={m} value={m}>{m}</option>
-                    ))}
-                  </select>
+                  <label style={styles.formLabel}>Secondary Medications</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {HRT_SECONDARY_MEDICATIONS.map(m => {
+                      const selected = (assignForm.hrtSecondaryMedications || []).includes(m);
+                      return (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => {
+                            const current = assignForm.hrtSecondaryMedications || [];
+                            const updated = selected ? current.filter(x => x !== m) : [...current, m];
+                            setAssignForm({...assignForm, hrtSecondaryMedications: updated});
+                          }}
+                          style={{ padding: '6px 14px', borderRadius: '20px', border: selected ? '2px solid #7C3AED' : '1px solid #D1D5DB', background: selected ? '#F3E8FF' : '#fff', color: selected ? '#7C3AED' : '#374151', fontSize: '13px', fontWeight: selected ? '600' : '400', cursor: 'pointer' }}
+                        >
+                          {selected ? '✓ ' : ''}{m}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div style={styles.modalFormGroup}>
@@ -4542,7 +4551,7 @@ export default function CommandCenter() {
 
       {/* Edit Protocol Modal */}
       {showEditModal && editingProtocol && (
-        <div style={styles.modalOverlay} onClick={() => setShowEditModal(false)}>
+        <div style={styles.modalOverlay} {...overlayClickProps(() => setShowEditModal(false))}>
           <div style={{ ...styles.modal, maxWidth: '550px' }} onClick={e => e.stopPropagation()}>
             <div style={styles.modalHeader}>
               <h3 style={styles.modalTitle}>Edit Protocol</h3>
@@ -4929,20 +4938,29 @@ export default function CommandCenter() {
                 )}
               </div>
 
-              {/* Secondary Medication (HRT only) */}
+              {/* Secondary Medications (HRT only) */}
               {editingProtocol.program_type === 'hrt' && (
                 <div style={{ ...styles.modalFormGroup, gridColumn: 'span 2' }}>
-                  <label style={styles.formLabel}>Secondary Medication</label>
-                  <select
-                    value={editingProtocol.secondary_medication || ''}
-                    onChange={e => setEditingProtocol({...editingProtocol, secondary_medication: e.target.value})}
-                    style={styles.formSelect}
-                  >
-                    <option value="">None</option>
-                    {HRT_SECONDARY_MEDICATIONS.map(m => (
-                      <option key={m} value={m}>{m}</option>
-                    ))}
-                  </select>
+                  <label style={styles.formLabel}>Secondary Medications</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {HRT_SECONDARY_MEDICATIONS.map(m => {
+                      const meds = (() => { const v = editingProtocol.secondary_medications; if (!v) return []; if (Array.isArray(v)) return v; try { return JSON.parse(v); } catch { return v ? [v] : []; } })();
+                      const selected = meds.includes(m);
+                      return (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => {
+                            const updated = selected ? meds.filter(x => x !== m) : [...meds, m];
+                            setEditingProtocol({...editingProtocol, secondary_medications: updated});
+                          }}
+                          style={{ padding: '6px 14px', borderRadius: '20px', border: selected ? '2px solid #7C3AED' : '1px solid #D1D5DB', background: selected ? '#F3E8FF' : '#fff', color: selected ? '#7C3AED' : '#374151', fontSize: '13px', fontWeight: selected ? '600' : '400', cursor: 'pointer' }}
+                        >
+                          {selected ? '✓ ' : ''}{m}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
@@ -5104,7 +5122,7 @@ export default function CommandCenter() {
 
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
-        <div style={styles.modalOverlay} onClick={() => setDeleteConfirm(null)}>
+        <div style={styles.modalOverlay} {...overlayClickProps(() => setDeleteConfirm(null))}>
           <div style={{ ...styles.modal, maxWidth: '400px' }} onClick={e => e.stopPropagation()}>
             <div style={styles.modalHeader}>
               <h3 style={{ ...styles.modalTitle, color: '#DC2626' }}>Delete Protocol</h3>
@@ -6627,7 +6645,7 @@ function LeadsTab({ data, patients, leads, filter, setFilter, onAssignFromPurcha
 
       {/* Log Visit Modal */}
       {logVisitPurchase && (
-        <div style={styles.modalOverlay} onClick={() => !loggingVisitId && setLogVisitPurchase(null)}>
+        <div style={styles.modalOverlay} {...overlayClickProps(() => !loggingVisitId && setLogVisitPurchase(null))}>
           <div style={{ ...styles.modal, maxWidth: '420px' }} onClick={e => e.stopPropagation()}>
             <div style={styles.modalHeader}>
               <h3 style={styles.modalTitle}>Log Visit</h3>

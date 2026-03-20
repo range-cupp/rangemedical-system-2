@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { formatPhone } from '../lib/format-utils';
+import { overlayClickProps } from './AdminLayout';
 import { WEIGHT_LOSS_MEDICATIONS, WEIGHT_LOSS_DOSAGES, PEPTIDE_OPTIONS as ALL_PEPTIDE_OPTIONS } from '../lib/protocol-config';
 import { PROTOCOL_TYPES, getDeliveryLabel } from '../lib/protocol-types';
 
@@ -545,7 +546,7 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
         };
 
         if (item.serviceType.id === 'testosterone') {
-          payload.medication = item.formData.hrt_type === 'male' ? 'Male HRT' : 'Female HRT';
+          payload.medication = item.formData.hrt_type === 'male' ? 'Testosterone Cypionate (200mg/ml)' : 'Testosterone Cypionate (100mg/ml)';
           payload.injection_method = item.formData.injection_method || null;
           payload.injection_frequency = item.formData.frequency ? parseInt(item.formData.frequency) : null;
           if (item.entryType === 'injection') {
@@ -1028,7 +1029,7 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
 
       {/* ===== EDIT LOG MODAL ===== */}
       {editingLog && (
-        <div style={slcStyles.modalOverlay} onClick={() => setEditingLog(null)}>
+        <div style={slcStyles.modalOverlay} {...overlayClickProps(() => setEditingLog(null))}>
           <div style={{ ...slcStyles.modal, maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
             <div style={slcStyles.modalHeader}>
               <h2 style={slcStyles.modalTitle}>Edit Service Log</h2>
@@ -1081,7 +1082,7 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
 
       {/* ===== NEW ENTRY MODAL ===== */}
       {showModal && (
-        <div style={slcStyles.modalOverlay} onClick={closeModal}>
+        <div style={slcStyles.modalOverlay} {...overlayClickProps(closeModal)}>
           <div style={slcStyles.modal} onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div style={slcStyles.modalHeader}>
@@ -1341,8 +1342,8 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
                             onChange={(e) => setFormData(prev => ({ ...prev, hrt_type: e.target.value, dosage: '' }))}
                             style={slcStyles.select}
                           >
-                            <option value="male">Male HRT (200mg/ml)</option>
-                            <option value="female">Female HRT (100mg/ml)</option>
+                            <option value="male">Testosterone Cypionate (200mg/ml)</option>
+                            <option value="female">Testosterone Cypionate (100mg/ml)</option>
                           </select>
                         </div>
 

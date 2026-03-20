@@ -104,8 +104,8 @@ export default async function handler(req, res) {
       const med = b.medication ?? b.primary_peptide;
       if (med !== undefined) updateData.medication = med;
 
-      const secMed = b.secondary_medication ?? b.secondary_peptide;
-      if (secMed !== undefined) updateData.secondary_medication = secMed;
+      const secMeds = b.secondary_medications ?? b.secondary_medication ?? b.secondary_peptide;
+      if (secMeds !== undefined) updateData.secondary_medications = typeof secMeds === 'string' ? secMeds : JSON.stringify(secMeds);
 
       const dose = b.selected_dose ?? b.dose_amount;
       if (dose !== undefined) updateData.selected_dose = dose;

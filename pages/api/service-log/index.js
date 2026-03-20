@@ -882,7 +882,7 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
     }
     if (medication) {
       updateData.medication = medication;
-      updateData.program_name = medication;
+      // Don't overwrite program_name — it's standardized to "HRT Protocol" etc.
     }
     if (dosage && !isWeightLossType(category)) {
       updateData.selected_dose = dosage;

@@ -178,7 +178,7 @@ export default async function handler(req, res) {
       hrtReminderSchedule,
       followupDate,
       hrtInitialQuantity,
-      secondaryMedication,
+      secondaryMedications,
       // Membership override fields
       programTypeOverride,
       programNameOverride,
@@ -645,7 +645,7 @@ export default async function handler(req, res) {
         hrt_reminders_enabled: hrtRemindersEnabled || false,
         hrt_reminder_schedule: hrtReminderSchedule || null,
         hrt_followup_date: followupDate || null,
-        secondary_medication: secondaryMedication || null,
+        secondary_medications: secondaryMedications && secondaryMedications.length > 0 ? JSON.stringify(secondaryMedications) : '[]',
         last_refill_date: startDate, // Initialize refill date to start date
         next_expected_date: (() => {
           // For HRT take-home, calculate next supply date from initial quantity

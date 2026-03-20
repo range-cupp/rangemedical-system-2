@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     const notes = body.notes;
     // Map old names → actual DB columns
     const medication = body.medication || body.primary_peptide || null;
-    const secondary_medication = body.secondary_medication || body.secondary_peptide || null;
+    const secondary_medications = body.secondary_medications || body.secondary_medication || body.secondary_peptide || '[]';
     const selected_dose = body.selected_dose || body.dose_amount || null;
     const frequency = body.frequency || body.dose_frequency || 'daily';
     const delivery_method = body.delivery_method || body.injection_location || 'take_home';
@@ -221,7 +221,7 @@ export default async function handler(req, res) {
       program_name: program_name || program_type,
       program_type,
       medication,
-      secondary_medication,
+      secondary_medications: typeof secondary_medications === 'string' ? secondary_medications : JSON.stringify(secondary_medications),
       selected_dose,
       frequency,
       delivery_method,
@@ -437,7 +437,7 @@ export default async function handler(req, res) {
       notes: b.notes,
       // Map to actual DB column names
       medication: b.medication || b.primary_peptide,
-      secondary_medication: b.secondary_medication || b.secondary_peptide,
+      secondary_medications: b.secondary_medications || '[]',
       selected_dose: b.selected_dose || b.dose_amount,
       frequency: b.frequency || b.dose_frequency,
       delivery_method: b.delivery_method || b.injection_location,

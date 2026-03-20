@@ -246,7 +246,7 @@ export default function ProtocolDetail() {
         injectionMethod: enrichedProtocol.injection_method || '',
         supplyType: enrichedProtocol.supply_type || '',
         scheduledDays: enrichedProtocol.scheduled_days || [],
-        secondaryMedication: enrichedProtocol.secondary_medication || ''
+        secondaryMedications: enrichedProtocol.secondary_medications ? (typeof enrichedProtocol.secondary_medications === 'string' ? JSON.parse(enrichedProtocol.secondary_medications) : enrichedProtocol.secondary_medications) : []
       });
 
       // Build check-in schedule for take-home protocols (NOT HRT — HRT has its own reminder system)
@@ -851,7 +851,7 @@ export default function ProtocolDetail() {
 
       // HRT-specific fields — scheduled_days is the source of truth for HRT scheduling
       if (isHRTProtocol(form.protocolType)) {
-        saveData.secondary_medication = form.secondaryMedication || null;
+        saveData.secondary_medications = form.secondaryMedications && form.secondaryMedications.length > 0 ? JSON.stringify(form.secondaryMedications) : '[]';
         if (form.injectionMethod) saveData.injection_method = form.injectionMethod;
         if (form.supplyType) saveData.supply_type = form.supplyType;
         if (form.scheduledDays && form.scheduledDays.length > 0) {
@@ -1909,16 +1909,29 @@ export default function ProtocolDetail() {
                           </select>
                         )}
                       </div>
-                      {/* Secondary Medication for HRT */}
+                      {/* Secondary Medications for HRT */}
                       {isHRTProtocol(form.protocolType) && (
                         <div style={styles.field}>
-                          <label style={styles.label}>Secondary Medication</label>
-                          <select value={form.secondaryMedication} onChange={e => setForm({ ...form, secondaryMedication: e.target.value })} style={styles.select}>
-                            <option value="">None</option>
-                            {HRT_SECONDARY_MEDICATIONS.map(m => (
-                              <option key={m} value={m}>{m}</option>
-                            ))}
-                          </select>
+                          <label style={styles.label}>Secondary Medications</label>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '4px' }}>
+                            {HRT_SECONDARY_MEDICATIONS.map(m => {
+                              const selected = (form.secondaryMedications || []).includes(m);
+                              return (
+                                <button
+                                  key={m}
+                                  type="button"
+                                  onClick={() => {
+                                    const current = form.secondaryMedications || [];
+                                    const updated = selected ? current.filter(x => x !== m) : [...current, m];
+                                    setForm({ ...form, secondaryMedications: updated });
+                                  }}
+                                  style={{ padding: '6px 14px', borderRadius: '20px', border: selected ? '2px solid #7C3AED' : '1px solid #D1D5DB', background: selected ? '#F3E8FF' : '#fff', color: selected ? '#7C3AED' : '#374151', fontSize: '13px', fontWeight: selected ? '600' : '400', cursor: 'pointer' }}
+                                >
+                                  {selected ? '✓ ' : ''}{m}
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
                       )}
                     </div>

@@ -158,6 +158,35 @@ export default async function handler(req, res) {
     }
 
     const amountDollars = amount / 100; // Convert cents to dollars for DB
+    // Parse medication name from service name for direct querying
+    let medication = null;
+    if (service_name && service_category) {
+      const cat = service_category.toLowerCase();
+      const name = service_name || '';
+      if (cat === 'weight_loss') {
+        const parts = name.split('—').map(s => s.trim());
+        if (parts.length >= 2) medication = parts[0].trim();
+        else {
+          const lower = name.toLowerCase();
+          if (lower.includes('semaglutide')) medication = 'Semaglutide';
+          else if (lower.includes('tirzepatide')) medication = 'Tirzepatide';
+          else if (lower.includes('retatrutide')) medication = 'Retatrutide';
+        }
+      } else if (cat === 'hrt') {
+        medication = name.toLowerCase().includes('testosterone') ? 'Testosterone Cypionate' : 'Testosterone Cypionate';
+      } else if (cat === 'peptide' || cat === 'vials') {
+        // Strip "Vial", quantity suffixes, and parentheticals
+        medication = name.replace(/\s*Vial\s*/i, '').replace(/\s*x\d+.*$/i, '').replace(/\s*\([^)]*\)$/g, '').trim();
+        const parts = medication.split('—').map(s => s.trim());
+        if (parts.length >= 3) medication = parts.slice(2).join(' — ').replace(/\s*\([^)]*\)$/g, '').trim();
+        else if (parts.length >= 2 && parts[0].toLowerCase().includes('peptide')) medication = parts[parts.length - 1].trim();
+      } else if (cat === 'iv_therapy' || cat === 'specialty_iv') {
+        medication = name;
+      } else if (cat === 'injection_pack') {
+        medication = name;
+      }
+    }
+
     const insertData = {
       patient_id,
       patient_name: patient?.name || 'Unknown',
@@ -176,6 +205,7 @@ export default async function handler(req, res) {
       purchase_date: new Date().toISOString().split('T')[0],
       shipping: shipping || 0,
       description: item_description || null,
+      medication: medication,
     };
 
     // Add discount fields if present

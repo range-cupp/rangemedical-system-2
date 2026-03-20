@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
 import { formatPrice } from '../lib/pos-pricing';
 import { findMatchingPeptide, findPeptideInfo } from '../lib/protocol-config';
+import { overlayClickProps } from './AdminLayout';
 
 // Category display order and labels
 const CATEGORY_ORDER = [
@@ -74,7 +75,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   // Shipping state (in dollars, converted to cents for charge)
   const [shippingAmount, setShippingAmount] = useState('');
 
-  // Fulfillment state (for peptide take-home orders)
+  // Fulfillment state (for take-home medication: peptides, weight loss, HRT)
   const [fulfillmentMethod, setFulfillmentMethod] = useState('in_clinic'); // 'in_clinic' or 'overnight'
   const [trackingNumber, setTrackingNumber] = useState('');
 
@@ -585,8 +586,8 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           delivery_method: item.delivery_method || null,
           duration_days: item.duration_days || null,
           shipping: itemShipping,
-          fulfillment_method: item.category === 'peptide' ? fulfillmentMethod : null,
-          tracking_number: item.category === 'peptide' && fulfillmentMethod === 'overnight' ? trackingNumber : null,
+          fulfillment_method: ['peptide', 'weight_loss', 'hrt', 'vials'].includes(item.category) ? fulfillmentMethod : null,
+          tracking_number: ['peptide', 'weight_loss', 'hrt', 'vials'].includes(item.category) && fulfillmentMethod === 'overnight' ? trackingNumber : null,
           skip_receipt: true, // consolidated receipt sent below
           ...(itemDiscountAmt > 0 ? {
             discount_type: item.itemDiscountType,
@@ -671,8 +672,8 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           service_name: serviceName,
           quantity: qty,
           shipping: itemShipping,
-          fulfillment_method: item.category === 'peptide' ? fulfillmentMethod : null,
-          tracking_number: item.category === 'peptide' && fulfillmentMethod === 'overnight' ? trackingNumber : null,
+          fulfillment_method: ['peptide', 'weight_loss', 'hrt', 'vials'].includes(item.category) ? fulfillmentMethod : null,
+          tracking_number: ['peptide', 'weight_loss', 'hrt', 'vials'].includes(item.category) && fulfillmentMethod === 'overnight' ? trackingNumber : null,
           skip_receipt: cartItems.length > 1,
           ...(itemDiscountAmt > 0 ? {
             discount_type: item.itemDiscountType,
@@ -1235,7 +1236,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
 
   return (
     <>
-      <div style={modalStyles.overlay} onClick={handleClose} />
+      <div style={modalStyles.overlay} {...overlayClickProps(handleClose)} />
       <div style={modalStyles.modal}>
         {/* Header */}
         <div style={modalStyles.header}>
@@ -1968,8 +1969,8 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
               )}
             </div>
 
-            {/* Fulfillment Method — peptide items only */}
-            {cartItems.some(i => i.category === 'peptide') && (
+            {/* Fulfillment Method — all take-home medication (peptides, weight loss, HRT) */}
+            {cartItems.some(i => ['peptide', 'weight_loss', 'hrt', 'vials'].includes(i.category)) && (
               <div style={{ marginBottom: '16px', padding: '12px', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
                 <div style={{ fontSize: '12px', fontWeight: '600', color: '#555', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Fulfillment</div>
                 <div style={{ display: 'flex', gap: '8px', marginBottom: fulfillmentMethod === 'overnight' ? '10px' : '0' }}>

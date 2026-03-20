@@ -2440,7 +2440,13 @@ const RangeMedicalSystem = () => {
                                   {renderBiomarker('free_t3', 'Free T3', 'pg/mL')}
                                   {renderBiomarker('free_t4', 'Free T4', 'ng/dL')}
                                   {renderBiomarker('tpo_antibody', 'TPO Antibody', 'IU/mL')}
-                                  {labResultData.panel_type?.includes('Elite') && renderBiomarker('thyroglobulin_antibody', 'Thyroglobulin Antibody', 'IU/mL')}
+                                  {labResultData.panel_type?.includes('Elite') && (
+                                    <>
+                                      {renderBiomarker('total_t4', 'Total T4', 'µg/dL')}
+                                      {renderBiomarker('reverse_t3', 'Reverse T3', 'ng/dL')}
+                                      {renderBiomarker('thyroglobulin_antibody', 'Thyroglobulin Antibody', 'IU/mL')}
+                                    </>
+                                  )}
                                 </>
                               );
                             })()}
@@ -2600,8 +2606,17 @@ const RangeMedicalSystem = () => {
                                   {renderBiomarker('total_cholesterol', 'Total Cholesterol', 'mg/dL')}
                                   {renderBiomarker('ldl_cholesterol', 'LDL Cholesterol', 'mg/dL')}
                                   {renderBiomarker('hdl_cholesterol', 'HDL Cholesterol', 'mg/dL')}
+                                  {renderBiomarker('chol_hdl_ratio', 'Chol/HDL Ratio', '')}
                                   {renderBiomarker('triglycerides', 'Triglycerides', 'mg/dL')}
                                   {renderBiomarker('vldl_cholesterol', 'VLDL Cholesterol', 'mg/dL')}
+                                  {labResultData.panel_type?.includes('Elite') && (
+                                    <>
+                                      {renderBiomarker('apolipoprotein_b', 'Apolipoprotein B', 'mg/dL')}
+                                      {renderBiomarker('apolipoprotein_a1', 'Apolipoprotein A1', 'mg/dL')}
+                                      {renderBiomarker('apo_b_a1_ratio', 'Apo B/A1 Ratio', '')}
+                                      {renderBiomarker('lp_a', 'Lp(a)', 'mg/dL')}
+                                    </>
+                                  )}
                                 </>
                               );
                             })()}
@@ -2848,6 +2863,8 @@ const RangeMedicalSystem = () => {
                                   {renderBiomarker('alkaline_phosphatase', 'Alkaline Phosphatase', 'U/L')}
                                   {renderBiomarker('total_bilirubin', 'Total Bilirubin', 'mg/dL')}
                                   {renderBiomarker('albumin', 'Albumin', 'g/dL')}
+                                  {renderBiomarker('globulin', 'Globulin', 'g/dL')}
+                                  {renderBiomarker('ag_ratio', 'A/G Ratio', '')}
                                   {renderBiomarker('total_protein', 'Total Protein', 'g/dL')}
                                   {labResultData.panel_type?.includes('Elite') && renderBiomarker('ggt', 'GGT', 'U/L')}
                                 </>
@@ -2991,11 +3008,12 @@ const RangeMedicalSystem = () => {
 
                               return (
                                 <>
-                                  {renderBiomarker('sodium', 'Sodium', 'mmol/L')}
-                                  {renderBiomarker('potassium', 'Potassium', 'mmol/L')}
-                                  {renderBiomarker('chloride', 'Chloride', 'mmol/L')}
-                                  {renderBiomarker('co2', 'CO2', 'mmol/L')}
+                                  {renderBiomarker('sodium', 'Sodium', 'mEq/L')}
+                                  {renderBiomarker('potassium', 'Potassium', 'mEq/L')}
+                                  {renderBiomarker('chloride', 'Chloride', 'mEq/L')}
+                                  {renderBiomarker('co2', 'CO2', 'mEq/L')}
                                   {renderBiomarker('calcium', 'Calcium', 'mg/dL')}
+                                  {renderBiomarker('anion_gap', 'Anion Gap', '')}
                                 </>
                               );
                             })()}
@@ -3081,6 +3099,13 @@ const RangeMedicalSystem = () => {
                                   {renderBiomarker('mchc', 'MCHC', 'g/dL')}
                                   {renderBiomarker('rdw', 'RDW', '%')}
                                   {renderBiomarker('platelets', 'Platelets', 'K/uL')}
+                                  {renderBiomarker('mpv', 'MPV', 'fL')}
+                                  {renderBiomarker('neutrophils_percent', 'Neutrophils %', '%')}
+                                  {renderBiomarker('lymphocytes_percent', 'Lymphocytes %', '%')}
+                                  {renderBiomarker('monocytes_percent', 'Monocytes %', '%')}
+                                  {renderBiomarker('eosinophils_percent', 'Eosinophils %', '%')}
+                                  {renderBiomarker('basophils_percent', 'Basophils %', '%')}
+                                  {renderBiomarker('esr', 'Sed Rate (ESR)', 'mm/hr')}
                                 </>
                               );
                             })()}
@@ -3226,7 +3251,12 @@ const RangeMedicalSystem = () => {
                                 return (
                                   <>
                                     {renderBiomarker('psa_total', 'PSA Total', 'ng/mL')}
-                                    {labResultData.panel_type?.includes('Elite') && renderBiomarker('psa_free', 'PSA Free', 'ng/mL')}
+                                    {labResultData.panel_type?.includes('Elite') && (
+                                      <>
+                                        {renderBiomarker('psa_free', 'PSA Free', 'ng/mL')}
+                                        {renderBiomarker('psa_free_percent', '% Free PSA', '%')}
+                                      </>
+                                    )}
                                   </>
                                 );
                               })()}

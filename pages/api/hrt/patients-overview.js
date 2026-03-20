@@ -216,11 +216,17 @@ export default async function handler(req, res) {
         }
       }
 
-      // Most recent lab
-      const mostRecentLab = labs.find(l => l.test_date || l.collection_date || l.lab_date);
-      const lastLabDate = mostRecentLab
-        ? (mostRecentLab.collection_date || mostRecentLab.test_date || mostRecentLab.lab_date)
+      // Most recent lab — derive from the adaptive schedule (single source of truth)
+      // This ensures the HRT patients page shows the same "last lab" as the patient profile
+      const completedDraws = schedule.filter(d => d.status === 'completed' && d.completedDate);
+      const lastCompletedDraw = completedDraws.length > 0
+        ? completedDraws[completedDraws.length - 1]
         : null;
+      // Fall back to labs table if no schedule (inactive protocols)
+      const mostRecentLab = labs.find(l => l.test_date || l.completed_date);
+      const lastLabDate = lastCompletedDraw
+        ? lastCompletedDraw.completedDate
+        : (mostRecentLab ? (mostRecentLab.test_date || mostRecentLab.completed_date) : null);
 
       // ── Medication pickup — from service_logs (same as hrt pipeline) ──
       const lastPickupDate = lastPickupMap[protocol.id] || protocol.start_date;

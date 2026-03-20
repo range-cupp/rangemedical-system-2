@@ -66,7 +66,7 @@ export default async function handler(req, res) {
       // Get all labs for this patient (sorted by date desc)
       const { data: labs } = await supabase
         .from('labs')
-        .select('id, test_date, collection_date, lab_date, completed_date, panel_type, status, pdf_url')
+        .select('id, test_date, completed_date, panel_type, status, pdf_url')
         .eq('patient_id', protocol.patient_id)
         .order('test_date', { ascending: false });
 
@@ -86,10 +86,10 @@ export default async function handler(req, res) {
         labProtocols || []
       );
 
-      // Find most recent completed lab
-      const mostRecentLab = (labs || []).find(l => l.test_date || l.collection_date || l.lab_date);
+      // Find most recent completed lab — use test_date or completed_date (actual labs table columns)
+      const mostRecentLab = (labs || []).find(l => l.test_date || l.completed_date);
       const lastLabDate = mostRecentLab
-        ? (mostRecentLab.collection_date || mostRecentLab.test_date || mostRecentLab.lab_date)
+        ? (mostRecentLab.test_date || mostRecentLab.completed_date)
         : null;
 
       // Find the next upcoming or overdue draw

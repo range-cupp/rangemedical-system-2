@@ -469,27 +469,39 @@ function PatientRow({ patient: p, formatDate, daysAgo, daysUntil, expanded, onTo
                 <div>
                   <div style={styles.expandedLabel}>Lab Schedule</div>
                   {p.schedule && p.schedule.length > 0 ? (
-                    p.schedule.map((draw, i) => (
-                      <div key={i} style={{ ...styles.expandedDetail, display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <span style={{
-                          display: 'inline-block',
-                          width: 8,
-                          height: 8,
-                          borderRadius: '50%',
-                          background: draw.status === 'completed' ? '#22c55e' : draw.status === 'overdue' ? '#ef4444' : '#ddd',
-                          flexShrink: 0,
-                        }} />
-                        <span style={{ fontSize: 13 }}>
-                          {draw.label} — {formatDate(draw.targetDate)}
+                    p.schedule.map((draw, i) => {
+                      const color = draw.status === 'completed' ? '#22c55e' : draw.status === 'overdue' ? '#ef4444' : draw.status === 'skipped' ? '#d1d5db' : '#9ca3af';
+                      return (
+                        <div key={i} style={{ ...styles.expandedDetail, display: 'flex', gap: 8, alignItems: 'center', opacity: draw.status === 'skipped' ? 0.5 : 1 }}>
+                          <span style={{
+                            display: 'inline-block',
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            background: color,
+                            flexShrink: 0,
+                          }} />
+                          <span style={{ fontWeight: 500, fontSize: 13, color: draw.status === 'skipped' ? '#9ca3af' : '#374151', minWidth: 100 }}>
+                            {draw.label}
+                          </span>
+                          <span style={{ fontSize: 13, color: '#6b7280' }}>
+                            {draw.weekLabel}
+                          </span>
                           {draw.status === 'completed' && draw.completedDate && (
-                            <span style={{ color: '#22c55e', marginLeft: 4 }}>Done {formatDate(draw.completedDate)}</span>
+                            <span style={{ color: '#22c55e', marginLeft: 'auto', fontSize: 12, fontWeight: 500 }}>✓ {formatDate(draw.completedDate)}</span>
                           )}
                           {draw.status === 'overdue' && (
-                            <span style={{ color: '#ef4444', marginLeft: 4 }}>OVERDUE</span>
+                            <span style={{ color: '#ef4444', marginLeft: 'auto', fontSize: 12, fontWeight: 500 }}>Overdue</span>
                           )}
-                        </span>
-                      </div>
-                    ))
+                          {draw.status === 'skipped' && (
+                            <span style={{ color: '#9ca3af', marginLeft: 'auto', fontSize: 12 }}>Skipped</span>
+                          )}
+                          {draw.status === 'upcoming' && (
+                            <span style={{ color: '#9ca3af', marginLeft: 'auto', fontSize: 12 }}>Upcoming</span>
+                          )}
+                        </div>
+                      );
+                    })
                   ) : (
                     <div style={styles.expandedDetail}>No schedule available</div>
                   )}

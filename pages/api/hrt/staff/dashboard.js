@@ -120,7 +120,7 @@ export default async function handler(req, res) {
       // Labs
       const { data: labs } = await supabase
         .from('labs')
-        .select('id, patient_id, collection_date, test_date, lab_date, completed_date')
+        .select('id, patient_id, test_date, completed_date, panel_type, status')
         .in('patient_id', patientIds);
       for (const lab of labs || []) {
         if (!labsMap[lab.patient_id]) labsMap[lab.patient_id] = [];

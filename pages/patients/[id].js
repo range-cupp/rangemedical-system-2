@@ -7,7 +7,7 @@ import { formatPhone } from '../../lib/format-utils';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
-import AdminLayout from '../../components/AdminLayout';
+import AdminLayout, { overlayClickProps } from '../../components/AdminLayout';
 import EmailComposeModal from '../../components/EmailComposeModal';
 import SMSComposeModal from '../../components/SMSComposeModal';
 import { useAuth } from '../../components/AuthProvider';
@@ -3511,7 +3511,12 @@ export default function PatientProfile() {
                         <div key={protocol.id} className="protocol-row">
                           <div className="protocol-main">
                             <span className="protocol-badge" style={{ background: cat.bg, color: cat.text }}>{cat.label}</span>
-                            <span className="protocol-name">{protocol.program_name || protocol.medication}</span>
+                            <span className="protocol-name">
+                              {protocol.program_name || protocol.medication}
+                              {protocol.category === 'hrt' && protocol.hrt_type && (
+                                <span style={{ fontSize: 12, color: '#7C3AED', marginLeft: 4 }}>({protocol.hrt_type === 'female' ? 'F' : 'M'})</span>
+                              )}
+                            </span>
                             {protocol.medication && protocol.program_name && protocol.medication !== protocol.program_name && (
                               <span className="protocol-dose" style={{ fontWeight: 500 }}>({protocol.medication})</span>
                             )}
@@ -3900,7 +3905,12 @@ export default function PatientProfile() {
                         }}>
                           <div className="protocol-card-header">
                             <span className="protocol-badge" style={{ background: cat.bg, color: cat.text }}>{cat.label}</span>
-                            <span className="protocol-name">{protocol.program_name || protocol.medication}</span>
+                            <span className="protocol-name">
+                              {protocol.program_name || protocol.medication}
+                              {protocol.category === 'hrt' && protocol.hrt_type && (
+                                <span style={{ fontSize: 12, color: '#7C3AED', marginLeft: 6 }}>({protocol.hrt_type === 'female' ? 'Female' : 'Male'})</span>
+                              )}
+                            </span>
                             {protocol.status === 'completed' && <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', background: '#f3f4f6', padding: '2px 8px', borderRadius: '4px' }}>✓ Completed</span>}
                             {protocol.delivery_method === 'in_clinic' && <span className="clinic-badge">In-Clinic</span>}
                           </div>
@@ -3910,6 +3920,17 @@ export default function PatientProfile() {
                             )}
                             {protocol.selected_dose && <span>{protocol.selected_dose}</span>}
                             {protocol.frequency && <span>{protocol.frequency}</span>}
+                            {protocol.category === 'hrt' && (() => {
+                              try {
+                                const sec = typeof protocol.secondary_medications === 'string'
+                                  ? JSON.parse(protocol.secondary_medications)
+                                  : protocol.secondary_medications;
+                                if (sec && sec.length > 0) {
+                                  return <span style={{ color: '#7C3AED' }}>+ {sec.join(', ')}</span>;
+                                }
+                              } catch {}
+                              return null;
+                            })()}
                           </div>
                           {protocol.num_vials > 0 && (
                             <div style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0' }}>
@@ -6428,7 +6449,7 @@ export default function PatientProfile() {
 
         {/* Edit Purchase Modal */}
         {showEditPurchaseModal && editingPurchase && (
-          <div className="modal-overlay" onClick={() => setShowEditPurchaseModal(false)}>
+          <div className="modal-overlay" {...overlayClickProps(() => setShowEditPurchaseModal(false))}>
             <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
               <div className="modal-header">
                 <h3>Edit Purchase</h3>
@@ -6502,7 +6523,7 @@ export default function PatientProfile() {
 
         {/* Edit Injection Modal */}
         {editInjectionModal && (
-          <div className="modal-overlay" onClick={() => setEditInjectionModal(null)}>
+          <div className="modal-overlay" {...overlayClickProps(() => setEditInjectionModal(null))}>
             <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
               <div className="modal-header">
                 <h3>Edit Injection</h3>
@@ -6596,7 +6617,7 @@ export default function PatientProfile() {
 
         {/* Add Note Modal */}
         {showAddNoteModal && (
-          <div className="modal-overlay" onClick={() => { setShowAddNoteModal(false); stopDictation(); }}>
+          <div className="modal-overlay" {...overlayClickProps(() => { setShowAddNoteModal(false); stopDictation(); })}>
             <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 640 }}>
               <div className="modal-header">
                 <h3>Add {addNoteCategory === 'clinical' ? 'Clinical' : 'Internal'} Note</h3>
@@ -6697,7 +6718,7 @@ export default function PatientProfile() {
 
         {/* Edit Note Modal */}
         {editingNote && (
-          <div className="modal-overlay" onClick={() => { setEditingNote(null); setEditNoteBody(''); }}>
+          <div className="modal-overlay" {...overlayClickProps(() => { setEditingNote(null); setEditNoteBody(''); })}>
             <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 640 }}>
               <div className="modal-header">
                 <h3>Edit Note</h3>
@@ -6735,7 +6756,7 @@ export default function PatientProfile() {
 
         {/* Assign Protocol Modal */}
         {showAssignModal && (
-          <div className="modal-overlay" onClick={() => setShowAssignModal(false)}>
+          <div className="modal-overlay" {...overlayClickProps(() => setShowAssignModal(false))}>
             <div className="modal" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
                 <h3>Assign Protocol</h3>
@@ -7033,7 +7054,7 @@ export default function PatientProfile() {
 
         {/* Edit Protocol Modal */}
         {showEditModal && selectedProtocol && (
-          <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+          <div className="modal-overlay" {...overlayClickProps(() => setShowEditModal(false))}>
             <div className="modal modal-large" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
                 <h3>Edit Protocol</h3>
@@ -7473,7 +7494,7 @@ export default function PatientProfile() {
 
         {/* Add Labs Modal */}
         {showLabsModal && (
-          <div className="modal-overlay" onClick={() => setShowLabsModal(false)}>
+          <div className="modal-overlay" {...overlayClickProps(() => setShowLabsModal(false))}>
             <div className="modal" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
                 <h3>Add Lab Results</h3>
@@ -7516,7 +7537,7 @@ export default function PatientProfile() {
 
         {/* Upload Lab PDF Modal */}
         {showUploadModal && (
-          <div className="modal-overlay" onClick={() => setShowUploadModal(false)}>
+          <div className="modal-overlay" {...overlayClickProps(() => setShowUploadModal(false))}>
             <div className="modal" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
                 <h3>Upload Lab PDF</h3>
@@ -7567,7 +7588,7 @@ export default function PatientProfile() {
 
         {/* Upload Document Modal (Docs tab) */}
         {showDocUploadModal && (
-          <div className="modal-overlay" onClick={() => setShowDocUploadModal(false)}>
+          <div className="modal-overlay" {...overlayClickProps(() => setShowDocUploadModal(false))}>
             <div className="modal" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
                 <h3>Upload Document</h3>
@@ -7612,7 +7633,7 @@ export default function PatientProfile() {
 
         {/* Send Symptoms Modal */}
         {showSymptomsModal && (
-          <div className="modal-overlay" onClick={() => setShowSymptomsModal(false)}>
+          <div className="modal-overlay" {...overlayClickProps(() => setShowSymptomsModal(false))}>
             <div className="modal modal-sm" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
                 <h3>Send Symptoms Questionnaire</h3>
@@ -7640,7 +7661,7 @@ export default function PatientProfile() {
 
         {/* View Intake Modal */}
         {showIntakeModal && selectedIntake && (
-          <div className="modal-overlay" onClick={() => setShowIntakeModal(false)}>
+          <div className="modal-overlay" {...overlayClickProps(() => setShowIntakeModal(false))}>
             <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
                 <h3>Intake Form Details</h3>
@@ -7673,7 +7694,7 @@ export default function PatientProfile() {
 
         {/* Booking Modal */}
         {showBookingModal && (
-          <div className="modal-overlay" onClick={() => setShowBookingModal(false)}>
+          <div className="modal-overlay" {...overlayClickProps(() => setShowBookingModal(false))}>
             <div className="modal modal-booking" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
                 <h3>Book Appointment</h3>
@@ -7697,7 +7718,7 @@ export default function PatientProfile() {
 
         {/* ==================== ADD CREDIT MODAL ==================== */}
         {showAddCreditModal && (
-          <div className="modal-overlay" onClick={() => { setShowAddCreditModal(false); setAddCreditAmount(''); setAddCreditNote(''); setAddCreditReason('manual'); }}>
+          <div className="modal-overlay" {...overlayClickProps(() => { setShowAddCreditModal(false); setAddCreditAmount(''); setAddCreditNote(''); setAddCreditReason('manual'); })}>
             <div className="modal" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
               <div className="modal-header">
                 <h3>Account Credit</h3>
@@ -7840,7 +7861,7 @@ export default function PatientProfile() {
 
         {/* ==================== SEND PROGRESS MODAL ==================== */}
         {showSendProgressModal && sendProgressProtocol && (
-          <div className="modal-overlay" onClick={() => setShowSendProgressModal(false)}>
+          <div className="modal-overlay" {...overlayClickProps(() => setShowSendProgressModal(false))}>
             <div className="modal" style={{ maxWidth: 460 }} onClick={e => e.stopPropagation()}>
               <div className="modal-header">
                 <h3>Send Progress to Patient</h3>
@@ -7913,7 +7934,7 @@ export default function PatientProfile() {
 
         {/* ==================== MERGE PROTOCOL MODAL ==================== */}
         {showMergeModal && mergeSource && (
-          <div className="modal-overlay" onClick={() => { if (!merging) { setShowMergeModal(false); setMergeError(''); } }}>
+          <div className="modal-overlay" {...overlayClickProps(() => { if (!merging) { setShowMergeModal(false); setMergeError(''); } })}>
             <div className="modal" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
               <div className="modal-header">
                 <h3>Merge Protocol</h3>
@@ -8020,7 +8041,7 @@ export default function PatientProfile() {
 
         {/* ==================== QUICK WEIGHT LOG MODAL ==================== */}
         {quickWeightModal && (
-          <div className="modal-overlay" onClick={() => setQuickWeightModal(null)}>
+          <div className="modal-overlay" {...overlayClickProps(() => setQuickWeightModal(null))}>
             <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
               <div className="modal-header">
                 <h3>Log Weight — {formatShortDate(quickWeightModal.slotDate)}</h3>
@@ -8080,7 +8101,7 @@ export default function PatientProfile() {
         {/* Delete Patient Confirmation Modal */}
         {showDeleteConfirm && deletePreview && (
           <>
-            <div className="modal-overlay" onClick={() => { setShowDeleteConfirm(false); setDeletePreview(null); }} />
+            <div className="modal-overlay" {...overlayClickProps(() => { setShowDeleteConfirm(false); setDeletePreview(null); })} />
             <div className="modal delete-modal">
               <h3>Delete Patient</h3>
               <p style={{ margin: '12px 0', color: '#dc2626', fontWeight: 600 }}>
@@ -8160,7 +8181,7 @@ export default function PatientProfile() {
         {/* PDF Slide-Out Viewer */}
         {pdfSlideOut.open && (
           <>
-            <div className="slideout-overlay" onClick={closePdfViewer} />
+            <div className="slideout-overlay" {...overlayClickProps(closePdfViewer)} />
             <div className="slideout-panel" style={{ width: `${slideoutWidth}%` }}>
               <div className="slideout-header">
                 <h3>{pdfSlideOut.title}</h3>
@@ -10217,7 +10238,7 @@ export default function PatientProfile() {
 
       {/* Send Forms Modal */}
       {showSendFormsModal && (
-        <div className="sf-overlay" onClick={() => setShowSendFormsModal(false)}>
+        <div className="sf-overlay" {...overlayClickProps(() => setShowSendFormsModal(false))}>
           <div className="sf-modal" onClick={e => e.stopPropagation()}>
             <div className="sf-header">
               <h3>{sendFormsTab === 'forms' ? '📋' : '📖'} Send {sendFormsTab === 'forms' ? 'Forms' : 'Guides'} {patient?.first_name ? `to ${patient.first_name}` : ''}</h3>

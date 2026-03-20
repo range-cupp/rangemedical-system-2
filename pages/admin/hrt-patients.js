@@ -359,8 +359,8 @@ function PatientRow({ patient: p, formatDate, daysAgo, daysUntil, expanded, onTo
 
         {/* Program */}
         <td style={sharedStyles.td}>
-          <span style={{ fontSize: 13 }}>
-            {p.hrt_type || p.program_type?.replace(/_/g, ' ')}
+          <span style={{ fontSize: 13, fontWeight: 500 }}>
+            HRT ({p.hrt_type === 'female' ? 'Female' : 'Male'})
           </span>
           {p.program_week != null && p.status === 'active' && (
             <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>
@@ -393,6 +393,11 @@ function PatientRow({ patient: p, formatDate, daysAgo, daysUntil, expanded, onTo
           {p.current_dose && (
             <div style={{ fontSize: 11, color: '#666', marginTop: 2 }}>
               {p.current_dose}
+            </div>
+          )}
+          {p.secondary_medications && p.secondary_medications.length > 0 && (
+            <div style={{ fontSize: 11, color: '#7C3AED', marginTop: 3 }}>
+              + {p.secondary_medications.join(', ')}
             </div>
           )}
         </td>
@@ -445,6 +450,9 @@ function PatientRow({ patient: p, formatDate, daysAgo, daysUntil, expanded, onTo
                   )}
                   {p.supply_type && (
                     <div style={styles.expandedDetail}>Supply: {p.supply_type.replace(/_/g, ' ')}</div>
+                  )}
+                  {p.secondary_medications && p.secondary_medications.length > 0 && (
+                    <div style={styles.expandedDetail}>Secondary Meds: {p.secondary_medications.join(', ')}</div>
                   )}
                   {p.total_injections > 0 && (
                     <div style={styles.expandedDetail}>Total Injections: {p.total_injections}</div>

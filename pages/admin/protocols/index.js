@@ -408,8 +408,28 @@ export default function ProtocolsPage() {
                             {catStyle.label}
                           </span>
                         </td>
-                        <td style={styles.td}>{protocol.program_name || protocol.program_type}</td>
-                        <td style={styles.td}>{protocol.medication || protocol.primary_peptide || protocol.selected_dose || '\u2014'}</td>
+                        <td style={styles.td}>
+                          {protocol.program_name || protocol.program_type}
+                          {cat === 'hrt' && protocol.hrt_type && (
+                            <span style={{ fontSize: 11, color: '#7C3AED', marginLeft: 6 }}>
+                              ({protocol.hrt_type === 'female' ? 'Female' : 'Male'})
+                            </span>
+                          )}
+                        </td>
+                        <td style={styles.td}>
+                          <div>{protocol.medication || protocol.primary_peptide || protocol.selected_dose || '\u2014'}</div>
+                          {cat === 'hrt' && (() => {
+                            try {
+                              const sec = typeof protocol.secondary_medications === 'string'
+                                ? JSON.parse(protocol.secondary_medications)
+                                : protocol.secondary_medications;
+                              if (sec && sec.length > 0) {
+                                return <div style={{ fontSize: 11, color: '#7C3AED', marginTop: 2 }}>+ {sec.join(', ')}</div>;
+                              }
+                            } catch {}
+                            return null;
+                          })()}
+                        </td>
                         <td style={styles.td}>
                           {protocol.start_date ? new Date(protocol.start_date + 'T12:00:00').toLocaleDateString('en-US', {
                             month: 'short',

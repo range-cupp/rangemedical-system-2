@@ -36,6 +36,7 @@ export default async function handler(req, res) {
         delivery_method,
         supply_type,
         hrt_type,
+        secondary_medications,
         first_followup_weeks,
         labs_completed,
         baseline_labs_date,
@@ -287,6 +288,15 @@ export default async function handler(req, res) {
         end_date: protocol.end_date,
         program_week: programWeek,
         medication: protocol.medication,
+        secondary_medications: (() => {
+          try {
+            const val = protocol.secondary_medications;
+            if (!val || val === '[]') return [];
+            if (typeof val === 'string') return JSON.parse(val);
+            if (Array.isArray(val)) return val;
+            return [];
+          } catch { return []; }
+        })(),
         current_dose: protocol.selected_dose || null,
         supply_type: supplyType,
         delivery_method: protocol.delivery_method,

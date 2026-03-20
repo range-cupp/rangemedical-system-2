@@ -3609,14 +3609,15 @@ export default function PatientProfile() {
                     )}
                     <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                       {schedule.map(draw => {
-                        const color = draw.status === 'completed' ? '#22c55e' : draw.status === 'overdue' ? '#dc2626' : '#9ca3af';
+                        const color = draw.status === 'completed' ? '#22c55e' : draw.status === 'overdue' ? '#dc2626' : draw.status === 'skipped' ? '#d1d5db' : '#9ca3af';
                         return (
                           <div
                             key={draw.label}
                             onClick={() => handleBloodDrawClick(draw, protocol.id)}
                             style={{
                               display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px',
-                              cursor: 'pointer', padding: '6px 8px', borderRadius: '6px', transition: 'background 0.15s'
+                              cursor: 'pointer', padding: '6px 8px', borderRadius: '6px', transition: 'background 0.15s',
+                              opacity: draw.status === 'skipped' ? 0.5 : 1
                             }}
                             onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
                             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -3626,13 +3627,16 @@ export default function PatientProfile() {
                               border: draw.status === 'completed' ? 'none' : `2px solid ${color}`,
                               boxSizing: 'border-box'
                             }} />
-                            <span style={{ fontWeight: '500', color: '#374151', minWidth: '110px' }}>{draw.label}</span>
+                            <span style={{ fontWeight: '500', color: draw.status === 'skipped' ? '#9ca3af' : '#374151', minWidth: '110px' }}>{draw.label}</span>
                             <span style={{ color: '#6b7280', flex: 1 }}>{draw.weekLabel}</span>
                             {draw.completedDate && (
                               <span style={{ color: '#22c55e', fontSize: '12px', fontWeight: 500 }}>✓ {formatShortDate(draw.completedDate)}</span>
                             )}
                             {draw.status === 'overdue' && !draw.completedDate && (
                               <span style={{ color: '#dc2626', fontSize: '12px', fontWeight: 500 }}>Overdue</span>
+                            )}
+                            {draw.status === 'skipped' && !draw.completedDate && (
+                              <span style={{ color: '#9ca3af', fontSize: '12px' }}>Skipped</span>
                             )}
                             {draw.status === 'upcoming' && !draw.completedDate && (
                               <span style={{ color: '#9ca3af', fontSize: '12px' }}>Upcoming</span>
@@ -4152,14 +4156,15 @@ export default function PatientProfile() {
                                 {isLabExpanded && (
                                   <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                     {schedule.map(draw => {
-                                      const color = draw.status === 'completed' ? '#22c55e' : draw.status === 'overdue' ? '#dc2626' : '#9ca3af';
+                                      const color = draw.status === 'completed' ? '#22c55e' : draw.status === 'overdue' ? '#dc2626' : draw.status === 'skipped' ? '#d1d5db' : '#9ca3af';
                                       return (
                                         <div
                                           key={draw.label}
                                           onClick={() => handleBloodDrawClick(draw, protocol.id)}
                                           style={{
                                             display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px',
-                                            cursor: 'pointer', padding: '4px 6px', borderRadius: '6px', transition: 'background 0.15s'
+                                            cursor: 'pointer', padding: '4px 6px', borderRadius: '6px', transition: 'background 0.15s',
+                                            opacity: draw.status === 'skipped' ? 0.5 : 1
                                           }}
                                           onMouseEnter={e => e.currentTarget.style.background = '#eef2ff'}
                                           onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -4167,13 +4172,16 @@ export default function PatientProfile() {
                                           <span style={{
                                             width: '8px', height: '8px', borderRadius: '50%', background: color, flexShrink: 0
                                           }} />
-                                          <span style={{ fontWeight: '500', color: '#374151', minWidth: '100px' }}>{draw.label}</span>
+                                          <span style={{ fontWeight: '500', color: draw.status === 'skipped' ? '#9ca3af' : '#374151', minWidth: '100px' }}>{draw.label}</span>
                                           <span style={{ color: '#6b7280' }}>{draw.weekLabel}</span>
                                           {draw.completedDate && (
                                             <span style={{ color: '#22c55e', marginLeft: 'auto', fontSize: '12px' }}>✓ {formatShortDate(draw.completedDate)}</span>
                                           )}
                                           {draw.status === 'overdue' && !draw.completedDate && (
                                             <span style={{ color: '#dc2626', marginLeft: 'auto', fontSize: '12px' }}>Overdue</span>
+                                          )}
+                                          {draw.status === 'skipped' && !draw.completedDate && (
+                                            <span style={{ color: '#9ca3af', marginLeft: 'auto', fontSize: '12px' }}>Skipped</span>
                                           )}
                                           {draw.status === 'upcoming' && !draw.completedDate && (
                                             <span style={{ color: '#3b82f6', marginLeft: 'auto', fontSize: '11px' }}>Mark complete</span>

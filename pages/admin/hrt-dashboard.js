@@ -283,6 +283,7 @@ function MemberRow({ member, onRefresh }) {
     if (member.lab_status === 'Due this week' || member.lab_status === 'Due soon') {
       return { backgroundColor: '#92400e', color: '#fcd34d' };
     }
+    if (member.lab_status === 'Complete') return { backgroundColor: '#1e3a5f', color: '#93c5fd' };
     return { backgroundColor: '#065f46', color: '#6ee7b7' };
   };
 
@@ -334,11 +335,20 @@ function MemberRow({ member, onRefresh }) {
         <span style={{ ...styles.statusBadge, ...getLabStatusStyle() }}>
           {member.lab_status || 'On track'}
         </span>
-        {member.next_lab_due && (
+        {member.next_lab_type && (
           <div style={styles.labDate}>
-            {new Date(member.next_lab_due).toLocaleDateString()}
+            {member.next_lab_type}{member.next_lab_due ? ` — ${new Date(member.next_lab_due + 'T00:00:00').toLocaleDateString()}` : ''}
           </div>
         )}
+        {member.lab_schedule && (() => {
+          const completed = member.lab_schedule.filter(d => d.status === 'completed').length;
+          const total = member.lab_schedule.length;
+          return (
+            <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>
+              {completed}/{total} draws complete
+            </div>
+          );
+        })()}
       </td>
 
       {/* Actions */}

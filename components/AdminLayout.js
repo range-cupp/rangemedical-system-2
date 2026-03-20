@@ -609,6 +609,19 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
   );
 }
 
+// Helper: returns onMouseDown + onClick props for modal overlays.
+// Only closes when BOTH mousedown and mouseup occur on the overlay itself,
+// preventing accidental closes from scrolling/dragging inside the modal.
+export function overlayClickProps(closeFn) {
+  return {
+    onMouseDown: (e) => { if (e.target === e.currentTarget) e.currentTarget._overlayMouseDown = true; },
+    onClick: (e) => {
+      if (e.target === e.currentTarget && e.currentTarget._overlayMouseDown) closeFn();
+      e.currentTarget._overlayMouseDown = false;
+    },
+  };
+}
+
 // Shared styles that can be imported by pages
 export const sharedStyles = {
   // Page layout

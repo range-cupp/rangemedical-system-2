@@ -573,7 +573,25 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
           {/* Page header */}
           {(title !== 'Admin' && !hideHeader) && (
             <div style={styles.pageHeader}>
-              <h1 style={styles.pageTitle}>{title}</h1>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '2px' }}>
+                  <button
+                    onClick={() => router.back()}
+                    style={styles.navArrowBtn}
+                    title="Go back"
+                  >
+                    ←
+                  </button>
+                  <button
+                    onClick={() => window.history.forward()}
+                    style={styles.navArrowBtn}
+                    title="Go forward"
+                  >
+                    →
+                  </button>
+                </div>
+                <h1 style={styles.pageTitle}>{title}</h1>
+              </div>
               {actions && <div style={styles.pageActions}>{actions}</div>}
             </div>
           )}
@@ -1065,6 +1083,21 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center'
+  },
+  navArrowBtn: {
+    background: '#f3f4f6',
+    border: '1px solid #e5e7eb',
+    borderRadius: '6px',
+    width: '32px',
+    height: '32px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    fontSize: '16px',
+    color: '#374151',
+    fontFamily: 'inherit',
+    padding: 0,
   },
   pageTitle: {
     margin: 0,

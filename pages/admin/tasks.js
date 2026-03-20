@@ -1762,7 +1762,17 @@ export default function TasksPage() {
                         {task.patient_name && (
                           <div>
                             <span style={{ color: '#9ca3af' }}>Patient: </span>
-                            <strong style={{ color: '#374151' }}>{task.patient_name}</strong>
+                            {task.patient_id ? (
+                              <a
+                                href={`/admin/patient/${task.patient_id}`}
+                                style={{ color: '#2563eb', textDecoration: 'underline', fontWeight: 600, cursor: 'pointer' }}
+                                onClick={e => e.stopPropagation()}
+                              >
+                                {task.patient_name}
+                              </a>
+                            ) : (
+                              <strong style={{ color: '#374151' }}>{task.patient_name}</strong>
+                            )}
                           </div>
                         )}
                         {task.due_date && (

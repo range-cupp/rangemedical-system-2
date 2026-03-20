@@ -43,6 +43,11 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const [selectedForms, setSelectedForms] = useState([]);
   const [sendingForms, setSendingForms] = useState(false);
   const [formsResult, setFormsResult] = useState(null);
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [taskForm, setTaskForm] = useState({ title: '', description: '', assigned_to: '', priority: 'medium', due_date: '' });
+  const [taskEmployees, setTaskEmployees] = useState([]);
+  const [creatingTask, setCreatingTask] = useState(false);
+  const [taskResult, setTaskResult] = useState(null);
   const [editingName, setEditingName] = useState(false);
   const [editName, setEditName] = useState('');
   const [savingName, setSavingName] = useState(false);
@@ -104,6 +109,53 @@ export default function ConversationView({ patientId, patientName, patientPhone,
       });
     }
   }, [messages, loading, filter]);
+
+  const openTaskModal = async () => {
+    setShowTaskModal(true);
+    setTaskResult(null);
+    setTaskForm({ title: '', description: '', assigned_to: '', priority: 'medium', due_date: '' });
+    if (taskEmployees.length === 0) {
+      try {
+        const res = await fetch('/api/admin/employees?basic=true');
+        if (res.ok) {
+          const data = await res.json();
+          setTaskEmployees(Array.isArray(data.employees) ? data.employees : Array.isArray(data) ? data : []);
+        }
+      } catch (e) { /* silent */ }
+    }
+  };
+
+  const handleCreateTask = async (e) => {
+    e.preventDefault();
+    if (!taskForm.title.trim() || !taskForm.assigned_to) return;
+    setCreatingTask(true);
+    try {
+      const res = await fetch('/api/admin/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: taskForm.title.trim(),
+          description: taskForm.description?.trim() || null,
+          assigned_to: taskForm.assigned_to,
+          patient_id: linkedPatientId || null,
+          patient_name: displayName || patientName || null,
+          priority: taskForm.priority,
+          due_date: taskForm.due_date || null,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTaskResult({ success: true, message: 'Task created successfully' });
+        setTimeout(() => setShowTaskModal(false), 1200);
+      } else {
+        setTaskResult({ success: false, message: data.error || 'Failed to create task' });
+      }
+    } catch (err) {
+      setTaskResult({ success: false, message: 'Failed to create task' });
+    } finally {
+      setCreatingTask(false);
+    }
+  };
 
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
@@ -715,6 +767,13 @@ export default function ConversationView({ patientId, patientName, patientPhone,
             📅 Book
           </button>
           <button
+            onClick={openTaskModal}
+            style={styles.actionBtn}
+            title="Create a task for this patient"
+          >
+            ✅ Task
+          </button>
+          <button
             onClick={() => { fetchMessages(); }}
             style={styles.refreshBtn}
             title="Refresh messages"
@@ -847,6 +906,108 @@ export default function ConversationView({ patientId, patientName, patientPhone,
         </div>
       )}
 
+      {/* Create Task Modal */}
+      {showTaskModal && (
+        <div style={styles.bookingOverlay} onClick={() => setShowTaskModal(false)}>
+          <div style={{ ...styles.bookingModal, maxWidth: '460px' }} onClick={e => e.stopPropagation()}>
+            <div style={styles.bookingHeader}>
+              <h3 style={{ margin: 0, fontSize: '16px' }}>Create Task — {(displayName || patientName || '').split(' ')[0]}</h3>
+              <button onClick={() => setShowTaskModal(false)} style={styles.bookingClose}>×</button>
+            </div>
+            <form onSubmit={handleCreateTask}>
+              <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ padding: '8px 12px', background: '#f0f9ff', borderRadius: '8px', fontSize: '13px', color: '#2563eb' }}>
+                  Linked to: <strong>{displayName || patientName || 'Unknown'}</strong>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>Task</label>
+                  <input
+                    type="text"
+                    value={taskForm.title}
+                    onChange={e => setTaskForm(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="What needs to be done?"
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    autoFocus
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>Details (optional)</label>
+                  <textarea
+                    value={taskForm.description}
+                    onChange={e => setTaskForm(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Additional context..."
+                    rows={2}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>Assign to</label>
+                  <select
+                    value={taskForm.assigned_to}
+                    onChange={e => setTaskForm(prev => ({ ...prev, assigned_to: e.target.value }))}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    required
+                  >
+                    <option value="">Select team member...</option>
+                    {taskEmployees.filter(e => e.is_active !== false).map(e => (
+                      <option key={e.id} value={e.id}>{e.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>Priority</label>
+                    <select
+                      value={taskForm.priority}
+                      onChange={e => setTaskForm(prev => ({ ...prev, priority: e.target.value }))}
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="urgent">Urgent</option>
+                    </select>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>Due Date</label>
+                    <input
+                      type="date"
+                      value={taskForm.due_date}
+                      onChange={e => setTaskForm(prev => ({ ...prev, due_date: e.target.value }))}
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+                {taskResult && (
+                  <div style={{
+                    padding: '10px 14px', borderRadius: '8px', fontSize: '13px',
+                    background: taskResult.success ? '#f0fdf4' : '#fef2f2',
+                    color: taskResult.success ? '#16a34a' : '#dc2626',
+                    border: taskResult.success ? '1px solid #bbf7d0' : '1px solid #fecaca',
+                  }}>
+                    {taskResult.message}
+                  </div>
+                )}
+                <button
+                  type="submit"
+                  disabled={!taskForm.title.trim() || !taskForm.assigned_to || creatingTask}
+                  style={{
+                    width: '100%', padding: '12px',
+                    background: (taskForm.title.trim() && taskForm.assigned_to) ? '#000' : '#e5e7eb',
+                    color: (taskForm.title.trim() && taskForm.assigned_to) ? '#fff' : '#9ca3af',
+                    border: 'none', borderRadius: '10px', fontSize: '14px',
+                    fontWeight: 600, cursor: (taskForm.title.trim() && taskForm.assigned_to) ? 'pointer' : 'default',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  {creatingTask ? 'Creating...' : 'Create Task'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Messages */}
       <div style={styles.messagesContainer} ref={messagesContainerRef}>

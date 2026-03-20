@@ -171,6 +171,7 @@ export default function MedicationsPage() {
   const [recentDispensing, setRecentDispensing] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
   const [search, setSearch] = useState('');
 
   // Dispense modal state
@@ -325,13 +326,26 @@ export default function MedicationsPage() {
     return next.toISOString().split('T')[0];
   };
 
-  const displayed = search
-    ? medications.filter(m =>
-        m.patient_name.toLowerCase().includes(search.toLowerCase()) ||
-        (m.medication || '').toLowerCase().includes(search.toLowerCase()) ||
-        (m.program_name || '').toLowerCase().includes(search.toLowerCase())
-      )
-    : medications;
+  // Category matching helper
+  const matchesCategory = (m) => {
+    if (categoryFilter === 'all') return true;
+    const pt = (m.program_type || '').toLowerCase();
+    const med = (m.medication || m.program_name || '').toLowerCase();
+    if (categoryFilter === 'hrt') return pt.includes('hrt');
+    if (categoryFilter === 'weight_loss') return pt.includes('weight_loss');
+    if (categoryFilter === 'peptide') return pt === 'peptide';
+    if (categoryFilter === 'nad') return med.includes('nad');
+    if (categoryFilter === 'vitamins') return med.includes('b12') || med.includes('vitamin') || med.includes('glutathione');
+    return true;
+  };
+
+  const displayed = medications
+    .filter(m => matchesCategory(m))
+    .filter(m => !search ||
+      m.patient_name.toLowerCase().includes(search.toLowerCase()) ||
+      (m.medication || '').toLowerCase().includes(search.toLowerCase()) ||
+      (m.program_name || '').toLowerCase().includes(search.toLowerCase())
+    );
 
   const formatDate = (d) => {
     if (!d) return '—';
@@ -393,6 +407,33 @@ export default function MedicationsPage() {
           onChange={e => setSearch(e.target.value)}
           style={s.searchInput}
         />
+      </div>
+
+      {/* Category Filters */}
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', flexWrap: 'wrap' }}>
+        {[
+          { key: 'all', label: 'All Types', color: '#6b7280' },
+          { key: 'hrt', label: 'HRT', color: '#2563eb' },
+          { key: 'weight_loss', label: 'Weight Loss', color: '#16a34a' },
+          { key: 'peptide', label: 'Peptide', color: '#9333ea' },
+          { key: 'nad', label: 'NAD+', color: '#ea580c' },
+          { key: 'vitamins', label: 'Vitamins', color: '#0891b2' },
+        ].map(c => (
+          <button
+            key={c.key}
+            onClick={() => setCategoryFilter(c.key)}
+            style={{
+              padding: '6px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: 500,
+              cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
+              border: categoryFilter === c.key ? `2px solid ${c.color}` : '1px solid #e5e7eb',
+              background: categoryFilter === c.key ? c.color : '#fff',
+              color: categoryFilter === c.key ? '#fff' : '#666',
+            }}
+          >
+            {c.label}
+            {categoryFilter !== c.key ? '' : ` (${displayed.length})`}
+          </button>
+        ))}
       </div>
 
       {/* Medications Table */}

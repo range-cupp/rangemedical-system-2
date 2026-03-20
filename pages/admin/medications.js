@@ -182,6 +182,8 @@ export default function MedicationsPage() {
   const [customDoseValue, setCustomDoseValue] = useState('');
   const [fulfillmentMethod, setFulfillmentMethod] = useState('in_clinic');
   const [trackingNumber, setTrackingNumber] = useState('');
+  const [dosingNotes, setDosingNotes] = useState('');
+  const [refillOverride, setRefillOverride] = useState(''); // '' = auto, or number of days
   const [logging, setLogging] = useState(false);
   const [logResult, setLogResult] = useState(null);
   const [dismissing, setDismissing] = useState(null); // protocol id being dismissed
@@ -257,6 +259,8 @@ export default function MedicationsPage() {
     setCustomDoseValue('');
     setFulfillmentMethod('in_clinic');
     setTrackingNumber('');
+    setDosingNotes('');
+    setRefillOverride('');
     setLogResult(null);
   };
 
@@ -265,7 +269,7 @@ export default function MedicationsPage() {
     setLogging(true);
     setLogResult(null);
     try {
-      const currentInterval = getIntervalForSupply(selectedSupplyType, dispensingProtocol);
+      const currentInterval = refillOverride ? parseInt(refillOverride) : getIntervalForSupply(selectedSupplyType, dispensingProtocol);
       const res = await fetch('/api/admin/dispense', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -280,6 +284,7 @@ export default function MedicationsPage() {
           supply_type_override: selectedSupplyType !== dispensingProtocol.supply_type ? selectedSupplyType : null,
           fulfillment_method: fulfillmentMethod,
           tracking_number: fulfillmentMethod === 'overnight' ? trackingNumber : null,
+          dosing_notes: dosingNotes || null,
         }),
       });
       if (res.status === 409) {
@@ -304,9 +309,10 @@ export default function MedicationsPage() {
     }
   };
 
-  // Compute the preview next refill date based on selected supply type
+  // Compute the preview next refill date based on selected supply type or refill override
   const getActiveInterval = () => {
     if (!dispensingProtocol) return null;
+    if (refillOverride) return parseInt(refillOverride);
     return getIntervalForSupply(selectedSupplyType, dispensingProtocol);
   };
 
@@ -685,6 +691,49 @@ export default function MedicationsPage() {
                   max={new Date().toISOString().split('T')[0]}
                   style={s.dateInput}
                 />
+              </div>
+
+              {/* Dosing Notes — for split dosing schedules */}
+              {dispensingProtocol && ['weight_loss'].includes((dispensingProtocol.program_type || '').toLowerCase()) && (
+                <div style={{ marginBottom: '14px' }}>
+                  <div style={s.fieldLabel}>Dosing Schedule (optional)</div>
+                  <input
+                    type="text"
+                    placeholder="e.g. 2mg x 2wks → 4mg x 2wks"
+                    value={dosingNotes}
+                    onChange={e => setDosingNotes(e.target.value)}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box', fontFamily: 'inherit', color: '#111' }}
+                  />
+                </div>
+              )}
+
+              {/* Refill Cycle Override */}
+              <div style={{ marginBottom: '14px' }}>
+                <div style={s.fieldLabel}>Refill Due In</div>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {[
+                    { label: 'Auto', value: '' },
+                    { label: '2 weeks', value: '14' },
+                    { label: '4 weeks', value: '28' },
+                    { label: '6 weeks', value: '42' },
+                    { label: '8 weeks', value: '56' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setRefillOverride(opt.value)}
+                      style={{
+                        padding: '7px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: '500',
+                        cursor: 'pointer', fontFamily: 'inherit',
+                        border: refillOverride === opt.value ? '2px solid #111' : '1px solid #ddd',
+                        background: refillOverride === opt.value ? '#111' : '#fff',
+                        color: refillOverride === opt.value ? '#fff' : '#666',
+                      }}
+                    >
+                      {opt.label}{opt.value === '' && getIntervalForSupply(selectedSupplyType, dispensingProtocol) ? ` (${getIntervalForSupply(selectedSupplyType, dispensingProtocol)}d)` : ''}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Preview: Next Refill */}

@@ -92,6 +92,7 @@ export default async function handler(req, res) {
       supply_type_override, // if staff switched supply type (e.g., prefilled → vial)
       fulfillment_method, // 'in_clinic' or 'overnight'
       tracking_number, // shipping tracking number for overnight orders
+      dosing_notes, // optional split-dosing schedule (e.g., "2mg x 2wks → 4mg x 2wks")
     } = req.body;
 
     if (!protocol_id || !patient_id) {
@@ -146,6 +147,7 @@ export default async function handler(req, res) {
         supply_type: supply_type_override || protocol.supply_type || null,
         fulfillment_method: fulfillment_method || 'in_clinic',
         tracking_number: tracking_number || null,
+        notes: dosing_notes || null,
       })
       .select('id')
       .single();
@@ -172,6 +174,11 @@ export default async function handler(req, res) {
     // If dosage was changed at dispense time, update the protocol's selected_dose
     if (dosage_override) {
       updateData.selected_dose = dosage_override;
+    }
+
+    // If dosing notes provided (split dosing), store on protocol for reference
+    if (dosing_notes) {
+      updateData.selected_dose = dosing_notes;
     }
 
     // If supply type was changed (e.g., switched from prefilled to vial), update protocol

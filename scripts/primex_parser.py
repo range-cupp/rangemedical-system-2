@@ -61,7 +61,11 @@ PATTERNS = [
     (r'SGPT\s*\(ALT\)\s+([<>]?[\d.,]+)',                 'alt'),
     (r'ALKALINE PHOSPHATASE\s+([<>]?[\d.,]+)',            'alkaline_phosphatase'),
     (r'BILIRUBIN,\s*TOTAL\s+([<>]?[\d.,]+)',             'total_bilirubin'),
+    (r'Gamma-glutamyl\s+Transferase\s+([<>]?[\d.,]+)',   'ggt'),
+    (r'\bGGT\b\s+([<>]?[\d.,]+)',                        'ggt'),
     (r'\bGLUCOSE\b\s+([<>]?[\d.,]+)',                   'glucose'),
+    (r'\bURIC\s+ACID\b\s+([<>]?[\d.,]+)',               'uric_acid'),
+    (r'\bMAGNESIUM\b\s+([<>]?[\d.,]+)',                 'magnesium'),
     (r'\bCALCIUM\b\s+([<>]?[\d.,]+)',                   'calcium'),
     (r'\bCHLORIDE\b\s+([<>]?[\d.,]+)',                  'chloride'),
     (r'\bCO2\b\s+([<>]?[\d.,]+)',                       'co2'),
@@ -73,12 +77,20 @@ PATTERNS = [
     (r'\bCREATININE\b\s+([<>]?[\d.,]+)',                'creatinine'),
     (r'e\.GFR\s*\(Calc\.\)\s+([<>]?[\d.,]+)',           'egfr'),
 
-    # ── Cardiac Risk ─────────────────────────────────────────────────────────
+    # ── Cardiac Risk / Lipids ────────────────────────────────────────────────
     (r'(?m)^\s*CHOLESTEROL\b\s+([<>]?[\d.,]+)',         'total_cholesterol'),
-    (r'(?m)^\s*HDL\b\s+([<>]?[\d.,]+)',                 'hdl_cholesterol'),
+    (r'HDL\s+CHOLESTEROL\s+([<>]?[\d.,]+)',             'hdl_cholesterol'),
+    (r'CHOL/HDL\s+RISK\s+RATIO\s*\(Calc\.\)\s+([<>]?[\d.,]+)', 'chol_hdl_ratio'),
     (r'(?m)^\s*VLDL\b\s*(?:\(Calc\.\))?\s+([<>]?[\d.,]+)', 'vldl_cholesterol'),
     (r'(?m)^\s*LDL\b\s*(?:\(Calc\.\))?\s+([<>]?[\d.,]+)',  'ldl_cholesterol'),
     (r'\bTRIGLYCERIDES\b\s+([<>]?[\d.,]+)',             'triglycerides'),
+    (r'APOLIPOPROT\.\s*A-?1\s+([<>]?[\d.,]+)',          'apolipoprotein_a1'),
+    (r'APOLIPOPROT\.?\s*B\b\s+([<>]?[\d.,]+)',          'apolipoprotein_b'),
+    (r'Apo\s+B/A1\s+Ratio\s+([<>]?[\d.,]+)',            'apo_b_a1_ratio'),
+    (r'LIPOPROTEIN\s*\(a\)\s+([<>]?[\d.,]+)',           'lp_a'),
+    (r'CRP,?\s*HIGHLY?\s+SENSITIVE?\s+([<>]?[\d.,]+)',   'crp_hs'),
+    (r'C-REACTIVE\s+PROTEIN.*?([<>]?[\d.,]+)',           'crp_hs'),
+    (r'\bHOMOCYSTEINE\b\s+([<>]?[\d.,]+)',              'homocysteine'),
 
     # ── CBC — MCHC before MCH to avoid partial match ─────────────────────────
     (r'\bWBC\b\s+([<>]?[\d.,]+)',                       'wbc'),
@@ -96,6 +108,7 @@ PATTERNS = [
     (r'MONOCYTES\s*%\s+([<>]?[\d.,]+)',                 'monocytes_percent'),
     (r'EOSINOPHILS\s*%\s+([<>]?[\d.,]+)',               'eosinophils_percent'),
     (r'BASOPHILS\s*%\s+([<>]?[\d.,]+)',                 'basophils_percent'),
+    (r'SED\s+RATE\s+([<>]?[\d.,]+)',                    'esr'),
 
     # ── Thyroid ───────────────────────────────────────────────────────────────
     (r'TSH\s*\(?3rd\s+GENERATION\)?\s+([<>]?[\d.,]+)', 'tsh'),
@@ -103,23 +116,25 @@ PATTERNS = [
     (r'FREE\s+T3\s+([<>]?[\d.,]+)',                     'free_t3'),
     (r'FREE\s+T4\s+([<>]?[\d.,]+)',                     'free_t4'),
     (r'THYROID\s+PEROXIDASE\s+AB\.?\s+([<>]?[\d.,]+)', 'tpo_antibody'),
+    (r'THYROGLOBULIN\s+ANTIBODY\s+([<>]?[\d.,]+)',     'thyroglobulin_antibody'),
 
     # ── Vitamins ──────────────────────────────────────────────────────────────
     (r'VITAMIN\s+D,\s*25-HYDROXY\s+([<>]?[\d.,]+)',    'vitamin_d'),
-    (r'VITAMIN\s+B-12\s+([<>]?[\d.,]+)',               'vitamin_b12'),
+    (r'VITAMIN\s+B-?12\s+([<>]?[\d.,]+)',              'vitamin_b12'),
+    (r'FOLATE(?:,\s*SERUM)?\s+([<>]?[\d.,]+)',         'folate'),
 
     # ── Anemia Profile ────────────────────────────────────────────────────────
     (r'SERUM\s+IRON\s+([<>]?[\d.,]+)',                 'iron'),
-    (r'\bTIBC\b\s+([<>]?[\d.,]+)',                     'tibc'),
-    (r'%?IRON\s+SATURATION\s+([<>]?[\d.,]+)',          'iron_saturation'),
+    (r'\bTIBC\b\s*(?:\(Calc\.\))?\s+([<>]?[\d.,]+)',  'tibc'),
+    (r'%?IRON\s+SATURATION\s*(?:\(Calc\.\))?\s+([<>]?[\d.,]+)', 'iron_saturation'),
+    (r'\bFERRITIN\b\s+([<>]?[\d.,]+)',                 'ferritin'),
 
     # ── Special Chemistry ─────────────────────────────────────────────────────
     (r'\bHGBA1C\b\s+([<>]?[\d.,]+)',                   'hemoglobin_a1c'),
     (r'GROWTH\s+HORMONE\s*\(?GH\)?\s+([<>]?[\d.,]+)', 'growth_hormone'),
     (r'INSULIN,?\s+FASTING\s+([<>]?[\d.,]+)',          'fasting_insulin'),
-
-    # ── Sed Rate ──────────────────────────────────────────────────────────────
-    (r'SED\s+RATE\s+([<>]?[\d.,]+)',                   'esr'),
+    (r'\bCORTISOL\b\s+([<>]?[\d.,]+)',                 'cortisol'),
+    (r'\bIGF-1\b\s+([<>]?[\d.,]+)',                    'igf_1'),
 
     # ── Hormonal ──────────────────────────────────────────────────────────────
     (r'\bESTRADIOL\b\s+([<>]?[\d.,]+)',                'estradiol'),
@@ -128,9 +143,13 @@ PATTERNS = [
     (r'SEX\s+HORMONE\s+BNDG\.?\s+GLOBULIN\s+([<>]?[\d.,]+)', 'shbg'),
     (r'TESTOSTERONE,\s*TOTAL\s+([<>]?[\d.,]+)',        'total_testosterone'),
     (r'TESTOSTERONE,\s*FREE\s+([<>]?[\d.,]+)',         'free_testosterone'),
+    (r'\bDHEA-?SULFATE\b\s+([<>]?[\d.,]+)',            'dhea_s'),
+    (r'\bDHT\b\s+([<>]?[\d.,]+)',                      'dht'),
 
     # ── Tumor Markers ─────────────────────────────────────────────────────────
-    (r'PSA,\s*Total\s+([<>]?[\d.,]+)',                 'psa_total'),
+    (r'PSA,?\s*Total\s+([<>]?[\d.,]+)',                'psa_total'),
+    (r'FREE\s+PSA\b\s+([<>]?[\d.,]+)',                 'psa_free'),
+    (r'%\s*FREE\s+PSA\s*\(Calc\.\)\s+([<>]?[\d.,]+)', 'psa_free_percent'),
 ]
 
 

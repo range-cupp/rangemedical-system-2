@@ -36,7 +36,7 @@ const testMapping = {
   'psa, total': 'psa_total',
   'prostate specific ag': 'psa_total',
   'psa, free': 'psa_free',
-  '% free psa': 'psa_free',
+  '% free psa': 'psa_free_percent',
   'insulin': 'fasting_insulin',
   'hemoglobin a1c': 'hemoglobin_a1c',
   'uric acid': 'uric_acid',
@@ -105,7 +105,16 @@ const testMapping = {
   'lymphs (absolute)': 'lymphocytes_absolute',
   'monocytes(absolute)': 'monocytes_absolute',
   'eos (absolute)': 'eosinophils_absolute',
-  'baso (absolute)': 'basophils_absolute'
+  'baso (absolute)': 'basophils_absolute',
+  'globulin': 'globulin',
+  'a/g ratio': 'ag_ratio',
+  'anion gap': 'anion_gap',
+  'mpv': 'mpv',
+  'sed rate': 'esr',
+  'sedimentation rate': 'esr',
+  'reverse t3': 'reverse_t3',
+  't4, total': 'total_t4',
+  'total t4': 'total_t4',
 };
 
 function parseCSVLine(line) {

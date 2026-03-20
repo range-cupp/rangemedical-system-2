@@ -17,22 +17,49 @@ const supabase = createClient(
 
 // ── Biomarker name → DB column ────────────────────────────────────────────────
 const BIOMARKER_MAP = {
+  // Chemistry / CMP
   'TOTAL PROTEIN': 'total_protein', 'ALBUMIN': 'albumin',
-  'GLOBULIN (CALC.)': 'globulin', 'A/G RATIO (CALC.)': 'ag_ratio',
+  'GLOBULIN (CALC.)': 'globulin', 'GLOBULIN': 'globulin',
+  'A/G RATIO (CALC.)': 'ag_ratio', 'A/G RATIO': 'ag_ratio',
   'SGOT (AST)': 'ast', 'SGPT (ALT)': 'alt',
   'ALKALINE PHOSPHATASE': 'alkaline_phosphatase', 'BILIRUBIN, TOTAL': 'total_bilirubin',
-  'GGT': 'ggt', 'GLUCOSE': 'glucose', 'URIC ACID': 'uric_acid',
+  'GAMMA-GLUTAMYL TRANSFERASE': 'ggt', 'GGT': 'ggt',
+  'GLUCOSE': 'glucose', 'URIC ACID': 'uric_acid',
+  'MAGNESIUM': 'magnesium',
+  'BUN/CREATININE (CALC.)': 'bun_creatinine_ratio', 'BUN/CREATININE': 'bun_creatinine_ratio',
   'BUN': 'bun', 'CREATININE': 'creatinine',
-  'BUN/CREATININE (CALC.)': 'bun_creatinine_ratio', 'E.GFR (CALC.)': 'egfr',
+  'E.GFR (CALC.)': 'egfr', 'EGFR': 'egfr',
   'CALCIUM': 'calcium', 'CHLORIDE': 'chloride', 'CO2': 'co2',
-  'SODIUM': 'sodium', 'POTASSIUM': 'potassium', 'ANION GAP (CALC.)': 'anion_gap',
-  'CHOLESTEROL': 'total_cholesterol', 'HDL CHOLESTEROL': 'hdl_cholesterol',
+  'SODIUM': 'sodium', 'POTASSIUM': 'potassium',
+  'ANION GAP (CALC.)': 'anion_gap', 'ANION GAP': 'anion_gap',
+  // Cardiac Risk / Lipids
+  'CHOL/HDL RISK RATIO (CALC.)': 'chol_hdl_ratio', 'CHOL/HDL RISK RATIO': 'chol_hdl_ratio',
+  'HDL CHOLESTEROL': 'hdl_cholesterol', 'CHOLESTEROL': 'total_cholesterol',
   'LDL (CALC.)': 'ldl_cholesterol', 'VLDL (CALC.)': 'vldl_cholesterol',
   'TRIGLYCERIDES': 'triglycerides',
+  'APOLIPOPROT. A-1': 'apolipoprotein_a1', 'APOLIPOPROTEIN A-1': 'apolipoprotein_a1',
+  'APOLIPOPROT.B': 'apolipoprotein_b', 'APOLIPOPROTEIN B': 'apolipoprotein_b',
+  'APO B/A1 RATIO': 'apo_b_a1_ratio',
+  'LIPOPROTEIN (A)': 'lp_a', 'LIPOPROTEIN(A)': 'lp_a',
+  'CRP, HIGHLY SENSITIVE': 'crp_hs',
+  'C-REACTIVE PROTEIN, HIGH SENSITIVITY': 'crp_hs',
+  'C-REACTIVE PROTEIN': 'crp_hs', 'CRP, HIGH SENSITIVITY': 'crp_hs',
+  'HOMOCYSTEINE': 'homocysteine',
+  // Thyroid
   'TOTAL T4': 'total_t4', 'FREE T4': 'free_t4',
   'TSH (3RD GENERATION)': 'tsh', 'FREE T3': 'free_t3',
   'REVERSE T3': 'reverse_t3',
   'THYROID PEROXIDASE AB.': 'tpo_antibody', 'THYROID PEROXIDASE AB': 'tpo_antibody',
+  'THYROGLOBULIN ANTIBODY': 'thyroglobulin_antibody',
+  // Anemia / Iron
+  'SERUM IRON': 'iron', 'IRON': 'iron',
+  'TIBC (CALC.)': 'tibc', 'TIBC': 'tibc',
+  '%IRON SATURATION (CALC.)': 'iron_saturation', '%IRON SATURATION': 'iron_saturation',
+  'IRON SATURATION': 'iron_saturation',
+  'FERRITIN': 'ferritin',
+  'VITAMIN B-12': 'vitamin_b12', 'VITAMIN B12': 'vitamin_b12',
+  'FOLATE, SERUM': 'folate', 'FOLATE': 'folate',
+  // CBC
   'WBC': 'wbc', 'RBC': 'rbc', 'HGB': 'hemoglobin', 'HCT': 'hematocrit',
   'MCV': 'mcv', 'MCH': 'mch', 'MCHC': 'mchc', 'RDW': 'rdw',
   'PLATELETS': 'platelets', 'MPV': 'mpv',
@@ -42,23 +69,25 @@ const BIOMARKER_MAP = {
   'NEUTROPHILS': 'neutrophils_percent', 'LYMPHOCYTES': 'lymphocytes_percent',
   'MONOCYTES': 'monocytes_percent', 'EOSINOPHILS': 'eosinophils_percent',
   'BASOPHILS': 'basophils_percent',
+  'SED RATE': 'esr',
+  // Special Chemistry
   'HGBA1C': 'hemoglobin_a1c', 'HEMOGLOBIN A1C': 'hemoglobin_a1c',
   'INSULIN, FASTING': 'fasting_insulin',
-  'VITAMIN D, 25-HYDROXY': 'vitamin_d', 'VITAMIN B12': 'vitamin_b12',
-  'FOLATE': 'folate',
+  'VITAMIN D, 25-HYDROXY': 'vitamin_d',
+  'IGF-1': 'igf_1', 'CORTISOL': 'cortisol',
+  // Hormonal
   'TESTOSTERONE, TOTAL': 'total_testosterone',
   'TESTOSTERONE, FREE': 'free_testosterone', 'FREE TESTOSTERONE': 'free_testosterone',
   'TESTOSTERONE, FREE (CALC.)': 'free_testosterone',
-  'SHBG': 'shbg', 'ESTRADIOL': 'estradiol', 'PROGESTERONE': 'progesterone',
+  'SEX HORMONE BNDG. GLOBULIN': 'shbg', 'SEX HORMONE BINDING GLOBULIN': 'shbg', 'SHBG': 'shbg',
+  'ESTRADIOL': 'estradiol', 'PROGESTERONE': 'progesterone',
   'DHEA-SULFATE': 'dhea_s', 'DHEA SULFATE': 'dhea_s',
-  'LH': 'lh', 'FSH': 'fsh', 'IGF-1': 'igf_1', 'CORTISOL': 'cortisol',
+  'LH': 'lh', 'FSH': 'fsh',
+  'DHT': 'dht', 'AMH': 'amh',
+  // Tumor Markers / Prostate
   'PSA, TOTAL': 'psa_total', 'PSA TOTAL': 'psa_total',
-  'FREE PSA': 'psa_free', 'AMH': 'amh',
-  'IRON': 'iron', 'TIBC': 'tibc', 'IRON SATURATION': 'iron_saturation',
-  'FERRITIN': 'ferritin',
-  'C-REACTIVE PROTEIN, HIGH SENSITIVITY': 'crp_hs',
-  'C-REACTIVE PROTEIN': 'crp_hs', 'CRP, HIGH SENSITIVITY': 'crp_hs',
-  'HOMOCYSTEINE': 'homocysteine', 'DHT': 'dht',
+  'FREE PSA': 'psa_free',
+  '% FREE PSA (CALC.)': 'psa_free_percent', '% FREE PSA': 'psa_free_percent',
 };
 const SORTED_KEYS = Object.keys(BIOMARKER_MAP).sort((a, b) => b.length - a.length);
 
@@ -124,10 +153,11 @@ function parseBiomarkers(lines) {
     'RANGE MEDICAL', 'David V', 'DOB:', '000000', 'RVD', 'CONTINUED',
     'NOTE', '*', 'Reference', 'According', 'Vitamin D status', 'Hemoglobin',
     'HgB', 'To convert', 'Values for', 'The above', 'Male:', 'Female:',
-    '1901', 'NEWPORT BEACH', '949', 'END OF', 'Units for', 'CHOL/HDL',
+    '1901', 'NEWPORT BEACH', '949', 'END OF', 'Units for',
     'For African', 'interpreted', 'interfere', 'insulin antibodies',
     'overweight', 'Deficiency', 'Insufficiency', 'Sufficiency', 'Toxicity',
     'HgB A1c', 'preceding', '<5.7', '6.1', '6.5%',
+    'Recent data', 'If Total', 'In Prostate',
   ];
   const results = {};
   for (const rawLine of lines) {

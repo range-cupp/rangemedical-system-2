@@ -89,6 +89,7 @@ export default async function handler(req, res) {
       refill_interval_days, // override if provided, otherwise auto-calculated
       dosage_override, // if staff changed dosage at dispense time
       quantity, // number of units dispensed (e.g., 2 injections for weight loss)
+      supply_type_override, // if staff switched supply type (e.g., prefilled → vial)
       fulfillment_method, // 'in_clinic' or 'overnight'
       tracking_number, // shipping tracking number for overnight orders
     } = req.body;
@@ -142,7 +143,7 @@ export default async function handler(req, res) {
         entry_date: entryDate,
         medication: protocol.medication || null,
         dosage: dosage_override || protocol.selected_dose || null,
-        supply_type: protocol.supply_type || null,
+        supply_type: supply_type_override || protocol.supply_type || null,
         fulfillment_method: fulfillment_method || 'in_clinic',
         tracking_number: tracking_number || null,
       })
@@ -171,6 +172,11 @@ export default async function handler(req, res) {
     // If dosage was changed at dispense time, update the protocol's selected_dose
     if (dosage_override) {
       updateData.selected_dose = dosage_override;
+    }
+
+    // If supply type was changed (e.g., switched from prefilled to vial), update protocol
+    if (supply_type_override) {
+      updateData.supply_type = supply_type_override;
     }
 
     const { error: updateError } = await supabase

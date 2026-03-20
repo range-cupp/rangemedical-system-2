@@ -75,18 +75,12 @@ function getSupplyOptions(med) {
   const pt = (med.program_type || '').toLowerCase();
   const supply = (med.supply_type || '').toLowerCase();
 
-  // HRT prefilled — allow choosing 1-week, 2-week, or 4-week
-  if (pt.includes('hrt') && (supply.startsWith('prefilled') || supply === 'in_clinic')) {
+  // HRT — show all supply options: prefilled syringes AND vials
+  if (pt.includes('hrt')) {
     return [
       { value: 'prefilled_1week', label: '1-Week Prefilled', days: 7 },
       { value: 'prefilled_2week', label: '2-Week Prefilled', days: 14 },
       { value: 'prefilled_4week', label: '4-Week Prefilled', days: 28 },
-    ];
-  }
-
-  // HRT vials — allow choosing different vial sizes
-  if (pt.includes('hrt') && supply.includes('vial')) {
-    return [
       { value: 'vial_5ml', label: '5ml Vial', days: null },
       { value: 'vial_10ml', label: '10ml Vial', days: null },
     ];
@@ -109,6 +103,22 @@ function getSupplyOptions(med) {
   }
 
   // No options to change for other types (pellets, oral)
+  return null;
+}
+
+// Parse per-injection dose from dosage string (mirrors server-side parseDoseMl)
+function parseDoseMl(selectedDose) {
+  if (!selectedDose) return null;
+  const weeksMatch = selectedDose.match(/\((\d+)\s*weeks?\)/i);
+  if (weeksMatch) return { weeks: parseInt(weeksMatch[1]) };
+  if (/vial\s*\(\d+ml/i.test(selectedDose)) return null;
+  const atMlMatch = selectedDose.match(/@\s*(\d+\.?\d*)\s*ml/i);
+  if (atMlMatch) return { ml: parseFloat(atMlMatch[1]) };
+  const mlMatch = selectedDose.match(/(\d+\.?\d*)\s*ml/i);
+  if (mlMatch) {
+    const ml = parseFloat(mlMatch[1]);
+    if (ml < 2) return { ml };
+  }
   return null;
 }
 
@@ -136,10 +146,20 @@ function getIntervalForSupply(supplyValue, med) {
     if (!isNaN(days)) return days;
   }
 
-  // Vials — use the protocol's existing calculated interval
-  // (already computed server-side based on dose + injection frequency)
+  // Vials — calculate from dose + injection frequency (same logic as server-side)
   if (supplyValue === 'vial_5ml' || supplyValue === 'vial_10ml') {
-    return med.refill_interval_days || 28;
+    const vialMl = supplyValue === 'vial_5ml' ? 5 : 10;
+    const parsed = parseDoseMl(med.dosage);
+    if (parsed?.weeks) return parsed.weeks * 7;
+    if (parsed?.ml) {
+      const isSubQ = (med.injection_method || '').toLowerCase() === 'subq';
+      const injectionsPerWeek = isSubQ ? 7 : 2;
+      const mlPerWeek = parsed.ml * injectionsPerWeek;
+      const weeks = vialMl / mlPerWeek;
+      return Math.round(weeks * 7);
+    }
+    // Fallback: estimate conservatively
+    return supplyValue === 'vial_5ml' ? 42 : 84;
   }
 
   return med.refill_interval_days || 28;
@@ -219,6 +239,16 @@ export default function MedicationsPage() {
       // Default to first vial supply option if available
       const vialSupply = getPeptideVialSupply(med.medication || med.program_name || '');
       setSelectedSupplyType(vialSupply ? vialSupply.options[0].value : '');
+    } else if (pt.includes('hrt')) {
+      // HRT — default to their current supply type, or prefilled_2week as fallback
+      const currentSupply = (med.supply_type || '').toLowerCase();
+      if (currentSupply.includes('vial')) {
+        setSelectedSupplyType(currentSupply.includes('5') ? 'vial_5ml' : 'vial_10ml');
+      } else if (currentSupply.startsWith('prefilled')) {
+        setSelectedSupplyType(currentSupply);
+      } else {
+        setSelectedSupplyType('prefilled_2week');
+      }
     } else {
       setSelectedSupplyType(med.supply_type || '');
     }
@@ -247,6 +277,7 @@ export default function MedicationsPage() {
           refill_interval_days: currentInterval,
           dosage_override: dispenseDosage !== dispensingProtocol.dosage ? dispenseDosage : null,
           quantity: selectedSupplyType.startsWith('wl_') ? parseInt(selectedSupplyType.split('_')[1]) : 1,
+          supply_type_override: selectedSupplyType !== dispensingProtocol.supply_type ? selectedSupplyType : null,
           fulfillment_method: fulfillmentMethod,
           tracking_number: fulfillmentMethod === 'overnight' ? trackingNumber : null,
         }),

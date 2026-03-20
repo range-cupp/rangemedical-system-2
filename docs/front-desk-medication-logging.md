@@ -43,29 +43,23 @@ When you charge a patient through the POS:
 
 ---
 
-### HRT / Testosterone — TWO SEPARATE STEPS
+### HRT / Testosterone
 
-HRT is different from everything else. **Payment and dispensing are separate** because patients pay monthly but get medication on a different schedule (every 30 days, every 8 weeks, or a full vial).
+HRT monthly payments are handled automatically through subscriptions — **front desk does not process HRT payments.**
 
-#### Step 1: Monthly Payment (billing day)
-1. Open POS
-2. Select "Testosterone Cypionate"
-3. Process payment
-4. **That's it** — this only records the payment and extends the protocol. It does NOT log medication being dispensed.
+Your only job with HRT is **dispensing medication when it actually leaves the clinic.**
 
-#### Step 2: Dispense Medication (when vial actually leaves)
-1. Go to **Admin → Medications** page
+**When a patient picks up their vial or prefilled syringes (or you ship it):**
+1. Go to **Admin → Medications**
 2. Find the patient's HRT protocol
 3. Click **Dispense**
-4. Confirm the date and supply type (vial, prefilled syringes, etc.)
-5. **Select fulfillment method:**
-   - **Picked Up In Clinic** — patient is here picking up their vial
-   - **Overnighted** — vial being shipped (enter tracking number)
+4. Select the **supply type** (vial 5ml, vial 10ml, prefilled 1-week, prefilled 2-week, etc.)
+5. Select **fulfillment**:
+   - **Picked Up In Clinic** — patient is here picking up their medication
+   - **Overnighted** — being shipped (enter tracking number)
 6. Click **Dispense & Log Pickup**
 
-**This is what actually records the medication leaving the clinic** and sets the next refill date.
-
-**Key point:** Step 1 and Step 2 may happen on different days. A patient might pay on the 1st but pick up their vial on the 5th. That's fine — each step is tracked independently.
+This logs what was dispensed, how it left, and sets the next refill date.
 
 ---
 
@@ -140,8 +134,8 @@ This shows in two places:
 ## Common Mistakes to Avoid
 
 1. **Don't use "Custom Charge" for medication** — always select the specific product so the medication name gets logged
-2. **Don't forget to Dispense HRT separately** — the POS charge only records payment, not medication leaving
-3. **Don't create manual service log entries for POS purchases** — the system auto-creates them (except HRT). Double entries = inaccurate records
+2. **Don't forget to Dispense HRT** — HRT payments are automatic, but you still need to click Dispense on the Medications page when medication actually leaves
+3. **Don't create manual service log entries for POS purchases** — the system auto-creates them for weight loss and peptides. Double entries = inaccurate records
 4. **Don't mix up peptide products** — "BPC-157 / TB4 Vial" and "GLOW Vial" are different medications
 5. **Don't skip the POS for free/comped medication** — run it as a $0 charge so it's still tracked
 
@@ -167,8 +161,7 @@ This shows in two places:
 |--------|-------|
 | Charge for weight loss medication | POS → select product → fulfillment → charge |
 | Charge for peptide | POS → select product → fulfillment → charge |
-| Charge HRT monthly payment | POS → Testosterone Cypionate → charge |
-| **Dispense HRT vial** | **Admin → Medications → Dispense button** |
+| **Dispense HRT medication** | **Admin → Medications → find patient → Dispense** |
 | Log an IV/HBOT/RLT session | Service Log |
 | Check a patient's medication history | Patient profile → Protocols tab |
 

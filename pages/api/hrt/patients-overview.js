@@ -36,6 +36,7 @@ export default async function handler(req, res) {
         delivery_method,
         supply_type,
         hrt_type,
+        first_followup_weeks,
         labs_completed,
         baseline_labs_date,
         eight_week_labs_date,
@@ -191,9 +192,10 @@ export default async function handler(req, res) {
       let nextDraw = null;
       let labStatus = 'n/a';
       if (protocol.status === 'active' && protocol.start_date) {
+        const firstFollowup = protocol.first_followup_weeks || 8;
         schedule = buildAdaptiveHRTSchedule(
           protocol.start_date,
-          8,
+          firstFollowup,
           bloodDrawLogs,
           labs,
           labProtocols

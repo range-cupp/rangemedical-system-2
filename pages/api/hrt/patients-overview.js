@@ -145,7 +145,7 @@ export default async function handler(req, res) {
 
     const { data: allLabs } = await supabase
       .from('labs')
-      .select('id, patient_id, test_date, collection_date, lab_date, completed_date, panel_type, status')
+      .select('id, patient_id, test_date, completed_date, panel_type, status')
       .in('patient_id', patientIds)
       .order('test_date', { ascending: false });
 

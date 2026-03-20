@@ -300,7 +300,7 @@ export default async function handler(req, res) {
         // Pending lab orders
         supabase.from('lab_orders').select('*').eq('patient_id', id).eq('status', 'pending').order('order_date', { ascending: false }),
         // Labs
-        supabase.from('labs').select('id, patient_id, test_date, collection_date, lab_date, lab_type, panel_type, lab_provider, status, completed_date, results_received_date').eq('patient_id', id).order('test_date', { ascending: false }),
+        supabase.from('labs').select('id, patient_id, test_date, lab_type, panel_type, lab_provider, status, completed_date, results_received_date').eq('patient_id', id).order('test_date', { ascending: false }),
         // Pending purchases (by patient_id first)
         supabase.from('purchases').select('*').eq('patient_id', id).eq('protocol_created', false).is('protocol_id', null).eq('dismissed', false).order('purchase_date', { ascending: false }),
         // Intakes (by patient_id first)

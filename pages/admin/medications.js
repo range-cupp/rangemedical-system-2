@@ -754,6 +754,7 @@ export default function MedicationsPage() {
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                   {[
                     { label: 'Auto', value: '' },
+                    { label: '1 week', value: '7' },
                     { label: '2 weeks', value: '14' },
                     { label: '4 weeks', value: '28' },
                     { label: '6 weeks', value: '42' },

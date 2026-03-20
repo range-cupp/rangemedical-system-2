@@ -138,8 +138,8 @@ export default function ConversationView({ patientId, patientName, patientPhone,
       setTotalMessages(data.total || localLogs.length);
       if (!silent) setLoading(false);
 
-      // Sync Twilio call history in background (non-blocking)
-      if (patientPhone && !callsSynced) {
+      // Sync Twilio call history in background (non-blocking) — requires patientId
+      if (patientPhone && patientId && !callsSynced) {
         syncTwilioCalls();
       }
     } catch (err) {
@@ -266,7 +266,8 @@ export default function ConversationView({ patientId, patientName, patientPhone,
       if (!res.ok) {
         // Mark the optimistic message as failed
         setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'error' } : m));
-        throw new Error(data.error || 'Failed to send');
+        const details = data.details ? ` (${data.details})` : '';
+        throw new Error((data.error || 'Failed to send') + details);
       }
 
       // Update optimistic message status to sent

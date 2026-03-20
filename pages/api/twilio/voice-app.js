@@ -37,7 +37,7 @@ export default async function handler(req, res) {
 
   return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial callerId="${callerIdNumber}" timeout="30" record="record-from-answer-dual-channel" recordingStatusCallback="/api/twilio/recording/status" statusCallbackEvent="completed" statusCallback="${callStatusUrl}">
+  <Dial callerId="${callerIdNumber}" timeout="30" record="record-from-answer-dual-channel" recordingStatusCallback="/api/twilio/recording/status" statusCallbackEvent="completed busy no-answer failed canceled" statusCallback="${callStatusUrl}">
     <Number>
       ${dialNumber}
     </Number>

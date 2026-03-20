@@ -11,20 +11,19 @@
   .slide { width:1080px; height:1080px; position:relative; background:#0A0A0A; }
   .slide::before { content:''; position:absolute; inset:0; background-image:linear-gradient(rgba(255,255,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.03) 1px,transparent 1px); background-size:72px 72px; pointer-events:none; }
 
-  .top-bar { position:absolute; top:72px; left:72px; right:72px; display:flex; justify-content:space-between; align-items:flex-start; z-index:2; }
+  .top-bar { position:absolute; top:72px; left:108px; right:108px; display:flex; justify-content:space-between; align-items:center; z-index:2; }
   .brand { font-size:20px; font-weight:700; letter-spacing:0.02em; color:rgba(255,255,255,0.5); }
   .slide-num { font-size:18px; font-weight:500; letter-spacing:0.08em; color:rgba(255,255,255,0.3); }
 
-  .center { position:absolute; top:220px; left:72px; right:72px; z-index:2; }
-  .pill-label { display:inline-flex; align-items:center; gap:12px; font-size:17px; font-weight:600; letter-spacing:0.2em; text-transform:uppercase; color:rgba(255,255,255,0.4); margin-bottom:40px; }
-  .pill-label::before { content:''; display:block; width:28px; height:1px; background:rgba(255,255,255,0.3); }
-  .headline { font-size:110px; font-weight:800; line-height:0.92; letter-spacing:-5px; color:#FFFFFF; margin-bottom:52px; }
+  .center { position:absolute; top:0; left:108px; right:108px; bottom:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; z-index:2; }
+  .pill-label { display:flex; align-items:center; gap:16px; font-size:20px; font-weight:700; letter-spacing:0.22em; text-transform:uppercase; color:rgba(255,255,255,0.35); margin-bottom:40px; }
+  .pill-label::before, .pill-label::after { content:''; display:block; width:32px; height:1px; background:rgba(255,255,255,0.25); }
+  .headline { font-size:110px; font-weight:800; line-height:0.92; letter-spacing:-5px; color:#FFFFFF; margin-bottom:44px; }
   .rule { width:56px; height:1px; background:rgba(255,255,255,0.25); margin-bottom:32px; }
-  .descriptor { font-size:26px; font-weight:400; line-height:1.5; color:rgba(255,255,255,0.48); max-width:580px; }
+  .descriptor { font-size:32px; font-weight:400; line-height:1.55; color:rgba(255,255,255,0.42); }
 
-  .bottom-bar { position:absolute; bottom:64px; left:72px; right:72px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,0.08); padding-top:20px; z-index:2; }
-  .tag { font-size:17px; font-weight:500; color:rgba(255,255,255,0.25); }
-  .swipe-cta { font-size:17px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.35); }
+  .bottom-bar { position:absolute; bottom:64px; left:108px; right:108px; display:flex; justify-content:center; border-top:1px solid rgba(255,255,255,0.08); padding-top:20px; z-index:2; }
+  .swipe-cta { font-size:20px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:rgba(255,255,255,0.35); }
 </style>
 </head>
 <body>
@@ -37,10 +36,10 @@
     <div class="pill-label">Peptide Therapy</div>
     <div class="headline">BPC-157 /<br/>Thymosin<br/>Beta 4</div>
     <div class="rule"></div>
-    <p class="descriptor">The peptide combination that heals locally and systemically — at the same time.</p>
+    <p class="descriptor">The peptide combination that heals locally<br/>and systemically &#8212; at the same time.</p>
   </div>
   <div class="bottom-bar">
-    <span class="swipe-cta">Swipe to learn more &rarr;</span>
+    <span class="swipe-cta">Swipe to learn more &#8594;</span>
   </div>
 </div>
 </body>

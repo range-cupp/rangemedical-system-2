@@ -2,6 +2,7 @@
 // Cancel an appointment with reason
 
 import { createClient } from '@supabase/supabase-js';
+import { sendProviderNotification } from '../../../../lib/provider-notifications';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -56,6 +57,19 @@ export default async function handler(req, res) {
       new_status: 'cancelled',
       metadata: cancellation_reason ? { cancellation_reason } : {},
     });
+
+    // Send provider SMS for cancellation (fire-and-forget)
+    if (appointment.provider) {
+      sendProviderNotification({
+        type: 'cancelled',
+        provider: appointment.provider,
+        appointment: {
+          patientName: appointment.patient_name,
+          serviceName: appointment.service_name,
+          startTime: appointment.start_time,
+        },
+      }).catch(err => console.error('Provider SMS cancel failed:', err));
+    }
 
     return res.status(200).json({ appointment: updated });
   } catch (error) {

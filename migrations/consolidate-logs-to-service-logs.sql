@@ -26,7 +26,7 @@ INSERT INTO service_logs (
   created_at
 )
 SELECT
-  pl.patient_id,
+  COALESCE(pl.patient_id, p.patient_id),
   pl.protocol_id,
   -- Derive category from protocol's program_type
   CASE

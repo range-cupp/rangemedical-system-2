@@ -29,7 +29,7 @@ export default function EmployeesPage() {
   const [saving, setSaving] = useState(false);
 
   // Add form state
-  const [addForm, setAddForm] = useState({ name: '', email: '', title: 'Staff', password: '' });
+  const [addForm, setAddForm] = useState({ name: '', email: '', title: 'Staff', phone: '', password: '' });
 
   const authHeaders = useCallback(() => ({
     Authorization: `Bearer ${session?.access_token}`,
@@ -133,7 +133,7 @@ export default function EmployeesPage() {
       const data = await res.json();
       if (data.success) {
         setAddModal(false);
-        setAddForm({ name: '', email: '', title: 'Staff', password: '' });
+        setAddForm({ name: '', email: '', title: 'Staff', phone: '', password: '' });
         fetchEmployees();
         const tempPwMsg = data.tempPassword
           ? ` Temporary password: ${data.tempPassword}`
@@ -160,6 +160,7 @@ export default function EmployeesPage() {
         body: JSON.stringify({
           name: editModal.name,
           title: editModal.title,
+          phone: editModal.phone || null,
           calcom_user_id: editModal.calcom_user_id || null,
         }),
       });
@@ -231,7 +232,7 @@ export default function EmployeesPage() {
                   <div style={pageStyles.avatar}>{(emp.name || '?')[0].toUpperCase()}</div>
                   <div style={{ flex: 1 }}>
                     <div style={pageStyles.empName}>{emp.name}</div>
-                    <div style={pageStyles.empTitle}>{emp.title} · {emp.email}</div>
+                    <div style={pageStyles.empTitle}>{emp.title} · {emp.email}{emp.phone ? ` · ${emp.phone}` : ''}</div>
                   </div>
                   <button
                     onClick={() => setEditModal({ ...emp })}
@@ -367,6 +368,19 @@ export default function EmployeesPage() {
                     </select>
                   </div>
                   <div>
+                    <label style={sharedStyles.label}>Phone</label>
+                    <input
+                      type="tel"
+                      value={addForm.phone}
+                      onChange={e => setAddForm(prev => ({ ...prev, phone: e.target.value }))}
+                      style={sharedStyles.input}
+                      placeholder="(949) 555-1234"
+                    />
+                    <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>
+                      Used for SMS notifications when appointments are booked
+                    </div>
+                  </div>
+                  <div>
                     <label style={sharedStyles.label}>Password</label>
                     <input
                       type="text"
@@ -423,6 +437,19 @@ export default function EmployeesPage() {
                     <option value="RN">RN</option>
                     <option value="Partner/Owner">Partner/Owner</option>
                   </select>
+                </div>
+                <div>
+                  <label style={sharedStyles.label}>Phone</label>
+                  <input
+                    type="tel"
+                    value={editModal.phone || ''}
+                    onChange={e => setEditModal(prev => ({ ...prev, phone: e.target.value }))}
+                    style={sharedStyles.input}
+                    placeholder="(949) 555-1234"
+                  />
+                  <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>
+                    Used for SMS notifications when appointments are booked
+                  </div>
                 </div>
                 <div>
                   <label style={sharedStyles.label}>Cal.com User ID</label>

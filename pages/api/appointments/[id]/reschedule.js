@@ -3,6 +3,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { sendAppointmentNotification } from '../../../../lib/appointment-notifications';
+import { sendProviderNotification } from '../../../../lib/provider-notifications';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -105,6 +106,19 @@ export default async function handler(req, res) {
           location: newAppt.location,
         },
       }).catch(err => console.error('Reschedule notification error:', err));
+    }
+
+    // Send provider SMS for reschedule (fire-and-forget)
+    if (oldAppt.provider) {
+      sendProviderNotification({
+        type: 'rescheduled',
+        provider: oldAppt.provider,
+        appointment: {
+          patientName: oldAppt.patient_name,
+          serviceName: newAppt.service_name,
+          startTime: newAppt.start_time,
+        },
+      }).catch(err => console.error('Provider SMS reschedule failed:', err));
     }
 
     return res.status(200).json({ old_appointment: { ...oldAppt, status: 'rescheduled' }, new_appointment: newAppt });

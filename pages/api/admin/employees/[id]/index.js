@@ -22,7 +22,7 @@ async function handleUpdate(req, res) {
   if (!employee) return;
 
   const { id } = req.query;
-  const { name, title, is_admin, permissions, is_active, calcom_user_id, password } = req.body;
+  const { name, title, is_admin, permissions, is_active, calcom_user_id, phone, password } = req.body;
 
   try {
     // Build update object (only include provided fields)
@@ -33,6 +33,7 @@ async function handleUpdate(req, res) {
     if (permissions !== undefined) updates.permissions = permissions;
     if (is_active !== undefined) updates.is_active = is_active;
     if (calcom_user_id !== undefined) updates.calcom_user_id = calcom_user_id;
+    if (phone !== undefined) updates.phone = phone;
 
     const { data: updated, error } = await supabase
       .from('employees')

@@ -107,13 +107,14 @@ export default async function handler(req, res) {
         continue;
       }
 
-      // Check for IV session in the last 30 days
+      // Check for IV session since last payment (billing cycle window)
+      const cycleStart = protocol.last_payment_date || thirtyDaysAgoStr;
       const { data: ivLogs } = await supabase
         .from('service_logs')
         .select('id, service_date')
         .eq('patient_id', protocol.patient_id)
-        .eq('category', 'iv')
-        .gte('service_date', thirtyDaysAgoStr)
+        .in('category', ['iv', 'iv_therapy'])
+        .gte('service_date', cycleStart)
         .limit(1);
 
       if (ivLogs && ivLogs.length > 0) {

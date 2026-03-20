@@ -49,7 +49,7 @@ async function handleList(req, res) {
   try {
     const { data: employees, error } = await supabase
       .from('employees')
-      .select('id, email, name, title, is_admin, permissions, calcom_user_id, is_active, created_at')
+      .select('id, email, name, title, is_admin, permissions, calcom_user_id, phone, is_active, created_at')
       .order('name');
 
     if (error) throw error;
@@ -66,7 +66,7 @@ async function handleCreate(req, res) {
   if (!employee) return;
 
   try {
-    const { email, name, title, is_admin, permissions, calcom_user_id, password } = req.body;
+    const { email, name, title, is_admin, permissions, calcom_user_id, phone, password } = req.body;
 
     if (!email || !name) {
       return res.status(400).json({ error: 'Email and name are required' });
@@ -98,6 +98,7 @@ async function handleCreate(req, res) {
         is_admin: is_admin || false,
         permissions: permissions || {},
         calcom_user_id: calcom_user_id || null,
+        phone: phone || null,
       })
       .select()
       .single();

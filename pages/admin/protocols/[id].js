@@ -169,6 +169,8 @@ export default function ProtocolDetail() {
   const [clinicalNoteInput, setClinicalNoteInput] = useState('');
   const [clinicalNoteSaving, setClinicalNoteSaving] = useState(false);
   const [clinicalNoteFormatting, setClinicalNoteFormatting] = useState(false);
+  const [rangeIVStatus, setRangeIVStatus] = useState(null); // { used: bool, serviceDate, serviceLogId }
+  const [redeemingRangeIV, setRedeemingRangeIV] = useState(false);
   const [exchangeModal, setExchangeModal] = useState(false);
   const [exchangeForm, setExchangeForm] = useState({ medication: '', dosage: '', frequency: 'daily', duration: '', reason: '', reasonNote: '', protocolType: '' });
   const [exchangeSaving, setExchangeSaving] = useState(false);
@@ -267,15 +269,18 @@ export default function ProtocolDetail() {
         setLabSchedule([]);
       }
 
-      // Fetch HRT onboarding logs
+      // Fetch HRT onboarding logs + Range IV status
       if (isHRTProtocol(enrichedProtocol.program_type)) {
         try {
           const obRes = await fetch(`/api/protocols/${id}`);
           const obData = await obRes.json();
           setOnboardingLogs((obData.activityLogs || []).filter(l => l.log_type === 'hrt_onboarding'));
         } catch { setOnboardingLogs([]); }
+        // Fetch Range IV perk status for this billing cycle
+        fetchRangeIVStatus(enrichedProtocol);
       } else {
         setOnboardingLogs([]);
+        setRangeIVStatus(null);
       }
 
       // Fetch injection logs + weight progress for weight loss protocols
@@ -318,6 +323,19 @@ export default function ProtocolDetail() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch Range IV perk status for the current HRT billing cycle
+  const fetchRangeIVStatus = async (p) => {
+    try {
+      const res = await fetch(`/api/protocols/${p.id}/range-iv-status`);
+      if (res.ok) {
+        const data = await res.json();
+        setRangeIVStatus(data);
+      }
+    } catch (err) {
+      console.error('Error fetching Range IV status:', err);
     }
   };
 
@@ -2666,6 +2684,80 @@ export default function ProtocolDetail() {
                           </button>
                         )}
                       </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Range IV Perk — HRT membership includes 1 free Range IV per billing cycle */}
+                {isOngoing && isHRTProtocol(programType) && protocol?.status === 'active' && (() => {
+                  if (!rangeIVStatus) return null;
+                  const { used, service_date, cycle_start, cycle_end } = rangeIVStatus;
+                  const cycleStartDisplay = cycle_start ? new Date(cycle_start + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : null;
+                  const cycleEndDisplay = cycle_end ? new Date(cycle_end + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : null;
+                  const usedDateDisplay = service_date ? new Date(service_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : null;
+
+                  return (
+                    <div style={{
+                      padding: '14px 16px',
+                      background: used ? '#f9fafb' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                      border: used ? '1px solid #e5e7eb' : '1.5px solid #86efac',
+                      borderRadius: '10px',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '16px' }}>💧</span>
+                          <span style={{ fontSize: '13px', fontWeight: '700', color: used ? '#6b7280' : '#166534' }}>
+                            Monthly Range IV
+                          </span>
+                        </div>
+                        {used ? (
+                          <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', background: '#f3f4f6', padding: '2px 8px', borderRadius: '4px' }}>
+                            USED {usedDateDisplay}
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#166534', background: '#dcfce7', border: '1px solid #86efac', padding: '2px 8px', borderRadius: '4px' }}>
+                            AVAILABLE
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: used ? 0 : '10px' }}>
+                        Billing cycle: {cycleStartDisplay} – {cycleEndDisplay}
+                      </div>
+                      {!used && (
+                        <button
+                          onClick={async () => {
+                            if (redeemingRangeIV) return;
+                            setRedeemingRangeIV(true);
+                            try {
+                              const today = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+                              const res = await fetch(`/api/protocols/${id}/redeem-range-iv`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ service_date: today })
+                              });
+                              if (res.ok) {
+                                setSuccess('Range IV redeemed!');
+                                fetchRangeIVStatus(protocol);
+                              } else {
+                                const data = await res.json();
+                                setError(data.error || 'Failed to redeem');
+                              }
+                            } catch (err) {
+                              setError('Failed to redeem Range IV');
+                            }
+                            setRedeemingRangeIV(false);
+                          }}
+                          disabled={redeemingRangeIV}
+                          style={{
+                            width: '100%', padding: '10px', background: '#16a34a', color: '#fff',
+                            border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '14px',
+                            cursor: redeemingRangeIV ? 'not-allowed' : 'pointer',
+                            opacity: redeemingRangeIV ? 0.6 : 1,
+                          }}
+                        >
+                          {redeemingRangeIV ? 'Redeeming...' : '✓ Use Free Range IV Today'}
+                        </button>
+                      )}
                     </div>
                   );
                 })()}

@@ -4,6 +4,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { sendAppointmentNotification } from '../../../lib/appointment-notifications';
+import { sendProviderNotification } from '../../../lib/provider-notifications';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -116,6 +117,19 @@ export default async function handler(req, res) {
           // Don't fail the appointment creation if notification fails
         }
       }
+    }
+
+    // Send provider SMS notification (fire-and-forget)
+    if (provider) {
+      sendProviderNotification({
+        type: 'created',
+        provider,
+        appointment: {
+          patientName: patient_name,
+          serviceName: services ? services.map(s => s.name).join(' + ') : service_name,
+          startTime: start_time,
+        },
+      }).catch(err => console.error('Provider SMS notification failed:', err));
     }
 
     return res.status(200).json({ appointment });

@@ -104,7 +104,7 @@ export default function HormoneOptimization() {
   ];
 
   const steps = [
-    { step: "Step 1", title: "Take your assessment", desc: "Start with a Range Assessment ($250, credited toward treatment). We'll discuss your symptoms, goals, and medical history to see if HRT is right for you." },
+    { step: "Step 1", title: "Get started", desc: "Get started with Range Medical. We'll discuss your symptoms, goals, and medical history to see if HRT is right for you." },
     { step: "Step 2", title: "Run comprehensive labs", desc: "We check testosterone, estrogen, thyroid, metabolic markers, and more — not just the basics your regular doctor runs." },
     { step: "Step 3", title: "Review & start protocol", desc: "Your provider explains your results and designs a personalized protocol. You start your $250/month membership." },
     { step: "Step 4", title: "Ongoing optimization", desc: "Follow-up labs at 8 weeks, then quarterly. We adjust your protocol as needed. Direct access to your provider anytime." }
@@ -475,10 +475,10 @@ export default function HormoneOptimization() {
               <div className="hrt-kicker" style={{ marginBottom: '1.5rem' }}>Next Steps</div>
               <h2 className="hrt-cta-title">Ready to feel like yourself again?</h2>
               <p className="hrt-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
-                Start with a Range Assessment ($250, credited toward treatment). We'll review your symptoms, run comprehensive labs, and build a plan. Our Newport Beach team is here to help.
+                Get started with Range Medical. We'll review your symptoms, run comprehensive labs, and build a plan. Our Newport Beach team is here to help.
               </p>
               <div className="hrt-cta-buttons">
-                <Link href="/range-assessment?path=energy" className="hrt-btn-primary">Take Your Assessment</Link>
+                <Link href="/start" className="hrt-btn-primary">Start Now</Link>
                 <div className="hrt-cta-or">or</div>
                 <a href="tel:9499973988" className="hrt-cta-phone">(949) 997-3988</a>
               </div>

@@ -11,7 +11,7 @@ import Head from 'next/head';
  * - title: string
  * - subtitle: string
  * - trustBadge: string (optional, defaults to "✓ Licensed Providers")
- * - ctaText: string (default: "Take Your Assessment")
+ * - ctaText: string (default: "Start Now")
  * - ctaLink: string (default: "/book")
  * - ctaSecondary: string (optional secondary text below CTA)
  * - isThisForYou: { title, subtitle, items: [{emoji, title, description}] }
@@ -28,7 +28,7 @@ export default function ServicePageTemplate({
   title,
   subtitle,
   trustBadge = "✓ Licensed Providers",
-  ctaText = "Take Your Assessment",
+  ctaText = "Start Now",
   ctaLink = "/book",
   ctaSecondary,
   isThisForYou,
@@ -190,7 +190,7 @@ export default function ServicePageTemplate({
         <div className="container">
           <span className="cta-step">Next Step</span>
           <h2>{finalCta?.title || "Ready to Get Started?"}</h2>
-          <p>{finalCta?.subtitle || "Take your Range Assessment and get a personalized plan."}</p>
+          <p>{finalCta?.subtitle || "Get started with a personalized plan."}</p>
           <Link href={ctaLink} className="btn-white">{ctaText}</Link>
           <p className="cta-location">
             Range Medical • 1901 Westcliff Dr, Newport Beach<br />

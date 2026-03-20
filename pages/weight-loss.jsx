@@ -119,7 +119,7 @@ export default function WeightLoss() {
   ];
 
   const steps = [
-    { step: "Step 1", title: "Take your assessment", desc: "Start with a Range Assessment ($250, credited toward treatment). We'll discuss your weight history, goals, and determine if GLP-1 medications are right for you." },
+    { step: "Step 1", title: "Get started", desc: "Get started with Range Medical. We'll discuss your weight history, goals, and determine if GLP-1 medications are right for you." },
     { step: "Step 2", title: "Run comprehensive labs", desc: "We check metabolic markers, thyroid, hormones, and other factors that affect weight — not just the basics." },
     { step: "Step 3", title: "Start your medication", desc: "Your provider prescribes the right medication at the right starting dose. We teach you how to self-inject (it's easier than you think)." },
     { step: "Step 4", title: "Ongoing support", desc: "Weekly check-ins, dose adjustments based on your response, and lab monitoring throughout your journey. Real support, not just refills." }
@@ -479,10 +479,10 @@ export default function WeightLoss() {
               <div className="wl-kicker" style={{ marginBottom: '1.5rem' }}>Next Steps</div>
               <h2 className="wl-cta-title">Ready to lose weight for good?</h2>
               <p className="wl-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
-                Start with a Range Assessment ($250, credited toward treatment). We'll review your history, run labs, and see if GLP-1 medications are right for you. Our Newport Beach team is here to help.
+                Get started with Range Medical. We'll review your history, run labs, and see if GLP-1 medications are right for you. Our Newport Beach team is here to help.
               </p>
               <div className="wl-cta-buttons">
-                <Link href="/range-assessment?path=energy" className="wl-btn-primary">Take Your Assessment</Link>
+                <Link href="/start" className="wl-btn-primary">Start Now</Link>
                 <div className="wl-cta-or">or</div>
                 <a href="tel:9499973988" className="wl-cta-phone">(949) 997-3988</a>
               </div>

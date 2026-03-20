@@ -580,7 +580,7 @@ export default function RedLightTherapy() {
                 Whether you're looking to improve your skin, recover faster, or just feel more energized — our Newport Beach team is here to help. Book a session or give us a call.
               </p>
               <div className="rlt-cta-buttons">
-                <Link href="/range-assessment" className="rlt-btn-primary">Take Your Assessment</Link>
+                <Link href="/start" className="rlt-btn-primary">Start Now</Link>
                 <div className="rlt-cta-or">or</div>
                 <a href="tel:9499973988" className="rlt-cta-phone">(949) 997-3988</a>
               </div>

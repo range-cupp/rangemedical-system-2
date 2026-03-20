@@ -39,7 +39,7 @@ export default function UnderstandingPeptides() {
 
   // ===== Process steps =====
   const steps = [
-    { step: 'Step 1', title: 'Take Your Assessment', desc: 'Start with a quick online assessment. Tell us about your goals, symptoms, and health history so we can point you in the right direction.' },
+    { step: 'Step 1', title: 'Get Started', desc: 'Start with a quick online assessment. Tell us about your goals, symptoms, and health history so we can point you in the right direction.' },
     { step: 'Step 2', title: 'Consultation & Labs (If Needed)', desc: 'Meet with our medical team. If your peptide protocol requires labs, we\'ll run bloodwork first. Recovery peptides can often start the same day.' },
     { step: 'Step 3', title: 'Start with Pre-Filled Syringes', desc: 'Begin your protocol with pre-filled syringes. We handle the dosing, schedule check-ins, track your progress, and adjust as needed. You\'re never on your own.' },
     { step: 'Step 4', title: 'Graduate to Vials', desc: 'Once you\'re established and comfortable, you have the option to transition to at-home vials. We train you on everything — reconstitution, injection technique, and storage.' }
@@ -526,11 +526,10 @@ export default function UnderstandingPeptides() {
               <div className="pm-kicker" style={{ marginBottom: '1.5rem' }}>Next Steps</div>
               <h2 className="pm-cta-title">Ready to explore peptide therapy?</h2>
               <p className="pm-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
-                Start with a $250 assessment (credited toward treatment) and our team will guide you to the right protocol. Or give us a call — we're happy to answer any questions.
+                Get started with Range Medical and our team will guide you to the right protocol. Or give us a call — we're happy to answer any questions.
               </p>
               <div className="pm-cta-buttons">
-                <Link href="/range-assessment?path=injury" className="pm-btn-primary">Injury & Recovery</Link>
-                <Link href="/range-assessment?path=energy" className="pm-btn-primary">Energy & Optimization</Link>
+                <Link href="/start" className="pm-btn-primary">Start Now</Link>
               </div>
               <div className="pm-cta-phone-row">
                 <div className="pm-cta-or">or call us</div>

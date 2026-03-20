@@ -91,7 +91,7 @@ export default function CJCIpamorelin() {
             <h1>CJC-1295 / Ipamorelin</h1>
             <p className="hero-sub">A powerful growth hormone secretagogue combination that stimulates your body&rsquo;s natural growth hormone production. CJC-1295 extends the release window while Ipamorelin triggers clean GH pulses — together they deliver deeper sleep, faster recovery, lean muscle gains, and anti-aging benefits without raising cortisol or prolactin.</p>
             <div className="hero-cta">
-              <Link href="/range-assessment?path=energy" className="btn-primary">Take Your Assessment</Link>
+              <Link href="/start" className="btn-primary">Start Now</Link>
               <p className="cjc-hero-phone">Or call us at <a href="tel:9499973988">(949) 997-3988</a></p>
             </div>
           </div>
@@ -281,7 +281,7 @@ export default function CJCIpamorelin() {
                 <strong>Why 5 on / 2 off?</strong> Cycling prevents receptor desensitization. By giving your GH receptors two days off each week, you maintain strong responsiveness throughout the cycle. Consistency on the &ldquo;on&rdquo; days matters more than never missing a day.
               </div>
               <div className="cjc-protocol-note">
-                <strong>Note:</strong> Dosing is always personalized at Range Medical. We use your lab results — including IGF-1 levels — to determine the right protocol and monitor your response over time. <Link href="/range-assessment?path=energy" style={{ color: '#000000', fontWeight: 600 }}>Take your assessment</Link> to get started.
+                <strong>Note:</strong> Dosing is always personalized at Range Medical. We use your lab results — including IGF-1 levels — to determine the right protocol and monitor your response over time. <Link href="/start" style={{ color: '#000000', fontWeight: 600 }}>Get started</Link> with Range Medical.
               </div>
             </div>
           </div>
@@ -401,9 +401,9 @@ export default function CJCIpamorelin() {
           <div className="container">
             <div className="section-kicker">Ready to Get Started?</div>
             <h2 className="section-title">See If CJC-1295 / Ipamorelin Is Right for You</h2>
-            <p className="section-subtitle">Start with a Range Assessment ($250, credited toward treatment). We&rsquo;ll review your goals, discuss your options, and build a protocol that makes sense for you — no pressure, no sales pitch.</p>
+            <p className="section-subtitle">Get started with Range Medical. We&rsquo;ll review your goals, discuss your options, and build a protocol that makes sense for you — no pressure, no sales pitch.</p>
             <div className="cjc-cta-buttons">
-              <Link href="/range-assessment?path=energy" className="btn-primary">Take Assessment</Link>
+              <Link href="/start" className="btn-primary">Start Now</Link>
               <a href="tel:9499973988" className="btn-outline">Call (949) 997-3988</a>
             </div>
             <p className="cjc-cta-location">Range Medical &middot; 1901 Westcliff Dr, Newport Beach, CA</p>

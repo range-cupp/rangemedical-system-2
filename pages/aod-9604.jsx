@@ -91,7 +91,7 @@ export default function AOD9604() {
             <h1>AOD-9604</h1>
             <p className="hero-sub">A modified fragment of human growth hormone that targets fat metabolism — without affecting blood sugar, muscle, or IGF-1 levels. Originally developed as an anti-obesity drug, AOD-9604 helps your body break down stored fat and prevent new fat from forming.</p>
             <div className="hero-cta">
-              <Link href="/range-assessment?path=energy" className="btn-primary">Take Your Assessment</Link>
+              <Link href="/start" className="btn-primary">Start Now</Link>
               <p className="aod-hero-phone">Or call us at <a href="tel:9499973988">(949) 997-3988</a></p>
             </div>
           </div>
@@ -276,7 +276,7 @@ export default function AOD9604() {
                 <span className="aod-protocol-value">Most patients begin noticing changes in body composition within 4 – 6 weeks</span>
               </div>
               <div className="aod-protocol-note">
-                <strong>Note:</strong> Dosing is always personalized at Range Medical. We use your lab results and health history to determine the right protocol. Higher doses have not been shown to produce significantly better results — consistency matters more. <Link href="/range-assessment?path=energy" style={{ color: '#000000', fontWeight: 600 }}>Take your assessment</Link> to get started.
+                <strong>Note:</strong> Dosing is always personalized at Range Medical. We use your lab results and health history to determine the right protocol. Higher doses have not been shown to produce significantly better results — consistency matters more. <Link href="/start" style={{ color: '#000000', fontWeight: 600 }}>Get started</Link> with Range Medical.
               </div>
             </div>
           </div>
@@ -462,9 +462,9 @@ export default function AOD9604() {
           <div className="container">
             <div className="section-kicker">Ready to Get Started?</div>
             <h2 className="section-title">See If AOD-9604 Is Right for You</h2>
-            <p className="section-subtitle">Start with a Range Assessment ($250, credited toward treatment). We&rsquo;ll review your goals, discuss your options, and build a protocol that makes sense for you — no pressure, no sales pitch.</p>
+            <p className="section-subtitle">Get started with Range Medical. We&rsquo;ll review your goals, discuss your options, and build a protocol that makes sense for you — no pressure, no sales pitch.</p>
             <div className="aod-cta-buttons">
-              <Link href="/range-assessment?path=energy" className="btn-primary">Take Assessment</Link>
+              <Link href="/start" className="btn-primary">Start Now</Link>
               <a href="tel:9499973988" className="btn-outline">Call (949) 997-3988</a>
             </div>
             <p className="aod-cta-location">Range Medical · 1901 Westcliff Dr, Newport Beach, CA</p>

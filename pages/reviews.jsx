@@ -205,8 +205,8 @@ export default function ReviewsPage() {
           <span className="cta-step">Next Step</span>
           <h2>Ready to Feel Like Yourself Again?</h2>
           <p>Join our patients who have transformed their health with Range Medical.</p>
-          <Link href="/range-assessment" className="btn-white">
-            Take Your Assessment
+          <Link href="/start" className="btn-white">
+            Start Now
           </Link>
           <p className="cta-location">
             1901 Westcliff Dr. Suite 10, Newport Beach

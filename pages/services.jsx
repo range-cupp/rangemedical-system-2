@@ -315,8 +315,8 @@ export default function Services() {
           <p className="svc-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
             Every patient starts with a Range Assessment — a conversation with your provider about your symptoms and goals. From there, your provider recommends the right plan.
           </p>
-          <Link href="/range-assessment" className="svc-btn-primary svc-btn-dark">
-            Take Your Range Assessment
+          <Link href="/start" className="svc-btn-primary svc-btn-dark">
+            Start Now
           </Link>
           <div className="svc-hero-scroll">
             Scroll to explore
@@ -332,7 +332,7 @@ export default function Services() {
               <h2>The Range Assessment</h2>
               <div className="svc-divider"></div>
               <p className="svc-body-text">
-                Your journey starts with a $250 assessment — a conversation about your symptoms, goals, and medical history. Your provider recommends the right path for you, and the $250 is credited toward any treatment you start.
+                Your journey starts with a free assessment — a conversation about your symptoms, goals, and medical history. Your provider recommends the right path for you.
               </p>
 
               <div className="svc-doors-grid">
@@ -349,8 +349,8 @@ export default function Services() {
               </div>
 
               <div style={{ textAlign: 'center', marginTop: '2.5rem' }}>
-                <Link href="/range-assessment" className="svc-btn-primary svc-btn-dark">
-                  Start Your Assessment
+                <Link href="/start" className="svc-btn-primary svc-btn-dark">
+                  Start Now
                 </Link>
               </div>
             </div>
@@ -419,11 +419,11 @@ export default function Services() {
               <div className="svc-kicker">Ready to Get Started?</div>
               <h2 className="svc-cta-title">Every journey starts with<br />a conversation.</h2>
               <p className="svc-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
-                Take the Range Assessment to connect with a provider and find the right plan for your goals.
+                Connect with a provider and find the right plan for your goals.
               </p>
               <div className="svc-cta-buttons">
-                <Link href="/range-assessment" className="svc-btn-primary">
-                  Take Your Range Assessment
+                <Link href="/start" className="svc-btn-primary">
+                  Start Now
                 </Link>
                 <span className="svc-cta-or">or</span>
                 <a href="tel:9499973988" className="svc-cta-phone">(949) 997-3988</a>

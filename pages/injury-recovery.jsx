@@ -9,9 +9,7 @@ import { getStudiesByService } from '../data/researchStudies';
 export default function InjuryRecovery() {
   const router = useRouter();
   const fromStart = router.query.from === 'start';
-  const assessmentLink = fromStart
-    ? '/range-assessment?path=injury&from=start'
-    : '/range-assessment?path=injury';
+  const assessmentLink = '/start';
 
   const [openFaq, setOpenFaq] = useState(null);
   const [isVisible, setIsVisible] = useState({});
@@ -80,12 +78,12 @@ export default function InjuryRecovery() {
     <>
       <Head>
         <title>Your Guide to Injury Recovery | Range Medical | Newport Beach</title>
-        <meta name="description" content="Speed up your injury recovery with targeted protocols including HBOT, red light therapy, peptides, and PRP. Start with a $250 Range Assessment in Newport Beach (credited toward treatment)." />
+        <meta name="description" content="Speed up your injury recovery with targeted protocols including HBOT, red light therapy, peptides, and PRP. Start with a free assessment at Range Medical in Newport Beach." />
         <meta name="keywords" content="injury recovery Newport Beach, sports injury treatment, HBOT injury recovery, red light therapy healing, peptide therapy recovery, PRP treatment, post-surgical recovery" />
         <link rel="canonical" href="https://www.range-medical.com/injury-recovery" />
 
         <meta property="og:title" content="Your Guide to Injury Recovery | Range Medical" />
-        <meta property="og:description" content="Speed up your injury recovery with targeted protocols. Start with a $250 Range Assessment (credited toward treatment)." />
+        <meta property="og:description" content="Speed up your injury recovery with targeted protocols. Start with a free assessment at Range Medical." />
         <meta property="og:url" content="https://www.range-medical.com/injury-recovery" />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="https://www.range-medical.com/og-injury-recovery.jpg" />
@@ -94,7 +92,7 @@ export default function InjuryRecovery() {
 
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Your Guide to Injury Recovery | Range Medical" />
-        <meta name="twitter:description" content="Speed up your injury recovery with targeted protocols. Start with a $250 Range Assessment (credited toward treatment)." />
+        <meta name="twitter:description" content="Speed up your injury recovery with targeted protocols. Start with a free assessment at Range Medical." />
         <meta name="twitter:image" content="https://www.range-medical.com/og-injury-recovery.jpg" />
 
         <meta name="geo.region" content="US-CA" />
@@ -264,13 +262,13 @@ export default function InjuryRecovery() {
             <span className="inj-section-label">How It Works</span>
             <h2>From Assessment to Recovery Plan</h2>
             <p className="inj-section-intro">
-              Start with a $250 assessment (credited toward treatment). We'll match you with the right recovery tools — no guesswork.
+              Start with a free assessment. We'll match you with the right recovery tools — no guesswork.
             </p>
 
             <div className="inj-process-grid">
               <div className="inj-process-step">
                 <div className="inj-process-number">1</div>
-                <h4>Take the Online Assessment</h4>
+                <h4>Start Online</h4>
                 <p>Answer a few questions about your injury, timeline, and recovery goals. Takes about 2 minutes.</p>
               </div>
 
@@ -437,9 +435,9 @@ export default function InjuryRecovery() {
             <span className="inj-section-label-light">Get Started</span>
             <h2>Ready to Speed Up Your Recovery?</h2>
             <p className="inj-cta-text">
-              Take the online assessment ($250, credited toward treatment). It takes 2 minutes and we'll show you exactly which recovery tools fit your situation.
+              Take the online assessment. It takes 2 minutes and we'll show you exactly which recovery tools fit your situation.
             </p>
-            <Link href={assessmentLink} className="inj-btn-white">Take Assessment</Link>
+            <Link href={assessmentLink} className="inj-btn-white">Start Now</Link>
             <p className="inj-cta-location">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a3a3a3" strokeWidth="2">
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>

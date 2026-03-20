@@ -231,9 +231,9 @@ export default function LabPrepPage() {
       <section className="final-cta">
         <div className="container">
           <h2>Ready to Book?</h2>
-          <p>If you found this page but haven't scheduled yet, start with a Range Assessment. Labs, symptoms review, and a written plan in under a week.</p>
+          <p>If you found this page but haven't scheduled yet, start with an assessment. Labs, symptoms review, and a written plan in under a week.</p>
           <div className="hero-buttons">
-            <Link href="/range-assessment" className="btn-primary">Start with a Range Assessment</Link>
+            <Link href="/start" className="btn-primary">Start Now</Link>
           </div>
           <p className="hero-secondary">Already a patient? <a href="tel:+19499973988">Call or text (949) 997-3988</a> to schedule.</p>
           <div className="location-info">

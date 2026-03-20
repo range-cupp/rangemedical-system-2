@@ -91,7 +91,7 @@ export default function MOTSc() {
             <h1>MOTS-c</h1>
             <p className="hero-sub">A mitochondrial-derived peptide that activates your body&rsquo;s metabolic master switch. MOTS-c supports fat metabolism, exercise performance, glucose regulation, and cellular energy — working at the deepest level of your biology to optimize how your cells produce and use energy.</p>
             <div className="hero-cta">
-              <Link href="/range-assessment?path=energy" className="btn-primary">Take Your Assessment</Link>
+              <Link href="/start" className="btn-primary">Start Now</Link>
               <p className="mots-hero-phone">Or call us at <a href="tel:9499973988">(949) 997-3988</a></p>
             </div>
           </div>
@@ -276,7 +276,7 @@ export default function MOTSc() {
                 <span className="mots-protocol-value">Energy and endurance improvements typically within 2 – 4 weeks</span>
               </div>
               <div className="mots-protocol-note">
-                <strong>Note:</strong> Dosing is always personalized at Range Medical. We use your lab results and health history to determine the right protocol. MOTS-c is typically administered 1 to 3 times per week rather than daily — your provider will adjust frequency based on your response and goals. <Link href="/range-assessment?path=energy" style={{ color: '#000000', fontWeight: 600 }}>Take your assessment</Link> to get started.
+                <strong>Note:</strong> Dosing is always personalized at Range Medical. We use your lab results and health history to determine the right protocol. MOTS-c is typically administered 1 to 3 times per week rather than daily — your provider will adjust frequency based on your response and goals. <Link href="/start" style={{ color: '#000000', fontWeight: 600 }}>Get started</Link> with Range Medical.
               </div>
             </div>
           </div>
@@ -396,9 +396,9 @@ export default function MOTSc() {
           <div className="container">
             <div className="section-kicker">Ready to Get Started?</div>
             <h2 className="section-title">See If MOTS-c Is Right for You</h2>
-            <p className="section-subtitle">Start with a Range Assessment ($250, credited toward treatment). We&rsquo;ll review your goals, discuss your options, and build a protocol that makes sense for you — no pressure, no sales pitch.</p>
+            <p className="section-subtitle">Get started with Range Medical. We&rsquo;ll review your goals, discuss your options, and build a protocol that makes sense for you — no pressure, no sales pitch.</p>
             <div className="mots-cta-buttons">
-              <Link href="/range-assessment?path=energy" className="btn-primary">Take Assessment</Link>
+              <Link href="/start" className="btn-primary">Start Now</Link>
               <a href="tel:9499973988" className="btn-outline">Call (949) 997-3988</a>
             </div>
             <p className="mots-cta-location">Range Medical &middot; 1901 Westcliff Dr, Newport Beach, CA</p>

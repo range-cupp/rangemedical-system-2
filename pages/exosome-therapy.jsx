@@ -404,10 +404,10 @@ export default function ExosomeTherapy() {
               <div className="exo-kicker" style={{ marginBottom: '1.5rem' }}>Next Steps</div>
               <h2 className="exo-cta-title">Interested in exosome therapy?</h2>
               <p className="exo-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
-                Start with a Range Assessment ($250, credited toward treatment). Your provider will review your goals and determine if exosome therapy is a good fit for your situation. Our Newport Beach team is here to help.
+                Get started with Range Medical. Your provider will review your goals and determine if exosome therapy is a good fit for your situation. Our Newport Beach team is here to help.
               </p>
               <div className="exo-cta-buttons">
-                <Link href="/range-assessment" className="exo-btn-primary">Take Your Assessment</Link>
+                <Link href="/start" className="exo-btn-primary">Start Now</Link>
                 <div className="exo-cta-or">or</div>
                 <a href="tel:9499973988" className="exo-cta-phone">(949) 997-3988</a>
               </div>

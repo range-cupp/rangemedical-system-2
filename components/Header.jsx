@@ -70,8 +70,8 @@ export default function Header() {
             </Link>
           </div>
           
-          <Link href="/range-assessment#book" className="rm-nav-cta">
-            Take Assessment
+          <Link href="/start" className="rm-nav-cta">
+            Start Now
           </Link>
         </nav>
         
@@ -116,8 +116,8 @@ export default function Header() {
           <Link href="/lab-panels" onClick={() => setMobileOpen(false)}>
             Labs & Testing
           </Link>
-          <Link href="/range-assessment#book" className="rm-mobile-cta" onClick={() => setMobileOpen(false)}>
-            Take Assessment
+          <Link href="/start" className="rm-mobile-cta" onClick={() => setMobileOpen(false)}>
+            Start Now
           </Link>
         </div>
       )}

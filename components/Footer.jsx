@@ -16,7 +16,7 @@ export default function Footer() {
         <div className="rm-footer-col">
           <h4>Get Started</h4>
           <ul>
-            <li><Link href="/range-assessment">Range Assessment</Link></li>
+            <li><Link href="/start">Start Now</Link></li>
             <li><Link href="/injury-recovery">Injury Recovery</Link></li>
             <li><Link href="/lab-panels">Labs & Testing</Link></li>
           </ul>

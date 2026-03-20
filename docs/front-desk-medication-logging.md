@@ -1,178 +1,122 @@
-# Front Desk Medication Logging Guide
+# Front Desk — Medication & Session Logging Guide
 
 **Range Medical — Standard Operating Procedure**
 
 ---
 
-## The Golden Rule
+## How This Works
 
-**Every time medication leaves this clinic — whether handed to a patient, injected in-clinic, or shipped overnight — it must be logged.** For most things, the POS charge handles this automatically. For HRT, dispensing is a separate step (see below).
+There are only two things front desk needs to do:
+
+| What's Happening | Where to Do It |
+|---|---|
+| Patient is **paying for medication** (weight loss, peptides) | **POS** (Charge button on patient profile) |
+| Patient is **picking up HRT medication** (vial or prefilled syringes) | **Medications page** (Admin → Medications → Dispense) |
+
+Everything else is automatic:
+- **In-clinic sessions** (IV, HBOT, Red Light) → auto-logged when the appointment is marked completed
+- **In-clinic injections** (B12, weight loss, peptide, testosterone) → auto-logged when the appointment is marked completed
+- **Protocols and session counts** → auto-updated when any of the above happens
 
 ---
 
-## How It Works (The Short Version)
+## 1. Weight Loss (Tirzepatide, Retatrutide, Semaglutide)
 
-When you charge a patient through the POS:
-1. **Purchase record** is created (what they paid for)
-2. **Protocol** is automatically created or extended (their treatment plan)
-3. **Service log entry** is automatically created (proof medication was dispensed)
+**Where:** POS
 
-**Exception: HRT.** Payment and dispensing are separate — see the HRT section below.
-
----
-
-## By Medication Type
-
-### Weight Loss (Tirzepatide, Retatrutide, Semaglutide)
-
-**What to do:**
-1. Open POS (charge button on patient profile)
-2. Select the correct medication and plan (e.g., "Retatrutide — Monthly — 4 mg/week x2")
-3. **Select fulfillment method:**
-   - **Picked Up In Clinic** — patient is taking it home today
-   - **Overnighted** — being shipped to patient (enter tracking number)
+1. Open patient profile → **Charge**
+2. Select the exact product (e.g., "Retatrutide — Monthly — 4 mg/week x2")
+3. Select **fulfillment**:
+   - **Picked Up In Clinic** — patient is here taking it home
+   - **Overnighted** — being shipped (enter tracking number)
 4. Process payment
 
-**What happens automatically:**
-- Purchase recorded with the medication name
-- Protocol created (or extended if returning patient)
-- Service log pickup entry created with medication, dose, quantity, and fulfillment method
-- All sessions marked as dispensed (take-home = all at once)
-
-**Important:** Always select the correct service — don't use a generic "Weight Loss" charge.
+Everything else is automatic — protocol, service log, medication name, dose, quantity.
 
 ---
 
-### HRT / Testosterone
+## 2. Peptides (BPC-157, Thymosin Beta-4, GLOW, Tesamorelin/Ipamorelin, etc.)
 
-HRT monthly payments are handled automatically through subscriptions — **front desk does not process HRT payments.**
+**Where:** POS
 
-Your only job with HRT is **dispensing medication when it actually leaves the clinic.**
-
-**When a patient picks up their vial or prefilled syringes (or you ship it):**
-1. Go to **Admin → Medications**
-2. Find the patient's HRT protocol
-3. Click **Dispense**
-4. Select the **supply type** (vial 5ml, vial 10ml, prefilled 1-week, prefilled 2-week, etc.)
-5. Select **fulfillment**:
-   - **Picked Up In Clinic** — patient is here picking up their medication
-   - **Overnighted** — being shipped (enter tracking number)
-6. Click **Dispense & Log Pickup**
-
-This logs what was dispensed, how it left, and sets the next refill date.
-
----
-
-### Peptides (BPC-157, Thymosin Beta-4, GLOW, Tesamorelin/Ipamorelin, etc.)
-
-**What to do:**
-1. Open POS
-2. Select the correct peptide product:
-   - **Protocol format:** "Peptide Therapy — Recovery 10 Day" (for in-clinic injection protocols)
-   - **Vial format:** "BPC-157 / Thymosin Beta-4 Vial" (for take-home vials)
-3. **Select fulfillment method:**
-   - **Picked Up In Clinic** — patient picks up vial or gets injected today
+1. Open patient profile → **Charge**
+2. Select the correct product:
+   - Vials: "BPC-157 / Thymosin Beta-4 Vial"
+   - Protocols: "Peptide Therapy — Recovery 10 Day"
+3. Select **fulfillment**:
+   - **Picked Up In Clinic** — patient picks up vial today
    - **Overnighted** — vial being shipped (enter tracking number)
 4. Process payment
 
-**What happens automatically:**
-- Purchase recorded with the specific peptide name
-- Protocol created with correct medication, dose, and frequency
-- Service log entry created for take-home pickups
-
-**Important:** Select the right product. "BPC-157 / Thymosin Beta-4 Vial" is different from "GLOW Vial" — each is a different medication.
+Make sure you pick the right product — "BPC-157 / TB4 Vial" and "GLOW Vial" are different medications.
 
 ---
 
-### IV Therapy
+## 3. HRT / Testosterone
 
-**What to do:**
-1. Open POS
-2. Select the specific IV (e.g., "Myers Cocktail", "NAD+ IV", "Immunity Drip")
-3. Process payment
+**Where:** Medications page
 
-**What happens automatically:**
-- Purchase recorded
-- For packs/memberships: protocol created with session count
-- Sessions logged individually via the Service Log when the patient comes in
+HRT monthly payments are automatic through subscriptions. You do not process HRT payments. Your only job is logging when medication actually leaves the clinic.
 
-**Note:** Single IV sessions don't create a protocol — only packs and memberships do.
+**When a patient picks up their vial or prefilled syringes (or you ship it):**
 
----
+1. Go to **Admin → Medications**
+2. Find the patient (you can search by name)
+3. Click **Dispense**
+4. Select the **supply type** (vial 5ml, vial 10ml, prefilled 1-week, prefilled 2-week, etc.)
+5. Select **fulfillment**:
+   - **Picked Up In Clinic** — patient is here
+   - **Overnighted** — being shipped (enter tracking number)
+6. Click **Dispense & Log Pickup**
 
-### In-Clinic Sessions (HBOT, Red Light Therapy)
-
-**What to do:**
-1. Open POS
-2. Select the session or pack (e.g., "HBOT 10-Pack", "Red Light Membership")
-3. Process payment
-
-**What happens automatically:**
-- Purchase recorded
-- Protocol created with total sessions
-- Individual sessions logged via the Service Log when the patient comes in
+This records what was dispensed, how it left the clinic, and sets the next refill date.
 
 ---
 
-## Fulfillment Options
+## 4. In-Clinic Sessions & Injections (IV, HBOT, Red Light, B12, etc.)
 
-For **all take-home medication** (weight loss, HRT, peptides), you'll see a fulfillment section:
+**No action needed from front desk.**
 
-| Option | When to Use |
-|--------|-------------|
-| **Picked Up In Clinic** | Patient is physically here and taking medication home |
-| **Overnighted** | Medication is being shipped to the patient |
+When an appointment is marked as **completed** on the schedule, the system automatically:
+- Creates a service log entry for that session
+- Decrements the remaining sessions on the patient's protocol (e.g., HBOT 10-Pack goes from 8 remaining to 7)
+- Records the provider who administered it
 
-If you select **Overnighted**, enter the tracking number if you have it.
-
-This shows in two places:
-- **POS checkout** — for weight loss and peptide purchases
-- **Medications page → Dispense modal** — for HRT and any other dispense action
+Just make sure the appointment gets marked completed — that's it.
 
 ---
 
-## Common Mistakes to Avoid
+## Don'ts
 
-1. **Don't use "Custom Charge" for medication** — always select the specific product so the medication name gets logged
-2. **Don't forget to Dispense HRT** — HRT payments are automatic, but you still need to click Dispense on the Medications page when medication actually leaves
-3. **Don't create manual service log entries for POS purchases** — the system auto-creates them for weight loss and peptides. Double entries = inaccurate records
-4. **Don't mix up peptide products** — "BPC-157 / TB4 Vial" and "GLOW Vial" are different medications
-5. **Don't skip the POS for free/comped medication** — run it as a $0 charge so it's still tracked
-
----
-
-## Quick Reference: What Gets Logged Where
-
-| What | Purchases | Protocol | Service Log |
-|------|:-:|:-:|:-:|
-| Payment amount | Yes | — | — |
-| Medication name | Yes | Yes | Yes |
-| Dose | — | Yes | Yes |
-| Fulfillment method | — | — | Yes |
-| Tracking number | — | — | Yes |
-| Session count | — | Yes | — |
-| Next refill date | — | Yes | — |
+- **Don't use Custom Charge for medication** — the medication name won't get tracked
+- **Don't forget to Dispense HRT** — payments are automatic, but dispensing is not
+- **Don't manually create service log entries** — the system handles this automatically for all types
+- **Don't skip the POS for comped medication** — run it as a $0 charge so it's tracked
+- **Don't mix up peptide products** — each one is a different medication, select the right one
 
 ---
 
-## Quick Reference: Where to Do What
+## Quick Reference
 
-| Action | Where |
-|--------|-------|
-| Charge for weight loss medication | POS → select product → fulfillment → charge |
-| Charge for peptide | POS → select product → fulfillment → charge |
-| **Dispense HRT medication** | **Admin → Medications → find patient → Dispense** |
-| Log an IV/HBOT/RLT session | Service Log |
-| Check a patient's medication history | Patient profile → Protocols tab |
+| Medication/Service | Front Desk Action | Auto-Logged? |
+|---|---|---|
+| Weight loss (take-home) | POS charge + fulfillment | Yes — from POS |
+| Peptide vial (take-home) | POS charge + fulfillment | Yes — from POS |
+| HRT vial/prefilled (take-home) | Medications → Dispense | Yes — from Dispense |
+| IV therapy session | None — mark appointment completed | Yes — from appointment |
+| HBOT session | None — mark appointment completed | Yes — from appointment |
+| Red Light session | None — mark appointment completed | Yes — from appointment |
+| In-clinic injection (B12, etc.) | None — mark appointment completed | Yes — from appointment |
 
 ---
 
 ## If Something Looks Wrong
 
-- **Wrong medication on a protocol?** → Tell Chris or edit in the protocol detail page
-- **Missing service log entry?** → Check if the POS charge went through. For HRT, check if someone clicked Dispense.
-- **Need to add a tracking number after the fact?** → Find the service log entry on the patient's protocol page and update it
-- **Patient was charged but no protocol appeared?** → The service category may have been wrong. Tell Chris.
+- **Wrong medication on a protocol** → Tell Chris
+- **Patient missing from the Medications page** → They may not have an active protocol. Tell Chris.
+- **Session didn't get logged after appointment** → Make sure the appointment was marked "completed" (not just "checked in")
+- **Need to add a tracking number after the fact** → Find the entry on the patient's protocol page
+- **Patient charged but no protocol appeared** → Wrong service category was selected. Tell Chris.
 
 ---
 

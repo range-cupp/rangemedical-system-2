@@ -144,80 +144,130 @@ async function createEncounterReminderTask(appointment) {
   });
 }
 
-// Map appointment service names to injection categories and protocol types
+// Map appointment service names to service log categories and protocol types
+// Injections: must contain "injection" keyword + one of these
 const INJECTION_APPOINTMENT_TYPES = {
-  'peptide': { category: 'peptide', programType: 'peptide' },
-  'weight loss': { category: 'weight_loss', programType: 'weight_loss' },
-  'testosterone': { category: 'testosterone', programType: 'hrt' },
-  'hrt': { category: 'testosterone', programType: 'hrt' },
+  'peptide': { category: 'peptide', programType: 'peptide', entryType: 'injection' },
+  'weight loss': { category: 'weight_loss', programType: 'weight_loss', entryType: 'injection' },
+  'testosterone': { category: 'testosterone', programType: 'hrt', entryType: 'injection' },
+  'hrt': { category: 'testosterone', programType: 'hrt', entryType: 'injection' },
+  'b12': { category: 'injection', programType: 'injection', entryType: 'injection' },
+  'b-12': { category: 'injection', programType: 'injection', entryType: 'injection' },
+  'vitamin': { category: 'injection', programType: 'injection', entryType: 'injection' },
+  'nad': { category: 'injection', programType: 'injection', entryType: 'injection' },
+  'glutathione': { category: 'injection', programType: 'injection', entryType: 'injection' },
 };
 
-// Detect if an appointment is an injection type and return its config
-function detectInjectionType(appointment) {
+// Session types: matched by keyword alone (no "injection" required)
+const SESSION_APPOINTMENT_TYPES = {
+  'hbot': { category: 'hbot', programType: 'hbot', entryType: 'session' },
+  'hyperbaric': { category: 'hbot', programType: 'hbot', entryType: 'session' },
+  'red light': { category: 'red_light', programType: 'rlt', entryType: 'session' },
+  'rlt': { category: 'red_light', programType: 'rlt', entryType: 'session' },
+  'iv therapy': { category: 'iv_therapy', programType: 'iv', entryType: 'session' },
+  'iv drip': { category: 'iv_therapy', programType: 'iv', entryType: 'session' },
+  'myers': { category: 'iv_therapy', programType: 'iv', entryType: 'session' },
+  'nad+ iv': { category: 'iv_therapy', programType: 'iv', entryType: 'session' },
+  'immunity drip': { category: 'iv_therapy', programType: 'iv', entryType: 'session' },
+  'hydration': { category: 'iv_therapy', programType: 'iv', entryType: 'session' },
+};
+
+// Detect what type of service this appointment is
+function detectAppointmentServiceType(appointment) {
   const name = (appointment.service_name || appointment.appointment_title || '').toLowerCase();
-  // Must contain "injection" to qualify
-  if (!name.includes('injection')) return null;
-  for (const [keyword, config] of Object.entries(INJECTION_APPOINTMENT_TYPES)) {
-    if (name.includes(keyword)) return config;
+  const category = (appointment.service_category || '').toLowerCase();
+
+  // Check injection types (requires "injection" in name)
+  if (name.includes('injection')) {
+    for (const [keyword, config] of Object.entries(INJECTION_APPOINTMENT_TYPES)) {
+      if (name.includes(keyword)) return config;
+    }
+    // Generic injection fallback
+    return { category: 'injection', programType: 'injection', entryType: 'injection' };
   }
+
+  // Check session types (keyword match alone)
+  for (const [keyword, config] of Object.entries(SESSION_APPOINTMENT_TYPES)) {
+    if (name.includes(keyword) || category.includes(keyword)) return config;
+  }
+
+  // Check category-based matching as fallback
+  if (category === 'hbot' || category === 'hyperbaric') return { category: 'hbot', programType: 'hbot', entryType: 'session' };
+  if (category === 'red_light' || category === 'rlt') return { category: 'red_light', programType: 'rlt', entryType: 'session' };
+  if (category === 'iv_therapy' || category === 'iv') return { category: 'iv_therapy', programType: 'iv', entryType: 'session' };
+
   return null;
 }
 
-async function autoLogInjectionFromAppointment(appointment) {
-  const injectionType = detectInjectionType(appointment);
-  if (!injectionType) return;
+async function autoLogSessionFromAppointment(appointment) {
+  const serviceType = detectAppointmentServiceType(appointment);
+  if (!serviceType) return;
 
   const patientId = appointment.patient_id;
   if (!patientId) {
-    console.log('Auto-injection: no patient_id on appointment, skipping');
-    return;
-  }
-
-  // Find active protocol for this type
-  const { data: protocol } = await supabase
-    .from('protocols')
-    .select('id, medication, selected_dose, program_type, sessions_used, total_sessions')
-    .eq('patient_id', patientId)
-    .eq('program_type', injectionType.programType)
-    .eq('status', 'active')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single();
-
-  if (!protocol) {
-    console.log(`Auto-injection: no active ${injectionType.programType} protocol found for patient ${patientId}`);
+    console.log('Auto-session-log: no patient_id on appointment, skipping');
     return;
   }
 
   const todayStr = new Date().toISOString().split('T')[0];
   const provider = appointment.provider || null;
 
-  // Log the injection in service_logs
-  const { error: slErr } = await supabase.from('service_logs').insert({
-    patient_id: patientId,
-    protocol_id: protocol.id,
-    category: injectionType.category,
-    entry_type: 'injection',
-    entry_date: todayStr,
-    medication: protocol.medication || null,
-    dosage: protocol.selected_dose || null,
-    administered_by: provider,
-    notes: `Auto-logged from completed appointment: ${appointment.service_name || appointment.appointment_title || 'Injection'}${provider ? ` — administered by ${provider}` : ''}`,
-  });
+  // Find active protocol for this type (optional — sessions can be logged without a protocol)
+  const { data: protocol } = await supabase
+    .from('protocols')
+    .select('id, medication, selected_dose, program_type, sessions_used, total_sessions')
+    .eq('patient_id', patientId)
+    .eq('program_type', serviceType.programType)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
 
-  if (slErr) {
-    console.error('Auto-injection service_log error:', slErr);
+  // Check for duplicate on same date + same type
+  const dupQuery = supabase
+    .from('service_logs')
+    .select('id')
+    .eq('patient_id', patientId)
+    .eq('entry_date', todayStr)
+    .eq('category', serviceType.category)
+    .eq('entry_type', serviceType.entryType);
+  if (protocol) dupQuery.eq('protocol_id', protocol.id);
+  const { data: existing } = await dupQuery.limit(1);
+  if (existing && existing.length > 0) {
+    console.log(`Auto-session-log: already logged ${serviceType.category} ${serviceType.entryType} for patient ${patientId} on ${todayStr}, skipping`);
     return;
   }
 
-  // Update sessions_used on the protocol
-  const newSessionsUsed = (protocol.sessions_used || 0) + 1;
-  await supabase
-    .from('protocols')
-    .update({ sessions_used: newSessionsUsed, updated_at: new Date().toISOString() })
-    .eq('id', protocol.id);
+  // Log to service_logs
+  const { error: slErr } = await supabase.from('service_logs').insert({
+    patient_id: patientId,
+    protocol_id: protocol?.id || null,
+    category: serviceType.category,
+    entry_type: serviceType.entryType,
+    entry_date: todayStr,
+    medication: protocol?.medication || null,
+    dosage: protocol?.selected_dose || null,
+    administered_by: provider,
+    notes: `Auto-logged from completed appointment: ${appointment.service_name || appointment.appointment_title || 'Session'}${provider ? ` — ${provider}` : ''}`,
+  });
 
-  console.log(`Auto-injection: logged ${injectionType.category} injection for patient ${patientId}, protocol ${protocol.id} (${provider || 'no provider'}). Sessions: ${newSessionsUsed}/${protocol.total_sessions || '∞'}`);
+  if (slErr) {
+    console.error('Auto-session-log service_log error:', slErr);
+    return;
+  }
+
+  // Update sessions_used on the protocol if one exists
+  if (protocol) {
+    const newSessionsUsed = (protocol.sessions_used || 0) + 1;
+    await supabase
+      .from('protocols')
+      .update({ sessions_used: newSessionsUsed, updated_at: new Date().toISOString() })
+      .eq('id', protocol.id);
+
+    console.log(`Auto-session-log: logged ${serviceType.category} ${serviceType.entryType} for patient ${patientId}, protocol ${protocol.id} (${provider || 'no provider'}). Sessions: ${newSessionsUsed}/${protocol.total_sessions || '∞'}`);
+  } else {
+    console.log(`Auto-session-log: logged ${serviceType.category} ${serviceType.entryType} for patient ${patientId} (no protocol). ${provider || 'no provider'}`);
+  }
 }
 
 async function processAppointmentEvent(appointment, newStatus, oldStatus) {
@@ -227,9 +277,9 @@ async function processAppointmentEvent(appointment, newStatus, oldStatus) {
       console.error('Encounter reminder task error:', err)
     );
 
-    // Auto-log injection in service_logs for injection-type appointments
-    autoLogInjectionFromAppointment(appointment).catch(err =>
-      console.error('Auto-injection logging error:', err)
+    // Auto-log session/injection in service_logs when appointment is completed
+    autoLogSessionFromAppointment(appointment).catch(err =>
+      console.error('Auto-session logging error:', err)
     );
   }
 

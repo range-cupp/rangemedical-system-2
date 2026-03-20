@@ -299,7 +299,6 @@ function useUnreadTasks(employeeId) {
 }
 
 const NAV_ITEMS = [
-  { href: '/front-desk', label: 'Front Desk', icon: 'monitor' },
   { href: '/admin', label: 'Dashboard', icon: 'grid' },
   { href: '/admin/patients', label: 'Patients', icon: 'users' },
   { href: '/admin/protocols', label: 'Protocols', icon: 'activity' },

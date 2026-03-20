@@ -89,6 +89,8 @@ export default async function handler(req, res) {
       refill_interval_days, // override if provided, otherwise auto-calculated
       dosage_override, // if staff changed dosage at dispense time
       quantity, // number of units dispensed (e.g., 2 injections for weight loss)
+      fulfillment_method, // 'in_clinic' or 'overnight'
+      tracking_number, // shipping tracking number for overnight orders
     } = req.body;
 
     if (!protocol_id || !patient_id) {
@@ -141,6 +143,8 @@ export default async function handler(req, res) {
         medication: protocol.medication || null,
         dosage: dosage_override || protocol.selected_dose || null,
         supply_type: protocol.supply_type || null,
+        fulfillment_method: fulfillment_method || 'in_clinic',
+        tracking_number: tracking_number || null,
       })
       .select('id')
       .single();

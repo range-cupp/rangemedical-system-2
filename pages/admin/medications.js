@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import AdminLayout from '../../components/AdminLayout';
+import AdminLayout, { overlayClickProps } from '../../components/AdminLayout';
 import { TESTOSTERONE_DOSES, WEIGHT_LOSS_DOSAGES, getDoseOptions, getPeptideVialSupply } from '../../lib/protocol-config';
 
 // Friendly labels for supply types
@@ -160,6 +160,8 @@ export default function MedicationsPage() {
   const [dispenseDosage, setDispenseDosage] = useState('');
   const [customDoseMode, setCustomDoseMode] = useState(false);
   const [customDoseValue, setCustomDoseValue] = useState('');
+  const [fulfillmentMethod, setFulfillmentMethod] = useState('in_clinic');
+  const [trackingNumber, setTrackingNumber] = useState('');
   const [logging, setLogging] = useState(false);
   const [logResult, setLogResult] = useState(null);
 
@@ -200,6 +202,8 @@ export default function MedicationsPage() {
     setDispenseDosage(med.dosage || '');
     setCustomDoseMode(false);
     setCustomDoseValue('');
+    setFulfillmentMethod('in_clinic');
+    setTrackingNumber('');
     setLogResult(null);
   };
 
@@ -220,6 +224,8 @@ export default function MedicationsPage() {
           refill_interval_days: currentInterval,
           dosage_override: dispenseDosage !== dispensingProtocol.dosage ? dispenseDosage : null,
           quantity: selectedSupplyType.startsWith('wl_') ? parseInt(selectedSupplyType.split('_')[1]) : 1,
+          fulfillment_method: fulfillmentMethod,
+          tracking_number: fulfillmentMethod === 'overnight' ? trackingNumber : null,
         }),
       });
       if (res.status === 409) {
@@ -439,7 +445,7 @@ export default function MedicationsPage() {
 
       {/* Dispense Modal */}
       {dispensingProtocol && (
-        <div style={s.overlay} onClick={() => { setDispensingProtocol(null); setLogResult(null); }}>
+        <div style={s.overlay} {...overlayClickProps(() => { setDispensingProtocol(null); setLogResult(null); })}>
           <div style={s.modal} onClick={e => e.stopPropagation()}>
             <div style={s.modalHeader}>
               <h3 style={{ margin: 0, fontSize: '16px' }}>Dispense Medication</h3>
@@ -625,6 +631,50 @@ export default function MedicationsPage() {
                   <div style={{ fontSize: '12px', color: '#2563eb', marginTop: '2px' }}>
                     {getActiveInterval()} days from {formatDate(dispenseDate)}
                   </div>
+                </div>
+              )}
+
+              {/* Fulfillment Method */}
+              {dispensingProtocol && ['hrt', 'weight_loss', 'peptide'].includes((dispensingProtocol.program_type || '').toLowerCase()) && (
+                <div style={{ marginBottom: '14px', padding: '12px', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
+                  <div style={{ fontSize: '12px', fontWeight: '600', color: '#555', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Fulfillment</div>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: fulfillmentMethod === 'overnight' ? '10px' : '0' }}>
+                    <button
+                      type="button"
+                      onClick={() => setFulfillmentMethod('in_clinic')}
+                      style={{
+                        flex: 1, padding: '8px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: '500', cursor: 'pointer',
+                        border: fulfillmentMethod === 'in_clinic' ? '2px solid #2E75B6' : '1px solid #ddd',
+                        background: fulfillmentMethod === 'in_clinic' ? '#EBF3FB' : '#fff',
+                        color: fulfillmentMethod === 'in_clinic' ? '#2E75B6' : '#666',
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      Picked Up In Clinic
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFulfillmentMethod('overnight')}
+                      style={{
+                        flex: 1, padding: '8px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: '500', cursor: 'pointer',
+                        border: fulfillmentMethod === 'overnight' ? '2px solid #e67e22' : '1px solid #ddd',
+                        background: fulfillmentMethod === 'overnight' ? '#FFF5EB' : '#fff',
+                        color: fulfillmentMethod === 'overnight' ? '#e67e22' : '#666',
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      Overnighted
+                    </button>
+                  </div>
+                  {fulfillmentMethod === 'overnight' && (
+                    <input
+                      type="text"
+                      placeholder="Tracking number (optional)"
+                      value={trackingNumber}
+                      onChange={e => setTrackingNumber(e.target.value)}
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                    />
+                  )}
                 </div>
               )}
 

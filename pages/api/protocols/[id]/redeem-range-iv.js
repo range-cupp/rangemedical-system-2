@@ -48,8 +48,8 @@ export default async function handler(req, res) {
       .select('id')
       .eq('patient_id', protocol.patient_id)
       .in('category', ['iv', 'iv_therapy'])
-      .gte('service_date', cycleStart)
-      .lte('service_date', cycleEndStr)
+      .gte('entry_date', cycleStart)
+      .lte('entry_date', cycleEndStr)
       .limit(1);
 
     if (existingIV?.length > 0) {
@@ -63,7 +63,6 @@ export default async function handler(req, res) {
         patient_id: protocol.patient_id,
         category: 'iv',
         entry_type: 'session',
-        service_date: today,
         entry_date: today,
         medication: 'Range IV',
         protocol_id: protocol.id,

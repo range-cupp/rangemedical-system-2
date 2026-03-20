@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     // Determine billing cycle start (last_payment_date or start_date as fallback)
     const cycleStart = protocol.last_payment_date || protocol.start_date;
     if (!cycleStart) {
-      return res.json({ used: false, cycle_start: null, cycle_end: null, service_date: null });
+      return res.json({ used: false, cycle_start: null, cycle_end: null, entry_date: null });
     }
 
     // Billing cycle = cycleStart to cycleStart + 30 days
@@ -40,12 +40,12 @@ export default async function handler(req, res) {
     // Check for any IV service log entry for this patient in the billing cycle
     const { data: ivLogs, error: ivErr } = await supabase
       .from('service_logs')
-      .select('id, service_date, entry_date, medication, notes')
+      .select('id, entry_date, medication, notes')
       .eq('patient_id', protocol.patient_id)
       .eq('category', 'iv')
-      .gte('service_date', cycleStart)
-      .lte('service_date', cycleEndStr)
-      .order('service_date', { ascending: false })
+      .gte('entry_date', cycleStart)
+      .lte('entry_date', cycleEndStr)
+      .order('entry_date', { ascending: false })
       .limit(1);
 
     if (ivErr) throw ivErr;
@@ -55,19 +55,19 @@ export default async function handler(req, res) {
     if (!usedLog) {
       const { data: ivLogs2 } = await supabase
         .from('service_logs')
-        .select('id, service_date, entry_date, medication, notes')
+        .select('id, entry_date, medication, notes')
         .eq('patient_id', protocol.patient_id)
         .eq('category', 'iv_therapy')
-        .gte('service_date', cycleStart)
-        .lte('service_date', cycleEndStr)
-        .order('service_date', { ascending: false })
+        .gte('entry_date', cycleStart)
+        .lte('entry_date', cycleEndStr)
+        .order('entry_date', { ascending: false })
         .limit(1);
       usedLog = ivLogs2?.[0] || null;
     }
 
     return res.json({
       used: !!usedLog,
-      service_date: usedLog?.service_date || null,
+      service_date: usedLog?.entry_date || null,
       service_log_id: usedLog?.id || null,
       cycle_start: cycleStart,
       cycle_end: cycleEndStr,

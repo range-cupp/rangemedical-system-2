@@ -111,16 +111,16 @@ export default async function handler(req, res) {
       const cycleStart = protocol.last_payment_date || thirtyDaysAgoStr;
       const { data: ivLogs } = await supabase
         .from('service_logs')
-        .select('id, service_date')
+        .select('id, entry_date')
         .eq('patient_id', protocol.patient_id)
         .in('category', ['iv', 'iv_therapy'])
-        .gte('service_date', cycleStart)
+        .gte('entry_date', cycleStart)
         .limit(1);
 
       if (ivLogs && ivLogs.length > 0) {
         results.skipped.push({
           patient: protocol.patient_name,
-          reason: `IV already used on ${ivLogs[0].service_date}`
+          reason: `IV already used on ${ivLogs[0].entry_date}`
         });
         continue;
       }

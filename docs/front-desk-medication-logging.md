@@ -26,10 +26,16 @@ Everything else is automatic:
 
 1. Open patient profile → **Charge**
 2. Select the exact product (e.g., "Retatrutide — Monthly — 4 mg/week x2")
-3. Select **fulfillment**:
-   - **Picked Up In Clinic** — patient is here taking it home
-   - **Overnighted** — being shipped (enter tracking number)
+3. Select **fulfillment** — there are three options:
+   - **In-Clinic Injections** — patient is on a membership and will come in weekly for their injection. Sessions are tracked on the schedule — each completed appointment decrements one session.
+   - **Picked Up In Clinic** — patient is here taking the medication home. All injections are marked as dispensed immediately.
+   - **Overnighted** — medication is being shipped to the patient (enter tracking number). All injections are marked as dispensed immediately.
 4. Process payment
+
+**Which one do I pick?**
+- If the patient is coming in each week to get injected by staff → **In-Clinic Injections**
+- If the patient is taking the medication home today → **Picked Up In Clinic**
+- If you're shipping it to them → **Overnighted**
 
 Everything else is automatic — protocol, service log, medication name, dose, quantity.
 
@@ -73,14 +79,16 @@ This records what was dispensed, how it left the clinic, and sets the next refil
 
 ---
 
-## 4. In-Clinic Sessions & Injections (IV, HBOT, Red Light, B12, etc.)
+## 4. In-Clinic Sessions & Injections (IV, HBOT, Red Light, B12, Weight Loss, etc.)
 
 **No action needed from front desk.**
 
 When an appointment is marked as **completed** on the schedule, the system automatically:
 - Creates a service log entry for that session
-- Decrements the remaining sessions on the patient's protocol (e.g., HBOT 10-Pack goes from 8 remaining to 7)
+- Decrements the remaining sessions on the patient's protocol (e.g., HBOT 10-Pack goes from 8 remaining to 7, or a weight loss membership goes from 4 remaining to 3)
 - Records the provider who administered it
+
+This includes weight loss patients on the **In-Clinic Injections** plan — their sessions are tracked automatically through the appointment schedule, just like IV or HBOT.
 
 Just make sure the appointment gets marked completed — that's it.
 
@@ -93,6 +101,7 @@ Just make sure the appointment gets marked completed — that's it.
 - **Don't manually create service log entries** — the system handles this automatically for all types
 - **Don't skip the POS for comped medication** — run it as a $0 charge so it's tracked
 - **Don't mix up peptide products** — each one is a different medication, select the right one
+- **Don't pick the wrong weight loss fulfillment** — "In-Clinic Injections" is for memberships where they come in weekly; "Picked Up" and "Overnighted" are for take-home medication
 
 ---
 
@@ -100,7 +109,8 @@ Just make sure the appointment gets marked completed — that's it.
 
 | Medication/Service | Front Desk Action | Auto-Logged? |
 |---|---|---|
-| Weight loss (take-home) | POS charge + fulfillment | Yes — from POS |
+| Weight loss (in-clinic membership) | POS charge → In-Clinic Injections | Yes — per completed appointment |
+| Weight loss (take-home) | POS charge → Picked Up or Overnighted | Yes — from POS |
 | Peptide vial (take-home) | POS charge + fulfillment | Yes — from POS |
 | HRT program meds (take-home) | Medications → Dispense | Yes — from Dispense |
 | IV therapy session | None — mark appointment completed | Yes — from appointment |

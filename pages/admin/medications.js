@@ -164,6 +164,7 @@ export default function MedicationsPage() {
   const [trackingNumber, setTrackingNumber] = useState('');
   const [logging, setLogging] = useState(false);
   const [logResult, setLogResult] = useState(null);
+  const [dismissing, setDismissing] = useState(null); // protocol id being dismissed
 
   useEffect(() => {
     fetchMedications();
@@ -181,6 +182,28 @@ export default function MedicationsPage() {
       console.error('Error fetching medications:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDismiss = async (med) => {
+    if (!confirm(`Dismiss ${med.patient_name} — ${med.medication || med.program_name}?\n\nThis will mark the protocol as completed and remove it from this list.`)) return;
+    setDismissing(med.id);
+    try {
+      const res = await fetch(`/api/protocols/${med.id}/update`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'completed' }),
+      });
+      if (res.ok) {
+        setMedications(prev => prev.filter(m => m.id !== med.id));
+      } else {
+        alert('Failed to dismiss — try again');
+      }
+    } catch (err) {
+      console.error('Dismiss error:', err);
+      alert('Failed to dismiss — try again');
+    } finally {
+      setDismissing(null);
     }
   };
 
@@ -397,12 +420,24 @@ export default function MedicationsPage() {
                   <td style={{ ...s.td, fontSize: '13px', color: '#6b7280' }}>
                     {med.last_pickup ? formatDate(med.last_pickup) : 'Never'}
                   </td>
-                  <td style={s.td}>
+                  <td style={{ ...s.td, whiteSpace: 'nowrap' }}>
                     <button
                       onClick={() => openDispenseModal(med)}
                       style={s.dispenseBtn}
                     >
                       Dispense
+                    </button>
+                    <button
+                      onClick={() => handleDismiss(med)}
+                      disabled={dismissing === med.id}
+                      title="Dismiss — patient no longer needs this medication"
+                      style={{
+                        marginLeft: '6px', padding: '6px 10px', fontSize: '13px',
+                        background: 'transparent', color: '#9ca3af', border: '1px solid #e5e7eb',
+                        borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit',
+                      }}
+                    >
+                      {dismissing === med.id ? '...' : '✕'}
                     </button>
                   </td>
                 </tr>

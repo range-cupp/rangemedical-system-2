@@ -1083,7 +1083,7 @@ async function incrementOrCreateProtocol(patient_id, category, logDate, medicati
     // since the protocol already has the correct medication set
     if (medication && !protocol_id) {
       updateData.medication = medication;
-      updateData.program_name = medication;
+      // Don't overwrite program_name — it's standardized to "Weight Loss Protocol", "HRT Protocol", etc.
     }
     if (dosage && !protocol_id) {
       updateData.selected_dose = dosage;
@@ -1148,14 +1148,16 @@ async function createProtocolFromPickup(patient_id, category, programType, logDa
     const isFemale = isHRT && medication && medication.toLowerCase().includes('100mg');
     const hrtType = isHRT ? (isFemale ? 'female' : 'male') : null;
 
+    const isWL = isWeightLossType(programType);
     const { data: protocol, error } = await supabase
       .from('protocols')
       .insert({
         patient_id,
-        program_type: programType,
-        program_name: isHRT ? 'HRT Protocol' : (medication || getCategoryDisplayName(category)),
+        program_type: isWL ? 'weight_loss' : programType,
+        program_name: isHRT ? 'HRT Protocol' : isWL ? 'Weight Loss Protocol' : (medication || getCategoryDisplayName(category)),
         medication: medication || null,
         selected_dose: dosage || null,
+        frequency: isWL ? 'Weekly' : null,
         status: 'active',
         start_date: logDate,
         end_date: nextDate.toISOString().split('T')[0],
@@ -1200,14 +1202,16 @@ async function createProtocolFromSession(patient_id, category, programType, logD
     const isFemaleSession = isHRT && medication && medication.toLowerCase().includes('100mg');
     const hrtTypeSession = isHRT ? (isFemaleSession ? 'female' : 'male') : null;
 
+    const isWLSession = isWeightLossType(programType);
     const { data: protocol, error } = await supabase
       .from('protocols')
       .insert({
         patient_id,
-        program_type: programType,
-        program_name: isHRT ? 'HRT Protocol' : (medication || getCategoryDisplayName(category)),
+        program_type: isWLSession ? 'weight_loss' : programType,
+        program_name: isHRT ? 'HRT Protocol' : isWLSession ? 'Weight Loss Protocol' : (medication || getCategoryDisplayName(category)),
         medication: medication || null,
         selected_dose: dosage || null,
+        frequency: isWLSession ? 'Weekly' : null,
         status: 'active',
         start_date: logDate,
         last_visit_date: logDate,
@@ -1243,7 +1247,7 @@ async function createProtocolFromSession(patient_id, category, programType, logD
 function getCategoryDisplayName(category) {
   const names = {
     'testosterone': 'HRT Protocol',
-    'weight_loss': 'Weight Loss Program',
+    'weight_loss': 'Weight Loss Protocol',
     'vitamin': 'Vitamin Injections',
     'peptide': 'Peptide Therapy',
     'iv_therapy': 'IV Therapy',

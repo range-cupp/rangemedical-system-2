@@ -1,7 +1,7 @@
 // /pages/api/admin/protocols.js
 // Protocol creation API - Range Medical
 import { createClient } from '@supabase/supabase-js';
-import { isRecoveryPeptide, isGHPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS } from '../../../lib/protocol-config';
+import { isRecoveryPeptide, isGHPeptide, isWeightLossType, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS } from '../../../lib/protocol-config';
 import { getHRTLabSchedule, isHRTProtocol } from '../../../lib/hrt-lab-schedule';
 import { findDuplicateProtocol } from '../../../lib/duplicate-prevention';
 
@@ -219,7 +219,7 @@ export default async function handler(req, res) {
       patient_name,
       patient_email,
       patient_phone,
-      program_name: isHRTProtocol(program_type) ? 'HRT Protocol' : (program_name || program_type),
+      program_name: isHRTProtocol(program_type) ? 'HRT Protocol' : isWeightLossType(program_type) ? 'Weight Loss Protocol' : (program_name || program_type),
       program_type,
       medication,
       hrt_type: isHRTProtocol(program_type) ? (hrt_type || 'male') : null,

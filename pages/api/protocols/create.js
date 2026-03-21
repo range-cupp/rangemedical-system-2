@@ -128,10 +128,11 @@ export default async function handler(req, res) {
 
     // Build protocol record - only include columns that exist in the table
     const isHRT = isHRTType(program_type);
+    const isWL = isWeightLossType(program_type);
     const protocolData = {
       patient_id,
-      program_type,
-      program_name: isHRT ? 'HRT Protocol' : (resolved_program_name || getProgramName(program_type)),
+      program_type: isWL ? 'weight_loss' : program_type,
+      program_name: isHRT ? 'HRT Protocol' : isWL ? 'Weight Loss Protocol' : (resolved_program_name || getProgramName(program_type)),
       medication: medication || null,
       selected_dose: dose || null,
       starting_dose: dose || null,

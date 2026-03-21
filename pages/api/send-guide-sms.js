@@ -16,6 +16,7 @@ const GUIDE_DEFINITIONS = {
   'glow-guide': { name: 'GLOW Guide', path: '/glow-guide' },
   'ghk-cu-guide': { name: 'GHK-Cu Guide', path: '/ghk-cu-guide' },
   '3x-blend-guide': { name: '3x Blend Guide', path: '/3x-blend-guide' },
+  'tesamorelin-ipamorelin-guide': { name: '2X Tesa/Ipa Guide', path: '/tesamorelin-ipamorelin-guide' },
   'nad-guide': { name: 'NAD+ Guide', path: '/nad-guide' },
   'methylene-blue-iv-guide': { name: 'Methylene Blue Guide', path: '/methylene-blue-iv-guide' },
   'methylene-blue-combo-iv-guide': { name: 'MB+VitC Combo Guide', path: '/methylene-blue-combo-iv-guide' },

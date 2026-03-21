@@ -314,8 +314,9 @@ export default async function handler(req, res) {
       programName = template.name;
       programType = template.category;
 
-      // Standardize HRT program name
+      // Standardize program names
       if (programType === 'hrt') programName = 'HRT Protocol';
+      if (programType === 'peptide') programName = 'Peptide Protocol';
 
       // Apply membership overrides
       if (programTypeOverride) programType = programTypeOverride;

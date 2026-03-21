@@ -219,7 +219,7 @@ export default async function handler(req, res) {
       patient_name,
       patient_email,
       patient_phone,
-      program_name: isHRTProtocol(program_type) ? 'HRT Protocol' : isWeightLossType(program_type) ? 'Weight Loss Protocol' : (program_name || program_type),
+      program_name: isHRTProtocol(program_type) ? 'HRT Protocol' : isWeightLossType(program_type) ? 'Weight Loss Protocol' : program_type === 'peptide' ? 'Peptide Protocol' : (program_name || program_type),
       program_type,
       medication,
       hrt_type: isHRTProtocol(program_type) ? (hrt_type || 'male') : null,

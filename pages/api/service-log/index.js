@@ -1249,7 +1249,7 @@ function getCategoryDisplayName(category) {
     'testosterone': 'HRT Protocol',
     'weight_loss': 'Weight Loss Protocol',
     'vitamin': 'Vitamin Injections',
-    'peptide': 'Peptide Therapy',
+    'peptide': 'Peptide Protocol',
     'iv_therapy': 'IV Therapy',
     'hbot': 'Hyperbaric Oxygen Therapy',
     'red_light': 'Red Light Therapy',

@@ -4,6 +4,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { sendAppointmentNotification } from '../../../../lib/appointment-notifications';
 import { sendProviderNotification } from '../../../../lib/provider-notifications';
+import { logAction } from '../../../../lib/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -16,7 +17,7 @@ export default async function handler(req, res) {
   }
 
   const { id } = req.query;
-  const { new_start_time, new_end_time } = req.body;
+  const { new_start_time, new_end_time, rescheduled_by } = req.body;
 
   if (!new_start_time || !new_end_time) {
     return res.status(400).json({ error: 'new_start_time and new_end_time are required' });
@@ -86,7 +87,23 @@ export default async function handler(req, res) {
       appointment_id: newAppt.id,
       event_type: 'created',
       new_status: 'scheduled',
-      metadata: { rescheduled_from: id },
+      metadata: { rescheduled_from: id, rescheduled_by: rescheduled_by || null },
+    });
+
+    // Audit log
+    await logAction({
+      employeeName: rescheduled_by || 'Unknown',
+      action: 'reschedule_appointment',
+      resourceType: 'appointment',
+      resourceId: id,
+      details: {
+        patient_name: oldAppt.patient_name,
+        service_name: oldAppt.service_name,
+        old_time: oldAppt.start_time,
+        new_time: new_start_time,
+        new_appointment_id: newAppt.id,
+      },
+      req,
     });
 
     // Fire-and-forget: send reschedule notification (email + SMS with proper timezone)

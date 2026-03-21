@@ -3,6 +3,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { sendProviderNotification } from '../../../../lib/provider-notifications';
+import { logAction } from '../../../../lib/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -15,7 +16,7 @@ export default async function handler(req, res) {
   }
 
   const { id } = req.query;
-  const { cancellation_reason } = req.body;
+  const { cancellation_reason, cancelled_by } = req.body;
 
   try {
     // Get current appointment
@@ -55,7 +56,21 @@ export default async function handler(req, res) {
       event_type: 'cancelled',
       old_status: appointment.status,
       new_status: 'cancelled',
-      metadata: cancellation_reason ? { cancellation_reason } : {},
+      metadata: { cancellation_reason: cancellation_reason || null, cancelled_by: cancelled_by || null },
+    });
+
+    // Audit log
+    await logAction({
+      employeeName: cancelled_by || 'Unknown',
+      action: 'cancel_appointment',
+      resourceType: 'appointment',
+      resourceId: id,
+      details: {
+        patient_name: appointment.patient_name,
+        service_name: appointment.service_name,
+        cancellation_reason: cancellation_reason || null,
+      },
+      req,
     });
 
     // Send provider SMS for cancellation (fire-and-forget)

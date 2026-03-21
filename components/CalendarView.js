@@ -65,7 +65,7 @@ const SESSION_BASED_CATEGORIES = ['rlt', 'hbot', 'iv', 'injection'];
 const HOURS = Array.from({ length: 15 }, (_, i) => i + 6); // 6 AM to 8 PM
 
 export default function CalendarView({ preselectedPatient = null, wizardOnly = false }) {
-  const { session } = useAuth();
+  const { session, employee } = useAuth();
   const [encounterAppt, setEncounterAppt] = useState(null);
 
   // Calendar state
@@ -638,7 +638,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             duration_minutes: duration,
             location: selectedLocation?.label || DEFAULT_LOCATION.label,
             notes: apptNotes || null,
-            created_by: 'command_center',
+            created_by: employee?.name || session?.user?.email || 'Staff',
             send_notification: sendNotification,
             source: 'cal_com',
             services: detailedServices,
@@ -694,7 +694,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 duration_minutes: duration,
                 location: selectedLocation?.label || DEFAULT_LOCATION.label,
                 notes: apptNotes || null,
-                created_by: 'command_center',
+                created_by: employee?.name || session?.user?.email || 'Staff',
                 send_notification: sendNotification,
                 cal_com_booking_id: String(data.calcom?.id || data.booking?.calcom_booking_id || ''),
                 source: 'cal_com',
@@ -722,7 +722,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               duration_minutes: duration,
               location: selectedLocation?.label || DEFAULT_LOCATION.label,
               notes: apptNotes || null,
-              created_by: 'command_center',
+              created_by: employee?.name || session?.user?.email || 'Staff',
               send_notification: sendNotification,
               service_details: Object.keys(fallbackDetails).length > 0 ? fallbackDetails : null,
               services: servicesPayload,
@@ -746,7 +746,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             duration_minutes: duration,
             location: selectedLocation?.label || DEFAULT_LOCATION.label,
             notes: apptNotes || null,
-            created_by: 'command_center',
+            created_by: employee?.name || session?.user?.email || 'Staff',
             send_notification: sendNotification,
           }),
         });

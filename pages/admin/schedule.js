@@ -146,6 +146,7 @@ export default function SchedulePage() {
               <th style={styles.th}>Provider</th>
               <th style={styles.th}>Location</th>
               <th style={styles.th}>Status</th>
+              <th style={styles.th}>Booked By</th>
               <th style={{ ...styles.th, width: '120px' }}></th>
             </tr>
           </thead>
@@ -201,6 +202,21 @@ export default function SchedulePage() {
                         );
                       })()}
                     </div>
+                  </td>
+                  <td style={styles.td}>
+                    <div style={{ fontSize: '13px', color: '#555' }}>
+                      {apt.created_by || <span style={{ color: '#ccc' }}>—</span>}
+                    </div>
+                    {apt.created_at && (
+                      <div style={{ fontSize: '11px', color: '#999', marginTop: '2px' }}>
+                        {new Date(apt.created_at).toLocaleDateString('en-US', {
+                          month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles'
+                        })}{' '}
+                        {new Date(apt.created_at).toLocaleTimeString('en-US', {
+                          hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles'
+                        })}
+                      </div>
+                    )}
                   </td>
                   <td style={styles.td}>
                     <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>

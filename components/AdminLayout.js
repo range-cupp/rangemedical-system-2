@@ -317,6 +317,7 @@ const NAV_ITEMS = [
   { href: '/admin/snippets', label: 'Snippets', icon: 'file-text' },
   { href: '/admin/provider-schedule', label: 'Staff Hours', icon: 'clock' },
   { href: '/admin/employees', label: 'Employees', icon: 'user-check', permission: 'can_manage_employees' },
+  { href: '/admin/employee-activity', label: 'Employee Activity', icon: 'activity', permission: 'can_manage_employees' },
   { href: '/admin/settings', label: 'Settings', icon: 'settings' }
 ];
 

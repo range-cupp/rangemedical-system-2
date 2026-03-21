@@ -4,6 +4,7 @@
 // When status → checked_in: records checked_in_at timestamp, logs event, creates encounter note
 
 import { createClient } from '@supabase/supabase-js';
+import { logAction } from '../../../lib/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -18,7 +19,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { id, table, status, notes, category } = req.body;
+  const { id, table, status, notes, category, updated_by } = req.body;
 
   if (!id) {
     return res.status(400).json({ error: 'Missing appointment id' });
@@ -79,8 +80,18 @@ export default async function handler(req, res) {
         appointment_id: id,
         event_type: `status_${status}`,
         new_status: status,
-        metadata: status === 'checked_in' ? { checked_in_at: now } : {},
+        metadata: status === 'checked_in' ? { checked_in_at: now, updated_by: updated_by || null } : { updated_by: updated_by || null },
       }).catch(e => console.error('Event log error:', e));
+
+      // Audit log
+      await logAction({
+        employeeName: updated_by || 'Unknown',
+        action: `update_appointment_${status}`,
+        resourceType: 'appointment',
+        resourceId: id,
+        details: { new_status: status },
+        req,
+      });
     }
 
     // When checked in, create an encounter note on the patient record

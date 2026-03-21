@@ -5,6 +5,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { sendAppointmentNotification } from '../../../lib/appointment-notifications';
 import { sendProviderNotification } from '../../../lib/provider-notifications';
+import { logAction } from '../../../lib/auth';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -82,6 +83,22 @@ export default async function handler(req, res) {
       event_type: 'created',
       new_status: 'scheduled',
       metadata: { created_by, source: source || 'manual', send_notification },
+    });
+
+    // Audit log — who booked this appointment
+    await logAction({
+      employeeName: created_by || 'Unknown',
+      action: 'book_appointment',
+      resourceType: 'appointment',
+      resourceId: appointment.id,
+      details: {
+        patient_name,
+        service_name,
+        start_time,
+        provider: provider || null,
+        source: source || 'manual',
+      },
+      req,
     });
 
     // Send patient notification (email + SMS) if enabled

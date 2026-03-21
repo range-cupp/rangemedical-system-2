@@ -2808,16 +2808,13 @@ export default function PatientProfile() {
           <div className="demographics-toggle-row">
             <button className="demographics-toggle" onClick={() => { if (editingPatient) return; setShowDemographics(!showDemographics); }}>
               <span className="demographics-preview">
-                {!showDemographics && (
-                  <>
-                    {(patient.date_of_birth || intakeDemographics?.date_of_birth) && <span>{formatDate(patient.date_of_birth || intakeDemographics?.date_of_birth)}</span>}
-                    {(patient.gender || intakeDemographics?.gender) && <span>{patient.gender || intakeDemographics?.gender}</span>}
-                    {patient.created_at && <span>Since {formatDate(patient.created_at)}</span>}
-                  </>
-                )}
-                {showDemographics && <span style={{ color: '#374151' }}>Patient Details</span>}
+                {(patient.date_of_birth || intakeDemographics?.date_of_birth) && <span>{formatDate(patient.date_of_birth || intakeDemographics?.date_of_birth)}</span>}
+                {(patient.gender || intakeDemographics?.gender) && <span>{patient.gender || intakeDemographics?.gender}</span>}
+                {patient.phone && <span>{patient.phone}</span>}
+                {patient.email && <span>{patient.email}</span>}
+                {patient.created_at && <span>Since {formatDate(patient.created_at)}</span>}
               </span>
-              <span className="demographics-toggle-icon">{showDemographics ? '▲ Hide' : '▼ Details'}</span>
+              <span className="demographics-toggle-icon">{showDemographics ? '▲ Hide Details' : '▼ Details'}</span>
             </button>
           </div>
 
@@ -3196,6 +3193,70 @@ export default function PatientProfile() {
           {/* Overview Tab */}
           {activeTab === 'overview' && (
             <>
+              {/* Current Medications Snapshot */}
+              {activeProtocols.filter(p => ['hrt', 'weight_loss', 'peptide'].includes(p.category)).length > 0 && (
+                <section className="card" style={{ marginBottom: '16px' }}>
+                  <div className="card-header">
+                    <h3>Current Medications</h3>
+                    <button onClick={() => setActiveTab('protocols')} className="btn-text">View Protocols →</button>
+                  </div>
+                  <div style={{ padding: '4px 16px 12px' }}>
+                    {activeProtocols
+                      .filter(p => ['hrt', 'weight_loss', 'peptide'].includes(p.category))
+                      .map(protocol => {
+                        const cat = getCategoryStyle(protocol.category);
+                        // Build dose/frequency string
+                        const parts = [];
+                        if (protocol.selected_dose) parts.push(protocol.selected_dose);
+                        if (protocol.category === 'hrt') {
+                          if (protocol.injections_per_week) parts.push(`${protocol.injections_per_week}x/week`);
+                          if (protocol.injection_method) parts.push(protocol.injection_method);
+                        } else if (protocol.frequency) {
+                          parts.push(protocol.frequency);
+                        }
+                        const deliveryLabel = protocol.delivery_method === 'in_clinic' ? 'In-Clinic' :
+                          protocol.delivery_method === 'take_home' || protocol.delivery_method === 'at_home' ? 'Take-Home' :
+                          protocol.delivery_method === 'overnight' ? 'Overnight' : null;
+                        return (
+                          <div key={protocol.id} style={{
+                            display: 'flex', alignItems: 'center', gap: '10px',
+                            padding: '8px 10px', marginBottom: '4px',
+                            background: '#f8fafc', borderRadius: '8px',
+                            border: '1px solid #f1f5f9',
+                          }}>
+                            <span style={{
+                              display: 'inline-block', padding: '2px 8px', borderRadius: '4px',
+                              fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px',
+                              background: cat.bg, color: cat.text, flexShrink: 0,
+                            }}>
+                              {cat.label}
+                            </span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <span style={{ fontSize: '13px', fontWeight: 600, color: '#1e293b' }}>
+                                {protocol.medication || protocol.program_name}
+                              </span>
+                              {parts.length > 0 && (
+                                <span style={{ fontSize: '12px', color: '#64748b', marginLeft: '8px' }}>
+                                  {parts.join(' · ')}
+                                </span>
+                              )}
+                            </div>
+                            {deliveryLabel && (
+                              <span style={{
+                                fontSize: '10px', fontWeight: 600, color: '#64748b',
+                                background: '#e2e8f0', padding: '2px 6px', borderRadius: '4px',
+                                flexShrink: 0,
+                              }}>
+                                {deliveryLabel}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
+                </section>
+              )}
+
               {/* Active Subscriptions */}
               {subscriptions.length > 0 && (
                 <section className="card" style={{ marginBottom: '16px' }}>
@@ -8584,38 +8645,40 @@ export default function PatientProfile() {
 
         /* Demographics Toggle */
         .demographics-toggle-row {
-          margin-top: 12px;
-          border-top: 1px solid #f3f4f6;
-          padding-top: 8px;
+          margin-top: 0;
+          border-top: 1px solid #e5e7eb;
         }
         .demographics-toggle {
           display: flex;
           justify-content: space-between;
           align-items: center;
           width: 100%;
-          background: none;
+          background: #f8fafc;
           border: none;
           cursor: pointer;
-          padding: 6px 0;
-          color: #6b7280;
-          font-size: 12px;
+          padding: 10px 16px;
+          color: #374151;
+          font-size: 13px;
+          transition: background 0.15s;
         }
-        .demographics-toggle:hover { color: #374151; }
+        .demographics-toggle:hover { background: #f1f5f9; }
         .demographics-preview {
           display: flex;
           gap: 16px;
-          font-size: 12px;
-          color: #9ca3af;
+          font-size: 13px;
+          color: #475569;
+          flex-wrap: wrap;
         }
         .demographics-preview span + span::before {
           content: '·';
           margin-right: 16px;
-          color: #d1d5db;
+          color: #94a3b8;
         }
         .demographics-toggle-icon {
-          font-size: 11px;
-          color: #9ca3af;
-          font-weight: 500;
+          font-size: 12px;
+          color: #3b82f6;
+          font-weight: 600;
+          flex-shrink: 0;
         }
 
         /* Demographics Section */

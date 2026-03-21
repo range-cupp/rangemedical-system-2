@@ -110,6 +110,7 @@ const AVAILABLE_GUIDES = [
   { id: 'glow-guide', name: 'GLOW Guide', icon: '✨', category: 'peptide' },
   { id: 'ghk-cu-guide', name: 'GHK-Cu Guide', icon: '🧬', category: 'peptide' },
   { id: '3x-blend-guide', name: '3x Blend Guide', icon: '🧬', category: 'peptide' },
+  { id: 'tesamorelin-ipamorelin-guide', name: '2X Tesa/Ipa Guide', icon: '🧬', category: 'peptide' },
   { id: 'nad-guide', name: 'NAD+ Guide', icon: '💧', category: 'iv' },
   { id: 'methylene-blue-iv-guide', name: 'Methylene Blue Guide', icon: '💧', category: 'iv' },
   { id: 'methylene-blue-combo-iv-guide', name: 'MB+VitC Combo Guide', icon: '💧', category: 'iv' },

@@ -203,6 +203,14 @@ async function autoLogSessionFromAppointment(appointment) {
   const serviceType = detectAppointmentServiceType(appointment);
   if (!serviceType) return;
 
+  // Skip weight loss and HRT — these use encounter notes as their single source of truth.
+  // Appointment completion just serves as a visual overlay, not the injection record.
+  const encounterNoteCategories = ['weight_loss', 'testosterone'];
+  if (encounterNoteCategories.includes(serviceType.category)) {
+    console.log(`Auto-session-log: skipping ${serviceType.category} — encounter note is the source of truth`);
+    return;
+  }
+
   const patientId = appointment.patient_id;
   if (!patientId) {
     console.log('Auto-session-log: no patient_id on appointment, skipping');

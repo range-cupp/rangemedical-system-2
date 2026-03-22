@@ -194,7 +194,10 @@ async function updateProtocol(id, updates, res) {
     'injection_method',
     'onboarding_start_date',
     // HRT billing
-    'last_payment_date'
+    'last_payment_date',
+    // HRT secondary medications
+    'secondary_medications',
+    'secondary_medication_details'
   ];
 
   // Date fields that need special handling (convert empty string to null)
@@ -244,6 +247,11 @@ async function updateProtocol(id, updates, res) {
   }
   if (updateData.supply_type === 'prefill_4week') {
     updateData.supply_type = 'prefilled_4week';
+  }
+
+  // Parse secondary medication details from JSON string to array
+  if (updateData.secondary_medication_details !== undefined && typeof updateData.secondary_medication_details === 'string') {
+    try { updateData.secondary_medication_details = JSON.parse(updateData.secondary_medication_details); } catch { updateData.secondary_medication_details = []; }
   }
 
   // Parse vial fields as integers

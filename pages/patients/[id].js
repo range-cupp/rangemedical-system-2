@@ -24,6 +24,7 @@ import {
   TESTOSTERONE_DOSES,
   HRT_SUPPLY_TYPES,
   HRT_SECONDARY_MEDICATIONS,
+  HRT_SECONDARY_DOSAGES,
   INJECTION_METHODS,
   FREQUENCY_OPTIONS,
   VISIT_FREQUENCY_OPTIONS,
@@ -1691,12 +1692,23 @@ export default function PatientProfile() {
       scheduledDays: protocol.scheduled_days || [],
       lastVisitDate: protocol.last_visit_date || '',
       nextExpectedDate: protocol.next_expected_date || '',
-      // Secondary medications
+      // Secondary medications + their dosage/frequency details
       secondaryMedications: protocol.secondary_medications
         ? (typeof protocol.secondary_medications === 'string'
           ? JSON.parse(protocol.secondary_medications)
           : protocol.secondary_medications)
-        : []
+        : [],
+      secondaryMedDetails: (() => {
+        const details = protocol.secondary_medication_details
+          ? (typeof protocol.secondary_medication_details === 'string'
+            ? JSON.parse(protocol.secondary_medication_details)
+            : protocol.secondary_medication_details)
+          : [];
+        // Build a map: { HCG: { dosage: '500 IU', frequency: '2x/week' }, ... }
+        const map = {};
+        details.forEach(d => { map[d.medication] = { dosage: d.dosage || '', frequency: d.frequency || '' }; });
+        return map;
+      })()
     });
     setShowEditModal(true);
   };
@@ -1748,9 +1760,29 @@ export default function PatientProfile() {
           last_payment_date: dateOrNull(editForm.lastPaymentDate),
           // HRT injection method
           injection_method: editForm.injectionMethod || null,
-          // HRT secondary medications
+          // HRT secondary medications + dosage/frequency details
           secondary_medications: editForm.secondaryMedications && editForm.secondaryMedications.length > 0
             ? JSON.stringify(editForm.secondaryMedications) : '[]',
+          secondary_medication_details: (() => {
+            if (!editForm.secondaryMedications || editForm.secondaryMedications.length === 0) return '[]';
+            // Merge form edits with existing supply tracking data (preserve pickup dates/vial counts)
+            const existingDetails = selectedProtocol.secondary_medication_details
+              ? (typeof selectedProtocol.secondary_medication_details === 'string'
+                ? JSON.parse(selectedProtocol.secondary_medication_details)
+                : selectedProtocol.secondary_medication_details)
+              : [];
+            const details = editForm.secondaryMedications.map(med => {
+              const existing = existingDetails.find(d => d.medication === med) || {};
+              const formInfo = editForm.secondaryMedDetails?.[med] || {};
+              return {
+                ...existing,
+                medication: med,
+                dosage: formInfo.dosage || existing.dosage || null,
+                frequency: formInfo.frequency || existing.frequency || null,
+              };
+            });
+            return JSON.stringify(details);
+          })(),
           // Delivery & scheduling
           delivery_method: editForm.deliveryMethod || null,
           visit_frequency: editForm.visitFrequency || null,
@@ -7236,34 +7268,91 @@ export default function PatientProfile() {
                       </div>
                     </div>
 
-                    {/* Secondary Medications */}
+                    {/* Secondary Medications — add/remove + dosage/frequency per med */}
                     <div className="form-group">
-                      <label>Secondary Medications</label>
-                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                        {HRT_SECONDARY_MEDICATIONS.map(m => {
-                          const selected = (editForm.secondaryMedications || []).includes(m);
-                          return (
+                      <label>Add Secondary Medication</label>
+                      <select
+                        value=""
+                        onChange={e => {
+                          const med = e.target.value;
+                          if (!med) return;
+                          const current = editForm.secondaryMedications || [];
+                          if (current.includes(med)) return;
+                          const config = HRT_SECONDARY_DOSAGES[med] || {};
+                          setEditForm({
+                            ...editForm,
+                            secondaryMedications: [...current, med],
+                            secondaryMedDetails: {
+                              ...editForm.secondaryMedDetails,
+                              [med]: { dosage: config.doses?.[0] || '', frequency: config.defaultFrequency || '' }
+                            }
+                          });
+                        }}
+                        style={{ width: '100%' }}
+                      >
+                        <option value="">+ Add medication...</option>
+                        {HRT_SECONDARY_MEDICATIONS
+                          .filter(m => !(editForm.secondaryMedications || []).includes(m))
+                          .map(m => <option key={m} value={m}>{m}</option>)
+                        }
+                      </select>
+                    </div>
+
+                    {/* Active secondary medications with dose + frequency */}
+                    {(editForm.secondaryMedications || []).map(med => {
+                      const config = HRT_SECONDARY_DOSAGES[med] || {};
+                      const details = editForm.secondaryMedDetails?.[med] || {};
+                      return (
+                        <div key={med} style={{
+                          padding: '12px', marginBottom: '8px',
+                          background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '10px',
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                            <span style={{ fontSize: '14px', fontWeight: 700, color: '#7c3aed' }}>{med}</span>
                             <button
-                              key={m}
                               type="button"
                               onClick={() => {
-                                const current = editForm.secondaryMedications || [];
-                                const updated = selected ? current.filter(x => x !== m) : [...current, m];
-                                setEditForm({...editForm, secondaryMedications: updated});
+                                const updated = (editForm.secondaryMedications || []).filter(x => x !== med);
+                                const updatedDetails = { ...editForm.secondaryMedDetails };
+                                delete updatedDetails[med];
+                                setEditForm({ ...editForm, secondaryMedications: updated, secondaryMedDetails: updatedDetails });
                               }}
-                              style={{
-                                padding: '5px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 500, cursor: 'pointer',
-                                border: selected ? '1.5px solid #7c3aed' : '1px solid #d1d5db',
-                                background: selected ? '#f5f3ff' : '#fff',
-                                color: selected ? '#7c3aed' : '#374151',
-                              }}
-                            >
-                              {selected && '✓ '}{m}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
+                              style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: '16px', padding: '0 4px' }}
+                            >×</button>
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                            <div>
+                              <label style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: '4px' }}>Dosage</label>
+                              <select
+                                value={details.dosage || ''}
+                                onChange={e => setEditForm({
+                                  ...editForm,
+                                  secondaryMedDetails: { ...editForm.secondaryMedDetails, [med]: { ...details, dosage: e.target.value } }
+                                })}
+                                style={{ width: '100%', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px' }}
+                              >
+                                <option value="">Select dose...</option>
+                                {(config.doses || []).map(d => <option key={d} value={d}>{d}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <label style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: '4px' }}>Frequency</label>
+                              <select
+                                value={details.frequency || ''}
+                                onChange={e => setEditForm({
+                                  ...editForm,
+                                  secondaryMedDetails: { ...editForm.secondaryMedDetails, [med]: { ...details, frequency: e.target.value } }
+                                })}
+                                style={{ width: '100%', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px' }}
+                              >
+                                <option value="">Select frequency...</option>
+                                {(config.frequencies || []).map(f => <option key={f} value={f}>{f}</option>)}
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </>
                 )}
 

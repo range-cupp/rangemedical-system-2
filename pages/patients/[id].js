@@ -485,7 +485,8 @@ export default function PatientProfile() {
   const [assignForm, setAssignForm] = useState({
     templateId: '', peptideId: '', selectedDose: '', frequency: '',
     startDate: new Date().toISOString().split('T')[0], notes: '',
-    injectionMedication: '', injectionDose: '', vialDuration: ''
+    injectionMedication: '', injectionDose: '', vialDuration: '',
+    medication: ''
   });
 
   const [editForm, setEditForm] = useState({
@@ -1367,6 +1368,7 @@ export default function PatientProfile() {
       const template = getSelectedTemplate();
       const isInjection = template?.name?.toLowerCase().includes('injection');
       const isPeptide = template?.name?.toLowerCase().includes('peptide');
+      const isWeightLoss = template?.name?.toLowerCase().includes('weight');
 
       // For peptide vial templates, pass the vial duration
       const isVialTemplate = template?.name?.toLowerCase().includes('vial');
@@ -1382,7 +1384,7 @@ export default function PatientProfile() {
           templateId: assignForm.templateId,
           peptideId: assignForm.peptideId,
           selectedDose: isInjection ? assignForm.injectionDose : assignForm.selectedDose,
-          medication: isInjection ? assignForm.injectionMedication : (isPeptide ? assignForm.peptideId : null),
+          medication: isInjection ? assignForm.injectionMedication : (isPeptide ? assignForm.peptideId : (isWeightLoss ? assignForm.medication : null)),
           frequency: assignForm.frequency,
           startDate: assignForm.startDate,
           notes: assignForm.notes,
@@ -2133,6 +2135,7 @@ export default function PatientProfile() {
   const getSelectedPeptide = () => peptides.find(p => p.id === assignForm.peptideId) || null;
   const isPeptideTemplate = () => getSelectedTemplate()?.name?.toLowerCase().includes('peptide');
   const isInjectionTemplate = () => getSelectedTemplate()?.name?.toLowerCase().includes('injection');
+  const isWeightLossTemplate = () => getSelectedTemplate()?.name?.toLowerCase().includes('weight');
 
   // Delete patient handler
   const handleDeletePatient = async () => {
@@ -6969,7 +6972,7 @@ export default function PatientProfile() {
                   <>
                     <div className="form-group">
                       <label>Protocol Template *</label>
-                      <select value={assignForm.templateId} onChange={e => setAssignForm({...assignForm, templateId: e.target.value, peptideId: '', selectedDose: ''})}>
+                      <select value={assignForm.templateId} onChange={e => setAssignForm({...assignForm, templateId: e.target.value, peptideId: '', selectedDose: '', medication: ''})}>
                         <option value="">Select template...</option>
                         {Object.entries(templates.grouped || {}).map(([category, temps]) => (
                           <optgroup key={category} label={category}>
@@ -6978,6 +6981,27 @@ export default function PatientProfile() {
                         ))}
                       </select>
                     </div>
+
+                    {isWeightLossTemplate() && (
+                      <>
+                        <div className="form-group">
+                          <label>Medication *</label>
+                          <select value={assignForm.medication || ''} onChange={e => setAssignForm({...assignForm, medication: e.target.value, selectedDose: ''})}>
+                            <option value="">Select medication...</option>
+                            {WEIGHT_LOSS_MEDICATIONS.map(m => <option key={m} value={m}>{m}</option>)}
+                          </select>
+                        </div>
+                        {assignForm.medication && WEIGHT_LOSS_DOSAGES[assignForm.medication] && (
+                          <div className="form-group">
+                            <label>Dose</label>
+                            <select value={assignForm.selectedDose} onChange={e => setAssignForm({...assignForm, selectedDose: e.target.value})}>
+                              <option value="">Select dose...</option>
+                              {WEIGHT_LOSS_DOSAGES[assignForm.medication].map(d => <option key={d} value={d}>{d}</option>)}
+                            </select>
+                          </div>
+                        )}
+                      </>
+                    )}
 
                     {isPeptideTemplate() && (
                       <>
@@ -7215,7 +7239,15 @@ export default function PatientProfile() {
                   {selectedProtocol.category === 'weight_loss' && editForm.medication && WEIGHT_LOSS_DOSAGES[editForm.medication] ? (
                     <select value={editForm.selectedDose} onChange={e => setEditForm({...editForm, selectedDose: e.target.value})}>
                       <option value="">Select dose...</option>
-                      {WEIGHT_LOSS_DOSAGES[editForm.medication].map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                      {WEIGHT_LOSS_DOSAGES[editForm.medication].map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                  ) : selectedProtocol.category === 'peptide' && editForm.medication && (() => {
+                    const peptide = PEPTIDE_OPTIONS.flatMap(g => g.options).find(o => o.value === editForm.medication);
+                    return peptide?.doses;
+                  })() ? (
+                    <select value={editForm.selectedDose} onChange={e => setEditForm({...editForm, selectedDose: e.target.value})}>
+                      <option value="">Select dose...</option>
+                      {PEPTIDE_OPTIONS.flatMap(g => g.options).find(o => o.value === editForm.medication)?.doses.map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
                   ) : selectedProtocol.category === 'hrt' ? (
                     <select value={editForm.selectedDose} onChange={e => setEditForm({...editForm, selectedDose: e.target.value})}>
@@ -7226,6 +7258,17 @@ export default function PatientProfile() {
                     <input type="text" value={editForm.selectedDose} onChange={e => setEditForm({...editForm, selectedDose: e.target.value})} placeholder="Dose" />
                   )}
                 </div>
+
+                {/* ── Frequency (weight loss & peptide) ── */}
+                {(selectedProtocol.category === 'weight_loss' || selectedProtocol.category === 'peptide') && (
+                  <div className="form-group">
+                    <label>Frequency</label>
+                    <select value={editForm.frequency} onChange={e => setEditForm({...editForm, frequency: e.target.value})}>
+                      <option value="">Select frequency...</option>
+                      {FREQUENCY_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                    </select>
+                  </div>
+                )}
 
                 {/* ── HRT-specific fields ── */}
                 {selectedProtocol.category === 'hrt' && (

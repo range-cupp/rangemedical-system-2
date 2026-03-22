@@ -180,7 +180,7 @@ export default function HyperbaricOxygenTherapy() {
                 "aggregateRating": {
                   "@type": "AggregateRating",
                   "ratingValue": "5.0",
-                  "reviewCount": "90",
+                  "reviewCount": "10",
                   "bestRating": "5"
                 },
                 "openingHoursSpecification": {

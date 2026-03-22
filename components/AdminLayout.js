@@ -304,8 +304,6 @@ const NAV_ITEMS = [
   { href: '/admin/protocols', label: 'Protocols', icon: 'activity' },
   { href: '/admin/schedule', label: 'Schedule', icon: 'calendar' },
   { href: '/admin/labs', label: 'Labs', icon: 'flask' },
-  { href: '/admin/hrt-patients', label: 'HRT Patients', icon: 'activity' },
-  { href: '/admin/weight-loss', label: 'Weight Loss', icon: 'trending-down' },
   { href: '/admin/medications', label: 'Medications', icon: 'pill' },
   { href: '/admin/payments', label: 'Payments', icon: 'credit-card' },
   { href: '/admin/communications', label: 'Communications', icon: 'message' },

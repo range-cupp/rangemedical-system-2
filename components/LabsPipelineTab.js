@@ -17,20 +17,11 @@ const LAB_STAGES = [
   { id: 'treatment_started', label: 'Treatment Started', color: '#3b82f6' }
 ];
 
-const STATUS_BADGES = {
-  blood_draw_complete: { bg: '#fef3c7', color: '#92400e', label: 'Blood Draw' },
-  results_received: { bg: '#f3e8ff', color: '#6b21a8', label: 'Results In' },
-  provider_reviewed: { bg: '#dcfce7', color: '#166534', label: 'Reviewed' },
-  consult_scheduled: { bg: '#e0e7ff', color: '#3730a3', label: 'Consult' },
-  treatment_started: { bg: '#dbeafe', color: '#1e40af', label: 'Treatment Started' }
-};
 
 export default function LabsPipelineTab() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
-  const [activeTab, setActiveTab] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [patientSearch, setPatientSearch] = useState('');
@@ -139,22 +130,6 @@ export default function LabsPipelineTab() {
 
   if (loading) return <div style={{ padding: '60px 20px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>Loading labs pipeline...</div>;
   if (!data) return <div style={{ padding: '60px 20px', textAlign: 'center', color: '#ef4444', fontSize: '14px' }}>Error loading labs pipeline</div>;
-
-  // Flatten all protocols for table view
-  const allProtocols = LAB_STAGES.flatMap(stage =>
-    (data.stages[stage.id] || []).map(p => ({ ...p, stageId: stage.id }))
-  );
-
-  // Filter
-  const filtered = allProtocols.filter(p => {
-    if (activeTab !== 'all' && p.stageId !== activeTab) return false;
-    if (searchTerm) {
-      const s = searchTerm.toLowerCase();
-      const name = p.patients?.name || `${p.patients?.first_name || ''} ${p.patients?.last_name || ''}`.trim();
-      return name.toLowerCase().includes(s) || p.medication?.toLowerCase().includes(s);
-    }
-    return true;
-  });
 
   const dueForLabs = data.dueForLabs || [];
   const overdueCount = dueForLabs.filter(d => d.daysUntilDue < 0).length;
@@ -314,147 +289,107 @@ export default function LabsPipelineTab() {
         </div>
       )}
 
-      {/* Search + Tabs */}
-      <div style={sharedStyles.filterBar}>
-        <input
-          type="text"
-          placeholder="Search by name or panel type..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={sharedStyles.searchInput}
-        />
-      </div>
+      {/* Pipeline — Horizontal Kanban */}
+      <div style={styles.pipelineGrid}>
+        {LAB_STAGES.map(stage => {
+          const items = data.stages[stage.id] || [];
+          return (
+            <div key={stage.id} style={styles.pipelineColumn}>
+              {/* Column Header */}
+              <div style={styles.columnHeader}>
+                <div style={styles.columnHeaderLeft}>
+                  <span style={{ ...styles.columnDot, background: stage.color, boxShadow: `0 0 0 3px ${stage.color}20` }} />
+                  <span style={styles.columnLabel}>{stage.label}</span>
+                </div>
+                <span style={styles.columnCount}>{items.length}</span>
+              </div>
 
-      <div style={styles.tabs}>
-        {[
-          { key: 'all', label: 'All', count: data.total },
-          ...LAB_STAGES.map(s => ({
-            key: s.id,
-            label: s.label,
-            count: data.counts[s.id] || 0,
-            color: s.color
-          }))
-        ].map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            style={{
-              ...styles.tabBtn,
-              background: activeTab === tab.key ? '#000' : '#fff',
-              color: activeTab === tab.key ? '#fff' : '#333',
-              border: activeTab === tab.key ? '1px solid #000' : '1px solid #ddd',
-            }}
-          >
-            {tab.label}
-            <span style={{
-              ...styles.tabCount,
-              background: activeTab === tab.key ? 'rgba(255,255,255,0.2)' : (tab.color || '#e5e5e5'),
-              color: activeTab === tab.key ? '#fff' : (tab.color ? '#fff' : '#666'),
-            }}>
-              {tab.count}
-            </span>
-          </button>
-        ))}
-      </div>
+              {/* Cards */}
+              <div style={styles.columnBody}>
+                {items.map(protocol => {
+                  const patient = protocol.patients;
+                  const patientName = patient?.name || (patient?.first_name ? `${patient.first_name} ${patient.last_name || ''}`.trim() : 'Unknown');
+                  const panelType = protocol.medication || 'Essential';
+                  const isElite = panelType === 'Elite';
+                  const labType = protocol.delivery_method === 'follow_up' ? 'Follow-up' : 'New Patient';
 
-      {/* Pipeline Table */}
-      <div style={sharedStyles.card}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={sharedStyles.table}>
-            <thead>
-              <tr>
-                <th style={sharedStyles.th}>Patient</th>
-                <th style={sharedStyles.th}>Phone</th>
-                <th style={sharedStyles.th}>Panel</th>
-                <th style={sharedStyles.th}>Type</th>
-                <th style={sharedStyles.th}>Stage</th>
-                <th style={sharedStyles.th}>Draw Date</th>
-                <th style={sharedStyles.th}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan="7" style={{ ...sharedStyles.td, textAlign: 'center', padding: '48px', color: '#999' }}>
-                    No patients found
-                  </td>
-                </tr>
-              ) : filtered.map(protocol => {
-                const patient = protocol.patients;
-                const patientName = patient?.name || (patient?.first_name ? `${patient.first_name} ${patient.last_name || ''}`.trim() : 'Unknown');
-                const panelType = protocol.medication || 'Essential';
-                const labType = protocol.delivery_method === 'follow_up' ? 'Follow-up' : 'New Patient';
-                const badge = STATUS_BADGES[protocol.stageId] || STATUS_BADGES.blood_draw_complete;
-                const isExpanded = expandedRow === protocol.id;
+                  return (
+                    <div key={protocol.id} style={styles.pipelineCard}>
+                      {/* Name */}
+                      <div style={styles.cardTop}>
+                        {patient?.id ? (
+                          <Link href={`/admin/patient/${patient.id}`} style={styles.cardName}>{patientName}</Link>
+                        ) : (
+                          <span style={styles.cardName}>{patientName}</span>
+                        )}
+                        {patient?.phone && (
+                          <a href={`tel:${patient.phone}`} style={{ fontSize: '13px', textDecoration: 'none', opacity: 0.6 }}>📞</a>
+                        )}
+                      </div>
 
-                return (
-                  <tr key={protocol.id} onClick={() => setExpandedRow(isExpanded ? null : protocol.id)} style={{ cursor: 'pointer', transition: 'background 0.15s' }}>
-                    <td style={sharedStyles.td}>
-                      {patient?.id ? (
-                        <Link href={`/admin/patient/${patient.id}`} style={{ color: '#000', textDecoration: 'none', fontWeight: 600, fontSize: '14px' }} onClick={(e) => e.stopPropagation()}>
-                          {patientName}
-                        </Link>
-                      ) : (
-                        <span style={{ fontWeight: 600, fontSize: '14px' }}>{patientName}</span>
-                      )}
-                    </td>
-                    <td style={sharedStyles.td}>
-                      {patient?.phone ? (
-                        <a href={`tel:${patient.phone}`} style={{ color: '#374151', textDecoration: 'none', fontSize: '13px' }} onClick={(e) => e.stopPropagation()}>
-                          {patient.phone}
-                        </a>
-                      ) : <span style={{ color: '#d1d5db' }}>—</span>}
-                    </td>
-                    <td style={sharedStyles.td}>
-                      <span style={{
-                        ...sharedStyles.badge,
-                        background: panelType === 'Elite' ? '#fdf2f8' : '#f0f9ff',
-                        color: panelType === 'Elite' ? '#9d174d' : '#0369a1',
-                        border: `1px solid ${panelType === 'Elite' ? '#fce7f3' : '#e0f2fe'}`
-                      }}>
-                        {panelType}
-                      </span>
-                    </td>
-                    <td style={{ ...sharedStyles.td, fontSize: '13px', color: '#374151' }}>
-                      {labType}
-                    </td>
-                    <td style={sharedStyles.td}>
-                      <span style={{ ...sharedStyles.badge, background: badge.bg, color: badge.color }}>
-                        {badge.label}
-                      </span>
-                    </td>
-                    <td style={{ ...sharedStyles.td, fontSize: '13px', color: '#374151' }}>
-                      {formatDate(protocol.start_date)}
-                    </td>
-                    <td style={sharedStyles.td} onClick={(e) => e.stopPropagation()}>
-                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                        {protocol.stageId !== 'treatment_started' && (
+                      {/* Badges */}
+                      <div style={styles.cardBadges}>
+                        <span style={{
+                          ...styles.panelBadge,
+                          background: isElite ? '#fdf2f8' : '#f0f9ff',
+                          color: isElite ? '#9d174d' : '#0369a1',
+                          borderColor: isElite ? '#fce7f3' : '#e0f2fe'
+                        }}>
+                          {panelType}
+                        </span>
+                        <span style={styles.typeBadge}>{labType}</span>
+                      </div>
+
+                      {/* Date */}
+                      <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '10px' }}>
+                        Draw: {formatDate(protocol.start_date)}
+                        {protocol.notes && (
+                          <div style={styles.cardNotes}>{protocol.notes}</div>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div style={styles.cardActions}>
+                        {stage.id !== 'treatment_started' && (
                           <button
-                            style={styles.advanceBtn}
+                            style={{ ...styles.advanceBtn, background: stage.color, boxShadow: `0 1px 3px ${stage.color}40` }}
                             onClick={() => {
                               const stageIds = LAB_STAGES.map(s => s.id);
-                              const idx = stageIds.indexOf(protocol.stageId);
+                              const idx = stageIds.indexOf(stage.id);
                               if (idx < stageIds.length - 1) handleMoveStage(protocol.id, stageIds[idx + 1]);
                             }}
                             disabled={updating}
                           >
-                            → {LAB_STAGES[LAB_STAGES.findIndex(s => s.id === protocol.stageId) + 1]?.label || 'Next'}
+                            → {LAB_STAGES[LAB_STAGES.findIndex(s => s.id === stage.id) + 1]?.label || 'Next'}
                           </button>
                         )}
-                        <button
-                          style={styles.removeBtn}
-                          onClick={() => setShowDeleteConfirm({ id: protocol.id, name: patientName })}
-                        >
-                          ×
-                        </button>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button style={styles.moveBtn} onClick={() => setExpandedRow(expandedRow === protocol.id ? null : protocol.id)}>
+                            Move ▾
+                          </button>
+                          <button style={styles.removeBtn} onClick={() => setShowDeleteConfirm({ id: protocol.id, name: patientName })}>×</button>
+                        </div>
+                        {expandedRow === protocol.id && (
+                          <div style={styles.moveMenu}>
+                            {LAB_STAGES.filter(s => s.id !== stage.id).map(s => (
+                              <button key={s.id} style={styles.moveOption} onClick={() => { handleMoveStage(protocol.id, s.id); setExpandedRow(null); }}>
+                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: s.color, display: 'inline-block', flexShrink: 0 }} />
+                                {s.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+                  );
+                })}
+                {items.length === 0 && (
+                  <div style={styles.emptyColumn}>No patients</div>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Action Bar */}
@@ -632,29 +567,167 @@ const styles = {
     marginTop: '4px'
   },
 
-  // Tabs
-  tabs: {
+  // Pipeline Kanban
+  pipelineGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(5, 1fr)',
+    gap: '12px',
+    minHeight: '400px'
+  },
+  pipelineColumn: {
+    background: '#fafafa',
+    borderRadius: '12px',
+    border: '1px solid #e5e5e5',
     display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden'
+  },
+  columnHeader: {
+    padding: '14px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottom: '1px solid #f0f0f0',
+    background: '#fff'
+  },
+  columnHeaderLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  },
+  columnDot: {
+    width: '10px',
+    height: '10px',
+    borderRadius: '50%',
+    flexShrink: 0
+  },
+  columnLabel: {
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#111'
+  },
+  columnCount: {
+    fontSize: '12px',
+    fontWeight: '600',
+    color: '#9ca3af',
+    background: '#f5f5f5',
+    padding: '2px 8px',
+    borderRadius: '10px'
+  },
+  columnBody: {
+    padding: '8px',
+    flex: 1,
+    overflowY: 'auto',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px'
+  },
+  emptyColumn: {
+    textAlign: 'center',
+    color: '#d1d5db',
+    padding: '32px 12px',
+    fontSize: '13px'
+  },
+
+  // Pipeline Cards
+  pipelineCard: {
+    background: '#fff',
+    borderRadius: '10px',
+    padding: '14px',
+    border: '1px solid #e5e5e5'
+  },
+  cardTop: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     gap: '8px',
-    marginBottom: '16px',
+    marginBottom: '8px'
+  },
+  cardName: {
+    fontWeight: '600',
+    fontSize: '14px',
+    color: '#000',
+    textDecoration: 'none',
+    lineHeight: 1.3
+  },
+  cardBadges: {
+    display: 'flex',
+    gap: '5px',
+    marginBottom: '10px',
     flexWrap: 'wrap'
   },
-  tabBtn: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '8px 14px',
-    borderRadius: '8px',
-    fontSize: '13px',
-    fontWeight: '500',
-    cursor: 'pointer',
-    transition: 'all 0.12s ease'
-  },
-  tabCount: {
-    padding: '2px 7px',
-    borderRadius: '10px',
+  panelBadge: {
     fontSize: '11px',
-    fontWeight: '600'
+    fontWeight: '600',
+    padding: '2px 8px',
+    borderRadius: '6px',
+    border: '1px solid transparent',
+    letterSpacing: '0.2px'
+  },
+  typeBadge: {
+    fontSize: '11px',
+    fontWeight: '500',
+    padding: '2px 8px',
+    borderRadius: '6px',
+    background: '#f5f5f5',
+    color: '#666',
+    border: '1px solid #ebebeb'
+  },
+  cardNotes: {
+    marginTop: '4px',
+    padding: '5px 8px',
+    background: '#fffbeb',
+    border: '1px solid #fef3c7',
+    borderRadius: '6px',
+    fontSize: '11px',
+    color: '#92400e',
+    fontStyle: 'italic',
+    lineHeight: 1.4
+  },
+  cardActions: {
+    paddingTop: '10px',
+    borderTop: '1px solid #f5f5f5',
+    position: 'relative'
+  },
+  moveBtn: {
+    flex: 1,
+    padding: '5px 10px',
+    border: '1px solid #e5e5e5',
+    borderRadius: '6px',
+    background: '#fff',
+    cursor: 'pointer',
+    fontSize: '11px',
+    fontWeight: '500',
+    color: '#9ca3af'
+  },
+  moveMenu: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    background: '#fff',
+    border: '1px solid #e5e5e5',
+    borderRadius: '10px',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+    zIndex: 100,
+    marginTop: '4px',
+    overflow: 'hidden',
+    padding: '4px'
+  },
+  moveOption: {
+    width: '100%',
+    padding: '8px 10px',
+    border: 'none',
+    borderRadius: '6px',
+    background: 'transparent',
+    cursor: 'pointer',
+    fontSize: '12px',
+    fontWeight: '500',
+    textAlign: 'left',
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'center',
+    color: '#374151'
   },
 
   // Due for Labs
@@ -772,15 +845,16 @@ const styles = {
 
   // Pipeline table actions
   advanceBtn: {
-    padding: '5px 10px',
-    fontSize: '11px',
-    fontWeight: '600',
-    color: '#fff',
-    background: '#000',
+    width: '100%',
+    padding: '7px 10px',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: '8px',
+    color: '#fff',
     cursor: 'pointer',
-    whiteSpace: 'nowrap'
+    fontWeight: '600',
+    fontSize: '12px',
+    marginBottom: '8px',
+    letterSpacing: '0.2px'
   },
   removeBtn: {
     padding: '5px 8px',

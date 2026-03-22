@@ -990,8 +990,8 @@ function HRTRow({ patient: p, expanded, onToggle, onNavigate }) {
         <td style={styles.td}>
           <div style={{ fontSize: 13, fontWeight: 500 }}>{p.medication || '\u2014'}</div>
           {p.current_dose && <div style={{ fontSize: 11, color: '#666', marginTop: 2 }}>{p.current_dose}</div>}
-          {p.secondary_medications && p.secondary_medications.length > 0 && (
-            <div style={{ fontSize: 11, color: '#7C3AED', marginTop: 3 }}>+ {p.secondary_medications.join(', ')}</div>
+          {Array.isArray(p.secondary_medications) && p.secondary_medications.length > 0 && (
+            <div style={{ fontSize: 11, color: '#7C3AED', marginTop: 3 }}>+ {(Array.isArray(p.secondary_medications) ? p.secondary_medications : []).join(', ')}</div>
           )}
         </td>
         <td style={styles.td}>
@@ -1017,8 +1017,8 @@ function HRTRow({ patient: p, expanded, onToggle, onNavigate }) {
                   <div style={styles.expandedDetail}>Started: {formatDate(p.start_date)}</div>
                   {p.delivery_method && <div style={styles.expandedDetail}>Delivery: {p.delivery_method.replace(/_/g, ' ')}</div>}
                   {p.supply_type && <div style={styles.expandedDetail}>Supply: {p.supply_type.replace(/_/g, ' ')}</div>}
-                  {p.secondary_medications && p.secondary_medications.length > 0 && (
-                    <div style={styles.expandedDetail}>Secondary Meds: {p.secondary_medications.join(', ')}</div>
+                  {Array.isArray(p.secondary_medications) && p.secondary_medications.length > 0 && (
+                    <div style={styles.expandedDetail}>Secondary Meds: {(Array.isArray(p.secondary_medications) ? p.secondary_medications : []).join(', ')}</div>
                   )}
                   <button onClick={(e) => { e.stopPropagation(); onNavigate(); }}
                     style={{ ...sharedStyles.btnPrimary, ...sharedStyles.btnSmall, marginTop: 8 }}>View Patient</button>

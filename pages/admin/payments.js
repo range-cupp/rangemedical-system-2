@@ -29,6 +29,11 @@ export default function PaymentsPage() {
   const [expandedId, setExpandedId] = useState(null);
   const [voidingId, setVoidingId] = useState(null);
   const [sendingId, setSendingId] = useState(null);
+  const [markingPaidId, setMarkingPaidId] = useState(null);
+  const [showPayDropdown, setShowPayDropdown] = useState(null);
+  const [editingInvoice, setEditingInvoice] = useState(null);
+  const [editForm, setEditForm] = useState(null);
+  const [savingEdit, setSavingEdit] = useState(false);
   const [actionMsg, setActionMsg] = useState('');
 
   // Products & Services state
@@ -474,6 +479,80 @@ export default function PaymentsPage() {
     setTimeout(() => setActionMsg(''), 3000);
   };
 
+  // Mark invoice as paid from admin
+  const handleMarkPaid = async (inv, paymentMethod) => {
+    const label = paymentMethod === 'comp' ? 'comp (no charge)' : paymentMethod;
+    if (!confirm(`Mark this ${formatCents(inv.total_cents)} invoice for ${inv.patient_name} as paid via ${label}?`)) return;
+    setMarkingPaidId(inv.id);
+    setShowPayDropdown(null);
+    try {
+      const res = await fetch(`/api/invoices/${inv.id}/mark-paid`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payment_method: paymentMethod, notes: `Paid via ${label}` }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setActionMsg(`Invoice marked as paid (${label})`);
+      setTimeout(() => setActionMsg(''), 3000);
+      fetchInvoices();
+    } catch (err) {
+      alert('Mark paid failed: ' + err.message);
+    } finally {
+      setMarkingPaidId(null);
+    }
+  };
+
+  // Open edit modal
+  const openEditModal = (inv) => {
+    setEditingInvoice(inv);
+    setEditForm({
+      patient_name: inv.patient_name || '',
+      patient_email: inv.patient_email || '',
+      patient_phone: inv.patient_phone || '',
+      items: JSON.parse(JSON.stringify(inv.items || [])),
+      discount_cents: inv.discount_cents || 0,
+      discount_description: inv.discount_description || '',
+      notes: inv.notes || '',
+    });
+  };
+
+  // Save edited invoice
+  const handleSaveEdit = async () => {
+    if (!editingInvoice || !editForm) return;
+    setSavingEdit(true);
+    try {
+      const subtotal_cents = editForm.items.reduce((s, i) => s + (i.price_cents * (i.quantity || 1)), 0);
+      const total_cents = Math.max(subtotal_cents - (editForm.discount_cents || 0), 0);
+      const res = await fetch(`/api/invoices/${editingInvoice.id}/edit`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_name: editForm.patient_name,
+          patient_email: editForm.patient_email,
+          patient_phone: editForm.patient_phone,
+          items: editForm.items,
+          subtotal_cents,
+          discount_cents: editForm.discount_cents || 0,
+          discount_description: editForm.discount_description || null,
+          total_cents,
+          notes: editForm.notes || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setActionMsg('Invoice updated');
+      setTimeout(() => setActionMsg(''), 3000);
+      setEditingInvoice(null);
+      setEditForm(null);
+      fetchInvoices();
+    } catch (err) {
+      alert('Save failed: ' + err.message);
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   return (
     <AdminLayout title="Payments">
       {/* Action message toast */}
@@ -638,6 +717,37 @@ export default function PaymentsPage() {
                                     {sendingId === inv.id ? '...' : 'Text'}
                                   </button>
                                 </>
+                              )}
+                              {/* Mark Paid for pending or sent */}
+                              {(inv.status === 'pending' || inv.status === 'sent') && (
+                                <div style={{ position: 'relative' }}>
+                                  <button
+                                    onClick={() => setShowPayDropdown(showPayDropdown === inv.id ? null : inv.id)}
+                                    disabled={markingPaidId === inv.id}
+                                    style={styles.payBtn}
+                                    title="Mark as paid"
+                                  >
+                                    {markingPaidId === inv.id ? '...' : 'Pay'}
+                                  </button>
+                                  {showPayDropdown === inv.id && (
+                                    <div style={styles.payDropdown}>
+                                      <div style={styles.payDropdownItem} onClick={() => handleMarkPaid(inv, 'comp')}>Comp (no charge)</div>
+                                      <div style={styles.payDropdownItem} onClick={() => handleMarkPaid(inv, 'cash')}>Cash</div>
+                                      <div style={styles.payDropdownItem} onClick={() => handleMarkPaid(inv, 'card')}>Card (over phone)</div>
+                                      <div style={styles.payDropdownItem} onClick={() => handleMarkPaid(inv, 'other')}>Other</div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              {/* Edit for pending or sent */}
+                              {(inv.status === 'pending' || inv.status === 'sent') && (
+                                <button
+                                  onClick={() => openEditModal(inv)}
+                                  style={styles.editBtn}
+                                  title="Edit invoice"
+                                >
+                                  Edit
+                                </button>
                               )}
                               {/* Void for non-voided */}
                               {inv.status !== 'voided' && inv.status !== 'cancelled' && (
@@ -1457,6 +1567,169 @@ export default function PaymentsPage() {
         </div>
       )}
 
+      {/* Edit Invoice Modal */}
+      {editingInvoice && editForm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 16, width: 560, maxWidth: '90vw', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px 12px', borderBottom: '1px solid #f1f5f9' }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Edit Invoice</h3>
+              <button onClick={() => { setEditingInvoice(null); setEditForm(null); }} style={{ background: 'none', border: 'none', fontSize: 18, color: '#94a3b8', cursor: 'pointer', padding: '4px 8px', borderRadius: 6 }}>✕</button>
+            </div>
+            <div style={{ padding: '16px 24px 24px' }}>
+              {/* Patient info */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 3 }}>Patient Name</label>
+                  <input
+                    type="text"
+                    value={editForm.patient_name}
+                    onChange={e => setEditForm(f => ({ ...f, patient_name: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 3 }}>Email</label>
+                  <input
+                    type="email"
+                    value={editForm.patient_email}
+                    onChange={e => setEditForm(f => ({ ...f, patient_email: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              {/* Line items */}
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 6 }}>Line Items</label>
+                {editForm.items.map((item, idx) => (
+                  <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 6, alignItems: 'center' }}>
+                    <input
+                      type="text"
+                      value={item.name}
+                      onChange={e => {
+                        const items = [...editForm.items];
+                        items[idx] = { ...items[idx], name: e.target.value };
+                        setEditForm(f => ({ ...f, items }));
+                      }}
+                      style={{ flex: 1, padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}
+                      placeholder="Item name"
+                    />
+                    <input
+                      type="number"
+                      value={(item.price_cents / 100).toFixed(2)}
+                      onChange={e => {
+                        const items = [...editForm.items];
+                        items[idx] = { ...items[idx], price_cents: Math.round(parseFloat(e.target.value || 0) * 100) };
+                        setEditForm(f => ({ ...f, items }));
+                      }}
+                      style={{ width: 90, padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}
+                      placeholder="Price"
+                      step="0.01"
+                      min="0"
+                    />
+                    <input
+                      type="number"
+                      value={item.quantity || 1}
+                      onChange={e => {
+                        const items = [...editForm.items];
+                        items[idx] = { ...items[idx], quantity: parseInt(e.target.value || 1) };
+                        setEditForm(f => ({ ...f, items }));
+                      }}
+                      style={{ width: 50, padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, textAlign: 'center' }}
+                      min="1"
+                    />
+                    <button
+                      onClick={() => {
+                        const items = editForm.items.filter((_, i) => i !== idx);
+                        setEditForm(f => ({ ...f, items }));
+                      }}
+                      style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 16, padding: '2px 6px' }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() => setEditForm(f => ({ ...f, items: [...f.items, { name: '', price_cents: 0, quantity: 1, category: null }] }))}
+                  style={{ fontSize: 12, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, padding: '4px 0' }}
+                >
+                  + Add item
+                </button>
+              </div>
+
+              {/* Discount */}
+              <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 3 }}>Discount ($)</label>
+                  <input
+                    type="number"
+                    value={(editForm.discount_cents / 100).toFixed(2)}
+                    onChange={e => setEditForm(f => ({ ...f, discount_cents: Math.round(parseFloat(e.target.value || 0) * 100) }))}
+                    style={{ width: 100, padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}
+                    step="0.01"
+                    min="0"
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 3 }}>Discount Description</label>
+                  <input
+                    type="text"
+                    value={editForm.discount_description}
+                    onChange={e => setEditForm(f => ({ ...f, discount_description: e.target.value }))}
+                    style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, boxSizing: 'border-box' }}
+                    placeholder="e.g. 20% off"
+                  />
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 3 }}>Notes</label>
+                <textarea
+                  value={editForm.notes}
+                  onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
+                  rows={3}
+                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' }}
+                />
+              </div>
+
+              {/* Total preview */}
+              {(() => {
+                const subtotal = editForm.items.reduce((s, i) => s + (i.price_cents * (i.quantity || 1)), 0);
+                const total = Math.max(subtotal - (editForm.discount_cents || 0), 0);
+                return (
+                  <div style={{ padding: '10px 14px', background: '#f8fafc', borderRadius: 8, marginBottom: 16, display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 600 }}>
+                    <span>Total</span>
+                    <span>{formatCents(total)}</span>
+                  </div>
+                );
+              })()}
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => { setEditingInvoice(null); setEditForm(null); }}
+                  style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', fontSize: 13, cursor: 'pointer', color: '#475569', fontWeight: 500, fontFamily: 'inherit' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={savingEdit || !editForm.patient_name || editForm.items.length === 0}
+                  style={{
+                    padding: '8px 20px', borderRadius: 8, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                    background: savingEdit ? '#e2e8f0' : '#2563eb', color: '#fff',
+                    opacity: savingEdit ? 0.6 : 1,
+                  }}
+                >
+                  {savingEdit ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Create Invoice Modal */}
       <InvoiceModal
         isOpen={showCreateModal}
@@ -1662,6 +1935,50 @@ const styles = {
     fontSize: '11px',
     cursor: 'pointer',
     color: '#16a34a',
+    fontWeight: '600',
+    fontFamily: 'inherit',
+  },
+  payBtn: {
+    padding: '4px 10px',
+    border: '1px solid #bbf7d0',
+    borderRadius: '6px',
+    background: '#f0fdf4',
+    fontSize: '11px',
+    cursor: 'pointer',
+    color: '#16a34a',
+    fontWeight: '600',
+    fontFamily: 'inherit',
+  },
+  payDropdown: {
+    position: 'absolute',
+    top: '100%',
+    right: 0,
+    background: '#fff',
+    border: '1px solid #e2e8f0',
+    borderRadius: '8px',
+    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+    zIndex: 20,
+    marginTop: '4px',
+    minWidth: '140px',
+    overflow: 'hidden',
+  },
+  payDropdownItem: {
+    padding: '8px 14px',
+    fontSize: '12px',
+    cursor: 'pointer',
+    borderBottom: '1px solid #f1f5f9',
+    color: '#1e293b',
+    fontWeight: '500',
+    whiteSpace: 'nowrap',
+  },
+  editBtn: {
+    padding: '4px 10px',
+    border: '1px solid #bfdbfe',
+    borderRadius: '6px',
+    background: '#eff6ff',
+    fontSize: '11px',
+    cursor: 'pointer',
+    color: '#2563eb',
     fontWeight: '600',
     fontFamily: 'inherit',
   },

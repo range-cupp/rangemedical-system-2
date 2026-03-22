@@ -3603,7 +3603,7 @@ export default function PatientProfile() {
                                 style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: '6px', padding: '3px 10px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
                               >+ Log</button>
                             )}
-                            <button onClick={(e) => { e.stopPropagation(); openEditModal(protocol); }} className="btn-text">Edit</button>
+                            <Link href={`/admin/protocols/${protocol.id}`} className="btn-text" onClick={e => e.stopPropagation()}>Edit</Link>
                           </div>
                         </div>
                       );
@@ -4126,7 +4126,7 @@ export default function PatientProfile() {
                                   className="btn-secondary-sm"
                                 >{isExpanded ? 'Hide Details' : 'View Details'}</button>
                               )}
-                              <button onClick={() => openEditModal(protocol)} className="btn-secondary-sm">Edit</button>
+                              <Link href={`/admin/protocols/${protocol.id}`} className="btn-secondary-sm" style={{ textDecoration: 'none' }}>Edit</Link>
                               {/* Merge button — only show when there are other protocols of the same category */}
                               {protocol.status === 'active' && (() => {
                                 const allProtos = [...activeProtocols, ...completedProtocols];
@@ -7137,8 +7137,8 @@ export default function PatientProfile() {
           </div>
         )}
 
-        {/* Edit Protocol Modal */}
-        {showEditModal && selectedProtocol && (
+        {/* Edit Protocol Modal — REMOVED: edit now links to /admin/protocols/[id] (single source of truth) */}
+        {false && (
           <div className="modal-overlay" {...overlayClickProps(() => setShowEditModal(false))}>
             <div className="modal modal-large" onClick={e => e.stopPropagation()}>
               <div className="modal-header">

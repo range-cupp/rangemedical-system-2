@@ -15,7 +15,7 @@ export default function Document() {
         <Main />
         <NextScript />
         {/* Microsoft Clarity — Free heatmaps, session recordings, click tracking */}
-        {/* Get your project ID at https://clarity.microsoft.com — replace YOUR_CLARITY_ID below */}
+        {/* Get your project ID at https://clarity.microsoft.com — replace vzhjkgm6ei below */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -23,7 +23,7 @@ export default function Document() {
                 c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
                 t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
                 y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-              })(window,document,"clarity","script","YOUR_CLARITY_ID");
+              })(window,document,"clarity","script","vzhjkgm6ei");
             `,
           }}
         />

@@ -6,5 +6,5 @@ import { useRouter } from 'next/router';
 export default function WeightLoss() {
   const router = useRouter();
   useEffect(() => { router.replace('/admin/protocols?tab=weight_loss'); }, []);
-  return null;
+  return <div />;
 }

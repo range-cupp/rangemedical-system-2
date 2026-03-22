@@ -23,15 +23,23 @@ const CATEGORY_TABS = [
 // Normalize program_type to match tab keys
 function getCategoryKey(protocol) {
   const pt = (protocol.program_type || '').toLowerCase();
-  if (['hrt', 'weight_loss', 'peptide'].includes(pt)) return pt;
-  if (pt === 'iv' || pt === 'injection' || pt === 'iv_therapy') return 'iv';
+  const med = (protocol.medication || '').toLowerCase();
+  const name = (protocol.program_name || '').toLowerCase();
+
+  // NAD and Glutathione always go to IV & Injections, regardless of program_type
+  if (med.includes('nad') || med.includes('glutathione')) return 'iv';
+
+  // Direct type matches
+  if (['hrt', 'weight_loss'].includes(pt)) return pt;
+  if (pt === 'iv' || pt === 'injection' || pt === 'iv_therapy' || pt === 'vitamin' || pt === 'injection_pack') return 'iv';
+  if (pt === 'peptide') return 'peptide';
   if (pt === 'combo_membership' || pt === 'labs' || pt === 'phlebotomy' || pt === 'medication_pickup') return 'other';
   if (pt === 'hbot' || pt === 'rlt') return 'other';
-  const name = (protocol.program_name || '').toLowerCase();
-  const med = (protocol.medication || '').toLowerCase();
+
+  // Fallback detection from program name / medication
   if (name.includes('hrt') || name.includes('testosterone') || name.includes('trt')) return 'hrt';
   if (['semaglutide', 'tirzepatide', 'retatrutide'].some(m => med.includes(m) || name.includes(m))) return 'weight_loss';
-  if (name.includes('nad') || name.includes('iv ') || name.includes('vitamin c') || name.includes('glutathione')) return 'iv';
+  if (name.includes('iv ') || name.includes('vitamin c') || name.includes('injection')) return 'iv';
   if (name.includes('bpc') || name.includes('tb500') || name.includes('peptide') || name.includes('ipamorelin') || name.includes('sermorelin') || name.includes('tesamorelin')) return 'peptide';
   return 'other';
 }
@@ -142,6 +150,8 @@ export default function ProtocolsPage() {
 
   const fetchData = async (tab) => {
     setLoading(true);
+    setData([]);
+    setSummary({});
     try {
       if (tab === 'hrt') {
         const res = await fetch('/api/hrt/patients-overview');

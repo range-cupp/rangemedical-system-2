@@ -6,5 +6,5 @@ import { useRouter } from 'next/router';
 export default function HRTPatients() {
   const router = useRouter();
   useEffect(() => { router.replace('/admin/protocols?tab=hrt'); }, []);
-  return null;
+  return <div />;
 }

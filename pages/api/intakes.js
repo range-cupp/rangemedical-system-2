@@ -381,6 +381,24 @@ export default async function handler(req, res) {
       console.error('Patient linking error:', demoErr);
     }
 
+    // ===== Trigger baseline questionnaire SMS =====
+    // Fire-and-forget — don't block the intake response
+    if (intakeRecord.injured || intakeRecord.interested_in_optimization) {
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '');
+        if (baseUrl) {
+          fetch(`${baseUrl}/api/questionnaire/trigger`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ intake_id: data.id }),
+          }).catch(err => console.error('Questionnaire trigger fire-and-forget error:', err));
+          console.log(`🔔 Baseline questionnaire trigger fired for intake ${data.id}`);
+        }
+      } catch (triggerErr) {
+        console.error('Questionnaire trigger setup error:', triggerErr);
+      }
+    }
+
     return res.status(200).json({
       success: true,
       message: 'Intake form saved successfully',

@@ -1068,7 +1068,7 @@ function WLRow({ patient: p, expanded, onToggle, onNavigate }) {
           <div style={{ fontWeight: 600, marginBottom: 2 }}>
             {p.patient_name || 'Unknown'}
             {p.preferred_name && p.preferred_name !== p.patient_first_name && (
-              <span style={{ color: '#888', fontWeight: 400 }}> (&ldquo;{p.preferred_name}&rdquo;)</span>
+              <span style={{ color: '#888', fontWeight: 400 }}> ({'\u201C'}{p.preferred_name}{'\u201D'})</span>
             )}
           </div>
         </td>
@@ -1155,7 +1155,7 @@ const styles = {
   categoryBar: { display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' },
   categoryTab: { padding: '7px 16px', borderRadius: '20px', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap' },
   summaryGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' },
-  statCard: { ...sharedStyles.statCard },
+  statCard: { padding: '20px', background: '#fff', borderRadius: '12px', border: '1px solid #e5e5e5' },
   statValue: { fontSize: '32px', fontWeight: '700', lineHeight: 1 },
   statLabel: { fontSize: '12px', color: '#666', marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' },
   toolbar: { display: 'flex', gap: '12px', marginBottom: '12px', alignItems: 'center' },

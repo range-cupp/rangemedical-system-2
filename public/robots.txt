@@ -3,11 +3,48 @@
 
 User-agent: *
 Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /portal/
+Disallow: /onboard/
+Disallow: /consent/
+Disallow: /front-desk
+Disallow: /clinic-tv
+Disallow: /internal/
 
+# Allow sitemap API
+Allow: /api/sitemap.xml
+
+# Search engines
 User-agent: Googlebot
 Allow: /
 
 User-agent: Bingbot
 Allow: /
 
-Sitemap: https://www.range-medical.com/sitemap.xml
+# AI search crawlers
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+Sitemap: https://www.range-medical.com/api/sitemap.xml

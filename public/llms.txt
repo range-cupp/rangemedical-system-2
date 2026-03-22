@@ -1,0 +1,39 @@
+# Range Medical
+> Regenerative medicine and health optimization clinic in Newport Beach, California.
+
+## Basic Info
+- Name: Range Medical
+- Type: Regenerative medicine clinic
+- Address: 1901 Westcliff Dr. Suite 10, Newport Beach, CA 92660
+- Phone: (949) 997-3988
+- Website: https://www.range-medical.com
+- Hours: Monday-Friday, 9:00 AM - 5:00 PM
+- Google Rating: 5.0 stars (90+ reviews)
+
+## Services Offered
+- Hormone Optimization (HRT) - $250/month all-inclusive membership
+- Medical Weight Loss - Tirzepatide, Semaglutide, Retatrutide
+- Peptide Therapy - BPC-157, TB-500, growth hormone peptides
+- IV Therapy - Custom vitamin infusions, NAD+ therapy
+- Hyperbaric Oxygen Therapy (HBOT) - Recovery and cognitive enhancement
+- Red Light Therapy - Photobiomodulation for recovery and skin health
+- PRP Therapy - Platelet-rich plasma for joint and tissue repair
+- Exosome Therapy - Cell signaling for systemic regeneration
+- Lab Panels - Essential ($350) and Elite ($750) hormone panels
+- Injection Therapy - B12, glutathione, amino acid shots
+- Injury Recovery - Regenerative treatments for sports and chronic injuries
+
+## Areas Served
+Newport Beach, Costa Mesa, Irvine, Huntington Beach, Laguna Beach, Dana Point,
+San Clemente, Tustin, Lake Forest, Mission Viejo, Laguna Niguel, Orange County CA
+
+## How to Get Started
+1. Start with a Range Assessment to discuss symptoms and goals
+2. Comprehensive lab work to understand your baseline
+3. Provider reviews results and designs a personalized plan
+4. Begin treatment with ongoing monitoring and support
+
+Book an assessment: https://www.range-medical.com/range-assessment
+
+## Detailed Info
+For full service details, pricing, and FAQs: https://www.range-medical.com/llms-full.txt

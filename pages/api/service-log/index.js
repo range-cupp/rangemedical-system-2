@@ -280,6 +280,8 @@ async function handlePost(req, res) {
     injection_frequency, // injections per week (e.g. 2, 3, 7)
     fulfillment_method, // in_clinic or overnight
     tracking_number, // shipping tracking number for overnighted pickups
+    is_secondary_med, // true when logging a secondary medication pickup (e.g. HCG on an HRT protocol)
+    secondary_med_details, // { num_vials, dosage, frequency } for secondary med supply tracking
   } = req.body;
 
   if (!patient_id || !category) {
@@ -439,8 +441,11 @@ async function handlePost(req, res) {
     console.log('[service-log] POST:', { patient_id, category, entry_type, resolvedEntryType, protocol_id, logDate, wlMultiQty });
     console.log('[service-log] packageUpdate:', JSON.stringify(packageUpdate));
 
-    if (resolvedEntryType === 'pickup') {
-      // For pickups, update last_refill_date and medication details on protocol
+    if (resolvedEntryType === 'pickup' && is_secondary_med && protocol_id) {
+      // Secondary medication pickup (e.g. HCG on an HRT protocol) — update secondary_medication_details JSONB
+      protocolUpdate = await syncSecondaryMedPickup(protocol_id, medication, logDate, secondary_med_details);
+    } else if (resolvedEntryType === 'pickup') {
+      // For primary pickups, update last_refill_date and medication details on protocol
       protocolUpdate = await syncPickupWithProtocol(patient_id, category, logDate, supply_type, quantity, medication, dosage, delivery_method);
     } else if (resolvedEntryType === 'injection' || resolvedEntryType === 'session') {
       // For injections/sessions, increment session count and update medication details
@@ -836,6 +841,107 @@ async function checkAndDecrementPackage(patient_id, category, entry_type, protoc
 }
 
 // ============================================
+// SECONDARY MEDICATION PICKUP SYNCING
+// ============================================
+
+// Default refill intervals for secondary medications (days)
+const SECONDARY_MED_REFILL_DAYS = {
+  'HCG': 90,           // ~3 months (1 vial/month × 3 vials)
+  'Gonadorelin': 30,   // ~1 month per vial
+  'Nandrolone': 90,    // ~3 months
+};
+
+async function syncSecondaryMedPickup(protocolId, medication, logDate, details = {}) {
+  try {
+    // Fetch current secondary_medication_details from protocol
+    const { data: protocol, error: fetchErr } = await supabase
+      .from('protocols')
+      .select('id, secondary_medications, secondary_medication_details')
+      .eq('id', protocolId)
+      .single();
+
+    if (fetchErr || !protocol) {
+      console.error('syncSecondaryMedPickup: protocol not found', fetchErr);
+      return { updated: false, reason: 'Protocol not found' };
+    }
+
+    // Parse existing details
+    let existingDetails = [];
+    if (protocol.secondary_medication_details) {
+      existingDetails = typeof protocol.secondary_medication_details === 'string'
+        ? JSON.parse(protocol.secondary_medication_details)
+        : protocol.secondary_medication_details;
+    }
+
+    // Calculate next_expected_date
+    const numVials = details.num_vials || 1;
+    const defaultRefillDays = SECONDARY_MED_REFILL_DAYS[medication] || 90;
+    // Scale refill interval by number of vials (1 vial = 30 days for HCG)
+    const perVialDays = defaultRefillDays / 3; // HCG default is 90 for 3 vials
+    const refillDays = Math.round(numVials * perVialDays);
+    const nextDate = new Date(logDate + 'T12:00:00');
+    nextDate.setDate(nextDate.getDate() + refillDays);
+    const nextExpected = nextDate.toISOString().split('T')[0];
+
+    // Build the updated entry for this medication
+    const updatedEntry = {
+      medication,
+      supply_type: details.supply_type || 'vial',
+      num_vials: numVials,
+      dosage: details.dosage || null,
+      frequency: details.frequency || null,
+      last_refill_date: logDate,
+      next_expected_date: nextExpected,
+    };
+
+    // Upsert: replace existing entry for this medication, or add new
+    const idx = existingDetails.findIndex(d => d.medication === medication);
+    if (idx >= 0) {
+      existingDetails[idx] = updatedEntry;
+    } else {
+      existingDetails.push(updatedEntry);
+    }
+
+    // Also ensure the medication is in secondary_medications array
+    let secMeds = [];
+    if (protocol.secondary_medications) {
+      secMeds = typeof protocol.secondary_medications === 'string'
+        ? JSON.parse(protocol.secondary_medications)
+        : protocol.secondary_medications;
+    }
+    if (!secMeds.includes(medication)) {
+      secMeds.push(medication);
+    }
+
+    // Update protocol
+    const { error: updateErr } = await supabase
+      .from('protocols')
+      .update({
+        secondary_medication_details: existingDetails,
+        secondary_medications: JSON.stringify(secMeds),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', protocolId);
+
+    if (updateErr) {
+      console.error('syncSecondaryMedPickup: update failed', updateErr);
+      return { updated: false, reason: updateErr.message };
+    }
+
+    console.log(`✓ Secondary med pickup: ${medication} × ${numVials} vials on ${logDate}, next refill ${nextExpected}`);
+    return {
+      updated: true,
+      protocol_id: protocolId,
+      medication,
+      next_expected_date: nextExpected,
+    };
+  } catch (err) {
+    console.error('syncSecondaryMedPickup error:', err);
+    return { updated: false, reason: err.message };
+  }
+}
+
+// ============================================
 // PROTOCOL SYNCING
 // ============================================
 
@@ -876,10 +982,11 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
     if (supply_type) {
       updateData.supply_type = supply_type;
     }
-    // Update delivery_method on protocol (from protocol-types: prefilled_1..8 or vial)
-    if (delivery_method) {
-      updateData.delivery_method = delivery_method;
-    }
+    // NOTE: Do NOT overwrite protocol.delivery_method here.
+    // The protocol's delivery_method tracks HOW the patient receives meds (take_home, in_clinic, overnight).
+    // The pickup's delivery_method tracks WHAT was picked up (vial_10ml, prefilled_2week, etc.)
+    // and is already stored on the service_log entry. Overwriting causes the protocol to
+    // disappear from the Medications admin page which filters on delivery_method = 'take_home'.
     if (medication) {
       updateData.medication = medication;
       // Don't overwrite program_name — it's standardized to "HRT Protocol" etc.

@@ -157,6 +157,9 @@ export default function ProtocolDetail() {
   const [startingDrip, setStartingDrip] = useState(false);
   const [onboardingLogs, setOnboardingLogs] = useState([]);
   const [startingOnboarding, setStartingOnboarding] = useState(false);
+  const [secMedPickupModal, setSecMedPickupModal] = useState(null); // { medication, detail }
+  const [secMedPickupForm, setSecMedPickupForm] = useState({ date: '', num_vials: 1, dosage: '', frequency: '' });
+  const [secMedPickupSaving, setSecMedPickupSaving] = useState(false);
   const [hrtReminderSchedule, setHrtReminderSchedule] = useState('mon_thu');
   const [enablingHrtReminders, setEnablingHrtReminders] = useState(false);
   const [sessionModal, setSessionModal] = useState(null); // { sessionNum }
@@ -1249,6 +1252,101 @@ export default function ProtocolDetail() {
                     {protocol?.status}
                   </span>
                 </div>
+
+                {/* Secondary Medications Supply Tracking (HRT only) */}
+                {isOngoing && isHRTProtocol(programType) && (() => {
+                  const secDetails = protocol?.secondary_medication_details
+                    ? (typeof protocol.secondary_medication_details === 'string'
+                      ? JSON.parse(protocol.secondary_medication_details)
+                      : protocol.secondary_medication_details)
+                    : [];
+                  const secMeds = form.secondaryMedications || [];
+                  if (secMeds.length === 0 && secDetails.length === 0) return null;
+
+                  return (
+                    <div style={{ marginTop: '20px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#9ca3af', marginBottom: '8px' }}>
+                        Secondary Medications
+                      </div>
+                      {secMeds.map(med => {
+                        const detail = secDetails.find(d => d.medication === med);
+                        const today = new Date(); today.setHours(0,0,0,0);
+                        let daysUntil = null;
+                        let isOverdue = false;
+                        let isDueSoon = false;
+                        if (detail?.next_expected_date) {
+                          const next = new Date(detail.next_expected_date + 'T00:00:00');
+                          daysUntil = Math.ceil((next - today) / (1000 * 60 * 60 * 24));
+                          isOverdue = daysUntil < 0;
+                          isDueSoon = !isOverdue && daysUntil <= 7;
+                        }
+                        return (
+                          <div key={med} style={{
+                            padding: '12px 14px', marginBottom: '8px',
+                            background: isOverdue ? '#fef2f2' : '#faf5ff',
+                            border: `1px solid ${isOverdue ? '#fecaca' : '#e9d5ff'}`,
+                            borderRadius: '10px',
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: detail ? '6px' : 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontSize: '14px' }}>💊</span>
+                                <span style={{ fontSize: '14px', fontWeight: 700, color: '#7c3aed' }}>{med}</span>
+                                {detail?.num_vials && (
+                                  <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                                    {detail.num_vials} vial{detail.num_vials > 1 ? 's' : ''}
+                                  </span>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => {
+                                  setSecMedPickupModal({ medication: med, detail });
+                                  setSecMedPickupForm({
+                                    date: new Date().toISOString().split('T')[0],
+                                    num_vials: detail?.num_vials || 1,
+                                    dosage: detail?.dosage || '',
+                                    frequency: detail?.frequency || '',
+                                  });
+                                }}
+                                style={{
+                                  padding: '4px 10px', fontSize: '11px', fontWeight: 600,
+                                  background: '#7c3aed', color: '#fff', border: 'none',
+                                  borderRadius: '6px', cursor: 'pointer',
+                                }}
+                              >
+                                Log Pickup
+                              </button>
+                            </div>
+                            {detail ? (
+                              <div style={{ display: 'flex', gap: '16px', fontSize: '12px', flexWrap: 'wrap' }}>
+                                <span style={{ color: '#6b7280' }}>
+                                  Last pickup: <strong style={{ color: '#111' }}>
+                                    {new Date(detail.last_refill_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                  </strong>
+                                </span>
+                                {detail.next_expected_date && (
+                                  <span style={{ color: '#6b7280' }}>
+                                    Next refill: <strong style={{ color: isOverdue ? '#dc2626' : isDueSoon ? '#f59e0b' : '#111' }}>
+                                      {new Date(detail.next_expected_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                      {isOverdue && ` (${Math.abs(daysUntil)}d overdue)`}
+                                      {isDueSoon && ` (in ${daysUntil}d)`}
+                                    </strong>
+                                  </span>
+                                )}
+                                {detail.dosage && (
+                                  <span style={{ color: '#6b7280' }}>{detail.dosage}{detail.frequency ? ` · ${detail.frequency}` : ''}</span>
+                                )}
+                              </div>
+                            ) : (
+                              <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>
+                                No supply tracked yet — log a pickup to start tracking
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
@@ -3105,6 +3203,120 @@ export default function ProtocolDetail() {
                 background: '#000', color: '#fff', cursor: logSaving ? 'wait' : 'pointer',
                 fontSize: 14, fontWeight: 600, opacity: logSaving ? 0.6 : 1
               }}>{logSaving ? 'Saving...' : (logForm.missed ? 'Log Missed Check-in' : 'Log Injection')}</button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Secondary Med Pickup Modal */}
+      {secMedPickupModal && (
+        <>
+          <div onClick={() => setSecMedPickupModal(null)} style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 10000
+          }} />
+          <div style={{
+            position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+            background: '#fff', borderRadius: 12, padding: 24, zIndex: 10001,
+            width: '90%', maxWidth: 380, boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+          }}>
+            <h3 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 700, color: '#7c3aed' }}>
+              💊 Log {secMedPickupModal.medication} Pickup
+            </h3>
+            <p style={{ margin: '0 0 16px', color: '#6b7280', fontSize: 14 }}>
+              Track supply for {protocol?.patient_name || 'this patient'}
+            </p>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Pickup Date</label>
+              <input
+                type="date"
+                value={secMedPickupForm.date}
+                onChange={e => setSecMedPickupForm({ ...secMedPickupForm, date: e.target.value })}
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Number of Vials</label>
+              <input
+                type="number"
+                min="1"
+                max="10"
+                value={secMedPickupForm.num_vials}
+                onChange={e => setSecMedPickupForm({ ...secMedPickupForm, num_vials: parseInt(e.target.value) || 1 })}
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Dosage <span style={{ fontWeight: 400, color: '#9ca3af' }}>(optional)</span></label>
+              <input
+                type="text"
+                value={secMedPickupForm.dosage}
+                onChange={e => setSecMedPickupForm({ ...secMedPickupForm, dosage: e.target.value })}
+                placeholder="e.g. 500iu"
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Frequency <span style={{ fontWeight: 400, color: '#9ca3af' }}>(optional)</span></label>
+              <input
+                type="text"
+                value={secMedPickupForm.frequency}
+                onChange={e => setSecMedPickupForm({ ...secMedPickupForm, frequency: e.target.value })}
+                placeholder="e.g. 2x/week"
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setSecMedPickupModal(null)} style={{
+                padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: 6,
+                background: '#fff', cursor: 'pointer', fontSize: 14
+              }}>Cancel</button>
+              <button
+                disabled={secMedPickupSaving || !secMedPickupForm.date}
+                onClick={async () => {
+                  setSecMedPickupSaving(true);
+                  try {
+                    const res = await fetch('/api/service-log', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        patient_id: protocol.patient_id,
+                        category: 'testosterone',
+                        entry_type: 'pickup',
+                        entry_date: secMedPickupForm.date,
+                        medication: secMedPickupModal.medication,
+                        dosage: secMedPickupForm.dosage || null,
+                        quantity: secMedPickupForm.num_vials,
+                        protocol_id: protocol.id,
+                        is_secondary_med: true,
+                        secondary_med_details: {
+                          num_vials: secMedPickupForm.num_vials,
+                          dosage: secMedPickupForm.dosage || null,
+                          frequency: secMedPickupForm.frequency || null,
+                        },
+                      }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Failed to log pickup');
+                    setSuccess(`${secMedPickupModal.medication} pickup logged — ${secMedPickupForm.num_vials} vial(s)`);
+                    setSecMedPickupModal(null);
+                    fetchProtocol();
+                  } catch (err) {
+                    setError(err.message);
+                  } finally {
+                    setSecMedPickupSaving(false);
+                  }
+                }}
+                style={{
+                  padding: '8px 20px', border: 'none', borderRadius: 6,
+                  background: '#7c3aed', color: '#fff', cursor: secMedPickupSaving ? 'wait' : 'pointer',
+                  fontSize: 14, fontWeight: 600, opacity: secMedPickupSaving ? 0.6 : 1
+                }}
+              >{secMedPickupSaving ? 'Saving...' : '✓ Log Pickup'}</button>
             </div>
           </div>
         </>

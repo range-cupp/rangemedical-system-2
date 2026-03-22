@@ -487,6 +487,30 @@ export default function MedicationsPage() {
                     <div style={{ fontSize: '12px', color: '#6b7280' }}>
                       {formatSupplyInfo(med)}
                     </div>
+                    {/* Secondary medications (HRT) */}
+                    {(() => {
+                      const secDetails = med.secondary_medication_details || [];
+                      if (secDetails.length === 0) return null;
+                      return secDetails.map(sec => {
+                        const today = new Date(); today.setHours(0,0,0,0);
+                        let statusColor = '#6b7280';
+                        let statusText = '';
+                        if (sec.next_expected_date) {
+                          const next = new Date(sec.next_expected_date + 'T00:00:00');
+                          const days = Math.ceil((next - today) / (1000 * 60 * 60 * 24));
+                          if (days < 0) { statusColor = '#dc2626'; statusText = `${Math.abs(days)}d overdue`; }
+                          else if (days <= 7) { statusColor = '#f59e0b'; statusText = `in ${days}d`; }
+                          else { statusText = formatDate(sec.next_expected_date); }
+                        }
+                        return (
+                          <div key={sec.medication} style={{ marginTop: '4px', padding: '3px 8px', background: '#faf5ff', borderRadius: '4px', border: '1px solid #e9d5ff', fontSize: '11px' }}>
+                            <span style={{ fontWeight: 600, color: '#7c3aed' }}>+ {sec.medication}</span>
+                            {sec.num_vials && <span style={{ color: '#6b7280', marginLeft: '6px' }}>{sec.num_vials} vial{sec.num_vials > 1 ? 's' : ''}</span>}
+                            {statusText && <span style={{ color: statusColor, marginLeft: '6px', fontWeight: 600 }}>· {statusText}</span>}
+                          </div>
+                        );
+                      });
+                    })()}
                   </td>
                   <td style={{ ...s.td, color: '#6b7280', fontSize: '13px' }}>{med.dosage || '—'}</td>
                   <td style={{ ...s.td, fontSize: '13px', color: '#6b7280' }}>

@@ -113,7 +113,7 @@ export default async function handler(req, res) {
     // Get all active take-home protocols with patient info
     let query = supabase
       .from('protocols')
-      .select('id, patient_id, program_name, program_type, medication, selected_dose, delivery_method, next_expected_date, status, start_date, end_date, sessions_used, total_sessions, supply_type, pickup_frequency, injection_method, injection_frequency, created_at, patients!inner(id, first_name, last_name, phone, email)')
+      .select('id, patient_id, program_name, program_type, medication, selected_dose, delivery_method, next_expected_date, status, start_date, end_date, sessions_used, total_sessions, supply_type, pickup_frequency, injection_method, injection_frequency, secondary_medications, secondary_medication_details, created_at, patients!inner(id, first_name, last_name, phone, email)')
       .eq('status', 'active')
       .eq('delivery_method', 'take_home')
       .order('next_expected_date', { ascending: true, nullsFirst: false });
@@ -193,6 +193,8 @@ export default async function handler(req, res) {
         refill_interval_days: refillDays,
         recent_pickups: dispensingByProtocol[p.id] || [],
         last_pickup: dispensingByProtocol[p.id]?.[0]?.entry_date || null,
+        secondary_medications: p.secondary_medications || null,
+        secondary_medication_details: p.secondary_medication_details || [],
       };
     });
 

@@ -3998,8 +3998,20 @@ export default function PatientProfile() {
                                 const sec = typeof protocol.secondary_medications === 'string'
                                   ? JSON.parse(protocol.secondary_medications)
                                   : protocol.secondary_medications;
+                                const secDetails = protocol.secondary_medication_details
+                                  ? (typeof protocol.secondary_medication_details === 'string'
+                                    ? JSON.parse(protocol.secondary_medication_details)
+                                    : protocol.secondary_medication_details)
+                                  : [];
                                 if (sec && sec.length > 0) {
-                                  return <span style={{ color: '#7C3AED' }}>+ {sec.join(', ')}</span>;
+                                  const labels = sec.map(m => {
+                                    const detail = secDetails.find(d => d.medication === m);
+                                    if (detail?.num_vials) {
+                                      return `${m} (${detail.num_vials}v)`;
+                                    }
+                                    return m;
+                                  });
+                                  return <span style={{ color: '#7C3AED' }}>+ {labels.join(', ')}</span>;
                                 }
                               } catch {}
                               return null;

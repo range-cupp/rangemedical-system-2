@@ -37,6 +37,7 @@ export default async function handler(req, res) {
 
   // ─── GET: Load questionnaire ───
   if (req.method === 'GET') {
+    try {
     // Fetch intake data for branching logic
     let intakeData = null;
     if (questionnaire.intake_id) {
@@ -49,23 +50,19 @@ export default async function handler(req, res) {
     }
 
     // Determine which sections to show
+    // Door 1 = injury only, Door 2 = optimization only, Door 3 = both
     let sections = [];
-    if (questionnaire.door === 1) {
-      sections = DOOR1_SECTIONS.map(s => ({ ...s }));
-    } else {
-      // Core sections always shown
-      sections = [...DOOR2_CORE_SECTIONS.map(s => ({ ...s }))];
 
-      // Add modality branches based on intake symptoms + gender
+    if (questionnaire.door === 1 || questionnaire.door === 3) {
+      sections.push(...DOOR1_SECTIONS.map(s => ({ ...s })));
+    }
+
+    if (questionnaire.door === 2 || questionnaire.door === 3) {
+      sections.push(...DOOR2_CORE_SECTIONS.map(s => ({ ...s })));
       if (intakeData) {
-        const modalities = getApplicableModalities(
-          intakeData.symptoms,
-          intakeData.gender
-        );
+        const modalities = getApplicableModalities(intakeData.symptoms, intakeData.gender);
         sections.push(...modalities.map(s => ({ ...s })));
       }
-
-      // Final goal question always last
       sections.push({ ...DOOR2_FINAL_SECTION });
     }
 
@@ -79,6 +76,10 @@ export default async function handler(req, res) {
       sections,
       patient_first_name: intakeData?.first_name || null,
     });
+    } catch (getErr) {
+      console.error('GET questionnaire error:', getErr);
+      return res.status(500).json({ error: 'Failed to load questionnaire', details: getErr.message });
+    }
   }
 
   // ─── PUT: Auto-save section progress ───
@@ -124,11 +125,13 @@ export default async function handler(req, res) {
 
     // Calculate scored totals
     let allSections = [];
-    if (questionnaire.door === 1) {
-      allSections = DOOR1_SECTIONS;
-    } else {
-      allSections = [...DOOR2_CORE_SECTIONS];
-      // Fetch intake for modality sections
+
+    if (questionnaire.door === 1 || questionnaire.door === 3) {
+      allSections.push(...DOOR1_SECTIONS);
+    }
+
+    if (questionnaire.door === 2 || questionnaire.door === 3) {
+      allSections.push(...DOOR2_CORE_SECTIONS);
       if (questionnaire.intake_id) {
         const { data: intake } = await supabase
           .from('intakes')

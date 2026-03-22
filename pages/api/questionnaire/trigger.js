@@ -1,5 +1,6 @@
 // pages/api/questionnaire/trigger.js
-// Generates a baseline questionnaire token and sends SMS to patient
+// Generates a single baseline questionnaire token and sends ONE SMS to patient
+// Consolidates both doors into a single seamless assessment when both are selected
 // Called internally after intake form submission
 
 import { createClient } from '@supabase/supabase-js';
@@ -35,19 +36,18 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Intake not found' });
     }
 
-    // Determine which door(s) to trigger
-    const doors = [];
-    if (intake.injured) doors.push(1);
-    if (intake.interested_in_optimization) doors.push(2);
+    // Determine door: 1=injury only, 2=optimization only, 3=both
+    const hasInjury = !!intake.injured;
+    const hasOptimization = !!intake.interested_in_optimization;
 
-    if (doors.length === 0) {
+    if (!hasInjury && !hasOptimization) {
       console.log('Questionnaire trigger: no door selected, skipping');
-      return res.status(200).json({ success: true, message: 'No questionnaire needed — no door selected' });
+      return res.status(200).json({ success: true, message: 'No questionnaire needed' });
     }
 
     if (!intake.phone) {
       console.warn('Questionnaire trigger: no phone number for intake', intake_id);
-      return res.status(200).json({ success: true, message: 'No phone number — cannot send SMS' });
+      return res.status(200).json({ success: true, message: 'No phone number' });
     }
 
     const normalizedPhone = normalizePhone(intake.phone);
@@ -56,74 +56,86 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, message: 'Invalid phone number' });
     }
 
-    const results = [];
-
-    for (const door of doors) {
-      const token = crypto.randomBytes(16).toString('hex');
-      const questionnaire_type = door === 1 ? 'door1_baseline' : 'door2_baseline';
-
-      // Create the questionnaire record
-      const { data: qRecord, error: qErr } = await supabase
-        .from('baseline_questionnaires')
-        .insert({
-          patient_id: intake.patient_id || null,
-          intake_id: intake.id,
-          door,
-          questionnaire_type,
-          token,
-          status: 'in_progress',
-          responses: {},
-          scored_totals: {},
-          sections_completed: [],
-        })
-        .select('id, token')
-        .single();
-
-      if (qErr) {
-        console.error(`Questionnaire trigger: failed to create door ${door} record`, qErr);
-        continue;
-      }
-
-      // Build the link
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : 'https://app.range-medical.com';
-      const link = `${baseUrl}/questionnaire/${token}`;
-
-      // Send SMS
-      const firstName = intake.first_name || 'there';
-      const message = `Hi ${firstName}, one more quick step before your appointment — takes under 10 minutes: ${link}`;
-
-      const smsResult = await sendSMS({ to: normalizedPhone, message });
-
-      // Log to comms_log
-      await supabase.from('comms_log').insert({
-        patient_id: intake.patient_id || null,
-        direction: 'outbound',
-        channel: 'sms',
-        provider: smsResult.provider || 'twilio',
-        message_sid: smsResult.messageSid || null,
-        to_number: normalizedPhone,
-        message_body: message,
-        status: smsResult.success ? 'sent' : 'failed',
-        metadata: { trigger: 'baseline_questionnaire', door, questionnaire_id: qRecord.id },
-      });
-
-      if (smsResult.success) {
-        console.log(`✅ Questionnaire SMS sent for door ${door} to ${normalizedPhone}`);
-      } else {
-        console.error(`❌ Questionnaire SMS failed for door ${door}:`, smsResult.error);
-      }
-
-      results.push({
-        door,
-        questionnaire_id: qRecord.id,
-        token: qRecord.token,
-        sms_sent: smsResult.success,
-      });
+    // Single consolidated door value
+    let door, questionnaire_type;
+    if (hasInjury && hasOptimization) {
+      door = 3;
+      questionnaire_type = 'combined_baseline';
+    } else if (hasInjury) {
+      door = 1;
+      questionnaire_type = 'door1_baseline';
+    } else {
+      door = 2;
+      questionnaire_type = 'door2_baseline';
     }
 
-    return res.status(200).json({ success: true, results });
+    const token = crypto.randomBytes(16).toString('hex');
+
+    // Create single questionnaire record
+    const { data: qRecord, error: qErr } = await supabase
+      .from('baseline_questionnaires')
+      .insert({
+        patient_id: intake.patient_id || null,
+        intake_id: intake.id,
+        door,
+        questionnaire_type,
+        token,
+        status: 'in_progress',
+        responses: {},
+        scored_totals: {},
+        sections_completed: [],
+      })
+      .select('id, token')
+      .single();
+
+    if (qErr) {
+      console.error('Questionnaire trigger: failed to create record', qErr);
+      return res.status(500).json({ error: 'Failed to create questionnaire' });
+    }
+
+    // Build the link
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
+      || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')
+      || 'https://app.range-medical.com';
+    const link = `${baseUrl}/questionnaire/${token}`;
+
+    // Warm handoff SMS — personalized, explains why
+    const firstName = intake.first_name || 'there';
+    const message = `Hi ${firstName}, based on what you shared in your intake, we've prepared a short clinical assessment tailored to your goals. It helps your provider build your personalized plan before your visit — takes under 10 minutes: ${link}`;
+
+    const smsResult = await sendSMS({ to: normalizedPhone, message });
+
+    // Log to comms_log
+    await supabase.from('comms_log').insert({
+      patient_id: intake.patient_id || null,
+      direction: 'outbound',
+      channel: 'sms',
+      provider: smsResult.provider || 'twilio',
+      message_sid: smsResult.messageSid || null,
+      to_number: normalizedPhone,
+      message_body: message,
+      status: smsResult.success ? 'sent' : 'failed',
+      metadata: {
+        trigger: 'baseline_questionnaire',
+        door,
+        questionnaire_type,
+        questionnaire_id: qRecord.id,
+      },
+    });
+
+    if (smsResult.success) {
+      console.log(`✅ Questionnaire SMS sent (door ${door}) to ${normalizedPhone}`);
+    } else {
+      console.error(`❌ Questionnaire SMS failed:`, smsResult.error);
+    }
+
+    return res.status(200).json({
+      success: true,
+      questionnaire_id: qRecord.id,
+      token: qRecord.token,
+      door,
+      sms_sent: smsResult.success,
+    });
 
   } catch (error) {
     console.error('Questionnaire trigger error:', error);

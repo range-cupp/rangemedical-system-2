@@ -23,6 +23,8 @@ import {
 export async function getServerSideProps(context) {
   const { token } = context.params;
 
+  try {
+
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -57,11 +59,17 @@ export async function getServerSideProps(context) {
   }
 
   // Determine which sections to show
+  // Door 1 = injury only, Door 2 = optimization only, Door 3 = both (seamless)
   let sections = [];
-  if (questionnaire.door === 1) {
-    sections = DOOR1_SECTIONS.map(s => ({ ...s }));
-  } else {
-    sections = [...DOOR2_CORE_SECTIONS.map(s => ({ ...s }))];
+
+  // Door 1 or combined: start with injury baseline
+  if (questionnaire.door === 1 || questionnaire.door === 3) {
+    sections.push(...DOOR1_SECTIONS.map(s => ({ ...s })));
+  }
+
+  // Door 2 or combined: add optimization sections
+  if (questionnaire.door === 2 || questionnaire.door === 3) {
+    sections.push(...DOOR2_CORE_SECTIONS.map(s => ({ ...s })));
     if (intakeData) {
       const modalities = getApplicableModalities(intakeData.symptoms, intakeData.gender);
       sections.push(...modalities.map(s => ({ ...s })));
@@ -85,6 +93,17 @@ export async function getServerSideProps(context) {
       },
     },
   };
+
+  } catch (err) {
+    console.error('getServerSideProps error:', err);
+    return {
+      props: {
+        pageError: 'Something went wrong loading your questionnaire.',
+        initialData: null,
+        token,
+      },
+    };
+  }
 }
 
 // ═══════════════════════════════════════════════════════════

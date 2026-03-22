@@ -8,6 +8,21 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Map login emails to all possible created_by values (handles pre-transition names)
+const AUTHOR_ALIASES = {
+  'burgess@range-medical.com': ['burgess@range-medical.com', 'dr. damien burgess', 'dr. burgess', 'damien burgess'],
+  'lily@range-medical.com': ['lily@range-medical.com', 'lily'],
+  'evan@range-medical.com': ['evan@range-medical.com', 'evan'],
+  'chris@range-medical.com': ['chris@range-medical.com', 'chris', 'chris cupp'],
+};
+
+function isNoteAuthor(noteCreatedBy, requestingUser) {
+  if (!noteCreatedBy || !requestingUser) return false;
+  if (noteCreatedBy === requestingUser) return true;
+  const aliases = AUTHOR_ALIASES[requestingUser?.toLowerCase()] || [];
+  return aliases.some(alias => alias === noteCreatedBy.toLowerCase());
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -32,7 +47,7 @@ export default async function handler(req, res) {
     }
 
     // Only the author can sign their own note
-    if (note.created_by && note.created_by !== signed_by) {
+    if (note.created_by && !isNoteAuthor(note.created_by, signed_by)) {
       return res.status(403).json({ error: 'Only the note author can sign this note' });
     }
 

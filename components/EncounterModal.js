@@ -10,6 +10,22 @@ import { overlayClickProps } from './AdminLayout';
 // Users allowed to create/edit/sign encounter notes
 const NOTE_AUTHORS = ['burgess@range-medical.com', 'lily@range-medical.com', 'evan@range-medical.com', 'chris@range-medical.com'];
 
+// Map login emails to all possible created_by values (handles pre-transition names)
+const AUTHOR_ALIASES = {
+  'burgess@range-medical.com': ['burgess@range-medical.com', 'Dr. Damien Burgess', 'Dr. Burgess', 'Damien Burgess'],
+  'lily@range-medical.com': ['lily@range-medical.com', 'Lily'],
+  'evan@range-medical.com': ['evan@range-medical.com', 'Evan'],
+  'chris@range-medical.com': ['chris@range-medical.com', 'Chris', 'Chris Cupp'],
+};
+
+// Check if currentUser is the author of a note (handles alias mismatches)
+function isNoteAuthor(noteCreatedBy, currentUser) {
+  if (!noteCreatedBy || !currentUser) return false;
+  if (noteCreatedBy === currentUser) return true;
+  const aliases = AUTHOR_ALIASES[currentUser?.toLowerCase()] || [];
+  return aliases.some(alias => alias.toLowerCase() === noteCreatedBy.toLowerCase());
+}
+
 // Parse **bold** markdown into React elements
 function renderFormattedText(text) {
   if (!text) return text;
@@ -169,6 +185,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
   // Edit draft state
   const [editingNoteId, setEditingNoteId] = useState(null);
   const [editNoteInput, setEditNoteInput] = useState('');
+  const [editNoteDate, setEditNoteDate] = useState('');
   const [editSaving, setEditSaving] = useState(false);
 
   // Addendum state
@@ -518,16 +535,22 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
     if (!editNoteInput.trim() || !editingNoteId) return;
     setEditSaving(true);
     try {
+      const payload = { body: editNoteInput, requesting_user: currentUser };
+      if (editNoteDate) {
+        payload.note_date = new Date(editNoteDate + 'T12:00:00').toISOString();
+      }
       const res = await fetch(`/api/notes/${editingNoteId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body: editNoteInput, requesting_user: currentUser }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (data.success) {
-        setEncounterNotes(prev => prev.map(n => n.id === editingNoteId ? { ...n, body: editNoteInput } : n));
+        const updatedDate = editNoteDate ? new Date(editNoteDate + 'T12:00:00').toISOString() : undefined;
+        setEncounterNotes(prev => prev.map(n => n.id === editingNoteId ? { ...n, body: editNoteInput, ...(updatedDate ? { note_date: updatedDate } : {}) } : n));
         setEditingNoteId(null);
         setEditNoteInput('');
+        setEditNoteDate('');
         if (onRefresh) onRefresh();
       } else {
         alert(data.error || 'Failed to save edit');
@@ -1114,6 +1137,15 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                         {/* Note body — editable if this is the draft being edited */}
                         {editingNoteId === note.id ? (
                           <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                              <label style={{ fontSize: 12, fontWeight: 600, color: '#6b7280' }}>Note Date:</label>
+                              <input
+                                type="date"
+                                value={editNoteDate}
+                                onChange={e => setEditNoteDate(e.target.value)}
+                                style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 13 }}
+                              />
+                            </div>
                             <textarea
                               value={editNoteInput}
                               onChange={e => setEditNoteInput(e.target.value)}
@@ -1124,7 +1156,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                               <button onClick={handleEditSave} disabled={!editNoteInput.trim() || editSaving} className="enc-btn enc-btn-primary enc-btn-sm">
                                 {editSaving ? 'Saving...' : 'Save Changes'}
                               </button>
-                              <button onClick={() => { setEditingNoteId(null); setEditNoteInput(''); }} className="enc-btn enc-btn-secondary enc-btn-sm">
+                              <button onClick={() => { setEditingNoteId(null); setEditNoteInput(''); setEditNoteDate(''); }} className="enc-btn enc-btn-secondary enc-btn-sm">
                                 Cancel
                               </button>
                             </div>
@@ -1136,9 +1168,9 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                         {/* Note actions — hide while editing, only for authorized users */}
                         {editingNoteId !== note.id && canAuthorNotes && (
                           <div className="enc-note-actions">
-                            {note.status !== 'signed' && note.created_by === currentUser && (
+                            {note.status !== 'signed' && isNoteAuthor(note.created_by, currentUser) && (
                               <>
-                                <button onClick={() => { setEditingNoteId(note.id); setEditNoteInput(note.body); }} className="enc-btn enc-btn-secondary enc-btn-sm">
+                                <button onClick={() => { setEditingNoteId(note.id); setEditNoteInput(note.body); setEditNoteDate((note.note_date || note.created_at || '').slice(0, 10)); }} className="enc-btn enc-btn-secondary enc-btn-sm">
                                   ✏️ Edit
                                 </button>
                                 <button onClick={() => handleSignNote(note.id)} className="enc-btn enc-btn-sign enc-btn-sm">

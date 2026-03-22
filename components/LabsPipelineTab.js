@@ -1,19 +1,18 @@
 // /components/LabsPipelineTab.js
-// Labs Pipeline Tab - Protocol-based lab tracking with 5 stages
+// Labs Pipeline Tab - 5-stage Kanban with Due for Labs to-do section
 // Range Medical
 // CREATED: 2026-01-26
-// UPDATED: 2026-03-05 - Refined UI to match system design language
+// UPDATED: 2026-03-21 - Restructured: removed draw_scheduled, added treatment_started, added Due for Labs section
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 const LAB_STAGES = [
-  { id: 'draw_scheduled', label: 'Upcoming', color: '#94a3b8', icon: '📅' },
   { id: 'blood_draw_complete', label: 'Blood Draw', color: '#f59e0b', icon: '🩸' },
   { id: 'results_received', label: 'Results In', color: '#8b5cf6', icon: '📋' },
   { id: 'provider_reviewed', label: 'Reviewed', color: '#10b981', icon: '👨‍⚕️' },
-  { id: 'consult_scheduled', label: 'Scheduled', color: '#6366f1', icon: '🗓️' },
-  { id: 'consult_complete', label: 'Complete', color: '#3b82f6', icon: '✅' }
+  { id: 'consult_scheduled', label: 'Consult', color: '#6366f1', icon: '🗓️' },
+  { id: 'treatment_started', label: 'Treatment Started', color: '#3b82f6', icon: '✅' }
 ];
 
 export default function LabsPipelineTab() {
@@ -144,6 +143,46 @@ export default function LabsPipelineTab() {
           </button>
         </div>
       </div>
+
+      {/* Due for Labs — To-Do Section */}
+      {data.dueForLabs && data.dueForLabs.length > 0 && (
+        <div style={styles.dueSection}>
+          <div style={styles.dueSectionHeader}>
+            <span style={styles.dueSectionTitle}>Due for Labs</span>
+            <span style={styles.dueSectionCount}>{data.dueForLabs.length}</span>
+          </div>
+          <div style={styles.dueCards}>
+            {data.dueForLabs.map((item, i) => (
+              <div key={i} style={styles.dueCard}>
+                <div style={styles.dueCardLeft}>
+                  <Link href={`/admin/patient/${item.patientId}`} style={styles.dueCardName}>
+                    {item.patientName}
+                  </Link>
+                  <span style={styles.dueCardLabel}>{item.drawLabel}</span>
+                </div>
+                <div style={styles.dueCardRight}>
+                  <span style={{
+                    ...styles.dueCardDate,
+                    color: item.daysUntilDue < 0 ? '#ef4444' : item.daysUntilDue <= 7 ? '#f59e0b' : '#6b7280'
+                  }}>
+                    {item.daysUntilDue < 0
+                      ? `${Math.abs(item.daysUntilDue)}d overdue`
+                      : item.daysUntilDue === 0
+                        ? 'Today'
+                        : `in ${item.daysUntilDue}d`
+                    }
+                  </span>
+                  {item.phone && (
+                    <a href={`tel:${item.phone}`} style={styles.dueCardPhone} title="Call to schedule">
+                      📞
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 5-Column Kanban */}
       <div style={styles.stagesGrid}>
@@ -431,7 +470,7 @@ function LabCard({ protocol, currentStage, stageColor, onMoveStage, onDelete, fo
 
       {/* Actions */}
       <div style={styles.cardActions}>
-        {currentStage !== 'consult_complete' && (
+        {currentStage !== 'treatment_started' && (
           <button
             style={{
               ...styles.advanceBtn,
@@ -723,6 +762,80 @@ const styles = {
     fontSize: '13px',
     fontWeight: '500',
     cursor: 'pointer'
+  },
+
+  // ─── Due for Labs ─────────────────────────────────────────
+  dueSection: {
+    marginBottom: '20px',
+    background: '#fffbeb',
+    border: '1px solid #fef3c7',
+    borderRadius: '12px',
+    padding: '16px'
+  },
+  dueSectionHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    marginBottom: '12px'
+  },
+  dueSectionTitle: {
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#92400e',
+    letterSpacing: '0.2px'
+  },
+  dueSectionCount: {
+    fontSize: '11px',
+    fontWeight: '600',
+    color: '#92400e',
+    background: '#fef3c7',
+    padding: '2px 8px',
+    borderRadius: '10px'
+  },
+  dueCards: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px'
+  },
+  dueCard: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    background: '#fff',
+    border: '1px solid #fef3c7',
+    borderRadius: '8px',
+    padding: '10px 14px'
+  },
+  dueCardLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px'
+  },
+  dueCardName: {
+    fontWeight: '600',
+    fontSize: '13px',
+    color: '#000',
+    textDecoration: 'none'
+  },
+  dueCardLabel: {
+    fontSize: '11px',
+    color: '#92400e',
+    fontWeight: '500'
+  },
+  dueCardRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px'
+  },
+  dueCardDate: {
+    fontSize: '12px',
+    fontWeight: '600'
+  },
+  dueCardPhone: {
+    fontSize: '13px',
+    textDecoration: 'none',
+    opacity: 0.6,
+    flexShrink: 0
   },
 
   // ─── Kanban Grid ────────────────────────────────────────────

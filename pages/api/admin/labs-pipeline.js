@@ -11,8 +11,8 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Lab stages stored in protocols.status for program_type='labs'
-const LAB_STAGES = ['draw_scheduled', 'blood_draw_complete', 'results_received', 'provider_reviewed', 'consult_scheduled', 'consult_complete'];
+// Lab pipeline stages (5-column Kanban)
+const LAB_STAGES = ['blood_draw_complete', 'results_received', 'provider_reviewed', 'consult_scheduled', 'treatment_started'];
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
@@ -61,11 +61,102 @@ async function getLabsPipeline(req, res) {
 
     const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
+    // Fetch "Due for Labs" to-do list: HRT patients with upcoming follow-up lab needs
+    let dueForLabs = [];
+    try {
+      // Get active HRT protocols with their lab schedule info
+      const { data: hrtProtocols } = await supabase
+        .from('protocols')
+        .select('id, patient_id, program_name, start_date, status, first_followup_weeks, patients(id, name, first_name, last_name, phone)')
+        .in('program_type', ['hrt', 'hrt_male', 'hrt_female'])
+        .in('status', ['active', 'completed'])
+        .not('start_date', 'is', null);
+
+      if (hrtProtocols && hrtProtocols.length > 0) {
+        const today = new Date();
+        const thirtyDaysFromNow = new Date(today);
+        thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
+        // Get all patient IDs that already have an active lab protocol
+        const hrtPatientIds = hrtProtocols.map(p => p.patient_id).filter(Boolean);
+        const { data: existingLabProtocols } = await supabase
+          .from('protocols')
+          .select('patient_id')
+          .eq('program_type', 'labs')
+          .in('status', LAB_STAGES)
+          .in('patient_id', hrtPatientIds);
+
+        const patientsWithActiveLabs = new Set((existingLabProtocols || []).map(p => p.patient_id));
+
+        // Get blood draw logs to determine completed draws
+        const { data: bloodDrawLogs } = await supabase
+          .from('protocol_logs')
+          .select('protocol_id, log_date, notes')
+          .in('protocol_id', hrtProtocols.map(p => p.id))
+          .eq('log_type', 'blood_draw')
+          .order('log_date', { ascending: true });
+
+        const logsByProtocol = {};
+        for (const log of (bloodDrawLogs || [])) {
+          if (!logsByProtocol[log.protocol_id]) logsByProtocol[log.protocol_id] = [];
+          logsByProtocol[log.protocol_id].push(log);
+        }
+
+        for (const proto of hrtProtocols) {
+          // Skip if patient already has an active lab protocol
+          if (patientsWithActiveLabs.has(proto.patient_id)) continue;
+
+          const startDate = new Date(proto.start_date + 'T00:00:00');
+          const firstWeeks = proto.first_followup_weeks || 8;
+          const logs = logsByProtocol[proto.id] || [];
+
+          // Calculate next due date based on schedule
+          // First follow-up at firstWeeks, then every 12 weeks
+          const schedule = [];
+          schedule.push({ weeks: firstWeeks, label: `${firstWeeks}-Week Labs` });
+          for (let w = firstWeeks + 12; w <= 104; w += 12) {
+            schedule.push({ weeks: w, label: `${w}-Week Labs` });
+          }
+
+          // Find the next unlogged draw
+          for (const entry of schedule) {
+            const dueDate = new Date(startDate);
+            dueDate.setDate(dueDate.getDate() + entry.weeks * 7);
+
+            // Check if this draw was already logged
+            const alreadyLogged = logs.some(l => l.notes === entry.label || l.notes === entry.label.replace('-Week', ' Week'));
+
+            if (!alreadyLogged && dueDate <= thirtyDaysFromNow && dueDate >= new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000)) {
+              const patient = proto.patients;
+              const patientName = patient?.name || `${patient?.first_name || ''} ${patient?.last_name || ''}`.trim();
+              dueForLabs.push({
+                patientId: proto.patient_id,
+                patientName,
+                phone: patient?.phone || null,
+                protocolId: proto.id,
+                protocolName: proto.program_name,
+                dueDate: dueDate.toISOString().split('T')[0],
+                drawLabel: entry.label,
+                daysUntilDue: Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24))
+              });
+              break; // Only show next upcoming draw per patient
+            }
+          }
+        }
+
+        // Sort by due date
+        dueForLabs.sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+      }
+    } catch (dueErr) {
+      console.error('Due for labs fetch error (non-fatal):', dueErr);
+    }
+
     return res.status(200).json({
       success: true,
       stages,
       counts,
-      total
+      total,
+      dueForLabs
     });
 
   } catch (error) {
@@ -284,34 +375,7 @@ async function updateLabProtocol(req, res) {
       }
     }
 
-    // Sync: when moving back to draw_scheduled, remove the blood draw log
-    if (newStage === 'draw_scheduled' && data && (data.notes || '').includes('Auto-scheduled from HRT Protocol')) {
-      try {
-        const { data: hrtProtos } = await supabase
-          .from('protocols')
-          .select('id')
-          .eq('patient_id', data.patient_id)
-          .ilike('program_type', '%hrt%');
-
-        if (hrtProtos && hrtProtos.length > 0) {
-          const pn = data.program_name || '';
-          const weekMatch = pn.match(/^(\d+)\s*Week/i);
-          const drawLabel = weekMatch ? `${weekMatch[1]}-Week Labs` : pn;
-
-          for (const hp of hrtProtos) {
-            await supabase
-              .from('protocol_logs')
-              .delete()
-              .eq('protocol_id', hp.id)
-              .eq('log_type', 'blood_draw')
-              .eq('notes', drawLabel);
-          }
-          console.log(`✓ Removed blood draw log for draw_scheduled revert: ${drawLabel}`);
-        }
-      } catch (syncErr) {
-        console.error('HRT blood draw undo sync error (non-fatal):', syncErr);
-      }
-    }
+    // NOTE: draw_scheduled stage removed from pipeline. Revert-to-draw sync no longer applies.
 
     // NOTE: Scheduling tasks for Tara + Chris are NOT auto-created on provider_reviewed.
     // They are created by /api/admin/complete-lab-review when the provider uses the
@@ -393,44 +457,6 @@ async function createLabProtocol(req, res) {
       if (patients && patients.length > 0) {
         resolvedPatientId = patients[0].id;
         resolvedPatientName = patients[0].name;
-      }
-    }
-
-    // Check if patient already has an active lab protocol at draw_scheduled (from Cal.com auto-create)
-    // If so, advance it to blood_draw_complete instead of creating a new one
-    if (resolvedPatientId) {
-      const { data: existingDrawScheduled } = await supabase
-        .from('protocols')
-        .select('id, status')
-        .eq('patient_id', resolvedPatientId)
-        .eq('program_type', 'labs')
-        .eq('status', 'draw_scheduled')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (existingDrawScheduled) {
-        // Advance existing protocol instead of creating new
-        const { data: advanced, error: advErr } = await supabase
-          .from('protocols')
-          .update({
-            status: 'blood_draw_complete',
-            medication: panel === 'elite' ? 'Elite' : 'Essential',
-            delivery_method: type,
-            start_date: bloodDrawDate || new Date().toISOString().split('T')[0],
-            notes: notes ? `${notes}` : existingDrawScheduled.notes || null,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingDrawScheduled.id)
-          .select('*, patients(id, name, first_name, last_name, email, phone)')
-          .single();
-
-        if (advErr) {
-          return res.status(400).json({ error: advErr.message });
-        }
-
-        console.log(`✓ Lab protocol advanced from draw_scheduled to blood_draw_complete: ${existingDrawScheduled.id}`);
-        return res.status(200).json({ success: true, data: advanced, advanced: true });
       }
     }
 

@@ -2,77 +2,128 @@
 // Patient-facing baseline questionnaire — token-gated, no login required
 // Matches intake form design: Inter/system font, black/white/gray, Range Medical header
 // Mobile-first, progress bar, one section at a time, auto-save
+// Uses getServerSideProps to load data before render
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import Head from 'next/head';
-import { useRouter } from 'next/router';
+import { createClient } from '@supabase/supabase-js';
 import {
+  DOOR1_SECTIONS,
+  DOOR2_CORE_SECTIONS,
+  DOOR2_FINAL_SECTION,
+  getApplicableModalities,
   SEVERITY5_OPTIONS,
   AGREE4_OPTIONS,
   BOTHER8_OPTIONS,
 } from '../../lib/questionnaire-definitions';
 
-export default function BaselineQuestionnaire() {
-  const router = useRouter();
-  const { token } = router.query;
+// ═══════════════════════════════════════════════════════════
+// Server-side data loading
+// ═══════════════════════════════════════════════════════════
+export async function getServerSideProps(context) {
+  const { token } = context.params;
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [questionnaire, setQuestionnaire] = useState(null);
-  const [sections, setSections] = useState([]);
-  const [currentSection, setCurrentSection] = useState(0);
-  const [responses, setResponses] = useState({});
-  const [saving, setSaving] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [complete, setComplete] = useState(false);
-  const [firstName, setFirstName] = useState('');
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
 
-  // Load questionnaire data
-  useEffect(() => {
-    if (!token) return;
-    loadQuestionnaire();
-  }, [token]);
+  // Look up questionnaire by token
+  const { data: questionnaire, error: qErr } = await supabase
+    .from('baseline_questionnaires')
+    .select('*')
+    .eq('token', token)
+    .single();
 
-  const loadQuestionnaire = async () => {
-    try {
-      const res = await fetch(`/api/questionnaire/${token}`);
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error || 'This link is invalid or has expired.');
-        setLoading(false);
-        return;
+  if (qErr || !questionnaire) {
+    return {
+      props: {
+        pageError: 'Questionnaire not found or link expired.',
+        initialData: null,
+        token,
+      },
+    };
+  }
+
+  // Fetch intake data for branching logic
+  let intakeData = null;
+  if (questionnaire.intake_id) {
+    const { data: intake } = await supabase
+      .from('intakes')
+      .select('symptoms, gender, first_name, injured, interested_in_optimization')
+      .eq('id', questionnaire.intake_id)
+      .single();
+    intakeData = intake;
+  }
+
+  // Determine which sections to show
+  let sections = [];
+  if (questionnaire.door === 1) {
+    sections = DOOR1_SECTIONS.map(s => ({ ...s }));
+  } else {
+    sections = [...DOOR2_CORE_SECTIONS.map(s => ({ ...s }))];
+    if (intakeData) {
+      const modalities = getApplicableModalities(intakeData.symptoms, intakeData.gender);
+      sections.push(...modalities.map(s => ({ ...s })));
+    }
+    sections.push({ ...DOOR2_FINAL_SECTION });
+  }
+
+  return {
+    props: {
+      pageError: null,
+      token,
+      initialData: {
+        id: questionnaire.id,
+        door: questionnaire.door,
+        questionnaire_type: questionnaire.questionnaire_type,
+        status: questionnaire.status,
+        responses: questionnaire.responses || {},
+        sections_completed: questionnaire.sections_completed || [],
+        sections,
+        patient_first_name: intakeData?.first_name || null,
+      },
+    },
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+// Main component
+// ═══════════════════════════════════════════════════════════
+export default function BaselineQuestionnaire({ pageError, initialData, token }) {
+  const alreadyComplete = initialData?.status === 'completed';
+
+  const [sections] = useState(initialData?.sections || []);
+  const [currentSection, setCurrentSection] = useState(() => {
+    if (!initialData) return 0;
+    const completed = initialData.sections_completed || [];
+    if (completed.length > 0 && initialData.sections) {
+      const lastIdx = initialData.sections.findIndex(
+        s => s.id === completed[completed.length - 1]
+      );
+      if (lastIdx >= 0 && lastIdx < initialData.sections.length - 1) {
+        return lastIdx + 1;
       }
-      const data = await res.json();
-
-      if (data.status === 'completed') {
-        setComplete(true);
-        setLoading(false);
-        return;
-      }
-
-      setQuestionnaire(data);
-      setSections(data.sections || []);
-      setResponses(data.responses || {});
-      setFirstName(data.patient_first_name || '');
-
-      // Resume from last completed section
-      const completedSections = data.sections_completed || [];
-      if (completedSections.length > 0 && data.sections) {
-        const lastCompletedIdx = data.sections.findIndex(
-          s => s.id === completedSections[completedSections.length - 1]
-        );
-        if (lastCompletedIdx >= 0 && lastCompletedIdx < data.sections.length - 1) {
-          setCurrentSection(lastCompletedIdx + 1);
+    }
+    return 0;
+  });
+  const [responses, setResponses] = useState(() => {
+    const saved = initialData?.responses || {};
+    // Initialize slider defaults so they count as "answered"
+    const allSections = initialData?.sections || [];
+    for (const section of allSections) {
+      for (const q of section.questions) {
+        if (q.type === 'slider' && saved[q.id] === undefined) {
+          saved[q.id] = q.defaultValue ?? q.min ?? 0;
         }
       }
-
-      setLoading(false);
-    } catch (err) {
-      console.error('Load error:', err);
-      setError('Something went wrong. Please try again.');
-      setLoading(false);
     }
-  };
+    return saved;
+  });
+  const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [complete, setComplete] = useState(alreadyComplete);
+  const firstName = initialData?.patient_first_name || '';
 
   // Update a response value
   const updateResponse = useCallback((questionId, value) => {
@@ -152,13 +203,9 @@ export default function BaselineQuestionnaire() {
       });
       if (res.ok) {
         setComplete(true);
-      } else {
-        const data = await res.json();
-        setError(data.error || 'Submission failed. Please try again.');
       }
     } catch (err) {
       console.error('Submit error:', err);
-      setError('Something went wrong. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -169,25 +216,14 @@ export default function BaselineQuestionnaire() {
     ? Math.round(((currentSection + 1) / sections.length) * 100)
     : 0;
 
-  // ─── Render states ───
-  if (loading) {
-    return (
-      <Page title="Loading...">
-        <div style={styles.loadingContainer}>
-          <div style={styles.spinner} />
-          <p style={styles.loadingText}>Loading your questionnaire...</p>
-        </div>
-      </Page>
-    );
-  }
-
-  if (error) {
+  // ─── Error state ───
+  if (pageError) {
     return (
       <Page title="Error">
         <div style={styles.errorContainer}>
           <div style={styles.errorIcon}>!</div>
           <h1 style={styles.errorTitle}>Unable to Load</h1>
-          <p style={styles.errorText}>{error}</p>
+          <p style={styles.errorText}>{pageError}</p>
           <p style={styles.errorHint}>
             If you believe this is a mistake, please contact Range Medical at (949) 997-3988.
           </p>
@@ -196,6 +232,7 @@ export default function BaselineQuestionnaire() {
     );
   }
 
+  // ─── Complete state ───
   if (complete) {
     return (
       <Page title="Complete">
@@ -212,11 +249,13 @@ export default function BaselineQuestionnaire() {
   }
 
   const section = sections[currentSection];
+  if (!section) return null;
+
   const isLastSection = currentSection === sections.length - 1;
   const canProceed = isSectionComplete();
 
   return (
-    <Page title={section?.title || 'Questionnaire'}>
+    <Page title={section.title || 'Questionnaire'}>
       {/* Progress bar */}
       <div style={styles.progressContainer}>
         <div style={styles.progressBar}>
@@ -279,7 +318,7 @@ export default function BaselineQuestionnaire() {
 // ═══════════════════════════════════════════════════════════
 // Question Renderer — handles all question types
 // ═══════════════════════════════════════════════════════════
-function QuestionRenderer({ question, value, onChange, index }) {
+function QuestionRenderer({ question, value, onChange }) {
   const q = question;
 
   return (
@@ -477,13 +516,11 @@ function Page({ title, children }) {
         <title>{title} | Range Medical</title>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
         <meta name="robots" content="noindex, nofollow" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
       </Head>
 
       <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
         :root {
           --black: #000000;
           --white: #ffffff;
@@ -538,6 +575,10 @@ function Page({ title, children }) {
           cursor: pointer;
           border: 3px solid var(--white);
           box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
 
         @media (max-width: 640px) {
@@ -649,250 +690,94 @@ const styles = {
   },
 
   // Slider
-  sliderContainer: {
-    padding: '0.5rem 0',
-  },
-  slider: {
-    width: '100%',
-    marginBottom: '0.5rem',
-  },
-  sliderLabels: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  sliderMinLabel: {
-    fontSize: '0.75rem',
-    color: '#737373',
-    maxWidth: '30%',
-  },
-  sliderValue: {
-    fontSize: '1.5rem',
-    fontWeight: 700,
-    color: '#000',
-  },
-  sliderMaxLabel: {
-    fontSize: '0.75rem',
-    color: '#737373',
-    textAlign: 'right',
-    maxWidth: '30%',
-  },
+  sliderContainer: { padding: '0.5rem 0' },
+  slider: { width: '100%', marginBottom: '0.5rem' },
+  sliderLabels: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  sliderMinLabel: { fontSize: '0.75rem', color: '#737373', maxWidth: '30%' },
+  sliderValue: { fontSize: '1.5rem', fontWeight: 700, color: '#000' },
+  sliderMaxLabel: { fontSize: '0.75rem', color: '#737373', textAlign: 'right', maxWidth: '30%' },
 
   // Options grid (single select)
-  optionsGrid: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.5rem',
-  },
+  optionsGrid: { display: 'flex', flexDirection: 'column', gap: '0.5rem' },
   optionCard: {
-    padding: '0.875rem 1rem',
-    border: '1.5px solid #d4d4d4',
-    borderRadius: 8,
-    background: '#fff',
-    cursor: 'pointer',
-    fontSize: '0.9375rem',
-    fontWeight: 500,
-    textAlign: 'left',
-    transition: 'all 0.15s ease',
-    fontFamily: 'inherit',
+    padding: '0.875rem 1rem', border: '1.5px solid #d4d4d4', borderRadius: 8,
+    background: '#fff', cursor: 'pointer', fontSize: '0.9375rem', fontWeight: 500,
+    textAlign: 'left', transition: 'all 0.15s ease', fontFamily: 'inherit',
   },
 
   // Frequency options (PHQ-9, GAD-7, etc.)
-  frequencyOptions: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.5rem',
-  },
+  frequencyOptions: { display: 'flex', flexDirection: 'column', gap: '0.5rem' },
   frequencyCard: {
-    padding: '0.75rem 1rem',
-    border: '1.5px solid #d4d4d4',
-    borderRadius: 8,
-    background: '#fff',
-    cursor: 'pointer',
-    fontSize: '0.875rem',
-    fontWeight: 500,
-    textAlign: 'left',
-    transition: 'all 0.15s ease',
-    fontFamily: 'inherit',
+    padding: '0.75rem 1rem', border: '1.5px solid #d4d4d4', borderRadius: 8,
+    background: '#fff', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500,
+    textAlign: 'left', transition: 'all 0.15s ease', fontFamily: 'inherit',
   },
 
   // Bother cards (MENQOL)
   botherCard: {
-    padding: '0.625rem 1rem',
-    border: '1.5px solid #d4d4d4',
-    borderRadius: 8,
-    background: '#fff',
-    cursor: 'pointer',
-    fontSize: '0.8125rem',
-    fontWeight: 500,
-    textAlign: 'left',
-    transition: 'all 0.15s ease',
-    fontFamily: 'inherit',
+    padding: '0.625rem 1rem', border: '1.5px solid #d4d4d4', borderRadius: 8,
+    background: '#fff', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500,
+    textAlign: 'left', transition: 'all 0.15s ease', fontFamily: 'inherit',
   },
 
   // Text/number inputs
   textInput: {
-    width: '100%',
-    padding: '0.75rem',
-    border: '1px solid #d4d4d4',
-    borderRadius: 4,
-    fontSize: '1rem',
-    fontFamily: 'inherit',
-    outline: 'none',
+    width: '100%', padding: '0.75rem', border: '1px solid #d4d4d4',
+    borderRadius: 4, fontSize: '1rem', fontFamily: 'inherit', outline: 'none',
   },
-  numberContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.5rem',
-  },
+  numberContainer: { display: 'flex', alignItems: 'center', gap: '0.5rem' },
   numberInput: {
-    width: 120,
-    padding: '0.75rem',
-    border: '1px solid #d4d4d4',
-    borderRadius: 4,
-    fontSize: '1rem',
-    fontFamily: 'inherit',
-    outline: 'none',
+    width: 120, padding: '0.75rem', border: '1px solid #d4d4d4',
+    borderRadius: 4, fontSize: '1rem', fontFamily: 'inherit', outline: 'none',
   },
-  numberSuffix: {
-    fontSize: '0.875rem',
-    color: '#737373',
-  },
+  numberSuffix: { fontSize: '0.875rem', color: '#737373' },
   textarea: {
-    width: '100%',
-    padding: '0.75rem',
-    border: '1px solid #d4d4d4',
-    borderRadius: 4,
-    fontSize: '1rem',
-    fontFamily: 'inherit',
-    outline: 'none',
-    resize: 'vertical',
-    minHeight: 100,
+    width: '100%', padding: '0.75rem', border: '1px solid #d4d4d4',
+    borderRadius: 4, fontSize: '1rem', fontFamily: 'inherit', outline: 'none',
+    resize: 'vertical', minHeight: 100,
   },
 
   // Navigation
   navRow: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: '2rem',
-    paddingTop: '1.5rem',
-    borderTop: '1px solid #e5e5e5',
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #e5e5e5',
   },
   backButton: {
-    padding: '0.75rem 1.5rem',
-    background: 'transparent',
-    border: '1.5px solid #d4d4d4',
-    borderRadius: 8,
-    fontSize: '0.9375rem',
-    fontWeight: 600,
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-    color: '#525252',
+    padding: '0.75rem 1.5rem', background: 'transparent', border: '1.5px solid #d4d4d4',
+    borderRadius: 8, fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer',
+    fontFamily: 'inherit', color: '#525252',
   },
   nextButton: {
-    padding: '0.75rem 2rem',
-    background: '#000',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 8,
-    fontSize: '0.9375rem',
-    fontWeight: 600,
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-    transition: 'opacity 0.15s ease',
+    padding: '0.75rem 2rem', background: '#000', color: '#fff', border: 'none',
+    borderRadius: 8, fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer',
+    fontFamily: 'inherit', transition: 'opacity 0.15s ease',
   },
 
   // Saving indicator
-  savingIndicator: {
-    textAlign: 'center',
-    fontSize: '0.75rem',
-    color: '#a3a3a3',
-    marginTop: '0.75rem',
-  },
-
-  // Loading
-  loadingContainer: {
-    textAlign: 'center',
-    padding: '4rem 2rem',
-  },
-  spinner: {
-    width: 32,
-    height: 32,
-    border: '3px solid #e5e5e5',
-    borderTopColor: '#000',
-    borderRadius: '50%',
-    margin: '0 auto 1rem',
-    animation: 'spin 0.8s linear infinite',
-  },
-  loadingText: {
-    color: '#737373',
-    fontSize: '0.9375rem',
-  },
+  savingIndicator: { textAlign: 'center', fontSize: '0.75rem', color: '#a3a3a3', marginTop: '0.75rem' },
 
   // Error
-  errorContainer: {
-    textAlign: 'center',
-    padding: '4rem 2rem',
-  },
+  errorContainer: { textAlign: 'center', padding: '4rem 2rem' },
   errorIcon: {
-    width: 48,
-    height: 48,
-    lineHeight: '48px',
-    borderRadius: '50%',
-    background: '#fef2f2',
-    color: '#dc2626',
-    fontSize: '1.5rem',
-    fontWeight: 700,
+    width: 48, height: 48, lineHeight: '48px', borderRadius: '50%',
+    background: '#fef2f2', color: '#dc2626', fontSize: '1.5rem', fontWeight: 700,
     margin: '0 auto 1rem',
   },
-  errorTitle: {
-    fontSize: '1.25rem',
-    fontWeight: 700,
-    marginBottom: '0.5rem',
-  },
-  errorText: {
-    color: '#525252',
-    marginBottom: '1rem',
-  },
-  errorHint: {
-    color: '#a3a3a3',
-    fontSize: '0.875rem',
-  },
+  errorTitle: { fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' },
+  errorText: { color: '#525252', marginBottom: '1rem' },
+  errorHint: { color: '#a3a3a3', fontSize: '0.875rem' },
 
   // Success
   successContainer: {
-    textAlign: 'center',
-    padding: '4rem 2rem',
-    background: '#fff',
-    borderRadius: 8,
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+    textAlign: 'center', padding: '4rem 2rem', background: '#fff',
+    borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
   },
   successIcon: {
-    width: 56,
-    height: 56,
-    lineHeight: '56px',
-    borderRadius: '50%',
-    background: '#f0fdf4',
-    color: '#16a34a',
-    fontSize: '1.75rem',
-    fontWeight: 700,
+    width: 56, height: 56, lineHeight: '56px', borderRadius: '50%',
+    background: '#f0fdf4', color: '#16a34a', fontSize: '1.75rem', fontWeight: 700,
     margin: '0 auto 1rem',
   },
-  successTitle: {
-    fontSize: '1.5rem',
-    fontWeight: 700,
-    marginBottom: '0.75rem',
-  },
-  successText: {
-    color: '#525252',
-    fontSize: '0.9375rem',
-    marginBottom: '0.5rem',
-    lineHeight: 1.6,
-  },
-  successHint: {
-    color: '#a3a3a3',
-    fontSize: '0.875rem',
-    marginTop: '1rem',
-  },
+  successTitle: { fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.75rem' },
+  successText: { color: '#525252', fontSize: '0.9375rem', marginBottom: '0.5rem', lineHeight: 1.6 },
+  successHint: { color: '#a3a3a3', fontSize: '0.875rem', marginTop: '1rem' },
 };

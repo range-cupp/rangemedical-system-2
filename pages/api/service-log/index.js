@@ -955,7 +955,7 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
     // Find active protocol
     const { data: protocols, error: findError } = await supabase
       .from('protocols')
-      .select('id, last_refill_date, supply_type, end_date')
+      .select('id, last_refill_date, supply_type, end_date, dose_per_injection, injections_per_week')
       .eq('patient_id', patient_id)
       .eq('program_type', programType)
       .eq('status', 'active')
@@ -1024,10 +1024,24 @@ async function syncPickupWithProtocol(patient_id, category, logDate, supply_type
         daysUntilNext = 14; // 2 weeks
       } else if (supply_type === 'prefilled_1week' || quantity === 2) {
         daysUntilNext = 7; // 1 week
+      } else if (supply_type === 'vial_5ml') {
+        // Calculate from actual dose if available, otherwise default
+        const dpi = parseFloat(protocol.dose_per_injection);
+        const ipw = parseInt(protocol.injections_per_week);
+        if (dpi > 0 && ipw > 0) {
+          daysUntilNext = Math.round(5.0 / (dpi * ipw) * 7);
+        } else {
+          daysUntilNext = 70; // ~10 weeks default for 5ml vial
+        }
       } else if (supply_type === 'vial_10ml' || supply_type === 'vial') {
-        // Vial typically lasts 8-12 weeks depending on dose
-        // Default to 10 weeks for vial
-        daysUntilNext = 70;
+        // Calculate from actual dose if available, otherwise default
+        const dpi = parseFloat(protocol.dose_per_injection);
+        const ipw = parseInt(protocol.injections_per_week);
+        if (dpi > 0 && ipw > 0) {
+          daysUntilNext = Math.round(10.0 / (dpi * ipw) * 7);
+        } else {
+          daysUntilNext = 70; // ~10 weeks default for 10ml vial
+        }
       }
 
       const nextDate = new Date(pickupDate);

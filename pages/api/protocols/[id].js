@@ -264,7 +264,37 @@ async function updateProtocol(id, updates, res) {
 
   // Always update the updated_at timestamp
   updateData.updated_at = new Date().toISOString();
-  
+
+  // Recalculate next_expected_date for HRT vial protocols when dose/supply fields change
+  const hrtVialFieldsChanged = updateData.dose_per_injection !== undefined ||
+    updateData.injections_per_week !== undefined || updateData.supply_type !== undefined;
+
+  if (hrtVialFieldsChanged) {
+    // Fetch current protocol to merge with updates
+    const { data: current } = await supabase.from('protocols').select('program_type, supply_type, dose_per_injection, injections_per_week, last_refill_date, start_date').eq('id', id).single();
+
+    if (current && (current.program_type === 'hrt' || current.program_type?.includes('hrt'))) {
+      const supplyType = updateData.supply_type ?? current.supply_type;
+      const dosePerInj = parseFloat(updateData.dose_per_injection ?? current.dose_per_injection);
+      const ipw = parseInt(updateData.injections_per_week ?? current.injections_per_week);
+      const refillBase = current.last_refill_date || current.start_date;
+
+      if (supplyType && refillBase && (supplyType === 'vial_10ml' || supplyType === 'vial_5ml' || supplyType === 'vial')) {
+        const vialMl = supplyType === 'vial_5ml' ? 5 : 10;
+        // Calculate days from actual dose math if we have the data, otherwise use default
+        let supplyDays;
+        if (dosePerInj > 0 && ipw > 0) {
+          supplyDays = Math.round(vialMl / (dosePerInj * ipw) * 7);
+        } else {
+          supplyDays = supplyType === 'vial_5ml' ? 70 : 140;
+        }
+        const nextDate = new Date(refillBase + 'T12:00:00');
+        nextDate.setDate(nextDate.getDate() + supplyDays);
+        updateData.next_expected_date = nextDate.toISOString().split('T')[0];
+      }
+    }
+  }
+
   const { data, error } = await supabase
     .from('protocols')
     .update(updateData)

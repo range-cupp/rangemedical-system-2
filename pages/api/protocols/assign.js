@@ -664,6 +664,8 @@ export default async function handler(req, res) {
             startDate,
             supplyType: supplyType || null,
             pickupFrequency: pickupFrequencyDays || null,
+            dosePerInjection: dosePerInjection || null,
+            injectionsPerWeek: injectionsPerWeek || null,
           });
         })(),
         cycle_start_date: cycleStartDate,

@@ -4,8 +4,9 @@ import { colors, styles, flagColors } from './labStyles';
 import { categoryOrder } from '../../lib/biomarker-config';
 import MarkerCard from './MarkerCard';
 
-export default function LabSingleView({ results, biomarkerLibrary, previousResults }) {
+export default function LabSingleView({ results, biomarkerLibrary, previousResults, synopsis, synopsisLoading, onRegenerateSynopsis }) {
   const [filter, setFilter] = useState('all');
+  const [synopsisExpanded, setSynopsisExpanded] = useState(true);
 
   // Build previous values lookup
   const previousMap = useMemo(() => {
@@ -87,6 +88,67 @@ export default function LabSingleView({ results, biomarkerLibrary, previousResul
           ))}
         </div>
       </div>
+
+      {/* AI Clinical Synopsis */}
+      {(synopsis || onRegenerateSynopsis) && (
+        <div style={{
+          marginBottom: '24px',
+          border: `1px solid ${synopsis ? '#C7D2FE' : colors.border}`,
+          borderRadius: '8px',
+          background: synopsis ? '#F5F3FF' : colors.white,
+          overflow: 'hidden'
+        }}>
+          <div
+            onClick={() => synopsis && setSynopsisExpanded(!synopsisExpanded)}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '12px 16px',
+              cursor: synopsis ? 'pointer' : 'default',
+              borderBottom: synopsisExpanded && synopsis ? '1px solid #C7D2FE' : 'none'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '1rem' }}>🧠</span>
+              <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#4338CA' }}>
+                AI Clinical Synopsis
+              </span>
+              {synopsis && (
+                <span style={{ fontSize: '0.6875rem', color: '#6366F1', fontWeight: 400 }}>
+                  {synopsisExpanded ? '(click to collapse)' : '(click to expand)'}
+                </span>
+              )}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {onRegenerateSynopsis && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onRegenerateSynopsis(); }}
+                  disabled={synopsisLoading}
+                  style={{
+                    padding: '4px 10px', borderRadius: '4px', border: '1px solid #C7D2FE',
+                    background: colors.white, cursor: synopsisLoading ? 'not-allowed' : 'pointer',
+                    fontSize: '0.75rem', fontWeight: 500, color: '#4338CA',
+                    opacity: synopsisLoading ? 0.6 : 1
+                  }}
+                >
+                  {synopsisLoading ? 'Generating...' : synopsis ? 'Regenerate' : 'Generate Synopsis'}
+                </button>
+              )}
+            </div>
+          </div>
+          {synopsisExpanded && synopsis && (
+            <div style={{
+              padding: '16px',
+              fontSize: '0.8125rem',
+              lineHeight: '1.6',
+              color: '#1F2937',
+              whiteSpace: 'pre-wrap',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+            }}>
+              {synopsis}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Category sections */}
       {sortedCategories.length === 0 ? (

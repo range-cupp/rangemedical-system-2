@@ -10,6 +10,8 @@ export default function LabDashboard({ patientId, patientGender, embedded }) {
   const [results, setResults] = useState(null);
   const [allLabResults, setAllLabResults] = useState(null);
   const [biomarkerLibrary, setBiomarkerLibrary] = useState(null);
+  const [synopsis, setSynopsis] = useState(null);
+  const [synopsisLoading, setSynopsisLoading] = useState(false);
   const [view, setView] = useState('single');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -50,21 +52,46 @@ export default function LabDashboard({ patientId, patientGender, embedded }) {
     const labIds = selectedOrder?.lab_ids || [selectedLabId];
 
     const genderParam = patientGender ? `&gender=${encodeURIComponent(patientGender)}` : '';
-    fetch(`/api/labs/results?lab_ids=${labIds.join(',')}${genderParam}`)
-      .then(r => r.json())
-      .then(data => {
+    // Fetch results and synopsis in parallel
+    Promise.all([
+      fetch(`/api/labs/results?lab_ids=${labIds.join(',')}${genderParam}`).then(r => r.json()),
+      fetch(`/api/labs/synopsis?lab_id=${selectedLabId}`).then(r => r.json()).catch(() => null)
+    ])
+      .then(([data, synopsisData]) => {
         if (data.success) {
           setResults(data.results);
         } else {
           console.error('Results API error:', data.error);
           setResults([]);
         }
+        setSynopsis(synopsisData?.synopsis || null);
       })
       .catch(err => {
         console.error('Results fetch error:', err);
         setResults([]);
+        setSynopsis(null);
       });
   }, [selectedLabId, patientGender, labOrders]);
+
+  // Regenerate synopsis handler
+  const handleRegenerateSynopsis = async () => {
+    if (!selectedLabId || synopsisLoading) return;
+    setSynopsisLoading(true);
+    try {
+      const res = await fetch('/api/labs/synopsis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lab_id: selectedLabId, force: true })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSynopsis(data.synopsis);
+      }
+    } catch (err) {
+      console.error('Synopsis regeneration error:', err);
+    }
+    setSynopsisLoading(false);
+  };
 
   // Load all lab results for compare view (lazy, on first toggle to compare)
   const loadHistory = useCallback(() => {
@@ -209,6 +236,9 @@ export default function LabDashboard({ patientId, patientGender, embedded }) {
           results={results}
           biomarkerLibrary={biomarkerLibrary}
           previousResults={previousResults}
+          synopsis={synopsis}
+          synopsisLoading={synopsisLoading}
+          onRegenerateSynopsis={handleRegenerateSynopsis}
         />
       )}
 

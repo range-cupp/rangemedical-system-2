@@ -1,25 +1,11 @@
 // pages/api/labs/results.js
 import { createClient } from '@supabase/supabase-js';
-const { biomarkerGroups, biomarkerMap, allBiomarkerKeys } = require('../../../lib/biomarker-config');
+const { biomarkerGroups, biomarkerMap, allBiomarkerKeys, computeFlag } = require('../../../lib/biomarker-config');
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
-
-function computeFlag(value, refLow, refHigh, optLow, optHigh) {
-  if (value === null || value === undefined) return null;
-  if (refLow !== null && value < refLow) return 'low';
-  if (refHigh !== null && value > refHigh) return 'high';
-  // Borderline: within 10% of ref boundary
-  if (refLow !== null && refHigh !== null) {
-    const margin = (refHigh - refLow) * 0.1;
-    if (value < refLow + margin) return 'borderline_low';
-    if (value > refHigh - margin) return 'borderline_high';
-  }
-  if (optLow !== null && optHigh !== null && value >= optLow && value <= optHigh) return 'optimal';
-  return 'normal';
-}
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {

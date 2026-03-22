@@ -1,42 +1,53 @@
 // /components/LabsPipelineTab.js
-// Labs Pipeline Tab - 5-stage Kanban with Due for Labs to-do section
+// Labs Pipeline — Summary cards + table layout matching HRT/WL aesthetic
+// Due for Labs to-do section with inline SMS
 // Range Medical
 // CREATED: 2026-01-26
-// UPDATED: 2026-03-21 - Restructured: removed draw_scheduled, added treatment_started, added Due for Labs section
+// UPDATED: 2026-03-21 — Full aesthetic overhaul to match HRT/WL patient tabs
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import AdminLayout, { sharedStyles } from './AdminLayout';
 
 const LAB_STAGES = [
-  { id: 'blood_draw_complete', label: 'Blood Draw', color: '#f59e0b', icon: '🩸' },
-  { id: 'results_received', label: 'Results In', color: '#8b5cf6', icon: '📋' },
-  { id: 'provider_reviewed', label: 'Reviewed', color: '#10b981', icon: '👨‍⚕️' },
-  { id: 'consult_scheduled', label: 'Consult', color: '#6366f1', icon: '🗓️' },
-  { id: 'treatment_started', label: 'Treatment Started', color: '#3b82f6', icon: '✅' }
+  { id: 'blood_draw_complete', label: 'Blood Draw', color: '#f59e0b' },
+  { id: 'results_received', label: 'Results In', color: '#8b5cf6' },
+  { id: 'provider_reviewed', label: 'Reviewed', color: '#10b981' },
+  { id: 'consult_scheduled', label: 'Consult', color: '#6366f1' },
+  { id: 'treatment_started', label: 'Treatment Started', color: '#3b82f6' }
 ];
+
+const STATUS_BADGES = {
+  blood_draw_complete: { bg: '#fef3c7', color: '#92400e', label: 'Blood Draw' },
+  results_received: { bg: '#f3e8ff', color: '#6b21a8', label: 'Results In' },
+  provider_reviewed: { bg: '#dcfce7', color: '#166534', label: 'Reviewed' },
+  consult_scheduled: { bg: '#e0e7ff', color: '#3730a3', label: 'Consult' },
+  treatment_started: { bg: '#dbeafe', color: '#1e40af', label: 'Treatment Started' }
+};
 
 export default function LabsPipelineTab() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [patientSearch, setPatientSearch] = useState('');
   const [patientResults, setPatientResults] = useState([]);
   const [searchTimer, setSearchTimer] = useState(null);
+  const [expandedRow, setExpandedRow] = useState(null);
+  const [smsState, setSmsState] = useState({});
+  const [showDueForLabs, setShowDueForLabs] = useState(true);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       const res = await fetch('/api/admin/labs-pipeline');
       const json = await res.json();
-      if (json.success) {
-        setData(json);
-      }
+      if (json.success) setData(json);
     } catch (err) {
       console.error('Error fetching labs pipeline:', err);
     } finally {
@@ -45,14 +56,15 @@ export default function LabsPipelineTab() {
   };
 
   const formatDate = (dateStr) => {
-    if (!dateStr) return '-';
-    return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric'
-    });
+    if (!dateStr) return '—';
+    return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  // Move protocol to a new stage
+  const formatDateTime = (isoStr) => {
+    if (!isoStr) return '—';
+    return new Date(isoStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  };
+
   const handleMoveStage = async (protocolId, newStage) => {
     setUpdating(true);
     try {
@@ -61,9 +73,7 @@ export default function LabsPipelineTab() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: protocolId, newStage })
       });
-      if (res.ok) {
-        await fetchData();
-      }
+      if (res.ok) await fetchData();
     } catch (err) {
       console.error('Error moving stage:', err);
     } finally {
@@ -71,7 +81,6 @@ export default function LabsPipelineTab() {
     }
   };
 
-  // Delete (cancel) a lab protocol
   const handleDelete = async (id) => {
     setUpdating(true);
     try {
@@ -91,141 +100,370 @@ export default function LabsPipelineTab() {
     }
   };
 
-  // Search patients for add modal
   const handlePatientSearch = (query) => {
     setPatientSearch(query);
     if (searchTimer) clearTimeout(searchTimer);
-    if (query.length < 2) {
-      setPatientResults([]);
-      return;
-    }
+    if (query.length < 2) { setPatientResults([]); return; }
     const timer = setTimeout(async () => {
       try {
         const { createClient } = await import('@supabase/supabase-js');
-        const supabase = createClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-        );
-        const { data: patients } = await supabase
-          .from('patients')
-          .select('id, name, email, phone')
-          .ilike('name', `%${query}%`)
-          .limit(8);
+        const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+        const { data: patients } = await supabase.from('patients').select('id, name, email, phone').ilike('name', `%${query}%`).limit(8);
         setPatientResults(patients || []);
-      } catch (err) {
-        console.error('Patient search error:', err);
-      }
+      } catch (err) { console.error('Patient search error:', err); }
     }, 300);
     setSearchTimer(timer);
   };
 
-  if (loading) {
-    return <div style={styles.loading}>Loading labs pipeline...</div>;
-  }
+  // SMS handlers
+  const handleSendSMS = async (patientId, patientName, phone, message) => {
+    const key = patientId;
+    setSmsState(prev => ({ ...prev, [key]: { ...prev[key], sending: true, error: null } }));
+    try {
+      const res = await fetch('/api/twilio/send-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patient_id: patientId, patient_name: patientName, to: phone, message, message_type: 'lab_follow_up' })
+      });
+      const result = await res.json();
+      if (result.success || result.messageSid) {
+        setSmsState(prev => ({ ...prev, [key]: { ...prev[key], sending: false, sent: true, open: false } }));
+        setTimeout(() => setSmsState(prev => ({ ...prev, [key]: { ...prev[key], sent: false } })), 3000);
+      } else {
+        setSmsState(prev => ({ ...prev, [key]: { ...prev[key], sending: false, error: result.error || 'Failed to send' } }));
+      }
+    } catch (err) {
+      setSmsState(prev => ({ ...prev, [key]: { ...prev[key], sending: false, error: err.message } }));
+    }
+  };
 
-  if (!data) {
-    return <div style={styles.error}>Error loading labs pipeline</div>;
-  }
+  if (loading) return <div style={{ padding: '60px 20px', textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>Loading labs pipeline...</div>;
+  if (!data) return <div style={{ padding: '60px 20px', textAlign: 'center', color: '#ef4444', fontSize: '14px' }}>Error loading labs pipeline</div>;
+
+  // Flatten all protocols for table view
+  const allProtocols = LAB_STAGES.flatMap(stage =>
+    (data.stages[stage.id] || []).map(p => ({ ...p, stageId: stage.id }))
+  );
+
+  // Filter
+  const filtered = allProtocols.filter(p => {
+    if (activeTab !== 'all' && p.stageId !== activeTab) return false;
+    if (searchTerm) {
+      const s = searchTerm.toLowerCase();
+      const name = p.patients?.name || `${p.patients?.first_name || ''} ${p.patients?.last_name || ''}`.trim();
+      return name.toLowerCase().includes(s) || p.medication?.toLowerCase().includes(s);
+    }
+    return true;
+  });
+
+  const dueForLabs = data.dueForLabs || [];
+  const overdueCount = dueForLabs.filter(d => d.daysUntilDue < 0).length;
+  const scheduledCount = dueForLabs.filter(d => d.hasAppointment).length;
+  const needsOutreach = dueForLabs.filter(d => !d.hasAppointment).length;
 
   return (
-    <div style={styles.container}>
-      {/* Header Bar */}
-      <div style={styles.headerRow}>
-        <div style={styles.headerLeft}>
-          <span style={styles.totalBadge}>{data.total} active</span>
+    <div>
+      {/* Summary Cards */}
+      <div style={styles.summaryGrid}>
+        <div style={styles.statCard}>
+          <div style={{ ...styles.statValue, color: '#3b82f6' }}>{data.total}</div>
+          <div style={styles.statLabel}>In Pipeline</div>
         </div>
-        <div style={styles.headerActions}>
-          <button style={styles.secondaryBtn} onClick={fetchData} disabled={loading}>
-            ↻ Refresh
-          </button>
-          <button style={styles.primaryBtn} onClick={() => setShowAddModal(true)}>
-            + Add Lab
-          </button>
+        <div style={styles.statCard}>
+          <div style={{ ...styles.statValue, color: dueForLabs.length > 0 ? '#f59e0b' : '#22c55e' }}>{dueForLabs.length}</div>
+          <div style={styles.statLabel}>Due for Labs</div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={{ ...styles.statValue, color: overdueCount > 0 ? '#ef4444' : '#22c55e' }}>{overdueCount}</div>
+          <div style={styles.statLabel}>Overdue</div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={{ ...styles.statValue, color: needsOutreach > 0 ? '#f59e0b' : '#22c55e' }}>{needsOutreach}</div>
+          <div style={styles.statLabel}>Needs Outreach</div>
         </div>
       </div>
 
-      {/* Due for Labs — To-Do Section */}
-      {data.dueForLabs && data.dueForLabs.length > 0 && (
-        <div style={styles.dueSection}>
-          <div style={styles.dueSectionHeader}>
-            <span style={styles.dueSectionTitle}>Due for Labs</span>
-            <span style={styles.dueSectionCount}>{data.dueForLabs.length}</span>
+      {/* Due for Labs Section */}
+      {dueForLabs.length > 0 && (
+        <div style={{ ...sharedStyles.card, marginBottom: '24px' }}>
+          <div style={styles.dueHeader} onClick={() => setShowDueForLabs(!showDueForLabs)}>
+            <div style={styles.dueHeaderLeft}>
+              <span style={styles.dueTitle}>Due for Labs</span>
+              <span style={styles.dueBadge}>{dueForLabs.length}</span>
+              {scheduledCount > 0 && (
+                <span style={styles.scheduledBadge}>{scheduledCount} scheduled</span>
+              )}
+            </div>
+            <span style={styles.dueToggle}>{showDueForLabs ? '▾' : '▸'}</span>
           </div>
-          <div style={styles.dueCards}>
-            {data.dueForLabs.map((item, i) => (
-              <div key={i} style={styles.dueCard}>
-                <div style={styles.dueCardLeft}>
-                  <Link href={`/admin/patient/${item.patientId}`} style={styles.dueCardName}>
-                    {item.patientName}
-                  </Link>
-                  <span style={styles.dueCardLabel}>{item.drawLabel}</span>
-                </div>
-                <div style={styles.dueCardRight}>
-                  <span style={{
-                    ...styles.dueCardDate,
-                    color: item.daysUntilDue < 0 ? '#ef4444' : item.daysUntilDue <= 7 ? '#f59e0b' : '#6b7280'
-                  }}>
-                    {item.daysUntilDue < 0
-                      ? `${Math.abs(item.daysUntilDue)}d overdue`
-                      : item.daysUntilDue === 0
-                        ? 'Today'
-                        : `in ${item.daysUntilDue}d`
-                    }
-                  </span>
-                  {item.phone && (
-                    <a href={`tel:${item.phone}`} style={styles.dueCardPhone} title="Call to schedule">
-                      📞
-                    </a>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+          {showDueForLabs && (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={sharedStyles.table}>
+                <thead>
+                  <tr>
+                    <th style={sharedStyles.th}>Patient</th>
+                    <th style={sharedStyles.th}>Phone</th>
+                    <th style={sharedStyles.th}>Draw</th>
+                    <th style={sharedStyles.th}>Due</th>
+                    <th style={sharedStyles.th}>Status</th>
+                    <th style={sharedStyles.th}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dueForLabs.map((item, i) => {
+                    const sms = smsState[item.patientId] || {};
+                    const firstName = (item.patientName || '').split(' ')[0];
+                    return (
+                      <tr key={i}>
+                        <td style={sharedStyles.td}>
+                          <Link href={`/admin/patient/${item.patientId}`} style={{ color: '#000', textDecoration: 'none', fontWeight: 600, fontSize: '14px' }}>
+                            {item.patientName}
+                          </Link>
+                        </td>
+                        <td style={sharedStyles.td}>
+                          {item.phone ? (
+                            <a href={`tel:${item.phone}`} style={{ color: '#374151', textDecoration: 'none', fontSize: '13px' }}>
+                              {item.phone}
+                            </a>
+                          ) : <span style={{ color: '#d1d5db' }}>—</span>}
+                        </td>
+                        <td style={sharedStyles.td}>
+                          <span style={{ fontSize: '13px', color: '#374151' }}>{item.drawLabel}</span>
+                        </td>
+                        <td style={sharedStyles.td}>
+                          <span style={{
+                            fontSize: '13px', fontWeight: 600,
+                            color: item.daysUntilDue < 0 ? '#ef4444' : item.daysUntilDue <= 7 ? '#f59e0b' : '#374151'
+                          }}>
+                            {item.daysUntilDue < 0 ? `${Math.abs(item.daysUntilDue)}d overdue` : item.daysUntilDue === 0 ? 'Today' : `In ${item.daysUntilDue}d`}
+                          </span>
+                          <div style={{ fontSize: '11px', color: '#9ca3af' }}>{formatDate(item.dueDate)}</div>
+                        </td>
+                        <td style={sharedStyles.td}>
+                          {item.hasAppointment ? (
+                            <span style={{ ...sharedStyles.badge, background: '#dcfce7', color: '#166534' }}>
+                              Scheduled {formatDateTime(item.scheduledDate)}
+                            </span>
+                          ) : (
+                            <span style={{ ...sharedStyles.badge, background: item.daysUntilDue < 0 ? '#fee2e2' : '#fef3c7', color: item.daysUntilDue < 0 ? '#991b1b' : '#92400e' }}>
+                              {item.daysUntilDue < 0 ? 'OVERDUE' : 'Needs Scheduling'}
+                            </span>
+                          )}
+                        </td>
+                        <td style={sharedStyles.td}>
+                          {sms.sent ? (
+                            <span style={{ fontSize: '13px', fontWeight: 600, color: '#16a34a' }}>Sent</span>
+                          ) : item.phone && !item.hasAppointment ? (
+                            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                              <button
+                                style={styles.textBtn}
+                                onClick={() => {
+                                  const msg = `Hi ${firstName}! This is Range Medical. You're due for your ${item.drawLabel.toLowerCase()} blood work. Would you like to schedule your appointment? Give us a call or text back and we'll get you set up!`;
+                                  setSmsState(prev => ({
+                                    ...prev,
+                                    [item.patientId]: { open: !prev[item.patientId]?.open, message: prev[item.patientId]?.message || msg }
+                                  }));
+                                }}
+                              >
+                                Text
+                              </button>
+                            </div>
+                          ) : item.hasAppointment ? (
+                            <span style={{ fontSize: '12px', color: '#9ca3af' }}>—</span>
+                          ) : (
+                            <span style={{ fontSize: '12px', color: '#d1d5db' }}>No phone</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {/* Inline SMS Composers */}
+              {dueForLabs.map((item) => {
+                const sms = smsState[item.patientId] || {};
+                if (!sms.open) return null;
+                const firstName = (item.patientName || '').split(' ')[0];
+                return (
+                  <div key={`sms-${item.patientId}`} style={styles.smsComposer}>
+                    <div style={styles.smsHeader}>
+                      <span style={{ fontSize: '13px', fontWeight: 600 }}>Text {item.patientName}</span>
+                      <button style={styles.smsClose} onClick={() => setSmsState(prev => ({ ...prev, [item.patientId]: { ...prev[item.patientId], open: false } }))}>×</button>
+                    </div>
+                    <textarea
+                      style={styles.smsTextarea}
+                      value={sms.message || ''}
+                      onChange={(e) => setSmsState(prev => ({ ...prev, [item.patientId]: { ...prev[item.patientId], message: e.target.value } }))}
+                      placeholder={`Type a message to ${firstName}...`}
+                    />
+                    <div style={styles.smsActions}>
+                      <button
+                        style={{ ...styles.smsSendBtn, background: sms.message?.trim() ? '#1e40af' : '#9ca3af' }}
+                        disabled={!sms.message?.trim() || sms.sending}
+                        onClick={() => handleSendSMS(item.patientId, item.patientName, item.phone, sms.message)}
+                      >
+                        {sms.sending ? 'Sending...' : 'Send'}
+                      </button>
+                    </div>
+                    {sms.error && <div style={styles.smsError}>{sms.error}</div>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
-      {/* 5-Column Kanban */}
-      <div style={styles.stagesGrid}>
-        {LAB_STAGES.map(stage => {
-          const items = data.stages[stage.id] || [];
-          return (
-            <div key={stage.id} style={styles.stageColumn}>
-              {/* Stage Header */}
-              <div style={styles.stageHeader}>
-                <div style={styles.stageHeaderLeft}>
-                  <span style={{
-                    ...styles.stageDot,
-                    background: stage.color,
-                    boxShadow: `0 0 0 3px ${stage.color}20`
-                  }} />
-                  <span style={styles.stageLabel}>{stage.label}</span>
-                </div>
-                <span style={styles.stageCount}>{items.length}</span>
-              </div>
-
-              {/* Cards */}
-              <div style={styles.stageBody}>
-                {items.map(protocol => (
-                  <LabCard
-                    key={protocol.id}
-                    protocol={protocol}
-                    currentStage={stage.id}
-                    stageColor={stage.color}
-                    onMoveStage={(newStage) => handleMoveStage(protocol.id, newStage)}
-                    onDelete={() => setShowDeleteConfirm({ id: protocol.id, name: protocol.patients?.name || 'Unknown' })}
-                    formatDate={formatDate}
-                  />
-                ))}
-                {items.length === 0 && (
-                  <div style={styles.emptyStage}>No patients</div>
-                )}
-              </div>
-            </div>
-          );
-        })}
+      {/* Search + Tabs */}
+      <div style={sharedStyles.filterBar}>
+        <input
+          type="text"
+          placeholder="Search by name or panel type..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={sharedStyles.searchInput}
+        />
       </div>
 
-      {/* Add Manual Lab Modal */}
+      <div style={styles.tabs}>
+        {[
+          { key: 'all', label: 'All', count: data.total },
+          ...LAB_STAGES.map(s => ({
+            key: s.id,
+            label: s.label,
+            count: data.counts[s.id] || 0,
+            color: s.color
+          }))
+        ].map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            style={{
+              ...styles.tabBtn,
+              background: activeTab === tab.key ? '#000' : '#fff',
+              color: activeTab === tab.key ? '#fff' : '#333',
+              border: activeTab === tab.key ? '1px solid #000' : '1px solid #ddd',
+            }}
+          >
+            {tab.label}
+            <span style={{
+              ...styles.tabCount,
+              background: activeTab === tab.key ? 'rgba(255,255,255,0.2)' : (tab.color || '#e5e5e5'),
+              color: activeTab === tab.key ? '#fff' : (tab.color ? '#fff' : '#666'),
+            }}>
+              {tab.count}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Pipeline Table */}
+      <div style={sharedStyles.card}>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={sharedStyles.table}>
+            <thead>
+              <tr>
+                <th style={sharedStyles.th}>Patient</th>
+                <th style={sharedStyles.th}>Phone</th>
+                <th style={sharedStyles.th}>Panel</th>
+                <th style={sharedStyles.th}>Type</th>
+                <th style={sharedStyles.th}>Stage</th>
+                <th style={sharedStyles.th}>Draw Date</th>
+                <th style={sharedStyles.th}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan="7" style={{ ...sharedStyles.td, textAlign: 'center', padding: '48px', color: '#999' }}>
+                    No patients found
+                  </td>
+                </tr>
+              ) : filtered.map(protocol => {
+                const patient = protocol.patients;
+                const patientName = patient?.name || (patient?.first_name ? `${patient.first_name} ${patient.last_name || ''}`.trim() : 'Unknown');
+                const panelType = protocol.medication || 'Essential';
+                const labType = protocol.delivery_method === 'follow_up' ? 'Follow-up' : 'New Patient';
+                const badge = STATUS_BADGES[protocol.stageId] || STATUS_BADGES.blood_draw_complete;
+                const isExpanded = expandedRow === protocol.id;
+
+                return (
+                  <tr key={protocol.id} onClick={() => setExpandedRow(isExpanded ? null : protocol.id)} style={{ cursor: 'pointer', transition: 'background 0.15s' }}>
+                    <td style={sharedStyles.td}>
+                      {patient?.id ? (
+                        <Link href={`/admin/patient/${patient.id}`} style={{ color: '#000', textDecoration: 'none', fontWeight: 600, fontSize: '14px' }} onClick={(e) => e.stopPropagation()}>
+                          {patientName}
+                        </Link>
+                      ) : (
+                        <span style={{ fontWeight: 600, fontSize: '14px' }}>{patientName}</span>
+                      )}
+                    </td>
+                    <td style={sharedStyles.td}>
+                      {patient?.phone ? (
+                        <a href={`tel:${patient.phone}`} style={{ color: '#374151', textDecoration: 'none', fontSize: '13px' }} onClick={(e) => e.stopPropagation()}>
+                          {patient.phone}
+                        </a>
+                      ) : <span style={{ color: '#d1d5db' }}>—</span>}
+                    </td>
+                    <td style={sharedStyles.td}>
+                      <span style={{
+                        ...sharedStyles.badge,
+                        background: panelType === 'Elite' ? '#fdf2f8' : '#f0f9ff',
+                        color: panelType === 'Elite' ? '#9d174d' : '#0369a1',
+                        border: `1px solid ${panelType === 'Elite' ? '#fce7f3' : '#e0f2fe'}`
+                      }}>
+                        {panelType}
+                      </span>
+                    </td>
+                    <td style={{ ...sharedStyles.td, fontSize: '13px', color: '#374151' }}>
+                      {labType}
+                    </td>
+                    <td style={sharedStyles.td}>
+                      <span style={{ ...sharedStyles.badge, background: badge.bg, color: badge.color }}>
+                        {badge.label}
+                      </span>
+                    </td>
+                    <td style={{ ...sharedStyles.td, fontSize: '13px', color: '#374151' }}>
+                      {formatDate(protocol.start_date)}
+                    </td>
+                    <td style={sharedStyles.td} onClick={(e) => e.stopPropagation()}>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        {protocol.stageId !== 'treatment_started' && (
+                          <button
+                            style={styles.advanceBtn}
+                            onClick={() => {
+                              const stageIds = LAB_STAGES.map(s => s.id);
+                              const idx = stageIds.indexOf(protocol.stageId);
+                              if (idx < stageIds.length - 1) handleMoveStage(protocol.id, stageIds[idx + 1]);
+                            }}
+                            disabled={updating}
+                          >
+                            → {LAB_STAGES[LAB_STAGES.findIndex(s => s.id === protocol.stageId) + 1]?.label || 'Next'}
+                          </button>
+                        )}
+                        <button
+                          style={styles.removeBtn}
+                          onClick={() => setShowDeleteConfirm({ id: protocol.id, name: patientName })}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Action Bar */}
+      <div style={styles.actionBar}>
+        <button style={sharedStyles.btnSecondary} onClick={fetchData} disabled={loading}>Refresh</button>
+        <button style={sharedStyles.btnPrimary} onClick={() => setShowAddModal(true)}>+ Add Lab</button>
+      </div>
+
+      {/* Add Lab Modal */}
       {showAddModal && (
         <AddLabModal
           patientSearch={patientSearch}
@@ -244,282 +482,29 @@ export default function LabsPipelineTab() {
                 setPatientSearch('');
                 setPatientResults([]);
               }
-            } catch (err) {
-              console.error('Error adding lab:', err);
-            }
+            } catch (err) { console.error('Error adding lab:', err); }
           }}
-          onClose={() => {
-            setShowAddModal(false);
-            setPatientSearch('');
-            setPatientResults([]);
-          }}
+          onClose={() => { setShowAddModal(false); setPatientSearch(''); setPatientResults([]); }}
         />
       )}
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Confirmation */}
       {showDeleteConfirm && (
-        <DeleteConfirmModal
-          name={showDeleteConfirm.name}
-          onConfirm={() => handleDelete(showDeleteConfirm.id)}
-          onCancel={() => setShowDeleteConfirm(null)}
-          updating={updating}
-        />
-      )}
-    </div>
-  );
-}
-
-// Lab Card Component
-function LabCard({ protocol, currentStage, stageColor, onMoveStage, onDelete, formatDate }) {
-  const [showMoveMenu, setShowMoveMenu] = useState(false);
-  const [showSummary, setShowSummary] = useState(false);
-  const [summaryData, setSummaryData] = useState(null);
-  const [summaryLoading, setSummaryLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
-
-  const patient = protocol.patients;
-  const patientName = patient?.name || (patient?.first_name ? `${patient.first_name} ${patient.last_name || ''}`.trim() : 'Unknown');
-  const panelType = protocol.medication || 'Essential';
-  const labType = protocol.delivery_method === 'follow_up' ? 'Follow-up' : 'New Patient';
-  const isElite = panelType === 'Elite';
-
-  const fetchSummary = async () => {
-    if (!patient?.id) return;
-    setSummaryLoading(true);
-    try {
-      const res = await fetch(`/api/admin/labs-pipeline?action=summary&patientId=${patient.id}`);
-      const json = await res.json();
-      if (json.success) {
-        setSummaryData(json.noIntake ? { noIntake: true } : json.summary);
-      }
-    } catch (err) {
-      console.error('Error fetching summary:', err);
-    } finally {
-      setSummaryLoading(false);
-    }
-  };
-
-  const handlePrep = () => {
-    if (showSummary) {
-      setShowSummary(false);
-      return;
-    }
-    if (!summaryData) {
-      fetchSummary();
-    }
-    setShowSummary(true);
-  };
-
-  const formatDOB = (dob) => {
-    if (!dob) return '-';
-    const [y, m, d] = dob.split('-');
-    return `${m}/${d}/${y}`;
-  };
-
-  const formatVisitDate = (dateStr) => {
-    if (!dateStr) return null;
-    return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
-  const buildCopyText = (s) => {
-    let text = 'PRE-CONSULT SUMMARY\n';
-    text += `Name: ${s.name}\n`;
-    text += `DOB: ${formatDOB(s.dob)}\n`;
-    if (s.lastVisitDate) text += `Last Visit: ${formatVisitDate(s.lastVisitDate)}\n`;
-    if (s.reasonForVisit) text += `Reason: ${s.reasonForVisit}\n`;
-    text += '\n';
-    text += `Diagnoses: ${s.diagnoses.length > 0 ? s.diagnoses.join(', ') : 'None reported'}\n`;
-    text += `Medications: ${s.medications || 'None reported'}\n`;
-    text += `Allergies: ${s.allergies || 'None reported'}\n`;
-    if (s.onHRT && s.hrtDetails) text += `HRT: ${s.hrtDetails}\n`;
-    else if (s.onHRT) text += `HRT: Yes\n`;
-    text += '\n*Reminder: Use Insight Health to scribe the conversation';
-    return text;
-  };
-
-  const handleCopy = async () => {
-    if (!summaryData || summaryData.noIntake) return;
-    try {
-      await navigator.clipboard.writeText(buildCopyText(summaryData));
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Copy failed:', err);
-    }
-  };
-
-  return (
-    <div style={styles.card}>
-      {/* Patient Name Row */}
-      <div style={styles.cardTop}>
-        {patient?.id ? (
-          <Link href={`/admin/patient/${patient.id}`} style={styles.cardName}>
-            {patientName}
-          </Link>
-        ) : (
-          <span style={styles.cardName}>{patientName}</span>
-        )}
-        {patient?.phone && (
-          <a href={`tel:${patient.phone}`} style={styles.cardPhone} title="Call">
-            📞
-          </a>
-        )}
-      </div>
-
-      {/* Badges */}
-      <div style={styles.badgeRow}>
-        <span style={{
-          ...styles.panelBadge,
-          background: isElite ? '#fdf2f8' : '#f0f9ff',
-          color: isElite ? '#9d174d' : '#0369a1',
-          borderColor: isElite ? '#fce7f3' : '#e0f2fe'
-        }}>
-          {panelType}
-        </span>
-        <span style={styles.typeBadge}>{labType}</span>
-      </div>
-
-      {/* Prep Button */}
-      {patient?.id && (
-        <button
-          style={{
-            ...styles.prepBtn,
-            ...(showSummary ? { background: '#000', color: '#fff', borderColor: '#000' } : {})
-          }}
-          onClick={handlePrep}
-          disabled={summaryLoading}
-        >
-          {summaryLoading ? '...' : showSummary ? '▾ Prep' : '▸ Prep'}
-        </button>
-      )}
-
-      {/* Expandable Summary */}
-      {showSummary && summaryData && (
-        <div style={styles.summaryBlock}>
-          {summaryData.noIntake ? (
-            <div style={styles.summaryEmpty}>No intake form found</div>
-          ) : (
-            <>
-              <div style={styles.summaryRow}>
-                <span style={styles.summaryLabel}>DOB</span>
-                <span>{formatDOB(summaryData.dob)}</span>
-              </div>
-              {summaryData.lastVisitDate && (
-                <div style={styles.summaryRow}>
-                  <span style={styles.summaryLabel}>Last Visit</span>
-                  <span>{formatVisitDate(summaryData.lastVisitDate)}</span>
-                </div>
-              )}
-              {summaryData.reasonForVisit && (
-                <div style={styles.summaryRow}>
-                  <span style={styles.summaryLabel}>Reason</span>
-                  <span>{summaryData.reasonForVisit}</span>
-                </div>
-              )}
-              <div style={styles.summarySection}>
-                <span style={styles.summaryLabel}>Diagnoses</span>
-                {summaryData.diagnoses.length > 0 ? (
-                  <ul style={styles.summaryList}>
-                    {summaryData.diagnoses.map((d, i) => <li key={i}>{d}</li>)}
-                  </ul>
-                ) : (
-                  <span style={styles.summaryNone}>None reported</span>
-                )}
-              </div>
-              <div style={styles.summaryRow}>
-                <span style={styles.summaryLabel}>Meds</span>
-                <span>{summaryData.medications || <span style={styles.summaryNone}>None reported</span>}</span>
-              </div>
-              <div style={styles.summaryRow}>
-                <span style={styles.summaryLabel}>Allergies</span>
-                <span>{summaryData.allergies || <span style={styles.summaryNone}>None reported</span>}</span>
-              </div>
-              {summaryData.onHRT && (
-                <div style={styles.summaryRow}>
-                  <span style={styles.summaryLabel}>HRT</span>
-                  <span>{summaryData.hrtDetails || 'Yes'}</span>
-                </div>
-              )}
-              <div style={styles.summaryReminder}>
-                *Use Insight Health to scribe the conversation
-              </div>
-              <div style={styles.summaryActions}>
-                <button style={styles.summaryBtnPrimary} onClick={handleCopy}>
-                  {copied ? '✓ Copied' : 'Copy'}
-                </button>
-                <button style={styles.summaryBtnSecondary} onClick={() => setShowSummary(false)}>
-                  Close
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Date & Notes */}
-      <div style={styles.cardMeta}>
-        <span style={styles.cardDate}>Draw: {formatDate(protocol.start_date)}</span>
-        {protocol.notes && (
-          <div style={styles.cardNotes}>{protocol.notes}</div>
-        )}
-      </div>
-
-      {/* Actions */}
-      <div style={styles.cardActions}>
-        {currentStage !== 'treatment_started' && (
-          <button
-            style={{
-              ...styles.advanceBtn,
-              background: stageColor,
-              boxShadow: `0 1px 3px ${stageColor}40`
-            }}
-            onClick={() => {
-              const stageIds = LAB_STAGES.map(s => s.id);
-              const currentIndex = stageIds.indexOf(currentStage);
-              if (currentIndex < stageIds.length - 1) {
-                onMoveStage(stageIds[currentIndex + 1]);
-              }
-            }}
-          >
-            → {LAB_STAGES[LAB_STAGES.findIndex(s => s.id === currentStage) + 1]?.label || 'Next'}
-          </button>
-        )}
-        <div style={styles.cardControls}>
-          <div style={styles.moveWrapper}>
-            <button
-              style={styles.moveBtn}
-              onClick={() => setShowMoveMenu(!showMoveMenu)}
-            >
-              Move ▾
-            </button>
-            {showMoveMenu && (
-              <div style={styles.moveMenu}>
-                {LAB_STAGES.filter(s => s.id !== currentStage).map(s => (
-                  <button
-                    key={s.id}
-                    style={styles.moveOption}
-                    onClick={() => {
-                      onMoveStage(s.id);
-                      setShowMoveMenu(false);
-                    }}
-                  >
-                    <span style={{
-                      width: '8px', height: '8px', borderRadius: '50%',
-                      background: s.color, display: 'inline-block', flexShrink: 0
-                    }} />
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            )}
+        <div style={styles.modalOverlay}>
+          <div style={{ ...styles.modal, maxWidth: '400px' }}>
+            <h3 style={styles.modalTitle}>Remove from Pipeline?</h3>
+            <p style={{ margin: '8px 0 0', color: '#374151', fontSize: '14px', lineHeight: 1.5 }}>
+              Remove <strong>{showDeleteConfirm.name}</strong> from the labs pipeline?
+            </p>
+            <div style={styles.modalFooter}>
+              <button style={sharedStyles.btnSecondary} onClick={() => setShowDeleteConfirm(null)}>Cancel</button>
+              <button style={{ ...sharedStyles.btnPrimary, background: '#dc2626' }} onClick={() => handleDelete(showDeleteConfirm.id)} disabled={updating}>
+                {updating ? 'Removing...' : 'Remove'}
+              </button>
+            </div>
           </div>
-          <button style={styles.deleteBtn} onClick={onDelete} title="Remove">×</button>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -536,54 +521,33 @@ function AddLabModal({ patientSearch, onPatientSearch, patientResults, onAdd, on
   const handleSubmit = () => {
     const patientId = selectedPatient?.id || null;
     const patientName = selectedPatient?.name || manualName;
-    if (!patientName) {
-      alert('Please select or enter a patient name');
-      return;
-    }
+    if (!patientName) { alert('Please select or enter a patient name'); return; }
     onAdd({ patientId, patientName, panelType, labType, bloodDrawDate, notes: notes || null });
   };
 
   return (
     <div style={styles.modalOverlay}>
       <div style={styles.modal}>
-        <div style={styles.modalHeader}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h3 style={styles.modalTitle}>Add Lab</h3>
-          <button style={styles.modalClose} onClick={onClose}>×</button>
+          <button style={{ background: 'none', border: 'none', fontSize: '22px', color: '#9ca3af', cursor: 'pointer' }} onClick={onClose}>×</button>
         </div>
 
         {/* Patient Search */}
         <div style={styles.formGroup}>
           <label style={styles.formLabel}>Patient</label>
           {selectedPatient ? (
-            <div style={styles.selectedPatient}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px' }}>
               <span style={{ fontWeight: 500 }}>{selectedPatient.name}</span>
-              <button
-                style={styles.clearBtn}
-                onClick={() => { setSelectedPatient(null); onPatientSearch(''); }}
-              >
-                ×
-              </button>
+              <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#9ca3af' }} onClick={() => { setSelectedPatient(null); onPatientSearch(''); }}>×</button>
             </div>
           ) : (
             <>
-              <input
-                type="text"
-                style={styles.input}
-                value={patientSearch}
-                onChange={(e) => onPatientSearch(e.target.value)}
-                placeholder="Search patient name..."
-              />
+              <input type="text" style={styles.input} value={patientSearch} onChange={(e) => onPatientSearch(e.target.value)} placeholder="Search patient name..." />
               {patientResults.length > 0 && (
                 <div style={styles.searchDropdown}>
                   {patientResults.map(p => (
-                    <button
-                      key={p.id}
-                      style={styles.searchItem}
-                      onClick={() => {
-                        setSelectedPatient(p);
-                        onPatientSearch('');
-                      }}
-                    >
+                    <button key={p.id} style={styles.searchItem} onClick={() => { setSelectedPatient(p); onPatientSearch(''); }}>
                       <span style={{ fontWeight: 500 }}>{p.name}</span>
                       {p.email && <span style={{ fontSize: '12px', color: '#9ca3af' }}>{p.email}</span>}
                     </button>
@@ -591,13 +555,7 @@ function AddLabModal({ patientSearch, onPatientSearch, patientResults, onAdd, on
                 </div>
               )}
               {patientSearch.length >= 2 && patientResults.length === 0 && (
-                <input
-                  type="text"
-                  style={{ ...styles.input, marginTop: '8px' }}
-                  value={manualName}
-                  onChange={(e) => setManualName(e.target.value)}
-                  placeholder="Or enter name manually..."
-                />
+                <input type="text" style={{ ...styles.input, marginTop: '8px' }} value={manualName} onChange={(e) => setManualName(e.target.value)} placeholder="Or enter name manually..." />
               )}
             </>
           )}
@@ -608,16 +566,7 @@ function AddLabModal({ patientSearch, onPatientSearch, patientResults, onAdd, on
           <label style={styles.formLabel}>Panel Type</label>
           <div style={styles.segmentedControl}>
             {[{ v: 'essential', l: 'Essential' }, { v: 'elite', l: 'Elite' }].map(o => (
-              <button
-                key={o.v}
-                style={{
-                  ...styles.segmentBtn,
-                  ...(panelType === o.v ? styles.segmentBtnActive : {})
-                }}
-                onClick={() => setPanelType(o.v)}
-              >
-                {o.l}
-              </button>
+              <button key={o.v} style={{ ...styles.segmentBtn, ...(panelType === o.v ? styles.segmentBtnActive : {}) }} onClick={() => setPanelType(o.v)}>{o.l}</button>
             ))}
           </div>
         </div>
@@ -627,16 +576,7 @@ function AddLabModal({ patientSearch, onPatientSearch, patientResults, onAdd, on
           <label style={styles.formLabel}>Lab Type</label>
           <div style={styles.segmentedControl}>
             {[{ v: 'new_patient', l: 'New Patient' }, { v: 'follow_up', l: 'Follow-up' }].map(o => (
-              <button
-                key={o.v}
-                style={{
-                  ...styles.segmentBtn,
-                  ...(labType === o.v ? styles.segmentBtnActive : {})
-                }}
-                onClick={() => setLabType(o.v)}
-              >
-                {o.l}
-              </button>
+              <button key={o.v} style={{ ...styles.segmentBtn, ...(labType === o.v ? styles.segmentBtnActive : {}) }} onClick={() => setLabType(o.v)}>{o.l}</button>
             ))}
           </div>
         </div>
@@ -644,58 +584,18 @@ function AddLabModal({ patientSearch, onPatientSearch, patientResults, onAdd, on
         {/* Blood Draw Date */}
         <div style={styles.formGroup}>
           <label style={styles.formLabel}>Blood Draw Date</label>
-          <input
-            type="date"
-            style={styles.input}
-            value={bloodDrawDate}
-            onChange={(e) => setBloodDrawDate(e.target.value)}
-          />
+          <input type="date" style={styles.input} value={bloodDrawDate} onChange={(e) => setBloodDrawDate(e.target.value)} />
         </div>
 
         {/* Notes */}
         <div style={styles.formGroup}>
           <label style={styles.formLabel}>Notes</label>
-          <textarea
-            style={styles.textarea}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Optional notes..."
-          />
+          <textarea style={styles.textarea} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional notes..." />
         </div>
 
         <div style={styles.modalFooter}>
-          <button style={styles.cancelBtn2} onClick={onClose}>Cancel</button>
-          <button
-            style={styles.submitBtn}
-            onClick={handleSubmit}
-            disabled={!selectedPatient && !manualName}
-          >
-            Add to Pipeline
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Delete Confirmation Modal
-function DeleteConfirmModal({ name, onConfirm, onCancel, updating }) {
-  return (
-    <div style={styles.modalOverlay}>
-      <div style={{ ...styles.modal, maxWidth: '400px' }}>
-        <h3 style={styles.modalTitle}>Remove from Pipeline?</h3>
-        <p style={{ margin: '8px 0 0', color: '#374151', fontSize: '14px', lineHeight: 1.5 }}>
-          Remove <strong>{name}</strong> from the labs pipeline? This cancels the lab protocol.
-        </p>
-        <div style={{ ...styles.modalFooter, marginTop: '20px' }}>
-          <button style={styles.cancelBtn2} onClick={onCancel}>Cancel</button>
-          <button
-            style={{ ...styles.submitBtn, background: '#dc2626' }}
-            onClick={onConfirm}
-            disabled={updating}
-          >
-            {updating ? 'Removing...' : 'Remove'}
-          </button>
+          <button style={sharedStyles.btnSecondary} onClick={onClose}>Cancel</button>
+          <button style={sharedStyles.btnPrimary} onClick={handleSubmit} disabled={!selectedPatient && !manualName}>Add to Pipeline</button>
         </div>
       </div>
     </div>
@@ -704,87 +604,79 @@ function DeleteConfirmModal({ name, onConfirm, onCancel, updating }) {
 
 // ─── Styles ────────────────────────────────────────────────────────────────
 const styles = {
-  container: {
-    padding: 0
+  // Summary cards
+  summaryGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '16px',
+    marginBottom: '24px'
   },
-  loading: {
-    padding: '60px 20px',
-    textAlign: 'center',
-    color: '#9ca3af',
-    fontSize: '14px'
+  statCard: {
+    background: '#fff',
+    border: '1px solid #e5e5e5',
+    borderRadius: '12px',
+    padding: '20px',
+    textAlign: 'center'
   },
-  error: {
-    padding: '60px 20px',
-    textAlign: 'center',
-    color: '#ef4444',
-    fontSize: '14px'
+  statValue: {
+    fontSize: '32px',
+    fontWeight: '700',
+    lineHeight: 1.2
+  },
+  statLabel: {
+    fontSize: '12px',
+    fontWeight: '600',
+    color: '#666',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    marginTop: '4px'
   },
 
-  // ─── Header ─────────────────────────────────────────────────
-  headerRow: {
+  // Tabs
+  tabs: {
+    display: 'flex',
+    gap: '8px',
+    marginBottom: '16px',
+    flexWrap: 'wrap'
+  },
+  tabBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '8px 14px',
+    borderRadius: '8px',
+    fontSize: '13px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    transition: 'all 0.12s ease'
+  },
+  tabCount: {
+    padding: '2px 7px',
+    borderRadius: '10px',
+    fontSize: '11px',
+    fontWeight: '600'
+  },
+
+  // Due for Labs
+  dueHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '20px',
-    flexWrap: 'wrap',
-    gap: '12px'
+    padding: '16px 20px',
+    cursor: 'pointer',
+    borderBottom: '1px solid #f0f0f0'
   },
-  headerLeft: {
+  dueHeaderLeft: {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px'
+    gap: '10px'
   },
-  totalBadge: {
-    fontSize: '13px',
-    color: '#6b7280',
-    fontWeight: '500'
+  dueTitle: {
+    fontSize: '15px',
+    fontWeight: '700',
+    color: '#000'
   },
-  headerActions: {
-    display: 'flex',
-    gap: '8px'
-  },
-  primaryBtn: {
-    padding: '8px 16px',
-    background: '#000',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '13px',
-    fontWeight: '500',
-    cursor: 'pointer'
-  },
-  secondaryBtn: {
-    padding: '8px 16px',
-    background: '#fff',
-    color: '#374151',
-    border: '1px solid #e5e5e5',
-    borderRadius: '8px',
-    fontSize: '13px',
-    fontWeight: '500',
-    cursor: 'pointer'
-  },
-
-  // ─── Due for Labs ─────────────────────────────────────────
-  dueSection: {
-    marginBottom: '20px',
-    background: '#fffbeb',
-    border: '1px solid #fef3c7',
-    borderRadius: '12px',
-    padding: '16px'
-  },
-  dueSectionHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    marginBottom: '12px'
-  },
-  dueSectionTitle: {
-    fontSize: '13px',
-    fontWeight: '600',
-    color: '#92400e',
-    letterSpacing: '0.2px'
-  },
-  dueSectionCount: {
+  dueBadge: {
     fontSize: '11px',
     fontWeight: '600',
     color: '#92400e',
@@ -792,351 +684,106 @@ const styles = {
     padding: '2px 8px',
     borderRadius: '10px'
   },
-  dueCards: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px'
-  },
-  dueCard: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    background: '#fff',
-    border: '1px solid #fef3c7',
-    borderRadius: '8px',
-    padding: '10px 14px'
-  },
-  dueCardLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px'
-  },
-  dueCardName: {
-    fontWeight: '600',
-    fontSize: '13px',
-    color: '#000',
-    textDecoration: 'none'
-  },
-  dueCardLabel: {
+  scheduledBadge: {
     fontSize: '11px',
-    color: '#92400e',
-    fontWeight: '500'
-  },
-  dueCardRight: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px'
-  },
-  dueCardDate: {
-    fontSize: '12px',
-    fontWeight: '600'
-  },
-  dueCardPhone: {
-    fontSize: '13px',
-    textDecoration: 'none',
-    opacity: 0.6,
-    flexShrink: 0
-  },
-
-  // ─── Kanban Grid ────────────────────────────────────────────
-  stagesGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(5, 1fr)',
-    gap: '12px',
-    minHeight: '500px'
-  },
-  stageColumn: {
-    background: '#fafafa',
-    borderRadius: '12px',
-    border: '1px solid #f0f0f0',
-    display: 'flex',
-    flexDirection: 'column',
-    overflow: 'hidden'
-  },
-  stageHeader: {
-    padding: '14px 14px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottom: '1px solid #f0f0f0',
-    background: '#fff'
-  },
-  stageHeaderLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px'
-  },
-  stageDot: {
-    width: '10px',
-    height: '10px',
-    borderRadius: '50%',
-    flexShrink: 0
-  },
-  stageLabel: {
-    fontSize: '13px',
     fontWeight: '600',
-    color: '#111'
-  },
-  stageCount: {
-    fontSize: '12px',
-    fontWeight: '600',
-    color: '#9ca3af',
-    background: '#f5f5f5',
+    color: '#166534',
+    background: '#dcfce7',
     padding: '2px 8px',
     borderRadius: '10px'
   },
-  stageBody: {
-    padding: '8px',
-    flex: 1,
-    overflowY: 'auto',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px'
-  },
-  emptyStage: {
-    textAlign: 'center',
-    color: '#d1d5db',
-    padding: '32px 12px',
-    fontSize: '13px'
+  dueToggle: {
+    fontSize: '14px',
+    color: '#9ca3af'
   },
 
-  // ─── Card ───────────────────────────────────────────────────
-  card: {
-    background: '#fff',
-    borderRadius: '10px',
-    padding: '14px',
-    border: '1px solid #e5e5e5',
-    transition: 'box-shadow 0.15s ease'
+  // Text button
+  textBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '5px',
+    padding: '4px 10px',
+    fontSize: '12px',
+    fontWeight: '600',
+    color: '#1e40af',
+    background: '#eff6ff',
+    border: '1px solid #bfdbfe',
+    borderRadius: '6px',
+    cursor: 'pointer'
   },
-  cardTop: {
+
+  // SMS Composer
+  smsComposer: {
+    background: '#f9fafb',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    padding: '14px 20px',
+    margin: '0 16px 16px'
+  },
+  smsHeader: {
     display: 'flex',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: '8px',
-    marginBottom: '8px'
-  },
-  cardName: {
-    fontWeight: '600',
-    fontSize: '14px',
-    color: '#000',
-    textDecoration: 'none',
-    lineHeight: 1.3
-  },
-  cardPhone: {
-    fontSize: '13px',
-    textDecoration: 'none',
-    opacity: 0.6,
-    flexShrink: 0
-  },
-
-  // Badges
-  badgeRow: {
-    display: 'flex',
-    gap: '5px',
-    marginBottom: '10px',
-    flexWrap: 'wrap'
-  },
-  panelBadge: {
-    fontSize: '11px',
-    fontWeight: '600',
-    padding: '2px 8px',
-    borderRadius: '6px',
-    border: '1px solid transparent',
-    letterSpacing: '0.2px'
-  },
-  typeBadge: {
-    fontSize: '11px',
-    fontWeight: '500',
-    padding: '2px 8px',
-    borderRadius: '6px',
-    background: '#f5f5f5',
-    color: '#666',
-    border: '1px solid #ebebeb'
-  },
-
-  // Prep
-  prepBtn: {
-    width: '100%',
-    padding: '6px 10px',
-    border: '1px solid #e5e5e5',
-    borderRadius: '6px',
-    background: '#fafafa',
-    color: '#374151',
-    cursor: 'pointer',
-    fontWeight: '500',
-    fontSize: '12px',
-    marginBottom: '10px',
-    textAlign: 'left',
-    transition: 'all 0.12s ease'
-  },
-
-  // Summary (Prep expanded)
-  summaryBlock: {
-    background: '#fafafa',
-    border: '1px solid #e5e5e5',
-    borderRadius: '8px',
-    padding: '12px',
-    marginBottom: '10px',
-    fontSize: '12px',
-    lineHeight: 1.6
-  },
-  summaryEmpty: {
-    color: '#9ca3af',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    padding: '8px 0'
-  },
-  summaryRow: {
-    display: 'flex',
-    gap: '6px',
-    marginBottom: '2px'
-  },
-  summarySection: {
-    marginBottom: '4px'
-  },
-  summaryLabel: {
-    fontWeight: '600',
-    color: '#6b7280',
-    minWidth: '60px',
-    flexShrink: 0
-  },
-  summaryList: {
-    margin: '2px 0 2px 16px',
-    padding: 0,
-    listStyle: 'disc'
-  },
-  summaryNone: {
-    color: '#d1d5db',
-    fontStyle: 'italic'
-  },
-  summaryReminder: {
-    marginTop: '8px',
-    padding: '6px 8px',
-    background: '#fffbeb',
-    border: '1px solid #fef3c7',
-    borderRadius: '6px',
-    fontSize: '11px',
-    color: '#92400e',
-    fontStyle: 'italic'
-  },
-  summaryActions: {
-    display: 'flex',
-    gap: '6px',
-    marginTop: '8px'
-  },
-  summaryBtnPrimary: {
-    flex: 1,
-    padding: '6px',
-    border: 'none',
-    borderRadius: '6px',
-    background: '#000',
-    color: '#fff',
-    cursor: 'pointer',
-    fontWeight: '500',
-    fontSize: '11px'
-  },
-  summaryBtnSecondary: {
-    flex: 1,
-    padding: '6px',
-    border: '1px solid #e5e5e5',
-    borderRadius: '6px',
-    background: '#fff',
-    color: '#666',
-    cursor: 'pointer',
-    fontWeight: '500',
-    fontSize: '11px'
-  },
-
-  // Meta (date, notes)
-  cardMeta: {
-    fontSize: '12px',
-    color: '#9ca3af',
+    alignItems: 'center',
     marginBottom: '10px'
   },
-  cardDate: {
-    fontSize: '12px',
-    color: '#9ca3af'
-  },
-  cardNotes: {
-    marginTop: '4px',
-    padding: '5px 8px',
-    background: '#fffbeb',
-    border: '1px solid #fef3c7',
-    borderRadius: '6px',
-    fontSize: '11px',
-    color: '#92400e',
-    fontStyle: 'italic',
-    lineHeight: 1.4
-  },
-
-  // Actions
-  cardActions: {
-    paddingTop: '10px',
-    borderTop: '1px solid #f5f5f5'
-  },
-  advanceBtn: {
-    width: '100%',
-    padding: '7px 10px',
+  smsClose: {
+    background: 'none',
     border: 'none',
-    borderRadius: '8px',
-    color: '#fff',
-    cursor: 'pointer',
-    fontWeight: '600',
-    fontSize: '12px',
-    marginBottom: '8px',
-    letterSpacing: '0.2px'
+    fontSize: '18px',
+    color: '#999',
+    cursor: 'pointer'
   },
-  cardControls: {
-    display: 'flex',
-    gap: '6px',
-    alignItems: 'center'
-  },
-  moveWrapper: {
-    position: 'relative',
-    flex: 1
-  },
-  moveBtn: {
+  smsTextarea: {
     width: '100%',
-    padding: '5px 10px',
-    border: '1px solid #e5e5e5',
+    padding: '10px 12px',
+    border: '1px solid #d1d5db',
     borderRadius: '6px',
+    fontSize: '13px',
+    fontFamily: 'inherit',
+    lineHeight: 1.5,
+    minHeight: '60px',
     background: '#fff',
-    cursor: 'pointer',
-    fontSize: '11px',
-    fontWeight: '500',
-    color: '#9ca3af'
+    boxSizing: 'border-box',
+    outline: 'none',
+    resize: 'vertical'
   },
-  moveMenu: {
-    position: 'absolute',
-    top: '100%',
-    left: 0,
-    right: 0,
-    background: '#fff',
-    border: '1px solid #e5e5e5',
-    borderRadius: '10px',
-    boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-    zIndex: 100,
-    marginTop: '4px',
-    overflow: 'hidden',
-    padding: '4px'
-  },
-  moveOption: {
-    width: '100%',
-    padding: '8px 10px',
-    border: 'none',
-    borderRadius: '6px',
-    background: 'transparent',
-    cursor: 'pointer',
-    fontSize: '12px',
-    fontWeight: '500',
-    textAlign: 'left',
+  smsActions: {
     display: 'flex',
     gap: '8px',
-    alignItems: 'center',
-    color: '#374151'
+    marginTop: '8px',
+    justifyContent: 'flex-end'
   },
-  deleteBtn: {
+  smsSendBtn: {
+    display: 'inline-flex',
+    gap: '6px',
+    padding: '6px 14px',
+    fontSize: '13px',
+    fontWeight: '600',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer'
+  },
+  smsError: {
+    fontSize: '12px',
+    color: '#dc2626',
+    marginTop: '6px'
+  },
+
+  // Pipeline table actions
+  advanceBtn: {
     padding: '5px 10px',
+    fontSize: '11px',
+    fontWeight: '600',
+    color: '#fff',
+    background: '#000',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    whiteSpace: 'nowrap'
+  },
+  removeBtn: {
+    padding: '5px 8px',
     border: '1px solid #fecaca',
     borderRadius: '6px',
     background: '#fff',
@@ -1147,13 +794,18 @@ const styles = {
     lineHeight: 1
   },
 
-  // ─── Modal ──────────────────────────────────────────────────
+  // Action bar
+  actionBar: {
+    display: 'flex',
+    gap: '8px',
+    marginTop: '16px',
+    justifyContent: 'flex-end'
+  },
+
+  // Modal
   modalOverlay: {
     position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    top: 0, left: 0, right: 0, bottom: 0,
     background: 'rgba(0,0,0,0.4)',
     backdropFilter: 'blur(4px)',
     display: 'flex',
@@ -1171,26 +823,11 @@ const styles = {
     overflowY: 'auto',
     boxShadow: '0 24px 48px rgba(0,0,0,0.16)'
   },
-  modalHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '20px'
-  },
   modalTitle: {
     margin: 0,
     fontSize: '18px',
     fontWeight: '700',
     color: '#000'
-  },
-  modalClose: {
-    background: 'none',
-    border: 'none',
-    fontSize: '22px',
-    color: '#9ca3af',
-    cursor: 'pointer',
-    padding: '0 4px',
-    lineHeight: 1
   },
   modalFooter: {
     display: 'flex',
@@ -1198,10 +835,8 @@ const styles = {
     marginTop: '24px'
   },
 
-  // ─── Form Elements ──────────────────────────────────────────
-  formGroup: {
-    marginBottom: '18px'
-  },
+  // Form elements
+  formGroup: { marginBottom: '18px' },
   formLabel: {
     display: 'block',
     fontSize: '12px',
@@ -1219,8 +854,7 @@ const styles = {
     fontFamily: 'inherit',
     fontSize: '14px',
     boxSizing: 'border-box',
-    outline: 'none',
-    transition: 'border-color 0.15s ease'
+    outline: 'none'
   },
   textarea: {
     width: '100%',
@@ -1234,8 +868,6 @@ const styles = {
     boxSizing: 'border-box',
     outline: 'none'
   },
-
-  // Segmented control (replaces toggle buttons)
   segmentedControl: {
     display: 'flex',
     background: '#f5f5f5',
@@ -1260,28 +892,6 @@ const styles = {
     color: '#fff',
     boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
   },
-
-  // Selected patient
-  selectedPatient: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '10px 14px',
-    background: '#f0fdf4',
-    border: '1px solid #bbf7d0',
-    borderRadius: '8px'
-  },
-  clearBtn: {
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    fontSize: '18px',
-    color: '#9ca3af',
-    padding: '0 4px',
-    lineHeight: 1
-  },
-
-  // Search dropdown
   searchDropdown: {
     marginTop: '4px',
     border: '1px solid #e5e5e5',
@@ -1301,30 +911,6 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '2px',
-    fontSize: '14px'
-  },
-
-  // Modal buttons
-  cancelBtn2: {
-    flex: 1,
-    padding: '10px',
-    border: '1px solid #e5e5e5',
-    borderRadius: '8px',
-    background: '#fff',
-    cursor: 'pointer',
-    fontWeight: '500',
-    fontSize: '14px',
-    color: '#374151'
-  },
-  submitBtn: {
-    flex: 1,
-    padding: '10px',
-    border: 'none',
-    borderRadius: '8px',
-    background: '#000',
-    color: '#fff',
-    cursor: 'pointer',
-    fontWeight: '600',
     fontSize: '14px'
   }
 };

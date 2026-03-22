@@ -144,6 +144,34 @@ async function getLabsPipeline(req, res) {
           }
         }
 
+        // Check for scheduled blood draw appointments
+        if (dueForLabs.length > 0) {
+          const duePatientIds = dueForLabs.map(d => d.patientId).filter(Boolean);
+          const { data: scheduledBookings } = await supabase
+            .from('calcom_bookings')
+            .select('patient_id, start_time, event_slug, status')
+            .in('patient_id', duePatientIds)
+            .in('event_slug', ['new-patient-blood-draw', 'follow-up-blood-draw'])
+            .in('status', ['scheduled', 'confirmed', 'accepted'])
+            .gte('start_time', new Date().toISOString());
+
+          if (scheduledBookings && scheduledBookings.length > 0) {
+            const bookingsByPatient = {};
+            for (const b of scheduledBookings) {
+              if (!bookingsByPatient[b.patient_id] || new Date(b.start_time) < new Date(bookingsByPatient[b.patient_id].start_time)) {
+                bookingsByPatient[b.patient_id] = b;
+              }
+            }
+            for (const item of dueForLabs) {
+              const booking = bookingsByPatient[item.patientId];
+              if (booking) {
+                item.scheduledDate = booking.start_time;
+                item.hasAppointment = true;
+              }
+            }
+          }
+        }
+
         // Sort by due date
         dueForLabs.sort((a, b) => a.daysUntilDue - b.daysUntilDue);
       }

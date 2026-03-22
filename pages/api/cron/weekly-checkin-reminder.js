@@ -101,7 +101,7 @@ export default async function handler(req, res) {
       .ilike('program_type', 'weight_loss%')
       .eq('checkin_reminder_enabled', true)
       .eq('injection_day', todayPacific)
-      .neq('delivery_method', 'in_clinic');
+      .or('delivery_method.neq.in_clinic,delivery_method.is.null');
 
     if (protocolsError) {
       // If columns don't exist yet, return helpful message

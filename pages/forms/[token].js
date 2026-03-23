@@ -61,6 +61,10 @@ export default function FormBundlePage() {
     if (phone) params.set('phone', phone);
     const email = bundle.patientInfo?.email || bundle.patientEmail;
     if (email) params.set('email', email);
+    // Pass gender for questionnaire conditional branching
+    if (form.id === 'questionnaire' && bundle.metadata?.gender) {
+      params.set('gender', bundle.metadata.gender);
+    }
     return `${form.path}?${params.toString()}`;
   }
 

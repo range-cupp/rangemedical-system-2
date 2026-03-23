@@ -23,6 +23,7 @@ const FORM_OPTIONS = [
   { id: 'red-light', name: 'Red Light Therapy Consent' },
   { id: 'prp', name: 'PRP Consent' },
   { id: 'exosome-iv', name: 'Exosome IV Consent' },
+  { id: 'questionnaire', name: 'Baseline Questionnaire' },
 ];
 
 export default function ConversationView({ patientId, patientName, patientPhone, ghlContactId, onBack, onPatientLinked, onPrev, onNext, hasPrev, hasNext, onNeedsResponseCleared }) {

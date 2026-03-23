@@ -198,6 +198,7 @@ export default async function handler(req, res) {
         totalCount: forms.length,
         allComplete: completedCount === forms.length,
         patientInfo,
+        metadata: bundle.metadata || {},
       },
     });
   } catch (error) {

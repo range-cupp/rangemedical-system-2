@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { phone, firstName, formIds, patientId, patientName, ghlContactId, patientEmail } = req.body;
+    const { phone, firstName, formIds, patientId, patientName, ghlContactId, patientEmail, metadata } = req.body;
 
     if (!phone || phone.replace(/\D/g, '').length < 10) {
       return res.status(400).json({ error: 'Valid phone number required' });
@@ -54,6 +54,7 @@ export default async function handler(req, res) {
       patientEmail: patientEmail || null,
       patientPhone: normalizedPhone,
       ghlContactId: ghlContactId || null,
+      metadata: metadata || undefined,
     });
 
     // Build SMS message with single bundle link

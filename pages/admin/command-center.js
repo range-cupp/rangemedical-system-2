@@ -110,18 +110,20 @@ const AVAILABLE_FORMS = [
   { id: 'red-light', name: 'Red Light Therapy', icon: '🔴', time: '5 min' },
   { id: 'prp', name: 'PRP Consent', icon: '🩸', time: '5 min' },
   { id: 'exosome-iv', name: 'Exosome IV Consent', icon: '🧬', time: '5 min' },
+  { id: 'questionnaire', name: 'Baseline Questionnaire', icon: '📊', time: '10 min' },
 ];
 
 const QUICK_SELECTIONS = [
   { label: 'New Patient', forms: ['intake', 'hipaa'] },
-  { label: 'HRT Patient', forms: ['intake', 'hipaa', 'hrt', 'blood-draw'] },
-  { label: 'Weight Loss', forms: ['intake', 'hipaa', 'weight-loss', 'blood-draw'] },
+  { label: 'HRT Patient', forms: ['intake', 'hipaa', 'hrt', 'blood-draw', 'questionnaire'] },
+  { label: 'Weight Loss', forms: ['intake', 'hipaa', 'weight-loss', 'blood-draw', 'questionnaire'] },
   { label: 'IV Therapy', forms: ['intake', 'hipaa', 'iv'] },
   { label: 'Peptides', forms: ['intake', 'hipaa', 'peptide'] },
   { label: 'HBOT', forms: ['intake', 'hipaa', 'hbot'] },
   { label: 'Red Light', forms: ['intake', 'hipaa', 'red-light'] },
   { label: 'PRP', forms: ['intake', 'hipaa', 'prp', 'blood-draw'] },
   { label: 'Exosome IV', forms: ['intake', 'hipaa', 'exosome-iv'] },
+  { label: 'Labs + Questionnaire', forms: ['intake', 'hipaa', 'blood-draw', 'questionnaire'] },
 ];
 
 const AVAILABLE_GUIDES = [

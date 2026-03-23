@@ -17,6 +17,7 @@ const AVAILABLE_FORMS = [
   { id: 'red-light', name: 'Red Light Therapy', icon: '🔴', time: '5 min' },
   { id: 'prp', name: 'PRP Consent', icon: '🩸', time: '5 min' },
   { id: 'exosome-iv', name: 'Exosome IV Consent', icon: '🧬', time: '5 min' },
+  { id: 'questionnaire', name: 'Baseline Questionnaire', icon: '📊', time: '10 min' },
 ];
 
 const QUICK_SELECTIONS = [
@@ -29,6 +30,7 @@ const QUICK_SELECTIONS = [
   { label: 'Red Light', forms: ['intake', 'hipaa', 'red-light'] },
   { label: 'PRP', forms: ['intake', 'hipaa', 'prp', 'blood-draw'] },
   { label: 'Exosome IV', forms: ['intake', 'hipaa', 'exosome-iv'] },
+  { label: 'Labs + Questionnaire', forms: ['intake', 'hipaa', 'blood-draw', 'questionnaire'] },
 ];
 
 const AVAILABLE_GUIDES = [

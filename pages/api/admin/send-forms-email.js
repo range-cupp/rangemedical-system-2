@@ -83,7 +83,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { email, firstName, formIds, patientId, patientName, ghlContactId, patientPhone } = req.body;
+  const { email, firstName, formIds, patientId, patientName, ghlContactId, patientPhone, metadata } = req.body;
 
   if (!email) {
     return res.status(400).json({ error: 'Email address is required' });
@@ -122,6 +122,7 @@ export default async function handler(req, res) {
       patientEmail: email,
       patientPhone: patientPhone || null,
       ghlContactId: ghlContactId || null,
+      metadata: metadata || undefined,
     });
 
     const resend = new Resend(process.env.RESEND_API_KEY);

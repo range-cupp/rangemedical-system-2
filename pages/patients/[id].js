@@ -88,17 +88,19 @@ const SEND_FORMS_LIST = [
   { id: 'red-light', name: 'Red Light Therapy', icon: '🔴', time: '5 min' },
   { id: 'prp', name: 'PRP Consent', icon: '🩸', time: '5 min' },
   { id: 'exosome-iv', name: 'Exosome IV Consent', icon: '🧬', time: '5 min' },
+  { id: 'questionnaire', name: 'Baseline Questionnaire', icon: '📊', time: '10 min', gender: true },
 ];
 const FORM_QUICK_SELECTS = [
   { label: 'New Patient', forms: ['intake', 'hipaa'] },
-  { label: 'HRT', forms: ['intake', 'hipaa', 'hrt', 'blood-draw'] },
-  { label: 'Weight Loss', forms: ['intake', 'hipaa', 'weight-loss', 'blood-draw'] },
+  { label: 'HRT', forms: ['intake', 'hipaa', 'hrt', 'blood-draw', 'questionnaire'] },
+  { label: 'Weight Loss', forms: ['intake', 'hipaa', 'weight-loss', 'blood-draw', 'questionnaire'] },
   { label: 'IV Therapy', forms: ['intake', 'hipaa', 'iv'] },
   { label: 'Peptides', forms: ['intake', 'hipaa', 'peptide'] },
   { label: 'HBOT', forms: ['intake', 'hipaa', 'hbot'] },
   { label: 'Red Light', forms: ['intake', 'hipaa', 'red-light'] },
   { label: 'PRP', forms: ['intake', 'hipaa', 'prp', 'blood-draw'] },
   { label: 'Exosome IV', forms: ['intake', 'hipaa', 'exosome-iv'] },
+  { label: 'Labs + Questionnaire', forms: ['intake', 'hipaa', 'blood-draw', 'questionnaire'] },
 ];
 
 // Guides available to send from patient profile
@@ -1218,6 +1220,9 @@ export default function PatientProfile() {
       const firstName = patient?.first_name || patient?.name?.split(' ')[0] || '';
       const patientName = (patient?.first_name && patient?.last_name) ? `${patient.first_name} ${patient.last_name}` : patient?.name || '';
 
+      // Include gender metadata if questionnaire is selected
+      const metadata = sortedForms.includes('questionnaire') ? { gender: patient?.gender || null } : undefined;
+
       if (sendFormsMethod === 'email') {
         const res = await fetch('/api/admin/send-forms-email', {
           method: 'POST',
@@ -1230,6 +1235,7 @@ export default function PatientProfile() {
             patientName,
             ghlContactId: patient.ghl_contact_id || null,
             patientPhone: patient.phone || null,
+            metadata,
           }),
         });
         const data = await res.json();
@@ -1249,6 +1255,7 @@ export default function PatientProfile() {
             patientName,
             ghlContactId: patient.ghl_contact_id || null,
             patientEmail: patient.email || null,
+            metadata,
           }),
         });
         const data = await res.json();
@@ -10290,6 +10297,11 @@ export default function PatientProfile() {
                         <span className="sf-form-icon">{form.icon}</span>
                         <span className="sf-form-name">{form.name}</span>
                         <span className="sf-form-time">{form.time}</span>
+                        {form.gender && patient?.gender && (
+                          <span style={{fontSize: '0.6875rem', color: patient.gender === 'Female' ? '#ec4899' : '#3b82f6', fontWeight: 600, marginTop: '2px'}}>
+                            {patient.gender === 'Female' ? '♀ Female' : '♂ Male'}
+                          </span>
+                        )}
                       </button>
                     );
                   })}

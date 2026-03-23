@@ -338,7 +338,7 @@ function PurchasesInner({ embedded } = {}) {
                       <td style={styles.td}>
                         <div style={styles.patientName}>{purchase.patient_name || 'Unknown'}</div>
                       </td>
-                      <td style={styles.td}>{purchase.item_name}</td>
+                      <td style={styles.td}>{purchase.description || purchase.item_name}</td>
                       <td style={styles.td}>
                         <span style={styles.categoryBadge}>{purchase.category || '—'}</span>
                       </td>
@@ -906,7 +906,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
         <div style={modalStyles.header}>
           <div>
             <h2 style={modalStyles.title}>Create Protocol</h2>
-            <p style={modalStyles.subtitle}>{purchase.item_name} (${displayAmt(purchase).toFixed(2)})</p>
+            <p style={modalStyles.subtitle}>{purchase.description || purchase.item_name} (${displayAmt(purchase).toFixed(2)})</p>
           </div>
           <button onClick={onClose} style={modalStyles.closeBtn}>×</button>
         </div>
@@ -1597,7 +1597,7 @@ function AddToExistingModal({ purchase, onClose, onSuccess }) {
         <div style={modalStyles.header}>
           <div>
             <h2 style={modalStyles.title}>Add to Existing Protocol</h2>
-            <p style={modalStyles.subtitle}>{purchase?.item_name} (${purchase ? displayAmt(purchase).toFixed(2) : '0.00'})</p>
+            <p style={modalStyles.subtitle}>{purchase?.description || purchase?.item_name} (${purchase ? displayAmt(purchase).toFixed(2) : '0.00'})</p>
           </div>
           <button onClick={onClose} style={modalStyles.closeBtn}>×</button>
         </div>
@@ -1846,7 +1846,7 @@ function LogSessionModal({ purchase, onClose, onSuccess }) {
         <div style={modalStyles.header}>
           <div>
             <h2 style={modalStyles.title}>Log Session</h2>
-            <p style={modalStyles.subtitle}>{purchase.item_name} (${displayAmt(purchase).toFixed(2)})</p>
+            <p style={modalStyles.subtitle}>{purchase.description || purchase.item_name} (${displayAmt(purchase).toFixed(2)})</p>
           </div>
           <button onClick={onClose} style={modalStyles.closeBtn}>×</button>
         </div>

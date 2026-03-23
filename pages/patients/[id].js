@@ -6573,7 +6573,7 @@ export default function PatientProfile() {
                       {allPurchases.map(purchase => (
                         <div key={purchase.id} className="pay-item" style={{ cursor: 'pointer' }} onClick={() => openEditPurchase(purchase)}>
                           <div className="pay-item-info">
-                            <div className="pay-item-title">{purchase.product_name || purchase.item_name || 'Purchase'}</div>
+                            <div className="pay-item-title">{purchase.description || purchase.product_name || purchase.item_name || 'Purchase'}</div>
                             <div className="pay-item-sub">{formatDate(purchase.purchased_at || purchase.purchase_date || purchase.created_at)}</div>
                           </div>
                           <div className="pay-item-amount">${(purchase.amount_paid || purchase.amount || 0).toFixed(2)}</div>

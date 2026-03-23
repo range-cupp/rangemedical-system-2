@@ -8,7 +8,9 @@ import Link from 'next/link';
 import AdminLayout from '../../components/AdminLayout';
 import InvoiceModal from '../../components/InvoiceModal';
 import POSChargeModal from '../../components/POSChargeModal';
+import PaymentCalendar from '../../components/PaymentCalendar';
 import { loadStripe } from '@stripe/stripe-js';
+import { List, Calendar, CreditCard, AlertTriangle, CheckCircle, XCircle, Clock, RefreshCw, X } from 'lucide-react';
 
 const PurchasesTab = dynamic(() => import('./purchases').then(mod => ({ default: mod.PurchasesContent })), {
   ssr: false,
@@ -67,6 +69,15 @@ export default function PaymentsPage() {
   const [expandedGiftCard, setExpandedGiftCard] = useState(null);
   const [giftCardRedemptions, setGiftCardRedemptions] = useState({});
   const [voidingGiftCardId, setVoidingGiftCardId] = useState(null);
+
+  // Calendar / day detail state
+  const [viewMode, setViewMode] = useState('list'); // 'list' or 'calendar'
+  const [selectedDay, setSelectedDay] = useState(null);
+  const [dayTransactions, setDayTransactions] = useState([]);
+  const [daySummary, setDaySummary] = useState(null);
+  const [loadingDay, setLoadingDay] = useState(false);
+  const [reconciling, setReconciling] = useState(false);
+  const [reconcileResult, setReconcileResult] = useState(null);
 
   // POS state
   const [showChargeModal, setShowChargeModal] = useState(false);
@@ -553,8 +564,89 @@ export default function PaymentsPage() {
     }
   };
 
+  // Calendar day detail handler
+  const handleDaySelect = async (dateStr) => {
+    setSelectedDay(dateStr);
+    setLoadingDay(true);
+    try {
+      const res = await fetch(`/api/admin/payments/daily?date=${dateStr}`);
+      const data = await res.json();
+      setDayTransactions(data.transactions || []);
+      setDaySummary(data.summary || null);
+    } catch (err) {
+      console.error('Failed to load day detail:', err);
+      setDayTransactions([]);
+    }
+    setLoadingDay(false);
+  };
+
+  const closeDayDetail = () => {
+    setSelectedDay(null);
+    setDayTransactions([]);
+    setDaySummary(null);
+  };
+
+  // Stripe reconciliation
+  const handleReconcile = async () => {
+    if (!confirm('Run Stripe reconciliation? This will verify purchase amounts against Stripe records.')) return;
+    setReconciling(true);
+    setReconcileResult(null);
+    try {
+      const res = await fetch('/api/admin/stripe-reconcile?limit=100');
+      const data = await res.json();
+      setReconcileResult(data);
+      if (data.mismatches?.length > 0) {
+        setActionMsg(`Reconciled: ${data.matches} matched, ${data.mismatches.length} mismatches found`);
+      } else {
+        setActionMsg(`Reconciled ${data.processed} purchases — all amounts match`);
+      }
+      setTimeout(() => setActionMsg(''), 5000);
+    } catch (err) {
+      alert('Reconciliation failed: ' + err.message);
+    }
+    setReconciling(false);
+  };
+
+  const paymentStatusColors = {
+    succeeded: { bg: '#dcfce7', color: '#166534', label: 'Paid' },
+    paid: { bg: '#dcfce7', color: '#166534', label: 'Paid' },
+    pending: { bg: '#fef3c7', color: '#92400e', label: 'Pending' },
+    sent: { bg: '#dbeafe', color: '#1e40af', label: 'Sent' },
+    failed: { bg: '#fee2e2', color: '#dc2626', label: 'Failed' },
+    requires_payment_method: { bg: '#fee2e2', color: '#dc2626', label: 'Failed' },
+    refunded: { bg: '#f3e8ff', color: '#7c3aed', label: 'Refunded' },
+    expired: { bg: '#fee2e2', color: '#dc2626', label: 'Expired' },
+    voided: { bg: '#fce7f3', color: '#be185d', label: 'Voided' },
+  };
+
+  const paymentMethodLabels = {
+    stripe: 'Stripe',
+    manual: 'Manual',
+    cash: 'Cash',
+    ghl: 'GHL',
+    invoice: 'Invoice',
+    comp: 'Comp',
+    unknown: 'Unknown',
+  };
+
+  const formatDayDate = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  };
+
+  const formatTime = (dateStr) => {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone: 'America/Los_Angeles',
+    });
+  };
+
   return (
     <AdminLayout title="Payments">
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       {/* Action message toast */}
       {actionMsg && (
         <div style={styles.toast}>{actionMsg}</div>
@@ -577,13 +669,246 @@ export default function PaymentsPage() {
           ))}
         </div>
         {tab === 'invoices' && (
-          <button onClick={() => setShowCreateModal(true)} style={styles.createBtn}>
-            + Create Invoice
-          </button>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {/* View toggle */}
+            <div style={{ display: 'flex', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+              <button
+                onClick={() => setViewMode('list')}
+                style={{
+                  ...styles.viewToggle,
+                  ...(viewMode === 'list' ? styles.viewToggleActive : {}),
+                }}
+              >
+                <List size={14} /> List
+              </button>
+              <button
+                onClick={() => setViewMode('calendar')}
+                style={{
+                  ...styles.viewToggle,
+                  ...(viewMode === 'calendar' ? styles.viewToggleActive : {}),
+                }}
+              >
+                <Calendar size={14} /> Calendar
+              </button>
+            </div>
+            <button
+              onClick={handleReconcile}
+              disabled={reconciling}
+              style={{ ...styles.actionBtn, gap: '4px', display: 'flex', alignItems: 'center' }}
+              title="Verify purchase amounts against Stripe"
+            >
+              <RefreshCw size={13} style={reconciling ? { animation: 'spin 1s linear infinite' } : {}} />
+              {reconciling ? 'Reconciling...' : 'Verify Stripe'}
+            </button>
+            <button onClick={() => setShowCreateModal(true)} style={styles.createBtn}>
+              + Create Invoice
+            </button>
+          </div>
         )}
       </div>
 
-      {tab === 'invoices' && (
+      {/* Reconciliation results */}
+      {reconcileResult && reconcileResult.mismatches?.length > 0 && (
+        <div style={{ ...styles.card, marginBottom: '16px', border: '1px solid #fbbf24' }}>
+          <div style={{ padding: '14px 20px', background: '#fffbeb', borderBottom: '1px solid #fde68a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <AlertTriangle size={16} color="#92400e" />
+              <span style={{ fontWeight: '600', fontSize: '13px', color: '#92400e' }}>
+                {reconcileResult.mismatches.length} Amount Mismatch{reconcileResult.mismatches.length !== 1 ? 'es' : ''} Found
+              </span>
+            </div>
+            <button onClick={() => setReconcileResult(null)} style={{ ...styles.actionBtn, fontSize: '11px' }}>Dismiss</button>
+          </div>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>Purchase ID</th>
+                <th style={styles.th}>DB Amount</th>
+                <th style={styles.th}>Stripe Amount</th>
+                <th style={styles.th}>Difference</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reconcileResult.mismatches.map(m => (
+                <tr key={m.purchase_id} style={styles.tr}>
+                  <td style={{ ...styles.td, fontSize: '11px', fontFamily: 'monospace' }}>{m.purchase_id.slice(0, 8)}...</td>
+                  <td style={styles.td}>${m.db_amount?.toFixed(2)}</td>
+                  <td style={styles.td}>${m.stripe_amount?.toFixed(2)}</td>
+                  <td style={{ ...styles.td, color: '#dc2626', fontWeight: '600' }}>${m.difference}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {tab === 'invoices' && viewMode === 'calendar' && (
+        <>
+          <PaymentCalendar
+            onDaySelect={handleDaySelect}
+            selectedDate={selectedDay}
+          />
+
+          {/* Day detail modal */}
+          {selectedDay && (
+            <div style={styles.dayModalOverlay} onClick={closeDayDetail}>
+              <div style={styles.dayModal} onClick={e => e.stopPropagation()}>
+                <div style={styles.dayModalHeader}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#0f172a' }}>
+                      {formatDayDate(selectedDay)}
+                    </h3>
+                    {daySummary && (
+                      <div style={{ display: 'flex', gap: '16px', marginTop: '6px', fontSize: '12px' }}>
+                        <span style={{ color: '#166534', fontWeight: '600' }}>
+                          <CheckCircle size={12} style={{ verticalAlign: 'middle', marginRight: '3px' }} />
+                          ${daySummary.collected?.toFixed(2)} collected
+                        </span>
+                        {daySummary.outstanding > 0 && (
+                          <span style={{ color: '#92400e', fontWeight: '600' }}>
+                            <Clock size={12} style={{ verticalAlign: 'middle', marginRight: '3px' }} />
+                            ${daySummary.outstanding?.toFixed(2)} outstanding
+                          </span>
+                        )}
+                        {daySummary.failed > 0 && (
+                          <span style={{ color: '#dc2626', fontWeight: '600' }}>
+                            <XCircle size={12} style={{ verticalAlign: 'middle', marginRight: '3px' }} />
+                            {daySummary.failed} failed
+                          </span>
+                        )}
+                        {daySummary.refunded > 0 && (
+                          <span style={{ color: '#7c3aed', fontWeight: '600' }}>
+                            ${daySummary.refunded?.toFixed(2)} refunded
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <button onClick={closeDayDetail} style={styles.dayModalClose}>
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {loadingDay ? (
+                  <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                    Loading transactions...
+                  </div>
+                ) : dayTransactions.length === 0 ? (
+                  <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                    No transactions on this day
+                  </div>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={styles.table}>
+                      <thead>
+                        <tr>
+                          <th style={styles.th}>Time</th>
+                          <th style={styles.th}>Patient</th>
+                          <th style={styles.th}>Description</th>
+                          <th style={styles.th}>Amount</th>
+                          <th style={styles.th}>Method</th>
+                          <th style={styles.th}>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dayTransactions.map(txn => {
+                          const sc = paymentStatusColors[txn.status] || paymentStatusColors.pending;
+                          return (
+                            <tr key={`${txn.type}-${txn.id}`} style={styles.tr}>
+                              <td style={{ ...styles.td, whiteSpace: 'nowrap', fontSize: '12px' }}>
+                                {formatTime(txn.time)}
+                              </td>
+                              <td style={styles.td}>
+                                {txn.patient_id ? (
+                                  <Link href={`/admin/patient/${txn.patient_id}`} style={{ color: '#1e40af', textDecoration: 'none', fontWeight: '500' }}>
+                                    {txn.patient_name || 'Unknown'}
+                                  </Link>
+                                ) : (
+                                  <span style={{ fontWeight: '500' }}>{txn.patient_name || 'Unknown'}</span>
+                                )}
+                              </td>
+                              <td style={styles.td}>
+                                <div style={{ fontWeight: '500', fontSize: '13px' }}>{txn.description}</div>
+                                <div style={{ display: 'flex', gap: '4px', marginTop: '2px' }}>
+                                  {txn.category && (
+                                    <span style={{
+                                      fontSize: '10px',
+                                      padding: '1px 6px',
+                                      borderRadius: '4px',
+                                      background: '#f1f5f9',
+                                      color: '#64748b',
+                                      fontWeight: '500',
+                                    }}>
+                                      {txn.category}
+                                    </span>
+                                  )}
+                                  <span style={{
+                                    fontSize: '10px',
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    background: txn.type === 'invoice' ? '#eff6ff' : '#f0fdf4',
+                                    color: txn.type === 'invoice' ? '#1e40af' : '#166534',
+                                    fontWeight: '500',
+                                  }}>
+                                    {txn.type}
+                                  </span>
+                                </div>
+                              </td>
+                              <td style={styles.td}>
+                                <div style={{ fontWeight: '600', fontSize: '14px' }}>
+                                  ${txn.amount?.toFixed(2)}
+                                </div>
+                                {txn.amount_mismatch && (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginTop: '2px' }}>
+                                    <AlertTriangle size={11} color="#dc2626" />
+                                    <span style={{ fontSize: '10px', color: '#dc2626', fontWeight: '600' }}>
+                                      DB: ${txn.original_amount?.toFixed(2)}
+                                    </span>
+                                  </div>
+                                )}
+                                {txn.stripe_verified && !txn.amount_mismatch && (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px', marginTop: '2px' }}>
+                                    <CheckCircle size={11} color="#16a34a" />
+                                    <span style={{ fontSize: '10px', color: '#16a34a', fontWeight: '500' }}>Verified</span>
+                                  </div>
+                                )}
+                              </td>
+                              <td style={styles.td}>
+                                <span style={{
+                                  fontSize: '11px',
+                                  fontWeight: '600',
+                                  color: '#475569',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}>
+                                  <CreditCard size={12} />
+                                  {paymentMethodLabels[txn.payment_method] || txn.payment_method}
+                                </span>
+                              </td>
+                              <td style={styles.td}>
+                                <span style={{
+                                  ...styles.badge,
+                                  background: sc.bg,
+                                  color: sc.color,
+                                }}>
+                                  {sc.label}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {tab === 'invoices' && viewMode === 'list' && (
         <>
           {/* Summary stats */}
           <div style={styles.statsRow}>
@@ -2167,5 +2492,76 @@ const styles = {
     fontSize: '11px',
     color: '#94a3b8',
     fontWeight: '400',
+  },
+
+  // View toggle (List / Calendar)
+  viewToggle: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '5px',
+    padding: '6px 12px',
+    border: 'none',
+    background: '#fff',
+    fontSize: '12px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    color: '#475569',
+    fontFamily: 'inherit',
+    transition: 'all 0.15s',
+  },
+  viewToggleActive: {
+    background: '#1e40af',
+    color: '#fff',
+  },
+
+  // Day detail modal
+  dayModalOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0,0,0,0.4)',
+    zIndex: 1000,
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    paddingTop: '60px',
+    overflowY: 'auto',
+  },
+  dayModal: {
+    background: '#fff',
+    borderRadius: '16px',
+    width: '90%',
+    maxWidth: '900px',
+    maxHeight: '80vh',
+    overflowY: 'auto',
+    boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+  },
+  dayModalHeader: {
+    padding: '20px 24px',
+    borderBottom: '1px solid #e2e8f0',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    position: 'sticky',
+    top: 0,
+    background: '#fff',
+    borderRadius: '16px 16px 0 0',
+    zIndex: 1,
+  },
+  dayModalClose: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '32px',
+    height: '32px',
+    border: '1px solid #e2e8f0',
+    borderRadius: '8px',
+    background: '#fff',
+    cursor: 'pointer',
+    color: '#64748b',
+    fontFamily: 'inherit',
+    flexShrink: 0,
   },
 };

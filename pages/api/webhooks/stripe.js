@@ -496,6 +496,9 @@ export default async function handler(req, res) {
           category,
           quantity: item.quantity || 1,
           stripe_payment_intent_id: session.payment_intent || null,
+          stripe_amount_cents: itemAmount,
+          stripe_status: 'succeeded',
+          stripe_verified_at: new Date().toISOString(),
           payment_method: 'stripe',
           source: 'payment_link',
           purchase_date: new Date().toISOString().split('T')[0],
@@ -621,6 +624,32 @@ export default async function handler(req, res) {
       }
     } catch (err) {
       console.error('Error syncing subscription:', err.message);
+    }
+  }
+
+  // Handle charge.refunded — update purchase stripe_status
+  if (event.type === 'charge.refunded') {
+    try {
+      const charge = event.data.object;
+      const paymentIntentId = charge.payment_intent;
+
+      if (paymentIntentId) {
+        const { error: refundErr } = await supabase
+          .from('purchases')
+          .update({
+            stripe_status: 'refunded',
+            stripe_verified_at: new Date().toISOString(),
+          })
+          .eq('stripe_payment_intent_id', paymentIntentId);
+
+        if (refundErr) {
+          console.error('Error updating refund status:', refundErr.message);
+        } else {
+          console.log(`Purchase marked as refunded for PI: ${paymentIntentId}`);
+        }
+      }
+    } catch (err) {
+      console.error('Error handling charge.refunded:', err.message);
     }
   }
 

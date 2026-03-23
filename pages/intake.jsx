@@ -2508,6 +2508,20 @@ function initializeForm() {
 
     currentStep = step;
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Resize signature canvas when Step 5 becomes visible
+    if (step === 5 && window.signaturePad) {
+      setTimeout(() => {
+        const sigCanvas = document.getElementById('signatureCanvas');
+        if (sigCanvas) {
+          const ratio = Math.max(window.devicePixelRatio || 1, 1);
+          sigCanvas.width = sigCanvas.offsetWidth * ratio;
+          sigCanvas.height = sigCanvas.offsetHeight * ratio;
+          sigCanvas.getContext('2d').scale(ratio, ratio);
+          window.signaturePad.clear();
+        }
+      }, 50);
+    }
   }
 
   function validateCurrentStep() {

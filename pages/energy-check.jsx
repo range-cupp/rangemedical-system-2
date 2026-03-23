@@ -210,7 +210,7 @@ export default function EnergyCheckPage() {
     }
     setError('');
     setStep('quiz');
-    setTimeout(() => quizRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
   };
 
   const advancingRef = useRef(false);
@@ -240,7 +240,8 @@ export default function EnergyCheckPage() {
   const advanceQuiz = () => {
     if (quizIndex < QUESTIONS.length - 1) {
       setQuizIndex((prev) => prev + 1);
-      setTimeout(() => quizRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+      // Instant scroll to top so progress bar is always visible — no jarring animation
+      setTimeout(() => window.scrollTo({ top: 0 }), 50);
     } else if (!submitting) {
       submitQuiz();
     }

@@ -884,6 +884,15 @@ export default function IntakeForm() {
             <div className="section">
               <h2 className="section-title">Health Concerns</h2>
 
+              {/* Goals / Reason for Visit */}
+              <div className="form-row" style={{marginBottom: '1.5rem'}}>
+                <div className="form-group full-width">
+                  <label htmlFor="goals" style={{fontSize: '1rem', fontWeight: 600}}>In one sentence, what is the main reason you&apos;re coming in today? <span className="required">*</span></label>
+                  <textarea id="goals" name="goals" rows="2" placeholder="e.g., I want to optimize my hormones and get my energy back" required></textarea>
+                  <span className="field-error" id="goalsError">Please tell us why you&apos;re coming in</span>
+                </div>
+              </div>
+
               {/* Decision Tree - Two Doors */}
               <div style={{background: 'var(--gray-50)', padding: '1.5rem', borderRadius: '8px'}}>
                 <p style={{fontWeight: 600, marginBottom: '1rem', color: 'var(--gray-800)'}}>Help us understand your goals:</p>
@@ -1538,6 +1547,32 @@ export default function IntakeForm() {
                 </div>
               </div>
 
+              {/* Previous Therapy History */}
+              <div className="form-row">
+                <div className="form-group full-width">
+                  <label>Have you previously been on any hormone therapy, peptides, or weight loss medications? <span className="required">*</span></label>
+                  <div className="radio-group">
+                    <div className="radio-item">
+                      <input type="radio" id="previousTherapy_yes" name="previousTherapy" value="Yes" required />
+                      <label htmlFor="previousTherapy_yes">Yes</label>
+                    </div>
+                    <div className="radio-item">
+                      <input type="radio" id="previousTherapy_no" name="previousTherapy" value="No" />
+                      <label htmlFor="previousTherapy_no">No</label>
+                    </div>
+                  </div>
+                  <span className="field-error" id="previousTherapyError">Please select an option</span>
+
+                  <div className="conditional-field" id="previousTherapyFields">
+                    <div className="form-group">
+                      <label htmlFor="previousTherapyDetails">What did you take, and why did you stop? <span className="required">*</span></label>
+                      <textarea id="previousTherapyDetails" name="previousTherapyDetails" rows="2" placeholder="e.g., Testosterone cypionate for 6 months, stopped due to side effects"></textarea>
+                      <span className="field-error" id="previousTherapyDetailsError">Please describe your previous therapy</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="form-row">
                 <div className="form-group full-width">
                   <label>Are you currently taking any other medications? <span className="required">*</span></label>
@@ -1559,6 +1594,40 @@ export default function IntakeForm() {
                       <textarea id="currentMedications" name="currentMedications" rows="3" placeholder="Include prescription medications, over-the-counter drugs, and supplements..."></textarea>
                       <span className="field-error" id="currentMedicationsError">Please list your medications</span>
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Current Supplements */}
+              <div className="form-row">
+                <div className="form-group full-width">
+                  <label style={{marginBottom: '0.75rem'}}>Are you currently taking any supplements? <span style={{fontSize: '0.75rem', color: '#888', fontWeight: 400}}>(select all that apply)</span></label>
+                  <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px'}}>
+                    {[
+                      {id: 'supp_vitD', label: 'Vitamin D'},
+                      {id: 'supp_b12', label: 'B12 / B-Complex'},
+                      {id: 'supp_magnesium', label: 'Magnesium'},
+                      {id: 'supp_zinc', label: 'Zinc'},
+                      {id: 'supp_dhea', label: 'DHEA'},
+                      {id: 'supp_pregnenolone', label: 'Pregnenolone'},
+                      {id: 'supp_omega3', label: 'Fish Oil / Omega-3'},
+                      {id: 'supp_creatine', label: 'Creatine'},
+                      {id: 'supp_collagen', label: 'Collagen'},
+                      {id: 'supp_probiotics', label: 'Probiotics'},
+                      {id: 'supp_multivitamin', label: 'Multivitamin'},
+                      {id: 'supp_melatonin', label: 'Melatonin'},
+                      {id: 'supp_adaptogens', label: 'Ashwagandha / Adaptogens'},
+                      {id: 'supp_iron', label: 'Iron'},
+                    ].map(s => (
+                      <label key={s.id} htmlFor={s.id} style={{display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: 'var(--gray-50)', borderRadius: '6px', cursor: 'pointer', border: '1px solid var(--gray-200)', fontSize: '0.875rem'}}>
+                        <input type="checkbox" id={s.id} name="supplements" value={s.id.replace('supp_', '')} style={{width: '16px', height: '16px'}} />
+                        {s.label}
+                      </label>
+                    ))}
+                  </div>
+                  <div style={{marginTop: '10px'}}>
+                    <label htmlFor="supplementsOther" style={{fontSize: '0.875rem', color: '#666'}}>Other supplements not listed above:</label>
+                    <input type="text" id="supplementsOther" name="supplementsOther" placeholder="e.g., CoQ10, Vitamin C, Turmeric..." style={{marginTop: '4px'}} />
                   </div>
                 </div>
               </div>
@@ -1960,6 +2029,12 @@ function initializeForm() {
       addLabelValue('Phone: ', formData.emergencyContactPhone);
     }
 
+    // Goals / Reason for Visit
+    if (formData.goals) {
+      addSection('REASON FOR VISIT');
+      addLabelValue('Primary Goal: ', formData.goals);
+    }
+
     // Health Concerns
     addSection('HEALTH CONCERNS');
     addLabelValue('Currently Injured: ', formData.injured);
@@ -2030,9 +2105,23 @@ function initializeForm() {
     if (formData.onHRT === 'Yes' && formData.hrtDetails) {
       addLabelValue('HRT Details: ', formData.hrtDetails);
     }
+    addLabelValue('Previous Hormone/Peptide/Weight Loss Therapy: ', formData.previousTherapy);
+    if (formData.previousTherapy === 'Yes' && formData.previousTherapyDetails) {
+      addLabelValue('Previous Therapy Details: ', formData.previousTherapyDetails);
+    }
     addLabelValue('On Other Medications: ', formData.onMedications);
     if (formData.onMedications === 'Yes' && formData.currentMedications) {
       addLabelValue('Medications: ', formData.currentMedications);
+    }
+    if (formData.supplements && formData.supplements.length > 0) {
+      const suppLabels = {
+        vitD: 'Vitamin D', b12: 'B12/B-Complex', magnesium: 'Magnesium', zinc: 'Zinc',
+        dhea: 'DHEA', pregnenolone: 'Pregnenolone', omega3: 'Fish Oil/Omega-3', creatine: 'Creatine',
+        collagen: 'Collagen', probiotics: 'Probiotics', multivitamin: 'Multivitamin', melatonin: 'Melatonin',
+        adaptogens: 'Ashwagandha/Adaptogens', iron: 'Iron',
+      };
+      const suppDisplay = formData.supplements.map(s => s.startsWith('other:') ? s.replace('other:', '') : (suppLabels[s] || s)).join(', ');
+      addLabelValue('Current Supplements: ', suppDisplay);
     }
     addLabelValue('Has Allergies: ', formData.hasAllergies);
     if (formData.hasAllergies === 'Yes' && formData.allergies) {
@@ -2178,6 +2267,12 @@ function initializeForm() {
     });
   });
 
+  document.querySelectorAll('input[name="previousTherapy"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      document.getElementById('previousTherapyFields').classList.toggle('visible', radio.value === 'Yes' && radio.checked);
+    });
+  });
+
   document.querySelectorAll('input[name="hasAllergies"]').forEach(radio => {
     radio.addEventListener('change', () => {
       document.getElementById('allergiesFields').classList.toggle('visible', radio.value === 'Yes' && radio.checked);
@@ -2311,8 +2406,10 @@ function initializeForm() {
     validateRadio('hasPCP', 'hasPCPError', 'Do you have a Primary Care Physician?');
     validateRadio('recentHospitalization', 'recentHospitalizationError', 'Hospitalized in the past year?');
     validateRadio('onHRT', 'onHRTError', 'Currently on HRT?');
+    validateRadio('previousTherapy', 'previousTherapyError', 'Previous therapy history?');
     validateRadio('onMedications', 'onMedicationsError', 'Currently taking medications?');
     validateRadio('hasAllergies', 'hasAllergiesError', 'Any known allergies?');
+    validateField('goals', 'goalsError', 'Reason for visit');
 
     // Medical conditions validation
     const conditionLabels = {
@@ -2522,10 +2619,20 @@ function initializeForm() {
         recentHospitalization: getRadio('recentHospitalization'),
         hospitalizationReason: getValue('hospitalizationReason'),
         medicalHistory: medicalHistory,
+        goals: getValue('goals'),
         onHRT: getRadio('onHRT'),
         hrtDetails: getValue('hrtDetails'),
+        previousTherapy: getRadio('previousTherapy'),
+        previousTherapyDetails: getValue('previousTherapyDetails'),
         onMedications: getRadio('onMedications'),
         currentMedications: getValue('currentMedications'),
+        supplements: (() => {
+          const checked = [];
+          document.querySelectorAll('input[name="supplements"]:checked').forEach(cb => checked.push(cb.value));
+          const other = getValue('supplementsOther');
+          if (other) checked.push('other:' + other);
+          return checked.length > 0 ? checked : [];
+        })(),
         hasAllergies: getRadio('hasAllergies'),
         allergies: getValue('allergiesList'),
         isMinor: getRadio('isMinor'),

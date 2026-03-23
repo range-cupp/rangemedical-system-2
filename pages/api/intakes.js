@@ -156,9 +156,19 @@ export default async function handler(req, res) {
       // Store full medical history as JSONB
       medical_conditions: formData.medicalHistory || null,
       
+      // Goals / Reason for visit
+      goals: formData.goals || null,
+
       // HRT
       on_hrt: toBool(formData.onHRT),
       hrt_details: formData.hrtDetails || null,
+
+      // Previous therapy history
+      previous_therapy: toBool(formData.previousTherapy),
+      previous_therapy_details: formData.previousTherapyDetails || null,
+
+      // Current supplements
+      supplements: formData.supplements && formData.supplements.length > 0 ? formData.supplements : null,
       
       // Medications
       on_medications: toBool(formData.onMedications),

@@ -294,6 +294,7 @@ export default async function handler(req, res) {
         notesResult,
         clinicAppointmentsResult,
         nativeAppointmentsResult,
+        baselineQuestionnairesResult,
       ] = await Promise.all([
         // Protocols
         supabase.from('protocols').select('*').eq('patient_id', id).order('created_at', { ascending: false }),
@@ -343,6 +344,8 @@ export default async function handler(req, res) {
         supabase.from('clinic_appointments').select('*').eq('patient_id', id).order('start_time', { ascending: false }).limit(50),
         // Native appointments
         supabase.from('appointments').select('id, patient_id, patient_name, service_name, service_category, provider, start_time, end_time, duration_minutes, status, notes, source, ghl_appointment_id, created_at').eq('patient_id', id).order('start_time', { ascending: false }).limit(200),
+        // Baseline questionnaires (new validated instruments)
+        supabase.from('baseline_questionnaires').select('id, patient_id, intake_id, door, questionnaire_type, responses, scored_totals, sections_completed, status, submitted_at, created_at').eq('patient_id', id).order('submitted_at', { ascending: false }).limit(20),
       ]);
 
       // ── Step 3: Extract results ──
@@ -352,6 +355,7 @@ export default async function handler(req, res) {
       const sessions = sessionsResult.data || [];
       const symptomResponses = symptomResult.data || [];
       const questionnaireResponses = questionnaireResult.data || [];
+      const baselineQuestionnaires = baselineQuestionnairesResult.data || [];
       const medicalDocumentsRaw = medicalDocumentsResult.data || [];
       // Generate signed URLs for documents stored in Supabase Storage
       const medicalDocuments = await Promise.all(
@@ -712,6 +716,7 @@ export default async function handler(req, res) {
         sessions: sessions || [],
         symptomResponses: symptomResponses || [],
         questionnaireResponses: questionnaireResponses || [],
+        baselineQuestionnaires: baselineQuestionnaires || [],
         appointments: appointments || [],
         notes: patientNotes || [],
         weightLossLogs: weightLossLogs || [],

@@ -290,6 +290,8 @@ export default function PatientProfile() {
   const [symptomResponses, setSymptomResponses] = useState([]);
   const [questionnaireResponses, setQuestionnaireResponses] = useState([]);
   const [selectedQuestionnaireIdx, setSelectedQuestionnaireIdx] = useState(0);
+  const [baselineQuestionnaires, setBaselineQuestionnaires] = useState([]);
+  const [selectedBaselineIdx, setSelectedBaselineIdx] = useState(0);
   const [labProtocols, setLabProtocols] = useState([]);
   const [labDocuments, setLabDocuments] = useState([]);
   const [sendingLabId, setSendingLabId] = useState(null);
@@ -691,6 +693,7 @@ export default function PatientProfile() {
         setSessions(data.sessions || []);
         setSymptomResponses(data.symptomResponses || []);
         setQuestionnaireResponses(data.questionnaireResponses || []);
+        setBaselineQuestionnaires(data.baselineQuestionnaires || []);
         setAppointments(data.appointments || []);
         setNotes(data.notes || []);
         setWeightLossLogs(data.weightLossLogs || []);
@@ -3216,7 +3219,7 @@ export default function PatientProfile() {
             { key: 'notes', label: 'Notes', icon: '📝', count: notes.length || 0 },
             { key: 'intakes', label: 'Docs', icon: '📄', count: (intakes.length + consents.length + medicalDocuments.length + assessments.length) || 0 },
             { key: 'tasks', label: 'Tasks', icon: '✅', count: patientTasks.filter(t => t.status === 'pending').length || 0 },
-            { key: 'symptoms', label: 'Symptoms', icon: '🩺', count: questionnaireResponses.length || 0 },
+            { key: 'symptoms', label: 'Assessments', icon: '📊', count: baselineQuestionnaires.length || 0 },
             { key: 'payments', label: 'Payments', icon: '💳' },
           ].map(tab => (
             <button
@@ -6013,180 +6016,244 @@ export default function PatientProfile() {
           )}
 
           {/* Symptoms Tab */}
-          {activeTab === 'symptoms' && (
+          {activeTab === 'symptoms' && (() => {
+            // Instrument definitions for display
+            const INSTRUMENTS = {
+              phq9: { label: 'PHQ-9', subtitle: 'Depression', maxScore: 27, levels: [
+                { max: 4, label: 'Minimal', color: '#22c55e' },
+                { max: 9, label: 'Mild', color: '#84cc16' },
+                { max: 14, label: 'Moderate', color: '#eab308' },
+                { max: 19, label: 'Moderately Severe', color: '#f97316' },
+                { max: 27, label: 'Severe', color: '#ef4444' },
+              ]},
+              gad7: { label: 'GAD-7', subtitle: 'Anxiety', maxScore: 21, levels: [
+                { max: 4, label: 'Minimal', color: '#22c55e' },
+                { max: 9, label: 'Mild', color: '#84cc16' },
+                { max: 14, label: 'Moderate', color: '#eab308' },
+                { max: 21, label: 'Severe', color: '#ef4444' },
+              ]},
+              ams: { label: 'AMS', subtitle: 'Androgen Deficiency', maxScore: 85, levels: [
+                { max: 26, label: 'None', color: '#22c55e' },
+                { max: 36, label: 'Mild', color: '#84cc16' },
+                { max: 49, label: 'Moderate', color: '#eab308' },
+                { max: 85, label: 'Severe', color: '#ef4444' },
+              ]},
+              iief5: { label: 'IIEF-5', subtitle: 'Erectile Function', maxScore: 25, invert: true, levels: [
+                { max: 7, label: 'Severe ED', color: '#ef4444' },
+                { max: 11, label: 'Moderate ED', color: '#f97316' },
+                { max: 16, label: 'Mild-Moderate ED', color: '#eab308' },
+                { max: 21, label: 'Mild ED', color: '#84cc16' },
+                { max: 25, label: 'Normal', color: '#22c55e' },
+              ]},
+              psqi: { label: 'Sleep Quality', subtitle: 'PSQI Simplified', maxScore: 9, levels: [
+                { max: 3, label: 'Good', color: '#22c55e' },
+                { max: 5, label: 'Fair', color: '#eab308' },
+                { max: 9, label: 'Poor', color: '#ef4444' },
+              ]},
+              tfeq_r18: { label: 'TFEQ-R18', subtitle: 'Eating Behavior', maxScore: 72, levels: [
+                { max: 30, label: 'Low', color: '#22c55e' },
+                { max: 50, label: 'Moderate', color: '#eab308' },
+                { max: 72, label: 'High', color: '#ef4444' },
+              ]},
+            };
+
+            const getSeverity = (instrument, score) => {
+              const inst = INSTRUMENTS[instrument];
+              if (!inst) return { label: '—', color: '#888' };
+              for (const level of inst.levels) {
+                if (score <= level.max) return level;
+              }
+              return inst.levels[inst.levels.length - 1];
+            };
+
+            const selected = baselineQuestionnaires[selectedBaselineIdx] || baselineQuestionnaires[0];
+
+            return (
             <>
-              {questionnaireResponses.length === 0 ? (
+              {baselineQuestionnaires.length === 0 ? (
                 <section className="card">
                   <div style={{ padding: '40px 20px', textAlign: 'center' }}>
                     <div style={{ fontSize: '48px', marginBottom: '16px' }}>📊</div>
-                    <h3 style={{ margin: '0 0 8px', fontSize: '16px', fontWeight: '600' }}>No Symptoms Questionnaires</h3>
+                    <h3 style={{ margin: '0 0 8px', fontSize: '16px', fontWeight: '600' }}>No Baseline Assessments</h3>
                     <p style={{ color: '#888', fontSize: '14px', margin: '0 0 20px' }}>
-                      This patient hasn&apos;t completed a symptoms questionnaire yet.
+                      This patient hasn&apos;t completed a baseline questionnaire yet. It&apos;s sent automatically after intake submission.
                     </p>
-                    <a href="/admin/send-forms" style={{ display: 'inline-block', padding: '10px 20px', background: '#000', color: '#fff', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}>
-                      Send Questionnaire
-                    </a>
                   </div>
                 </section>
               ) : (() => {
-                const selected = questionnaireResponses[selectedQuestionnaireIdx] || questionnaireResponses[0];
+                const scores = selected?.scored_totals || {};
                 const responses = selected?.responses || {};
-                const overallScore = selected?.overall_score;
-                const submittedDate = selected?.submitted_at ? new Date(selected.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Unknown';
-
-                const SYMPTOM_SECTIONS = [
-                  { title: 'Energy & Brain', keys: ['energy', 'fatigue', 'focus', 'memory'] },
-                  { title: 'Sleep', keys: ['sleep_onset', 'sleep_quality'] },
-                  { title: 'Mood & Stress', keys: ['mood', 'stress', 'anxiety'] },
-                  { title: 'Weight & Metabolism', keys: ['weight_satisfaction', 'weight_loss_ease', 'cravings'] },
-                  { title: 'Recovery & Pain', keys: ['recovery', 'pain', 'strength'] },
-                  { title: 'Hormones', keys: ['libido', 'sexual_performance'] },
-                ];
-
-                const QUESTION_LABELS = {
-                  overall_health: 'Overall Health',
-                  energy: 'Daytime Energy',
-                  fatigue: 'Fatigue',
-                  focus: 'Focus & Clarity',
-                  memory: 'Memory',
-                  sleep_onset: 'Falling Asleep',
-                  sleep_quality: 'Sleep Quality',
-                  mood: 'Mood',
-                  stress: 'Stress Level',
-                  anxiety: 'Anxiety',
-                  weight_satisfaction: 'Weight Satisfaction',
-                  weight_loss_ease: 'Weight Loss Ease',
-                  cravings: 'Cravings',
-                  recovery: 'Recovery Speed',
-                  pain: 'Pain & Soreness',
-                  strength: 'Strength',
-                  libido: 'Sex Drive',
-                  sexual_performance: 'Sexual Performance',
-                };
-
-                // Questions where higher = worse (invert color logic)
-                const INVERTED_KEYS = ['fatigue', 'stress', 'anxiety', 'pain', 'cravings'];
-
-                const getScoreColor = (score, key) => {
-                  const isInverted = INVERTED_KEYS.includes(key);
-                  const effectiveScore = isInverted ? (11 - score) : score;
-                  if (effectiveScore >= 7) return { bar: '#22c55e', bg: '#f0fdf4' };
-                  if (effectiveScore >= 4) return { bar: '#eab308', bg: '#fefce8' };
-                  return { bar: '#ef4444', bg: '#fef2f2' };
-                };
+                const door = selected?.door;
+                const submittedDate = selected?.submitted_at ? new Date(selected.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Pending';
+                const doorLabel = door === 1 ? 'Injury Baseline' : door === 2 ? 'Optimization Baseline' : door === 3 ? 'Combined Baseline' : 'Baseline';
 
                 return (
                   <>
                     {/* History selector */}
-                    {questionnaireResponses.length > 1 && (
+                    {baselineQuestionnaires.length > 1 && (
                       <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
-                        {questionnaireResponses.map((qr, idx) => {
-                          const d = qr.submitted_at ? new Date(qr.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : `#${idx + 1}`;
+                        {baselineQuestionnaires.map((bq, idx) => {
+                          const d = bq.submitted_at ? new Date(bq.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : `#${idx + 1}`;
+                          const typeLabel = bq.door === 1 ? 'Injury' : bq.door === 2 ? 'Optimization' : 'Combined';
                           return (
                             <button
-                              key={qr.id || idx}
-                              onClick={() => setSelectedQuestionnaireIdx(idx)}
+                              key={bq.id || idx}
+                              onClick={() => setSelectedBaselineIdx(idx)}
                               style={{
-                                padding: '6px 14px',
-                                borderRadius: '20px',
-                                border: '1px solid',
-                                borderColor: idx === selectedQuestionnaireIdx ? '#000' : '#ddd',
-                                background: idx === selectedQuestionnaireIdx ? '#000' : '#fff',
-                                color: idx === selectedQuestionnaireIdx ? '#fff' : '#666',
-                                fontSize: '13px',
-                                fontWeight: '500',
-                                cursor: 'pointer',
-                                fontFamily: 'inherit',
+                                padding: '6px 14px', borderRadius: '20px', border: '1px solid',
+                                borderColor: idx === selectedBaselineIdx ? '#000' : '#ddd',
+                                background: idx === selectedBaselineIdx ? '#000' : '#fff',
+                                color: idx === selectedBaselineIdx ? '#fff' : '#666',
+                                fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit',
                               }}
-                            >
-                              {d}
-                            </button>
+                            >{d} — {typeLabel}</button>
                           );
                         })}
                       </div>
                     )}
 
-                    {/* Summary header */}
+                    {/* Header */}
                     <section className="card">
-                      <div style={{ padding: '24px', display: 'flex', alignItems: 'flex-start', gap: '24px' }}>
-                        <div style={{
-                          width: '80px', height: '80px', borderRadius: '50%',
-                          background: overallScore >= 7 ? '#f0fdf4' : overallScore >= 4 ? '#fefce8' : '#fef2f2',
-                          border: `3px solid ${overallScore >= 7 ? '#22c55e' : overallScore >= 4 ? '#eab308' : '#ef4444'}`,
-                          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                        }}>
-                          <span style={{ fontSize: '24px', fontWeight: '700', lineHeight: 1 }}>{overallScore ? overallScore.toFixed(1) : '—'}</span>
-                          <span style={{ fontSize: '11px', color: '#888' }}>/10</span>
+                      <div style={{ padding: '20px 24px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700' }}>{doorLabel}</h3>
+                          <span style={{ fontSize: '13px', color: '#888' }}>Submitted {submittedDate}</span>
                         </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: '11px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Overall Score</div>
-                          <div style={{ fontSize: '15px', fontWeight: '600', marginBottom: '4px' }}>Submitted {submittedDate}</div>
-                          {responses.goals && (
-                            <div style={{ marginTop: '8px' }}>
-                              <div style={{ fontSize: '12px', color: '#888', fontWeight: '600', marginBottom: '4px' }}>GOALS</div>
-                              <div style={{ fontSize: '14px', color: '#444', lineHeight: '1.5', background: '#f9fafb', padding: '10px 14px', borderRadius: '8px', border: '1px solid #f0f0f0' }}>
-                                {responses.goals}
-                              </div>
-                            </div>
-                          )}
+                        <div style={{ fontSize: '12px', color: '#888' }}>
+                          {selected?.status === 'completed' ? '✅ Completed' : '⏳ In Progress'} · Sections: {(selected?.sections_completed || []).length}
                         </div>
+                        {responses.primary_goal && (
+                          <div style={{ marginTop: '12px', padding: '10px 14px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #f0f0f0' }}>
+                            <div style={{ fontSize: '11px', color: '#888', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Patient Goal</div>
+                            <div style={{ fontSize: '14px', color: '#333', lineHeight: '1.5' }}>{responses.primary_goal}</div>
+                          </div>
+                        )}
                       </div>
                     </section>
 
-                    {/* Overall Health */}
-                    {responses.overall_health && (
+                    {/* Injury Baseline (Door 1 or 3) */}
+                    {(door === 1 || door === 3) && (
                       <section className="card" style={{ marginTop: '12px' }}>
-                        <div style={{ padding: '16px 20px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                            <span style={{ fontSize: '14px', fontWeight: '500' }}>Overall Health</span>
-                            <span style={{ fontSize: '15px', fontWeight: '700' }}>{responses.overall_health}/10</span>
-                          </div>
-                          <div style={{ height: '8px', background: '#f0f0f0', borderRadius: '4px', overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${responses.overall_health * 10}%`, background: getScoreColor(responses.overall_health, 'overall_health').bar, borderRadius: '4px', transition: 'width 0.3s' }} />
-                          </div>
+                        <div className="card-header"><h3>Injury Baseline</h3></div>
+                        <div style={{ padding: '4px 20px 16px' }}>
+                          {[
+                            { label: 'Pain Severity', value: responses.pain_severity, max: 10, invertColor: true },
+                            { label: 'Functional Limitation', value: responses.functional_limitation, max: 10, invertColor: true },
+                          ].map(item => {
+                            if (item.value == null) return null;
+                            const pct = (item.value / item.max) * 100;
+                            const barColor = item.invertColor
+                              ? (item.value <= 3 ? '#22c55e' : item.value <= 6 ? '#eab308' : '#ef4444')
+                              : (item.value >= 7 ? '#22c55e' : item.value >= 4 ? '#eab308' : '#ef4444');
+                            return (
+                              <div key={item.label} style={{ padding: '10px 0', borderBottom: '1px solid #f5f5f5' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                  <span style={{ fontSize: '13px', fontWeight: '500', color: '#333' }}>{item.label}</span>
+                                  <span style={{ fontSize: '14px', fontWeight: '700', color: barColor }}>{item.value}/{item.max}</span>
+                                </div>
+                                <div style={{ height: '6px', background: '#f0f0f0', borderRadius: '3px', overflow: 'hidden' }}>
+                                  <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: '3px' }} />
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {responses.trajectory && (
+                            <div style={{ padding: '10px 0' }}>
+                              <span style={{ fontSize: '13px', fontWeight: '500', color: '#333' }}>Trajectory: </span>
+                              <span style={{
+                                fontSize: '13px', fontWeight: '600',
+                                color: responses.trajectory === 'getting_better' ? '#22c55e' : responses.trajectory === 'getting_worse' ? '#ef4444' : '#eab308',
+                              }}>
+                                {responses.trajectory === 'getting_better' ? '↗ Getting Better' : responses.trajectory === 'getting_worse' ? '↘ Getting Worse' : '→ Staying the Same'}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </section>
                     )}
 
-                    {/* Section cards */}
-                    {SYMPTOM_SECTIONS.map(section => {
-                      const sectionScores = section.keys.filter(k => responses[k] != null);
-                      if (sectionScores.length === 0) return null;
-
-                      return (
-                        <section key={section.title} className="card" style={{ marginTop: '12px' }}>
-                          <div className="card-header">
-                            <h3>{section.title}</h3>
-                          </div>
-                          <div style={{ padding: '4px 20px 16px' }}>
-                            {section.keys.map(key => {
-                              const score = responses[key];
-                              if (score == null) return null;
-                              const colors = getScoreColor(score, key);
-                              return (
-                                <div key={key} style={{ padding: '10px 0', borderBottom: '1px solid #f5f5f5' }}>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                                    <span style={{ fontSize: '13px', fontWeight: '500', color: '#333' }}>
-                                      {QUESTION_LABELS[key] || key}
-                                      {INVERTED_KEYS.includes(key) && <span style={{ fontSize: '10px', color: '#aaa', marginLeft: '6px' }}>▼</span>}
-                                    </span>
-                                    <span style={{ fontSize: '14px', fontWeight: '700', color: colors.bar }}>{score}/10</span>
+                    {/* Scored Instruments (Door 2 or 3) */}
+                    {(door === 2 || door === 3) && (
+                      <>
+                        {/* Score summary cards */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px', marginTop: '12px' }}>
+                          {Object.entries(scores).map(([key, data]) => {
+                            const inst = INSTRUMENTS[key];
+                            if (!inst || !data || data.score == null) return null;
+                            const severity = getSeverity(key, data.score);
+                            const pct = (data.score / inst.maxScore) * 100;
+                            return (
+                              <section key={key} className="card">
+                                <div style={{ padding: '16px 20px' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                                    <div>
+                                      <div style={{ fontSize: '14px', fontWeight: '700', color: '#111' }}>{inst.label}</div>
+                                      <div style={{ fontSize: '11px', color: '#888' }}>{inst.subtitle}</div>
+                                    </div>
+                                    <div style={{ textAlign: 'right' }}>
+                                      <div style={{ fontSize: '20px', fontWeight: '700', color: severity.color, lineHeight: 1 }}>{data.score}</div>
+                                      <div style={{ fontSize: '10px', color: '#aaa' }}>/{inst.maxScore}</div>
+                                    </div>
                                   </div>
-                                  <div style={{ height: '6px', background: '#f0f0f0', borderRadius: '3px', overflow: 'hidden' }}>
-                                    <div style={{ height: '100%', width: `${score * 10}%`, background: colors.bar, borderRadius: '3px', transition: 'width 0.3s' }} />
+                                  <div style={{ height: '6px', background: '#f0f0f0', borderRadius: '3px', overflow: 'hidden', marginBottom: '8px' }}>
+                                    <div style={{ height: '100%', width: `${Math.min(pct, 100)}%`, background: severity.color, borderRadius: '3px' }} />
                                   </div>
+                                  <div style={{
+                                    display: 'inline-block', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600',
+                                    background: severity.color + '18', color: severity.color,
+                                  }}>{severity.label}</div>
                                 </div>
-                              );
-                            })}
-                          </div>
-                        </section>
-                      );
-                    })}
+                              </section>
+                            );
+                          })}
+                        </div>
+
+                        {/* Energy / Fatigue VAS */}
+                        {responses.fatigue_vas != null && (
+                          <section className="card" style={{ marginTop: '12px' }}>
+                            <div style={{ padding: '16px 20px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                <div>
+                                  <span style={{ fontSize: '14px', fontWeight: '700', color: '#111' }}>Energy Level</span>
+                                  <span style={{ fontSize: '11px', color: '#888', marginLeft: '8px' }}>Fatigue VAS</span>
+                                </div>
+                                <span style={{ fontSize: '18px', fontWeight: '700', color: responses.fatigue_vas >= 7 ? '#22c55e' : responses.fatigue_vas >= 4 ? '#eab308' : '#ef4444' }}>{responses.fatigue_vas}/10</span>
+                              </div>
+                              <div style={{ height: '6px', background: '#f0f0f0', borderRadius: '3px', overflow: 'hidden' }}>
+                                <div style={{ height: '100%', width: `${responses.fatigue_vas * 10}%`, background: responses.fatigue_vas >= 7 ? '#22c55e' : responses.fatigue_vas >= 4 ? '#eab308' : '#ef4444', borderRadius: '3px' }} />
+                              </div>
+                            </div>
+                          </section>
+                        )}
+
+                        {/* Sleep Details */}
+                        {(responses.psqi_bedtime || responses.psqi_hours != null) && (
+                          <section className="card" style={{ marginTop: '12px' }}>
+                            <div className="card-header"><h3>Sleep Details</h3></div>
+                            <div style={{ padding: '4px 20px 16px' }}>
+                              {[
+                                { label: 'Usual Bedtime', value: responses.psqi_bedtime },
+                                { label: 'Hours of Sleep', value: responses.psqi_hours != null ? `${responses.psqi_hours} hours` : null },
+                                { label: 'Sleep Quality', value: responses.psqi_quality != null ? ['Very Good', 'Fairly Good', 'Fairly Bad', 'Very Bad'][responses.psqi_quality] : null },
+                                { label: 'Sleep Disturbance', value: responses.psqi_disturbance != null ? ['None', 'Less than 1x/week', '1-2x/week', '3+ times/week'][responses.psqi_disturbance] : null },
+                                { label: 'Daytime Dysfunction', value: responses.psqi_dysfunction != null ? ['None', 'Slight', 'Moderate', 'Severe'][responses.psqi_dysfunction] : null },
+                              ].filter(r => r.value != null).map(r => (
+                                <div key={r.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f5f5f5' }}>
+                                  <span style={{ fontSize: '13px', color: '#666' }}>{r.label}</span>
+                                  <span style={{ fontSize: '13px', fontWeight: '600', color: '#333' }}>{r.value}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </section>
+                        )}
+                      </>
+                    )}
                   </>
                 );
               })()}
             </>
-          )}
+            );
+          })()}
 
           {/* Payments Tab */}
           {activeTab === 'payments' && (

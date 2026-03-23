@@ -72,6 +72,10 @@
     {
       "path": "/api/cron/start-funnel-nudge",
       "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/cron/energy-check-nurture",
+      "schedule": "0 15 * * *"
     }
   ]
 }

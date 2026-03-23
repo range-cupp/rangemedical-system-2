@@ -596,9 +596,11 @@ export default function PaymentsPage() {
       const data = await res.json();
       setReconcileResult(data);
       if (data.mismatches?.length > 0) {
-        setActionMsg(`Reconciled: ${data.matches} matched, ${data.mismatches.length} mismatches found`);
+        setActionMsg(`Fixed ${data.mismatches.length} incorrect amount${data.mismatches.length !== 1 ? 's' : ''} (${data.matches} already correct)`);
+      } else if (data.processed > 0) {
+        setActionMsg(`Verified ${data.processed} purchases — all amounts correct`);
       } else {
-        setActionMsg(`Reconciled ${data.processed} purchases — all amounts match`);
+        setActionMsg('All purchases already verified');
       }
       setTimeout(() => setActionMsg(''), 5000);
     } catch (err) {
@@ -709,12 +711,12 @@ export default function PaymentsPage() {
 
       {/* Reconciliation results */}
       {reconcileResult && reconcileResult.mismatches?.length > 0 && (
-        <div style={{ ...styles.card, marginBottom: '16px', border: '1px solid #fbbf24' }}>
-          <div style={{ padding: '14px 20px', background: '#fffbeb', borderBottom: '1px solid #fde68a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ ...styles.card, marginBottom: '16px', border: '1px solid #86efac' }}>
+          <div style={{ padding: '14px 20px', background: '#f0fdf4', borderBottom: '1px solid #bbf7d0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <AlertTriangle size={16} color="#92400e" />
-              <span style={{ fontWeight: '600', fontSize: '13px', color: '#92400e' }}>
-                {reconcileResult.mismatches.length} Amount Mismatch{reconcileResult.mismatches.length !== 1 ? 'es' : ''} Found
+              <CheckCircle size={16} color="#16a34a" />
+              <span style={{ fontWeight: '600', fontSize: '13px', color: '#166534' }}>
+                Fixed {reconcileResult.mismatches.length} Incorrect Amount{reconcileResult.mismatches.length !== 1 ? 's' : ''}
               </span>
             </div>
             <button onClick={() => setReconcileResult(null)} style={{ ...styles.actionBtn, fontSize: '11px' }}>Dismiss</button>
@@ -723,18 +725,20 @@ export default function PaymentsPage() {
             <thead>
               <tr>
                 <th style={styles.th}>Purchase ID</th>
-                <th style={styles.th}>DB Amount</th>
-                <th style={styles.th}>Stripe Amount</th>
-                <th style={styles.th}>Difference</th>
+                <th style={styles.th}>Was (Wrong)</th>
+                <th style={styles.th}>Now (Correct)</th>
+                <th style={styles.th}>Status</th>
               </tr>
             </thead>
             <tbody>
               {reconcileResult.mismatches.map(m => (
                 <tr key={m.purchase_id} style={styles.tr}>
                   <td style={{ ...styles.td, fontSize: '11px', fontFamily: 'monospace' }}>{m.purchase_id.slice(0, 8)}...</td>
-                  <td style={styles.td}>${m.db_amount?.toFixed(2)}</td>
-                  <td style={styles.td}>${m.stripe_amount?.toFixed(2)}</td>
-                  <td style={{ ...styles.td, color: '#dc2626', fontWeight: '600' }}>${m.difference}</td>
+                  <td style={{ ...styles.td, textDecoration: 'line-through', color: '#94a3b8' }}>${m.old_amount?.toFixed(2)}</td>
+                  <td style={{ ...styles.td, color: '#166534', fontWeight: '600' }}>${m.correct_amount?.toFixed(2)}</td>
+                  <td style={styles.td}>
+                    <span style={{ ...styles.badge, background: '#dcfce7', color: '#166534' }}>Fixed</span>
+                  </td>
                 </tr>
               ))}
             </tbody>

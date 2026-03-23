@@ -13,8 +13,11 @@ const supabase = createClient(
 );
 
 export default async function handler(req, res) {
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  // POST = fix mismatches (update amount/amount_paid to match Stripe)
+  // GET = just reconcile and report
+  const autoFix = req.method === 'POST' || req.query.fix === 'true';
   const limit = Math.min(parseInt(req.query.limit) || 50, 100);
   const offset = parseInt(req.query.offset) || 0;
 
@@ -58,31 +61,41 @@ export default async function handler(req, res) {
               : pi.status === 'requires_payment_method' ? 'failed'
               : pi.status;
 
-            // Update the purchase record
-            await supabase
-              .from('purchases')
-              .update({
-                stripe_amount_cents: stripeAmountCents,
-                stripe_status: stripeStatus,
-                stripe_verified_at: new Date().toISOString(),
-              })
-              .eq('id', purchase.id);
-
             // Check for amount mismatch
             const dbAmountCents = Math.round((purchase.amount_paid || purchase.amount) * 100);
             const mismatch = Math.abs(stripeAmountCents - dbAmountCents) > 1; // allow 1 cent rounding
+            const stripeAmountDollars = stripeAmountCents / 100;
 
+            // Build update object — always store stripe verification fields
+            const updateData = {
+              stripe_amount_cents: stripeAmountCents,
+              stripe_status: stripeStatus,
+              stripe_verified_at: new Date().toISOString(),
+            };
+
+            // If there's a mismatch, fix the actual amount fields too
+            // Stripe is the source of truth for what was actually charged
             if (mismatch) {
+              updateData.amount = stripeAmountDollars;
+              updateData.amount_paid = stripeAmountDollars;
+
               mismatches.push({
                 purchase_id: purchase.id,
-                db_amount: (purchase.amount_paid || purchase.amount),
-                stripe_amount: stripeAmountCents / 100,
-                difference: ((stripeAmountCents / 100) - (purchase.amount_paid || purchase.amount)).toFixed(2),
+                old_amount: (purchase.amount_paid || purchase.amount),
+                correct_amount: stripeAmountDollars,
+                difference: (stripeAmountDollars - (purchase.amount_paid || purchase.amount)).toFixed(2),
                 stripe_status: stripeStatus,
+                fixed: true,
               });
             } else {
               matches++;
             }
+
+            // Update the purchase record
+            await supabase
+              .from('purchases')
+              .update(updateData)
+              .eq('id', purchase.id);
 
             processed++;
           } catch (err) {
@@ -102,10 +115,13 @@ export default async function handler(req, res) {
     }
 
     return res.status(200).json({
-      message: `Reconciled ${processed} purchases`,
+      message: mismatches.length > 0
+        ? `Reconciled ${processed} purchases — fixed ${mismatches.length} incorrect amount${mismatches.length !== 1 ? 's' : ''}`
+        : `Reconciled ${processed} purchases — all amounts correct`,
       processed,
       matches,
       mismatches,
+      fixed: mismatches.length,
       errors: errors.length > 0 ? errors : undefined,
       remaining: purchases.length === limit ? 'More records may exist — run again with higher offset' : undefined,
     });

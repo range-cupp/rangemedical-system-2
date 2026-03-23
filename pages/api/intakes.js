@@ -97,6 +97,9 @@ export default async function handler(req, res) {
       injury_location: formData.injuryLocation || null,
       injury_date: formatDate(formData.injuryDate),
       injury_when_occurred: formData.injuryDate || null,
+      pain_severity: formData.painSeverity ? parseInt(formData.painSeverity) : null,
+      functional_limitation: formData.functionalLimitation ? parseInt(formData.functionalLimitation) : null,
+      injury_trajectory: formData.injuryTrajectory || null,
       
       // ============================================
       // DECISION TREE - OPTIMIZATION (Door 2) (NEW)

@@ -187,6 +187,26 @@ export default async function handler(req, res) {
       }
     }
 
+    // Generate PHI-safe receipt name (strips medication details for patient-facing receipts)
+    let receiptName = item_description || null;
+    if (!receiptName && service_category && service_name) {
+      const cat = (service_category || '').toLowerCase();
+      if (cat === 'weight_loss') {
+        // Never show specific medication or dosage on receipts
+        receiptName = 'Weight Loss Program';
+      } else if (cat === 'peptide' || cat === 'vials') {
+        // Recovery peptides (BPC-157, TB-500, KPV, MGF) → "Injury & Recovery Protocol"
+        // Everything else (GH blends, MOTS-C, GHK-Cu, GLOW, NAD+, etc.) → "Energy & Optimization Protocol"
+        const nameLower = (service_name || '').toLowerCase();
+        const isRecovery = /bpc|tb[-\s]?500|thymosin|kpv|mgf/i.test(nameLower)
+          && !/blend|2x|3x|4x|ghrp/i.test(nameLower);
+        const label = isRecovery ? 'Injury & Recovery Protocol' : 'Energy & Optimization Protocol';
+        const durationMatch = (service_name || '').match(/(\d+)\s*Day/i);
+        const duration = durationMatch ? durationMatch[1] : null;
+        receiptName = duration ? `${label} — ${duration} Day` : label;
+      }
+    }
+
     const insertData = {
       patient_id,
       patient_name: patient?.name || 'Unknown',
@@ -204,7 +224,7 @@ export default async function handler(req, res) {
       source: 'stripe_pos',
       purchase_date: new Date().toISOString().split('T')[0],
       shipping: shipping || 0,
-      description: item_description || null,
+      description: receiptName,
       medication: medication,
     };
 

@@ -698,6 +698,43 @@ export default function IntakeForm() {
             flex-direction: column;
           }
         }
+
+        /* Progress Bar */
+        .progress-container { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; padding: 0 0.5rem; }
+        .progress-step { display: flex; flex-direction: column; align-items: center; flex: 1; position: relative; }
+        .progress-circle { width: 32px; height: 32px; border-radius: 50%; background: var(--gray-200); display: flex; align-items: center; justify-content: center; font-size: 0.875rem; font-weight: 600; color: var(--gray-500); z-index: 1; transition: all 0.3s; }
+        .progress-step.active .progress-circle { background: var(--black); color: var(--white); }
+        .progress-step.completed .progress-circle { background: var(--success); color: var(--white); }
+        .progress-label { font-size: 0.6875rem; color: var(--gray-500); margin-top: 6px; text-align: center; white-space: nowrap; }
+        .progress-step.active .progress-label { color: var(--black); font-weight: 600; }
+        .progress-step.completed .progress-label { color: var(--success); }
+        .progress-line { position: absolute; top: 16px; left: 50%; width: 100%; height: 2px; background: var(--gray-200); z-index: 0; }
+        .progress-step:last-child .progress-line { display: none; }
+        .progress-step.completed .progress-line { background: var(--success); }
+
+        /* Step Sections */
+        .step-section { display: none; }
+        .step-section.active { display: block; }
+
+        /* Step Navigation */
+        .step-nav { display: flex; justify-content: space-between; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--gray-200); }
+        .btn-back { padding: 0.75rem 2rem; background: var(--white); color: var(--black); border: 1px solid var(--gray-300); border-radius: 4px; font-size: 1rem; font-weight: 500; cursor: pointer; }
+        .btn-back:hover { background: var(--gray-50); }
+        .btn-next { padding: 0.75rem 2rem; background: var(--black); color: var(--white); border: none; border-radius: 4px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+        .btn-next:hover { background: var(--gray-800); }
+
+        /* NRS Slider */
+        .nrs-slider-container { margin-top: 0.5rem; }
+        .nrs-labels { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--gray-500); margin-bottom: 4px; }
+        .nrs-slider { -webkit-appearance: none; width: 100%; height: 8px; border-radius: 4px; background: var(--gray-200); outline: none; }
+        .nrs-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%; background: var(--black); cursor: pointer; border: 2px solid var(--white); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        .nrs-slider::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: var(--black); cursor: pointer; border: 2px solid var(--white); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        .nrs-value { font-size: 1.5rem; font-weight: 700; min-width: 32px; text-align: center; }
+
+        @media (max-width: 600px) {
+          .progress-label { font-size: 0.5625rem; }
+          .progress-circle { width: 28px; height: 28px; font-size: 0.75rem; }
+        }
       `}</style>
 
       <div className="intake-container" id="intakeContainer">
@@ -711,6 +748,32 @@ export default function IntakeForm() {
           <div className="status-message" id="statusMessage"></div>
           
           <form id="intakeForm" noValidate>
+
+            {/* Progress Bar */}
+            <div className="progress-container" id="progressBar">
+              {[
+                {num: 1, label: 'Personal'},
+                {num: 2, label: 'Health'},
+                {num: 3, label: 'History'},
+                {num: 4, label: 'Medications'},
+                {num: 5, label: 'Finalize'},
+              ].map((step, i) => (
+                <div key={step.num} className={`progress-step ${step.num === 1 ? 'active' : ''}`} id={`progressStep${step.num}`}>
+                  <div className="progress-circle">{step.num}</div>
+                  <div className="progress-label">{step.label}</div>
+                  {i < 4 && <div className="progress-line"></div>}
+                </div>
+              ))}
+            </div>
+
+            {/* Validation Summary - visible across all steps */}
+            <div className="validation-summary" id="validationSummary">
+              <h3>Please complete the following required fields:</h3>
+              <ul id="validationList"></ul>
+            </div>
+
+            {/* ===== STEP 1: Personal Information ===== */}
+            <div className="step-section active" id="step1">
 
             {/* Personal Information */}
             <div className="section">
@@ -880,6 +943,16 @@ export default function IntakeForm() {
               </div>
             </div>
 
+            {/* Step 1 Navigation */}
+            <div className="step-nav">
+              <div></div>
+              <button type="button" className="btn-next">Next</button>
+            </div>
+            </div>{/* end step1 */}
+
+            {/* ===== STEP 2: Health Concerns ===== */}
+            <div className="step-section" id="step2">
+
             {/* Health Concerns Section */}
             <div className="section">
               <h2 className="section-title">Health Concerns</h2>
@@ -930,6 +1003,52 @@ export default function IntakeForm() {
                         <div className="form-group">
                           <label htmlFor="injuryDate">When did it occur?</label>
                           <input type="text" id="injuryDate" name="injuryDate" placeholder="e.g., 2 weeks ago" />
+                        </div>
+                      </div>
+
+                      {/* Injury Baseline Assessment */}
+                      <div style={{marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--gray-200)'}}>
+                        <p style={{fontWeight: 600, marginBottom: '1rem', fontSize: '0.9375rem'}}>Baseline Assessment</p>
+
+                        <div className="form-group" style={{marginBottom: '1.5rem'}}>
+                          <label>Rate your current pain level <span className="required">*</span></label>
+                          <div className="nrs-slider-container">
+                            <div className="nrs-labels"><span>0 — No pain</span><span>10 — Worst pain imaginable</span></div>
+                            <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                              <input type="range" id="painSeverity" name="painSeverity" min="0" max="10" defaultValue="5" className="nrs-slider" />
+                              <span className="nrs-value" id="painSeverityValue">5</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="form-group" style={{marginBottom: '1.5rem'}}>
+                          <label>How much is this limiting your daily life? <span className="required">*</span></label>
+                          <div className="nrs-slider-container">
+                            <div className="nrs-labels"><span>0 — Not at all</span><span>10 — Completely limiting</span></div>
+                            <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                              <input type="range" id="functionalLimitation" name="functionalLimitation" min="0" max="10" defaultValue="5" className="nrs-slider" />
+                              <span className="nrs-value" id="functionalLimitationValue">5</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="form-group">
+                          <label>Is your condition currently... <span className="required">*</span></label>
+                          <div className="radio-group">
+                            <div className="radio-item">
+                              <input type="radio" id="trajectoryBetter" name="injuryTrajectory" value="Getting better" />
+                              <label htmlFor="trajectoryBetter">Getting better</label>
+                            </div>
+                            <div className="radio-item">
+                              <input type="radio" id="trajectorySame" name="injuryTrajectory" value="Staying the same" />
+                              <label htmlFor="trajectorySame">Staying the same</label>
+                            </div>
+                            <div className="radio-item">
+                              <input type="radio" id="trajectoryWorse" name="injuryTrajectory" value="Getting worse" />
+                              <label htmlFor="trajectoryWorse">Getting worse</label>
+                            </div>
+                          </div>
+                          <span className="field-error" id="injuryTrajectoryError">Please select your condition trajectory</span>
                         </div>
                       </div>
                     </div>
@@ -1146,6 +1265,16 @@ export default function IntakeForm() {
                 </div>
               </div>
             </div>
+
+            {/* Step 2 Navigation */}
+            <div className="step-nav">
+              <button type="button" className="btn-back">Back</button>
+              <button type="button" className="btn-next">Next</button>
+            </div>
+            </div>{/* end step2 */}
+
+            {/* ===== STEP 3: Medical History ===== */}
+            <div className="step-section" id="step3">
 
             {/* Healthcare Providers */}
             <div className="section">
@@ -1519,6 +1648,16 @@ export default function IntakeForm() {
               </div>
             </div>
 
+            {/* Step 3 Navigation */}
+            <div className="step-nav">
+              <button type="button" className="btn-back">Back</button>
+              <button type="button" className="btn-next">Next</button>
+            </div>
+            </div>{/* end step3 */}
+
+            {/* ===== STEP 4: Medications & Allergies ===== */}
+            <div className="step-section" id="step4">
+
             {/* Medications & Allergies */}
             <div className="section">
               <h2 className="section-title">Medications & Allergies</h2>
@@ -1658,6 +1797,16 @@ export default function IntakeForm() {
               </div>
             </div>
 
+            {/* Step 4 Navigation */}
+            <div className="step-nav">
+              <button type="button" className="btn-back">Back</button>
+              <button type="button" className="btn-next">Next</button>
+            </div>
+            </div>{/* end step4 */}
+
+            {/* ===== STEP 5: Final Details ===== */}
+            <div className="step-section" id="step5">
+
             {/* Emergency Contact */}
             <div className="section">
               <h2 className="section-title">Emergency Contact</h2>
@@ -1734,12 +1883,13 @@ export default function IntakeForm() {
               </div>
             </div>
 
-            <div className="validation-summary" id="validationSummary">
-              <h3>Please complete the following required fields:</h3>
-              <ul id="validationList"></ul>
+            {/* Step 5 Navigation */}
+            <div className="step-nav">
+              <button type="button" className="btn-back">Back</button>
+              <button type="submit" className="btn-submit" id="submitBtn" style={{flex: 1, maxWidth: '300px'}}>Submit Medical Intake Form</button>
             </div>
+            </div>{/* end step5 */}
 
-            <button type="submit" className="btn-submit" id="submitBtn">Submit Medical Intake Form</button>
           </form>
         </div>
 
@@ -2042,6 +2192,9 @@ function initializeForm() {
       addLabelValue('Injury Description: ', formData.injuryDescription);
       addLabelValue('Injury Location: ', formData.injuryLocation);
       if (formData.injuryDate) addLabelValue('Injury Date: ', formData.injuryDate);
+      if (formData.painSeverity) addLabelValue('Pain Severity (0-10): ', formData.painSeverity);
+      if (formData.functionalLimitation) addLabelValue('Functional Limitation (0-10): ', formData.functionalLimitation);
+      if (formData.injuryTrajectory) addLabelValue('Condition Trajectory: ', formData.injuryTrajectory);
     }
     
     addLabelValue('Interested in Optimization: ', formData.interestedInOptimization);
@@ -2328,6 +2481,189 @@ function initializeForm() {
     });
   });
 
+  // ============================================
+  // MULTI-STEP NAVIGATION
+  // ============================================
+
+  let currentStep = 1;
+  const totalSteps = 5;
+
+  function goToStep(step) {
+    // Hide all steps
+    for (let i = 1; i <= totalSteps; i++) {
+      const stepEl = document.getElementById('step' + i);
+      if (stepEl) stepEl.classList.remove('active');
+      const progEl = document.getElementById('progressStep' + i);
+      if (progEl) {
+        progEl.classList.remove('active');
+        if (i < step) progEl.classList.add('completed');
+        else progEl.classList.remove('completed');
+      }
+    }
+    // Show target step
+    const targetStep = document.getElementById('step' + step);
+    if (targetStep) targetStep.classList.add('active');
+    const targetProg = document.getElementById('progressStep' + step);
+    if (targetProg) targetProg.classList.add('active');
+
+    currentStep = step;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function validateCurrentStep() {
+    // Clear previous errors for current step only
+    const stepEl = document.getElementById('step' + currentStep);
+    if (!stepEl) return true;
+
+    stepEl.querySelectorAll('.field-error').forEach(el => el.classList.remove('visible'));
+    stepEl.querySelectorAll('input.error, select.error, textarea.error').forEach(el => el.classList.remove('error'));
+    stepEl.querySelectorAll('.condition-item.has-error').forEach(el => el.classList.remove('has-error'));
+
+    let hasErrors = false;
+    const missingFields = [];
+
+    const validateField = (id, errorId, label) => {
+      const field = document.getElementById(id);
+      if (!field || !stepEl.contains(field)) return;
+      const error = document.getElementById(errorId);
+      if (field && !field.value.trim()) {
+        field.classList.add('error');
+        if (error) error.classList.add('visible');
+        hasErrors = true;
+        missingFields.push(label);
+      }
+    };
+
+    const validateRadio = (name, errorId, label) => {
+      const radios = stepEl.querySelectorAll('input[name="' + name + '"]');
+      if (radios.length === 0) return;
+      const checked = Array.from(radios).some(r => r.checked);
+      if (!checked) {
+        const error = document.getElementById(errorId);
+        if (error) error.classList.add('visible');
+        hasErrors = true;
+        missingFields.push(label);
+      }
+    };
+
+    // Step-specific validations
+    if (currentStep === 1) {
+      validateField('firstName', 'firstNameError', 'First Name');
+      validateField('lastName', 'lastNameError', 'Last Name');
+      validateField('gender', 'genderError', 'Gender');
+      validateField('dob', 'dobError', 'Date of Birth');
+      validateField('phone', 'phoneError', 'Phone Number');
+      validateField('email', 'emailError', 'Email Address');
+      validateField('streetAddress', 'streetAddressError', 'Street Address');
+      validateField('city', 'cityError', 'City');
+      validateField('state', 'stateError', 'State');
+      validateField('postalCode', 'postalCodeError', 'Postal Code');
+      validateField('country', 'countryError', 'Country');
+      validateField('howHeardAboutUs', 'howHeardAboutUsError', 'How did you hear about us');
+      validateRadio('isMinor', 'isMinorError', 'Is this patient under 18?');
+      const isMinor = document.querySelector('input[name="isMinor"]:checked');
+      if (isMinor && isMinor.value === 'Yes') {
+        validateField('guardianName', 'guardianNameError', 'Parent/Guardian Name');
+        validateField('guardianRelationship', 'guardianRelationshipError', 'Relationship to Patient');
+      }
+      const howHeardVal = document.getElementById('howHeardAboutUs')?.value;
+      if (howHeardVal === 'Friend or Family Member') validateField('howHeardFriend', 'howHeardFriendError', 'Friend Name');
+      if (howHeardVal === 'Other') validateField('howHeardOther', 'howHeardOtherError', 'How Did You Hear (Other)');
+    }
+
+    if (currentStep === 2) {
+      validateField('goals', 'goalsError', 'Reason for visit');
+      validateRadio('injured', 'injuredError', 'Are you dealing with an injury?');
+      validateRadio('interestedInOptimization', 'interestedInOptimizationError', 'Interested in optimization?');
+      const injured = document.querySelector('input[name="injured"]:checked');
+      if (injured && injured.value === 'Yes') {
+        validateField('injuryDescription', 'injuryDescriptionError', 'Injury Description');
+        validateField('injuryLocation', 'injuryLocationError', 'Injury Location');
+        validateRadio('injuryTrajectory', 'injuryTrajectoryError', 'Condition trajectory');
+      }
+    }
+
+    if (currentStep === 3) {
+      validateRadio('hasPCP', 'hasPCPError', 'Do you have a Primary Care Physician?');
+      validateRadio('recentHospitalization', 'recentHospitalizationError', 'Hospitalized in past year?');
+      const hasPCP = document.querySelector('input[name="hasPCP"]:checked');
+      if (hasPCP && hasPCP.value === 'Yes') validateField('pcpName', 'pcpNameError', 'Physician Name');
+      const recentHospital = document.querySelector('input[name="recentHospitalization"]:checked');
+      if (recentHospital && recentHospital.value === 'Yes') validateField('hospitalizationReason', 'hospitalizationReasonError', 'Hospitalization Reason');
+
+      // Medical conditions
+      const conditionNames = ['hypertension','highCholesterol','heartDisease','diabetes','thyroid','depression','eatingDisorder','kidney','liver','autoimmune','cancer'];
+      const unanswered = [];
+      conditionNames.forEach(condition => {
+        const radios = document.querySelectorAll('input[name="' + condition + '"]');
+        const checked = Array.from(radios).some(r => r.checked);
+        if (!checked) {
+          hasErrors = true;
+          unanswered.push(condition);
+          const radioEl = document.getElementById(condition + '_yes');
+          if (radioEl) { const condItem = radioEl.closest('.condition-item'); if (condItem) condItem.classList.add('has-error'); }
+        }
+      });
+      if (unanswered.length > 0) missingFields.push('Please answer all medical history questions');
+
+      const familyHistoryChecked = document.querySelectorAll('input[name^="familyHistory_"]:checked').length > 0;
+      if (!familyHistoryChecked) {
+        document.getElementById('familyHistoryScreeningError').classList.add('visible');
+        hasErrors = true;
+        missingFields.push('Family History Screening');
+      }
+    }
+
+    if (currentStep === 4) {
+      validateRadio('onHRT', 'onHRTError', 'Currently on HRT?');
+      validateRadio('previousTherapy', 'previousTherapyError', 'Previous therapy history?');
+      validateRadio('onMedications', 'onMedicationsError', 'Currently taking medications?');
+      validateRadio('hasAllergies', 'hasAllergiesError', 'Any known allergies?');
+      const onMedications = document.querySelector('input[name="onMedications"]:checked');
+      if (onMedications && onMedications.value === 'Yes') validateField('currentMedications', 'currentMedicationsError', 'Current Medications');
+      const hasAllergies = document.querySelector('input[name="hasAllergies"]:checked');
+      if (hasAllergies && hasAllergies.value === 'Yes') validateField('allergiesList', 'allergiesListError', 'Allergies');
+    }
+
+    if (hasErrors) {
+      const summaryEl = document.getElementById('validationSummary');
+      const listEl = document.getElementById('validationList');
+      listEl.innerHTML = missingFields.map(f => '<li>' + f + '</li>').join('');
+      summaryEl.classList.add('visible');
+      summaryEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return false;
+    }
+
+    return true;
+  }
+
+  // Next buttons
+  document.querySelectorAll('.btn-next').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('validationSummary').classList.remove('visible');
+      if (validateCurrentStep()) {
+        goToStep(currentStep + 1);
+      }
+    });
+  });
+
+  // Back buttons
+  document.querySelectorAll('.btn-back').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('validationSummary').classList.remove('visible');
+      goToStep(currentStep - 1);
+    });
+  });
+
+  // NRS slider value display
+  ['painSeverity', 'functionalLimitation'].forEach(id => {
+    const slider = document.getElementById(id);
+    const display = document.getElementById(id + 'Value');
+    if (slider && display) {
+      slider.addEventListener('input', () => { display.textContent = slider.value; });
+    }
+  });
+
   // Status message helper
   function showStatus(message, type) {
     const statusEl = document.getElementById('statusMessage');
@@ -2609,6 +2945,9 @@ function initializeForm() {
         injuryDescription: getValue('injuryDescription'),
         injuryLocation: getValue('injuryLocation'),
         injuryDate: getValue('injuryDate'),
+        painSeverity: getValue('painSeverity') || null,
+        functionalLimitation: getValue('functionalLimitation') || null,
+        injuryTrajectory: getRadio('injuryTrajectory') || null,
         interestedInOptimization: getRadio('interestedInOptimization'),
         symptoms: symptoms,
         symptomFollowups: symptomFollowups,

@@ -263,12 +263,42 @@ export default async function handler(req, res) {
 
       await resend.emails.send({
         from: 'Range Medical <hello@range-medical.com>',
-        to: 'chris@range-medical.com',
+        to: ['chris@range-medical.com', 'damon@range-medical.com'],
         subject: `Energy Check: ${capFirst} — ${(severity || '').toUpperCase()} (${score}/24)`,
         html: staffHtml,
       });
     } catch (staffEmailErr) {
       console.error('Staff notification email error:', staffEmailErr);
+    }
+
+    // 6. Create task for Damon
+    if (supabase) {
+      try {
+        const { data: damon } = await supabase
+          .from('employees')
+          .select('id')
+          .eq('email', 'damon@range-medical.com')
+          .maybeSingle();
+
+        if (damon) {
+          const severityLabel = SEVERITY_LABELS[severity] || severity;
+          const concernLabel = primaryConcern === 'energy' ? 'Energy'
+            : primaryConcern === 'recovery' ? 'Recovery' : 'Both';
+
+          await supabase.from('tasks').insert({
+            title: `Energy Check Lead: ${capFirst} — ${severityLabel}`,
+            description: `New Energy & Recovery Check lead.\n\nConcern: ${concernLabel}\nScore: ${score}/24 (${(severity || '').toUpperCase()})\nPhone: ${phone}\nEmail: ${normalizedEmail}\nSMS Consent: ${consentSms ? 'Yes' : 'No'}\nSource: ${source || 'direct'}`,
+            assigned_to: damon.id,
+            assigned_by: damon.id,
+            patient_id: patientId || null,
+            patient_name: capFirst,
+            priority: severity === 'red' ? 'high' : 'medium',
+            status: 'pending',
+          });
+        }
+      } catch (taskErr) {
+        console.error('Task creation error:', taskErr);
+      }
     }
 
     return res.status(200).json({ success: true, leadId: savedLead?.id || null });

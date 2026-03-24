@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-export default function PaymentCalendar({ onDaySelect, selectedDate }) {
+export default function PaymentCalendar({ onDaySelect, selectedDate, onMonthChange }) {
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -20,6 +20,7 @@ export default function PaymentCalendar({ onDaySelect, selectedDate }) {
 
   useEffect(() => {
     fetchMonthData();
+    if (onMonthChange) onMonthChange(monthKey);
   }, [monthKey]);
 
   const fetchMonthData = async () => {

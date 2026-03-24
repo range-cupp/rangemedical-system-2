@@ -132,7 +132,7 @@ async function handleDayDetail(date, res) {
   // Fetch purchases for this day
   const { data: purchases, error: pErr } = await supabase
     .from('purchases')
-    .select('id, patient_id, patient_name, item_name, product_name, amount, amount_paid, stripe_amount_cents, stripe_status, stripe_verified_at, payment_method, category, source, purchase_date, created_at, stripe_payment_intent_id')
+    .select('id, patient_id, patient_name, item_name, product_name, description, amount, amount_paid, stripe_amount_cents, stripe_status, stripe_verified_at, payment_method, category, source, purchase_date, created_at, stripe_payment_intent_id')
     .eq('purchase_date', date)
     .order('created_at', { ascending: false });
 
@@ -174,7 +174,7 @@ async function handleDayDetail(date, res) {
       id: p.id,
       patient_id: p.patient_id,
       patient_name: p.patient_name,
-      description: p.item_name || p.product_name,
+      description: p.description || p.item_name || p.product_name,
       amount: displayAmount,
       original_amount: p.amount,
       stripe_amount_cents: p.stripe_amount_cents,

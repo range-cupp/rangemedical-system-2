@@ -78,6 +78,10 @@ export default function PaymentsPage() {
   const [loadingDay, setLoadingDay] = useState(false);
   const [reconciling, setReconciling] = useState(false);
   const [reconcileResult, setReconcileResult] = useState(null);
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
 
   // POS state
   const [showChargeModal, setShowChargeModal] = useState(false);
@@ -586,23 +590,32 @@ export default function PaymentsPage() {
     setDaySummary(null);
   };
 
-  // Stripe reconciliation
+  // Stripe reconciliation — deep match by email/name + date
   const handleReconcile = async () => {
-    if (!confirm('Run Stripe reconciliation? This will verify purchase amounts against Stripe records.')) return;
+    const month = calendarMonth || (() => {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    })();
+    if (!confirm(`Run deep Stripe reconciliation for ${month}? This will pull all Stripe charges and match them to purchases by customer email/name + date, then fix any incorrect amounts.`)) return;
     setReconciling(true);
     setReconcileResult(null);
     try {
-      const res = await fetch('/api/admin/stripe-reconcile?limit=100');
+      const res = await fetch(`/api/admin/stripe-deep-reconcile?month=${month}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ month }),
+      });
       const data = await res.json();
       setReconcileResult(data);
-      if (data.mismatches?.length > 0) {
-        setActionMsg(`Fixed ${data.mismatches.length} incorrect amount${data.mismatches.length !== 1 ? 's' : ''} (${data.matches} already correct)`);
-      } else if (data.processed > 0) {
-        setActionMsg(`Verified ${data.processed} purchases — all amounts correct`);
+      if (data.reconciliation) {
+        const r = data.reconciliation;
+        setActionMsg(
+          `Matched ${r.matched} purchases to Stripe. Fixed ${r.mismatches} amounts. ${r.unmatched_charges} Stripe charges unmatched (Mango Mint / Zenoti).`
+        );
       } else {
-        setActionMsg('All purchases already verified');
+        setActionMsg(data.message || 'Reconciliation complete');
       }
-      setTimeout(() => setActionMsg(''), 5000);
+      setTimeout(() => setActionMsg(''), 8000);
     } catch (err) {
       alert('Reconciliation failed: ' + err.message);
     }
@@ -710,39 +723,55 @@ export default function PaymentsPage() {
       </div>
 
       {/* Reconciliation results */}
-      {reconcileResult && reconcileResult.mismatches?.length > 0 && (
+      {reconcileResult && (
         <div style={{ ...styles.card, marginBottom: '16px', border: '1px solid #86efac' }}>
-          <div style={{ padding: '14px 20px', background: '#f0fdf4', borderBottom: '1px solid #bbf7d0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <CheckCircle size={16} color="#16a34a" />
-              <span style={{ fontWeight: '600', fontSize: '13px', color: '#166534' }}>
-                Fixed {reconcileResult.mismatches.length} Incorrect Amount{reconcileResult.mismatches.length !== 1 ? 's' : ''}
-              </span>
+          <div style={{ padding: '14px 20px', background: '#f0fdf4', borderBottom: '1px solid #bbf7d0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: reconcileResult.stripe ? '12px' : 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CheckCircle size={16} color="#16a34a" />
+                <span style={{ fontWeight: '600', fontSize: '13px', color: '#166534' }}>
+                  {reconcileResult.message || 'Reconciliation complete'}
+                </span>
+              </div>
+              <button onClick={() => setReconcileResult(null)} style={{ ...styles.actionBtn, fontSize: '11px' }}>Dismiss</button>
             </div>
-            <button onClick={() => setReconcileResult(null)} style={{ ...styles.actionBtn, fontSize: '11px' }}>Dismiss</button>
+            {reconcileResult.stripe && (
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', fontSize: '12px', color: '#475569' }}>
+                <span>Stripe: <b style={{ color: '#166534' }}>${reconcileResult.stripe.total_collected}</b> collected</span>
+                <span>DB was: <b>${reconcileResult.database?.total_amount}</b></span>
+                <span>Discrepancy: <b style={{ color: parseFloat(reconcileResult.database?.discrepancy) > 0 ? '#dc2626' : '#166534' }}>${reconcileResult.database?.discrepancy}</b></span>
+                <span>Matched: <b>{reconcileResult.reconciliation?.matched}</b></span>
+                <span>Fixed: <b style={{ color: '#b45309' }}>{reconcileResult.reconciliation?.mismatches}</b></span>
+                <span>Unmatched charges: <b>{reconcileResult.reconciliation?.unmatched_charges}</b> <span style={{ color: '#94a3b8' }}>(Mango Mint / Zenoti)</span></span>
+              </div>
+            )}
           </div>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>Purchase ID</th>
-                <th style={styles.th}>Was (Wrong)</th>
-                <th style={styles.th}>Now (Correct)</th>
-                <th style={styles.th}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reconcileResult.mismatches.map(m => (
-                <tr key={m.purchase_id} style={styles.tr}>
-                  <td style={{ ...styles.td, fontSize: '11px', fontFamily: 'monospace' }}>{m.purchase_id.slice(0, 8)}...</td>
-                  <td style={{ ...styles.td, textDecoration: 'line-through', color: '#94a3b8' }}>${m.old_amount?.toFixed(2)}</td>
-                  <td style={{ ...styles.td, color: '#166534', fontWeight: '600' }}>${m.correct_amount?.toFixed(2)}</td>
-                  <td style={styles.td}>
-                    <span style={{ ...styles.badge, background: '#dcfce7', color: '#166534' }}>Fixed</span>
-                  </td>
+          {reconcileResult.details?.mismatches?.length > 0 && (
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.th}>Patient</th>
+                  <th style={styles.th}>Was (Wrong)</th>
+                  <th style={styles.th}>Now (Correct)</th>
+                  <th style={styles.th}>Match</th>
+                  <th style={styles.th}>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {reconcileResult.details.mismatches.map(m => (
+                  <tr key={m.purchase_id} style={styles.tr}>
+                    <td style={styles.td}>{m.patient_name || m.purchase_id?.slice(0, 8)}</td>
+                    <td style={{ ...styles.td, textDecoration: 'line-through', color: '#94a3b8' }}>${m.old_amount?.toFixed(2)}</td>
+                    <td style={{ ...styles.td, color: '#166534', fontWeight: '600' }}>${(m.stripe_amount || m.correct_amount)?.toFixed(2)}</td>
+                    <td style={{ ...styles.td, fontSize: '10px', color: '#64748b' }}>{m.match_method || '—'}</td>
+                    <td style={styles.td}>
+                      <span style={{ ...styles.badge, background: '#dcfce7', color: '#166534' }}>Fixed</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
 
@@ -751,6 +780,7 @@ export default function PaymentsPage() {
           <PaymentCalendar
             onDaySelect={handleDaySelect}
             selectedDate={selectedDay}
+            onMonthChange={setCalendarMonth}
           />
 
           {/* Day detail modal */}

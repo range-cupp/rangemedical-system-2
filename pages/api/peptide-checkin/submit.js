@@ -11,6 +11,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { addGHLNote } from '../../../lib/ghl-sync';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -50,7 +51,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Feeling rating required' });
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayPacific();
     const feelingNum = parseInt(feeling);
 
     // Find patient by GHL contact ID first, then fall back to patient UUID

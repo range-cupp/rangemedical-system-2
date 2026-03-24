@@ -11,6 +11,7 @@ import { createClient } from '@supabase/supabase-js';
 import { sendSMS } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
 import { autoCreateOrExtendProtocol } from '../../../lib/auto-protocol';
+import { todayPacific } from '../../../lib/date-utils';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -131,7 +132,7 @@ async function isHRTMembershipInvoice(invoice) {
 // Credit a free Range IV to a patient's account
 // Resets monthly — any unused perk from previous months is expired first
 async function creditFreeRangeIV(patientId, invoiceId) {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayPacific();
   const endDate = new Date();
   endDate.setDate(endDate.getDate() + 30);
 
@@ -501,7 +502,7 @@ export default async function handler(req, res) {
           stripe_verified_at: new Date().toISOString(),
           payment_method: 'stripe',
           source: 'payment_link',
-          purchase_date: new Date().toISOString().split('T')[0],
+          purchase_date: todayPacific(),
         };
 
         const { data: purchase, error: purchaseErr } = await supabase

@@ -4,6 +4,7 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -50,7 +51,7 @@ export default async function handler(req, res) {
         patient_id: patientId || protocol.patient_id,
         purchase_id: purchaseId || null,
         session_number: currentSession,
-        injection_date: injectionDate || new Date().toISOString().split('T')[0],
+        injection_date: injectionDate || todayPacific(),
         weight: weight || null,
         notes: notes || null,
         created_at: new Date().toISOString()

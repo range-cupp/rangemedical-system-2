@@ -2,9 +2,10 @@
 // Dynamic sitemap that auto-includes all service pages, location pages, guides, and public pages
 
 import { LOCATION_SERVICES, CITIES } from '../../lib/location-seo';
+import { todayPacific } from '../../lib/date-utils';
 
 const BASE_URL = 'https://www.range-medical.com';
-const TODAY = new Date().toISOString().split('T')[0];
+const TODAY = todayPacific();
 
 // Static pages with their priorities
 const STATIC_PAGES = [

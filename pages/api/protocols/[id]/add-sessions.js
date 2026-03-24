@@ -5,6 +5,7 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -71,7 +72,7 @@ export default async function handler(req, res) {
     // Append notes if provided
     if (notes) {
       const existingNotes = protocol.notes || '';
-      const sessionNote = `[${new Date().toISOString().split('T')[0]}] ${logMessage} ${notes}`;
+      const sessionNote = `[${todayPacific()}] ${logMessage} ${notes}`;
       updateData.notes = existingNotes ? `${existingNotes}\n${sessionNote}` : sessionNote;
     }
 
@@ -106,7 +107,7 @@ export default async function handler(req, res) {
         protocol_id: id,
         patient_id: protocol.patient_id,
         log_type: mode === 'deduct' ? 'session' : 'renewal',
-        log_date: new Date().toISOString().split('T')[0],
+        log_date: todayPacific(),
         notes: `${logMessage}${notes ? ` ${notes}` : ''}`
       });
 

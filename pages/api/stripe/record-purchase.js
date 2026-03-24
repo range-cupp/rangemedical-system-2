@@ -8,6 +8,7 @@ import { generateReceiptHtml } from '../../../lib/receipt-email';
 import { generateReceiptPdf } from '../../../lib/receipt-pdf';
 import { autoCreateOrExtendProtocol } from '../../../lib/auto-protocol';
 import { logComm } from '../../../lib/comms-log';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -222,7 +223,7 @@ export default async function handler(req, res) {
       stripe_subscription_id: stripe_subscription_id || null,
       payment_method: payment_method || 'stripe',
       source: 'stripe_pos',
-      purchase_date: new Date().toISOString().split('T')[0],
+      purchase_date: todayPacific(),
       shipping: shipping || 0,
       description: receiptName,
       medication: medication,

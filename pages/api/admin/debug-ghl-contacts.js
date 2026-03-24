@@ -2,13 +2,14 @@
 // Debug GHL contacts and appointments API
 // Range Medical
 
+import { todayPacific } from '../../../lib/date-utils';
 const GHL_API_KEY = process.env.GHL_API_KEY;
 const GHL_LOCATION_ID = process.env.GHL_LOCATION_ID;
 
 export default async function handler(req, res) {
   const { name, date } = req.query;
   const searchName = name || 'Amir';
-  const targetDate = date || new Date().toISOString().split('T')[0];
+  const targetDate = date || todayPacific();
 
   const results = {
     env: {

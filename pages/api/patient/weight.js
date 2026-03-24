@@ -4,6 +4,7 @@
 // UPDATED: 2026-03-17 — Switched from weight_logs to service_logs (single source of truth)
 
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -75,7 +76,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Weight required' });
       }
 
-      const logDate = date || new Date().toISOString().split('T')[0];
+      const logDate = date || todayPacific();
 
       // Check for existing weight entry on this date
       const { data: existing } = await supabase

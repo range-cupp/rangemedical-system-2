@@ -3,6 +3,7 @@
 // Range Medical - 2026-01-29 - Fixed column names
 
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -121,7 +122,7 @@ async function handlePost(req, res) {
     return res.status(400).json({ success: false, error: 'Missing required fields: patient_id and category' });
   }
 
-  const logDate = entry_date || new Date().toISOString().split('T')[0];
+  const logDate = entry_date || todayPacific();
 
   try {
     // 1. Create the log entry - only use columns that exist

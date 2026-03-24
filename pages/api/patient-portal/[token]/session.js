@@ -3,6 +3,7 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -58,7 +59,7 @@ export default async function handler(req, res) {
           .from('injection_logs')
           .update({
             completed: newCompleted,
-            completed_at: newCompleted ? new Date().toISOString().split('T')[0] : null
+            completed_at: newCompleted ? todayPacific() : null
           })
           .eq('id', existingLog.id);
 
@@ -85,7 +86,7 @@ export default async function handler(req, res) {
             protocol_id,
             day_number: session_number,
             completed: true,
-            completed_at: new Date().toISOString().split('T')[0]
+            completed_at: todayPacific()
           });
 
         // Update protocol count
@@ -107,7 +108,7 @@ export default async function handler(req, res) {
     }
 
     // For HRT/Weight Loss (no session number)
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayPacific();
     const nextSessionNum = (protocol.sessions_used || protocol.injections_completed || 0) + 1;
 
     await supabase

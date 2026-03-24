@@ -12,6 +12,7 @@ import { logComm } from '../../../lib/comms-log';
 import { calculateNextExpectedDate } from '../../../lib/auto-protocol';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { isInQuietHours } from '../../../lib/quiet-hours';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -542,7 +543,7 @@ export default async function handler(req, res) {
             .from('protocols')
             .update({
               end_date: newEndDate,
-              last_payment_date: new Date().toISOString().split('T')[0],
+              last_payment_date: todayPacific(),
               status: 'active',
               updated_at: new Date().toISOString()
             })
@@ -573,7 +574,7 @@ export default async function handler(req, res) {
               protocol_id: matchingProtocol.id,
               patient_id: finalPatientId,
               log_type: 'payment',
-              log_date: new Date().toISOString().split('T')[0],
+              log_date: todayPacific(),
               notes: `Monthly payment recorded (auto-linked from purchase). New end date: ${newEndDate}`
             });
 
@@ -806,7 +807,7 @@ export default async function handler(req, res) {
         if (previousDrips && previousDrips.length > 0) {
           console.log(`Patient ${finalPatientId} already received WL drip emails — skipping (monthly renewal)`);
           // Mark all 4 as "sent" on this protocol so the cron skips it too
-          const today = new Date().toISOString().split('T')[0];
+          const today = todayPacific();
           await supabase.from('protocol_logs').insert([
             { protocol_id: protocol.id, patient_id: finalPatientId, log_type: 'drip_email', log_date: today, notes: 'Drip emails skipped — patient previously received sequence' },
             { protocol_id: protocol.id, patient_id: finalPatientId, log_type: 'drip_email', log_date: today, notes: 'Drip email 2 skipped' },
@@ -844,7 +845,7 @@ export default async function handler(req, res) {
               protocol_id: protocol.id,
               patient_id: finalPatientId,
               log_type: 'drip_email',
-              log_date: new Date().toISOString().split('T')[0],
+              log_date: todayPacific(),
               notes: `Drip email 1: ${emailTemplate.subject}`
             });
             await logComm({ channel: 'email', messageType: 'drip_email_1', message: `Drip email 1: ${emailTemplate.subject}`, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, patientName, recipient: patientData.email, subject: emailTemplate.subject });
@@ -893,7 +894,7 @@ export default async function handler(req, res) {
             const smsResult = await sendSMS({ to: pepPhone, message: guideMessage });
             if (smsResult.success) {
               await supabase.from('protocols').update({ peptide_guide_sent: true }).eq('id', protocol.id);
-              await supabase.from('protocol_logs').insert({ protocol_id: protocol.id, patient_id: finalPatientId, log_type: 'peptide_guide_sent', log_date: new Date().toISOString().split('T')[0], notes: guideMessage });
+              await supabase.from('protocol_logs').insert({ protocol_id: protocol.id, patient_id: finalPatientId, log_type: 'peptide_guide_sent', log_date: todayPacific(), notes: guideMessage });
               await logComm({ channel: 'sms', messageType: 'peptide_guide_sent', message: guideMessage, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, patientName, provider: smsResult.provider });
               peptideGuideSent = true;
               console.log('Peptide guide SMS sent via', smsResult.provider, 'to', pepPhone);
@@ -946,7 +947,7 @@ export default async function handler(req, res) {
               await supabase.from('protocol_logs').insert({
                 protocol_id: protocol.id, patient_id: finalPatientId,
                 log_type: 'peptide_guide_email_sent',
-                log_date: new Date().toISOString().split('T')[0],
+                log_date: todayPacific(),
                 notes: 'Peptide guide sent via email'
               });
               await logComm({ channel: 'email', messageType: 'peptide_guide_email_sent', message: pepEmailHtml, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, patientName, recipient: pepEmailPatient.email, subject: 'Your Recovery Peptide Guide — Range Medical' });
@@ -994,7 +995,7 @@ export default async function handler(req, res) {
             const smsResult = await sendSMS({ to: skinPhone, message: skinGuideMessage });
             if (smsResult.success) {
               await supabase.from('protocols').update({ peptide_guide_sent: true }).eq('id', protocol.id);
-              await supabase.from('protocol_logs').insert({ protocol_id: protocol.id, patient_id: finalPatientId, log_type: 'skin_guide_sent', log_date: new Date().toISOString().split('T')[0], notes: skinGuideMessage });
+              await supabase.from('protocol_logs').insert({ protocol_id: protocol.id, patient_id: finalPatientId, log_type: 'skin_guide_sent', log_date: todayPacific(), notes: skinGuideMessage });
               await logComm({ channel: 'sms', messageType: 'skin_guide_sent', message: skinGuideMessage, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, patientName, provider: smsResult.provider });
               skinGuideSent = true;
               console.log('Skin peptide guide SMS sent via', smsResult.provider, 'to', skinPhone);
@@ -1046,7 +1047,7 @@ export default async function handler(req, res) {
               await supabase.from('protocol_logs').insert({
                 protocol_id: protocol.id, patient_id: finalPatientId,
                 log_type: 'skin_guide_email_sent',
-                log_date: new Date().toISOString().split('T')[0],
+                log_date: todayPacific(),
                 notes: 'GLOW peptide guide sent via email'
               });
               await logComm({ channel: 'email', messageType: 'skin_guide_email_sent', message: skinEmailHtml, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, patientName, recipient: skinEmailPatient.email, subject: 'Your GLOW Peptide Guide — Range Medical' });
@@ -1106,7 +1107,7 @@ export default async function handler(req, res) {
             protocol_id: protocol.id,
             patient_id: finalPatientId,
             log_type: guideLogType,
-            log_date: new Date().toISOString().split('T')[0],
+            log_date: todayPacific(),
             notes: `[QUEUED - quiet hours] ${guideMessage}`
           });
         } else {
@@ -1121,7 +1122,7 @@ export default async function handler(req, res) {
               protocol_id: protocol.id,
               patient_id: finalPatientId,
               log_type: guideLogType,
-              log_date: new Date().toISOString().split('T')[0],
+              log_date: todayPacific(),
               notes: guideMessage
             });
 
@@ -1203,7 +1204,7 @@ export default async function handler(req, res) {
               await supabase.from('protocol_logs').insert({
                 protocol_id: protocol.id, patient_id: finalPatientId,
                 log_type: emailGuideLogType,
-                log_date: new Date().toISOString().split('T')[0],
+                log_date: todayPacific(),
                 notes: `Guide email sent: ${emailGuideSlug}`
               });
               await logComm({ channel: 'email', messageType: emailGuideLogType, message: guideEmailHtml, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, patientName, recipient: emailGuidePatient.email, subject: guideEmailSubject });

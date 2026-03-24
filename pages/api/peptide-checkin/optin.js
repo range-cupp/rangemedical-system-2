@@ -8,6 +8,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { logComm } from '../../../lib/comms-log';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -119,7 +120,7 @@ export default async function handler(req, res) {
       protocol_id: protocol.id,
       patient_id: patient.id,
       log_type: logType,
-      log_date: new Date().toISOString().split('T')[0],
+      log_date: todayPacific(),
       notes: logNotes
     });
 

@@ -3,6 +3,7 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -63,7 +64,7 @@ export default async function handler(req, res) {
         .from('injection_logs')
         .update({ 
           completed: newCompleted,
-          completed_at: newCompleted ? new Date().toISOString().split('T')[0] : null
+          completed_at: newCompleted ? todayPacific() : null
         })
         .eq('id', existingLog.id);
 
@@ -92,7 +93,7 @@ export default async function handler(req, res) {
           protocol_id: block_id,
           day_number: day_number,
           completed: shouldComplete,
-          completed_at: shouldComplete ? new Date().toISOString().split('T')[0] : null
+          completed_at: shouldComplete ? todayPacific() : null
         });
 
       // Update protocol count if completed

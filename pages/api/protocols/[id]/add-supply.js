@@ -4,6 +4,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { addGHLNote } from '../../../../lib/ghl-sync';
+import { todayPacific } from '../../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -51,7 +52,7 @@ export default async function handler(req, res) {
     // Update protocol with extended end date and payment info
     const updateData = {
       end_date: newEndDate,
-      last_payment_date: new Date().toISOString().split('T')[0],
+      last_payment_date: todayPacific(),
       status: 'active', // Reactivate if was completed
       updated_at: new Date().toISOString()
     };
@@ -59,7 +60,7 @@ export default async function handler(req, res) {
     // Add notes if provided
     if (notes) {
       const existingNotes = protocol.notes || '';
-      const paymentNote = `[${new Date().toISOString().split('T')[0]}] Payment recorded. ${notes}`;
+      const paymentNote = `[${todayPacific()}] Payment recorded. ${notes}`;
       updateData.notes = existingNotes ? `${existingNotes}\n${paymentNote}` : paymentNote;
     }
 
@@ -94,7 +95,7 @@ export default async function handler(req, res) {
         protocol_id: id,
         patient_id: protocol.patient_id,
         log_type: 'payment',
-        log_date: new Date().toISOString().split('T')[0],
+        log_date: todayPacific(),
         notes: `Monthly payment recorded. New end date: ${newEndDate}${notes ? `. ${notes}` : ''}`
       });
 

@@ -3,6 +3,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { logComm } from '../../../../lib/comms-log';
+import { todayPacific } from '../../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -217,7 +218,7 @@ async function autoLogSessionFromAppointment(appointment) {
     return;
   }
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = todayPacific();
   const provider = appointment.provider || null;
 
   // Find active protocol for this type (optional — sessions can be logged without a protocol)

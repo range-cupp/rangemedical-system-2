@@ -6,6 +6,7 @@
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { isWeightLossType } from '../../../lib/protocol-config';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -110,7 +111,7 @@ export default async function handler(req, res) {
         const medication = structured_data?.medication?.medication_name || null;
         const logDate = note_date
           ? new Date(note_date).toISOString().split('T')[0]
-          : new Date().toISOString().split('T')[0];
+          : todayPacific();
 
         if (!isNaN(weight)) {
           // Find the patient's active weight loss protocol

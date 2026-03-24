@@ -4,6 +4,7 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -20,7 +21,7 @@ export default async function handler(req, res) {
 
   const { date, days } = req.body;
   const syncDays = days || 14; // Default to syncing last 14 days
-  const targetDate = date || new Date().toISOString().split('T')[0];
+  const targetDate = date || todayPacific();
 
   // Calculate date range
   const endDate = new Date(targetDate + 'T23:59:59');

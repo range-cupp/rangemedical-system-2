@@ -3,6 +3,7 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -66,7 +67,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'At least one score required' });
       }
       
-      const logDate = date || new Date().toISOString().split('T')[0];
+      const logDate = date || todayPacific();
       
       // Upsert - update if exists, insert if not
       const { data: existing } = await supabase

@@ -5,6 +5,7 @@
 // UPDATED: 2026-02-10 - Removed session decrement/tracking (now Service Log only)
 
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../../lib/date-utils';
 // addGHLNote/sendStaffSMS removed — session tracking now via Service Log only
 
 const supabase = createClient(
@@ -265,7 +266,7 @@ export default async function handler(req, res) {
       const calendarName = titleParts.length > 1 ? titleParts.slice(1).join(' - ') : appointmentTitle;
 
       // Parse the date
-      const dateOnly = appointmentDate ? appointmentDate.split('T')[0] : new Date().toISOString().split('T')[0];
+      const dateOnly = appointmentDate ? appointmentDate.split('T')[0] : todayPacific();
 
       // Find patient by GHL contact ID
       let patientId = null;

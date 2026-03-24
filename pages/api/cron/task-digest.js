@@ -7,6 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { logComm } from '../../../lib/comms-log';
 import { isInQuietHours } from '../../../lib/quiet-hours';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -150,8 +151,8 @@ const PRIORITY_CONFIG = {
 function sortTasks(tasks) {
   return [...tasks].sort((a, b) => {
     // 1. Overdue first
-    const aOverdue = a.due_date && a.due_date < new Date().toISOString().split('T')[0];
-    const bOverdue = b.due_date && b.due_date < new Date().toISOString().split('T')[0];
+    const aOverdue = a.due_date && a.due_date < todayPacific();
+    const bOverdue = b.due_date && b.due_date < todayPacific();
     if (aOverdue !== bOverdue) return aOverdue ? -1 : 1;
     // 2. Priority
     const aPri = PRIORITY_ORDER[a.priority] ?? 1;
@@ -167,7 +168,7 @@ function sortTasks(tasks) {
 
 function formatDueDate(due_date) {
   if (!due_date) return null;
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayPacific();
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
   if (due_date < today) {
     const daysAgo = Math.round((new Date(today) - new Date(due_date)) / 86400000);

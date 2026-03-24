@@ -2,6 +2,7 @@
 // Link a purchase to an existing protocol (updates payment info on protocol)
 
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -61,7 +62,7 @@ export default async function handler(req, res) {
       .from('protocols')
       .update({
         amount_paid: existingPaid + newPayment,
-        payment_date: purchase.purchase_date || new Date().toISOString().split('T')[0],
+        payment_date: purchase.purchase_date || todayPacific(),
         updated_at: new Date().toISOString()
       })
       .eq('id', protocolId);

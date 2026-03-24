@@ -2,6 +2,7 @@
 // Syncs symptom questionnaire submissions to GoHighLevel
 // Matches the same pattern as consent-to-ghl.js
 
+import { todayPacific } from '../../lib/date-utils';
 export default async function handler(req, res) {
     // CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -223,7 +224,7 @@ ${pdfUrl || 'No PDF available'}`;
                     },
                     {
                         key: 'symptom_questionnaire_date',
-                        value: new Date().toISOString().split('T')[0]
+                        value: todayPacific()
                     }
                 ]
             })

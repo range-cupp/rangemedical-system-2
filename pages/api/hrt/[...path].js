@@ -5,6 +5,7 @@
 // =====================================================
 
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -190,7 +191,7 @@ async function createMembership(req, res) {
     p_membership_type: membershipType,
     p_initial_lab_date: initialLabDate,
     p_initial_lab_type: initialLabType,
-    p_start_date: startDate || new Date().toISOString().split('T')[0]
+    p_start_date: startDate || todayPacific()
   });
 
   if (error) throw error;

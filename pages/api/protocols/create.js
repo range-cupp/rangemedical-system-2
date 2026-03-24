@@ -5,6 +5,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { isWeightLossType, isHRTType } from '../../../lib/protocol-config';
 import { findDuplicateProtocol, findProtocolForPurchase } from '../../../lib/duplicate-prevention';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -113,7 +114,7 @@ export default async function handler(req, res) {
     }
 
     // Calculate end date
-    const startDateValue = start_date || new Date().toISOString().split('T')[0];
+    const startDateValue = start_date || todayPacific();
     if (duration_days && startDateValue) {
       const startD = new Date(startDateValue + 'T00:00:00');
       const endD = new Date(startD);

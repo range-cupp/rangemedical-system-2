@@ -12,6 +12,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { sendSMS } from '../../../lib/send-sms';
+import { todayPacific } from '../../../lib/date-utils';
 // Side effect guidance now lives on the support page at /wl-support
 
 const supabase = createClient(
@@ -50,7 +51,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Weight required' });
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayPacific();
     const parsedWeight = parseFloat(weight);
 
     // Find patient — support both ghl_contact_id (legacy links) and patient id

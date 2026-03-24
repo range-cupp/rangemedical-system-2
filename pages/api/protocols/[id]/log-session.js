@@ -5,6 +5,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { syncSessionLogToGHL } from '../../../../lib/ghl-sync';
+import { todayPacific } from '../../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -98,7 +99,7 @@ export default async function handler(req, res) {
       protocol_id: id,
       category,
       entry_type: entryType,
-      entry_date: log_date || new Date().toISOString().split('T')[0],
+      entry_date: log_date || todayPacific(),
       medication: protocol.medication || null,
       dosage: dose || protocol.selected_dose || null,
       weight: weight ? parseFloat(weight) : null,

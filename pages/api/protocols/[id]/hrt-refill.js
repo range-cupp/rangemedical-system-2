@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -66,7 +67,7 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Protocol not found' });
     }
 
-    const refillDateStr = refill_date || new Date().toISOString().split('T')[0];
+    const refillDateStr = refill_date || todayPacific();
 
     // Calculate supply duration for logging
     let supplyDuration = '';

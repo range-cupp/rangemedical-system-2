@@ -5,6 +5,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { addGHLNote } from '../../../../lib/ghl-sync';
 import { calculateNextExpectedDate } from '../../../../lib/auto-protocol';
+import { todayPacific } from '../../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -67,10 +68,10 @@ export default async function handler(req, res) {
     const updateData = {
       end_date: newEndDate,
       total_sessions: newTotalSessions,
-      last_refill_date: new Date().toISOString().split('T')[0],
+      last_refill_date: todayPacific(),
       next_expected_date: calculateNextExpectedDate({
         protocolType: 'weight_loss',
-        startDate: new Date().toISOString().split('T')[0],
+        startDate: todayPacific(),
         pickupFrequency: daysToExtend,
       }),
       status: 'active', // Reactivate if was expired
@@ -107,7 +108,7 @@ export default async function handler(req, res) {
     // Add notes if provided
     if (notes || doseChanged || medicationChanged) {
       const existingNotes = protocol.notes || '';
-      const dateStr = new Date().toISOString().split('T')[0];
+      const dateStr = todayPacific();
       let refillNote = `[${dateStr}] Renewed.`;
       if (medicationChanged) {
         refillNote += ` Medication: ${newMedication}.`;
@@ -154,7 +155,7 @@ export default async function handler(req, res) {
         protocol_id: id,
         patient_id: protocol.patient_id,
         log_type: 'renewal',
-        log_date: new Date().toISOString().split('T')[0],
+        log_date: todayPacific(),
         notes: `Protocol renewed. New end date: ${newEndDate}. Sessions: ${protocol.total_sessions || 0} → ${newTotalSessions}${doseChanged ? `. Dose: ${oldDose} → ${newDose}` : ''}${notes ? `. ${notes}` : ''}`
       });
 

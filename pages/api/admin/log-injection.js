@@ -5,6 +5,7 @@
 // =====================================================
 
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -108,7 +109,7 @@ export default async function handler(req, res) {
         injection_type: programType,
         medication,
         dose: dose || null,
-        injection_date: injection_date || new Date().toISOString().split('T')[0],
+        injection_date: injection_date || todayPacific(),
         injection_site: injection_site || 'abdomen',
         program_id: programId,
         program_type: programType,

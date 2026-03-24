@@ -3,6 +3,7 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -116,7 +117,7 @@ export default async function handler(req, res) {
           .maybeSingle();
 
         if (wlProtocol) {
-          const logDate = new Date().toISOString().split('T')[0];
+          const logDate = todayPacific();
 
           // Upsert weight_check in service_logs for today
           const { data: existingLog } = await supabase

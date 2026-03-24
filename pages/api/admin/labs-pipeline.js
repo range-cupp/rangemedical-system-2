@@ -5,6 +5,7 @@
 // UPDATED: 2026-02-17 - Added pre-consult summary endpoint
 
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -392,7 +393,7 @@ async function updateLabProtocol(req, res) {
               protocol_id: hrtId,
               patient_id: data.patient_id,
               log_type: 'blood_draw',
-              log_date: data.start_date || new Date().toISOString().split('T')[0],
+              log_date: data.start_date || todayPacific(),
               notes: drawLabel
             });
             console.log(`✓ Synced blood draw log for HRT protocol ${hrtId}: ${drawLabel}`);
@@ -495,7 +496,7 @@ async function createLabProtocol(req, res) {
       medication: panel === 'elite' ? 'Elite' : 'Essential',
       delivery_method: type,
       status: 'blood_draw_complete',
-      start_date: bloodDrawDate || new Date().toISOString().split('T')[0],
+      start_date: bloodDrawDate || todayPacific(),
       notes: notes || null
     };
 

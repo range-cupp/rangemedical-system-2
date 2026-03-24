@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { WL_DRIP_EMAILS, personalizeEmail } from '../../../lib/wl-drip-emails';
 import { isWeightLossType } from '../../../lib/protocol-config';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -87,7 +88,7 @@ export default async function handler(req, res) {
     }
 
     // Log it so the cron picks up emails 2-4
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayPacific();
     await supabase.from('protocol_logs').insert({
       protocol_id: protocolId,
       patient_id: protocol.patient_id,

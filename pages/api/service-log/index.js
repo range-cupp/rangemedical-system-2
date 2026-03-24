@@ -11,6 +11,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { isWeightLossType } from '../../../lib/protocol-config';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -21,7 +22,7 @@ const supabase = createClient(
 async function syncWeightToVitals(patient_id, weight, entry_date, recorded_by) {
   if (!patient_id || !weight) return;
   try {
-    const logDate = entry_date || new Date().toISOString().split('T')[0];
+    const logDate = entry_date || todayPacific();
     // Check if vitals already exist for this date
     const dayStart = logDate + 'T00:00:00Z';
     const dayEnd = logDate + 'T23:59:59Z';
@@ -288,7 +289,7 @@ async function handlePost(req, res) {
     return res.status(400).json({ success: false, error: 'Missing required fields: patient_id and category' });
   }
 
-  const logDate = entry_date || new Date().toISOString().split('T')[0];
+  const logDate = entry_date || todayPacific();
 
   try {
     // 1. Create the log entry

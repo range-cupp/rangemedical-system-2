@@ -10,6 +10,7 @@ import { logComm } from '../../../lib/comms-log';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { hasBlooioOptIn, queuePendingLinkMessage, isBlooioProvider } from '../../../lib/blooio-optin';
 import { isInQuietHours } from '../../../lib/quiet-hours';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -31,7 +32,7 @@ async function logSent(protocolId, patientId, logType, message) {
       protocol_id: protocolId,
       patient_id: patientId,
       log_type: logType,
-      log_date: new Date().toISOString().split('T')[0],
+      log_date: todayPacific(),
       notes: message
     });
   } catch (err) {

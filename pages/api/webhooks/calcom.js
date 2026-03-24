@@ -9,6 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { sendAppointmentNotification } from '../../../lib/appointment-notifications';
 import { sendProviderNotification } from '../../../lib/provider-notifications';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -488,7 +489,7 @@ async function updateLabJourney(patientId, slug) {
     if (!existingLab) {
       // No active lab protocol — create one at draw_scheduled
       const programName = `${isFollowUp ? 'Follow-up' : 'New Patient'} Labs`;
-      const today = new Date().toISOString().split('T')[0];
+      const today = todayPacific();
 
       const { data: newLab, error: insertErr } = await supabase
         .from('protocols')

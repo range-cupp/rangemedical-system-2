@@ -6,6 +6,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { getHRTLabSchedule, matchDrawsToLogs } from '../../../lib/hrt-lab-schedule';
 import { cancelBooking } from '../../../lib/calcom';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -74,7 +75,7 @@ export default async function handler(req, res) {
       );
 
       // 3. Fetch upcoming bookings from calcom_bookings
-      const today = new Date().toISOString().split('T')[0];
+      const today = todayPacific();
       const { data: bookings } = await supabase
         .from('calcom_bookings')
         .select('*')

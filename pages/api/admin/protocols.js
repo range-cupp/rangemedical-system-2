@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 import { isRecoveryPeptide, isGHPeptide, isWeightLossType, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS } from '../../../lib/protocol-config';
 import { getHRTLabSchedule, isHRTProtocol } from '../../../lib/hrt-lab-schedule';
 import { findDuplicateProtocol } from '../../../lib/duplicate-prevention';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -141,7 +142,7 @@ export default async function handler(req, res) {
 
       if (matchingProtocols.length === 0) {
         // No prior cycle — start fresh
-        cycleStartDate = start_date || new Date().toISOString().split('T')[0];
+        cycleStartDate = start_date || todayPacific();
       } else {
         // Find protocols with cycle_start_date set, or infer from dates
         const withCycle = matchingProtocols.filter(p => p.cycle_start_date);
@@ -171,10 +172,10 @@ export default async function handler(req, res) {
 
             if (new Date() >= offEnd) {
               // Off period passed — start new cycle
-              cycleStartDate = start_date || new Date().toISOString().split('T')[0];
+              cycleStartDate = start_date || todayPacific();
             } else {
               // Still in off period — start new cycle anyway but warn (handled by client)
-              cycleStartDate = start_date || new Date().toISOString().split('T')[0];
+              cycleStartDate = start_date || todayPacific();
             }
           } else {
             // Cycle not exhausted — continue same cycle
@@ -196,7 +197,7 @@ export default async function handler(req, res) {
 
           if (totalDaysUsed >= maxDays) {
             // Inferred cycle exhausted — start new cycle
-            cycleStartDate = start_date || new Date().toISOString().split('T')[0];
+            cycleStartDate = start_date || todayPacific();
           } else {
             // Continue inferred cycle — use earliest start_date as cycle start
             cycleStartDate = earliest.start_date;
@@ -228,7 +229,7 @@ export default async function handler(req, res) {
       frequency,
       delivery_method,
       total_sessions: total_sessions || null,
-      start_date: start_date || new Date().toISOString().split('T')[0],
+      start_date: start_date || todayPacific(),
       end_date: end_date || null,
       notes: notes || null,
       status: status || 'active',

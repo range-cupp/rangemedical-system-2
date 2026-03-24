@@ -2,6 +2,7 @@
 // Toggle session completion - Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -30,7 +31,7 @@ export default async function handler(req, res) {
       .eq('day_number', session_number)
       .maybeSingle();
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayPacific();
 
     if (existingLog) {
       // Toggle completion

@@ -4,6 +4,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { addGHLNote } from '../../../../lib/ghl-sync';
+import { todayPacific } from '../../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -98,7 +99,7 @@ export default async function handler(req, res) {
     }
 
     // Mark as completed
-    const logDate = completedDate || new Date().toISOString().split('T')[0];
+    const logDate = completedDate || todayPacific();
 
     if (existingLogs && existingLogs.length > 0) {
       // Update existing log date

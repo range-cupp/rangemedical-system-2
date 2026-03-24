@@ -3,6 +3,7 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -99,7 +100,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'protocol_id and patient_id required' });
     }
 
-    const entryDate = dispense_date || new Date().toISOString().split('T')[0];
+    const entryDate = dispense_date || todayPacific();
 
     // Fetch protocol details — include injection_method and injection_frequency for vial calc
     const { data: protocol, error: protocolError } = await supabase

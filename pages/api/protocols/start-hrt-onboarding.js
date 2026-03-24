@@ -11,6 +11,7 @@ import { isHRTType } from '../../../lib/protocol-config';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
 import { isInQuietHours } from '../../../lib/quiet-hours';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -207,7 +208,7 @@ export default async function handler(req, res) {
     }
 
     // Log to protocol_logs
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayPacific();
     await supabase.from('protocol_logs').insert({
       protocol_id: protocolId,
       patient_id: protocol.patient_id,

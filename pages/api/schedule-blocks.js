@@ -5,6 +5,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { getUserSchedules, updateSchedule } from '../../lib/calcom';
 import { requireAuth } from '../../lib/auth';
+import { todayPacific } from '../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -154,7 +155,7 @@ export default async function handler(req, res) {
  * Preserves any existing Cal.com overrides not managed by our blocks.
  */
 async function syncBlocksToCalcom(providerId, scheduleId) {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayPacific();
 
   // Get all future blocks for this provider
   const { data: blocks } = await supabase

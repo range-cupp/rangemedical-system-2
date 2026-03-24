@@ -8,6 +8,7 @@ import { logComm } from '../../../../../lib/comms-log';
 import { sendSMS, normalizePhone } from '../../../../../lib/send-sms';
 import { hasBlooioOptIn, queuePendingLinkMessage, isBlooioProvider } from '../../../../../lib/blooio-optin';
 import { getGuideSlug } from '../../../../../lib/protocol-config';
+import { todayPacific } from '../../../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -117,7 +118,7 @@ export default async function handler(req, res) {
           protocol_id: id,
           patient_id: protocol.patient_id,
           log_type: 'peptide_guide_sent',
-          log_date: new Date().toISOString().split('T')[0],
+          log_date: todayPacific(),
           notes: `Blooio two-step: opt-in request sent, guide link queued for auto-delivery`
         });
 
@@ -147,7 +148,7 @@ export default async function handler(req, res) {
       protocol_id: id,
       patient_id: protocol.patient_id,
       log_type: 'peptide_guide_sent',
-      log_date: new Date().toISOString().split('T')[0],
+      log_date: todayPacific(),
       notes: guideMessage
     });
 

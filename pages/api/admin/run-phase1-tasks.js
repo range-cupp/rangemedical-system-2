@@ -10,6 +10,7 @@
 // Protected by ADMIN_PASSWORD.
 
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -238,7 +239,7 @@ export default async function handler(req, res) {
   // ════════════════════════════════════════════════════════════════════════════
   // DEFAULT MODE: create tasks for today's (or given date's) lab imports
   // ════════════════════════════════════════════════════════════════════════════
-  const targetDate = date || new Date().toISOString().split('T')[0];
+  const targetDate = date || todayPacific();
 
   try {
     // 1. Find Primex labs with test_date matching targetDate (or most recent if no date match)

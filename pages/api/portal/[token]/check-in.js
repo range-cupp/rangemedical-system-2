@@ -3,6 +3,7 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -64,7 +65,7 @@ export default async function handler(req, res) {
     // Get check-in data from request
     const { energy, sleep, mood, brain_fog, pain, libido, weight, notes } = req.body;
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayPacific();
 
     // Upsert check-in (update if exists for today, insert otherwise)
     const { data: checkIn, error } = await supabase

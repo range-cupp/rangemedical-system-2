@@ -4,6 +4,7 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -162,7 +163,7 @@ export default async function handler(req, res) {
     labPipeline.total = labProtocols.length;
 
     // Refills due processing
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = todayPacific();
     const refillsDue = (refillsDueResult.data || []).map(p => {
       const pat = p.patients;
       const patientName = pat

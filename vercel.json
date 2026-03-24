@@ -80,6 +80,14 @@
     {
       "path": "/api/cron/daily-sales-report",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/birthday-sms",
+      "schedule": "0 17 * * *"
+    },
+    {
+      "path": "/api/cron/appointment-reminder",
+      "schedule": "0 17 * * *"
     }
   ]
 }

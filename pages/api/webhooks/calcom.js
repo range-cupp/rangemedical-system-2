@@ -66,6 +66,59 @@ const CALCOM_APPOINTMENT_ACTIONS = {
   'follow-up-lab-review-phone': 'lab_journey',
 };
 
+// Cal.com event type ID → slug mapping
+// Cal.com webhooks don't reliably include the slug, so we map from the numeric ID
+const EVENT_TYPE_ID_TO_SLUG = {
+  4835888: 'range-injections',
+  4835890: 'new-patient-blood-draw',        // legacy "Elite" variant
+  4835900: 'injection-weight-loss',
+  4835902: 'injection-peptide',
+  4858865: 'new-patient-blood-draw',
+  4858866: 'follow-up-blood-draw',
+  4858867: 'initial-lab-review',
+  4858868: 'follow-up-lab-review',
+  4858872: 'injection-testosterone',
+  4858873: 'injection-weight-loss',
+  4858874: 'injection-peptide',
+  4858877: 'red-light-therapy',
+  4858878: 'range-iv',
+  4858886: 'initial-consultation',
+  4858888: 'follow-up-consultation',
+  4969224: 'specialty-iv',
+  5077412: 'follow-up-consultation-telemedicine',
+  5077413: 'follow-up-consultation-phone',
+};
+
+// Derive slug from service_name when ID mapping and payload slug are both missing
+function deriveSlugFromTitle(title) {
+  if (!title) return null;
+  const t = title.toLowerCase();
+  if (t.includes('new patient blood draw')) return 'new-patient-blood-draw';
+  if (t.includes('follow up blood draw') || t.includes('follow-up blood draw')) return 'follow-up-blood-draw';
+  if (t.includes('initial lab review')) return 'initial-lab-review';
+  if (t.includes('follow up lab review') || t.includes('follow-up lab review')) return 'follow-up-lab-review';
+  if (t.includes('injection - testosterone') || t.includes('injection-testosterone')) return 'injection-testosterone';
+  if (t.includes('injection - weight loss') || t.includes('injection-weight loss')) return 'injection-weight-loss';
+  if (t.includes('injection - peptide') || t.includes('injection-peptide')) return 'injection-peptide';
+  if (t.includes('red light therapy')) return 'red-light-therapy';
+  if (t.includes('range iv')) return 'range-iv';
+  if (t.includes('specialty iv')) return 'specialty-iv';
+  if (t.includes('range injections')) return 'range-injections';
+  if (t.includes('hbot')) return 'hbot';
+  if (t.includes('nad') && t.includes('iv')) return 'nad-iv-500';
+  if (t.includes('nad') && t.includes('injection')) return 'nad-injection';
+  if (t.includes('vitamin c') && t.includes('iv')) return 'vitamin-c-iv';
+  if (t.includes('methylene blue') && t.includes('iv')) return 'methylene-blue-iv';
+  if (t.includes('mb combo')) return 'mb-combo-iv';
+  if (t.includes('glutathione') && t.includes('iv')) return 'glutathione-iv';
+  if (t.includes('follow-up consultation') && t.includes('telemedicine')) return 'follow-up-consultation-telemedicine';
+  if (t.includes('follow-up consultation') && t.includes('phone')) return 'follow-up-consultation-phone';
+  if (t.includes('follow-up consultation') || t.includes('follow up consultation')) return 'follow-up-consultation';
+  if (t.includes('initial consultation')) return 'initial-consultation';
+  if (t.includes('injection - medical') || t.includes('injection-medical')) return 'injection-medical';
+  return null;
+}
+
 export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -101,9 +154,15 @@ export default async function handler(req, res) {
     const attendee = bookingData.attendees?.[0] || {};
     const startTime = bookingData.startTime;
     const endTime = bookingData.endTime;
-    const eventTitle = bookingData.title || bookingData.eventTitle;
+    const rawEventTitle = bookingData.title || bookingData.eventTitle;
+    // Strip "between Provider and Patient" from CalCom titles for patient-facing messages
+    const eventTitle = rawEventTitle ? rawEventTitle.replace(/\s+between\s+.+$/i, '') : rawEventTitle;
     const eventTypeId = bookingData.eventTypeId;
-    const eventTypeSlug = bookingData.eventType?.slug || bookingData.slug;
+    // Resolve slug: try payload first, then ID mapping, then derive from title
+    const eventTypeSlug = bookingData.eventType?.slug
+      || bookingData.slug
+      || EVENT_TYPE_ID_TO_SLUG[eventTypeId]
+      || deriveSlugFromTitle(eventTitle);
 
     // Extract host/staff info
     const host = bookingData.organizer || bookingData.user || {};
@@ -164,6 +223,7 @@ export default async function handler(req, res) {
           patient_id: patientId,
           patient_name: attendee.name,
           patient_email: attendee.email,
+          patient_phone: attendee.phone || null,
           service_name: eventTitle,
           service_slug: eventTypeSlug,
           calcom_event_type_id: eventTypeId,
@@ -236,15 +296,33 @@ export default async function handler(req, res) {
       }).catch(err => console.error('Provider SMS notification failed:', err));
 
       // Send patient notification — email + SMS with quiet hours (fire-and-forget)
-      if (attendee.email && !attendee.email.endsWith('@booking.rangemedical.com')) {
+      // For staff-booked appointments (@booking.rangemedical.com), look up real email/phone
+      // from patients table so the patient still gets their confirmation + prep instructions
+      const isStaffBooked = attendee.email?.endsWith('@booking.rangemedical.com');
+      let patientEmail = isStaffBooked ? null : attendee.email;
+      let patientPhone = attendee.phone || null;
+
+      if (isStaffBooked && patientId) {
+        const { data: patientRecord } = await supabase
+          .from('patients')
+          .select('email, phone')
+          .eq('id', patientId)
+          .single();
+        if (patientRecord) {
+          patientEmail = patientRecord.email || null;
+          patientPhone = patientRecord.phone || patientPhone;
+        }
+      }
+
+      if (patientEmail || patientPhone) {
         const bookingLocation = bookingData.location || bookingData.metadata?.location || null;
         sendAppointmentNotification({
           type: 'confirmation',
           patient: {
             id: patientId,
             name: attendee.name,
-            email: attendee.email,
-            phone: attendee.phone || null,
+            email: patientEmail,
+            phone: patientPhone,
           },
           appointment: {
             serviceName: eventTitle,
@@ -308,22 +386,42 @@ export default async function handler(req, res) {
       }).catch(err => console.error('Provider SMS cancel failed:', err));
 
       // Send patient cancellation notification (fire-and-forget)
-      if (attendee.email && !attendee.email.endsWith('@booking.rangemedical.com')) {
-        sendAppointmentNotification({
-          type: 'cancellation',
-          patient: {
-            id: existing?.patient_id || null,
-            name: attendee.name,
-            email: attendee.email,
-            phone: attendee.phone || null,
-          },
-          appointment: {
-            serviceName: eventTitle,
-            startTime,
-            endTime,
-            durationMinutes,
-          },
-        }).catch(err => console.error('Patient cancellation notification failed:', err));
+      // For staff-booked appointments, look up real contact info from patients table
+      {
+        const cancelPatientId = existing?.patient_id || null;
+        const isCancelStaffBooked = attendee.email?.endsWith('@booking.rangemedical.com');
+        let cancelEmail = isCancelStaffBooked ? null : attendee.email;
+        let cancelPhone = attendee.phone || null;
+
+        if (isCancelStaffBooked && cancelPatientId) {
+          const { data: cancelPatient } = await supabase
+            .from('patients')
+            .select('email, phone')
+            .eq('id', cancelPatientId)
+            .single();
+          if (cancelPatient) {
+            cancelEmail = cancelPatient.email || null;
+            cancelPhone = cancelPatient.phone || cancelPhone;
+          }
+        }
+
+        if (cancelEmail || cancelPhone) {
+          sendAppointmentNotification({
+            type: 'cancellation',
+            patient: {
+              id: cancelPatientId,
+              name: attendee.name,
+              email: cancelEmail,
+              phone: cancelPhone,
+            },
+            appointment: {
+              serviceName: eventTitle,
+              startTime,
+              endTime,
+              durationMinutes,
+            },
+          }).catch(err => console.error('Patient cancellation notification failed:', err));
+        }
       }
 
       return res.status(200).json({ success: true, message: 'Booking cancelled', action: 'cancelled' });
@@ -373,30 +471,49 @@ export default async function handler(req, res) {
       }).catch(err => console.error('Provider SMS reschedule failed:', err));
 
       // Send patient reschedule notification (fire-and-forget)
-      if (attendee.email && !attendee.email.endsWith('@booking.rangemedical.com')) {
-        // Look up patient_id from calcom_bookings
+      // For staff-booked appointments, look up real contact info from patients table
+      {
         const { data: rescheduledBooking } = await supabase
           .from('calcom_bookings')
           .select('patient_id')
           .eq('calcom_uid', calcomUid)
           .single();
 
-        sendAppointmentNotification({
-          type: 'reschedule',
-          patient: {
-            id: rescheduledBooking?.patient_id || null,
-            name: attendee.name,
-            email: attendee.email,
-            phone: attendee.phone || null,
-          },
-          appointment: {
-            serviceName: eventTitle,
-            startTime,
-            endTime,
-            durationMinutes,
-            serviceSlug: eventTypeSlug,
-          },
-        }).catch(err => console.error('Patient reschedule notification failed:', err));
+        const reschedPatientId = rescheduledBooking?.patient_id || null;
+        const isReschedStaffBooked = attendee.email?.endsWith('@booking.rangemedical.com');
+        let reschedEmail = isReschedStaffBooked ? null : attendee.email;
+        let reschedPhone = attendee.phone || null;
+
+        if (isReschedStaffBooked && reschedPatientId) {
+          const { data: reschedPatient } = await supabase
+            .from('patients')
+            .select('email, phone')
+            .eq('id', reschedPatientId)
+            .single();
+          if (reschedPatient) {
+            reschedEmail = reschedPatient.email || null;
+            reschedPhone = reschedPatient.phone || reschedPhone;
+          }
+        }
+
+        if (reschedEmail || reschedPhone) {
+          sendAppointmentNotification({
+            type: 'reschedule',
+            patient: {
+              id: reschedPatientId,
+              name: attendee.name,
+              email: reschedEmail,
+              phone: reschedPhone,
+            },
+            appointment: {
+              serviceName: eventTitle,
+              startTime,
+              endTime,
+              durationMinutes,
+              serviceSlug: eventTypeSlug,
+            },
+          }).catch(err => console.error('Patient reschedule notification failed:', err));
+        }
       }
 
       return res.status(200).json({ success: true, message: 'Booking rescheduled', action: 'rescheduled' });

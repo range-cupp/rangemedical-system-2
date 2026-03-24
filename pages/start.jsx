@@ -16,7 +16,6 @@ const supabase = createClient(
 const DOORS = [
   {
     id: 'injury',
-    icon: '🩹',
     title: 'Injury Recovery',
     subtitle: 'Sports injuries, post-surgical recovery, chronic pain, or just not healing like you should. We usually start with a focused recovery visit — no labs up front.',
     color: '#DC2626',
@@ -24,7 +23,6 @@ const DOORS = [
   },
   {
     id: 'energy',
-    icon: '⚡',
     title: 'Energy, Hormones, or Weight Loss',
     subtitle: "Fatigue, brain fog, weight gain, low libido, or just not feeling like yourself. We start with labs — you'll choose an Essential or Elite panel on the next screen.",
     color: '#16A34A',
@@ -217,7 +215,11 @@ export default function StartPage() {
     <Layout title="Start Here | Range Medical" description="Not feeling like yourself? Tell us what you're dealing with and we'll show you the best next step.">
       <Head>
         <style>{`
-          .start-page { color: #171717; }
+          .start-page {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            color: #171717;
+          }
 
           /* Animations */
           .start-animate {
@@ -230,32 +232,43 @@ export default function StartPage() {
             transform: translateY(0);
           }
 
-          /* Hero */
+          /* Hero — V2: left-aligned, hairline rule */
           .start-hero {
-            padding: 80px 20px 60px;
-            text-align: center;
-            max-width: 720px;
+            padding: 6rem 2rem 5rem;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            max-width: 1200px;
             margin: 0 auto;
           }
           .start-hero h1 {
-            font-size: 42px;
-            font-weight: 700;
-            line-height: 1.15;
-            margin: 0 0 16px;
+            font-size: 2.75rem;
+            font-weight: 900;
+            line-height: 0.95;
             letter-spacing: -0.02em;
+            text-transform: uppercase;
+            margin: 0 0 1.5rem;
+            max-width: 680px;
+            color: #171717;
+          }
+          .start-hero-rule {
+            width: 48px;
+            height: 1px;
+            background: #e0e0e0;
+            margin-bottom: 1.5rem;
           }
           .start-hero p {
-            font-size: 18px;
-            color: #525252;
-            line-height: 1.6;
-            margin: 0 0 40px;
+            font-size: 1.0625rem;
+            color: #737373;
+            line-height: 1.7;
+            margin: 0 0 2.5rem;
+            max-width: 600px;
           }
 
-          /* Video placeholder */
+          /* Video */
           .start-video-wrap {
             max-width: 640px;
-            margin: 0 auto;
-            border-radius: 12px;
             overflow: hidden;
             background: #000;
             aspect-ratio: 16/9;
@@ -271,7 +284,6 @@ export default function StartPage() {
           .start-video-placeholder .play-icon {
             width: 64px;
             height: 64px;
-            border-radius: 50%;
             background: rgba(255,255,255,0.15);
             display: flex;
             align-items: center;
@@ -295,49 +307,45 @@ export default function StartPage() {
             padding: 40px 20px 60px;
           }
           .start-doors h2 {
-            text-align: center;
-            font-size: 28px;
-            font-weight: 700;
-            margin: 0 0 12px;
+            font-size: 2rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+            line-height: 0.95;
+            margin: 0 0 1rem;
           }
           .start-doors > p {
-            text-align: center;
-            font-size: 16px;
+            font-size: 1.0625rem;
             color: #737373;
-            margin: 0 0 40px;
+            line-height: 1.7;
+            margin: 0 0 2.5rem;
           }
           .start-doors-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
+            gap: 0;
             max-width: 700px;
-            margin: 0 auto;
+            border: 1px solid #e0e0e0;
           }
           .start-door-card {
-            border: 2px solid #e5e5e5;
-            border-radius: 16px;
-            padding: 32px 24px;
-            text-align: center;
+            border-right: 1px solid #e0e0e0;
+            padding: 2.5rem 2rem;
             cursor: pointer;
             transition: all 0.25s ease;
             background: #fff;
           }
+          .start-door-card:last-child {
+            border-right: none;
+          }
           .start-door-card:hover {
-            border-color: #a3a3a3;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            background: #fafafa;
           }
           .start-door-card.selected {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-          }
-          .start-door-icon {
-            font-size: 40px;
-            margin-bottom: 16px;
+            background: #fafafa;
           }
           .start-door-card h3 {
-            font-size: 17px;
-            font-weight: 600;
+            font-size: 1.125rem;
+            font-weight: 700;
             line-height: 1.4;
             margin: 0 0 8px;
           }
@@ -356,8 +364,7 @@ export default function StartPage() {
           }
           .start-form-card {
             background: #fafafa;
-            border: 1px solid #e5e5e5;
-            border-radius: 16px;
+            border: 1px solid #e0e0e0;
             padding: 40px 32px;
           }
           .start-form-card h3 {
@@ -391,8 +398,7 @@ export default function StartPage() {
           .start-field textarea {
             width: 100%;
             padding: 12px 14px;
-            border: 1px solid #d4d4d4;
-            border-radius: 8px;
+            border: 1px solid #e0e0e0;
             font-size: 15px;
             font-family: inherit;
             background: #fff;
@@ -419,16 +425,14 @@ export default function StartPage() {
             flex: 1;
             -webkit-appearance: none;
             height: 6px;
-            border-radius: 3px;
-            background: #e5e5e5;
+            background: #e0e0e0;
             outline: none;
           }
           .start-urgency input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             width: 22px;
             height: 22px;
-            border-radius: 50%;
-            background: #171717;
+            background: #1a1a1a;
             cursor: pointer;
           }
           .start-urgency-val {
@@ -436,6 +440,7 @@ export default function StartPage() {
             font-weight: 700;
             min-width: 28px;
             text-align: center;
+            color: #c4a882;
           }
 
           /* Toggle */
@@ -461,12 +466,11 @@ export default function StartPage() {
           .start-toggle-track {
             position: absolute;
             inset: 0;
-            border-radius: 13px;
             background: #d4d4d4;
             transition: background 0.2s;
           }
           .start-toggle input:checked + .start-toggle-track {
-            background: #171717;
+            background: #1a1a1a;
           }
           .start-toggle-knob {
             position: absolute;
@@ -474,7 +478,6 @@ export default function StartPage() {
             left: 3px;
             width: 20px;
             height: 20px;
-            border-radius: 50%;
             background: #fff;
             transition: transform 0.2s;
             box-shadow: 0 1px 3px rgba(0,0,0,0.15);
@@ -485,8 +488,7 @@ export default function StartPage() {
 
           /* File upload */
           .start-file-upload {
-            border: 2px dashed #d4d4d4;
-            border-radius: 8px;
+            border: 2px dashed #e0e0e0;
             padding: 20px;
             text-align: center;
             cursor: pointer;
@@ -520,7 +522,7 @@ export default function StartPage() {
             margin-top: 3px;
             width: 18px;
             height: 18px;
-            accent-color: #171717;
+            accent-color: #1a1a1a;
           }
           .start-consent label {
             font-size: 13px;
@@ -528,16 +530,17 @@ export default function StartPage() {
             line-height: 1.5;
           }
 
-          /* Submit */
+          /* Buttons — V2: no border-radius, 11px, 700 weight, uppercase */
           .start-submit-btn {
             width: 100%;
-            padding: 16px;
-            background: #171717;
+            padding: 0.875rem 2rem;
+            background: #1a1a1a;
             color: #fff;
             border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
             cursor: pointer;
             transition: background 0.2s;
             font-family: inherit;
@@ -553,7 +556,6 @@ export default function StartPage() {
             background: #FEF2F2;
             color: #DC2626;
             padding: 12px 16px;
-            border-radius: 8px;
             font-size: 14px;
             margin-bottom: 16px;
           }
@@ -568,7 +570,6 @@ export default function StartPage() {
           .start-step-dot {
             width: 28px;
             height: 28px;
-            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -576,7 +577,7 @@ export default function StartPage() {
             font-weight: 700;
           }
           .start-step-dot.active {
-            background: #171717;
+            background: #1a1a1a;
             color: #fff;
           }
           .start-step-dot.done {
@@ -584,13 +585,13 @@ export default function StartPage() {
             color: #fff;
           }
           .start-step-dot.upcoming {
-            background: #e5e5e5;
+            background: #e0e0e0;
             color: #a3a3a3;
           }
           .start-step-line {
             width: 32px;
             height: 2px;
-            background: #e5e5e5;
+            background: #e0e0e0;
           }
           .start-step-line.done {
             background: #16a34a;
@@ -600,7 +601,6 @@ export default function StartPage() {
           .start-offer-banner {
             background: #f0fdf4;
             border: 1px solid #bbf7d0;
-            border-radius: 10px;
             padding: 16px 20px;
             margin-bottom: 24px;
             text-align: center;
@@ -619,16 +619,17 @@ export default function StartPage() {
             line-height: 1.5;
           }
 
-          /* Continue button (step 1) */
+          /* Continue button (step 1) — V2 */
           .start-continue-btn {
             width: 100%;
-            padding: 16px;
-            background: #171717;
+            padding: 0.875rem 2rem;
+            background: #1a1a1a;
             color: #fff;
             border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
             cursor: pointer;
             transition: background 0.2s;
             font-family: inherit;
@@ -655,43 +656,49 @@ export default function StartPage() {
             color: #171717;
           }
 
-          /* How it works */
+          /* How it works — V2 */
           .start-how {
-            max-width: 720px;
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 60px 20px;
-            border-top: 1px solid #e5e5e5;
+            padding: 6rem 2rem;
+            border-top: 1px solid #e0e0e0;
           }
           .start-how h2 {
-            text-align: center;
-            font-size: 28px;
-            font-weight: 700;
-            margin: 0 0 40px;
+            font-size: 2rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+            line-height: 0.95;
+            margin: 0 0 2.5rem;
           }
           .start-steps {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 32px;
+            gap: 0;
+            border: 1px solid #e0e0e0;
           }
           .start-step {
-            text-align: center;
+            padding: 2rem;
+            border-right: 1px solid #e0e0e0;
+          }
+          .start-step:last-child {
+            border-right: none;
           }
           .start-step-num {
             width: 40px;
             height: 40px;
-            border-radius: 50%;
-            background: #171717;
-            color: #fff;
+            background: #1a1a1a;
+            color: #c4a882;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 16px;
-            font-weight: 700;
-            margin: 0 auto 12px;
+            font-weight: 900;
+            margin: 0 0 12px;
           }
           .start-step h4 {
             font-size: 15px;
-            font-weight: 600;
+            font-weight: 700;
             margin: 0 0 6px;
           }
           .start-step p {
@@ -702,17 +709,32 @@ export default function StartPage() {
           }
 
           @media (max-width: 768px) {
-            .start-hero { padding: 60px 20px 40px; }
-            .start-hero h1 { font-size: 30px; }
-            .start-hero p { font-size: 16px; }
+            .start-hero { padding: 4rem 1.5rem 3rem; }
+            .start-hero h1 { font-size: 2rem; }
+            .start-hero p { font-size: 1rem; }
             .start-doors-grid {
               grid-template-columns: 1fr;
-              gap: 12px;
             }
-            .start-door-card { padding: 24px 20px; }
+            .start-door-card {
+              border-right: none;
+              border-bottom: 1px solid #e0e0e0;
+            }
+            .start-door-card:last-child {
+              border-bottom: none;
+            }
+            .start-door-card { padding: 2rem 1.5rem; }
             .start-form-card { padding: 28px 20px; }
             .start-form-row { grid-template-columns: 1fr; gap: 0; }
-            .start-steps { grid-template-columns: 1fr; gap: 24px; }
+            .start-steps {
+              grid-template-columns: 1fr;
+            }
+            .start-step {
+              border-right: none;
+              border-bottom: 1px solid #e0e0e0;
+            }
+            .start-step:last-child {
+              border-bottom: none;
+            }
           }
         `}</style>
       </Head>
@@ -720,7 +742,9 @@ export default function StartPage() {
       <div className="start-page">
         {/* Hero */}
         <section className="start-hero">
-          <h1 className={animClass('hero-h1')} data-anim-id="hero-h1">Not feeling like yourself?<br />Start here.</h1>
+          <div className="v2-label"><span className="v2-dot" /> Start Here</div>
+          <h1 className={animClass('hero-h1')} data-anim-id="hero-h1">NOT FEELING LIKE YOURSELF?<br />START HERE.</h1>
+          <div className="start-hero-rule" />
           <p className={animClass('hero-p')} data-anim-id="hero-p">
             Tell us what you're dealing with, and we'll show you the best next step. Takes about 3 minutes.
           </p>
@@ -740,7 +764,8 @@ export default function StartPage() {
 
         {/* Pick Your Door */}
         <section className="start-doors">
-          <h2 className={animClass('doors-h2')} data-anim-id="doors-h2">What brings you in?</h2>
+          <div className="v2-label" style={{ marginBottom: '1rem' }}><span className="v2-dot" /> What Brings You In</div>
+          <h2 className={animClass('doors-h2')} data-anim-id="doors-h2">WHAT BRINGS YOU IN?</h2>
           <p className={animClass('doors-p')} data-anim-id="doors-p">Pick the one that fits best. We'll take it from there.</p>
 
           <div className="start-doors-grid">
@@ -756,7 +781,6 @@ export default function StartPage() {
                 }
                 onClick={() => handleDoorClick(door.id)}
               >
-                <div className="start-door-icon">{door.icon}</div>
                 <h3>{door.title}</h3>
                 <p>{door.subtitle}</p>
               </div>
@@ -768,7 +792,8 @@ export default function StartPage() {
 
         {/* How It Works */}
         <section className="start-how">
-          <h2 className={animClass('how-h2')} data-anim-id="how-h2">How Range Works</h2>
+          <div className="v2-label" style={{ marginBottom: '1rem' }}><span className="v2-dot" /> How It Works</div>
+          <h2 className={animClass('how-h2')} data-anim-id="how-h2">HOW RANGE WORKS</h2>
           <div className="start-steps">
             <div className={`start-step ${animClass('step-1')}`} data-anim-id="step-1">
               <div className="start-step-num">1</div>

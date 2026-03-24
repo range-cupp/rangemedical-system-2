@@ -86,7 +86,7 @@ export default function InjectionTherapy() {
     },
     {
       question: 'How long does an injection take?',
-      answer: 'Under 5 minutes. Most injections are intramuscular — quick, simple, and done. No IV line needed.'
+      answer: 'Under 5 minutes. Most injections are intramuscular \u2014 quick, simple, and done. No IV line needed.'
     },
     {
       question: 'How often should I get injections?',
@@ -98,7 +98,7 @@ export default function InjectionTherapy() {
     },
     {
       question: 'What\'s the difference between an injection and an IV?',
-      answer: 'An injection is a quick intramuscular shot — in and out in minutes. An IV delivers a larger volume of fluids and nutrients over 30-60 minutes through an IV line. Both bypass digestion for full absorption.'
+      answer: 'An injection is a quick intramuscular shot \u2014 in and out in minutes. An IV delivers a larger volume of fluids and nutrients over 30-60 minutes through an IV line. Both bypass digestion for full absorption.'
     },
     {
       question: 'Can I combine multiple injections?',
@@ -210,22 +210,23 @@ export default function InjectionTherapy() {
       <div className="trust-bar">
         <div className="trust-inner">
           <span className="trust-item">
-            <span className="trust-rating">★★★★★</span> 5.0 on Google
+            <span className="trust-rating">&#9733;&#9733;&#9733;&#9733;&#9733;</span> 5.0 on Google
           </span>
-          <span className="trust-item">📍 Newport Beach, CA</span>
-          <span className="trust-item">✓ Walk-ins Welcome</span>
+          <span className="trust-item">Newport Beach, CA</span>
+          <span className="trust-item">Walk-ins Welcome</span>
         </div>
       </div>
 
       <div className="inj-page">
         {/* Hero */}
         <section className="inj-hero">
-          <div className="inj-kicker">Vitamins · Nutrients · NAD+</div>
-          <h1>Your Guide to Injection Therapy</h1>
+          <div className="v2-label"><span className="v2-dot" /> Vitamins &middot; Nutrients &middot; NAD+</div>
+          <h1>Your Guide to<br />Injection Therapy</h1>
+          <div className="inj-hero-rule" />
           <p className="inj-body-text">Fast, targeted vitamin and nutrient injections. No IV needed. In and out in 5 minutes.</p>
           <div className="inj-hero-scroll">
             Scroll to explore
-            <span>↓</span>
+            <span>&darr;</span>
           </div>
         </section>
 
@@ -233,11 +234,11 @@ export default function InjectionTherapy() {
         <section className="inj-section inj-section-alt">
           <div className="inj-container">
             <div className="inj-animate">
-              <div className="inj-kicker">What Is Injection Therapy</div>
-              <h2>Skip the gut. Get exactly what you need.</h2>
+              <div className="v2-label"><span className="v2-dot" /> What Is Injection Therapy</div>
+              <h2>Skip the Gut.<br />Get Exactly What<br />You Need.</h2>
               <div className="inj-divider"></div>
               <p className="inj-body-text">
-                When you take vitamins orally, your body only absorbs a fraction. Injections deliver nutrients directly to your bloodstream — 100% absorption, zero guesswork.
+                When you take vitamins orally, your body only absorbs a fraction. Injections deliver nutrients directly to your bloodstream &mdash; 100% absorption, zero guesswork.
               </p>
               <p className="inj-body-text" style={{ marginTop: '1rem' }}>
                 At Range Medical in Newport Beach, we offer a full menu of vitamin and nutrient injections for energy, immune support, recovery, weight loss, and general wellness. Great on their own or between IVs for ongoing support.
@@ -255,7 +256,7 @@ export default function InjectionTherapy() {
               </div>
               <div className="inj-stat-item inj-animate">
                 <div className="inj-stat-number">17+</div>
-                <div className="inj-stat-label">Injection options<br />standard, premium & NAD+</div>
+                <div className="inj-stat-label">Injection options<br />standard, premium &amp; NAD+</div>
               </div>
             </div>
           </div>
@@ -265,8 +266,8 @@ export default function InjectionTherapy() {
         <section className="inj-section">
           <div className="inj-container">
             <div className="inj-animate">
-              <div className="inj-kicker">Standard Injections</div>
-              <h2>Essential vitamins & nutrients — $35 each</h2>
+              <div className="v2-label"><span className="v2-dot" /> Standard Injections</div>
+              <h2>Essential Vitamins<br />&amp; Nutrients &mdash;<br />$35 Each</h2>
               <div className="inj-divider"></div>
               <p className="inj-body-text">
                 Our core lineup of vitamin and nutrient injections. Targeted support for energy, immunity, recovery, and more.
@@ -291,8 +292,8 @@ export default function InjectionTherapy() {
         <section className="inj-section inj-section-alt">
           <div className="inj-container">
             <div className="inj-animate">
-              <div className="inj-kicker">Premium Injections</div>
-              <h2>Specialty formulas — $50 each</h2>
+              <div className="v2-label"><span className="v2-dot" /> Premium Injections</div>
+              <h2>Specialty Formulas<br />&mdash; $50 Each</h2>
               <div className="inj-divider"></div>
               <p className="inj-body-text">
                 Advanced injections for fat metabolism, detox, and skin health. Higher-concentration formulas for targeted results.
@@ -317,11 +318,11 @@ export default function InjectionTherapy() {
         <section className="inj-section">
           <div className="inj-container">
             <div className="inj-animate">
-              <div className="inj-kicker">NAD+ Injections</div>
-              <h2>Cellular energy at every dose — $0.50/mg</h2>
+              <div className="v2-label"><span className="v2-dot" /> NAD+ Injections</div>
+              <h2>Cellular Energy<br />at Every Dose &mdash;<br />$0.50/mg</h2>
               <div className="inj-divider"></div>
               <p className="inj-body-text">
-                NAD+ supports cellular energy, DNA repair, and healthy aging. Choose a dose based on your goals — from a quick boost to a full therapeutic dose.
+                NAD+ supports cellular energy, DNA repair, and healthy aging. Choose a dose based on your goals &mdash; from a quick boost to a full therapeutic dose.
               </p>
             </div>
 
@@ -341,11 +342,11 @@ export default function InjectionTherapy() {
         <section className="inj-section inj-section-alt">
           <div className="inj-container">
             <div className="inj-animate">
-              <div className="inj-kicker">Save More</div>
-              <h2>Injection Packages</h2>
+              <div className="v2-label"><span className="v2-dot" /> Save More</div>
+              <h2>Injection<br />Packages</h2>
               <div className="inj-divider"></div>
               <p className="inj-body-text">
-                Buy in bulk and save. Our injection packages are designed for patients on weekly or bi-weekly protocols — take your injections home and stay on track.
+                Buy in bulk and save. Our injection packages are designed for patients on weekly or bi-weekly protocols &mdash; take your injections home and stay on track.
               </p>
             </div>
 
@@ -378,7 +379,7 @@ export default function InjectionTherapy() {
             </div>
 
             <div className="inj-packages-note inj-animate">
-              <p>Packages are great for ongoing protocols. Your provider will walk you through self-administration — it's easier than you think.</p>
+              <p>Packages are great for ongoing protocols. Your provider will walk you through self-administration &mdash; it's easier than you think.</p>
             </div>
           </div>
         </section>
@@ -387,11 +388,11 @@ export default function InjectionTherapy() {
         <section className="inj-section inj-section-inverted">
           <div className="inj-container">
             <div className="inj-animate">
-              <div className="inj-kicker">Who It's For</div>
-              <h2>Targeted support for real goals.</h2>
+              <div className="v2-label"><span className="v2-dot" /> Who It&apos;s For</div>
+              <h2>Targeted Support<br />for Real Goals.</h2>
               <div className="inj-divider"></div>
               <p className="inj-body-text">
-                Whether you're looking for an energy boost, weight loss support, or just want to stay on top of your health — injections are a fast, affordable way to get what you need.
+                Whether you're looking for an energy boost, weight loss support, or just want to stay on top of your health &mdash; injections are a fast, affordable way to get what you need.
               </p>
             </div>
 
@@ -407,11 +408,11 @@ export default function InjectionTherapy() {
         <section className="inj-section inj-section-alt">
           <div className="inj-container">
             <div className="inj-animate">
-              <div className="inj-kicker">Why Injections</div>
-              <h2>The fastest way to feel the difference.</h2>
+              <div className="v2-label"><span className="v2-dot" /> Why Injections</div>
+              <h2>The Fastest Way<br />to Feel the<br />Difference.</h2>
               <div className="inj-divider"></div>
               <p className="inj-body-text">
-                Injections aren't just convenient — they're one of the most effective ways to deliver nutrients to your body. Here's why.
+                Injections aren't just convenient &mdash; they're one of the most effective ways to deliver nutrients to your body. Here's why.
               </p>
             </div>
 
@@ -430,17 +431,15 @@ export default function InjectionTherapy() {
         {/* FAQ */}
         <section className="inj-section-alt">
           <div className="inj-container">
-            <span className="inj-section-label">Questions</span>
-            <h2>Common Questions</h2>
+            <div className="v2-label"><span className="v2-dot" /> Questions</div>
+            <h2>Common<br />Questions</h2>
 
             <div className="inj-faq-list">
               {faqs.map((faq, index) => (
                 <div key={index} className={`inj-faq-item ${openFaq === index ? 'inj-faq-open' : ''}`}>
                   <button className="inj-faq-question" onClick={() => toggleFaq(index)}>
                     <span>{faq.question}</span>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d={openFaq === index ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} />
-                    </svg>
+                    <span className="inj-faq-toggle">{openFaq === index ? '\u2212' : '+'}</span>
                   </button>
                   <div className="inj-faq-answer">
                     <p>{faq.answer}</p>
@@ -455,13 +454,13 @@ export default function InjectionTherapy() {
         <section className="inj-section inj-section-inverted inj-cta-section">
           <div className="inj-container">
             <div className="inj-animate">
-              <div className="inj-kicker" style={{ marginBottom: '1.5rem' }}>Next Steps</div>
-              <h2 className="inj-cta-title">Ready to feel the difference?</h2>
+              <div className="v2-label" style={{ marginBottom: '1.5rem', justifyContent: 'center' }}><span className="v2-dot" /> Next Steps</div>
+              <h2 className="inj-cta-title">Ready to Feel<br />the Difference?</h2>
               <p className="inj-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
                 Walk-ins welcome for established patients. New to Range? Start with a quick assessment to get set up. Our Newport Beach team is ready to help.
               </p>
               <div className="inj-cta-buttons">
-                <Link href="/start" className="inj-btn-primary">Start Now</Link>
+                <Link href="/start" className="btn-white">Start Now</Link>
                 <div className="inj-cta-or">or</div>
                 <a href="tel:9499973988" className="inj-cta-phone">(949) 997-3988</a>
               </div>
@@ -471,12 +470,12 @@ export default function InjectionTherapy() {
       </div>
 
       <style jsx>{`
-        /* ===== INJECTION PAGE SCOPED STYLES ===== */
+        /* ===== INJECTION PAGE SCOPED STYLES — V2 ===== */
         .inj-page {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
           -webkit-font-smoothing: antialiased;
           background: #ffffff;
-          color: #171717;
+          color: #1a1a1a;
           overflow-x: hidden;
         }
 
@@ -496,73 +495,28 @@ export default function InjectionTherapy() {
         .inj-container {
           max-width: 1200px;
           margin: 0 auto;
-          padding: 0 1.5rem;
+          padding: 0 2rem;
         }
 
         /* Sections */
         .inj-section {
-          padding: 4rem 1.5rem;
+          padding: 6rem 2rem;
         }
 
         .inj-section-alt {
           background: #fafafa;
-          padding: 5rem 1.5rem;
-        }
-
-        .inj-section-label {
-          display: inline-block;
-          font-size: 0.75rem;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 0.75rem;
+          padding: 6rem 2rem;
         }
 
         .inj-section-inverted {
-          background: #000000;
+          background: #1a1a1a;
           color: #ffffff;
         }
 
-        /* Kicker */
-        .inj-kicker {
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 1rem;
+        .inj-section-inverted h2 {
+          color: #ffffff;
         }
 
-        .inj-section-inverted .inj-kicker {
-          color: rgba(255, 255, 255, 0.4);
-        }
-
-        /* Headlines */
-        .inj-page h1 {
-          font-size: 2.75rem;
-          font-weight: 700;
-          line-height: 1.15;
-          letter-spacing: -0.02em;
-          color: #171717;
-        }
-
-        .inj-page h2 {
-          font-size: 2rem;
-          font-weight: 700;
-          letter-spacing: -0.02em;
-          color: #171717;
-          margin-bottom: 1rem;
-        }
-
-        .inj-page h3 {
-          font-size: 1.125rem;
-          font-weight: 700;
-          color: #171717;
-        }
-
-        .inj-section-inverted h1,
-        .inj-section-inverted h2,
         .inj-section-inverted h3 {
           color: #ffffff;
         }
@@ -571,8 +525,8 @@ export default function InjectionTherapy() {
         .inj-body-text {
           font-size: 1.0625rem;
           font-weight: 400;
-          line-height: 1.7;
-          color: #525252;
+          line-height: 1.75;
+          color: #737373;
           max-width: 600px;
         }
 
@@ -583,8 +537,8 @@ export default function InjectionTherapy() {
         /* Divider */
         .inj-divider {
           width: 48px;
-          height: 2px;
-          background: #e5e5e5;
+          height: 1px;
+          background: #e0e0e0;
           margin: 1.25rem 0;
         }
 
@@ -592,53 +546,37 @@ export default function InjectionTherapy() {
           background: rgba(255, 255, 255, 0.12);
         }
 
-        /* Buttons */
-        .inj-btn-primary {
-          display: inline-block;
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          font-size: 0.875rem;
-          font-weight: 600;
-          padding: 0.875rem 2rem;
-          background: #ffffff;
-          color: #000000;
-          border: none;
-          border-radius: 8px;
-          cursor: pointer;
-          text-decoration: none;
-          transition: background 0.2s ease, transform 0.2s ease;
-        }
-
-        .inj-btn-primary:hover {
-          background: #e5e5e5;
-          transform: translateY(-1px);
-        }
-
         /* Hero */
         .inj-hero {
-          padding: 4rem 1.5rem 5rem;
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
+          padding: 6rem 2rem 7rem;
+          max-width: 1200px;
+          margin: 0 auto;
         }
 
         .inj-hero h1 {
-          max-width: 680px;
-          margin-bottom: 1.5rem;
+          max-width: 800px;
+          margin-bottom: 2rem;
+        }
+
+        .inj-hero-rule {
+          width: 100%;
+          max-width: 700px;
+          height: 1px;
+          background: #e0e0e0;
+          margin: 2rem 0;
         }
 
         .inj-hero .inj-body-text {
-          text-align: center;
-          margin: 0 auto 2.5rem;
+          max-width: 520px;
         }
 
         .inj-hero-scroll {
-          font-size: 0.75rem;
+          font-size: 11px;
           font-weight: 700;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.14em;
           text-transform: uppercase;
           color: #737373;
-          margin-top: 2rem;
+          margin-top: 3rem;
         }
 
         .inj-hero-scroll span {
@@ -667,11 +605,11 @@ export default function InjectionTherapy() {
 
         .inj-stat-number {
           font-size: 2.75rem;
-          font-weight: 800;
+          font-weight: 900;
           letter-spacing: -0.02em;
           line-height: 1;
           margin-bottom: 0.5rem;
-          color: #171717;
+          color: #c4a882;
         }
 
         .inj-stat-label {
@@ -687,8 +625,7 @@ export default function InjectionTherapy() {
           grid-template-columns: 1fr;
           gap: 0;
           margin-top: 2.5rem;
-          border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border: 1px solid #e0e0e0;
           overflow: hidden;
           background: #fafafa;
         }
@@ -702,7 +639,7 @@ export default function InjectionTherapy() {
           justify-content: space-between;
           align-items: center;
           padding: 1.25rem 1.5rem;
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
           background: #ffffff;
           transition: background 0.15s ease;
         }
@@ -729,8 +666,8 @@ export default function InjectionTherapy() {
 
         .inj-menu-name {
           font-size: 1rem;
-          font-weight: 700;
-          color: #171717;
+          font-weight: 800;
+          color: #1a1a1a;
           margin-bottom: 0.125rem;
         }
 
@@ -742,8 +679,8 @@ export default function InjectionTherapy() {
 
         .inj-menu-price {
           font-size: 1.125rem;
-          font-weight: 700;
-          color: #171717;
+          font-weight: 800;
+          color: #1a1a1a;
           margin-left: 2rem;
           flex-shrink: 0;
         }
@@ -752,27 +689,29 @@ export default function InjectionTherapy() {
         .inj-nad-grid {
           display: grid;
           grid-template-columns: repeat(5, 1fr);
-          gap: 1rem;
+          gap: 0;
           margin-top: 2.5rem;
+          border-top: 1px solid #e0e0e0;
+          border-left: 1px solid #e0e0e0;
         }
 
         .inj-nad-card {
           padding: 1.5rem 1rem;
-          border-radius: 10px;
-          border: 2px solid #e5e5e5;
+          border-right: 1px solid #e0e0e0;
+          border-bottom: 1px solid #e0e0e0;
           background: #fafafa;
           text-align: center;
-          transition: border-color 0.2s ease;
+          transition: background 0.2s ease;
         }
 
         .inj-nad-card:hover {
-          border-color: #171717;
+          background: #ffffff;
         }
 
         .inj-nad-dose {
           font-size: 1.5rem;
-          font-weight: 800;
-          color: #171717;
+          font-weight: 900;
+          color: #1a1a1a;
           margin-bottom: 0.25rem;
         }
 
@@ -785,63 +724,67 @@ export default function InjectionTherapy() {
 
         .inj-nad-price {
           font-size: 1.125rem;
-          font-weight: 600;
-          color: #525252;
+          font-weight: 700;
+          color: #c4a882;
         }
 
         /* Packages */
         .inj-packages-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 1.5rem;
+          gap: 0;
           margin-top: 2.5rem;
+          border-top: 1px solid #e0e0e0;
         }
 
         .inj-package-card {
           padding: 2.5rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
+          border-right: 1px solid #e0e0e0;
           background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          transition: background 0.2s ease;
+        }
+
+        .inj-package-card:last-child {
+          border-right: none;
         }
 
         .inj-package-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          background: #fafafa;
         }
 
         .inj-package-card-featured {
-          border: 2px solid #000000;
+          border-left: 3px solid #c4a882;
         }
 
         .inj-package-badge {
           display: inline-block;
-          font-size: 0.6875rem;
+          font-size: 11px;
           font-weight: 700;
           text-transform: uppercase;
-          letter-spacing: 0.05em;
+          letter-spacing: 0.1em;
           padding: 0.375rem 0.75rem;
-          background: #0891b2;
+          background: #1a1a1a;
           color: #ffffff;
-          border-radius: 4px;
           margin-bottom: 1rem;
         }
 
         .inj-package-badge-featured {
-          background: #000000;
+          background: #c4a882;
+          color: #ffffff;
         }
 
         .inj-package-card h3 {
           font-size: 1.25rem;
-          font-weight: 700;
-          color: #171717;
+          font-weight: 800;
+          color: #1a1a1a;
           margin-bottom: 0.75rem;
         }
 
         .inj-package-price {
           font-size: 2.25rem;
-          font-weight: 800;
-          color: #171717;
+          font-weight: 900;
+          color: #1a1a1a;
           letter-spacing: -0.02em;
           margin-bottom: 0.25rem;
         }
@@ -860,32 +803,31 @@ export default function InjectionTherapy() {
 
         .inj-package-list li {
           font-size: 0.9375rem;
-          color: #525252;
-          line-height: 1.7;
+          color: #737373;
+          line-height: 1.75;
           padding-left: 1.5rem;
           position: relative;
         }
 
         .inj-package-list li::before {
-          content: '✓';
+          content: '\u2013';
           position: absolute;
           left: 0;
-          color: #2E6B35;
+          color: #c4a882;
           font-weight: 700;
         }
 
         .inj-packages-note {
           margin-top: 2rem;
           padding: 1.25rem 1.5rem;
-          border-radius: 8px;
           background: #ffffff;
-          border: 1px solid #e5e5e5;
+          border: 1px solid #e0e0e0;
           text-align: center;
         }
 
         .inj-packages-note p {
           font-size: 0.9375rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.6;
           margin: 0;
         }
@@ -902,7 +844,6 @@ export default function InjectionTherapy() {
           font-size: 0.8125rem;
           font-weight: 600;
           padding: 0.75rem 1.5rem;
-          border-radius: 100px;
           border: 1px solid rgba(255, 255, 255, 0.08);
           background: rgba(255, 255, 255, 0.04);
           color: rgba(255, 255, 255, 0.6);
@@ -917,53 +858,57 @@ export default function InjectionTherapy() {
         .inj-benefits-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 1.25rem;
+          gap: 0;
           margin-top: 2.5rem;
+          border-top: 1px solid #e0e0e0;
         }
 
         .inj-benefit-card {
           padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
+          border-right: 1px solid #e0e0e0;
           background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          transition: background 0.2s ease;
+        }
+
+        .inj-benefit-card:nth-child(2n) {
+          border-right: none;
         }
 
         .inj-benefit-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          background: #fafafa;
         }
 
         .inj-benefit-number {
-          font-size: 0.75rem;
+          font-size: 0.8125rem;
           font-weight: 700;
           letter-spacing: 0.1em;
           text-transform: uppercase;
-          color: #737373;
+          color: #c4a882;
           margin-bottom: 1rem;
         }
 
         .inj-benefit-title {
           font-size: 1.125rem;
-          font-weight: 700;
-          color: #171717;
+          font-weight: 800;
+          color: #1a1a1a;
           margin-bottom: 0.75rem;
         }
 
         .inj-benefit-desc {
           font-size: 0.875rem;
-          line-height: 1.7;
-          color: #525252;
+          line-height: 1.75;
+          color: #737373;
         }
 
         /* FAQ */
         .inj-faq-list {
           max-width: 700px;
-          margin: 0 auto;
+          margin: 2rem auto 0;
         }
 
         .inj-faq-item {
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
         }
 
         .inj-faq-item:last-child {
@@ -986,18 +931,17 @@ export default function InjectionTherapy() {
         .inj-faq-question span {
           font-size: 1rem;
           font-weight: 600;
-          color: #171717;
+          color: #1a1a1a;
           padding-right: 1rem;
         }
 
-        .inj-faq-question svg {
+        .inj-faq-toggle {
           flex-shrink: 0;
+          font-size: 1.25rem;
+          font-weight: 300;
           color: #737373;
-          transition: transform 0.2s;
-        }
-
-        .inj-faq-open .inj-faq-question svg {
-          transform: rotate(180deg);
+          width: 24px;
+          text-align: center;
         }
 
         .inj-faq-answer {
@@ -1013,20 +957,18 @@ export default function InjectionTherapy() {
 
         .inj-faq-answer p {
           font-size: 0.9375rem;
-          color: #525252;
-          line-height: 1.7;
+          color: #737373;
+          line-height: 1.75;
           margin: 0;
         }
 
         /* CTA Section */
         .inj-cta-section {
-          padding: 6rem 1.5rem;
+          padding: 6rem 2rem;
           text-align: center;
         }
 
         .inj-cta-title {
-          font-size: 2.75rem;
-          letter-spacing: -0.02em;
           color: #ffffff;
           margin-bottom: 1.25rem;
         }
@@ -1040,9 +982,9 @@ export default function InjectionTherapy() {
         }
 
         .inj-cta-or {
-          font-size: 0.75rem;
+          font-size: 11px;
           font-weight: 700;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.14em;
           text-transform: uppercase;
           color: rgba(255, 255, 255, 0.25);
         }
@@ -1064,19 +1006,15 @@ export default function InjectionTherapy() {
         /* Responsive */
         @media (max-width: 768px) {
           .inj-section {
-            padding: 3rem 1.5rem;
+            padding: 4rem 1.5rem;
           }
 
-          .inj-page h1 {
-            font-size: 2rem;
-          }
-
-          .inj-page h2 {
-            font-size: 1.5rem;
+          .inj-section-alt {
+            padding: 4rem 1.5rem;
           }
 
           .inj-hero {
-            padding: 3rem 1.5rem;
+            padding: 4rem 1.5rem;
           }
 
           .inj-stat-row {
@@ -1092,12 +1030,16 @@ export default function InjectionTherapy() {
             grid-template-columns: 1fr;
           }
 
+          .inj-package-card {
+            border-right: none;
+          }
+
           .inj-benefits-grid {
             grid-template-columns: 1fr;
           }
 
-          .inj-cta-title {
-            font-size: 2rem;
+          .inj-benefit-card {
+            border-right: none;
           }
 
           .inj-cta-buttons {

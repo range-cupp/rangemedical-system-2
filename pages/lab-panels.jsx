@@ -1,5 +1,6 @@
 import Layout from '../components/Layout';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
 export default function LabPanels() {
@@ -294,62 +295,65 @@ export default function LabPanels() {
         <div className="trust-bar">
           <div className="trust-inner">
             <span className="trust-item">
-              <span className="trust-rating">★★★★★</span> 5.0 on Google
+              <span className="trust-rating">{'\u2605\u2605\u2605\u2605\u2605'}</span> 5.0 on Google
             </span>
-            <span className="trust-item">📍 Newport Beach, CA</span>
-            <span className="trust-item">✓ Licensed Providers</span>
+            <span className="trust-item">Newport Beach, CA</span>
+            <span className="trust-item">Licensed Providers</span>
           </div>
         </div>
 
         {/* Hero Section */}
-        <section className="lab-hero">
-          <div className="lab-kicker">Labs · Testing · Insights</div>
-          <h1>Your Guide to Lab Panels</h1>
-          <p className="lab-body-text">
-            Standard bloodwork misses a lot. Our panels go deeper — hormones, metabolism,
-            inflammation, and cardiovascular markers that tell you what's actually going on.
-          </p>
-          <div className="lab-hero-scroll">
-            Scroll to explore
-            <span>↓</span>
+        <section className="lp-hero">
+          <div className="lp-hero-inner">
+            <div className="v2-label"><span className="v2-dot" /> LABS &middot; TESTING &middot; INSIGHTS</div>
+            <h1>YOUR GUIDE<br />TO LAB PANELS</h1>
+            <div className="lp-hero-rule" />
+            <p className="lp-hero-body">
+              Standard bloodwork misses a lot. Our panels go deeper &mdash; hormones, metabolism,
+              inflammation, and cardiovascular markers that tell you what&apos;s actually going on.
+            </p>
+            <div className="lp-hero-scroll">
+              Scroll to explore
+              <span>{'\u2193'}</span>
+            </div>
           </div>
         </section>
 
         {/* Who It's For Section */}
-        <section id="lab-who" className={`lab-section-alt lab-animate ${isVisible['lab-who'] ? 'lab-visible' : ''}`}>
-          <div className="lab-container">
-            <span className="lab-section-label">Who It's For</span>
-            <h2>When to Get Tested</h2>
-            <p className="lab-section-intro">
+        <section id="lab-who" className={`lp-section-alt lab-animate ${isVisible['lab-who'] ? 'lab-visible' : ''}`}>
+          <div className="lp-container">
+            <div className="v2-label"><span className="v2-dot" /> WHO IT&apos;S FOR</div>
+            <h2>WHEN TO GET TESTED</h2>
+            <p className="lp-section-intro">
               Comprehensive labs give you answers that standard bloodwork misses.
             </p>
 
-            <div className="lab-signs-grid">
-              <div className="lab-sign-card">
-                <div className="lab-sign-icon">
+            <div className="lp-signs-grid">
+              <div className="lp-sign-card">
+                <div className="lp-sign-icon">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="12" cy="12" r="10"/>
                     <path d="M12 6v6l4 2"/>
                   </svg>
                 </div>
                 <h4>Tired All the Time</h4>
-                <p>Fatigue that doesn't improve with sleep or rest.</p>
+                <p>Fatigue that doesn&apos;t improve with sleep or rest.</p>
               </div>
 
-              <div className="lab-sign-card">
-                <div className="lab-sign-icon">
+              <div className="lp-sign-card">
+                <div className="lp-sign-icon">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                     <polyline points="14 2 14 8 20 8"/>
                     <line x1="16" y1="13" x2="8" y2="13"/>
                   </svg>
                 </div>
-                <h4>"Normal" Labs, Still Off</h4>
-                <p>Your doctor says you're fine, but you know something's wrong.</p>
+                <h4>&ldquo;Normal&rdquo; Labs, Still Off</h4>
+                <p>Your doctor says you&apos;re fine, but you know something&apos;s wrong.</p>
               </div>
 
-              <div className="lab-sign-card">
-                <div className="lab-sign-icon">
+              <div className="lp-sign-card">
+                <div className="lp-sign-icon">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
                   </svg>
@@ -358,8 +362,8 @@ export default function LabPanels() {
                 <p>Get a baseline before hormone optimization.</p>
               </div>
 
-              <div className="lab-sign-card">
-                <div className="lab-sign-icon">
+              <div className="lp-sign-card">
+                <div className="lp-sign-icon">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M12 20V10"/>
                     <path d="M18 20V4"/>
@@ -374,69 +378,70 @@ export default function LabPanels() {
         </section>
 
         {/* Panels Comparison Section */}
-        <section id="lab-panels" className={`lab-section lab-animate ${isVisible['lab-panels'] ? 'lab-visible' : ''}`}>
-          <div className="lab-container">
-            <span className="lab-section-label">Compare Panels</span>
-            <h2>Essential vs Elite</h2>
-            <p className="lab-section-intro">
-              See exactly what's included in each panel.
+        <section id="lab-panels" className={`lp-section lab-animate ${isVisible['lab-panels'] ? 'lab-visible' : ''}`}>
+          <div className="lp-container">
+            <div className="v2-label"><span className="v2-dot" /> COMPARE PANELS</div>
+            <h2>ESSENTIAL VS ELITE</h2>
+            <p className="lp-section-intro">
+              See exactly what&apos;s included in each panel.
             </p>
 
             {/* Gender Tabs */}
-            <div className="lab-tabs">
+            <div className="lp-tabs">
               <button
-                className={`lab-tab ${activeTab === 'men' ? 'lab-tab-active' : ''}`}
+                className={`lp-tab ${activeTab === 'men' ? 'lp-tab-active' : ''}`}
                 onClick={() => setActiveTab('men')}
               >
-                Men's Panels
+                MEN&apos;S PANELS
               </button>
               <button
-                className={`lab-tab ${activeTab === 'women' ? 'lab-tab-active' : ''}`}
+                className={`lp-tab ${activeTab === 'women' ? 'lp-tab-active' : ''}`}
                 onClick={() => setActiveTab('women')}
               >
-                Women's Panels
+                WOMEN&apos;S PANELS
               </button>
             </div>
 
             {/* Comparison Chart */}
-            <div className="lab-chart-wrapper">
-              <div className="lab-chart">
+            <div className="lp-chart-wrapper">
+              <div className="lp-chart">
                 {/* Header */}
-                <div className="lab-chart-header">
-                  <div className="lab-chart-marker-col">Biomarker</div>
-                  <div className="lab-chart-panel-col">
-                    <span className="lab-chart-panel-name">Essential</span>
-                    <span className="lab-chart-panel-price">$350</span>
+                <div className="lp-chart-header">
+                  <div className="lp-chart-marker-col">Biomarker</div>
+                  <div className="lp-chart-panel-col">
+                    <span className="lp-chart-panel-name">Essential</span>
+                    <span className="lp-chart-panel-price">$350</span>
                   </div>
-                  <div className="lab-chart-panel-col lab-chart-panel-featured">
-                    <span className="lab-chart-panel-name">Elite</span>
-                    <span className="lab-chart-panel-price">$750</span>
+                  <div className="lp-chart-panel-col lp-chart-panel-featured">
+                    <span className="lp-chart-panel-name">Elite</span>
+                    <span className="lp-chart-panel-price">$750</span>
                   </div>
                 </div>
 
                 {/* Instruction */}
-                <div className="lab-chart-hint">
-                  <span className="lab-chart-hint-icon">ℹ️</span>
+                <div className="lp-chart-hint">
                   <span>Tap any biomarker to learn why we test it</span>
                 </div>
 
                 {/* Rows */}
-                <div className="lab-chart-body">
+                <div className="lp-chart-body">
                   {(activeTab === 'men' ? menEssential : womenEssential).map((marker, index) => (
                     <div key={index}>
                       <div
-                        className={`lab-chart-row lab-chart-row-clickable ${expandedMarker === `essential-${index}` ? 'lab-chart-row-expanded' : ''}`}
+                        className={`lp-chart-row lp-chart-row-clickable ${expandedMarker === `essential-${index}` ? 'lp-chart-row-expanded' : ''}`}
                         onClick={() => toggleMarker(`essential-${index}`)}
                       >
-                        <div className="lab-chart-marker-col">
-                          <span className="lab-marker-name">{marker}</span>
-                          <span className={`lab-marker-arrow ${expandedMarker === `essential-${index}` ? 'lab-marker-arrow-up' : ''}`}>›</span>
+                        <div className="lp-chart-marker-col">
+                          <span className="lp-marker-name">{marker}</span>
+                          <span className={`lp-marker-toggle ${expandedMarker === `essential-${index}` ? 'lp-marker-toggle-open' : ''}`}>
+                            {expandedMarker === `essential-${index}` ? '\u2212' : '+'}
+                          </span>
                         </div>
-                        <div className="lab-chart-panel-col"><span className="lab-check">✓</span></div>
-                        <div className="lab-chart-panel-col lab-chart-panel-featured"><span className="lab-check">✓</span></div>
+                        <div className="lp-chart-panel-col"><span className="lp-check">{'\u2713'}</span></div>
+                        <div className="lp-chart-panel-col lp-chart-panel-featured"><span className="lp-check">{'\u2713'}</span></div>
                       </div>
                       {expandedMarker === `essential-${index}` && biomarkerInfo[marker] && (
-                        <div className="lab-chart-description">
+                        <div className="lp-chart-description">
                           <p>{biomarkerInfo[marker]}</p>
                         </div>
                       )}
@@ -445,18 +450,20 @@ export default function LabPanels() {
                   {(activeTab === 'men' ? menEliteExtra : womenEliteExtra).map((marker, index) => (
                     <div key={`elite-${index}`}>
                       <div
-                        className={`lab-chart-row lab-chart-row-elite lab-chart-row-clickable ${expandedMarker === `elite-${index}` ? 'lab-chart-row-expanded' : ''}`}
+                        className={`lp-chart-row lp-chart-row-elite lp-chart-row-clickable ${expandedMarker === `elite-${index}` ? 'lp-chart-row-expanded' : ''}`}
                         onClick={() => toggleMarker(`elite-${index}`)}
                       >
-                        <div className="lab-chart-marker-col">
-                          <span className="lab-marker-name">{marker}</span>
-                          <span className={`lab-marker-arrow ${expandedMarker === `elite-${index}` ? 'lab-marker-arrow-up' : ''}`}>›</span>
+                        <div className="lp-chart-marker-col">
+                          <span className="lp-marker-name">{marker}</span>
+                          <span className={`lp-marker-toggle ${expandedMarker === `elite-${index}` ? 'lp-marker-toggle-open' : ''}`}>
+                            {expandedMarker === `elite-${index}` ? '\u2212' : '+'}
+                          </span>
                         </div>
-                        <div className="lab-chart-panel-col"><span className="lab-dash">—</span></div>
-                        <div className="lab-chart-panel-col lab-chart-panel-featured"><span className="lab-check">✓</span></div>
+                        <div className="lp-chart-panel-col"><span className="lp-dash">&mdash;</span></div>
+                        <div className="lp-chart-panel-col lp-chart-panel-featured"><span className="lp-check">{'\u2713'}</span></div>
                       </div>
                       {expandedMarker === `elite-${index}` && biomarkerInfo[marker] && (
-                        <div className="lab-chart-description lab-chart-description-elite">
+                        <div className="lp-chart-description lp-chart-description-elite">
                           <p>{biomarkerInfo[marker]}</p>
                         </div>
                       )}
@@ -465,26 +472,26 @@ export default function LabPanels() {
                 </div>
 
                 {/* Footer with CTAs */}
-                <div className="lab-chart-footer">
-                  <div className="lab-chart-marker-col"></div>
-                  <div className="lab-chart-panel-col">
+                <div className="lp-chart-footer">
+                  <div className="lp-chart-marker-col"></div>
+                  <div className="lp-chart-panel-col">
                     <a
                       href={stripeLinks.essential[activeTab]}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="lab-btn-secondary-sm"
+                      className="lp-btn-sm"
                     >
-                      Book Essential
+                      BOOK ESSENTIAL
                     </a>
                   </div>
-                  <div className="lab-chart-panel-col lab-chart-panel-featured">
+                  <div className="lp-chart-panel-col lp-chart-panel-featured">
                     <a
                       href={stripeLinks.elite[activeTab]}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="lab-btn-primary-sm"
+                      className="lp-btn-sm-white"
                     >
-                      Book Elite
+                      BOOK ELITE
                     </a>
                   </div>
                 </div>
@@ -494,63 +501,63 @@ export default function LabPanels() {
         </section>
 
         {/* Which Panel Section */}
-        <section id="lab-which" className={`lab-section-alt lab-animate ${isVisible['lab-which'] ? 'lab-visible' : ''}`}>
-          <div className="lab-container">
-            <span className="lab-section-label">Which Panel?</span>
-            <h2>Which Panel Is Right For You?</h2>
+        <section id="lab-which" className={`lp-section-alt lab-animate ${isVisible['lab-which'] ? 'lab-visible' : ''}`}>
+          <div className="lp-container">
+            <div className="v2-label"><span className="v2-dot" /> WHICH PANEL?</div>
+            <h2>WHICH PANEL IS<br />RIGHT FOR YOU?</h2>
 
-            <div className="lab-compare-grid">
-              <div className="lab-compare-card">
-                <div className="lab-compare-card-header">
-                  <h4>Essential Panel</h4>
-                  <div className="lab-compare-price">$350</div>
-                  <div className="lab-compare-includes">Includes provider review visit</div>
+            <div className="lp-compare-grid">
+              <div className="lp-compare-card">
+                <div className="lp-compare-card-header">
+                  <h4>ESSENTIAL PANEL</h4>
+                  <div className="lp-compare-price">$350</div>
+                  <div className="lp-compare-includes">Includes provider review visit</div>
                 </div>
-                <p className="lab-compare-desc">A great first step to understand your health — hormones, thyroid, blood sugar, and more.</p>
+                <p className="lp-compare-desc">A great first step to understand your health &mdash; hormones, thyroid, blood sugar, and more.</p>
                 <ul>
-                  <li>You want a solid baseline of key health markers</li>
-                  <li>You're checking in after lifestyle changes</li>
-                  <li>You're new to comprehensive testing</li>
-                  <li>You want to track hormones and metabolic health</li>
-                  <li>You're monitoring HRT</li>
+                  <li><span className="lp-list-dash">&ndash;</span> You want a solid baseline of key health markers</li>
+                  <li><span className="lp-list-dash">&ndash;</span> You&apos;re checking in after lifestyle changes</li>
+                  <li><span className="lp-list-dash">&ndash;</span> You&apos;re new to comprehensive testing</li>
+                  <li><span className="lp-list-dash">&ndash;</span> You want to track hormones and metabolic health</li>
+                  <li><span className="lp-list-dash">&ndash;</span> You&apos;re monitoring HRT</li>
                 </ul>
                 <a
                   href={stripeLinks.essential[activeTab]}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="lab-btn-secondary"
+                  className="lp-btn-outline"
                 >
-                  Book Essential — $350
+                  BOOK ESSENTIAL &mdash; $350
                 </a>
               </div>
-              <div className="lab-compare-card lab-compare-featured">
-                <div className="lab-compare-badge">Most Complete</div>
-                <div className="lab-compare-card-header">
-                  <h4>Elite Panel</h4>
-                  <div className="lab-compare-price">$750</div>
-                  <div className="lab-compare-includes">Includes provider review visit</div>
+              <div className="lp-compare-card lp-compare-featured">
+                <div className="lp-compare-badge">MOST COMPLETE</div>
+                <div className="lp-compare-card-header">
+                  <h4>ELITE PANEL</h4>
+                  <div className="lp-compare-price">$750</div>
+                  <div className="lp-compare-includes">Includes provider review visit</div>
                 </div>
-                <p className="lab-compare-desc">The full picture — heart health, inflammation, vitamins, and advanced markers that basic tests miss.</p>
+                <p className="lp-compare-desc">The full picture &mdash; heart health, inflammation, vitamins, and advanced markers that basic tests miss.</p>
                 <ul>
-                  <li>You want the full picture of your health</li>
-                  <li>You're focused on longevity and optimization</li>
-                  <li>You have a family history of heart disease</li>
-                  <li>You want advanced cardiovascular markers</li>
-                  <li>You're serious about prevention</li>
+                  <li><span className="lp-list-dash">&ndash;</span> You want the full picture of your health</li>
+                  <li><span className="lp-list-dash">&ndash;</span> You&apos;re focused on longevity and optimization</li>
+                  <li><span className="lp-list-dash">&ndash;</span> You have a family history of heart disease</li>
+                  <li><span className="lp-list-dash">&ndash;</span> You want advanced cardiovascular markers</li>
+                  <li><span className="lp-list-dash">&ndash;</span> You&apos;re serious about prevention</li>
                 </ul>
                 <a
                   href={stripeLinks.elite[activeTab]}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="lab-btn-primary-card"
+                  className="lp-btn"
                 >
-                  Book Elite — $750
+                  BOOK ELITE &mdash; $750
                 </a>
               </div>
             </div>
-            <p className="lab-compare-note">
+            <p className="lp-compare-note">
               Viewing {activeTab === 'men' ? "Men's" : "Women's"} panels.{' '}
-              <button className="lab-compare-switch" onClick={() => setActiveTab(activeTab === 'men' ? 'women' : 'men')}>
+              <button className="lp-compare-switch" onClick={() => setActiveTab(activeTab === 'men' ? 'women' : 'men')}>
                 Switch to {activeTab === 'men' ? "Women's" : "Men's"}
               </button>
             </p>
@@ -558,32 +565,32 @@ export default function LabPanels() {
         </section>
 
         {/* Process Section */}
-        <section id="lab-process" className={`lab-section lab-animate ${isVisible['lab-process'] ? 'lab-visible' : ''}`}>
-          <div className="lab-container">
-            <span className="lab-section-label">How It Works</span>
-            <h2>From Order to Results</h2>
+        <section id="lab-process" className={`lp-section lab-animate ${isVisible['lab-process'] ? 'lab-visible' : ''}`}>
+          <div className="lp-container">
+            <div className="v2-label"><span className="v2-dot" /> HOW IT WORKS</div>
+            <h2>FROM ORDER<br />TO RESULTS</h2>
 
-            <div className="lab-process-grid">
-              <div className="lab-process-step">
-                <div className="lab-process-number">1</div>
+            <div className="lp-process-grid">
+              <div className="lp-process-step">
+                <div className="lp-process-number">01</div>
                 <h4>Book or Call</h4>
                 <p>Schedule an Assessment or call us directly to order your panel.</p>
               </div>
 
-              <div className="lab-process-step">
-                <div className="lab-process-number">2</div>
+              <div className="lp-process-step">
+                <div className="lp-process-number">02</div>
                 <h4>Get Your Draw</h4>
                 <p>Visit a local lab at your convenience. Fasting recommended.</p>
               </div>
 
-              <div className="lab-process-step">
-                <div className="lab-process-number">3</div>
-                <h4>Results in 3-5 Days</h4>
+              <div className="lp-process-step">
+                <div className="lp-process-number">03</div>
+                <h4>Results in 3&ndash;5 Days</h4>
                 <p>We receive your results and review them in detail.</p>
               </div>
 
-              <div className="lab-process-step">
-                <div className="lab-process-number">4</div>
+              <div className="lp-process-step">
+                <div className="lp-process-number">04</div>
                 <h4>Review Together</h4>
                 <p>Your provider explains everything and builds your plan.</p>
               </div>
@@ -592,21 +599,19 @@ export default function LabPanels() {
         </section>
 
         {/* FAQ Section */}
-        <section id="lab-faq" className={`lab-section-alt lab-animate ${isVisible['lab-faq'] ? 'lab-visible' : ''}`}>
-          <div className="lab-container">
-            <span className="lab-section-label">Questions</span>
-            <h2>Common Questions</h2>
+        <section id="lab-faq" className={`lp-section-alt lab-animate ${isVisible['lab-faq'] ? 'lab-visible' : ''}`}>
+          <div className="lp-container">
+            <div className="v2-label"><span className="v2-dot" /> QUESTIONS</div>
+            <h2>COMMON QUESTIONS</h2>
 
-            <div className="lab-faq-list">
+            <div className="lp-faq-list">
               {faqs.map((faq, index) => (
-                <div key={index} className={`lab-faq-item ${openFaq === index ? 'lab-faq-open' : ''}`}>
-                  <button className="lab-faq-question" onClick={() => toggleFaq(index)}>
+                <div key={index} className={`lp-faq-item ${openFaq === index ? 'lp-faq-open' : ''}`}>
+                  <button className="lp-faq-question" onClick={() => toggleFaq(index)}>
                     <span>{faq.question}</span>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d={openFaq === index ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} />
-                    </svg>
+                    <span className="lp-faq-toggle">{openFaq === index ? '\u2212' : '+'}</span>
                   </button>
-                  <div className="lab-faq-answer">
+                  <div className="lp-faq-answer">
                     <p>{faq.answer}</p>
                   </div>
                 </div>
@@ -616,185 +621,218 @@ export default function LabPanels() {
         </section>
 
         {/* CTA Section */}
-        <section className="lab-section-inverted">
-          <div className="lab-container">
-            <span className="lab-section-label-light">Get Started</span>
-            <h2>Ready to See What's Really Going On?</h2>
-            <p className="lab-cta-text">
-              Book your panel below and we'll get you scheduled for your blood draw. Results in 3–5 business days.
+        <section className="lp-section-inverted">
+          <div className="lp-container">
+            <div className="v2-label" style={{ justifyContent: 'center' }}><span className="v2-dot" style={{ background: '#c4a882' }} /> GET STARTED</div>
+            <h2>READY TO SEE WHAT&apos;S<br />REALLY GOING ON?</h2>
+            <p className="lp-cta-text">
+              Book your panel below and we&apos;ll get you scheduled for your blood draw. Results in 3&ndash;5 business days.
             </p>
-            <div className="lab-cta-buttons">
+            <div className="lp-cta-buttons">
               <a
                 href={stripeLinks.essential[activeTab]}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="lab-btn-white"
+                className="lp-btn-white"
               >
-                Essential — $350
+                ESSENTIAL &mdash; $350
               </a>
               <a
                 href={stripeLinks.elite[activeTab]}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="lab-btn-white-outline"
+                className="lp-btn-white-outline"
               >
-                Elite — $750
+                ELITE &mdash; $750
               </a>
             </div>
-            <p className="lab-cta-phone">
+            <p className="lp-cta-phone">
               Or call <a href="tel:9499973988">(949) 997-3988</a> to schedule labs directly
             </p>
-            <p className="lab-cta-location">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a3a3a3" strokeWidth="2">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                <circle cx="12" cy="10" r="3"/>
-              </svg>
-              Range Medical • 1901 Westcliff Dr, Newport Beach
+            <p className="lp-cta-location">
+              Range Medical &bull; 1901 Westcliff Dr, Newport Beach
             </p>
           </div>
         </section>
 
         <style jsx>{`
-          /* Hero Section */
-          .lab-kicker {
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: #737373;
-            margin-bottom: 1.25rem;
+          /* Hero */
+          .lp-hero {
+            padding: 6rem 2rem 5rem;
+            text-align: left;
           }
 
-          .lab-body-text {
-            font-size: 1.125rem;
-            color: #525252;
-            line-height: 1.7;
-            max-width: 620px;
-          }
-
-          .lab-hero {
-            padding: 4rem 1.5rem 5rem;
-            text-align: center;
+          .lp-hero-inner {
+            max-width: 1100px;
+            margin: 0 auto;
             display: flex;
             flex-direction: column;
-            align-items: center;
+            align-items: flex-start;
           }
 
-          .lab-hero h1 {
-            font-size: 2.75rem;
-            font-weight: 700;
-            color: #171717;
-            line-height: 1.15;
-            max-width: 680px;
+          .lp-hero h1 {
+            font-size: 3.5rem;
+            font-weight: 900;
+            color: #1a1a1a;
+            line-height: 0.95;
+            letter-spacing: -0.02em;
+            text-transform: uppercase;
             margin: 0 0 1.5rem;
           }
 
-          .lab-hero .lab-body-text {
-            text-align: center;
-            margin: 0 auto 2.5rem;
+          .lp-hero-rule {
+            width: 60px;
+            height: 1px;
+            background: #e0e0e0;
+            margin-bottom: 1.5rem;
           }
 
-          .lab-hero-scroll {
-            font-size: 0.75rem;
+          .lp-hero-body {
+            font-size: 1.0625rem;
+            color: #737373;
+            line-height: 1.7;
+            max-width: 540px;
+            margin: 0 0 2.5rem;
+          }
+
+          .lp-hero-scroll {
+            font-size: 11px;
             font-weight: 700;
-            letter-spacing: 0.1em;
+            letter-spacing: 0.12em;
             text-transform: uppercase;
             color: #737373;
             display: flex;
             flex-direction: column;
-            align-items: center;
+            align-items: flex-start;
           }
 
-          .lab-hero-scroll span {
+          .lp-hero-scroll span {
             display: block;
             margin-top: 0.75rem;
             font-size: 1.125rem;
-            animation: lab-bounce 2s ease-in-out infinite;
+            animation: lp-bounce 2s ease-in-out infinite;
           }
 
-          @keyframes lab-bounce {
+          @keyframes lp-bounce {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(6px); }
           }
 
-          :global(.lab-btn-primary) {
-            display: inline-block;
-            background: #000000 !important;
-            color: #ffffff !important;
-            padding: 1rem 2.5rem;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
+          /* Buttons */
+          .lp-btn {
+            display: block;
+            text-align: center;
+            background: #1a1a1a;
+            color: #ffffff;
+            padding: 0.875rem 2rem;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
             text-decoration: none;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
-            transition: all 0.2s ease;
-            cursor: pointer;
             border: none;
+            cursor: pointer;
+            transition: background 0.2s;
           }
 
-          :global(.lab-btn-primary:hover) {
-            background: #171717 !important;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+          .lp-btn:hover {
+            background: #333333;
           }
 
-          /* Section Styles */
-          .lab-section {
-            padding: 5rem 1.5rem;
+          .lp-btn-outline {
+            display: block;
+            text-align: center;
+            background: #ffffff;
+            color: #1a1a1a;
+            padding: 0.875rem 2rem;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            text-decoration: none;
+            border: 1px solid #e0e0e0;
+            cursor: pointer;
+            transition: all 0.2s;
+          }
+
+          .lp-btn-outline:hover {
+            border-color: #1a1a1a;
+          }
+
+          :global(.lp-btn-sm),
+          :global(.lp-btn-sm-white) {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            font-family: inherit;
+          }
+
+          :global(.lp-btn-sm) {
+            background: #1a1a1a;
+            color: #ffffff;
+            border: 1px solid #1a1a1a;
+          }
+
+          :global(.lp-btn-sm:hover) {
+            background: #333333;
+          }
+
+          :global(.lp-btn-sm-white) {
+            background: #ffffff;
+            color: #1a1a1a;
+            border: 1px solid #ffffff;
+          }
+
+          :global(.lp-btn-sm-white:hover) {
+            background: #f0f0f0;
+          }
+
+          /* Sections */
+          .lp-section {
+            padding: 6rem 2rem;
             background: #ffffff;
           }
 
-          .lab-section-alt {
-            padding: 5rem 1.5rem;
+          .lp-section-alt {
+            padding: 6rem 2rem;
             background: #fafafa;
           }
 
-          .lab-section-inverted {
-            padding: 5rem 1.5rem;
-            background: #000000;
+          .lp-section-inverted {
+            padding: 6rem 2rem;
+            background: #1a1a1a;
             text-align: center;
           }
 
-          .lab-section-inverted h2 {
+          .lp-section-inverted h2 {
             color: #ffffff;
           }
 
-          .lab-container {
+          .lp-container {
             max-width: 1100px;
             margin: 0 auto;
           }
 
-          .lab-section-label {
-            display: inline-block;
-            font-size: 0.75rem;
-            font-weight: 600;
+          .lp-section h2,
+          .lp-section-alt h2 {
+            font-size: 2.25rem;
+            font-weight: 900;
+            color: #1a1a1a;
+            line-height: 0.95;
+            letter-spacing: -0.02em;
             text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: #737373;
-            margin-bottom: 0.75rem;
+            margin: 0 0 1.25rem;
           }
 
-          .lab-section-label-light {
-            display: inline-block;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: #a3a3a3;
-            margin-bottom: 0.75rem;
-          }
-
-          .lab-section h2,
-          .lab-section-alt h2 {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #171717;
-            margin: 0 0 1rem;
-          }
-
-          .lab-section-intro {
+          .lp-section-intro {
             font-size: 1.0625rem;
-            color: #525252;
+            color: #737373;
             line-height: 1.7;
             max-width: 600px;
             margin: 0 0 2.5rem;
@@ -813,111 +851,118 @@ export default function LabPanels() {
           }
 
           /* Signs Grid */
-          .lab-signs-grid {
+          .lp-signs-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 1.5rem;
           }
 
-          .lab-sign-card {
+          .lp-sign-card {
             background: #ffffff;
-            border: 1px solid #e5e5e5;
-            border-radius: 12px;
+            border: 1px solid #e0e0e0;
             padding: 1.75rem;
             text-align: center;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            transition: border-color 0.2s;
           }
 
-          .lab-sign-card:hover {
-            border-color: #d4d4d4;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+          .lp-sign-card:hover {
+            border-color: #1a1a1a;
           }
 
-          .lab-sign-icon {
-            width: 52px;
-            height: 52px;
-            background: #f5f5f5;
-            border-radius: 50%;
+          .lp-sign-icon {
+            width: 48px;
+            height: 48px;
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
             display: flex;
             align-items: center;
             justify-content: center;
             margin: 0 auto 1rem;
-            color: #525252;
+            color: #737373;
           }
 
-          .lab-sign-card h4 {
+          .lp-sign-card h4 {
             font-size: 1rem;
             font-weight: 700;
-            color: #171717;
+            color: #1a1a1a;
             margin: 0 0 0.5rem;
           }
 
-          .lab-sign-card p {
+          .lp-sign-card p {
             font-size: 0.875rem;
-            color: #525252;
+            color: #737373;
             line-height: 1.5;
             margin: 0;
           }
 
           /* Tabs */
-          .lab-tabs {
+          .lp-tabs {
             display: flex;
             justify-content: center;
-            gap: 0.5rem;
+            gap: 0;
             margin-bottom: 2rem;
           }
 
-          .lab-tab {
+          .lp-tab {
             padding: 0.75rem 2rem;
-            border: 2px solid #e5e5e5;
+            border: 1px solid #e0e0e0;
             background: #ffffff;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            color: #525252;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #737373;
             cursor: pointer;
             transition: all 0.2s;
+            font-family: inherit;
           }
 
-          .lab-tab:hover {
-            border-color: #d4d4d4;
+          .lp-tab:first-child {
+            border-right: none;
           }
 
-          .lab-tab-active {
-            background: #000000;
-            border-color: #000000;
+          .lp-tab:hover {
+            color: #1a1a1a;
+          }
+
+          .lp-tab-active {
+            background: #1a1a1a;
+            border-color: #1a1a1a;
             color: #ffffff;
           }
 
           /* Comparison Chart */
-          .lab-chart-wrapper {
+          .lp-chart-wrapper {
             max-width: 800px;
             margin: 0 auto;
             overflow-x: auto;
           }
 
-          .lab-chart {
+          .lp-chart {
             min-width: 500px;
             background: #ffffff;
-            border-radius: 16px;
-            border: 1px solid #e5e5e5;
+            border: 1px solid #e0e0e0;
             overflow: hidden;
           }
 
-          .lab-chart-header {
+          .lp-chart-header {
             display: grid;
             grid-template-columns: 1fr 100px 100px;
             background: #fafafa;
-            border-bottom: 2px solid #e5e5e5;
+            border-bottom: 1px solid #e0e0e0;
             font-weight: 600;
           }
 
-          .lab-chart-header .lab-chart-marker-col {
+          .lp-chart-header .lp-chart-marker-col {
             padding: 1.25rem 1.5rem;
-            color: #171717;
+            color: #1a1a1a;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
           }
 
-          .lab-chart-header .lab-chart-panel-col {
+          .lp-chart-header .lp-chart-panel-col {
             padding: 1rem 0.5rem;
             text-align: center;
             display: flex;
@@ -926,126 +971,125 @@ export default function LabPanels() {
             gap: 0.25rem;
           }
 
-          .lab-chart-panel-name {
+          .lp-chart-panel-name {
             font-size: 0.9375rem;
-            color: #171717;
+            color: #1a1a1a;
+            font-weight: 700;
           }
 
-          .lab-chart-panel-price {
+          .lp-chart-panel-price {
             font-size: 0.8125rem;
             color: #737373;
             font-weight: 500;
           }
 
-          .lab-chart-header .lab-chart-panel-featured {
-            background: #171717;
+          .lp-chart-header .lp-chart-panel-featured {
+            background: #1a1a1a;
           }
 
-          .lab-chart-header .lab-chart-panel-featured .lab-chart-panel-name,
-          .lab-chart-header .lab-chart-panel-featured .lab-chart-panel-price {
+          .lp-chart-header .lp-chart-panel-featured .lp-chart-panel-name,
+          .lp-chart-header .lp-chart-panel-featured .lp-chart-panel-price {
             color: #ffffff;
           }
 
-          .lab-chart-hint {
+          .lp-chart-hint {
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
-            padding: 0.75rem 1rem;
-            background: #f0f9ff;
-            border-bottom: 1px solid #bae6fd;
-            font-size: 0.8125rem;
-            color: #0369a1;
+            padding: 0.625rem 1rem;
+            background: #fafafa;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 0.75rem;
+            color: #737373;
+            letter-spacing: 0.02em;
           }
 
-          .lab-chart-hint-icon {
-            font-size: 1rem;
-          }
-
-          .lab-chart-body {
+          .lp-chart-body {
             max-height: 600px;
             overflow-y: auto;
           }
 
-          .lab-chart-row {
+          .lp-chart-row {
             display: grid;
             grid-template-columns: 1fr 100px 100px;
             border-bottom: 1px solid #f0f0f0;
           }
 
-          .lab-chart-row-clickable {
+          .lp-chart-row-clickable {
             cursor: pointer;
             transition: background-color 0.15s ease;
           }
 
-          .lab-chart-row-clickable:hover {
+          .lp-chart-row-clickable:hover {
+            background-color: #fafafa;
+          }
+
+          .lp-chart-row-elite.lp-chart-row-clickable:hover {
             background-color: #f5f5f5;
           }
 
-          .lab-chart-row-elite.lab-chart-row-clickable:hover {
-            background-color: #f0f0f0;
+          .lp-chart-row-expanded {
+            background-color: #fafafa !important;
           }
 
-          .lab-chart-row-expanded {
-            background-color: #fefce8 !important;
+          .lp-chart-row-elite.lp-chart-row-expanded {
+            background-color: #f5f5f5 !important;
           }
 
-          .lab-chart-row-elite.lab-chart-row-expanded {
-            background-color: #fef9c3 !important;
-          }
-
-          .lab-chart-row:last-child {
+          .lp-chart-row:last-child {
             border-bottom: none;
           }
 
-          .lab-chart-row-elite {
+          .lp-chart-row-elite {
             background: #fafafa;
           }
 
-          .lab-chart-marker-col {
+          .lp-chart-marker-col {
             padding: 0.875rem 1.5rem;
             font-size: 0.9375rem;
-            color: #171717;
+            color: #1a1a1a;
             display: flex;
             align-items: center;
             justify-content: space-between;
           }
 
-          .lab-marker-name {
+          .lp-marker-name {
             flex: 1;
           }
 
-          .lab-marker-arrow {
-            color: #a3a3a3;
-            font-size: 1.25rem;
-            font-weight: 600;
-            transform: rotate(90deg);
-            transition: transform 0.2s ease;
+          .lp-marker-toggle {
+            color: #c4a882;
+            font-size: 1.125rem;
+            font-weight: 700;
             margin-left: 0.5rem;
+            width: 20px;
+            text-align: center;
+            transition: color 0.2s;
           }
 
-          .lab-marker-arrow-up {
-            transform: rotate(-90deg);
+          .lp-marker-toggle-open {
+            color: #1a1a1a;
           }
 
-          .lab-chart-description {
+          .lp-chart-description {
             padding: 1rem 1.5rem;
-            background: #fefce8;
-            border-bottom: 1px solid #fde68a;
+            background: #fafafa;
+            border-bottom: 1px solid #e0e0e0;
           }
 
-          .lab-chart-description-elite {
-            background: #fef9c3;
+          .lp-chart-description-elite {
+            background: #f5f5f5;
           }
 
-          .lab-chart-description p {
+          .lp-chart-description p {
             margin: 0;
             font-size: 0.875rem;
-            color: #525252;
+            color: #737373;
             line-height: 1.6;
           }
 
-          .lab-chart-panel-col {
+          .lp-chart-panel-col {
             padding: 0.875rem 0.5rem;
             text-align: center;
             display: flex;
@@ -1053,208 +1097,50 @@ export default function LabPanels() {
             justify-content: center;
           }
 
-          .lab-chart-row .lab-chart-panel-featured {
+          .lp-chart-row .lp-chart-panel-featured {
             background: rgba(0,0,0,0.02);
           }
 
-          .lab-chart-row-elite .lab-chart-panel-featured {
+          .lp-chart-row-elite .lp-chart-panel-featured {
             background: rgba(0,0,0,0.04);
           }
 
-          .lab-check {
-            color: #22c55e;
+          .lp-check {
+            color: #c4a882;
             font-size: 1.125rem;
             font-weight: 700;
           }
 
-          .lab-dash {
-            color: #d4d4d4;
+          .lp-dash {
+            color: #e0e0e0;
             font-size: 1rem;
           }
 
-          .lab-chart-footer {
+          .lp-chart-footer {
             display: grid;
             grid-template-columns: 1fr 100px 100px;
-            border-top: 2px solid #e5e5e5;
+            border-top: 1px solid #e0e0e0;
             background: #fafafa;
           }
 
-          .lab-chart-footer .lab-chart-marker-col {
+          .lp-chart-footer .lp-chart-marker-col {
             padding: 1.25rem 1.5rem;
             font-weight: 600;
-            color: #171717;
+            color: #1a1a1a;
           }
 
-          .lab-chart-footer .lab-chart-panel-col {
+          .lp-chart-footer .lp-chart-panel-col {
             padding: 1.25rem 0.5rem;
             flex-direction: column;
             gap: 0.5rem;
           }
 
-          .lab-chart-footer .lab-chart-panel-featured {
-            background: #171717;
-          }
-
-          :global(.lab-btn-secondary-sm),
-          :global(.lab-btn-primary-sm) {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            font-size: 0.8125rem;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.2s;
-            cursor: pointer;
-            font-family: inherit;
-          }
-
-          :global(.lab-btn-secondary-sm) {
-            background: #ffffff;
-            color: #171717;
-            border: 1px solid #d4d4d4;
-          }
-
-          :global(.lab-btn-secondary-sm:hover) {
-            background: #f5f5f5;
-          }
-
-          :global(.lab-btn-primary-sm) {
-            background: #ffffff;
-            color: #171717;
-            border: 1px solid #ffffff;
-          }
-
-          :global(.lab-btn-primary-sm:hover) {
-            background: #f5f5f5;
-          }
-
-          /* Old panel styles - keeping for reference but not used */
-          .lab-panel-badge {
-            position: absolute;
-            top: -12px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #000000;
-            color: #ffffff;
-            font-size: 0.75rem;
-            font-weight: 600;
-            padding: 0.375rem 1rem;
-            border-radius: 20px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            white-space: nowrap;
-          }
-
-          .lab-panel-header {
-            text-align: center;
-            margin-bottom: 1.5rem;
-            padding-bottom: 1.5rem;
-            border-bottom: 1px solid #e5e5e5;
-          }
-
-          .lab-panel-header h3 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #171717;
-            margin-bottom: 0.5rem;
-          }
-
-          .lab-panel-price {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #000000;
-            margin-bottom: 0.5rem;
-          }
-
-          .lab-panel-desc {
-            font-size: 0.9375rem;
-            color: #737373;
-            margin: 0;
-          }
-
-          .lab-panel-markers {
-            flex: 1;
-            margin-bottom: 1.5rem;
-          }
-
-          .lab-panel-markers h4 {
-            font-size: 0.8125rem;
-            font-weight: 700;
-            color: #737373;
-            margin-bottom: 1rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-          }
-
-          .lab-panel-markers ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            columns: 1;
-          }
-
-          .lab-panel-markers li {
-            font-size: 0.875rem;
-            color: #404040;
-            padding: 0.375rem 0;
-            padding-left: 1.25rem;
-            position: relative;
-            line-height: 1.4;
-          }
-
-          .lab-panel-markers li::before {
-            content: "✓";
-            position: absolute;
-            left: 0;
-            color: #22c55e;
-            font-weight: 700;
-            font-size: 0.75rem;
-          }
-
-          :global(.lab-btn-secondary) {
-            display: block;
-            text-align: center;
-            background: #ffffff !important;
-            color: #000000 !important;
-            padding: 1rem 1.5rem;
-            border: 2px solid #000000;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
-            text-decoration: none;
-            transition: all 0.2s ease;
-            cursor: pointer;
-          }
-
-          :global(.lab-btn-secondary:hover) {
-            background: #000000 !important;
-            color: #ffffff !important;
-          }
-
-          :global(.lab-btn-primary-card) {
-            display: block;
-            text-align: center;
-            background: #000000 !important;
-            color: #ffffff !important;
-            padding: 1rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
-            text-decoration: none;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
-            transition: all 0.2s ease;
-            cursor: pointer;
-            border: none;
-          }
-
-          :global(.lab-btn-primary-card:hover) {
-            background: #171717 !important;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+          .lp-chart-footer .lp-chart-panel-featured {
+            background: #1a1a1a;
           }
 
           /* Compare Grid */
-          .lab-compare-grid {
+          .lp-compare-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 2rem;
@@ -1262,84 +1148,80 @@ export default function LabPanels() {
             margin: 0 auto;
           }
 
-          .lab-compare-card {
+          .lp-compare-card {
             background: #ffffff;
-            border: 1px solid #e5e5e5;
-            border-radius: 12px;
+            border: 1px solid #e0e0e0;
             padding: 2rem;
             display: flex;
             flex-direction: column;
           }
 
-          .lab-compare-card-header {
+          .lp-compare-card-header {
             text-align: center;
             margin-bottom: 1.25rem;
             padding-bottom: 1.25rem;
-            border-bottom: 1px solid #e5e5e5;
+            border-bottom: 1px solid #e0e0e0;
           }
 
-          .lab-compare-featured .lab-compare-card-header {
-            border-bottom-color: #d4d4d4;
-          }
-
-          .lab-compare-card h4 {
-            font-size: 1.125rem;
+          .lp-compare-card h4 {
+            font-size: 11px;
             font-weight: 700;
-            color: #171717;
-            margin-bottom: 0.5rem;
+            letter-spacing: 0.12em;
+            color: #1a1a1a;
+            margin-bottom: 0.75rem;
           }
 
-          .lab-compare-price {
+          .lp-compare-price {
             font-size: 2.25rem;
-            font-weight: 700;
-            color: #000000;
+            font-weight: 900;
+            color: #c4a882;
             margin-bottom: 0.25rem;
           }
 
-          .lab-compare-includes {
+          .lp-compare-includes {
             font-size: 0.8125rem;
             color: #737373;
           }
 
-          .lab-compare-desc {
+          .lp-compare-desc {
             font-size: 0.9375rem;
-            color: #525252;
+            color: #737373;
             line-height: 1.6;
             margin: 0 0 1.25rem;
           }
 
-          .lab-compare-badge {
+          .lp-compare-badge {
             position: absolute;
             top: -12px;
             left: 50%;
             transform: translateX(-50%);
-            background: #000000;
+            background: #1a1a1a;
             color: #ffffff;
-            font-size: 0.75rem;
-            font-weight: 600;
+            font-size: 10px;
+            font-weight: 700;
             padding: 0.375rem 1rem;
-            border-radius: 20px;
+            letter-spacing: 0.12em;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
             white-space: nowrap;
           }
 
-          .lab-compare-featured {
+          .lp-compare-featured {
             position: relative;
             padding-top: 2.5rem;
+            border-color: #1a1a1a;
           }
 
-          .lab-compare-note {
+          .lp-compare-note {
             text-align: center;
             font-size: 0.875rem;
             color: #737373;
             margin-top: 1.5rem;
           }
 
-          .lab-compare-switch {
+          .lp-compare-switch {
             background: none;
             border: none;
-            color: #000000;
+            color: #1a1a1a;
             font-weight: 600;
             font-size: 0.875rem;
             cursor: pointer;
@@ -1347,93 +1229,83 @@ export default function LabPanels() {
             font-family: inherit;
           }
 
-          .lab-compare-switch:hover {
-            color: #525252;
+          .lp-compare-switch:hover {
+            color: #737373;
           }
 
-          .lab-compare-card ul {
+          .lp-compare-card ul {
             list-style: none;
             padding: 0;
             margin: 0;
+            flex: 1;
+            margin-bottom: 1.5rem;
           }
 
-          .lab-compare-card li {
+          .lp-compare-card li {
             font-size: 0.9375rem;
-            color: #404040;
+            color: #737373;
             padding: 0.5rem 0;
             padding-left: 1.5rem;
             position: relative;
             line-height: 1.5;
           }
 
-          .lab-compare-card li::before {
-            content: "✓";
+          .lp-list-dash {
             position: absolute;
             left: 0;
-            color: #22c55e;
+            color: #c4a882;
             font-weight: 700;
           }
 
-          .lab-compare-card ul {
-            flex: 1;
-            margin-bottom: 1.5rem;
-          }
-
           /* Process Grid */
-          .lab-process-grid {
+          .lp-process-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 1.5rem;
           }
 
-          .lab-process-step {
+          .lp-process-step {
             text-align: center;
             padding: 1rem;
           }
 
-          .lab-process-number {
-            width: 52px;
-            height: 52px;
-            background: #000000;
-            color: #ffffff;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 1.25rem;
-            margin: 0 auto 1rem;
+          .lp-process-number {
+            font-size: 2rem;
+            font-weight: 900;
+            color: #c4a882;
+            margin-bottom: 1rem;
+            letter-spacing: -0.02em;
           }
 
-          .lab-process-step h4 {
+          .lp-process-step h4 {
             font-size: 1rem;
             font-weight: 700;
-            color: #171717;
+            color: #1a1a1a;
             margin: 0 0 0.5rem;
           }
 
-          .lab-process-step p {
+          .lp-process-step p {
             font-size: 0.875rem;
-            color: #525252;
+            color: #737373;
             line-height: 1.6;
             margin: 0;
           }
 
           /* FAQ */
-          .lab-faq-list {
+          .lp-faq-list {
             max-width: 700px;
             margin: 0 auto;
           }
 
-          .lab-faq-item {
-            border-bottom: 1px solid #e5e5e5;
+          .lp-faq-item {
+            border-bottom: 1px solid #e0e0e0;
           }
 
-          .lab-faq-item:last-child {
+          .lp-faq-item:last-child {
             border-bottom: none;
           }
 
-          .lab-faq-question {
+          .lp-faq-question {
             width: 100%;
             display: flex;
             justify-content: space-between;
@@ -1446,51 +1318,59 @@ export default function LabPanels() {
             font-family: inherit;
           }
 
-          .lab-faq-question span {
+          .lp-faq-question span:first-child {
             font-size: 1rem;
             font-weight: 600;
-            color: #171717;
+            color: #1a1a1a;
             padding-right: 1rem;
           }
 
-          .lab-faq-question svg {
+          .lp-faq-toggle {
             flex-shrink: 0;
-            color: #737373;
-            transition: transform 0.2s;
+            color: #c4a882;
+            font-size: 1.25rem;
+            font-weight: 700;
+            width: 24px;
+            text-align: center;
           }
 
-          .lab-faq-open .lab-faq-question svg {
-            transform: rotate(180deg);
-          }
-
-          .lab-faq-answer {
+          .lp-faq-answer {
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.3s ease, padding 0.3s ease;
           }
 
-          .lab-faq-open .lab-faq-answer {
+          .lp-faq-open .lp-faq-answer {
             max-height: 300px;
             padding-bottom: 1.25rem;
           }
 
-          .lab-faq-answer p {
+          .lp-faq-answer p {
             font-size: 0.9375rem;
-            color: #525252;
+            color: #737373;
             line-height: 1.7;
             margin: 0;
           }
 
           /* CTA Section */
-          .lab-cta-text {
+          .lp-section-inverted h2 {
+            font-size: 2.25rem;
+            font-weight: 900;
+            line-height: 0.95;
+            letter-spacing: -0.02em;
+            text-transform: uppercase;
+            margin: 0 0 1.25rem;
+          }
+
+          .lp-cta-text {
             font-size: 1.0625rem;
-            color: #a3a3a3;
+            color: rgba(255,255,255,0.5);
             max-width: 500px;
             margin: 0 auto 2rem;
             line-height: 1.7;
           }
 
-          .lab-cta-buttons {
+          .lp-cta-buttons {
             display: flex;
             gap: 1rem;
             justify-content: center;
@@ -1498,169 +1378,161 @@ export default function LabPanels() {
             margin-bottom: 1rem;
           }
 
-          :global(.lab-btn-white) {
+          :global(.lp-btn-white) {
             display: inline-block;
-            background: #ffffff !important;
-            color: #000000 !important;
-            padding: 1rem 2.5rem;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
+            background: #ffffff;
+            color: #1a1a1a;
+            padding: 0.875rem 2rem;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
             text-decoration: none;
-            box-shadow: 0 4px 14px rgba(255, 255, 255, 0.3);
-            transition: all 0.2s ease;
             cursor: pointer;
             border: none;
+            transition: background 0.2s;
           }
 
-          :global(.lab-btn-white:hover) {
-            background: #f0f0f0 !important;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255, 255, 255, 0.4);
+          :global(.lp-btn-white:hover) {
+            background: #f0f0f0;
           }
 
-          :global(.lab-btn-white-outline) {
+          :global(.lp-btn-white-outline) {
             display: inline-block;
-            background: transparent !important;
-            color: #ffffff !important;
-            padding: 1rem 2.5rem;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
+            background: transparent;
+            color: #ffffff;
+            padding: 0.875rem 2rem;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
             text-decoration: none;
-            border: 2px solid rgba(255, 255, 255, 0.4);
-            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.2s;
             cursor: pointer;
           }
 
-          :global(.lab-btn-white-outline:hover) {
-            background: rgba(255, 255, 255, 0.1) !important;
+          :global(.lp-btn-white-outline:hover) {
             border-color: rgba(255, 255, 255, 0.7);
-            transform: translateY(-2px);
           }
 
-          .lab-cta-phone {
+          .lp-cta-phone {
             font-size: 0.9375rem;
-            color: #a3a3a3;
+            color: rgba(255,255,255,0.5);
             margin-top: 1rem;
           }
 
-          .lab-cta-phone a {
+          .lp-cta-phone a {
             color: #ffffff;
             text-decoration: underline;
           }
 
-          .lab-cta-location {
+          .lp-cta-location {
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
             margin-top: 2rem;
-            font-size: 0.9375rem;
-            color: #a3a3a3;
+            font-size: 0.875rem;
+            color: rgba(255,255,255,0.4);
+            letter-spacing: 0.05em;
           }
 
           /* Responsive */
           @media (max-width: 900px) {
-            .lab-signs-grid {
+            .lp-signs-grid {
               grid-template-columns: repeat(2, 1fr);
             }
 
-            .lab-panels-grid {
+            .lp-compare-grid {
               grid-template-columns: 1fr;
             }
 
-            .lab-panel-featured {
-              order: -1;
-            }
-
-            .lab-compare-grid {
-              grid-template-columns: 1fr;
-            }
-
-            .lab-process-grid {
+            .lp-process-grid {
               grid-template-columns: repeat(2, 1fr);
             }
           }
 
           @media (max-width: 640px) {
-            .lab-trust-inner {
-              flex-direction: column;
-              gap: 0.5rem;
+            .lp-hero {
+              padding: 4rem 1.5rem 3rem;
             }
 
-            .lab-hero {
-              padding: 3rem 1.5rem;
+            .lp-hero h1 {
+              font-size: 2.25rem;
             }
 
-            .lab-hero h1 {
-              font-size: 2rem;
+            .lp-section,
+            .lp-section-alt,
+            .lp-section-inverted {
+              padding: 4rem 1.5rem;
             }
 
-            .lab-section h2,
-            .lab-section-alt h2,
-            .lab-section-inverted h2 {
+            .lp-section h2,
+            .lp-section-alt h2,
+            .lp-section-inverted h2 {
               font-size: 1.75rem;
             }
 
-            .lab-signs-grid {
+            .lp-signs-grid {
               grid-template-columns: 1fr;
             }
 
-            .lab-tabs {
+            .lp-tabs {
               flex-direction: column;
             }
 
-            .lab-tab {
+            .lp-tab {
               width: 100%;
             }
 
-            .lab-chart-wrapper {
+            .lp-tab:first-child {
+              border-right: 1px solid #e0e0e0;
+              border-bottom: none;
+            }
+
+            .lp-chart-wrapper {
               margin: 0 -1rem;
               padding: 0 1rem;
             }
 
-            .lab-chart-header,
-            .lab-chart-row,
-            .lab-chart-footer {
+            .lp-chart-header,
+            .lp-chart-row,
+            .lp-chart-footer {
               grid-template-columns: 1fr 80px 80px;
             }
 
-            .lab-chart-marker-col {
+            .lp-chart-marker-col {
               padding: 0.75rem 1rem;
               font-size: 0.875rem;
             }
 
-            .lab-chart-header .lab-chart-marker-col {
+            .lp-chart-header .lp-chart-marker-col {
               padding: 1rem;
             }
 
-            .lab-chart-panel-name {
+            .lp-chart-panel-name {
               font-size: 0.8125rem;
             }
 
-            .lab-chart-panel-price {
+            .lp-chart-panel-price {
               font-size: 0.75rem;
             }
 
-            .lab-chart-hint {
-              font-size: 0.75rem;
-              padding: 0.625rem 0.75rem;
+            .lp-chart-hint {
+              font-size: 0.6875rem;
+              padding: 0.5rem 0.75rem;
             }
 
-            .lab-chart-description {
+            .lp-chart-description {
               padding: 0.875rem 1rem;
             }
 
-            .lab-chart-description p {
+            .lp-chart-description p {
               font-size: 0.8125rem;
             }
 
-            .lab-marker-arrow {
-              font-size: 1rem;
-            }
-
-            .lab-process-grid {
+            .lp-process-grid {
               grid-template-columns: 1fr;
             }
           }

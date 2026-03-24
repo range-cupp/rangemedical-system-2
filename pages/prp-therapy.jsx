@@ -96,13 +96,13 @@ export default function PRPTherapy() {
   ];
 
   const steps = [
-    { step: "Step 1", title: "Blood draw", desc: "We draw a small amount of blood from your arm — similar to routine lab work. About 30-60ml depending on the treatment area." },
-    { step: "Step 2", title: "Processing", desc: "Your blood is placed in a centrifuge and spun to separate the components. This concentrates the platelets to 3-5x normal levels." },
-    { step: "Step 3", title: "Injection", desc: "The concentrated PRP is injected directly into the treatment area. We may use ultrasound guidance for precise placement in joints or tendons." },
-    { step: "Step 4", title: "Healing begins", desc: "Growth factors in the PRP signal your body to repair the area. Healing continues over weeks to months as new tissue forms." }
+    { step: "01", title: "Blood draw", desc: "We draw a small amount of blood from your arm — similar to routine lab work. About 30-60ml depending on the treatment area." },
+    { step: "02", title: "Processing", desc: "Your blood is placed in a centrifuge and spun to separate the components. This concentrates the platelets to 3-5x normal levels." },
+    { step: "03", title: "Injection", desc: "The concentrated PRP is injected directly into the treatment area. We may use ultrasound guidance for precise placement in joints or tendons." },
+    { step: "04", title: "Healing begins", desc: "Growth factors in the PRP signal your body to repair the area. Healing continues over weeks to months as new tissue forms." }
   ];
 
-  
+
   return (
     <Layout
       title="PRP Therapy | Platelet-Rich Plasma Injections | Newport Beach | Range Medical"
@@ -220,16 +220,17 @@ export default function PRPTherapy() {
           <span className="trust-item">
             <span className="trust-rating">★★★★★</span> 5.0 on Google
           </span>
-          <span className="trust-item">📍 Newport Beach, CA</span>
-          <span className="trust-item">✓ Licensed Providers</span>
+          <span className="trust-item">Newport Beach, CA</span>
+          <span className="trust-item">Licensed Providers</span>
         </div>
       </div>
 
       <div className="prp-page">
         {/* Hero */}
         <section className="prp-hero">
-          <div className="prp-kicker">Regenerative · Healing · Recovery</div>
-          <h1>Your Guide to PRP Therapy</h1>
+          <div className="v2-label"><span className="v2-dot" /> REGENERATIVE · HEALING · RECOVERY</div>
+          <h1>YOUR GUIDE TO PRP THERAPY</h1>
+          <div className="prp-hero-rule"></div>
           <p className="prp-body-text">Everything you need to know about Platelet-Rich Plasma — what it is, how it works, and whether it's right for your injury or pain.</p>
           <div className="prp-hero-scroll">
             Scroll to explore
@@ -241,8 +242,8 @@ export default function PRPTherapy() {
         <section className="prp-section prp-section-alt">
           <div className="prp-container">
             <div className="prp-animate">
-              <div className="prp-kicker">What Is PRP</div>
-              <h2>Your own blood, concentrated to heal.</h2>
+              <div className="v2-label"><span className="v2-dot" /> WHAT IS PRP</div>
+              <h2>YOUR OWN BLOOD, CONCENTRATED TO HEAL.</h2>
               <div className="prp-divider"></div>
               <p className="prp-body-text">
                 PRP (Platelet-Rich Plasma) is exactly what it sounds like — plasma from your blood with a concentrated amount of platelets. Platelets contain growth factors that signal your body to repair damaged tissue.
@@ -273,8 +274,8 @@ export default function PRPTherapy() {
         <section className="prp-section prp-section-inverted">
           <div className="prp-container">
             <div className="prp-animate">
-              <div className="prp-kicker">Who It's For</div>
-              <h2>When your body needs help healing.</h2>
+              <div className="v2-label"><span className="v2-dot" /> WHO IT'S FOR</div>
+              <h2>WHEN YOUR BODY NEEDS HELP HEALING.</h2>
               <div className="prp-divider"></div>
               <p className="prp-body-text">
                 PRP is commonly used for musculoskeletal injuries that haven't responded to conservative treatment. If any of these sound familiar, PRP might help.
@@ -293,8 +294,8 @@ export default function PRPTherapy() {
         <section className="prp-section">
           <div className="prp-container">
             <div className="prp-animate">
-              <div className="prp-kicker">The Process</div>
-              <h2>How PRP therapy works.</h2>
+              <div className="v2-label"><span className="v2-dot" /> THE PROCESS</div>
+              <h2>HOW PRP THERAPY WORKS.</h2>
               <div className="prp-divider"></div>
               <p className="prp-body-text">
                 The entire procedure takes about an hour at our Newport Beach clinic. Here's what to expect.
@@ -319,8 +320,8 @@ export default function PRPTherapy() {
         <section className="prp-section prp-section-alt">
           <div className="prp-container">
             <div className="prp-animate">
-              <div className="prp-kicker">Why PRP</div>
-              <h2>The advantages of platelet-rich plasma.</h2>
+              <div className="v2-label"><span className="v2-dot" /> WHY PRP</div>
+              <h2>THE ADVANTAGES OF PLATELET-RICH PLASMA.</h2>
               <div className="prp-divider"></div>
               <p className="prp-body-text">
                 PRP offers several benefits over other treatments for musculoskeletal injuries.
@@ -343,8 +344,8 @@ export default function PRPTherapy() {
         <section className="prp-section" id="prp-research">
           <div className="prp-container">
             <div className="prp-animate">
-              <div className="prp-kicker">Backed by Science</div>
-              <h2>Evidence-Based Results</h2>
+              <div className="v2-label"><span className="v2-dot" /> BACKED BY SCIENCE</div>
+              <h2>EVIDENCE-BASED RESULTS</h2>
               <div className="prp-divider"></div>
               <p className="prp-body-text">
                 We've summarized the peer-reviewed research. Click any study to get the full breakdown — free.
@@ -374,19 +375,17 @@ export default function PRPTherapy() {
         </section>
 
         {/* FAQ */}
-        <section className="prp-section-alt">
+        <section className="prp-section prp-section-alt">
           <div className="prp-container">
-            <span className="prp-section-label">Questions</span>
-            <h2>Common Questions</h2>
+            <div className="v2-label"><span className="v2-dot" /> QUESTIONS</div>
+            <h2>COMMON QUESTIONS</h2>
 
             <div className="prp-faq-list">
               {faqs.map((faq, index) => (
                 <div key={index} className={`prp-faq-item ${openFaq === index ? 'prp-faq-open' : ''}`}>
                   <button className="prp-faq-question" onClick={() => toggleFaq(index)}>
                     <span>{faq.question}</span>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d={openFaq === index ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} />
-                    </svg>
+                    <span className="prp-faq-toggle">{openFaq === index ? '\u2212' : '+'}</span>
                   </button>
                   <div className="prp-faq-answer">
                     <p>{faq.answer}</p>
@@ -401,13 +400,13 @@ export default function PRPTherapy() {
         <section className="prp-section prp-section-inverted prp-cta-section">
           <div className="prp-container">
             <div className="prp-animate">
-              <div className="prp-kicker" style={{ marginBottom: '1.5rem' }}>Next Steps</div>
-              <h2 className="prp-cta-title">Ready to explore PRP therapy?</h2>
-              <p className="prp-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
+              <div className="v2-label" style={{ marginBottom: '1.5rem' }}><span className="v2-dot" /> NEXT STEPS</div>
+              <h2 className="prp-cta-title">READY TO EXPLORE PRP THERAPY?</h2>
+              <p className="prp-body-text" style={{ textAlign: 'left', margin: '0 auto 2.5rem', maxWidth: '600px' }}>
                 Get started with Range Medical. Your provider will evaluate your injury and determine if PRP is right for your situation. Our Newport Beach team is here to help.
               </p>
               <div className="prp-cta-buttons">
-                <Link href="/start" className="prp-btn-primary">Start Now</Link>
+                <Link href="/start" className="prp-btn-primary">START NOW</Link>
                 <div className="prp-cta-or">or</div>
                 <a href="tel:9499973988" className="prp-cta-phone">(949) 997-3988</a>
               </div>
@@ -424,7 +423,7 @@ export default function PRPTherapy() {
       </div>
 
       <style jsx>{`
-        /* ===== PRP PAGE SCOPED STYLES ===== */
+        /* ===== PRP PAGE V2 EDITORIAL STYLES ===== */
         .prp-page {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
           -webkit-font-smoothing: antialiased;
@@ -454,56 +453,35 @@ export default function PRPTherapy() {
 
         /* Sections */
         .prp-section {
-          padding: 4rem 1.5rem;
+          padding: 6rem 2rem;
         }
 
         .prp-section-alt {
           background: #fafafa;
-          padding: 5rem 1.5rem;
-        }
-
-        .prp-section-label {
-          display: inline-block;
-          font-size: 0.75rem;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 0.75rem;
+          padding: 6rem 2rem;
         }
 
         .prp-section-inverted {
-          background: #000000;
+          background: #1a1a1a;
           color: #ffffff;
         }
 
-        /* Kicker */
-        .prp-kicker {
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 1rem;
-        }
-
-        .prp-section-inverted .prp-kicker {
-          color: rgba(255, 255, 255, 0.4);
-        }
-
-        /* Headlines */
+        /* Headlines — V2: uppercase, weight 900, tight line-height */
         .prp-page h1 {
           font-size: 2.75rem;
-          font-weight: 700;
-          line-height: 1.15;
-          letter-spacing: -0.02em;
+          font-weight: 900;
+          line-height: 0.95;
+          letter-spacing: -0.03em;
+          text-transform: uppercase;
           color: #171717;
         }
 
         .prp-page h2 {
           font-size: 2rem;
-          font-weight: 700;
-          letter-spacing: -0.02em;
+          font-weight: 900;
+          letter-spacing: -0.03em;
+          line-height: 0.95;
+          text-transform: uppercase;
           color: #171717;
           margin-bottom: 1rem;
         }
@@ -520,12 +498,12 @@ export default function PRPTherapy() {
           color: #ffffff;
         }
 
-        /* Body Text */
+        /* Body Text — V2: #737373 */
         .prp-body-text {
           font-size: 1.0625rem;
           font-weight: 400;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
           max-width: 600px;
         }
 
@@ -533,11 +511,11 @@ export default function PRPTherapy() {
           color: rgba(255, 255, 255, 0.55);
         }
 
-        /* Divider */
+        /* Divider — V2: #e0e0e0 */
         .prp-divider {
           width: 48px;
-          height: 2px;
-          background: #e5e5e5;
+          height: 1px;
+          background: #e0e0e0;
           margin: 1.25rem 0;
         }
 
@@ -545,44 +523,55 @@ export default function PRPTherapy() {
           background: rgba(255, 255, 255, 0.12);
         }
 
-        /* Buttons */
+        /* Buttons — V2: no border-radius, 11px, weight 700, 0.12em spacing, uppercase */
         .prp-btn-primary {
           display: inline-block;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          font-size: 0.875rem;
-          font-weight: 600;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
           padding: 0.875rem 2rem;
           background: #ffffff;
-          color: #000000;
+          color: #1a1a1a;
           border: none;
-          border-radius: 8px;
+          border-radius: 0;
           cursor: pointer;
           text-decoration: none;
           transition: background 0.2s ease, transform 0.2s ease;
         }
 
         .prp-btn-primary:hover {
-          background: #e5e5e5;
+          background: #e0e0e0;
           transform: translateY(-1px);
         }
 
-        /* Hero */
+        /* Hero — V2: left-aligned, hairline rule between title and subtitle */
         .prp-hero {
-          padding: 4rem 1.5rem 5rem;
-          text-align: center;
+          padding: 5rem 2rem 5rem;
+          text-align: left;
           display: flex;
           flex-direction: column;
-          align-items: center;
+          align-items: flex-start;
+          max-width: 1200px;
+          margin: 0 auto;
         }
 
         .prp-hero h1 {
           max-width: 680px;
-          margin-bottom: 1.5rem;
+          margin-bottom: 0;
+        }
+
+        .prp-hero-rule {
+          width: 48px;
+          height: 1px;
+          background: #e0e0e0;
+          margin: 1.5rem 0;
         }
 
         .prp-hero .prp-body-text {
-          text-align: center;
-          margin: 0 auto 2.5rem;
+          text-align: left;
+          margin: 0 0 2.5rem;
         }
 
         .prp-hero-scroll {
@@ -606,7 +595,7 @@ export default function PRPTherapy() {
           50% { transform: translateY(6px); }
         }
 
-        /* Stat Row */
+        /* Stat Row — V2: numbers in gold accent */
         .prp-stat-row {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
@@ -624,7 +613,7 @@ export default function PRPTherapy() {
           letter-spacing: -0.02em;
           line-height: 1;
           margin-bottom: 0.5rem;
-          color: #171717;
+          color: #c4a882;
         }
 
         .prp-stat-label {
@@ -634,7 +623,7 @@ export default function PRPTherapy() {
           line-height: 1.5;
         }
 
-        /* Tags */
+        /* Tags — V2: no border-radius */
         .prp-tags-grid {
           display: flex;
           flex-wrap: wrap;
@@ -646,7 +635,7 @@ export default function PRPTherapy() {
           font-size: 0.8125rem;
           font-weight: 600;
           padding: 0.75rem 1.5rem;
-          border-radius: 100px;
+          border-radius: 0;
           border: 1px solid rgba(255, 255, 255, 0.08);
           background: rgba(255, 255, 255, 0.04);
           color: rgba(255, 255, 255, 0.6);
@@ -657,7 +646,7 @@ export default function PRPTherapy() {
           border-color: rgba(255, 255, 255, 0.25);
         }
 
-        /* Steps List */
+        /* Steps List — V2: step numbers in gold, borders #e0e0e0 */
         .prp-steps-list {
           margin-top: 2.5rem;
         }
@@ -666,7 +655,7 @@ export default function PRPTherapy() {
           display: flex;
           gap: 1.5rem;
           padding: 1.75rem 0;
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
           align-items: flex-start;
         }
 
@@ -675,11 +664,11 @@ export default function PRPTherapy() {
         }
 
         .prp-step-number {
-          font-size: 0.8125rem;
-          font-weight: 700;
-          color: #737373;
+          font-size: 1.25rem;
+          font-weight: 800;
+          color: #c4a882;
           min-width: 56px;
-          letter-spacing: 0.02em;
+          letter-spacing: -0.01em;
         }
 
         .prp-step-content h3 {
@@ -691,37 +680,41 @@ export default function PRPTherapy() {
 
         .prp-step-content p {
           font-size: 0.875rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.7;
         }
 
-        /* Benefit Cards */
+        /* Benefit Cards — V2: no border-radius, no box-shadow, hairline borders, numbers in gold */
         .prp-benefits-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 1.25rem;
+          gap: 0;
           margin-top: 2.5rem;
+          border-top: 1px solid #e0e0e0;
         }
 
         .prp-benefit-card {
           padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border-radius: 0;
+          border-bottom: 1px solid #e0e0e0;
+          border-right: 1px solid #e0e0e0;
           background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          transition: background 0.2s ease;
+        }
+
+        .prp-benefit-card:nth-child(2n) {
+          border-right: none;
         }
 
         .prp-benefit-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          background: #fafafa;
         }
 
         .prp-benefit-number {
-          font-size: 0.75rem;
-          font-weight: 700;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: #737373;
+          font-size: 1.25rem;
+          font-weight: 800;
+          letter-spacing: -0.01em;
+          color: #c4a882;
           margin-bottom: 1rem;
         }
 
@@ -735,30 +728,34 @@ export default function PRPTherapy() {
         .prp-benefit-desc {
           font-size: 0.875rem;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
         }
 
-        /* Research Cards */
+        /* Research Cards — V2: no border-radius, no box-shadow, hairline borders */
         .prp-research-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 1.25rem;
+          gap: 0;
           margin-top: 2.5rem;
+          border-top: 1px solid #e0e0e0;
         }
 
         .prp-research-card {
           padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border-radius: 0;
+          border-bottom: 1px solid #e0e0e0;
+          border-right: 1px solid #e0e0e0;
           background: #ffffff;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: background 0.2s ease;
+        }
+
+        .prp-research-card:nth-child(2n) {
+          border-right: none;
         }
 
         .prp-research-card:hover {
-          border-color: #171717;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          transform: translateY(-2px);
+          background: #fafafa;
         }
 
         .prp-research-category {
@@ -767,7 +764,7 @@ export default function PRPTherapy() {
           font-weight: 700;
           letter-spacing: 0.08em;
           text-transform: uppercase;
-          color: #0891b2;
+          color: #c4a882;
           margin-bottom: 0.875rem;
         }
 
@@ -782,7 +779,7 @@ export default function PRPTherapy() {
         .prp-research-summary {
           font-size: 0.875rem;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
           margin-bottom: 1rem;
         }
 
@@ -801,14 +798,14 @@ export default function PRPTherapy() {
           line-height: 1.7;
         }
 
-        /* FAQ */
+        /* FAQ — V2: accordion with +/- toggle, borders #e0e0e0 */
         .prp-faq-list {
           max-width: 700px;
-          margin: 0 auto;
+          margin: 2rem auto 0;
         }
 
         .prp-faq-item {
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
         }
 
         .prp-faq-item:last-child {
@@ -828,21 +825,21 @@ export default function PRPTherapy() {
           font-family: inherit;
         }
 
-        .prp-faq-question span {
+        .prp-faq-question span:first-child {
           font-size: 1rem;
           font-weight: 600;
           color: #171717;
           padding-right: 1rem;
         }
 
-        .prp-faq-question svg {
+        .prp-faq-toggle {
           flex-shrink: 0;
+          font-size: 1.25rem;
+          font-weight: 300;
           color: #737373;
+          width: 24px;
+          text-align: center;
           transition: transform 0.2s;
-        }
-
-        .prp-faq-open .prp-faq-question svg {
-          transform: rotate(180deg);
         }
 
         .prp-faq-answer {
@@ -858,20 +855,23 @@ export default function PRPTherapy() {
 
         .prp-faq-answer p {
           font-size: 0.9375rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.7;
           margin: 0;
         }
 
         /* CTA Section */
         .prp-cta-section {
-          padding: 6rem 1.5rem;
+          padding: 6rem 2rem;
           text-align: center;
         }
 
         .prp-cta-title {
           font-size: 2.75rem;
-          letter-spacing: -0.02em;
+          font-weight: 900;
+          letter-spacing: -0.03em;
+          line-height: 0.95;
+          text-transform: uppercase;
           color: #ffffff;
           margin-bottom: 1.25rem;
         }
@@ -908,8 +908,9 @@ export default function PRPTherapy() {
 
         /* Responsive */
         @media (max-width: 768px) {
-          .prp-section {
-            padding: 3rem 1.5rem;
+          .prp-section,
+          .prp-section-alt {
+            padding: 4rem 1.5rem;
           }
 
           .prp-page h1 {
@@ -938,8 +939,16 @@ export default function PRPTherapy() {
             grid-template-columns: 1fr;
           }
 
+          .prp-benefit-card {
+            border-right: none;
+          }
+
           .prp-research-grid {
             grid-template-columns: 1fr;
+          }
+
+          .prp-research-card {
+            border-right: none;
           }
 
           .prp-cta-title {
@@ -948,6 +957,10 @@ export default function PRPTherapy() {
 
           .prp-cta-buttons {
             flex-direction: column;
+          }
+
+          .prp-cta-section {
+            padding: 4rem 1.5rem;
           }
         }
       `}</style>

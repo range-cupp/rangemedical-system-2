@@ -1,16 +1,17 @@
 import Layout from './Layout';
 import Link from 'next/link';
 import Head from 'next/head';
+import { useState } from 'react';
 
 /**
- * ServicePageTemplate - Unified template for all Range Medical service pages
+ * ServicePageTemplate - V2 Editorial Design
  *
  * Props:
  * - seo: { title, description, keywords, canonical }
  * - badge: string (e.g., "Hormone Therapy", "Weight Loss")
  * - title: string
  * - subtitle: string
- * - trustBadge: string (optional, defaults to "✓ Licensed Providers")
+ * - trustBadge: string (optional, defaults to "Licensed Providers")
  * - ctaText: string (default: "Start Now")
  * - ctaLink: string (default: "/book")
  * - ctaSecondary: string (optional secondary text below CTA)
@@ -27,7 +28,7 @@ export default function ServicePageTemplate({
   badge,
   title,
   subtitle,
-  trustBadge = "✓ Licensed Providers",
+  trustBadge = "Licensed Providers",
   ctaText = "Start Now",
   ctaLink = "/book",
   ctaSecondary,
@@ -39,6 +40,8 @@ export default function ServicePageTemplate({
   finalCta,
   children
 }) {
+  const [openFaq, setOpenFaq] = useState(null);
+
   return (
     <Layout title={seo.title} description={seo.description}>
       <Head>
@@ -53,40 +56,41 @@ export default function ServicePageTemplate({
       <div className="trust-bar">
         <div className="trust-inner">
           <span className="trust-item">
-            <span className="trust-rating">★★★★★</span> 5.0 on Google
+            <span className="trust-rating">&#9733;&#9733;&#9733;&#9733;&#9733;</span> 5.0 on Google
           </span>
-          <span className="trust-item">📍 Newport Beach, CA</span>
+          <span className="trust-item">Newport Beach, CA</span>
           <span className="trust-item">{trustBadge}</span>
         </div>
       </div>
 
       {/* Hero */}
-      <section className="hero">
-        <div className="container">
-          <span className="hero-badge">{badge}</span>
+      <section className="spt-hero">
+        <div className="spt-hero-inner">
+          <div className="v2-label"><span className="v2-dot" /> {badge}</div>
           <h1>{title}</h1>
-          <p className="hero-sub">{subtitle}</p>
-          <div className="hero-cta">
+          <div className="spt-hero-rule" />
+          <p className="spt-hero-sub">{subtitle}</p>
+          <div className="spt-hero-cta">
             <Link href={ctaLink} className="btn-primary">{ctaText}</Link>
-            {ctaSecondary && <p className="hero-secondary">{ctaSecondary}</p>}
+            {ctaSecondary && <p className="spt-hero-secondary">{ctaSecondary}</p>}
           </div>
         </div>
       </section>
 
       {/* Is This For You */}
       {isThisForYou && (
-        <section className="section section-gray">
-          <div className="container">
-            <div className="section-kicker">Is This For You?</div>
-            <h2 className="section-title">{isThisForYou.title}</h2>
+        <section className="spt-section spt-section-alt">
+          <div className="spt-container">
+            <div className="v2-label"><span className="v2-dot" /> Is This For You?</div>
+            <h2>{isThisForYou.title}</h2>
             {isThisForYou.subtitle && (
-              <p className="section-subtitle">{isThisForYou.subtitle}</p>
+              <p className="spt-section-body">{isThisForYou.subtitle}</p>
             )}
 
-            <div className="is-this-you-grid">
+            <div className="spt-cards-grid">
               {isThisForYou.items.map((item, i) => (
-                <div key={i} className="is-this-you-card">
-                  <span className="card-icon">{item.emoji}</span>
+                <div key={i} className="spt-card">
+                  <span className="spt-card-num">{String(i + 1).padStart(2, '0')}</span>
                   <h4>{item.title}</h4>
                   <p>{item.description}</p>
                 </div>
@@ -96,21 +100,21 @@ export default function ServicePageTemplate({
         </section>
       )}
 
-      {/* How It Works / What Happens */}
+      {/* How It Works */}
       {howItWorks && (
-        <section className="section">
-          <div className="container">
-            <div className="section-kicker">Your Visit</div>
-            <h2 className="section-title">{howItWorks.title}</h2>
+        <section className="spt-section">
+          <div className="spt-container">
+            <div className="v2-label"><span className="v2-dot" /> Your Visit</div>
+            <h2>{howItWorks.title}</h2>
             {howItWorks.subtitle && (
-              <p className="section-subtitle">{howItWorks.subtitle}</p>
+              <p className="spt-section-body">{howItWorks.subtitle}</p>
             )}
 
-            <div className="steps-list">
+            <div className="spt-steps">
               {howItWorks.steps.map((step, i) => (
-                <div key={i} className="step-row">
-                  <div className="step-num">{i + 1}</div>
-                  <div className="step-text">
+                <div key={i} className="spt-step">
+                  <span className="spt-step-num">{String(i + 1).padStart(2, '0')}</span>
+                  <div className="spt-step-content">
                     <h4>{step.title}</h4>
                     <p>{step.description}</p>
                   </div>
@@ -126,19 +130,21 @@ export default function ServicePageTemplate({
 
       {/* Tools We Use */}
       {tools && (
-        <section className="section section-gray">
-          <div className="container">
-            <div className="section-kicker">Tools We Use</div>
-            <h2 className="section-title">{tools.title}</h2>
+        <section className="spt-section spt-section-alt">
+          <div className="spt-container">
+            <div className="v2-label"><span className="v2-dot" /> Tools We Use</div>
+            <h2>{tools.title}</h2>
             {tools.subtitle && (
-              <p className="section-subtitle">{tools.subtitle}</p>
+              <p className="spt-section-body">{tools.subtitle}</p>
             )}
 
-            <div className="tools-grid">
+            <div className="spt-tools-list">
               {tools.items.map((tool, i) => (
-                <Link key={i} href={tool.link} className="tool-card">
-                  <h4>{tool.title}</h4>
-                  <p>{tool.description}</p>
+                <Link key={i} href={tool.link} className="spt-tool-row">
+                  <span className="spt-tool-num">{String(i + 1).padStart(2, '0')}</span>
+                  <span className="spt-tool-name">{tool.title}</span>
+                  <span className="spt-tool-desc">{tool.description}</span>
+                  <span className="spt-tool-arrow">&rarr;</span>
                 </Link>
               ))}
             </div>
@@ -148,17 +154,17 @@ export default function ServicePageTemplate({
 
       {/* Testimonials */}
       {testimonials && testimonials.length > 0 && (
-        <section className="section">
-          <div className="container">
-            <div className="section-kicker">Results</div>
-            <h2 className="section-title">What Our Patients Say</h2>
+        <section className="spt-section">
+          <div className="spt-container">
+            <div className="v2-label"><span className="v2-dot" /> Results</div>
+            <h2>What Our<br />Patients Say.</h2>
 
-            <div className="testimonials-grid">
+            <div className="spt-testimonials">
               {testimonials.map((t, i) => (
-                <div key={i} className="testimonial-card">
-                  <div className="testimonial-stars">★★★★★</div>
-                  <blockquote>{t.quote}</blockquote>
-                  <cite>— {t.name}{t.detail && `, ${t.detail}`}</cite>
+                <div key={i} className="spt-testimonial">
+                  <div className="spt-testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                  <blockquote>&ldquo;{t.quote}&rdquo;</blockquote>
+                  <cite>{t.name}{t.detail && ` \u2014 ${t.detail}`}</cite>
                 </div>
               ))}
             </div>
@@ -168,16 +174,26 @@ export default function ServicePageTemplate({
 
       {/* FAQ */}
       {faqs && faqs.length > 0 && (
-        <section className="section section-gray">
-          <div className="container">
-            <div className="section-kicker">Questions</div>
-            <h2 className="section-title">Frequently Asked Questions</h2>
+        <section className="spt-section spt-section-alt">
+          <div className="spt-container">
+            <div className="v2-label"><span className="v2-dot" /> Questions</div>
+            <h2>Frequently<br />Asked.</h2>
 
-            <div className="faq-list">
+            <div className="spt-faq-list">
               {faqs.map((faq, i) => (
-                <div key={i} className="faq-item">
-                  <h4>{faq.question}</h4>
-                  <p>{faq.answer}</p>
+                <div key={i} className="spt-faq-item">
+                  <button
+                    className="spt-faq-q"
+                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  >
+                    <span>{faq.question}</span>
+                    <span className="spt-faq-toggle">{openFaq === i ? '\u2212' : '+'}</span>
+                  </button>
+                  {openFaq === i && (
+                    <div className="spt-faq-a">
+                      <p>{faq.answer}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -188,249 +204,367 @@ export default function ServicePageTemplate({
       {/* Final CTA */}
       <section className="final-cta">
         <div className="container">
-          <span className="cta-step">Next Step</span>
-          <h2>{finalCta?.title || "Ready to Get Started?"}</h2>
+          <h2>{finalCta?.title || "Ready to<br />Get Started?"}</h2>
+          <div className="cta-rule" />
           <p>{finalCta?.subtitle || "Get started with a personalized plan."}</p>
           <Link href={ctaLink} className="btn-white">{ctaText}</Link>
           <p className="cta-location">
-            Range Medical • 1901 Westcliff Dr, Newport Beach<br />
-            <a href="tel:9499973988">(949) 997-3988</a>
+            Range Medical &bull; 1901 Westcliff Dr, Newport Beach &bull; (949) 997-3988
           </p>
         </div>
       </section>
 
       <style jsx>{`
-        /* Is This For You Grid */
-        .is-this-you-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 1.5rem;
-          max-width: 900px;
+        /* ── HERO ── */
+        .spt-hero {
+          padding: 6rem 2rem 7rem;
+          max-width: 1200px;
           margin: 0 auto;
         }
 
-        .is-this-you-card {
-          background: #ffffff;
-          border: 1px solid #e5e5e5;
-          border-radius: 12px;
-          padding: 1.75rem;
-          transition: all 0.2s;
+        .spt-hero-inner {
+          max-width: 800px;
         }
 
-        .is-this-you-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        .spt-hero h1 {
+          font-size: clamp(2.5rem, 6vw, 4rem);
+          font-weight: 900;
+          line-height: 0.95;
+          letter-spacing: -0.03em;
+          color: #1a1a1a;
+          text-transform: uppercase;
+          margin: 0 0 2rem;
         }
 
-        .card-icon {
-          font-size: 1.75rem;
+        .spt-hero-rule {
+          width: 100%;
+          max-width: 600px;
+          height: 1px;
+          background: #e0e0e0;
+          margin-bottom: 2rem;
+        }
+
+        .spt-hero-sub {
+          font-size: 1.0625rem;
+          line-height: 1.75;
+          color: #737373;
+          max-width: 520px;
+          margin: 0 0 2.5rem;
+        }
+
+        .spt-hero-cta {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 1rem;
+        }
+
+        .spt-hero-secondary {
+          font-size: 13px;
+          color: #737373;
+        }
+
+        .spt-hero-secondary :global(a) {
+          color: #1a1a1a;
+          font-weight: 700;
+        }
+
+        /* ── SECTIONS ── */
+        .spt-section {
+          padding: 6rem 2rem;
+        }
+
+        .spt-section-alt {
+          background: #fafafa;
+        }
+
+        .spt-container {
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        .spt-section h2 {
+          font-size: clamp(2rem, 5vw, 3rem);
+          font-weight: 900;
+          line-height: 0.95;
+          letter-spacing: -0.02em;
+          color: #1a1a1a;
+          text-transform: uppercase;
+          margin: 0 0 1.5rem;
+        }
+
+        .spt-section-body {
+          font-size: 1.0625rem;
+          line-height: 1.75;
+          color: #737373;
+          max-width: 480px;
+          margin: 0 0 3rem;
+        }
+
+        /* ── CARDS GRID ── */
+        .spt-cards-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 0;
+          border-top: 1px solid #e0e0e0;
+        }
+
+        .spt-card {
+          padding: 2rem;
+          border-bottom: 1px solid #e0e0e0;
+          border-right: 1px solid #e0e0e0;
+        }
+
+        .spt-card:nth-child(2n) {
+          border-right: none;
+        }
+
+        .spt-card-num {
           display: block;
+          font-size: 12px;
+          font-weight: 600;
+          color: #c4a882;
+          letter-spacing: 0.05em;
           margin-bottom: 0.75rem;
         }
 
-        .is-this-you-card h4 {
+        .spt-card h4 {
           font-size: 1rem;
-          font-weight: 700;
-          color: #171717;
-          margin-bottom: 0.5rem;
+          font-weight: 800;
+          color: #1a1a1a;
+          text-transform: uppercase;
+          margin: 0 0 0.5rem;
         }
 
-        .is-this-you-card p {
+        .spt-card p {
           font-size: 0.9375rem;
-          color: #525252;
+          color: #737373;
           margin: 0;
           line-height: 1.6;
         }
 
-        /* Steps List */
-        .steps-list {
-          max-width: 700px;
-          margin: 0 auto;
+        /* ── STEPS ── */
+        .spt-steps {
+          border-top: 1px solid #e0e0e0;
+          max-width: 800px;
         }
 
-        .step-row {
+        .spt-step {
           display: flex;
-          gap: 1.5rem;
-          padding: 1.5rem 0;
-          border-bottom: 1px solid #e5e5e5;
+          gap: 2rem;
+          padding: 1.75rem 0;
+          border-bottom: 1px solid #e0e0e0;
           align-items: flex-start;
         }
 
-        .step-row:last-child {
-          border-bottom: none;
+        .spt-step-num {
+          font-size: 12px;
+          font-weight: 600;
+          color: #c4a882;
+          letter-spacing: 0.05em;
+          min-width: 2rem;
+          padding-top: 0.25rem;
         }
 
-        .step-num {
-          width: 48px;
-          height: 48px;
-          min-width: 48px;
-          background: #000000;
-          color: #ffffff;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 700;
-          font-size: 1.125rem;
-          flex-shrink: 0;
+        .spt-step-content h4 {
+          font-size: 1rem;
+          font-weight: 800;
+          color: #1a1a1a;
+          text-transform: uppercase;
+          margin: 0 0 0.5rem;
         }
 
-        .step-text h4 {
-          font-size: 1.0625rem;
-          font-weight: 700;
-          color: #171717;
-          margin-bottom: 0.375rem;
-        }
-
-        .step-text p {
+        .spt-step-content p {
           font-size: 0.9375rem;
-          color: #525252;
+          color: #737373;
           margin: 0;
           line-height: 1.6;
         }
 
-        /* Tools Grid */
-        .tools-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 1.25rem;
-          max-width: 1000px;
-          margin: 0 auto;
+        /* ── TOOLS LIST ── */
+        .spt-tools-list {
+          border-top: 1px solid #e0e0e0;
         }
 
-        .tool-card {
-          background: #ffffff;
-          border: 1px solid #e5e5e5;
-          border-radius: 12px;
-          padding: 1.5rem;
+        :global(.spt-tool-row) {
+          display: grid;
+          grid-template-columns: 3rem 200px 1fr 2rem;
+          gap: 2rem;
+          align-items: center;
+          padding: 1.5rem 0;
+          border-bottom: 1px solid #e0e0e0;
           text-decoration: none;
           transition: all 0.2s;
         }
 
-        .tool-card:hover {
-          border-color: #000000;
-          transform: translateY(-2px);
+        :global(.spt-tool-row:hover) {
+          padding-left: 1rem;
+          background: #ffffff;
         }
 
-        .tool-card h4 {
+        .spt-tool-num {
+          font-size: 12px;
+          font-weight: 600;
+          color: #c4a882;
+          letter-spacing: 0.05em;
+        }
+
+        .spt-tool-name {
           font-size: 1rem;
-          font-weight: 700;
-          color: #171717;
-          margin-bottom: 0.5rem;
+          font-weight: 800;
+          color: #1a1a1a;
+          text-transform: uppercase;
+          letter-spacing: -0.01em;
         }
 
-        .tool-card p {
+        .spt-tool-desc {
           font-size: 0.875rem;
-          color: #525252;
-          margin: 0;
-          line-height: 1.6;
+          color: #737373;
+          line-height: 1.5;
         }
 
-        /* Testimonials Grid */
-        .testimonials-grid {
+        .spt-tool-arrow {
+          font-size: 1rem;
+          color: #d0d0d0;
+          transition: color 0.2s;
+        }
+
+        :global(.spt-tool-row:hover) .spt-tool-arrow {
+          color: #1a1a1a;
+        }
+
+        /* ── TESTIMONIALS ── */
+        .spt-testimonials {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 1.5rem;
-          max-width: 1000px;
-          margin: 0 auto;
+          gap: 0;
+          border-top: 1px solid #e0e0e0;
+          margin-top: 2.5rem;
         }
 
-        .testimonial-card {
-          background: #ffffff;
-          border: 1px solid #e5e5e5;
-          border-radius: 12px;
-          padding: 1.75rem;
+        .spt-testimonial {
+          padding: 2.5rem 2rem;
+          border-bottom: 1px solid #e0e0e0;
+          border-right: 1px solid #e0e0e0;
         }
 
-        .testimonial-stars {
-          color: #fbbf24;
-          font-size: 1rem;
-          letter-spacing: 2px;
-          margin-bottom: 0.75rem;
+        .spt-testimonial:last-child {
+          border-right: none;
         }
 
-        .testimonial-card blockquote {
+        .spt-testimonial-stars {
+          font-size: 12px;
+          color: #1a1a1a;
+          letter-spacing: 0.15em;
+          margin-bottom: 1.25rem;
+        }
+
+        .spt-testimonial blockquote {
           font-size: 0.9375rem;
+          line-height: 1.75;
           color: #404040;
-          line-height: 1.7;
-          margin: 0 0 1rem 0;
-          font-style: italic;
-        }
-
-        .testimonial-card cite {
-          font-size: 0.875rem;
-          font-weight: 600;
-          color: #171717;
+          margin: 0 0 1.5rem;
           font-style: normal;
         }
 
-        /* FAQ List */
-        .faq-list {
-          max-width: 700px;
-          margin: 0 auto;
+        .spt-testimonial cite {
+          font-size: 13px;
+          font-weight: 700;
+          color: #1a1a1a;
+          font-style: normal;
+          letter-spacing: 0.02em;
         }
 
-        .faq-item {
+        /* ── FAQ ── */
+        .spt-faq-list {
+          border-top: 1px solid #e0e0e0;
+          max-width: 800px;
+        }
+
+        .spt-faq-item {
+          border-bottom: 1px solid #e0e0e0;
+        }
+
+        .spt-faq-q {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          width: 100%;
           padding: 1.5rem 0;
-          border-bottom: 1px solid #e5e5e5;
-        }
-
-        .faq-item:first-child {
-          padding-top: 0;
-        }
-
-        .faq-item:last-child {
-          border-bottom: none;
-          padding-bottom: 0;
-        }
-
-        .faq-item h4 {
+          background: none;
+          border: none;
           font-size: 1rem;
-          font-weight: 600;
-          color: #171717;
-          margin: 0 0 0.75rem 0;
+          font-weight: 700;
+          color: #1a1a1a;
+          cursor: pointer;
+          font-family: inherit;
+          text-align: left;
+          gap: 1rem;
         }
 
-        .faq-item p {
+        .spt-faq-toggle {
+          font-size: 1.25rem;
+          color: #a0a0a0;
+          flex-shrink: 0;
+        }
+
+        .spt-faq-a {
+          padding: 0 0 1.5rem;
+        }
+
+        .spt-faq-a p {
           font-size: 0.9375rem;
-          color: #525252;
-          line-height: 1.7;
+          color: #737373;
+          line-height: 1.75;
           margin: 0;
         }
 
         /* CTA Location */
-        .cta-location a {
+        .cta-location :global(a) {
           color: #ffffff;
           text-decoration: underline;
+          text-underline-offset: 2px;
         }
 
-        /* Responsive */
+        /* ── RESPONSIVE ── */
         @media (max-width: 900px) {
-          .is-this-you-grid {
+          .spt-cards-grid {
             grid-template-columns: 1fr;
           }
 
-          .tools-grid {
-            grid-template-columns: 1fr 1fr;
+          .spt-card {
+            border-right: none;
           }
 
-          .testimonials-grid {
+          :global(.spt-tool-row) {
+            grid-template-columns: 3rem 1fr 2rem;
+          }
+
+          .spt-tool-desc {
+            display: none;
+          }
+
+          .spt-testimonials {
             grid-template-columns: 1fr;
+          }
+
+          .spt-testimonial {
+            border-right: none;
           }
         }
 
         @media (max-width: 640px) {
-          .step-row {
+          .spt-hero {
+            padding: 4rem 1.5rem 5rem;
+          }
+
+          .spt-section {
+            padding: 4rem 1.5rem;
+          }
+
+          .spt-step {
             flex-direction: column;
-            text-align: center;
-          }
-
-          .step-num {
-            margin: 0 auto 1rem;
-          }
-
-          .tools-grid {
-            grid-template-columns: 1fr;
+            gap: 0.75rem;
           }
         }
       `}</style>

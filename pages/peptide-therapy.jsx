@@ -135,13 +135,13 @@ export default function PeptideTherapy() {
   ];
 
   const steps = [
-    { step: "Step 1", title: "Get started", desc: "Get started with Range Medical. We'll discuss your goals, medical history, and determine which peptides might help your situation." },
-    { step: "Step 2", title: "Get your protocol", desc: "Your provider designs a personalized peptide protocol — which peptides, what doses, and how long. We explain everything clearly." },
-    { step: "Step 3", title: "Learn to inject", desc: "We teach you how to self-administer subcutaneous injections. It's easier than you think — most patients are comfortable immediately." },
-    { step: "Step 4", title: "Track & adjust", desc: "Regular check-ins to monitor your progress. We adjust your protocol as needed to optimize results." }
+    { step: "01", title: "Get started", desc: "Get started with Range Medical. We'll discuss your goals, medical history, and determine which peptides might help your situation." },
+    { step: "02", title: "Get your protocol", desc: "Your provider designs a personalized peptide protocol — which peptides, what doses, and how long. We explain everything clearly." },
+    { step: "03", title: "Learn to inject", desc: "We teach you how to self-administer subcutaneous injections. It's easier than you think — most patients are comfortable immediately." },
+    { step: "04", title: "Track & adjust", desc: "Regular check-ins to monitor your progress. We adjust your protocol as needed to optimize results." }
   ];
 
-  
+
   return (
     <Layout
       title="Peptide Therapy | Healing, Recovery & Performance | Newport Beach | Range Medical"
@@ -257,22 +257,25 @@ export default function PeptideTherapy() {
       <div className="trust-bar">
         <div className="trust-inner">
           <span className="trust-item">
-            <span className="trust-rating">★★★★★</span> 5.0 on Google
+            <span className="trust-rating">&#9733;&#9733;&#9733;&#9733;&#9733;</span> 5.0 on Google
           </span>
-          <span className="trust-item">📍 Newport Beach, CA</span>
-          <span className="trust-item">✓ Licensed Providers</span>
+          <span className="trust-item">Newport Beach, CA</span>
+          <span className="trust-item">Licensed Providers</span>
         </div>
       </div>
 
       <div className="pep-page">
         {/* Hero */}
         <section className="pep-hero">
-          <div className="pep-kicker">Recovery · Healing · Performance</div>
-          <h1>Your Guide to Peptide Therapy</h1>
-          <p className="pep-body-text">Everything you need to know about therapeutic peptides — what they are, how they work, and whether they're right for your goals.</p>
-          <div className="pep-hero-scroll">
-            Scroll to explore
-            <span>↓</span>
+          <div className="pep-hero-inner">
+            <div className="v2-label"><span className="v2-dot" /> Recovery &middot; Healing &middot; Performance</div>
+            <h1>YOUR GUIDE TO PEPTIDE THERAPY</h1>
+            <div className="pep-hero-rule" />
+            <p className="pep-hero-sub">Everything you need to know about therapeutic peptides — what they are, how they work, and whether they're right for your goals.</p>
+            <div className="pep-hero-scroll">
+              Scroll to explore
+              <span>&#8595;</span>
+            </div>
           </div>
         </section>
 
@@ -280,9 +283,8 @@ export default function PeptideTherapy() {
         <section className="pep-section pep-section-alt">
           <div className="pep-container">
             <div className="pep-animate">
-              <div className="pep-kicker">What Are Peptides</div>
-              <h2>Small proteins with targeted effects.</h2>
-              <div className="pep-divider"></div>
+              <div className="v2-label"><span className="v2-dot" /> What Are Peptides</div>
+              <h2>SMALL PROTEINS WITH TARGETED EFFECTS.</h2>
               <p className="pep-body-text">
                 Peptides are short chains of amino acids — essentially small proteins that signal your body to do specific things. Different peptides trigger different responses: healing tissue, releasing growth hormone, reducing inflammation, or supporting immune function.
               </p>
@@ -312,9 +314,8 @@ export default function PeptideTherapy() {
         <section className="pep-section pep-section-inverted">
           <div className="pep-container">
             <div className="pep-animate">
-              <div className="pep-kicker">Who It's For</div>
-              <h2>For people who want to heal and perform better.</h2>
-              <div className="pep-divider"></div>
+              <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> Who It's For</div>
+              <h2>FOR PEOPLE WHO WANT TO HEAL AND PERFORM BETTER.</h2>
               <p className="pep-body-text">
                 Peptides aren't just for athletes or biohackers. If any of these sound familiar, peptide therapy at our Newport Beach clinic might help.
               </p>
@@ -332,21 +333,20 @@ export default function PeptideTherapy() {
         <section className="pep-section">
           <div className="pep-container">
             <div className="pep-animate">
-              <div className="pep-kicker">What We Treat</div>
-              <h2>Conditions that respond well to peptide therapy.</h2>
-              <div className="pep-divider"></div>
+              <div className="v2-label"><span className="v2-dot" /> What We Treat</div>
+              <h2>CONDITIONS THAT RESPOND WELL TO PEPTIDE THERAPY.</h2>
               <p className="pep-body-text">
                 Different peptides target different issues. Tell us what you're dealing with, and we'll design a protocol tailored to your needs.
               </p>
             </div>
 
-            <div className="pep-peptides-grid">
+            <div className="pep-cards-grid">
               {treatmentAreas.map((area, i) => (
-                <div key={i} className="pep-peptide-card pep-animate">
-                  {area.highlight && <div className="pep-peptide-badge">{area.highlight}</div>}
-                  <div className="pep-peptide-category">{area.category}</div>
-                  <div className="pep-peptide-name">{area.name}</div>
-                  <div className="pep-peptide-desc">{area.desc}</div>
+                <div key={i} className="pep-card pep-animate">
+                  {area.highlight && <div className="pep-card-badge">{area.highlight}</div>}
+                  <div className="pep-card-category">{area.category}</div>
+                  <div className="pep-card-name">{area.name}</div>
+                  <div className="pep-card-desc">{area.desc}</div>
                 </div>
               ))}
             </div>
@@ -357,20 +357,21 @@ export default function PeptideTherapy() {
         <section className="pep-section pep-section-alt">
           <div className="pep-container">
             <div className="pep-animate">
-              <div className="pep-kicker">How Peptides May Help</div>
-              <h2>Targeted support for your body.</h2>
-              <div className="pep-divider"></div>
+              <div className="v2-label"><span className="v2-dot" /> How Peptides May Help</div>
+              <h2>TARGETED SUPPORT FOR YOUR BODY.</h2>
               <p className="pep-body-text">
                 Different peptides support different goals. Here are the main ways peptide therapy could help.
               </p>
             </div>
 
-            <div className="pep-benefits-grid">
+            <div className="pep-benefits-list">
               {benefits.map((benefit, i) => (
-                <div key={i} className="pep-benefit-card pep-animate">
+                <div key={i} className="pep-benefit-row pep-animate">
                   <div className="pep-benefit-number">{benefit.number}</div>
-                  <div className="pep-benefit-title">{benefit.title}</div>
-                  <div className="pep-benefit-desc">{benefit.desc}</div>
+                  <div className="pep-benefit-content">
+                    <div className="pep-benefit-title">{benefit.title}</div>
+                    <div className="pep-benefit-desc">{benefit.desc}</div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -381,9 +382,8 @@ export default function PeptideTherapy() {
         <section className="pep-section" id="pep-research">
           <div className="pep-container">
             <div className="pep-animate">
-              <div className="pep-kicker">Backed by Science</div>
-              <h2>Evidence-Based Results</h2>
-              <div className="pep-divider"></div>
+              <div className="v2-label"><span className="v2-dot" /> Backed by Science</div>
+              <h2>EVIDENCE-BASED RESULTS</h2>
               <p className="pep-body-text">
                 We've summarized the peer-reviewed research. Click any study to get the full breakdown — free.
               </p>
@@ -415,9 +415,8 @@ export default function PeptideTherapy() {
         <section className="pep-section pep-section-alt">
           <div className="pep-container">
             <div className="pep-animate">
-              <div className="pep-kicker">Getting Started</div>
-              <h2>Your first visit, step by step.</h2>
-              <div className="pep-divider"></div>
+              <div className="v2-label"><span className="v2-dot" /> Getting Started</div>
+              <h2>YOUR FIRST VISIT, STEP BY STEP.</h2>
               <p className="pep-body-text">
                 Getting started with peptides is straightforward. Here's exactly what happens at our Newport Beach clinic.
               </p>
@@ -438,19 +437,17 @@ export default function PeptideTherapy() {
         </section>
 
         {/* FAQ */}
-        <section className="pep-section-alt">
+        <section className="pep-section pep-section-alt">
           <div className="pep-container">
-            <span className="pep-section-label">Questions</span>
-            <h2>Common Questions</h2>
+            <div className="v2-label"><span className="v2-dot" /> Questions</div>
+            <h2>COMMON QUESTIONS</h2>
 
             <div className="pep-faq-list">
               {faqs.map((faq, index) => (
                 <div key={index} className={`pep-faq-item ${openFaq === index ? 'pep-faq-open' : ''}`}>
                   <button className="pep-faq-question" onClick={() => toggleFaq(index)}>
                     <span>{faq.question}</span>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d={openFaq === index ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} />
-                    </svg>
+                    <span className="pep-faq-toggle">{openFaq === index ? '\u2212' : '+'}</span>
                   </button>
                   <div className="pep-faq-answer">
                     <p>{faq.answer}</p>
@@ -480,16 +477,17 @@ export default function PeptideTherapy() {
         </section>
 
         {/* CTA */}
-        <section className="pep-section pep-section-inverted pep-cta-section">
-          <div className="pep-container">
+        <section className="final-cta">
+          <div className="container">
             <div className="pep-animate">
-              <div className="pep-kicker" style={{ marginBottom: '1.5rem' }}>Next Steps</div>
-              <h2 className="pep-cta-title">Ready to optimize your recovery?</h2>
-              <p className="pep-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
+              <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)', justifyContent: 'center' }}><span className="v2-dot" /> Next Steps</div>
+              <h2>READY TO OPTIMIZE YOUR RECOVERY?</h2>
+              <div className="cta-rule" />
+              <p>
                 Get started with Range Medical. We'll discuss your goals and design a peptide protocol for your situation. Our Newport Beach team is here to help.
               </p>
               <div className="pep-cta-buttons">
-                <Link href="/start" className="pep-btn-primary">Start Now</Link>
+                <Link href="/start" className="btn-white">Start Now</Link>
                 <div className="pep-cta-or">or</div>
                 <a href="tel:9499973988" className="pep-cta-phone">(949) 997-3988</a>
               </div>
@@ -506,12 +504,12 @@ export default function PeptideTherapy() {
       </div>
 
       <style jsx>{`
-        /* ===== PEPTIDE PAGE SCOPED STYLES ===== */
+        /* ===== PEPTIDE PAGE — V2 EDITORIAL ===== */
         .pep-page {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
           -webkit-font-smoothing: antialiased;
           background: #ffffff;
-          color: #171717;
+          color: #1a1a1a;
           overflow-x: hidden;
         }
 
@@ -531,69 +529,50 @@ export default function PeptideTherapy() {
         .pep-container {
           max-width: 1200px;
           margin: 0 auto;
-          padding: 0 1.5rem;
+          padding: 0 2rem;
         }
 
         /* Sections */
         .pep-section {
-          padding: 4rem 1.5rem;
+          padding: 6rem 2rem;
         }
 
         .pep-section-alt {
           background: #fafafa;
-          padding: 5rem 1.5rem;
-        }
-
-        .pep-section-label {
-          display: inline-block;
-          font-size: 0.75rem;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 0.75rem;
+          padding: 6rem 2rem;
         }
 
         .pep-section-inverted {
-          background: #000000;
+          background: #1a1a1a;
           color: #ffffff;
-        }
-
-        /* Kicker */
-        .pep-kicker {
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 1rem;
-        }
-
-        .pep-section-inverted .pep-kicker {
-          color: rgba(255, 255, 255, 0.4);
+          padding: 6rem 2rem;
         }
 
         /* Headlines */
         .pep-page h1 {
-          font-size: 2.75rem;
-          font-weight: 700;
-          line-height: 1.15;
-          letter-spacing: -0.02em;
-          color: #171717;
+          font-size: clamp(2.5rem, 6vw, 4rem);
+          font-weight: 900;
+          line-height: 0.95;
+          letter-spacing: -0.03em;
+          color: #1a1a1a;
+          text-transform: uppercase;
         }
 
         .pep-page h2 {
-          font-size: 2rem;
-          font-weight: 700;
+          font-size: clamp(2rem, 5vw, 3rem);
+          font-weight: 900;
+          line-height: 0.95;
           letter-spacing: -0.02em;
-          color: #171717;
-          margin-bottom: 1rem;
+          color: #1a1a1a;
+          text-transform: uppercase;
+          margin-bottom: 1.5rem;
         }
 
         .pep-page h3 {
-          font-size: 1.125rem;
-          font-weight: 700;
-          color: #171717;
+          font-size: 1rem;
+          font-weight: 800;
+          color: #1a1a1a;
+          text-transform: uppercase;
         }
 
         .pep-section-inverted h1,
@@ -606,71 +585,50 @@ export default function PeptideTherapy() {
         .pep-body-text {
           font-size: 1.0625rem;
           font-weight: 400;
-          line-height: 1.7;
-          color: #525252;
-          max-width: 600px;
+          line-height: 1.75;
+          color: #737373;
+          max-width: 520px;
         }
 
         .pep-section-inverted .pep-body-text {
           color: rgba(255, 255, 255, 0.55);
         }
 
-        /* Divider */
-        .pep-divider {
-          width: 48px;
-          height: 2px;
-          background: #e5e5e5;
-          margin: 1.25rem 0;
-        }
-
-        .pep-section-inverted .pep-divider {
-          background: rgba(255, 255, 255, 0.12);
-        }
-
-        /* Buttons */
-        .pep-btn-primary {
-          display: inline-block;
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          font-size: 0.875rem;
-          font-weight: 600;
-          padding: 0.875rem 2rem;
-          background: #ffffff;
-          color: #000000;
-          border: none;
-          border-radius: 8px;
-          cursor: pointer;
-          text-decoration: none;
-          transition: background 0.2s ease, transform 0.2s ease;
-        }
-
-        .pep-btn-primary:hover {
-          background: #e5e5e5;
-          transform: translateY(-1px);
-        }
-
         /* Hero */
         .pep-hero {
-          padding: 4rem 1.5rem 5rem;
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
+          padding: 6rem 2rem 7rem;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        .pep-hero-inner {
+          max-width: 800px;
         }
 
         .pep-hero h1 {
-          max-width: 680px;
-          margin-bottom: 1.5rem;
+          margin: 0 0 2rem;
         }
 
-        .pep-hero .pep-body-text {
-          text-align: center;
-          margin: 0 auto 2.5rem;
+        .pep-hero-rule {
+          width: 100%;
+          max-width: 600px;
+          height: 1px;
+          background: #e0e0e0;
+          margin-bottom: 2rem;
+        }
+
+        .pep-hero-sub {
+          font-size: 1.0625rem;
+          line-height: 1.75;
+          color: #737373;
+          max-width: 520px;
+          margin: 0 0 2.5rem;
         }
 
         .pep-hero-scroll {
-          font-size: 0.75rem;
+          font-size: 11px;
           font-weight: 700;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.12em;
           text-transform: uppercase;
           color: #737373;
           margin-top: 2rem;
@@ -692,21 +650,28 @@ export default function PeptideTherapy() {
         .pep-stat-row {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 2rem;
+          gap: 0;
           margin-top: 3rem;
+          border-top: 1px solid #e0e0e0;
         }
 
         .pep-stat-item {
           text-align: center;
+          padding: 2rem 1rem;
+          border-right: 1px solid #e0e0e0;
+        }
+
+        .pep-stat-item:last-child {
+          border-right: none;
         }
 
         .pep-stat-number {
           font-size: 2.75rem;
-          font-weight: 800;
+          font-weight: 900;
           letter-spacing: -0.02em;
           line-height: 1;
           margin-bottom: 0.5rem;
-          color: #171717;
+          color: #c4a882;
         }
 
         .pep-stat-label {
@@ -725,10 +690,11 @@ export default function PeptideTherapy() {
         }
 
         .pep-tag-pill {
-          font-size: 0.8125rem;
-          font-weight: 600;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
           padding: 0.75rem 1.5rem;
-          border-radius: 100px;
           border: 1px solid rgba(255, 255, 255, 0.08);
           background: rgba(255, 255, 255, 0.04);
           color: rgba(255, 255, 255, 0.6);
@@ -739,152 +705,149 @@ export default function PeptideTherapy() {
           border-color: rgba(255, 255, 255, 0.25);
         }
 
-        /* Peptide Cards */
-        .pep-peptides-grid {
+        /* Treatment Area Cards — V2 hairline grid */
+        .pep-cards-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 1.25rem;
+          gap: 0;
           margin-top: 2.5rem;
+          border-top: 1px solid #e0e0e0;
         }
 
-        .pep-peptide-card {
+        .pep-card {
           padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
+          border-right: 1px solid #e0e0e0;
           background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
           position: relative;
         }
 
-        .pep-peptide-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        .pep-card:nth-child(3n) {
+          border-right: none;
         }
 
-        .pep-peptide-badge {
+        .pep-card-badge {
           position: absolute;
-          top: -10px;
-          left: 1.5rem;
-          background: #0891b2;
+          top: 0.75rem;
+          right: 0.75rem;
+          background: #1a1a1a;
           color: #ffffff;
-          font-size: 0.6875rem;
+          font-size: 9px;
           font-weight: 700;
           text-transform: uppercase;
-          letter-spacing: 0.05em;
-          padding: 0.375rem 0.75rem;
-          border-radius: 4px;
+          letter-spacing: 0.1em;
+          padding: 0.25rem 0.625rem;
         }
 
-        .pep-peptide-category {
-          font-size: 0.6875rem;
+        .pep-card-category {
+          font-size: 11px;
           font-weight: 700;
           text-transform: uppercase;
-          letter-spacing: 0.08em;
-          color: #0891b2;
+          letter-spacing: 0.1em;
+          color: #c4a882;
           margin-bottom: 0.5rem;
         }
 
-        .pep-peptide-name {
-          font-size: 1.25rem;
-          font-weight: 700;
-          color: #171717;
+        .pep-card-name {
+          font-size: 1.125rem;
+          font-weight: 800;
+          color: #1a1a1a;
+          text-transform: uppercase;
           margin-bottom: 0.75rem;
         }
 
-        .pep-peptide-desc {
-          font-size: 0.875rem;
+        .pep-card-desc {
+          font-size: 0.9375rem;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
         }
 
-        /* Benefit Cards */
-        .pep-benefits-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1.25rem;
+        /* Benefits — V2 hairline rows */
+        .pep-benefits-list {
+          border-top: 1px solid #e0e0e0;
           margin-top: 2.5rem;
+          max-width: 800px;
         }
 
-        .pep-benefit-card {
-          padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
-          background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .pep-benefit-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        .pep-benefit-row {
+          display: flex;
+          gap: 2rem;
+          padding: 1.75rem 0;
+          border-bottom: 1px solid #e0e0e0;
+          align-items: flex-start;
         }
 
         .pep-benefit-number {
-          font-size: 0.75rem;
-          font-weight: 700;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: #737373;
-          margin-bottom: 1rem;
+          font-size: 12px;
+          font-weight: 600;
+          color: #c4a882;
+          letter-spacing: 0.05em;
+          min-width: 2rem;
+          padding-top: 0.25rem;
         }
 
         .pep-benefit-title {
-          font-size: 1.125rem;
-          font-weight: 700;
-          color: #171717;
-          margin-bottom: 0.75rem;
+          font-size: 1rem;
+          font-weight: 800;
+          color: #1a1a1a;
+          text-transform: uppercase;
+          margin-bottom: 0.5rem;
         }
 
         .pep-benefit-desc {
-          font-size: 0.875rem;
+          font-size: 0.9375rem;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
         }
 
-        /* Research Cards */
+        /* Research Cards — V2 hairline grid */
         .pep-research-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 1.25rem;
+          gap: 0;
           margin-top: 2.5rem;
+          border-top: 1px solid #e0e0e0;
         }
 
         .pep-research-card {
           padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
+          border-right: 1px solid #e0e0e0;
           background: #ffffff;
           cursor: pointer;
           transition: all 0.2s ease;
         }
 
+        .pep-research-card:nth-child(2n) {
+          border-right: none;
+        }
+
         .pep-research-card:hover {
-          border-color: #171717;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          transform: translateY(-2px);
+          background: #fafafa;
         }
 
         .pep-research-category {
           display: inline-block;
-          font-size: 0.6875rem;
+          font-size: 11px;
           font-weight: 700;
-          letter-spacing: 0.08em;
+          letter-spacing: 0.1em;
           text-transform: uppercase;
-          color: #0891b2;
+          color: #c4a882;
           margin-bottom: 0.875rem;
         }
 
         .pep-research-headline {
           font-size: 1.0625rem;
           font-weight: 700;
-          color: #171717;
+          color: #1a1a1a;
           margin-bottom: 0.75rem;
           line-height: 1.4;
         }
 
         .pep-research-summary {
-          font-size: 0.875rem;
+          font-size: 0.9375rem;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
           margin-bottom: 1rem;
         }
 
@@ -903,56 +866,52 @@ export default function PeptideTherapy() {
           line-height: 1.7;
         }
 
-        /* Expect List */
+        /* Steps List — V2 */
         .pep-expect-list {
           margin-top: 2.5rem;
+          border-top: 1px solid #e0e0e0;
+          max-width: 800px;
         }
 
         .pep-expect-item {
           display: flex;
-          gap: 1.5rem;
+          gap: 2rem;
           padding: 1.75rem 0;
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
           align-items: flex-start;
         }
 
-        .pep-expect-item:last-child {
-          border-bottom: none;
-        }
-
         .pep-expect-step {
-          font-size: 0.8125rem;
-          font-weight: 700;
-          color: #737373;
-          min-width: 56px;
-          letter-spacing: 0.02em;
+          font-size: 12px;
+          font-weight: 600;
+          color: #c4a882;
+          letter-spacing: 0.05em;
+          min-width: 2rem;
+          padding-top: 0.25rem;
         }
 
         .pep-expect-content h3 {
-          font-size: 1.0625rem;
-          font-weight: 700;
-          color: #171717;
-          margin-bottom: 0.375rem;
+          font-size: 1rem;
+          font-weight: 800;
+          color: #1a1a1a;
+          text-transform: uppercase;
+          margin-bottom: 0.5rem;
         }
 
         .pep-expect-content p {
-          font-size: 0.875rem;
-          color: #525252;
+          font-size: 0.9375rem;
+          color: #737373;
           line-height: 1.7;
         }
 
-        /* FAQ */
+        /* FAQ — V2 accordion with +/- toggle */
         .pep-faq-list {
-          max-width: 700px;
-          margin: 0 auto;
+          max-width: 800px;
+          border-top: 1px solid #e0e0e0;
         }
 
         .pep-faq-item {
-          border-bottom: 1px solid #e5e5e5;
-        }
-
-        .pep-faq-item:last-child {
-          border-bottom: none;
+          border-bottom: 1px solid #e0e0e0;
         }
 
         .pep-faq-question {
@@ -960,29 +919,25 @@ export default function PeptideTherapy() {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 1.25rem 0;
+          padding: 1.5rem 0;
           background: none;
           border: none;
           cursor: pointer;
           text-align: left;
           font-family: inherit;
+          gap: 1rem;
         }
 
-        .pep-faq-question span {
+        .pep-faq-question span:first-child {
           font-size: 1rem;
-          font-weight: 600;
-          color: #171717;
-          padding-right: 1rem;
+          font-weight: 700;
+          color: #1a1a1a;
         }
 
-        .pep-faq-question svg {
+        .pep-faq-toggle {
+          font-size: 1.25rem;
+          color: #a0a0a0;
           flex-shrink: 0;
-          color: #737373;
-          transition: transform 0.2s;
-        }
-
-        .pep-faq-open .pep-faq-question svg {
-          transform: rotate(180deg);
         }
 
         .pep-faq-answer {
@@ -993,19 +948,19 @@ export default function PeptideTherapy() {
 
         .pep-faq-open .pep-faq-answer {
           max-height: 300px;
-          padding-bottom: 1.25rem;
+          padding-bottom: 1.5rem;
         }
 
         .pep-faq-answer p {
           font-size: 0.9375rem;
-          color: #525252;
-          line-height: 1.7;
+          color: #737373;
+          line-height: 1.75;
           margin: 0;
         }
 
         /* Understanding Peptides Guide Link */
         .pep-peptide-guide {
-          padding: 0 1.5rem 3rem;
+          padding: 0 2rem 3rem;
         }
 
         .pep-guide-card {
@@ -1013,18 +968,15 @@ export default function PeptideTherapy() {
           align-items: center;
           justify-content: space-between;
           padding: 2rem 2.5rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border: 1px solid #e0e0e0;
           background: #fafafa;
           text-decoration: none;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+          transition: border-color 0.2s ease, transform 0.2s ease;
           gap: 1.5rem;
         }
 
         .pep-guide-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-          transform: translateY(-2px);
+          border-color: #1a1a1a;
         }
 
         .pep-guide-content {
@@ -1032,24 +984,25 @@ export default function PeptideTherapy() {
         }
 
         .pep-guide-kicker {
-          font-size: 0.6875rem;
+          font-size: 11px;
           font-weight: 700;
           text-transform: uppercase;
-          letter-spacing: 0.08em;
-          color: #3b82f6;
+          letter-spacing: 0.1em;
+          color: #c4a882;
           margin-bottom: 0.5rem;
         }
 
         .pep-guide-title {
-          font-size: 1.25rem;
-          font-weight: 700;
-          color: #171717;
+          font-size: 1.125rem;
+          font-weight: 800;
+          color: #1a1a1a;
+          text-transform: uppercase;
           margin-bottom: 0.375rem;
         }
 
         .pep-guide-desc {
-          font-size: 0.875rem;
-          color: #525252;
+          font-size: 0.9375rem;
+          color: #737373;
           line-height: 1.6;
           margin: 0;
         }
@@ -1061,23 +1014,11 @@ export default function PeptideTherapy() {
         }
 
         .pep-guide-card:hover .pep-guide-arrow {
-          color: #000000;
+          color: #1a1a1a;
           transform: translateX(4px);
         }
 
-        /* CTA Section */
-        .pep-cta-section {
-          padding: 6rem 1.5rem;
-          text-align: center;
-        }
-
-        .pep-cta-title {
-          font-size: 2.75rem;
-          letter-spacing: -0.02em;
-          color: #ffffff;
-          margin-bottom: 1.25rem;
-        }
-
+        /* CTA buttons in final-cta */
         .pep-cta-buttons {
           display: flex;
           gap: 1rem;
@@ -1087,9 +1028,9 @@ export default function PeptideTherapy() {
         }
 
         .pep-cta-or {
-          font-size: 0.75rem;
+          font-size: 11px;
           font-weight: 700;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.12em;
           text-transform: uppercase;
           color: rgba(255, 255, 255, 0.25);
         }
@@ -1109,47 +1050,47 @@ export default function PeptideTherapy() {
         }
 
         /* Responsive */
-        @media (max-width: 768px) {
-          .pep-section {
-            padding: 3rem 1.5rem;
-          }
-
-          .pep-page h1 {
-            font-size: 2rem;
-          }
-
-          .pep-page h2 {
-            font-size: 1.5rem;
-          }
-
-          .pep-hero {
-            padding: 3rem 1.5rem;
-          }
-
-          .pep-stat-row {
-            grid-template-columns: 1fr;
-            gap: 2rem;
-          }
-
-          .pep-peptides-grid {
+        @media (max-width: 900px) {
+          .pep-cards-grid {
             grid-template-columns: 1fr;
           }
 
-          .pep-benefits-grid {
-            grid-template-columns: 1fr;
+          .pep-card {
+            border-right: none;
           }
 
           .pep-research-grid {
             grid-template-columns: 1fr;
           }
 
-          .pep-expect-item {
-            flex-direction: column;
-            gap: 0.5rem;
+          .pep-research-card {
+            border-right: none;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .pep-section,
+          .pep-section-alt,
+          .pep-section-inverted {
+            padding: 4rem 1.5rem;
           }
 
-          .pep-cta-title {
-            font-size: 2rem;
+          .pep-hero {
+            padding: 4rem 1.5rem 5rem;
+          }
+
+          .pep-stat-row {
+            grid-template-columns: 1fr;
+            gap: 0;
+          }
+
+          .pep-stat-item {
+            border-right: none;
+          }
+
+          .pep-expect-item {
+            flex-direction: column;
+            gap: 0.75rem;
           }
 
           .pep-cta-buttons {

@@ -36,10 +36,11 @@ export default function TirzepatideGuide() {
       </Head>
 
       {/* Hero */}
-      <section className="peptide-hero">
+      <section className="guide-hero">
         <div className="container">
-          <span className="hero-badge">Your Weight Loss Protocol Guide</span>
-          <h1>Tirzepatide</h1>
+          <div className="v2-label"><span className="v2-dot" /> YOUR WEIGHT LOSS PROTOCOL GUIDE</div>
+          <h1>TIRZEPATIDE</h1>
+          <div className="hero-rule" />
           <p className="hero-sub">Everything you need to know about your weight loss medication — how it works, how to inject, and what to expect.</p>
           <div className="hero-dose">
             <div><span>Type:</span> GLP-1/GIP Dual Agonist</div>
@@ -51,8 +52,8 @@ export default function TirzepatideGuide() {
       {/* The Basics */}
       <section className="section">
         <div className="container">
-          <div className="section-kicker">The Basics</div>
-          <h2 className="section-title">What Is Tirzepatide?</h2>
+          <div className="v2-label"><span className="v2-dot" /> THE BASICS</div>
+          <h2 className="section-title">WHAT IS TIRZEPATIDE?</h2>
           <p className="section-subtitle">Tirzepatide is a dual GLP-1/GIP receptor agonist. It works on the hormones that control hunger, satiety, and metabolism — helping your body naturally want less food while improving how you process what you eat.</p>
           <p className="body-text">Unlike diet pills that rely on stimulants, tirzepatide works with your body's own hormone systems. It quiets the constant mental chatter about food — what many patients describe as "food noise" — and lets you eat less without feeling deprived.</p>
         </div>
@@ -61,25 +62,25 @@ export default function TirzepatideGuide() {
       {/* How It Works */}
       <section className="section section-gray">
         <div className="container">
-          <div className="section-kicker">How It Works</div>
-          <h2 className="section-title">Why Tirzepatide Works</h2>
+          <div className="v2-label"><span className="v2-dot" /> HOW IT WORKS</div>
+          <h2 className="section-title">WHY TIRZEPATIDE WORKS</h2>
           <p className="section-subtitle">Four mechanisms working together for consistent, sustainable weight loss.</p>
 
           <div className="info-grid">
             <div className="info-card">
-              <h3>🧠 Appetite Reduction</h3>
+              <h3>Appetite Reduction</h3>
               <p>Works on the brain's hunger centers to naturally reduce appetite. You feel satisfied with less food — without willpower battles.</p>
             </div>
             <div className="info-card">
-              <h3>⏳ Slower Digestion</h3>
+              <h3>Slower Digestion</h3>
               <p>Slows stomach emptying so you feel full longer after meals. No more hunger pangs an hour after eating.</p>
             </div>
             <div className="info-card">
-              <h3>📉 Blood Sugar Control</h3>
+              <h3>Blood Sugar Control</h3>
               <p>Improves blood sugar and insulin sensitivity. Better glucose control means less fat storage and more stable energy.</p>
             </div>
             <div className="info-card">
-              <h3>🔇 Quiets Food Noise</h3>
+              <h3>Quiets Food Noise</h3>
               <p>The constant mental chatter about food goes away. Patients report thinking about food less and making better choices effortlessly.</p>
             </div>
           </div>
@@ -89,8 +90,8 @@ export default function TirzepatideGuide() {
       {/* Pricing */}
       <section className="section">
         <div className="container">
-          <div className="section-kicker">Protocols</div>
-          <h2 className="section-title">Dosing & Pricing</h2>
+          <div className="v2-label"><span className="v2-dot" /> PROTOCOLS</div>
+          <h2 className="section-title">DOSING & PRICING</h2>
           <p className="section-subtitle">One injection per week. We start low and titrate up based on your response. All-inclusive pricing — medication, supplies, monthly check-ins, dose adjustments, and nutrition guidance.</p>
 
           <div className="dose-table">
@@ -117,7 +118,7 @@ export default function TirzepatideGuide() {
           </div>
 
           <div className="tip-box" style={{ marginTop: '1.5rem' }}>
-            <strong>📋 Baseline Labs Required</strong>
+            <strong>Baseline Labs Required</strong>
             <p>Before starting, we need baseline labs to ensure this medication is safe and appropriate for you. Essential Panel: $350 / Elite Panel: $750.</p>
           </div>
         </div>
@@ -126,8 +127,8 @@ export default function TirzepatideGuide() {
       {/* Instructions */}
       <section className="section section-gray">
         <div className="container">
-          <div className="section-kicker">Instructions</div>
-          <h2 className="section-title">How to Use Your Injections</h2>
+          <div className="v2-label"><span className="v2-dot" /> INSTRUCTIONS</div>
+          <h2 className="section-title">HOW TO USE YOUR INJECTIONS</h2>
           <p className="section-subtitle">We teach you at the clinic — most people self-inject at home in under a minute.</p>
 
           <div className="steps-list">
@@ -162,7 +163,7 @@ export default function TirzepatideGuide() {
           </div>
 
           <div className="tip-box">
-            <strong>💡 Pro Tips</strong>
+            <strong>Pro Tips</strong>
             <p>Start low and titrate up slowly to minimize GI side effects. Stay hydrated. Prioritize protein at every meal. If nausea occurs, eat smaller meals more frequently. Store medication in the refrigerator.</p>
           </div>
         </div>
@@ -171,8 +172,8 @@ export default function TirzepatideGuide() {
       {/* Timeline */}
       <section className="section section-dark">
         <div className="container">
-          <div className="section-kicker">Timeline</div>
-          <h2 className="section-title">What to Expect</h2>
+          <div className="v2-label"><span className="v2-dot" /> TIMELINE</div>
+          <h2 className="section-title">WHAT TO EXPECT</h2>
           <p className="section-subtitle">Typical weight loss is 15–25% of body weight over 6–12 months, averaging 1–2 lbs per week.</p>
 
           <div className="timeline-grid">
@@ -203,8 +204,8 @@ export default function TirzepatideGuide() {
       {/* Safety */}
       <section className="section">
         <div className="container">
-          <div className="section-kicker">Safety</div>
-          <h2 className="section-title">Important Safety Information</h2>
+          <div className="v2-label"><span className="v2-dot" /> SAFETY</div>
+          <h2 className="section-title">IMPORTANT SAFETY INFORMATION</h2>
 
           <div className="safety-grid">
             <div className="safety-card warning">
@@ -239,44 +240,40 @@ export default function TirzepatideGuide() {
       {/* Final CTA */}
       <section className="final-cta">
         <div className="container">
-          <h2>Questions? We're Here.</h2>
+          <h2>QUESTIONS? WE'RE HERE.</h2>
           <p>Whether you need a dose adjustment or have questions about your protocol, our team can help.</p>
           <div className="cta-buttons">
-            <a href="tel:+19499973988" className="btn-white">Call (949) 997-3988</a>
-            <a href="sms:+19499973988" className="btn-outline-white">Text Us</a>
+            <a href="tel:+19499973988" className="btn-white">CALL (949) 997-3988</a>
+            <a href="sms:+19499973988" className="btn-outline-white">TEXT US</a>
           </div>
           <p className="cta-location">1901 Westcliff Dr. Suite 10, Newport Beach, CA 92660</p>
         </div>
       </section>
 
       <style jsx>{`
-        .peptide-hero {
-          background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
-          padding: 3.5rem 1.5rem 3rem;
-          text-align: center;
+        .guide-hero {
+          background: #ffffff;
+          padding: 6rem 2rem 4rem;
+          text-align: left;
         }
-        .peptide-hero h1 {
-          font-size: 2.25rem;
-          font-weight: 700;
-          line-height: 1.2;
+        .guide-hero h1 {
+          font-size: 2.75rem;
+          font-weight: 900;
+          line-height: 0.95;
           letter-spacing: -0.02em;
-          margin-bottom: 1rem;
+          margin-bottom: 1.25rem;
+          text-transform: uppercase;
         }
-        .hero-badge {
-          display: inline-block;
-          background: #000000;
-          color: #ffffff;
-          padding: 0.5rem 1rem;
-          border-radius: 100px;
-          font-size: 0.8125rem;
-          font-weight: 600;
+        .hero-rule {
+          width: 60px;
+          height: 1px;
+          background: #e0e0e0;
           margin-bottom: 1.25rem;
         }
         .hero-sub {
           font-size: 1.0625rem;
-          color: #525252;
+          color: #737373;
           max-width: 600px;
-          margin: 0 auto;
           line-height: 1.7;
         }
         .hero-dose {
@@ -285,45 +282,38 @@ export default function TirzepatideGuide() {
           margin-top: 1.5rem;
           padding: 1rem 1.5rem;
           background: #ffffff;
-          border: 1px solid #e5e5e5;
-          border-radius: 8px;
+          border: 1px solid #e0e0e0;
           font-size: 0.9rem;
-          color: #525252;
+          color: #737373;
         }
         .hero-dose span {
           font-weight: 600;
           color: #171717;
         }
         .section {
-          padding: 3.5rem 1.5rem;
+          padding: 6rem 2rem;
         }
         .section-gray {
           background: #fafafa;
         }
         .section-dark {
-          background: #000000;
+          background: #1a1a1a;
           color: #ffffff;
         }
-        .section-kicker {
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 0.5rem;
-        }
-        .section-dark .section-kicker {
+        .section-dark .v2-label {
           color: rgba(255,255,255,0.6);
         }
         .section-title {
           font-size: 1.75rem;
-          font-weight: 700;
+          font-weight: 900;
           letter-spacing: -0.02em;
+          line-height: 0.95;
           margin-bottom: 0.75rem;
+          text-transform: uppercase;
         }
         .section-subtitle {
           font-size: 1rem;
-          color: #525252;
+          color: #737373;
           max-width: 600px;
           line-height: 1.7;
           margin-bottom: 2rem;
@@ -336,7 +326,7 @@ export default function TirzepatideGuide() {
         }
         .body-text {
           font-size: 0.95rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.7;
         }
         .container {
@@ -351,8 +341,7 @@ export default function TirzepatideGuide() {
         }
         .info-card {
           background: #ffffff;
-          border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border: 1px solid #e0e0e0;
           padding: 1.75rem;
         }
         .info-card h3 {
@@ -362,13 +351,12 @@ export default function TirzepatideGuide() {
         }
         .info-card p {
           font-size: 0.9rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.7;
         }
         .dose-table {
           background: #ffffff;
-          border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border: 1px solid #e0e0e0;
           overflow: hidden;
         }
         .dose-row {
@@ -376,7 +364,7 @@ export default function TirzepatideGuide() {
           justify-content: space-between;
           align-items: center;
           padding: 1rem 1.5rem;
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
         }
         .dose-row:last-child {
           border-bottom: none;
@@ -389,7 +377,7 @@ export default function TirzepatideGuide() {
         .dose-price {
           font-weight: 700;
           font-size: 1rem;
-          color: #000000;
+          color: #c4a882;
         }
         .steps-list {
           margin-top: 1.5rem;
@@ -398,7 +386,7 @@ export default function TirzepatideGuide() {
           display: flex;
           gap: 1rem;
           padding: 1.25rem 0;
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
         }
         .step-item:last-child {
           border-bottom: none;
@@ -406,9 +394,8 @@ export default function TirzepatideGuide() {
         .step-number {
           width: 2rem;
           height: 2rem;
-          background: #000000;
+          background: #c4a882;
           color: #ffffff;
-          border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -423,15 +410,14 @@ export default function TirzepatideGuide() {
         }
         .step-content p {
           font-size: 0.9rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.6;
         }
         .tip-box {
           background: #ffffff;
-          border-left: 4px solid #000000;
+          border-left: 4px solid #c4a882;
           padding: 1.25rem 1.5rem;
           margin-top: 1.5rem;
-          border-radius: 0 8px 8px 0;
         }
         .tip-box strong {
           display: block;
@@ -439,7 +425,7 @@ export default function TirzepatideGuide() {
         }
         .tip-box p {
           font-size: 0.9rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.6;
           margin: 0;
         }
@@ -452,7 +438,6 @@ export default function TirzepatideGuide() {
         .timeline-card {
           background: rgba(255,255,255,0.1);
           border: 1px solid rgba(255,255,255,0.2);
-          border-radius: 12px;
           padding: 1.5rem;
         }
         .timeline-card h4 {
@@ -472,8 +457,7 @@ export default function TirzepatideGuide() {
         }
         .safety-card {
           background: #ffffff;
-          border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border: 1px solid #e0e0e0;
           padding: 1.5rem;
         }
         .safety-card h4 {
@@ -489,24 +473,24 @@ export default function TirzepatideGuide() {
         }
         .safety-card li {
           font-size: 0.875rem;
-          color: #525252;
+          color: #737373;
           padding: 0.375rem 0;
           padding-left: 1.25rem;
           position: relative;
           line-height: 1.5;
         }
         .safety-card.warning li::before {
-          content: "✕";
+          content: "\\2715";
           position: absolute;
           left: 0;
           color: #171717;
           font-weight: 600;
         }
         .safety-card.effects li::before {
-          content: "•";
+          content: "\\2022";
           position: absolute;
           left: 0;
-          color: #737373;
+          color: #c4a882;
           font-weight: 700;
         }
         .safety-note {
@@ -517,8 +501,7 @@ export default function TirzepatideGuide() {
         }
         .disclaimer {
           background: #fafafa;
-          border: 1px solid #e5e5e5;
-          border-radius: 8px;
+          border: 1px solid #e0e0e0;
           padding: 1.25rem;
           margin-top: 1.5rem;
         }
@@ -529,16 +512,18 @@ export default function TirzepatideGuide() {
           margin: 0;
         }
         .final-cta {
-          background: #000000;
+          background: #1a1a1a;
           color: #ffffff;
-          padding: 3.5rem 1.5rem;
+          padding: 6rem 2rem;
           text-align: center;
         }
         .final-cta h2 {
           font-size: 1.75rem;
-          font-weight: 700;
+          font-weight: 900;
           margin-bottom: 0.75rem;
           letter-spacing: -0.02em;
+          line-height: 0.95;
+          text-transform: uppercase;
         }
         .final-cta p {
           font-size: 1rem;
@@ -555,41 +540,45 @@ export default function TirzepatideGuide() {
         .btn-white {
           display: inline-block;
           background: #ffffff;
-          color: #000000;
+          color: #1a1a1a;
           padding: 0.875rem 1.75rem;
-          border-radius: 8px;
           text-decoration: none;
-          font-weight: 600;
-          font-size: 0.9375rem;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
           transition: all 0.2s;
         }
         .btn-white:hover {
           background: #f5f5f5;
-          transform: translateY(-1px);
         }
         .btn-outline-white {
           display: inline-block;
           background: transparent;
           color: #ffffff;
           padding: 0.875rem 1.75rem;
-          border-radius: 8px;
           border: 2px solid #ffffff;
           text-decoration: none;
-          font-weight: 600;
-          font-size: 0.9375rem;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
           transition: all 0.2s;
         }
         .btn-outline-white:hover {
           background: #ffffff;
-          color: #000000;
+          color: #1a1a1a;
         }
         .cta-location {
           font-size: 0.9rem;
           color: rgba(255,255,255,0.7);
         }
         @media (max-width: 768px) {
-          .peptide-hero h1 {
-            font-size: 1.875rem;
+          .guide-hero h1 {
+            font-size: 2rem;
+          }
+          .guide-hero {
+            padding: 4rem 1.5rem 3rem;
           }
           .hero-dose {
             flex-direction: column;
@@ -602,6 +591,12 @@ export default function TirzepatideGuide() {
           }
           .section-title {
             font-size: 1.5rem;
+          }
+          .section {
+            padding: 4rem 1.5rem;
+          }
+          .final-cta {
+            padding: 4rem 1.5rem;
           }
           .cta-buttons {
             flex-direction: column;

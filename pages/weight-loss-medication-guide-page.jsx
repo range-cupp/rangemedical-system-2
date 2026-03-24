@@ -65,8 +65,9 @@ export default function WeightLossMedicationGuide() {
       <div className="wlg-page">
         {/* Hero */}
         <section className="wlg-hero">
-          <div className="wlg-kicker">Weight Loss Program</div>
-          <h1>Your Weight Loss Medication Guide</h1>
+          <div className="v2-label"><span className="v2-dot" /> WEIGHT LOSS PROGRAM</div>
+          <h1>YOUR WEIGHT LOSS MEDICATION GUIDE</h1>
+          <div className="wlg-hero-rule"></div>
           <p className="wlg-body-text">
             Everything from your email series in one place — how your medication works, what to eat,
             managing side effects, exercise tips, and supplement support.
@@ -81,8 +82,8 @@ export default function WeightLossMedicationGuide() {
         <section className="wlg-section wlg-section-alt">
           <div className="wlg-container">
             <div className="wlg-animate">
-              <div className="wlg-kicker">How It Works</div>
-              <h2>How your medication helps.</h2>
+              <div className="v2-label"><span className="v2-dot" /> HOW IT WORKS</div>
+              <h2>HOW YOUR MEDICATION HELPS.</h2>
               <div className="wlg-divider"></div>
               <p className="wlg-body-text">
                 These medications work by changing how your body handles hunger and digestion.
@@ -119,8 +120,8 @@ export default function WeightLossMedicationGuide() {
         <section className="wlg-section">
           <div className="wlg-container">
             <div className="wlg-animate">
-              <div className="wlg-kicker">Nutrition</div>
-              <h2>Make every bite count.</h2>
+              <div className="v2-label"><span className="v2-dot" /> NUTRITION</div>
+              <h2>MAKE EVERY BITE COUNT.</h2>
               <div className="wlg-divider"></div>
               <p className="wlg-body-text">
                 Since you're eating less while on your medication, it's important to focus on
@@ -166,8 +167,8 @@ export default function WeightLossMedicationGuide() {
         <section className="wlg-section wlg-section-alt">
           <div className="wlg-container">
             <div className="wlg-animate">
-              <div className="wlg-kicker">Side Effects</div>
-              <h2>Managing common side effects.</h2>
+              <div className="v2-label"><span className="v2-dot" /> SIDE EFFECTS</div>
+              <h2>MANAGING COMMON SIDE EFFECTS.</h2>
               <div className="wlg-divider"></div>
               <p className="wlg-body-text">
                 Side effects are common when starting your medication — but they don't have to
@@ -243,8 +244,8 @@ export default function WeightLossMedicationGuide() {
         <section className="wlg-section">
           <div className="wlg-container">
             <div className="wlg-animate">
-              <div className="wlg-kicker">Exercise</div>
-              <h2>Move your body, preserve your muscle.</h2>
+              <div className="v2-label"><span className="v2-dot" /> EXERCISE</div>
+              <h2>MOVE YOUR BODY, PRESERVE YOUR MUSCLE.</h2>
               <div className="wlg-divider"></div>
               <p className="wlg-body-text">
                 Exercise helps preserve muscle mass while you lose fat, and supports healthy digestion.
@@ -277,8 +278,8 @@ export default function WeightLossMedicationGuide() {
         <section className="wlg-section wlg-section-alt">
           <div className="wlg-container">
             <div className="wlg-animate">
-              <div className="wlg-kicker">Supplements</div>
-              <h2>Fill the nutritional gaps.</h2>
+              <div className="v2-label"><span className="v2-dot" /> SUPPLEMENTS</div>
+              <h2>FILL THE NUTRITIONAL GAPS.</h2>
               <div className="wlg-divider"></div>
               <p className="wlg-body-text">
                 Since you're eating less, supplements help fill nutritional gaps and keep your
@@ -316,15 +317,15 @@ export default function WeightLossMedicationGuide() {
         <section className="wlg-section wlg-section-inverted wlg-cta-section">
           <div className="wlg-container">
             <div className="wlg-animate">
-              <div className="wlg-kicker" style={{ marginBottom: '1.5rem' }}>You're Not Alone</div>
-              <h2 className="wlg-cta-title">We're here to help you succeed.</h2>
+              <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '1.5rem' }}><span className="v2-dot" /> YOU'RE NOT ALONE</div>
+              <h2 className="wlg-cta-title">WE'RE HERE TO HELP YOU SUCCEED.</h2>
               <p className="wlg-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
                 With the right support — medication, nutrition, exercise, and supplements — you
                 can feel your best as you work toward your goals. Questions? Need a personalized plan?
                 Reach out anytime.
               </p>
               <div className="wlg-cta-buttons">
-                <a href="https://www.range-medical.com" className="wlg-btn-primary">Visit Range Medical</a>
+                <a href="https://www.range-medical.com" className="wlg-btn-primary">VISIT RANGE MEDICAL</a>
                 <div className="wlg-cta-or">or</div>
                 <a href="tel:9499973988" className="wlg-cta-phone">(949) 997-3988</a>
               </div>
@@ -362,51 +363,40 @@ export default function WeightLossMedicationGuide() {
         .wlg-container {
           max-width: 1200px;
           margin: 0 auto;
-          padding: 0 1.5rem;
+          padding: 0 2rem;
         }
 
         /* Sections */
         .wlg-section {
-          padding: 4rem 1.5rem;
+          padding: 6rem 2rem;
         }
 
         .wlg-section-alt {
           background: #fafafa;
-          padding: 5rem 1.5rem;
+          padding: 6rem 2rem;
         }
 
         .wlg-section-inverted {
-          background: #000000;
+          background: #1a1a1a;
           color: #ffffff;
-        }
-
-        /* Kicker */
-        .wlg-kicker {
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 1rem;
-        }
-
-        .wlg-section-inverted .wlg-kicker {
-          color: rgba(255, 255, 255, 0.4);
         }
 
         /* Headlines */
         .wlg-page h1 {
           font-size: 2.75rem;
-          font-weight: 700;
-          line-height: 1.15;
+          font-weight: 900;
+          line-height: 0.95;
           letter-spacing: -0.02em;
+          text-transform: uppercase;
           color: #171717;
         }
 
         .wlg-page h2 {
-          font-size: 2rem;
-          font-weight: 700;
+          font-size: 2.25rem;
+          font-weight: 900;
           letter-spacing: -0.02em;
+          line-height: 0.95;
+          text-transform: uppercase;
           color: #171717;
           margin-bottom: 1rem;
         }
@@ -426,7 +416,7 @@ export default function WeightLossMedicationGuide() {
           font-size: 1.0625rem;
           font-weight: 400;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
           max-width: 600px;
         }
 
@@ -437,18 +427,20 @@ export default function WeightLossMedicationGuide() {
         /* Divider */
         .wlg-divider {
           width: 48px;
-          height: 2px;
-          background: #e5e5e5;
+          height: 1px;
+          background: #e0e0e0;
           margin: 1.25rem 0;
         }
 
         /* Hero */
         .wlg-hero {
-          padding: 4rem 1.5rem 5rem;
-          text-align: center;
+          padding: 6rem 2rem 5rem;
+          text-align: left;
           display: flex;
           flex-direction: column;
-          align-items: center;
+          align-items: flex-start;
+          max-width: 1200px;
+          margin: 0 auto;
         }
 
         .wlg-hero h1 {
@@ -456,9 +448,16 @@ export default function WeightLossMedicationGuide() {
           margin-bottom: 1.5rem;
         }
 
+        .wlg-hero-rule {
+          width: 48px;
+          height: 1px;
+          background: #e0e0e0;
+          margin-bottom: 1.5rem;
+        }
+
         .wlg-hero .wlg-body-text {
-          text-align: center;
-          margin: 0 auto 2.5rem;
+          text-align: left;
+          margin: 0 0 2.5rem 0;
         }
 
         .wlg-hero-scroll {
@@ -492,22 +491,20 @@ export default function WeightLossMedicationGuide() {
 
         .wlg-benefit-card {
           padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border: 1px solid #e0e0e0;
           background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          transition: border-color 0.2s ease;
         }
 
         .wlg-benefit-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          border-color: #1a1a1a;
         }
 
         .wlg-benefit-number {
           font-size: 0.75rem;
           font-weight: 700;
           letter-spacing: 0.1em;
-          color: #737373;
+          color: #c4a882;
           margin-bottom: 1rem;
         }
 
@@ -521,7 +518,7 @@ export default function WeightLossMedicationGuide() {
         .wlg-benefit-desc {
           font-size: 0.875rem;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
         }
 
         /* Nutrients Grid */
@@ -534,8 +531,7 @@ export default function WeightLossMedicationGuide() {
 
         .wlg-nutrient-card {
           padding: 1.5rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border: 1px solid #e0e0e0;
           background: #fafafa;
           text-align: center;
         }
@@ -558,8 +554,7 @@ export default function WeightLossMedicationGuide() {
         /* Protein List */
         .wlg-protein-list {
           margin-top: 1.5rem;
-          border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border: 1px solid #e0e0e0;
           overflow: hidden;
         }
 
@@ -568,7 +563,7 @@ export default function WeightLossMedicationGuide() {
           justify-content: space-between;
           align-items: center;
           padding: 1rem 1.5rem;
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
           font-size: 0.9375rem;
         }
 
@@ -594,11 +589,10 @@ export default function WeightLossMedicationGuide() {
         .wlg-tip {
           margin-top: 2.5rem;
           padding: 1.25rem 1.5rem;
-          background: #000000;
+          background: #1a1a1a;
           color: #ffffff;
           font-size: 0.875rem;
           line-height: 1.7;
-          border-radius: 8px;
         }
 
         /* General Tips List */
@@ -609,10 +603,10 @@ export default function WeightLossMedicationGuide() {
         .wlg-tip-item {
           padding: 0.875rem 1.25rem;
           background: #ffffff;
-          border-left: 3px solid #000000;
+          border-left: 3px solid #1a1a1a;
           margin-bottom: 0.5rem;
           font-size: 0.9375rem;
-          color: #404040;
+          color: #737373;
           line-height: 1.6;
         }
 
@@ -626,13 +620,11 @@ export default function WeightLossMedicationGuide() {
 
         .wlg-se-card {
           padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border: 1px solid #e0e0e0;
           background: #ffffff;
         }
 
         .wlg-se-card h4 {
-          font-size: 1rem;
           font-weight: 700;
           color: #171717;
           margin: 0 0 1rem;
@@ -649,7 +641,7 @@ export default function WeightLossMedicationGuide() {
 
         .wlg-se-card li {
           font-size: 0.875rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.7;
           padding: 0.375rem 0;
           padding-left: 1.25rem;
@@ -663,17 +655,15 @@ export default function WeightLossMedicationGuide() {
           top: 0.85rem;
           width: 5px;
           height: 5px;
-          background: #a3a3a3;
-          border-radius: 50%;
+          background: #c4a882;
         }
 
         /* Warning Box */
         .wlg-warning {
           margin-top: 2.5rem;
           padding: 2rem;
-          background: #000000;
+          background: #1a1a1a;
           color: #ffffff;
-          border-radius: 12px;
         }
 
         .wlg-warning h4 {
@@ -686,7 +676,7 @@ export default function WeightLossMedicationGuide() {
 
         .wlg-warning p {
           font-size: 0.875rem;
-          color: #e5e5e5;
+          color: #e0e0e0;
           line-height: 1.7;
           margin: 0 0 0.75rem;
         }
@@ -699,7 +689,7 @@ export default function WeightLossMedicationGuide() {
 
         .wlg-warning li {
           font-size: 0.875rem;
-          color: #e5e5e5;
+          color: #e0e0e0;
           line-height: 1.8;
           padding-left: 1.25rem;
           position: relative;
@@ -713,7 +703,6 @@ export default function WeightLossMedicationGuide() {
           width: 5px;
           height: 5px;
           background: #ffffff;
-          border-radius: 50%;
         }
 
         /* Exercise Grid */
@@ -726,8 +715,7 @@ export default function WeightLossMedicationGuide() {
 
         .wlg-exercise-card {
           padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border: 1px solid #e0e0e0;
           background: #fafafa;
           position: relative;
         }
@@ -739,9 +727,8 @@ export default function WeightLossMedicationGuide() {
           text-transform: uppercase;
           letter-spacing: 0.05em;
           color: #ffffff;
-          background: #000000;
+          background: #1a1a1a;
           padding: 0.375rem 0.75rem;
-          border-radius: 4px;
           margin-bottom: 1rem;
         }
 
@@ -754,7 +741,7 @@ export default function WeightLossMedicationGuide() {
 
         .wlg-exercise-card p {
           font-size: 0.875rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.7;
           margin: 0 0 0.5rem;
         }
@@ -769,15 +756,14 @@ export default function WeightLossMedicationGuide() {
 
         .wlg-supp-card {
           padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border: 1px solid #e0e0e0;
           background: #ffffff;
         }
 
         .wlg-supp-included {
-          background: #000000;
+          background: #1a1a1a;
           color: #ffffff;
-          border-color: #000000;
+          border-color: #1a1a1a;
         }
 
         .wlg-supp-badge {
@@ -807,7 +793,7 @@ export default function WeightLossMedicationGuide() {
         }
 
         .wlg-supp-card:not(.wlg-supp-included) .wlg-supp-item {
-          border-bottom-color: #e5e5e5;
+          border-bottom-color: #e0e0e0;
         }
 
         .wlg-supp-item:last-child {
@@ -838,7 +824,7 @@ export default function WeightLossMedicationGuide() {
 
         /* CTA Section */
         .wlg-cta-section {
-          padding: 6rem 1.5rem;
+          padding: 6rem 2rem;
           text-align: center;
         }
 
@@ -860,20 +846,21 @@ export default function WeightLossMedicationGuide() {
         .wlg-btn-primary {
           display: inline-block;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          font-size: 0.875rem;
-          font-weight: 600;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
           padding: 0.875rem 2rem;
           background: #ffffff;
-          color: #000000;
+          color: #1a1a1a;
           border: none;
-          border-radius: 8px;
           cursor: pointer;
           text-decoration: none;
           transition: background 0.2s ease, transform 0.2s ease;
         }
 
         .wlg-btn-primary:hover {
-          background: #e5e5e5;
+          background: #e0e0e0;
           transform: translateY(-1px);
         }
 
@@ -906,17 +893,17 @@ export default function WeightLossMedicationGuide() {
           font-size: 0.75rem;
           color: #a3a3a3;
           background: #fafafa;
-          border-top: 1px solid #e5e5e5;
+          border-top: 1px solid #e0e0e0;
         }
 
         /* Responsive */
         @media (max-width: 768px) {
           .wlg-section {
-            padding: 3rem 1.5rem;
+            padding: 3.5rem 1.5rem;
           }
 
           .wlg-section-alt {
-            padding: 3rem 1.5rem;
+            padding: 3.5rem 1.5rem;
           }
 
           .wlg-page h1 {
@@ -928,7 +915,7 @@ export default function WeightLossMedicationGuide() {
           }
 
           .wlg-hero {
-            padding: 3rem 1.5rem;
+            padding: 3.5rem 2rem;
           }
 
           .wlg-benefits-grid {

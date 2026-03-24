@@ -15,7 +15,7 @@ export default function Home() {
           }
         });
       },
-      { threshold: 0.12 }
+      { threshold: 0.1 }
     );
 
     const sections = document.querySelectorAll('.home-animate');
@@ -94,22 +94,6 @@ export default function Home() {
             })
           }}
         />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "WebSite",
-              "name": "Range Medical",
-              "url": "https://www.range-medical.com",
-              "potentialAction": {
-                "@type": "SearchAction",
-                "target": "https://www.range-medical.com/search?q={search_term_string}",
-                "query-input": "required name=search_term_string"
-              }
-            })
-          }}
-        />
       </Head>
 
       <Layout>
@@ -117,73 +101,62 @@ export default function Home() {
         <div className="trust-bar">
           <div className="trust-inner">
             <span className="trust-item">
-              <span className="trust-rating">★★★★★</span> 5.0 on Google
+              <span className="trust-rating">&#9733;&#9733;&#9733;&#9733;&#9733;</span> 5.0 on Google
             </span>
-            <span className="trust-item">📍 Newport Beach, CA</span>
-            <span className="trust-item">✓ Licensed Providers</span>
+            <span className="trust-item">Newport Beach, CA</span>
+            <span className="trust-item">Licensed Providers</span>
           </div>
         </div>
 
         {/* Hero Section */}
-        <section className="home-hero">
-          <div className="home-kicker">Recovery · Energy · Optimization</div>
-          <h1>Two Ways to Feel Like Yourself Again</h1>
-          <p className="home-body-text">
-            Start with a Range Assessment for your biggest concern — injury recovery or low energy.
+        <section className="hero">
+          <div className="v2-label"><span className="v2-dot" /> Recovery &middot; Energy &middot; Optimization</div>
+          <h1>Two Ways to<br />Feel Like<br />Yourself Again.</h1>
+          <div className="hero-rule" />
+          <p className="hero-sub">
+            Start with a Range Assessment for your biggest concern &mdash; injury recovery or low energy.
             One visit, one plan.
           </p>
-          <div className="home-hero-scroll">
-            Scroll to explore
-            <span>↓</span>
-          </div>
         </section>
 
         {/* Two Doors Section */}
         <section id="home-doors" className={`home-section-alt home-animate ${isVisible['home-doors'] ? 'home-visible' : ''}`}>
           <div className="home-container">
-            <span className="home-section-label">How It Works</span>
-            <h2>Two Doors, One Goal: Help You Feel Better</h2>
+            <div className="v2-label"><span className="v2-dot" /> How It Works</div>
+            <h2>Two Doors,<br />One Goal.</h2>
             <p className="home-section-intro">
               Pick the door that matches your main concern. Both start with a Range Assessment.
             </p>
 
-            <div className="home-doors-grid">
-              <div className="home-door-card">
-                <div className="home-door-icon">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                  </svg>
-                </div>
-                <h3>Injury & Recovery</h3>
-                <p>You're rehabbing an injury and healing feels slow. You want to speed things up.</p>
-                <ul className="home-door-list">
+            <div className="doors-grid">
+              <div className="door-card">
+                <span className="door-number">01</span>
+                <h3>Injury &<br />Recovery</h3>
+                <p>You&apos;re rehabbing an injury and healing feels slow. You want to speed things up.</p>
+                <ul>
                   <li>Review your injury and rehab history</li>
                   <li>Discuss recovery timeline and goals</li>
                   <li>Get a clear protocol recommendation</li>
-                  <li>Free — no cost to start</li>
+                  <li>Free &mdash; no cost to start</li>
                 </ul>
-                <Link href="/range-assessment?path=injury&from=start" className="home-door-btn">
-                  Start Here
+                <Link href="/range-assessment?path=injury&from=start" className="v2-link-cta">
+                  Start Here <span>&rarr;</span>
                 </Link>
               </div>
 
-              <div className="home-door-card home-door-featured">
-                <span className="home-door-badge">Most Popular</span>
-                <div className="home-door-icon">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                  </svg>
-                </div>
-                <h3>Energy, Hormones & Weight Loss</h3>
-                <p>You're tired, foggy, or just don't feel like yourself. You want answers and a plan.</p>
-                <ul className="home-door-list">
-                  <li>We start with labs — real data, not guesswork</li>
+              <div className="door-card featured">
+                <span className="door-badge">Most Popular</span>
+                <span className="door-number">02</span>
+                <h3>Energy,<br />Hormones &<br />Weight Loss</h3>
+                <p>You&apos;re tired, foggy, or just don&apos;t feel like yourself. You want answers and a plan.</p>
+                <ul>
+                  <li>We start with labs &mdash; real data, not guesswork</li>
                   <li>1:1 provider review of your results</li>
                   <li>Written plan in plain language</li>
                   <li>Essential ($350) or Elite ($750)</li>
                 </ul>
-                <Link href="/start/energy" className="home-door-btn">
-                  Start Here
+                <Link href="/start/energy" className="v2-link-cta">
+                  Start Here <span>&rarr;</span>
                 </Link>
               </div>
             </div>
@@ -193,116 +166,28 @@ export default function Home() {
         {/* Services Section */}
         <section id="home-services" className={`home-section home-animate ${isVisible['home-services'] ? 'home-visible' : ''}`}>
           <div className="home-container">
-            <span className="home-section-label">What We Offer</span>
-            <h2>Tools We Use to Help You Feel Better</h2>
+            <div className="v2-label"><span className="v2-dot" /> What We Offer</div>
+            <h2>Tools We Use<br />to Help You<br />Feel Better.</h2>
             <p className="home-section-intro">
-              Your provider picks the right tools for your situation. You don't have to figure it out yourself.
+              Your provider picks the right tools for your situation. You don&apos;t have to figure it out yourself.
             </p>
 
-            <div className="home-services-grid">
-              <Link href="/hyperbaric-oxygen-therapy" className="home-service-card">
-                <div className="home-service-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <path d="M12 6v6l4 2"/>
-                  </svg>
-                </div>
-                <h4>Hyperbaric Oxygen</h4>
-                <p>More oxygen to your cells to support healing and energy.</p>
-                <span className="home-service-arrow">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 12h14M12 5l7 7-7 7"/>
-                  </svg>
-                </span>
-              </Link>
-
-              <Link href="/red-light-therapy" className="home-service-card">
-                <div className="home-service-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="5"/>
-                    <line x1="12" y1="1" x2="12" y2="3"/>
-                    <line x1="12" y1="21" x2="12" y2="23"/>
-                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                    <line x1="1" y1="12" x2="3" y2="12"/>
-                    <line x1="21" y1="12" x2="23" y2="12"/>
-                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-                  </svg>
-                </div>
-                <h4>Red Light Therapy</h4>
-                <p>Light wavelengths that help cells recover and function better.</p>
-                <span className="home-service-arrow">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 12h14M12 5l7 7-7 7"/>
-                  </svg>
-                </span>
-              </Link>
-
-              <Link href="/iv-therapy" className="home-service-card">
-                <div className="home-service-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 2v20M2 12h20"/>
-                  </svg>
-                </div>
-                <h4>IV Therapy</h4>
-                <p>Vitamins and nutrients delivered directly to your bloodstream.</p>
-                <span className="home-service-arrow">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 12h14M12 5l7 7-7 7"/>
-                  </svg>
-                </span>
-              </Link>
-
-              <Link href="/hormone-optimization" className="home-service-card">
-                <div className="home-service-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                  </svg>
-                </div>
-                <h4>Hormone Optimization</h4>
-                <p>Balanced hormones for energy, mood, and how you feel.</p>
-                <span className="home-service-arrow">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 12h14M12 5l7 7-7 7"/>
-                  </svg>
-                </span>
-              </Link>
-
-              <Link href="/weight-loss" className="home-service-card">
-                <div className="home-service-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M18 20V10M12 20V4M6 20v-6"/>
-                  </svg>
-                </div>
-                <h4>Medical Weight Loss</h4>
-                <p>Medical support for weight, appetite, and metabolism.</p>
-                <span className="home-service-arrow">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 12h14M12 5l7 7-7 7"/>
-                  </svg>
-                </span>
-              </Link>
-
-              <Link href="/peptide-therapy" className="home-service-card">
-                <div className="home-service-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <circle cx="12" cy="12" r="4"/>
-                    <line x1="4.93" y1="4.93" x2="9.17" y2="9.17"/>
-                    <line x1="14.83" y1="14.83" x2="19.07" y2="19.07"/>
-                    <line x1="14.83" y1="9.17" x2="19.07" y2="4.93"/>
-                    <line x1="4.93" y1="19.07" x2="9.17" y2="14.83"/>
-                  </svg>
-                </div>
-                <h4>Peptide Therapy</h4>
-                <p>Targeted peptides for recovery, performance, and longevity.</p>
-                <span className="home-service-arrow">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 12h14M12 5l7 7-7 7"/>
-                  </svg>
-                </span>
-              </Link>
+            <div className="tools-grid">
+              {[
+                { name: 'Hyperbaric Oxygen', desc: 'More oxygen to your cells to support healing and energy.', href: '/hyperbaric-oxygen-therapy' },
+                { name: 'Red Light Therapy', desc: 'Light wavelengths that help cells recover and function better.', href: '/red-light-therapy' },
+                { name: 'IV Therapy', desc: 'Vitamins and nutrients delivered directly to your bloodstream.', href: '/iv-therapy' },
+                { name: 'Hormone Optimization', desc: 'Balanced hormones for energy, mood, and how you feel.', href: '/hormone-optimization' },
+                { name: 'Medical Weight Loss', desc: 'Medical support for weight, appetite, and metabolism.', href: '/weight-loss' },
+                { name: 'Peptide Therapy', desc: 'Targeted peptides for recovery, performance, and longevity.', href: '/peptide-therapy' },
+              ].map((svc, i) => (
+                <Link key={i} href={svc.href} className="tool-card">
+                  <span className="tool-num">{String(i + 1).padStart(2, '0')}</span>
+                  <h4>{svc.name}</h4>
+                  <p>{svc.desc}</p>
+                  <span className="tool-arrow">&rarr;</span>
+                </Link>
+              ))}
             </div>
           </div>
         </section>
@@ -310,652 +195,78 @@ export default function Home() {
         {/* Testimonials Section */}
         <section id="home-testimonials" className={`home-section-alt home-animate ${isVisible['home-testimonials'] ? 'home-visible' : ''}`}>
           <div className="home-container">
-            <span className="home-section-label">Results</span>
-            <h2>What Our Patients Say</h2>
+            <div className="v2-label"><span className="v2-dot" /> Results</div>
+            <h2>What Our<br />Patients Say.</h2>
 
-            <div className="home-testimonials-grid">
-              <div className="home-testimonial-card">
-                <div className="home-testimonial-stars">
-                  {[...Array(5)].map((_, i) => (
-                    <svg key={i} width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                    </svg>
-                  ))}
+            <div className="testimonials-grid" style={{ marginTop: '2.5rem' }}>
+              <div className="testimonial">
+                <div className="testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                <p>
+                  &ldquo;I was skeptical, but after the Assessment I finally understood why I&apos;d been so tired.
+                  Six weeks later I feel like myself again.&rdquo;
+                </p>
+                <div className="testimonial-info">
+                  <strong>Sarah M.</strong>
+                  <span>Newport Beach</span>
                 </div>
-                <blockquote>
-                  "I was skeptical, but after the Assessment I finally understood why I'd been so tired.
-                  Six weeks later I feel like myself again."
-                </blockquote>
-                <cite>— Sarah M., Newport Beach</cite>
               </div>
 
-              <div className="home-testimonial-card">
-                <div className="home-testimonial-stars">
-                  {[...Array(5)].map((_, i) => (
-                    <svg key={i} width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                    </svg>
-                  ))}
+              <div className="testimonial">
+                <div className="testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                <p>
+                  &ldquo;My shoulder was taking forever to heal. The recovery protocol got me back to training
+                  weeks faster than I expected.&rdquo;
+                </p>
+                <div className="testimonial-info">
+                  <strong>Michael R.</strong>
+                  <span>Costa Mesa</span>
                 </div>
-                <blockquote>
-                  "My shoulder was taking forever to heal. The recovery protocol got me back to training
-                  weeks faster than I expected."
-                </blockquote>
-                <cite>— Michael R., Costa Mesa</cite>
               </div>
 
-              <div className="home-testimonial-card">
-                <div className="home-testimonial-stars">
-                  {[...Array(5)].map((_, i) => (
-                    <svg key={i} width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                    </svg>
-                  ))}
+              <div className="testimonial">
+                <div className="testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                <p>
+                  &ldquo;Clear communication, no pressure, and a plan that actually made sense.
+                  This is what healthcare should be.&rdquo;
+                </p>
+                <div className="testimonial-info">
+                  <strong>Jennifer K.</strong>
+                  <span>Irvine</span>
                 </div>
-                <blockquote>
-                  "Clear communication, no pressure, and a plan that actually made sense.
-                  This is what healthcare should be."
-                </blockquote>
-                <cite>— Jennifer K., Irvine</cite>
               </div>
             </div>
 
-            <div className="home-testimonials-cta">
-              <Link href="/reviews" className="home-btn-outline">Read More Reviews</Link>
+            <div style={{ textAlign: 'center', marginTop: '2.5rem' }}>
+              <Link href="/reviews" className="btn-outline">Read More Reviews</Link>
             </div>
           </div>
         </section>
 
         {/* Final CTA Section */}
-        <section className="home-section-inverted">
-          <div className="home-container">
-            <h2>Ready to Feel Like Yourself Again?</h2>
-            <p className="home-cta-text">
-              Pick the path that fits your situation.
-            </p>
-            <div className="home-cta-buttons">
-              <Link href="/range-assessment?path=injury&from=start" style={{
-                display: 'inline-block', background: '#ffffff', color: '#000000',
-                padding: '1rem 2rem', borderRadius: '8px', fontWeight: 600,
-                fontSize: '0.9375rem', textDecoration: 'none'
-              }}>
+        <section className="final-cta">
+          <div className="container">
+            <h2>Ready to Feel<br />Like Yourself<br />Again?</h2>
+            <div className="cta-rule" />
+            <p>Pick the path that fits your situation.</p>
+            <div className="cta-buttons">
+              <Link href="/range-assessment?path=injury&from=start" className="btn-white">
                 Injury & Recovery
               </Link>
               <Link href="/start/energy" style={{
                 display: 'inline-block', background: 'transparent', color: '#ffffff',
-                padding: '1rem 2rem', borderRadius: '8px', fontWeight: 600,
-                fontSize: '0.9375rem', textDecoration: 'none',
-                border: '1px solid rgba(255,255,255,0.7)'
+                padding: '0.875rem 2rem', fontWeight: 700,
+                fontSize: '11px', textDecoration: 'none', letterSpacing: '0.12em',
+                border: '1px solid #404040', textTransform: 'uppercase',
+                transition: 'all 0.2s'
               }}>
                 Energy, Hormones & Weight Loss
               </Link>
             </div>
-            <p className="home-cta-location">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a3a3a3" strokeWidth="2">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                <circle cx="12" cy="10" r="3"/>
-              </svg>
-              Range Medical • 1901 Westcliff Dr, Newport Beach
+            <p className="cta-location">
+              Range Medical &bull; 1901 Westcliff Dr, Newport Beach
             </p>
           </div>
         </section>
-
-        <style jsx>{`
-          /* Hero Section */
-          .home-kicker {
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: #737373;
-            margin-bottom: 1.25rem;
-          }
-
-          .home-body-text {
-            font-size: 1.125rem;
-            color: #525252;
-            line-height: 1.7;
-            max-width: 620px;
-          }
-
-          .home-hero {
-            padding: 4rem 1.5rem 5rem;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-          }
-
-          .home-hero h1 {
-            font-size: 2.75rem;
-            font-weight: 700;
-            color: #171717;
-            line-height: 1.15;
-            max-width: 680px;
-            margin: 0 0 1.5rem;
-          }
-
-          .home-hero .home-body-text {
-            text-align: center;
-            margin: 0 auto 2.5rem;
-          }
-
-          .home-hero-scroll {
-            font-size: 0.75rem;
-            font-weight: 700;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            color: #737373;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-          }
-
-          .home-hero-scroll span {
-            display: block;
-            margin-top: 0.75rem;
-            font-size: 1.125rem;
-            animation: home-bounce 2s ease-in-out infinite;
-          }
-
-          @keyframes home-bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(6px); }
-          }
-
-          .home-hero-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            flex-wrap: wrap;
-          }
-
-          .home-btn-primary,
-          .home-btn-secondary {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.625rem;
-            padding: 1rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.9375rem;
-            text-decoration: none;
-            transition: all 0.2s;
-          }
-
-          .home-btn-primary {
-            background: #000000;
-            color: #ffffff;
-          }
-
-          .home-btn-primary:hover {
-            background: #333333;
-          }
-
-          .home-btn-secondary {
-            background: #ffffff;
-            color: #171717;
-            border: 1px solid #e5e5e5;
-          }
-
-          .home-btn-secondary:hover {
-            border-color: #171717;
-          }
-
-          .home-btn-price {
-            padding-left: 0.625rem;
-            border-left: 1px solid rgba(255,255,255,0.3);
-            margin-left: 0.25rem;
-          }
-
-          .home-btn-secondary .home-btn-price {
-            border-color: #e5e5e5;
-          }
-
-          /* Section Styles */
-          .home-section {
-            padding: 5rem 1.5rem;
-            background: #ffffff;
-          }
-
-          .home-section-alt {
-            padding: 5rem 1.5rem;
-            background: #fafafa;
-          }
-
-          .home-section-inverted {
-            padding: 5rem 1.5rem;
-            background: #000000;
-            text-align: center;
-          }
-
-          .home-section-inverted h2 {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #ffffff;
-            margin: 0 0 0.75rem;
-          }
-
-          .home-container {
-            max-width: 1000px;
-            margin: 0 auto;
-          }
-
-          .home-section-label {
-            display: inline-block;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: #737373;
-            margin-bottom: 0.75rem;
-          }
-
-          .home-section h2 {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #171717;
-            margin: 0 0 1rem;
-          }
-
-          .home-section-alt h2 {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #171717;
-            margin: 0 0 1rem;
-          }
-
-          .home-section-intro {
-            font-size: 1.0625rem;
-            color: #525252;
-            line-height: 1.7;
-            max-width: 600px;
-            margin: 0 0 2.5rem;
-          }
-
-          /* Animation */
-          .home-animate {
-            opacity: 0;
-            transform: translateY(30px);
-            transition: opacity 0.7s ease, transform 0.7s ease;
-          }
-
-          .home-visible {
-            opacity: 1;
-            transform: translateY(0);
-          }
-
-          /* Doors Grid */
-          .home-doors-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1.5rem;
-            max-width: 800px;
-            margin: 0 auto;
-          }
-
-          .home-door-card {
-            background: #ffffff;
-            border: 1px solid #e5e5e5;
-            border-radius: 12px;
-            padding: 2rem;
-            position: relative;
-            transition: border-color 0.2s, box-shadow 0.2s;
-          }
-
-          .home-door-card:hover {
-            border-color: #d4d4d4;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.04);
-          }
-
-          .home-door-featured {
-            border-color: #000000;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-          }
-
-          .home-door-badge {
-            position: absolute;
-            top: -0.75rem;
-            left: 1.5rem;
-            background: #000000;
-            color: #ffffff;
-            font-size: 0.6875rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            padding: 0.375rem 0.75rem;
-            border-radius: 100px;
-          }
-
-          .home-door-icon {
-            width: 56px;
-            height: 56px;
-            background: #f5f5f5;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1.25rem;
-            color: #171717;
-          }
-
-          .home-door-featured .home-door-icon {
-            background: #000000;
-            color: #ffffff;
-          }
-
-          .home-door-card h3 {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #171717;
-            margin: 0 0 0.5rem;
-          }
-
-          .home-door-card > p {
-            font-size: 0.9375rem;
-            color: #525252;
-            line-height: 1.6;
-            margin: 0 0 1.25rem;
-          }
-
-          .home-door-list {
-            list-style: none;
-            padding: 0;
-            margin: 0 0 1.5rem;
-          }
-
-          .home-door-list li {
-            font-size: 0.875rem;
-            color: #404040;
-            padding: 0.5rem 0 0.5rem 1.5rem;
-            position: relative;
-            border-bottom: 1px solid #f5f5f5;
-          }
-
-          .home-door-list li:last-child {
-            border-bottom: none;
-          }
-
-          .home-door-list li::before {
-            content: "✓";
-            position: absolute;
-            left: 0;
-            color: #22c55e;
-            font-weight: 700;
-            font-size: 0.8125rem;
-          }
-
-          :global(.home-door-btn) {
-            display: block;
-            width: 100%;
-            text-align: center;
-            background: #000000;
-            color: #ffffff;
-            padding: 0.875rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.9375rem;
-            text-decoration: none;
-            transition: background 0.2s;
-          }
-
-          :global(.home-door-btn:hover) {
-            background: #333333;
-          }
-
-          /* Services Grid */
-          .home-services-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1.25rem;
-          }
-
-          .home-service-card {
-            background: #fafafa;
-            border: 1px solid #e5e5e5;
-            border-radius: 12px;
-            padding: 1.5rem;
-            text-decoration: none;
-            transition: all 0.2s;
-            position: relative;
-          }
-
-          .home-service-card:hover {
-            border-color: #171717;
-            background: #ffffff;
-          }
-
-          .home-service-icon {
-            width: 44px;
-            height: 44px;
-            background: #ffffff;
-            border: 1px solid #e5e5e5;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1rem;
-            color: #525252;
-            transition: all 0.2s;
-          }
-
-          .home-service-card:hover .home-service-icon {
-            background: #000000;
-            border-color: #000000;
-            color: #ffffff;
-          }
-
-          .home-service-card h4 {
-            font-size: 1rem;
-            font-weight: 700;
-            color: #171717;
-            margin: 0 0 0.375rem;
-          }
-
-          .home-service-card p {
-            font-size: 0.875rem;
-            color: #525252;
-            line-height: 1.5;
-            margin: 0;
-          }
-
-          .home-service-arrow {
-            position: absolute;
-            top: 1.5rem;
-            right: 1.5rem;
-            color: #d4d4d4;
-            transition: color 0.2s;
-          }
-
-          .home-service-card:hover .home-service-arrow {
-            color: #171717;
-          }
-
-          /* Testimonials */
-          .home-testimonials-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1.5rem;
-            margin-bottom: 2.5rem;
-          }
-
-          .home-testimonial-card {
-            background: #ffffff;
-            border: 1px solid #e5e5e5;
-            border-radius: 12px;
-            padding: 1.75rem;
-            transition: all 0.2s;
-          }
-
-          .home-testimonial-card:hover {
-            border-color: #171717;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.04);
-          }
-
-          .home-testimonial-stars {
-            display: flex;
-            gap: 0.125rem;
-            color: #171717;
-            margin-bottom: 1rem;
-          }
-
-          .home-testimonial-card blockquote {
-            font-size: 0.9375rem;
-            color: #404040;
-            line-height: 1.7;
-            margin: 0 0 1.25rem;
-            font-style: normal;
-          }
-
-          .home-testimonial-card cite {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: #171717;
-            font-style: normal;
-          }
-
-          .home-testimonials-cta {
-            text-align: center;
-          }
-
-          .home-btn-outline {
-            display: inline-block;
-            background: transparent;
-            color: #171717;
-            padding: 0.875rem 2rem;
-            border-radius: 8px;
-            border: 1px solid #e5e5e5;
-            font-weight: 600;
-            font-size: 0.9375rem;
-            text-decoration: none;
-            transition: all 0.2s;
-          }
-
-          .home-btn-outline:hover {
-            border-color: #171717;
-          }
-
-          /* CTA Section */
-          .home-cta-text {
-            font-size: 1.0625rem;
-            color: #a3a3a3;
-            margin: 0 0 2rem;
-          }
-
-          .home-cta-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            flex-wrap: wrap;
-            margin-bottom: 2rem;
-          }
-
-          .home-btn-white {
-            display: inline-block;
-            background: #ffffff;
-            color: #000000;
-            padding: 1rem 2rem;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.9375rem;
-            text-decoration: none;
-            transition: all 0.2s;
-          }
-
-          .home-btn-white:hover {
-            background: #f5f5f5;
-          }
-
-          .home-btn-outline-white {
-            display: inline-block;
-            background: transparent;
-            color: #ffffff;
-            padding: 1rem 2rem;
-            border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.7);
-            font-weight: 600;
-            font-size: 0.9375rem;
-            text-decoration: none;
-            transition: all 0.2s;
-          }
-
-          .home-btn-outline-white:hover {
-            background: rgba(255,255,255,0.15);
-            border-color: #ffffff;
-          }
-
-          .home-cta-location {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            font-size: 0.9375rem;
-            color: #a3a3a3;
-            margin: 0;
-          }
-
-          /* Responsive */
-          @media (max-width: 900px) {
-            .home-doors-grid {
-              grid-template-columns: 1fr;
-              max-width: 450px;
-            }
-
-            .home-services-grid {
-              grid-template-columns: repeat(2, 1fr);
-            }
-
-            .home-testimonials-grid {
-              grid-template-columns: 1fr;
-              max-width: 500px;
-              margin-left: auto;
-              margin-right: auto;
-            }
-          }
-
-          @media (max-width: 640px) {
-            .home-trust-inner {
-              flex-direction: column;
-              gap: 0.5rem;
-            }
-
-            .home-hero {
-              padding: 3rem 1.5rem;
-            }
-
-            .home-hero h1 {
-              font-size: 2rem;
-            }
-
-            .home-section,
-            .home-section-alt,
-            .home-section-inverted {
-              padding: 3.5rem 1.5rem;
-            }
-
-            .home-section h2,
-            .home-section-alt h2,
-            .home-section-inverted h2 {
-              font-size: 1.75rem;
-            }
-
-            .home-services-grid {
-              grid-template-columns: 1fr;
-            }
-
-            .home-cta-buttons {
-              flex-direction: column;
-              align-items: center;
-            }
-
-            .home-btn-white,
-            .home-btn-outline-white {
-              width: 100%;
-              max-width: 280px;
-              text-align: center;
-            }
-          }
-        `}</style>
       </Layout>
     </>
   );

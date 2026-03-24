@@ -161,26 +161,25 @@ export default function MethyleneBlue() {
       <div className="trust-bar">
         <div className="trust-inner">
           <span className="trust-item">
-            <span className="trust-rating">★★★★★</span> 5.0 on Google
+            <span className="trust-rating">&#9733;&#9733;&#9733;&#9733;&#9733;</span> 5.0 on Google
           </span>
-          <span className="trust-item">📍 Newport Beach, CA</span>
-          <span className="trust-item">✓ Licensed Providers</span>
+          <span className="trust-item">Newport Beach, CA</span>
+          <span className="trust-item">Licensed Providers</span>
         </div>
       </div>
 
       <div className="mb-page">
         {/* Hero */}
         <section className="mb-hero">
-          <div className="mb-badge">Cellular Energy + Mood Support</div>
-          <h1>Your Brain Uses More Energy Than Any Part of Your Body. What Happens When It Runs Low?</h1>
-          <p className="mb-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
-            Methylene blue helps your cells make more energy, keeps your mood chemicals working longer, and cleans up the damage that slows you down.
-          </p>
-          <a href={SMS_LINK} className="mb-btn-primary mb-btn-dark">Text Us to Learn More</a>
-          <p className="mb-hero-note">No cost to ask. No commitment.</p>
-          <div className="mb-hero-scroll">
-            Scroll to explore
-            <span>↓</span>
+          <div className="mb-hero-inner">
+            <div className="v2-label"><span className="v2-dot" /> Cellular Energy + Mood Support</div>
+            <h1>Your Brain Uses More Energy Than Any Part of Your Body. What Happens When It Runs Low?</h1>
+            <div className="mb-hero-rule" />
+            <p className="mb-hero-sub">
+              Methylene blue helps your cells make more energy, keeps your mood chemicals working longer, and cleans up the damage that slows you down.
+            </p>
+            <a href={SMS_LINK} className="btn-primary">Text Us to Learn More</a>
+            <p className="mb-hero-note">No cost to ask. No commitment.</p>
           </div>
         </section>
 
@@ -188,27 +187,26 @@ export default function MethyleneBlue() {
         <section className="mb-section mb-section-alt">
           <div className="mb-container">
             <div className="mb-animate">
-              <div className="mb-kicker">The Problem</div>
+              <div className="v2-label"><span className="v2-dot" /> The Problem</div>
               <h2>Why You Feel Tired, Flat, and Off by 2pm</h2>
-              <div className="mb-divider"></div>
-              <p className="mb-body-text">
+              <p className="mb-section-body">
                 It's not about sleep. It's not about willpower. It starts inside your cells.
               </p>
             </div>
 
-            <div className="mb-problems-grid mb-animate">
-              <div className="mb-problem-card">
-                <div className="mb-problem-number">01</div>
+            <div className="mb-cards-grid mb-animate">
+              <div className="mb-card">
+                <span className="mb-card-num">01</span>
                 <h3>Your Cellular Engines Slow Down</h3>
                 <p>Your cells have tiny engines that turn food into energy. When those engines slow down, your brain feels it first — fog, flat mood, no drive.</p>
               </div>
-              <div className="mb-problem-card">
-                <div className="mb-problem-number">02</div>
+              <div className="mb-card">
+                <span className="mb-card-num">02</span>
                 <h3>Your Mood Chemicals Break Down Too Fast</h3>
                 <p>Your body breaks down serotonin and dopamine — the chemicals that make you feel good. When it breaks them down too fast, your mood drops before your day is even over.</p>
               </div>
-              <div className="mb-problem-card">
-                <div className="mb-problem-number">03</div>
+              <div className="mb-card">
+                <span className="mb-card-num">03</span>
                 <h3>Cellular Waste Piles Up</h3>
                 <p>When your cells make energy, they also make waste. Too much waste damages your cells and slows everything down even more. It becomes a cycle.</p>
               </div>
@@ -239,27 +237,26 @@ export default function MethyleneBlue() {
         <section className="mb-section">
           <div className="mb-container">
             <div className="mb-animate">
-              <div className="mb-kicker">How It Helps</div>
+              <div className="v2-label"><span className="v2-dot" /> How It Helps</div>
               <h2>Methylene Blue Fixes Three Problems at Once</h2>
-              <div className="mb-divider"></div>
-              <p className="mb-body-text">
+              <p className="mb-section-body">
                 It doesn't cover up symptoms. It works at the cell level where the problem starts.
               </p>
             </div>
 
-            <div className="mb-benefits-grid mb-animate">
-              <div className="mb-benefit-card">
-                <div className="mb-benefit-icon">⚡</div>
+            <div className="mb-cards-grid mb-animate">
+              <div className="mb-card">
+                <span className="mb-card-num">01</span>
                 <h3>Keeps Your Energy Line Moving</h3>
                 <p>Your cells have an assembly line that makes energy. When it gets backed up, less fuel gets made and your brain feels it first. Methylene blue clears the backup and keeps the power flowing.</p>
               </div>
-              <div className="mb-benefit-card">
-                <div className="mb-benefit-icon">😊</div>
+              <div className="mb-card">
+                <span className="mb-card-num">02</span>
                 <h3>Protects Your Happy Chemicals</h3>
                 <p>Your body has something that breaks down serotonin and dopamine — the chemicals that control your mood. It breaks them down too fast. Methylene blue slows that process so they stay active longer.</p>
               </div>
-              <div className="mb-benefit-card">
-                <div className="mb-benefit-icon">🛡</div>
+              <div className="mb-card">
+                <span className="mb-card-num">03</span>
                 <h3>Cleans Up Cellular Waste</h3>
                 <p>When your cells make energy, they also make waste called free radicals. Too much waste damages your cells and makes everything worse. Methylene blue cleans it up before it causes problems.</p>
               </div>
@@ -271,16 +268,15 @@ export default function MethyleneBlue() {
         <section className="mb-section mb-section-alt">
           <div className="mb-container">
             <div className="mb-animate">
-              <div className="mb-kicker">What It Is</div>
+              <div className="v2-label"><span className="v2-dot" /> What It Is</div>
               <h2>Methylene Blue Is Not New. It's Just Been Forgotten.</h2>
-              <div className="mb-divider"></div>
-              <p className="mb-body-text">
+              <p className="mb-section-body">
                 Methylene blue is one of the oldest compounds in modern medicine. It was first made in 1876. Doctors have used it safely for over a century.
               </p>
-              <p className="mb-body-text" style={{ marginTop: '1rem' }}>
+              <p className="mb-section-body" style={{ marginTop: '1rem' }}>
                 It works because of a simple property — it can give and receive electrons inside your cells. That means it can step in when your cellular engines get stuck and keep things running.
               </p>
-              <p className="mb-body-text" style={{ marginTop: '1rem' }}>
+              <p className="mb-section-body" style={{ marginTop: '1rem' }}>
                 And yes — it turns your pee blue. That just means it's moving through your body. Completely normal.
               </p>
             </div>
@@ -321,9 +317,8 @@ export default function MethyleneBlue() {
         <section className="mb-section">
           <div className="mb-container">
             <div className="mb-animate">
-              <div className="mb-kicker">How to Get It</div>
+              <div className="v2-label"><span className="v2-dot" /> How to Get It</div>
               <h2>Methylene Blue Options</h2>
-              <div className="mb-divider"></div>
             </div>
 
             <div className="mb-options-grid mb-animate">
@@ -337,7 +332,7 @@ export default function MethyleneBlue() {
                   <li>Good for daily support</li>
                   <li>Easy to use at home</li>
                 </ul>
-                <a href={SMS_LINK} className="mb-btn-primary mb-btn-dark mb-btn-full">Text Us to Order</a>
+                <a href={SMS_LINK} className="btn-primary" style={{ display: 'block', textAlign: 'center', width: '100%' }}>Text Us to Order</a>
               </div>
               <div className="mb-option-card">
                 <div className="mb-option-badge-outline">Liquid</div>
@@ -349,7 +344,7 @@ export default function MethyleneBlue() {
                   <li>Take by mouth in the morning</li>
                   <li>Good for daily support</li>
                 </ul>
-                <a href={SMS_LINK} className="mb-btn-primary mb-btn-dark mb-btn-full">Text Us to Order</a>
+                <a href={SMS_LINK} className="btn-primary" style={{ display: 'block', textAlign: 'center', width: '100%' }}>Text Us to Order</a>
               </div>
               <div className="mb-option-card">
                 <div className="mb-option-badge-outline">IV Infusion</div>
@@ -362,7 +357,7 @@ export default function MethyleneBlue() {
                   <li>Takes 30–45 minutes</li>
                   <li>Best for deeper support</li>
                 </ul>
-                <a href={SMS_LINK} className="mb-btn-primary mb-btn-dark mb-btn-full">Ask About IV</a>
+                <a href={SMS_LINK} className="btn-primary" style={{ display: 'block', textAlign: 'center', width: '100%' }}>Ask About IV</a>
               </div>
             </div>
           </div>
@@ -372,7 +367,6 @@ export default function MethyleneBlue() {
         <section className="mb-section mb-section-alt">
           <div className="mb-container">
             <div className="mb-safety-box mb-animate">
-              <div className="mb-safety-icon">⚠</div>
               <h3>Important Safety Note</h3>
               <p>
                 Methylene blue acts as a monoamine oxidase inhibitor (MAO-A inhibitor). If you take SSRIs, SNRIs, or other serotonin-affecting medications, talk to a provider before using methylene blue. Text us and we screen for this before recommending anything.
@@ -385,23 +379,22 @@ export default function MethyleneBlue() {
         <section className="mb-section">
           <div className="mb-container">
             <div className="mb-animate">
-              <div className="mb-kicker">Questions</div>
+              <div className="v2-label"><span className="v2-dot" /> Questions</div>
               <h2>Common Questions</h2>
-              <div className="mb-divider"></div>
             </div>
 
             <div className="mb-faq-list mb-animate">
               {faqs.map((faq, index) => (
-                <div key={index} className={`mb-faq-item ${openFaq === index ? 'mb-faq-open' : ''}`}>
-                  <button className="mb-faq-question" onClick={() => toggleFaq(index)}>
+                <div key={index} className="mb-faq-item">
+                  <button className="mb-faq-q" onClick={() => toggleFaq(index)}>
                     <span>{faq.question}</span>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d={openFaq === index ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} />
-                    </svg>
+                    <span className="mb-faq-toggle">{openFaq === index ? '\u2212' : '+'}</span>
                   </button>
-                  <div className="mb-faq-answer">
-                    <p>{faq.answer}</p>
-                  </div>
+                  {openFaq === index && (
+                    <div className="mb-faq-a">
+                      <p>{faq.answer}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -409,21 +402,17 @@ export default function MethyleneBlue() {
         </section>
 
         {/* Final CTA */}
-        <section className="mb-section mb-section-inverted mb-cta-section">
-          <div className="mb-container">
-            <div className="mb-animate">
-              <div className="mb-kicker">Next Step</div>
-              <h2 className="mb-cta-title">Want to Know If Methylene Blue Is Right for You?</h2>
-              <p className="mb-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
-                Text us. We'll answer your questions and help you decide.
-              </p>
-              <div className="mb-cta-buttons">
-                <a href={SMS_LINK} className="mb-btn-primary">Text Us: (949) 997-3988</a>
-                <div className="mb-cta-or">or</div>
-                <a href="tel:9499973988" className="mb-cta-phone">Call Us</a>
-              </div>
-              <p className="mb-cta-location">Range Medical · 1901 Westcliff Dr, Newport Beach</p>
+        <section className="final-cta">
+          <div className="container">
+            <h2>Want to Know If Methylene<br />Blue Is Right for You?</h2>
+            <div className="cta-rule" />
+            <p>Text us. We'll answer your questions and help you decide.</p>
+            <div className="mb-cta-buttons">
+              <a href={SMS_LINK} className="btn-white">Text Us: (949) 997-3988</a>
+              <div className="mb-cta-or">or</div>
+              <a href="tel:9499973988" className="mb-cta-phone">Call Us</a>
             </div>
+            <p className="cta-location">Range Medical &bull; 1901 Westcliff Dr, Newport Beach</p>
           </div>
         </section>
 
@@ -438,7 +427,7 @@ export default function MethyleneBlue() {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
           -webkit-font-smoothing: antialiased;
           background: #ffffff;
-          color: #171717;
+          color: #1a1a1a;
           overflow-x: hidden;
         }
 
@@ -456,27 +445,22 @@ export default function MethyleneBlue() {
 
         /* Container */
         .mb-container {
-          max-width: 1100px;
+          max-width: 1200px;
           margin: 0 auto;
         }
 
         /* Sections */
         .mb-section {
-          padding: 5rem 1.5rem;
+          padding: 6rem 2rem;
         }
 
         .mb-section-alt {
           background: #fafafa;
-          padding: 5rem 1.5rem;
         }
 
         .mb-section-inverted {
-          background: #000000;
+          background: #1a1a1a;
           color: #ffffff;
-        }
-
-        .mb-section-inverted .mb-kicker {
-          color: rgba(255, 255, 255, 0.4);
         }
 
         .mb-section-inverted h1,
@@ -485,194 +469,116 @@ export default function MethyleneBlue() {
           color: #ffffff;
         }
 
-        .mb-section-inverted .mb-body-text {
-          color: rgba(255, 255, 255, 0.55);
-        }
-
-        .mb-section-inverted .mb-divider {
-          background: rgba(255, 255, 255, 0.12);
-        }
-
-        /* Kicker */
-        .mb-kicker {
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 1rem;
-        }
-
         /* Headlines */
         .mb-page h1 {
-          font-size: 2.75rem;
-          font-weight: 700;
-          line-height: 1.15;
+          font-size: clamp(2.5rem, 6vw, 4rem);
+          font-weight: 900;
+          line-height: 0.95;
           letter-spacing: -0.03em;
-          color: #171717;
+          color: #1a1a1a;
+          text-transform: uppercase;
         }
 
         .mb-page h2 {
-          font-size: 2rem;
-          font-weight: 700;
+          font-size: clamp(2rem, 5vw, 3rem);
+          font-weight: 900;
+          line-height: 0.95;
           letter-spacing: -0.02em;
-          color: #171717;
-          margin-bottom: 1rem;
+          color: #1a1a1a;
+          text-transform: uppercase;
+          margin: 0 0 1.5rem;
         }
 
         .mb-page h3 {
-          font-size: 1.125rem;
-          font-weight: 700;
-          color: #171717;
-        }
-
-        /* Body Text */
-        .mb-body-text {
-          font-size: 1.0625rem;
-          font-weight: 400;
-          line-height: 1.7;
-          color: #525252;
-          max-width: 600px;
-        }
-
-        /* Divider */
-        .mb-divider {
-          width: 48px;
-          height: 2px;
-          background: #e5e5e5;
-          margin: 1.25rem 0;
-        }
-
-        /* Buttons */
-        .mb-btn-primary {
-          display: inline-block;
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          font-size: 0.875rem;
-          font-weight: 600;
-          padding: 0.875rem 2rem;
-          background: #ffffff;
-          color: #000000;
-          border: none;
-          border-radius: 8px;
-          cursor: pointer;
-          text-decoration: none;
-          transition: background 0.2s ease, transform 0.2s ease;
-        }
-
-        .mb-btn-primary:hover {
-          background: #e5e5e5;
-          transform: translateY(-1px);
-        }
-
-        .mb-btn-dark {
-          background: #000000;
-          color: #ffffff;
-        }
-
-        .mb-btn-dark:hover {
-          background: #1a1a1a;
-          transform: translateY(-1px);
-        }
-
-        .mb-btn-full {
-          display: block;
-          text-align: center;
-          width: 100%;
-        }
-
-        /* Hero */
-        .mb-hero {
-          padding: 4rem 1.5rem 5rem;
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-
-        .mb-badge {
-          display: inline-block;
-          font-size: 0.6875rem;
-          font-weight: 700;
+          font-size: 1rem;
+          font-weight: 800;
+          color: #1a1a1a;
           text-transform: uppercase;
-          letter-spacing: 0.08em;
-          padding: 0.375rem 1rem;
-          background: #000000;
-          color: #ffffff;
-          border-radius: 100px;
-          margin-bottom: 1.5rem;
+        }
+
+        /* Section Body */
+        .mb-section-body {
+          font-size: 1.0625rem;
+          line-height: 1.75;
+          color: #737373;
+          max-width: 480px;
+          margin: 0 0 3rem;
+        }
+
+        /* ── HERO ── */
+        .mb-hero {
+          padding: 6rem 2rem 7rem;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        .mb-hero-inner {
+          max-width: 800px;
         }
 
         .mb-hero h1 {
-          max-width: 720px;
-          margin-bottom: 1.5rem;
+          margin: 0 0 2rem;
+        }
+
+        .mb-hero-rule {
+          width: 100%;
+          max-width: 600px;
+          height: 1px;
+          background: #e0e0e0;
+          margin-bottom: 2rem;
+        }
+
+        .mb-hero-sub {
+          font-size: 1.0625rem;
+          line-height: 1.75;
+          color: #737373;
+          max-width: 520px;
+          margin: 0 0 2.5rem;
         }
 
         .mb-hero-note {
-          font-size: 0.8125rem;
+          font-size: 13px;
           color: #737373;
-          margin-top: 0.75rem;
+          margin-top: 1rem;
           margin-bottom: 0;
         }
 
-        .mb-hero-scroll {
-          font-size: 0.75rem;
-          font-weight: 700;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: #737373;
-          margin-top: 2.5rem;
-        }
-
-        .mb-hero-scroll span {
-          display: block;
-          margin-top: 0.75rem;
-          font-size: 1.125rem;
-          animation: mb-bounce 2s ease-in-out infinite;
-        }
-
-        @keyframes mb-bounce {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(6px); }
-        }
-
-        /* Problem Cards */
-        .mb-problems-grid {
+        /* ── CARDS GRID ── */
+        .mb-cards-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 1.25rem;
-          margin-top: 2.5rem;
+          gap: 0;
+          border-top: 1px solid #e0e0e0;
+          margin-top: 0;
         }
 
-        .mb-problem-card {
+        .mb-card {
           padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
-          background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          border-bottom: 1px solid #e0e0e0;
+          border-right: 1px solid #e0e0e0;
         }
 
-        .mb-problem-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        .mb-card:nth-child(3n) {
+          border-right: none;
         }
 
-        .mb-problem-number {
-          font-size: 0.75rem;
-          font-weight: 700;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: #737373;
-          margin-bottom: 1rem;
-        }
-
-        .mb-problem-card h3 {
+        .mb-card-num {
+          display: block;
+          font-size: 12px;
+          font-weight: 600;
+          color: #c4a882;
+          letter-spacing: 0.05em;
           margin-bottom: 0.75rem;
         }
 
-        .mb-problem-card p {
-          font-size: 0.875rem;
-          line-height: 1.7;
-          color: #525252;
+        .mb-card h3 {
+          margin-bottom: 0.75rem;
+        }
+
+        .mb-card p {
+          font-size: 0.9375rem;
+          line-height: 1.6;
+          color: #737373;
           margin: 0;
         }
 
@@ -680,16 +586,14 @@ export default function MethyleneBlue() {
         .mb-energy-visual {
           margin-top: 3rem;
           padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
-          background: #ffffff;
+          border: 1px solid #e0e0e0;
         }
 
         .mb-energy-label {
-          font-size: 0.75rem;
+          font-size: 11px;
           font-weight: 700;
           text-transform: uppercase;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.12em;
           color: #737373;
           margin-bottom: 1.5rem;
           text-align: center;
@@ -712,7 +616,6 @@ export default function MethyleneBlue() {
           width: 48px;
           height: 120px;
           background: #f5f5f5;
-          border-radius: 8px;
           position: relative;
           overflow: hidden;
           display: flex;
@@ -721,79 +624,49 @@ export default function MethyleneBlue() {
 
         .mb-energy-bar-fill {
           width: 100%;
-          border-radius: 8px;
           transition: height 1s ease;
         }
 
         .mb-energy-time {
           font-size: 0.8125rem;
           font-weight: 600;
-          color: #171717;
+          color: #1a1a1a;
         }
 
         .mb-energy-level {
-          font-size: 0.6875rem;
+          font-size: 11px;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.05em;
-        }
-
-        /* Benefits Grid */
-        .mb-benefits-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 1.25rem;
-          margin-top: 2.5rem;
-        }
-
-        .mb-benefit-card {
-          padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
-          background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .mb-benefit-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-        }
-
-        .mb-benefit-icon {
-          font-size: 1.5rem;
-          margin-bottom: 1rem;
-        }
-
-        .mb-benefit-card h3 {
-          margin-bottom: 0.75rem;
-        }
-
-        .mb-benefit-card p {
-          font-size: 0.875rem;
-          line-height: 1.7;
-          color: #525252;
-          margin: 0;
         }
 
         /* Stat Row */
         .mb-stat-row {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
-          gap: 2rem;
+          gap: 0;
           margin-top: 3rem;
+          border-top: 1px solid #e0e0e0;
         }
 
         .mb-stat-item {
           text-align: center;
+          padding: 2rem 1rem;
+          border-right: 1px solid #e0e0e0;
+          border-bottom: 1px solid #e0e0e0;
+        }
+
+        .mb-stat-item:last-child {
+          border-right: none;
         }
 
         .mb-stat-number {
           font-size: 2.75rem;
-          font-weight: 800;
+          font-weight: 900;
           letter-spacing: -0.02em;
           line-height: 1;
           margin-bottom: 0.5rem;
-          color: #171717;
+          color: #c4a882;
         }
 
         .mb-stat-label {
@@ -820,64 +693,57 @@ export default function MethyleneBlue() {
           font-style: italic;
         }
 
-        /* Options Grid */
+        /* ── OPTIONS GRID ── */
         .mb-options-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 1.5rem;
+          gap: 0;
           margin-top: 2.5rem;
+          border-top: 1px solid #e0e0e0;
         }
 
         .mb-option-card {
           position: relative;
           padding: 2.5rem 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
-          background: #ffffff;
+          border-bottom: 1px solid #e0e0e0;
+          border-right: 1px solid #e0e0e0;
           display: flex;
           flex-direction: column;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
-        .mb-option-card:hover {
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        .mb-option-card:last-child {
+          border-right: none;
         }
 
         .mb-option-featured {
-          border: 2px solid #000000;
-        }
-
-        .mb-option-featured:hover {
-          border-color: #000000;
+          border: 2px solid #1a1a1a;
         }
 
         .mb-option-badge {
-          position: absolute;
-          top: -10px;
-          left: 1.5rem;
-          font-size: 0.6875rem;
+          display: inline-block;
+          font-size: 11px;
           font-weight: 700;
-          letter-spacing: 0.08em;
+          letter-spacing: 0.12em;
           text-transform: uppercase;
           padding: 0.25rem 0.75rem;
-          background: #000000;
+          background: #1a1a1a;
           color: #ffffff;
-          border-radius: 100px;
+          margin-bottom: 1rem;
+          align-self: flex-start;
         }
 
         .mb-option-badge-outline {
-          position: absolute;
-          top: -10px;
-          left: 1.5rem;
-          font-size: 0.6875rem;
+          display: inline-block;
+          font-size: 11px;
           font-weight: 700;
-          letter-spacing: 0.08em;
+          letter-spacing: 0.12em;
           text-transform: uppercase;
           padding: 0.25rem 0.75rem;
           background: #ffffff;
-          color: #171717;
-          border: 1.5px solid #e5e5e5;
-          border-radius: 100px;
+          color: #1a1a1a;
+          border: 1px solid #e0e0e0;
+          margin-bottom: 1rem;
+          align-self: flex-start;
         }
 
         .mb-option-card h3 {
@@ -886,8 +752,8 @@ export default function MethyleneBlue() {
 
         .mb-option-price {
           font-size: 2rem;
-          font-weight: 800;
-          color: #171717;
+          font-weight: 900;
+          color: #1a1a1a;
           letter-spacing: -0.02em;
           margin-bottom: 1.5rem;
         }
@@ -901,10 +767,10 @@ export default function MethyleneBlue() {
 
         .mb-option-details li {
           font-size: 0.875rem;
-          color: #525252;
+          color: #737373;
           padding: 0.5rem 0 0.5rem 1.25rem;
           position: relative;
-          border-bottom: 1px solid #f5f5f5;
+          border-bottom: 1px solid #e0e0e0;
           line-height: 1.6;
         }
 
@@ -913,10 +779,10 @@ export default function MethyleneBlue() {
         }
 
         .mb-option-details li::before {
-          content: '✓';
+          content: '\\2713';
           position: absolute;
           left: 0;
-          color: #171717;
+          color: #c4a882;
           font-weight: 700;
           font-size: 0.75rem;
         }
@@ -924,105 +790,67 @@ export default function MethyleneBlue() {
         /* Safety Box */
         .mb-safety-box {
           max-width: 700px;
-          margin: 0 auto;
           padding: 2rem;
-          border-radius: 12px;
-          background: #fffbeb;
-          border: 1px solid #fde68a;
-        }
-
-        .mb-safety-icon {
-          font-size: 1.25rem;
-          margin-bottom: 0.75rem;
+          border: 1px solid #e0e0e0;
         }
 
         .mb-safety-box h3 {
-          color: #92400e;
+          color: #1a1a1a;
           margin-bottom: 0.75rem;
         }
 
         .mb-safety-box p {
           font-size: 0.9375rem;
           line-height: 1.7;
-          color: #78350f;
+          color: #737373;
           margin: 0;
         }
 
-        /* FAQ */
+        /* ── FAQ ── */
         .mb-faq-list {
-          max-width: 700px;
-          margin: 2rem auto 0;
+          border-top: 1px solid #e0e0e0;
+          max-width: 800px;
         }
 
         .mb-faq-item {
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
         }
 
-        .mb-faq-item:last-child {
-          border-bottom: none;
-        }
-
-        .mb-faq-question {
-          width: 100%;
+        .mb-faq-q {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 1.25rem 0;
+          width: 100%;
+          padding: 1.5rem 0;
           background: none;
           border: none;
-          cursor: pointer;
-          text-align: left;
-          font-family: inherit;
-        }
-
-        .mb-faq-question span {
           font-size: 1rem;
-          font-weight: 600;
-          color: #171717;
-          padding-right: 1rem;
+          font-weight: 700;
+          color: #1a1a1a;
+          cursor: pointer;
+          font-family: inherit;
+          text-align: left;
+          gap: 1rem;
         }
 
-        .mb-faq-question svg {
+        .mb-faq-toggle {
+          font-size: 1.25rem;
+          color: #a0a0a0;
           flex-shrink: 0;
-          color: #737373;
-          transition: transform 0.2s;
         }
 
-        .mb-faq-open .mb-faq-question svg {
-          transform: rotate(180deg);
+        .mb-faq-a {
+          padding: 0 0 1.5rem;
         }
 
-        .mb-faq-answer {
-          max-height: 0;
-          overflow: hidden;
-          transition: max-height 0.3s ease, padding 0.3s ease;
-        }
-
-        .mb-faq-open .mb-faq-answer {
-          max-height: 300px;
-          padding-bottom: 1.25rem;
-        }
-
-        .mb-faq-answer p {
+        .mb-faq-a p {
           font-size: 0.9375rem;
-          color: #525252;
-          line-height: 1.7;
+          color: #737373;
+          line-height: 1.75;
           margin: 0;
         }
 
-        /* CTA Section */
-        .mb-cta-section {
-          padding: 6rem 1.5rem;
-          text-align: center;
-        }
-
-        .mb-cta-section h2.mb-cta-title {
-          font-size: 2.75rem;
-          letter-spacing: -0.02em;
-          color: #ffffff;
-          margin-bottom: 1.25rem;
-        }
-
+        /* ── CTA ── */
         .mb-cta-buttons {
           display: flex;
           gap: 1rem;
@@ -1032,9 +860,9 @@ export default function MethyleneBlue() {
         }
 
         .mb-cta-or {
-          font-size: 0.75rem;
+          font-size: 11px;
           font-weight: 700;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.12em;
           text-transform: uppercase;
           color: rgba(255, 255, 255, 0.25);
         }
@@ -1053,66 +881,55 @@ export default function MethyleneBlue() {
           border-color: rgba(255, 255, 255, 0.6);
         }
 
-        .mb-cta-location {
-          font-size: 0.8125rem;
-          color: rgba(255, 255, 255, 0.35);
-          margin-top: 2rem;
-          margin-bottom: 0;
-        }
-
         /* Disclaimer */
         .mb-disclaimer {
           padding: 1.5rem;
           text-align: center;
-          border-top: 1px solid #e5e5e5;
+          border-top: 1px solid #e0e0e0;
         }
 
         .mb-disclaimer p {
           font-size: 0.75rem;
           color: #a3a3a3;
           line-height: 1.6;
-          margin: 0;
           max-width: 600px;
           margin: 0 auto;
         }
 
-        /* Responsive */
-        @media (max-width: 768px) {
-          .mb-page h1 {
-            font-size: 2rem;
-          }
-
-          .mb-page h2 {
-            font-size: 1.5rem;
-          }
-
-          .mb-hero {
-            padding: 3rem 1.5rem;
-          }
-
-          .mb-section {
-            padding: 3rem 1.5rem;
-          }
-
-          .mb-section-alt {
-            padding: 3rem 1.5rem;
-          }
-
-          .mb-problems-grid {
+        /* ── RESPONSIVE ── */
+        @media (max-width: 900px) {
+          .mb-cards-grid {
             grid-template-columns: 1fr;
           }
 
-          .mb-benefits-grid {
-            grid-template-columns: 1fr;
+          .mb-card {
+            border-right: none;
           }
 
           .mb-stat-row {
             grid-template-columns: repeat(2, 1fr);
-            gap: 1.5rem;
+          }
+
+          .mb-stat-item:nth-child(2) {
+            border-right: none;
           }
 
           .mb-options-grid {
             grid-template-columns: 1fr;
+          }
+
+          .mb-option-card {
+            border-right: none;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .mb-hero {
+            padding: 4rem 1.5rem 5rem;
+          }
+
+          .mb-section {
+            padding: 4rem 1.5rem;
           }
 
           .mb-energy-bars {
@@ -1122,14 +939,6 @@ export default function MethyleneBlue() {
           .mb-energy-bar-track {
             width: 40px;
             height: 90px;
-          }
-
-          .mb-cta-section {
-            padding: 4rem 1.5rem;
-          }
-
-          .mb-cta-title {
-            font-size: 2rem;
           }
 
           .mb-cta-buttons {

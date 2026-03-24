@@ -194,61 +194,70 @@ export default function CellularEnergyReset() {
         <div className="trust-bar">
           <div className="trust-inner">
             <span className="trust-item">
-              <span className="trust-rating">★★★★★</span> 5.0 on Google
+              <span className="trust-rating">&#9733;&#9733;&#9733;&#9733;&#9733;</span> 5.0 on Google
             </span>
-            <span className="trust-item">📍 Newport Beach, CA</span>
-            <span className="trust-item">✓ Licensed Providers</span>
+            <span className="trust-item">Newport Beach, CA</span>
+            <span className="trust-item">Licensed Providers</span>
           </div>
         </div>
 
         {/* Hero Section */}
         <section className="cer-hero">
-          <div className="cer-kicker">Energy · Recovery · Cellular</div>
-          <h1>Your Guide to Cellular Energy Reset</h1>
-          <p className="cer-body-text">
-            A structured 6-week protocol combining HBOT and Red Light Therapy to restore energy
-            at the cellular level — for those who want a clear plan to fix fatigue, brain fog,
-            and slow recovery at the source.
-          </p>
-          <div className="cer-hero-scroll">
-            Scroll to explore
-            <span>↓</span>
+          <div className="cer-hero-inner">
+            <div className="v2-label"><span className="v2-dot" /> Energy &middot; Recovery &middot; Cellular</div>
+            <h1>Your Guide to Cellular Energy Reset</h1>
+            <div className="cer-hero-rule" />
+            <p className="cer-hero-sub">
+              A structured 6-week protocol combining HBOT and Red Light Therapy to restore energy
+              at the cellular level — for those who want a clear plan to fix fatigue, brain fog,
+              and slow recovery at the source.
+            </p>
+            <div className="cer-hero-scroll">
+              Scroll to explore
+              <span>&darr;</span>
+            </div>
           </div>
         </section>
 
         {/* Benefits Section */}
-        <section id="cer-what" className={`cer-section cer-animate ${isVisible['cer-what'] ? 'cer-visible' : ''}`}>
+        <section id="cer-what" className={`cer-section cer-section-alt cer-animate ${isVisible['cer-what'] ? 'cer-visible' : ''}`}>
           <div className="cer-container">
-            <span className="cer-section-label">The Benefits</span>
+            <div className="v2-label"><span className="v2-dot" /> The Benefits</div>
             <h2>What Red Light + HBOT Does for Your Body</h2>
 
-            <div className="cer-benefits-grid">
-              <div className="cer-benefit-card">
+            <div className="cer-cards-grid">
+              <div className="cer-card">
+                <span className="cer-card-num">01</span>
                 <h4>Restore Your Natural Energy</h4>
                 <p>HBOT floods cells with oxygen, Red Light activates the enzyme that drives ATP production. Real, sustained vitality — not caffeine.</p>
               </div>
 
-              <div className="cer-benefit-card">
+              <div className="cer-card">
+                <span className="cer-card-num">02</span>
                 <h4>Clear the Brain Fog</h4>
                 <p>Your brain uses 20% of your body's energy. Restored cellular function means sharper thinking, better memory, and mental clarity that lasts.</p>
               </div>
 
-              <div className="cer-benefit-card">
+              <div className="cer-card">
+                <span className="cer-card-num">03</span>
                 <h4>Sleep That Actually Restores You</h4>
                 <p>Improved mitochondrial function means your body repairs properly during sleep. Wake up feeling like sleep actually did something.</p>
               </div>
 
-              <div className="cer-benefit-card">
+              <div className="cer-card">
+                <span className="cer-card-num">04</span>
                 <h4>Faster Physical Recovery</h4>
                 <p>Exercise, injury, daily wear and tear — when cells produce energy efficiently, your body repairs properly instead of falling behind.</p>
               </div>
 
-              <div className="cer-benefit-card">
+              <div className="cer-card">
+                <span className="cer-card-num">05</span>
                 <h4>Reduced Inflammation</h4>
                 <p>Chronic low-grade inflammation drives fatigue, pain, and aging. HBOT and Red Light address it at the cellular level where it starts.</p>
               </div>
 
-              <div className="cer-benefit-card">
+              <div className="cer-card">
+                <span className="cer-card-num">06</span>
                 <h4>Slow Down Aging at Its Root</h4>
                 <p>Mitochondrial dysfunction is a hallmark of aging. This protocol addresses it at the deepest biological level — where aging actually begins.</p>
               </div>
@@ -257,75 +266,44 @@ export default function CellularEnergyReset() {
         </section>
 
         {/* Is This You Section */}
-        <section id="cer-who" className={`cer-section-alt cer-animate ${isVisible['cer-who'] ? 'cer-visible' : ''}`}>
+        <section id="cer-who" className={`cer-section cer-animate ${isVisible['cer-who'] ? 'cer-visible' : ''}`}>
           <div className="cer-container">
-            <span className="cer-section-label">Is This You?</span>
+            <div className="v2-label"><span className="v2-dot" /> Is This You?</div>
             <h2>Signs Your Cells Need a Reset</h2>
 
-            <div className="cer-symptom-grid">
-              <div className="cer-symptom-card">
-                <div className="cer-symptom-icon">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-                  </svg>
-                </div>
+            <div className="cer-cards-grid">
+              <div className="cer-card">
+                <span className="cer-card-num">01</span>
                 <h4>You're Tired All the Time</h4>
                 <p>Not lazy, not "just stressed." Persistent fatigue that sleep doesn't fix is a sign of mitochondrial dysfunction.</p>
               </div>
 
-              <div className="cer-symptom-card">
-                <div className="cer-symptom-icon">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <path d="M12 16v-4"/>
-                    <path d="M12 8h.01"/>
-                  </svg>
-                </div>
+              <div className="cer-card">
+                <span className="cer-card-num">02</span>
                 <h4>Brain Fog is Your New Normal</h4>
                 <p>Forgetting words, losing focus, walking into rooms and forgetting why. Your brain runs on ATP — and it's running low.</p>
               </div>
 
-              <div className="cer-symptom-card">
-                <div className="cer-symptom-icon">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                  </svg>
-                </div>
+              <div className="cer-card">
+                <span className="cer-card-num">03</span>
                 <h4>Your Doctor Says You're "Fine"</h4>
                 <p>Labs look normal but you know something's off. Standard tests don't measure cellular energy production.</p>
               </div>
 
-              <div className="cer-symptom-card">
-                <div className="cer-symptom-icon">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M4.93 19.07A10 10 0 1 1 19.07 4.93"/>
-                    <path d="M2 12h2"/>
-                    <path d="M12 2v2"/>
-                  </svg>
-                </div>
+              <div className="cer-card">
+                <span className="cer-card-num">04</span>
                 <h4>The 2pm Crash Hits Every Day</h4>
                 <p>Afternoon energy tank. Energy drinks and coffee create a cycle that makes the underlying problem worse.</p>
               </div>
 
-              <div className="cer-symptom-card">
-                <div className="cer-symptom-icon">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-                  </svg>
-                </div>
+              <div className="cer-card">
+                <span className="cer-card-num">05</span>
                 <h4>Sleep Doesn't Recharge You</h4>
                 <p>8 hours but still waking up tired. Your cells don't have the energy to repair overnight — so sleep feels pointless.</p>
               </div>
 
-              <div className="cer-symptom-card">
-                <div className="cer-symptom-icon">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M18 20V10"/>
-                    <path d="M12 20V4"/>
-                    <path d="M6 20v-6"/>
-                  </svg>
-                </div>
+              <div className="cer-card">
+                <span className="cer-card-num">06</span>
                 <h4>Everything Aches</h4>
                 <p>Joint stiffness, general soreness, feeling older than you are. Chronic inflammation at the cellular level is the root cause.</p>
               </div>
@@ -334,9 +312,9 @@ export default function CellularEnergyReset() {
         </section>
 
         {/* What's Included Section */}
-        <section id="cer-included" className={`cer-section cer-animate ${isVisible['cer-included'] ? 'cer-visible' : ''}`}>
+        <section id="cer-included" className={`cer-section cer-section-alt cer-animate ${isVisible['cer-included'] ? 'cer-visible' : ''}`}>
           <div className="cer-container">
-            <span className="cer-section-label">Program Details</span>
+            <div className="v2-label"><span className="v2-dot" /> Program Details</div>
             <h2>What's Included</h2>
 
             <div className="cer-included-grid">
@@ -368,47 +346,43 @@ export default function CellularEnergyReset() {
         </section>
 
         {/* Timeline Section */}
-        <section id="cer-timeline" className={`cer-section-alt cer-animate ${isVisible['cer-timeline'] ? 'cer-visible' : ''}`}>
+        <section id="cer-timeline" className={`cer-section cer-animate ${isVisible['cer-timeline'] ? 'cer-visible' : ''}`}>
           <div className="cer-container">
-            <span className="cer-section-label">Your Journey</span>
+            <div className="v2-label"><span className="v2-dot" /> Your Journey</div>
             <h2>The 6-Week Timeline</h2>
 
-            <div className="cer-timeline">
-              <div className="cer-timeline-item">
-                <div className="cer-timeline-marker">1</div>
-                <div className="cer-timeline-content">
-                  <span className="cer-timeline-label">Weeks 1-2</span>
+            <div className="cer-steps">
+              <div className="cer-step">
+                <span className="cer-step-num">01</span>
+                <div className="cer-step-content">
+                  <span className="cer-step-label">Weeks 1-2</span>
                   <h4>Foundation Phase</h4>
                   <p>3 HBOT + 3 Red Light sessions per week. Your cells begin adapting to increased oxygen and light stimulation. Some patients feel initial improvement.</p>
                 </div>
               </div>
 
-              <div className="cer-timeline-item">
-                <div className="cer-timeline-marker">2</div>
-                <div className="cer-timeline-content">
-                  <span className="cer-timeline-label">Weeks 3-4</span>
+              <div className="cer-step">
+                <span className="cer-step-num">02</span>
+                <div className="cer-step-content">
+                  <span className="cer-step-label">Weeks 3-4</span>
                   <h4>Optimization Phase</h4>
                   <p>Continuing 3x weekly sessions. This is when most patients report noticeable improvements — more sustained energy, clearer thinking, better sleep.</p>
                 </div>
               </div>
 
-              <div className="cer-timeline-item">
-                <div className="cer-timeline-marker">3</div>
-                <div className="cer-timeline-content">
-                  <span className="cer-timeline-label">Weeks 5-6</span>
+              <div className="cer-step">
+                <span className="cer-step-num">03</span>
+                <div className="cer-step-content">
+                  <span className="cer-step-label">Weeks 5-6</span>
                   <h4>Integration Phase</h4>
                   <p>Final sessions lock in your gains. Mitochondrial adaptations become more durable. Energy improvements feel like your new baseline.</p>
                 </div>
               </div>
 
-              <div className="cer-timeline-item">
-                <div className="cer-timeline-marker cer-complete">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                    <polyline points="20 6 9 17 4 12"/>
-                  </svg>
-                </div>
-                <div className="cer-timeline-content">
-                  <span className="cer-timeline-label">Week 7</span>
+              <div className="cer-step">
+                <span className="cer-step-num">04</span>
+                <div className="cer-step-content">
+                  <span className="cer-step-label">Week 7</span>
                   <h4>Results Review</h4>
                   <p>Final consultation to measure progress. We'll review your energy scores, discuss what changed, and create a maintenance plan to preserve your results.</p>
                 </div>
@@ -418,9 +392,9 @@ export default function CellularEnergyReset() {
         </section>
 
         {/* Investment Section */}
-        <section id="cer-pricing" className={`cer-section cer-animate ${isVisible['cer-pricing'] ? 'cer-visible' : ''}`}>
+        <section id="cer-pricing" className={`cer-section cer-section-alt cer-animate ${isVisible['cer-pricing'] ? 'cer-visible' : ''}`}>
           <div className="cer-container">
-            <span className="cer-section-label">Investment</span>
+            <div className="v2-label"><span className="v2-dot" /> Investment</div>
             <h2>Program Pricing</h2>
 
             <div className="cer-pricing-grid">
@@ -433,10 +407,10 @@ export default function CellularEnergyReset() {
                   <li>Structured 6-week schedule — 3 sessions per week</li>
                   <li>Weekly automated check-ins to track progress</li>
                 </ul>
-                <a href="https://buy.stripe.com/8x2cN47WQ5VKgZXebL08g02" target="_blank" rel="noopener noreferrer" className="cer-btn-primary">Get Started — $3,999</a>
+                <a href="https://buy.stripe.com/8x2cN47WQ5VKgZXebL08g02" target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: 'block', textAlign: 'center' }}>Get Started — $3,999</a>
                 <p className="cer-pricing-note">Financing available through Affirm and Afterpay</p>
                 <div className="cer-guarantee">
-                  <div className="cer-guarantee-icon">✓</div>
+                  <div className="cer-guarantee-icon">&#10003;</div>
                   <div>
                     <h4>Money-Back Guarantee</h4>
                     <p>Complete the full 6-week protocol as prescribed. If you don't experience measurable improvement, we'll refund your investment.</p>
@@ -479,11 +453,11 @@ export default function CellularEnergyReset() {
         </section>
 
         {/* Research Section */}
-        <section id="cer-research" className={`cer-section-alt cer-animate ${isVisible['cer-research'] ? 'cer-visible' : ''}`}>
+        <section id="cer-research" className={`cer-section cer-animate ${isVisible['cer-research'] ? 'cer-visible' : ''}`}>
           <div className="cer-container">
-            <span className="cer-section-label">The Evidence</span>
+            <div className="v2-label"><span className="v2-dot" /> The Evidence</div>
             <h2>Research Behind the Protocol</h2>
-            <p className="cer-section-intro">
+            <p className="cer-section-body">
               This program is built on peer-reviewed research demonstrating the effectiveness of
               hyperbaric oxygen and photobiomodulation for mitochondrial restoration.
             </p>
@@ -501,25 +475,28 @@ export default function CellularEnergyReset() {
         </section>
 
         {/* Testimonials Section */}
-        <section id="cer-testimonials" className={`cer-section-alt cer-animate ${isVisible['cer-testimonials'] ? 'cer-visible' : ''}`}>
+        <section id="cer-testimonials" className={`cer-section cer-section-alt cer-animate ${isVisible['cer-testimonials'] ? 'cer-visible' : ''}`}>
           <div className="cer-container">
-            <span className="cer-section-label">Results</span>
+            <div className="v2-label"><span className="v2-dot" /> Results</div>
             <h2>What Patients Are Saying</h2>
 
-            <div className="cer-testimonial-grid">
-              <div className="cer-testimonial-card">
-                <p className="cer-testimonial-quote">"I thought being tired was just my life now. By week 3, I had energy I hadn't felt in years."</p>
-                <span className="cer-testimonial-author">— Sarah M., 45, Newport Beach</span>
+            <div className="cer-testimonials">
+              <div className="cer-testimonial">
+                <div className="cer-testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                <blockquote>&ldquo;I thought being tired was just my life now. By week 3, I had energy I hadn't felt in years.&rdquo;</blockquote>
+                <cite>Sarah M., 45, Newport Beach</cite>
               </div>
 
-              <div className="cer-testimonial-card">
-                <p className="cer-testimonial-quote">"The brain fog clearing was worth it alone. I can actually think through a full day without crashing."</p>
-                <span className="cer-testimonial-author">— David R., 52, Newport Beach</span>
+              <div className="cer-testimonial">
+                <div className="cer-testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                <blockquote>&ldquo;The brain fog clearing was worth it alone. I can actually think through a full day without crashing.&rdquo;</blockquote>
+                <cite>David R., 52, Newport Beach</cite>
               </div>
 
-              <div className="cer-testimonial-card">
-                <p className="cer-testimonial-quote">"My doctor couldn't find anything wrong. This program found what labs missed — my cells were the problem."</p>
-                <span className="cer-testimonial-author">— Jennifer L., 41, Newport Beach</span>
+              <div className="cer-testimonial">
+                <div className="cer-testimonial-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                <blockquote>&ldquo;My doctor couldn't find anything wrong. This program found what labs missed — my cells were the problem.&rdquo;</blockquote>
+                <cite>Jennifer L., 41, Newport Beach</cite>
               </div>
             </div>
           </div>
@@ -528,21 +505,21 @@ export default function CellularEnergyReset() {
         {/* FAQ Section */}
         <section id="cer-faq" className={`cer-section cer-animate ${isVisible['cer-faq'] ? 'cer-visible' : ''}`}>
           <div className="cer-container">
-            <span className="cer-section-label">Questions</span>
+            <div className="v2-label"><span className="v2-dot" /> Questions</div>
             <h2>Common Questions</h2>
 
             <div className="cer-faq-list">
               {faqs.map((faq, index) => (
-                <div key={index} className={`cer-faq-item ${openFaq === index ? 'cer-faq-open' : ''}`}>
-                  <button className="cer-faq-question" onClick={() => toggleFaq(index)}>
+                <div key={index} className="cer-faq-item">
+                  <button className="cer-faq-q" onClick={() => toggleFaq(index)}>
                     <span>{faq.question}</span>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d={openFaq === index ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} />
-                    </svg>
+                    <span className="cer-faq-toggle">{openFaq === index ? '\u2212' : '+'}</span>
                   </button>
-                  <div className="cer-faq-answer">
-                    <p>{faq.answer}</p>
-                  </div>
+                  {openFaq === index && (
+                    <div className="cer-faq-a">
+                      <p>{faq.answer}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -550,72 +527,65 @@ export default function CellularEnergyReset() {
         </section>
 
         {/* CTA Section */}
-        <section className="cer-section-inverted">
-          <div className="cer-container">
-            <span className="cer-section-label-light">First Step</span>
-            <h2>Stop Guessing. Start Fixing.</h2>
-            <p className="cer-cta-text">
-              Book the 6-Week Cellular Energy Reset and we'll build your schedule.
-            </p>
-            <div className="cer-cta-buttons">
-              <a href="https://buy.stripe.com/8x2cN47WQ5VKgZXebL08g02" target="_blank" rel="noopener noreferrer" className="cer-btn-white">Get Started — $3,999</a>
-            </div>
-            <p className="cer-cta-location">
-              Range Medical • 1901 Westcliff Dr, Newport Beach<br />
-              <a href="tel:9499973988">(949) 997-3988</a>
+        <section className="final-cta">
+          <div className="container">
+            <h2>Stop Guessing.<br />Start Fixing.</h2>
+            <div className="cta-rule" />
+            <p>Book the 6-Week Cellular Energy Reset and we'll build your schedule.</p>
+            <a href="https://buy.stripe.com/8x2cN47WQ5VKgZXebL08g02" target="_blank" rel="noopener noreferrer" className="btn-white">Get Started — $3,999</a>
+            <p className="cta-location">
+              Range Medical &bull; 1901 Westcliff Dr, Newport Beach &bull; <a href="tel:9499973988">(949) 997-3988</a>
             </p>
           </div>
         </section>
 
         <style jsx>{`
-          /* Hero Section */
-          .cer-kicker {
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: #737373;
-            margin-bottom: 1.25rem;
-          }
-
-          .cer-body-text {
-            font-size: 1.125rem;
-            color: #525252;
-            line-height: 1.7;
-            max-width: 620px;
-          }
-
+          /* ── HERO ── */
           .cer-hero {
-            padding: 4rem 1.5rem 5rem;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            padding: 6rem 2rem 7rem;
+            max-width: 1200px;
+            margin: 0 auto;
+          }
+
+          .cer-hero-inner {
+            max-width: 800px;
           }
 
           .cer-hero h1 {
-            font-size: 2.75rem;
-            font-weight: 700;
-            color: #171717;
-            line-height: 1.15;
-            max-width: 680px;
-            margin: 0 0 1.5rem;
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            font-weight: 900;
+            line-height: 0.95;
+            letter-spacing: -0.03em;
+            color: #1a1a1a;
+            text-transform: uppercase;
+            margin: 0 0 2rem;
           }
 
-          .cer-hero .cer-body-text {
-            text-align: center;
-            margin: 0 auto 2.5rem;
+          .cer-hero-rule {
+            width: 100%;
+            max-width: 600px;
+            height: 1px;
+            background: #e0e0e0;
+            margin-bottom: 2rem;
+          }
+
+          .cer-hero-sub {
+            font-size: 1.0625rem;
+            line-height: 1.75;
+            color: #737373;
+            max-width: 520px;
+            margin: 0 0 2.5rem;
           }
 
           .cer-hero-scroll {
-            font-size: 0.75rem;
+            font-size: 11px;
             font-weight: 700;
-            letter-spacing: 0.1em;
+            letter-spacing: 0.12em;
             text-transform: uppercase;
             color: #737373;
             display: flex;
             flex-direction: column;
-            align-items: center;
+            align-items: flex-start;
           }
 
           .cer-hero-scroll span {
@@ -630,72 +600,36 @@ export default function CellularEnergyReset() {
             50% { transform: translateY(6px); }
           }
 
-          /* Section Styles */
+          /* ── SECTIONS ── */
           .cer-section {
-            padding: 5rem 1.5rem;
-            background: #ffffff;
+            padding: 6rem 2rem;
           }
 
           .cer-section-alt {
-            padding: 5rem 1.5rem;
             background: #fafafa;
           }
 
-          .cer-section-inverted {
-            padding: 5rem 1.5rem;
-            background: #000000;
-            text-align: center;
-          }
-
-          .cer-section-inverted h2 {
-            color: #ffffff;
-          }
-
           .cer-container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
           }
 
-          .cer-section-label {
-            display: inline-block;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: #737373;
-            margin-bottom: 0.75rem;
-          }
-
-          .cer-section-label-light {
-            display: inline-block;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: #a3a3a3;
-            margin-bottom: 0.75rem;
-          }
-
           .cer-section h2 {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #171717;
-            margin: 0 0 1rem;
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 900;
+            line-height: 0.95;
+            letter-spacing: -0.02em;
+            color: #1a1a1a;
+            text-transform: uppercase;
+            margin: 0 0 1.5rem;
           }
 
-          .cer-section-alt h2 {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #171717;
-            margin: 0 0 1rem;
-          }
-
-          .cer-section-intro {
+          .cer-section-body {
             font-size: 1.0625rem;
-            color: #525252;
-            line-height: 1.7;
-            max-width: 700px;
-            margin: 0 0 2.5rem;
+            line-height: 1.75;
+            color: #737373;
+            max-width: 480px;
+            margin: 0 0 3rem;
           }
 
           /* Animation */
@@ -710,314 +644,170 @@ export default function CellularEnergyReset() {
             transform: translateY(0);
           }
 
-          /* What Is Grid */
-          .cer-what-grid {
+          /* ── CARDS GRID ── */
+          .cer-cards-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1.5rem;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0;
+            border-top: 1px solid #e0e0e0;
           }
 
-          .cer-what-card {
-            background: #fafafa;
-            border: 1px solid #e5e5e5;
-            border-radius: 12px;
+          .cer-card {
             padding: 2rem;
-            text-align: center;
+            border-bottom: 1px solid #e0e0e0;
+            border-right: 1px solid #e0e0e0;
           }
 
-          .cer-what-icon {
-            width: 64px;
-            height: 64px;
-            background: #ffffff;
-            border: 1px solid #e5e5e5;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1.25rem;
-            color: #737373;
+          .cer-card:nth-child(2n) {
+            border-right: none;
           }
 
-          .cer-what-card h3 {
-            font-size: 1.125rem;
-            font-weight: 700;
-            color: #171717;
-            margin: 0 0 0.75rem;
+          .cer-card-num {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #c4a882;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.75rem;
           }
 
-          .cer-what-card p {
-            font-size: 0.9375rem;
-            color: #525252;
-            line-height: 1.6;
-            margin: 0;
-          }
-
-          /* Benefits Grid */
-          .cer-benefits-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1.5rem;
-          }
-
-          .cer-benefit-card {
-            background: #fafafa;
-            border: 1px solid #e5e5e5;
-            border-radius: 12px;
-            padding: 2rem;
-          }
-
-          .cer-benefit-card h4 {
-            font-size: 1.0625rem;
-            font-weight: 700;
-            color: #171717;
-            margin: 0 0 0.5rem;
-          }
-
-          .cer-benefit-card p {
-            font-size: 0.9375rem;
-            color: #525252;
-            line-height: 1.6;
-            margin: 0;
-          }
-
-          /* Testimonials */
-          .cer-testimonial-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1.5rem;
-          }
-
-          .cer-testimonial-card {
-            background: #ffffff;
-            border: 1px solid #e5e5e5;
-            border-radius: 12px;
-            padding: 2rem;
-          }
-
-          .cer-testimonial-quote {
-            font-size: 1.0625rem;
-            color: #171717;
-            line-height: 1.7;
-            font-style: italic;
-            margin: 0 0 1.25rem;
-          }
-
-          .cer-testimonial-author {
-            font-size: 0.875rem;
-            color: #737373;
-            font-weight: 500;
-          }
-
-          /* Conditions Tags */
-          .cer-conditions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.75rem;
-            justify-content: center;
-            margin-bottom: 2.5rem;
-          }
-
-          .cer-condition-tag {
-            background: #ffffff;
-            border: 1px solid #e5e5e5;
-            border-radius: 100px;
-            padding: 0.5rem 1rem;
-            font-size: 0.875rem;
-            color: #404040;
-            font-weight: 500;
-          }
-
-          /* Symptom Grid */
-          .cer-symptom-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1.5rem;
-          }
-
-          .cer-symptom-card {
-            background: #ffffff;
-            border: 1px solid #e5e5e5;
-            border-radius: 12px;
-            padding: 1.75rem;
-            text-align: center;
-            transition: border-color 0.2s, box-shadow 0.2s;
-          }
-
-          .cer-symptom-card:hover {
-            border-color: #d4d4d4;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-          }
-
-          .cer-symptom-icon {
-            width: 52px;
-            height: 52px;
-            background: #f5f5f5;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1rem;
-            color: #525252;
-          }
-
-          .cer-symptom-card h4 {
+          .cer-card h4 {
             font-size: 1rem;
-            font-weight: 700;
-            color: #171717;
+            font-weight: 800;
+            color: #1a1a1a;
+            text-transform: uppercase;
             margin: 0 0 0.5rem;
           }
 
-          .cer-symptom-card p {
-            font-size: 0.875rem;
-            color: #525252;
-            line-height: 1.5;
+          .cer-card p {
+            font-size: 0.9375rem;
+            color: #737373;
             margin: 0;
+            line-height: 1.6;
           }
 
-          /* Included Grid */
+          /* ── INCLUDED GRID ── */
           .cer-included-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 1.5rem;
+            gap: 0;
+            border-top: 1px solid #e0e0e0;
           }
 
           .cer-included-card {
-            background: #fafafa;
-            border: 1px solid #e5e5e5;
-            border-radius: 12px;
             padding: 2rem;
+            border-bottom: 1px solid #e0e0e0;
+            border-right: 1px solid #e0e0e0;
+          }
+
+          .cer-included-card:nth-child(2n) {
+            border-right: none;
           }
 
           .cer-included-number {
             font-size: 2.5rem;
-            font-weight: 700;
-            color: #737373;
+            font-weight: 900;
+            color: #c4a882;
             line-height: 1;
             margin-bottom: 0.5rem;
           }
 
           .cer-included-card h4 {
-            font-size: 1.125rem;
-            font-weight: 700;
-            color: #171717;
+            font-size: 1rem;
+            font-weight: 800;
+            color: #1a1a1a;
+            text-transform: uppercase;
             margin: 0 0 0.5rem;
           }
 
           .cer-included-card p {
             font-size: 0.9375rem;
-            color: #525252;
+            color: #737373;
             line-height: 1.6;
             margin: 0;
           }
 
-          /* Timeline */
-          .cer-timeline {
-            max-width: 700px;
-            margin: 0 auto;
+          /* ── TIMELINE / STEPS ── */
+          .cer-steps {
+            border-top: 1px solid #e0e0e0;
+            max-width: 800px;
           }
 
-          .cer-timeline-item {
+          .cer-step {
             display: flex;
-            gap: 1.5rem;
+            gap: 2rem;
             padding: 1.75rem 0;
-            border-bottom: 1px solid #e5e5e5;
+            border-bottom: 1px solid #e0e0e0;
+            align-items: flex-start;
           }
 
-          .cer-timeline-item:last-child {
-            border-bottom: none;
-          }
-
-          .cer-timeline-marker {
-            width: 48px;
-            height: 48px;
-            min-width: 48px;
-            background: #000000;
-            color: #ffffff;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 1.125rem;
-          }
-
-          .cer-timeline-marker.cer-complete {
-            background: #22c55e;
-          }
-
-          .cer-timeline-label {
-            font-size: 0.75rem;
+          .cer-step-num {
+            font-size: 12px;
             font-weight: 600;
+            color: #c4a882;
+            letter-spacing: 0.05em;
+            min-width: 2rem;
+            padding-top: 0.25rem;
+          }
+
+          .cer-step-label {
+            font-size: 11px;
+            font-weight: 700;
             color: #737373;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.12em;
+            display: block;
+            margin-bottom: 0.25rem;
           }
 
-          .cer-timeline-content h4 {
-            font-size: 1.125rem;
-            font-weight: 700;
-            color: #171717;
-            margin: 0.25rem 0 0.5rem;
+          .cer-step-content h4 {
+            font-size: 1rem;
+            font-weight: 800;
+            color: #1a1a1a;
+            text-transform: uppercase;
+            margin: 0 0 0.5rem;
           }
 
-          .cer-timeline-content p {
+          .cer-step-content p {
             font-size: 0.9375rem;
-            color: #525252;
-            line-height: 1.6;
+            color: #737373;
             margin: 0;
+            line-height: 1.6;
           }
 
-          /* Pricing */
+          /* ── PRICING ── */
           .cer-pricing-grid {
             display: grid;
             grid-template-columns: 1fr auto;
             gap: 1.5rem;
-            max-width: 700px;
-            margin: 0 auto 3rem;
+            max-width: 800px;
+            margin: 0 0 3rem;
             align-items: start;
           }
 
           .cer-pricing-card {
-            background: #fafafa;
-            border: 1px solid #e5e5e5;
-            border-radius: 12px;
+            border: 1px solid #e0e0e0;
             padding: 2rem;
           }
 
           .cer-pricing-main {
-            border-color: #000000;
+            border-color: #1a1a1a;
+            border-width: 2px;
           }
 
           .cer-pricing-card h3 {
             font-size: 1.25rem;
-            font-weight: 700;
-            color: #171717;
+            font-weight: 800;
+            color: #1a1a1a;
+            text-transform: uppercase;
             margin: 0 0 0.75rem;
           }
 
           .cer-price {
             font-size: 2.5rem;
-            font-weight: 700;
-            color: #000000;
+            font-weight: 900;
+            color: #1a1a1a;
             margin-bottom: 1.5rem;
-          }
-
-          .cer-price-addon {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #000000;
-            margin-bottom: 1rem;
-          }
-
-          .cer-pricing-addon {
-            max-width: 220px;
-          }
-
-          .cer-pricing-addon p {
-            font-size: 0.9375rem;
-            color: #525252;
-            line-height: 1.6;
-            margin: 0;
           }
 
           .cer-pricing-features {
@@ -1028,10 +818,10 @@ export default function CellularEnergyReset() {
 
           .cer-pricing-features li {
             font-size: 0.9375rem;
-            color: #404040;
+            color: #737373;
             padding: 0.625rem 0 0.625rem 1.75rem;
             position: relative;
-            border-bottom: 1px solid #e5e5e5;
+            border-bottom: 1px solid #e0e0e0;
           }
 
           .cer-pricing-features li:last-child {
@@ -1039,10 +829,10 @@ export default function CellularEnergyReset() {
           }
 
           .cer-pricing-features li::before {
-            content: "✓";
+            content: "\\2713";
             position: absolute;
             left: 0;
-            color: #22c55e;
+            color: #c4a882;
             font-weight: 700;
           }
 
@@ -1052,45 +842,20 @@ export default function CellularEnergyReset() {
             margin: 1rem 0 0;
           }
 
-          .cer-btn-primary {
-            display: block;
-            text-align: center;
-            background: #000000;
-            color: #ffffff;
-            padding: 1rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
-            text-decoration: none;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
-            transition: all 0.2s ease;
-            cursor: pointer;
-            border: none;
-          }
-
-          .cer-btn-primary:hover {
-            background: #171717;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-          }
-
           .cer-guarantee {
             display: flex;
             gap: 1rem;
             margin-top: 1.5rem;
             padding: 1.25rem;
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
-            border-radius: 8px;
+            border: 1px solid #e0e0e0;
           }
 
           .cer-guarantee-icon {
             width: 32px;
             height: 32px;
             min-width: 32px;
-            background: #22c55e;
+            background: #c4a882;
             color: #ffffff;
-            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1101,32 +866,32 @@ export default function CellularEnergyReset() {
           .cer-guarantee h4 {
             font-size: 0.9375rem;
             font-weight: 700;
-            color: #171717;
+            color: #1a1a1a;
             margin: 0 0 0.25rem;
           }
 
           .cer-guarantee p {
             font-size: 0.8125rem;
-            color: #525252;
+            color: #737373;
             line-height: 1.5;
             margin: 0;
           }
 
           .cer-pricing-value {
-            background: #fafafa;
-            border: 1px solid #e5e5e5;
+            border: 1px solid #e0e0e0;
           }
 
           .cer-pricing-value h3 {
             font-size: 1.125rem;
-            font-weight: 700;
-            color: #171717;
+            font-weight: 800;
+            color: #1a1a1a;
+            text-transform: uppercase;
             margin: 0 0 0.75rem;
           }
 
           .cer-pricing-value > p {
             font-size: 0.9375rem;
-            color: #525252;
+            color: #737373;
             line-height: 1.6;
             font-style: italic;
             margin: 0;
@@ -1134,15 +899,15 @@ export default function CellularEnergyReset() {
 
           .cer-pricing-value-divider {
             height: 1px;
-            background: #e5e5e5;
+            background: #e0e0e0;
             margin: 1.5rem 0;
           }
 
           .cer-pricing-value h4 {
-            font-size: 0.75rem;
-            font-weight: 600;
+            font-size: 11px;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.12em;
             color: #737373;
             margin: 0 0 0.75rem;
           }
@@ -1155,11 +920,11 @@ export default function CellularEnergyReset() {
 
           .cer-bestfor-list li {
             font-size: 0.9375rem;
-            color: #404040;
+            color: #737373;
             padding: 0.5rem 0 0.5rem 1.5rem;
             position: relative;
             line-height: 1.5;
-            border-bottom: 1px solid #f0f0f0;
+            border-bottom: 1px solid #e0e0e0;
           }
 
           .cer-bestfor-list li:last-child {
@@ -1167,35 +932,30 @@ export default function CellularEnergyReset() {
           }
 
           .cer-bestfor-list li::before {
-            content: "→";
+            content: "\\2192";
             position: absolute;
             left: 0;
-            color: #737373;
+            color: #c4a882;
           }
 
-          .cer-cta-buttons {
-            margin-bottom: 1.5rem;
-          }
-
-          /* Maintenance Preview */
+          /* ── MAINTENANCE ── */
           .cer-maintenance-preview {
-            background: #f5f5f5;
-            border-radius: 12px;
+            border: 1px solid #e0e0e0;
             padding: 2rem;
-            max-width: 700px;
-            margin: 0 auto;
+            max-width: 800px;
           }
 
           .cer-maintenance-preview h3 {
             font-size: 1.125rem;
-            font-weight: 700;
-            color: #171717;
+            font-weight: 800;
+            color: #1a1a1a;
+            text-transform: uppercase;
             margin: 0 0 0.5rem;
           }
 
           .cer-maintenance-preview > p {
             font-size: 0.9375rem;
-            color: #525252;
+            color: #737373;
             margin: 0 0 1.5rem;
           }
 
@@ -1206,232 +966,214 @@ export default function CellularEnergyReset() {
           }
 
           .cer-maintenance-option {
-            background: #ffffff;
-            border: 1px solid #e5e5e5;
-            border-radius: 8px;
+            border: 1px solid #e0e0e0;
             padding: 1.25rem;
           }
 
           .cer-maintenance-option h4 {
             font-size: 1rem;
             font-weight: 700;
-            color: #171717;
+            color: #1a1a1a;
             margin: 0 0 0.375rem;
           }
 
           .cer-maintenance-option p {
             font-size: 0.875rem;
-            color: #525252;
+            color: #737373;
             margin: 0 0 0.75rem;
             line-height: 1.5;
           }
 
           .cer-maintenance-price {
             font-size: 1rem;
-            font-weight: 700;
-            color: #000000;
+            font-weight: 900;
+            color: #c4a882;
           }
 
-          /* Research Grid */
+          /* ── RESEARCH ── */
           .cer-research-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 1.5rem;
+            gap: 0;
+            border-top: 1px solid #e0e0e0;
           }
 
           .cer-research-card {
-            background: #ffffff;
-            border: 1px solid #e5e5e5;
-            border-radius: 12px;
-            padding: 1.75rem;
+            padding: 1.75rem 2rem;
+            border-bottom: 1px solid #e0e0e0;
+            border-right: 1px solid #e0e0e0;
+          }
+
+          .cer-research-card:nth-child(2n) {
+            border-right: none;
           }
 
           .cer-research-card h4 {
             font-size: 1rem;
             font-weight: 700;
-            color: #171717;
+            color: #1a1a1a;
             margin: 0 0 0.375rem;
           }
 
           .cer-research-journal {
             font-size: 0.8125rem;
-            color: #737373;
-            font-weight: 500;
+            color: #c4a882;
+            font-weight: 600;
             display: block;
             margin-bottom: 0.75rem;
           }
 
           .cer-research-card p {
             font-size: 0.9375rem;
-            color: #525252;
+            color: #737373;
             line-height: 1.6;
             margin: 0;
           }
 
-          /* FAQ */
+          /* ── TESTIMONIALS ── */
+          .cer-testimonials {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0;
+            border-top: 1px solid #e0e0e0;
+            margin-top: 2.5rem;
+          }
+
+          .cer-testimonial {
+            padding: 2.5rem 2rem;
+            border-bottom: 1px solid #e0e0e0;
+            border-right: 1px solid #e0e0e0;
+          }
+
+          .cer-testimonial:last-child {
+            border-right: none;
+          }
+
+          .cer-testimonial-stars {
+            font-size: 12px;
+            color: #1a1a1a;
+            letter-spacing: 0.15em;
+            margin-bottom: 1.25rem;
+          }
+
+          .cer-testimonial blockquote {
+            font-size: 0.9375rem;
+            line-height: 1.75;
+            color: #404040;
+            margin: 0 0 1.5rem;
+            font-style: normal;
+          }
+
+          .cer-testimonial cite {
+            font-size: 13px;
+            font-weight: 700;
+            color: #1a1a1a;
+            font-style: normal;
+            letter-spacing: 0.02em;
+          }
+
+          /* ── FAQ ── */
           .cer-faq-list {
-            max-width: 700px;
-            margin: 0 auto;
+            border-top: 1px solid #e0e0e0;
+            max-width: 800px;
           }
 
           .cer-faq-item {
-            border-bottom: 1px solid #e5e5e5;
+            border-bottom: 1px solid #e0e0e0;
           }
 
-          .cer-faq-item:last-child {
-            border-bottom: none;
-          }
-
-          .cer-faq-question {
-            width: 100%;
+          .cer-faq-q {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 1.25rem 0;
+            width: 100%;
+            padding: 1.5rem 0;
             background: none;
             border: none;
-            cursor: pointer;
-            text-align: left;
-            font-family: inherit;
-          }
-
-          .cer-faq-question span {
             font-size: 1rem;
-            font-weight: 600;
-            color: #171717;
-            padding-right: 1rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            cursor: pointer;
+            font-family: inherit;
+            text-align: left;
+            gap: 1rem;
           }
 
-          .cer-faq-question svg {
+          .cer-faq-toggle {
+            font-size: 1.25rem;
+            color: #a0a0a0;
             flex-shrink: 0;
-            color: #737373;
-            transition: transform 0.2s;
           }
 
-          .cer-faq-open .cer-faq-question svg {
-            transform: rotate(180deg);
+          .cer-faq-a {
+            padding: 0 0 1.5rem;
           }
 
-          .cer-faq-answer {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease, padding 0.3s ease;
-          }
-
-          .cer-faq-open .cer-faq-answer {
-            max-height: 300px;
-            padding-bottom: 1.25rem;
-          }
-
-          .cer-faq-answer p {
+          .cer-faq-a p {
             font-size: 0.9375rem;
-            color: #525252;
-            line-height: 1.7;
+            color: #737373;
+            line-height: 1.75;
             margin: 0;
           }
 
-          /* CTA Section */
-          .cer-cta-text {
-            font-size: 1.0625rem;
-            color: #a3a3a3;
-            max-width: 500px;
-            margin: 0 auto 2rem;
-            line-height: 1.7;
-          }
-
-          .cer-btn-white {
-            display: inline-block;
-            background: #ffffff;
-            color: #000000;
-            padding: 1rem 2rem;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
-            text-decoration: none;
-            transition: background 0.2s;
-          }
-
-          .cer-btn-white:hover {
-            background: #f5f5f5;
-          }
-
-          .cer-cta-location {
-            margin-top: 2rem;
-            font-size: 0.9375rem;
-            color: #a3a3a3;
-            line-height: 1.6;
-          }
-
-          .cer-cta-location a {
+          /* CTA Location */
+          .cta-location :global(a) {
             color: #ffffff;
             text-decoration: underline;
+            text-underline-offset: 2px;
           }
 
-          /* Responsive */
+          /* ── RESPONSIVE ── */
           @media (max-width: 900px) {
-            .cer-what-grid {
+            .cer-cards-grid {
               grid-template-columns: 1fr;
             }
 
-            .cer-benefits-grid {
-              grid-template-columns: repeat(2, 1fr);
-            }
-
-            .cer-symptom-grid {
-              grid-template-columns: repeat(2, 1fr);
-            }
-
-            .cer-testimonial-grid {
-              grid-template-columns: 1fr;
-            }
-
-            .cer-research-grid {
-              grid-template-columns: 1fr;
-            }
-
-            .cer-pricing-grid {
-              grid-template-columns: 1fr;
-            }
-
-            .cer-pricing-addon {
-              max-width: none;
-            }
-          }
-
-          @media (max-width: 640px) {
-            .cer-hero {
-              padding: 3rem 1.5rem;
-            }
-
-            .cer-hero h1 {
-              font-size: 2rem;
-            }
-
-            .cer-section h2,
-            .cer-section-alt h2,
-            .cer-section-inverted h2 {
-              font-size: 1.75rem;
-            }
-
-            .cer-benefits-grid {
-              grid-template-columns: 1fr;
-            }
-
-            .cer-symptom-grid {
-              grid-template-columns: 1fr;
+            .cer-card {
+              border-right: none;
             }
 
             .cer-included-grid {
               grid-template-columns: 1fr;
             }
 
-            .cer-timeline-item {
-              flex-direction: column;
-              text-align: center;
+            .cer-included-card {
+              border-right: none;
             }
 
-            .cer-timeline-marker {
-              margin: 0 auto;
+            .cer-testimonials {
+              grid-template-columns: 1fr;
+            }
+
+            .cer-testimonial {
+              border-right: none;
+            }
+
+            .cer-research-grid {
+              grid-template-columns: 1fr;
+            }
+
+            .cer-research-card {
+              border-right: none;
+            }
+
+            .cer-pricing-grid {
+              grid-template-columns: 1fr;
+            }
+          }
+
+          @media (max-width: 640px) {
+            .cer-hero {
+              padding: 4rem 1.5rem 5rem;
+            }
+
+            .cer-section {
+              padding: 4rem 1.5rem;
+            }
+
+            .cer-step {
+              flex-direction: column;
+              gap: 0.75rem;
             }
 
             .cer-maintenance-options {

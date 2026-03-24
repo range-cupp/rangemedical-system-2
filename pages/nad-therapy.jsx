@@ -51,19 +51,19 @@ export default function NADTherapy() {
   const faqs = [
     {
       question: "What does NAD+ actually do?",
-      answer: "NAD+ (nicotinamide adenine dinucleotide) is a coenzyme found in every cell of your body. It's essential for energy production, DNA repair, cellular signaling, and activating sirtuins — proteins that regulate aging. As we age, NAD+ levels decline significantly, which is linked to many age-related issues."
+      answer: "NAD+ (nicotinamide adenine dinucleotide) is a coenzyme found in every cell of your body. It's essential for energy production, DNA repair, cellular signaling, and activating sirtuins \u2014 proteins that regulate aging. As we age, NAD+ levels decline significantly, which is linked to many age-related issues."
     },
     {
       question: "Why can't I just take oral NAD+ supplements?",
-      answer: "Oral NAD+ has very poor bioavailability — most of it is broken down in the gut before reaching your bloodstream. IV and injection delivery bypass the digestive system entirely, delivering NAD+ directly to your bloodstream where it can reach your cells. This is why clinical protocols use IV or injection routes."
+      answer: "Oral NAD+ has very poor bioavailability \u2014 most of it is broken down in the gut before reaching your bloodstream. IV and injection delivery bypass the digestive system entirely, delivering NAD+ directly to your bloodstream where it can reach your cells. This is why clinical protocols use IV or injection routes."
     },
     {
-      question: "Which protocol is right for me — injections or IVs?",
+      question: "Which protocol is right for me \u2014 injections or IVs?",
       answer: "Both are effective. The injection protocol (3x/week for 12 weeks) offers convenience and gradual building of NAD+ levels. The IV protocol provides higher doses per session and a front-loaded approach. We'll recommend based on your goals, schedule, and how you respond to treatment."
     },
     {
       question: "What does an NAD+ IV feel like?",
-      answer: "NAD+ IVs are infused slowly over 2-4 hours. Some people experience flushing, chest tightness, or nausea if infused too quickly — this is why we go slow. Most patients describe feeling energized and mentally clear after their infusion. The sensation is temporary and manageable."
+      answer: "NAD+ IVs are infused slowly over 2-4 hours. Some people experience flushing, chest tightness, or nausea if infused too quickly \u2014 this is why we go slow. Most patients describe feeling energized and mentally clear after their infusion. The sensation is temporary and manageable."
     },
     {
       question: "How long do the effects last?",
@@ -71,7 +71,7 @@ export default function NADTherapy() {
     },
     {
       question: "Is NAD+ therapy safe?",
-      answer: "Yes, when administered by trained medical professionals. NAD+ is a naturally occurring molecule in your body — we're simply replenishing what declines with age. Side effects are typically mild and transient. We monitor you throughout IV infusions and adjust the rate as needed."
+      answer: "Yes, when administered by trained medical professionals. NAD+ is a naturally occurring molecule in your body \u2014 we're simply replenishing what declines with age. Side effects are typically mild and transient. We monitor you throughout IV infusions and adjust the rate as needed."
     }
   ];
 
@@ -84,7 +84,7 @@ export default function NADTherapy() {
       details: [
         "Self-administered subcutaneous injections",
         "Gradual, sustained elevation of NAD+ levels",
-        "Flexible scheduling — do it on your time",
+        "Flexible scheduling \u2014 do it on your time",
         "Lower cost per dose than IV"
       ],
       best: "Best for: Maintenance, busy schedules, needle-comfortable patients"
@@ -105,9 +105,9 @@ export default function NADTherapy() {
   ];
 
   const benefits = [
-    { number: "01", title: "Cellular Energy Production", desc: "NAD+ is essential for converting food into ATP — the energy currency of your cells. Higher NAD+ levels mean more efficient energy production at the cellular level." },
+    { number: "01", title: "Cellular Energy Production", desc: "NAD+ is essential for converting food into ATP \u2014 the energy currency of your cells. Higher NAD+ levels mean more efficient energy production at the cellular level." },
     { number: "02", title: "DNA Repair & Protection", desc: "NAD+ activates PARP enzymes that repair damaged DNA. This is critical for preventing cellular dysfunction and maintaining healthy cell replication." },
-    { number: "03", title: "Sirtuin Activation", desc: "NAD+ is required to activate sirtuins — proteins that regulate aging, inflammation, and metabolism. Sirtuins can't function without adequate NAD+." },
+    { number: "03", title: "Sirtuin Activation", desc: "NAD+ is required to activate sirtuins \u2014 proteins that regulate aging, inflammation, and metabolism. Sirtuins can't function without adequate NAD+." },
     { number: "04", title: "Cognitive Function", desc: "The brain is one of the most energy-demanding organs. NAD+ supports neuronal health, mitochondrial function, and may help with mental clarity and focus." },
     { number: "05", title: "Metabolic Health", desc: "NAD+ plays a key role in metabolic pathways. Adequate levels support healthy glucose metabolism, lipid balance, and overall metabolic function." },
     { number: "06", title: "Healthy Aging", desc: "NAD+ decline is considered a hallmark of aging. Restoring NAD+ levels may help slow certain aspects of cellular aging and support longevity." }
@@ -124,7 +124,7 @@ export default function NADTherapy() {
     "Longevity Focus"
   ];
 
-  
+
   return (
     <Layout
       title="NAD+ Therapy | IV & Injection Protocols | Newport Beach | Range Medical"
@@ -240,22 +240,23 @@ export default function NADTherapy() {
       <div className="trust-bar">
         <div className="trust-inner">
           <span className="trust-item">
-            <span className="trust-rating">★★★★★</span> 5.0 on Google
+            <span className="trust-rating">&#9733;&#9733;&#9733;&#9733;&#9733;</span> 5.0 on Google
           </span>
-          <span className="trust-item">📍 Newport Beach, CA</span>
-          <span className="trust-item">✓ Licensed Providers</span>
+          <span className="trust-item">Newport Beach, CA</span>
+          <span className="trust-item">Licensed Providers</span>
         </div>
       </div>
 
       <div className="nad-page">
         {/* Hero */}
         <section className="nad-hero">
-          <div className="nad-kicker">Cellular Energy · Longevity · Cognition</div>
-          <h1>Your Guide to NAD+ Therapy</h1>
-          <p className="nad-body-text">Everything you need to know about NAD+ — what it is, how it works, and which protocol is right for your goals.</p>
+          <div className="v2-label"><span className="v2-dot" /> Cellular Energy &middot; Longevity &middot; Cognition</div>
+          <h1>Your Guide to<br />NAD+ Therapy</h1>
+          <div className="nad-hero-rule" />
+          <p className="nad-body-text">Everything you need to know about NAD+ &mdash; what it is, how it works, and which protocol is right for your goals.</p>
           <div className="nad-hero-scroll">
             Scroll to explore
-            <span>↓</span>
+            <span>&darr;</span>
           </div>
         </section>
 
@@ -263,11 +264,11 @@ export default function NADTherapy() {
         <section className="nad-section nad-section-alt">
           <div className="nad-container">
             <div className="nad-animate">
-              <div className="nad-kicker">What Is NAD+</div>
-              <h2>The molecule behind cellular energy.</h2>
+              <div className="v2-label"><span className="v2-dot" /> What Is NAD+</div>
+              <h2>The Molecule Behind<br />Cellular Energy.</h2>
               <div className="nad-divider"></div>
               <p className="nad-body-text">
-                NAD+ (nicotinamide adenine dinucleotide) is a coenzyme present in every cell of your body. It's essential for converting food into energy, repairing DNA, and activating sirtuins — the proteins that regulate aging and inflammation.
+                NAD+ (nicotinamide adenine dinucleotide) is a coenzyme present in every cell of your body. It's essential for converting food into energy, repairing DNA, and activating sirtuins &mdash; the proteins that regulate aging and inflammation.
               </p>
               <p className="nad-body-text" style={{ marginTop: '1rem' }}>
                 The problem: NAD+ levels decline significantly as we age. By age 50, most people have half the NAD+ they had at 20. This decline is linked to fatigue, cognitive changes, slower recovery, and accelerated aging. At Range Medical in Newport Beach, we offer clinical protocols to restore your NAD+ levels through IV infusions and injections.
@@ -295,11 +296,11 @@ export default function NADTherapy() {
         <section className="nad-section">
           <div className="nad-container">
             <div className="nad-animate">
-              <div className="nad-kicker">The Science</div>
-              <h2>How NAD+ actually enters your cells.</h2>
+              <div className="v2-label"><span className="v2-dot" /> The Science</div>
+              <h2>How NAD+ Actually<br />Enters Your Cells.</h2>
               <div className="nad-divider"></div>
               <p className="nad-body-text">
-                For years, scientists believed NAD+ couldn't cross cell membranes. We now know it enters cells through two distinct mechanisms — which is why IV and injection delivery works.
+                For years, scientists believed NAD+ couldn't cross cell membranes. We now know it enters cells through two distinct mechanisms &mdash; which is why IV and injection delivery works.
               </p>
             </div>
 
@@ -315,13 +316,13 @@ export default function NADTherapy() {
                 <div className="nad-mechanism-number">02</div>
                 <h3>CD73 Conversion Pathway</h3>
                 <p>
-                  The second pathway involves enzymes on cell surfaces (CD38 and CD73) that break down extracellular NAD+ into smaller precursors — nicotinamide riboside (NR) and nicotinamide mononucleotide (NMN). These precursors easily cross cell membranes and are reassembled into NAD+ inside the cell.
+                  The second pathway involves enzymes on cell surfaces (CD38 and CD73) that break down extracellular NAD+ into smaller precursors &mdash; nicotinamide riboside (NR) and nicotinamide mononucleotide (NMN). These precursors easily cross cell membranes and are reassembled into NAD+ inside the cell.
                 </p>
               </div>
             </div>
 
             <p className="nad-science-note nad-animate">
-              Both pathways work simultaneously, which is why IV and injection NAD+ therapy effectively raises intracellular NAD+ levels — something oral supplements struggle to achieve.
+              Both pathways work simultaneously, which is why IV and injection NAD+ therapy effectively raises intracellular NAD+ levels &mdash; something oral supplements struggle to achieve.
             </p>
           </div>
         </section>
@@ -330,8 +331,8 @@ export default function NADTherapy() {
         <section className="nad-section nad-section-inverted">
           <div className="nad-container">
             <div className="nad-animate">
-              <div className="nad-kicker">Who It's For</div>
-              <h2>Signs your NAD+ levels may be depleted.</h2>
+              <div className="v2-label"><span className="v2-dot" /> Who It&apos;s For</div>
+              <h2>Signs Your NAD+ Levels<br />May Be Depleted.</h2>
               <div className="nad-divider"></div>
               <p className="nad-body-text">
                 NAD+ depletion shows up in many ways. If any of these sound familiar, NAD+ therapy at our Orange County clinic may help.
@@ -350,11 +351,11 @@ export default function NADTherapy() {
         <section className="nad-section">
           <div className="nad-container">
             <div className="nad-animate">
-              <div className="nad-kicker">Our Protocols</div>
-              <h2>Two proven approaches to restore NAD+.</h2>
+              <div className="v2-label"><span className="v2-dot" /> Our Protocols</div>
+              <h2>Two Proven Approaches<br />to Restore NAD+.</h2>
               <div className="nad-divider"></div>
               <p className="nad-body-text">
-                We offer two clinical protocols for NAD+ restoration. Both are effective — the right choice depends on your goals and lifestyle.
+                We offer two clinical protocols for NAD+ restoration. Both are effective &mdash; the right choice depends on your goals and lifestyle.
               </p>
             </div>
 
@@ -385,11 +386,11 @@ export default function NADTherapy() {
         <section className="nad-section nad-section-alt">
           <div className="nad-container">
             <div className="nad-animate">
-              <div className="nad-kicker">Why NAD+ Matters</div>
-              <h2>What NAD+ does for your body.</h2>
+              <div className="v2-label"><span className="v2-dot" /> Why NAD+ Matters</div>
+              <h2>What NAD+ Does<br />for Your Body.</h2>
               <div className="nad-divider"></div>
               <p className="nad-body-text">
-                NAD+ isn't just another supplement — it's foundational to how your cells function.
+                NAD+ isn't just another supplement &mdash; it's foundational to how your cells function.
               </p>
             </div>
 
@@ -409,11 +410,11 @@ export default function NADTherapy() {
         <section className="nad-section" id="nad-research">
           <div className="nad-container">
             <div className="nad-animate">
-              <div className="nad-kicker">Backed by Science</div>
-              <h2>Evidence-Based Results</h2>
+              <div className="v2-label"><span className="v2-dot" /> Backed by Science</div>
+              <h2>Evidence-Based<br />Results</h2>
               <div className="nad-divider"></div>
               <p className="nad-body-text">
-                We've summarized the peer-reviewed research. Click any study to get the full breakdown — free.
+                We've summarized the peer-reviewed research. Click any study to get the full breakdown &mdash; free.
               </p>
             </div>
 
@@ -442,17 +443,15 @@ export default function NADTherapy() {
         {/* FAQ */}
         <section className="nad-section-alt">
           <div className="nad-container">
-            <span className="nad-section-label">Questions</span>
-            <h2>Common Questions</h2>
+            <div className="v2-label"><span className="v2-dot" /> Questions</div>
+            <h2>Common<br />Questions</h2>
 
             <div className="nad-faq-list">
               {faqs.map((faq, index) => (
                 <div key={index} className={`nad-faq-item ${openFaq === index ? 'nad-faq-open' : ''}`}>
                   <button className="nad-faq-question" onClick={() => toggleFaq(index)}>
                     <span>{faq.question}</span>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d={openFaq === index ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} />
-                    </svg>
+                    <span className="nad-faq-toggle">{openFaq === index ? '\u2212' : '+'}</span>
                   </button>
                   <div className="nad-faq-answer">
                     <p>{faq.answer}</p>
@@ -467,13 +466,13 @@ export default function NADTherapy() {
         <section className="nad-section nad-section-inverted nad-cta-section">
           <div className="nad-container">
             <div className="nad-animate">
-              <div className="nad-kicker" style={{ marginBottom: '1.5rem' }}>Next Steps</div>
-              <h2 className="nad-cta-title">Ready to restore your NAD+ levels?</h2>
+              <div className="v2-label" style={{ marginBottom: '1.5rem', justifyContent: 'center' }}><span className="v2-dot" /> Next Steps</div>
+              <h2 className="nad-cta-title">Ready to Restore<br />Your NAD+ Levels?</h2>
               <p className="nad-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
                 Get started with Range Medical. We'll discuss your goals and determine which NAD+ protocol is right for you. Our Newport Beach team is here to help.
               </p>
               <div className="nad-cta-buttons">
-                <Link href="/start" className="nad-btn-primary">Start Now</Link>
+                <Link href="/start" className="btn-white">Start Now</Link>
                 <div className="nad-cta-or">or</div>
                 <a href="tel:9499973988" className="nad-cta-phone">(949) 997-3988</a>
               </div>
@@ -490,12 +489,12 @@ export default function NADTherapy() {
       </div>
 
       <style jsx>{`
-        /* ===== NAD PAGE SCOPED STYLES ===== */
+        /* ===== NAD PAGE SCOPED STYLES — V2 ===== */
         .nad-page {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
           -webkit-font-smoothing: antialiased;
           background: #ffffff;
-          color: #171717;
+          color: #1a1a1a;
           overflow-x: hidden;
         }
 
@@ -515,73 +514,28 @@ export default function NADTherapy() {
         .nad-container {
           max-width: 1200px;
           margin: 0 auto;
-          padding: 0 1.5rem;
+          padding: 0 2rem;
         }
 
         /* Sections */
         .nad-section {
-          padding: 4rem 1.5rem;
+          padding: 6rem 2rem;
         }
 
         .nad-section-alt {
           background: #fafafa;
-          padding: 5rem 1.5rem;
-        }
-
-        .nad-section-label {
-          display: inline-block;
-          font-size: 0.75rem;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 0.75rem;
+          padding: 6rem 2rem;
         }
 
         .nad-section-inverted {
-          background: #000000;
+          background: #1a1a1a;
           color: #ffffff;
         }
 
-        /* Kicker */
-        .nad-kicker {
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 1rem;
+        .nad-section-inverted h2 {
+          color: #ffffff;
         }
 
-        .nad-section-inverted .nad-kicker {
-          color: rgba(255, 255, 255, 0.4);
-        }
-
-        /* Headlines */
-        .nad-page h1 {
-          font-size: 2.75rem;
-          font-weight: 700;
-          line-height: 1.15;
-          letter-spacing: -0.02em;
-          color: #171717;
-        }
-
-        .nad-page h2 {
-          font-size: 2rem;
-          font-weight: 700;
-          letter-spacing: -0.02em;
-          color: #171717;
-          margin-bottom: 1rem;
-        }
-
-        .nad-page h3 {
-          font-size: 1.125rem;
-          font-weight: 700;
-          color: #171717;
-        }
-
-        .nad-section-inverted h1,
-        .nad-section-inverted h2,
         .nad-section-inverted h3 {
           color: #ffffff;
         }
@@ -590,8 +544,8 @@ export default function NADTherapy() {
         .nad-body-text {
           font-size: 1.0625rem;
           font-weight: 400;
-          line-height: 1.7;
-          color: #525252;
+          line-height: 1.75;
+          color: #737373;
           max-width: 600px;
         }
 
@@ -602,8 +556,8 @@ export default function NADTherapy() {
         /* Divider */
         .nad-divider {
           width: 48px;
-          height: 2px;
-          background: #e5e5e5;
+          height: 1px;
+          background: #e0e0e0;
           margin: 1.25rem 0;
         }
 
@@ -611,53 +565,37 @@ export default function NADTherapy() {
           background: rgba(255, 255, 255, 0.12);
         }
 
-        /* Buttons */
-        .nad-btn-primary {
-          display: inline-block;
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          font-size: 0.875rem;
-          font-weight: 600;
-          padding: 0.875rem 2rem;
-          background: #ffffff;
-          color: #000000;
-          border: none;
-          border-radius: 8px;
-          cursor: pointer;
-          text-decoration: none;
-          transition: background 0.2s ease, transform 0.2s ease;
-        }
-
-        .nad-btn-primary:hover {
-          background: #e5e5e5;
-          transform: translateY(-1px);
-        }
-
         /* Hero */
         .nad-hero {
-          padding: 4rem 1.5rem 5rem;
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
+          padding: 6rem 2rem 7rem;
+          max-width: 1200px;
+          margin: 0 auto;
         }
 
         .nad-hero h1 {
-          max-width: 680px;
-          margin-bottom: 1.5rem;
+          max-width: 800px;
+          margin-bottom: 2rem;
+        }
+
+        .nad-hero-rule {
+          width: 100%;
+          max-width: 700px;
+          height: 1px;
+          background: #e0e0e0;
+          margin: 2rem 0;
         }
 
         .nad-hero .nad-body-text {
-          text-align: center;
-          margin: 0 auto 2.5rem;
+          max-width: 520px;
         }
 
         .nad-hero-scroll {
-          font-size: 0.75rem;
+          font-size: 11px;
           font-weight: 700;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.14em;
           text-transform: uppercase;
           color: #737373;
-          margin-top: 2rem;
+          margin-top: 3rem;
         }
 
         .nad-hero-scroll span {
@@ -686,11 +624,11 @@ export default function NADTherapy() {
 
         .nad-stat-number {
           font-size: 2.75rem;
-          font-weight: 800;
+          font-weight: 900;
           letter-spacing: -0.02em;
           line-height: 1;
           margin-bottom: 0.5rem;
-          color: #171717;
+          color: #c4a882;
         }
 
         .nad-stat-label {
@@ -704,54 +642,58 @@ export default function NADTherapy() {
         .nad-mechanism-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 1.5rem;
+          gap: 0;
           margin-top: 2.5rem;
+          border-top: 1px solid #e0e0e0;
         }
 
         .nad-mechanism-card {
           padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
+          border-right: 1px solid #e0e0e0;
           background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          transition: background 0.2s ease;
+        }
+
+        .nad-mechanism-card:nth-child(2n) {
+          border-right: none;
         }
 
         .nad-mechanism-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          background: #fafafa;
         }
 
         .nad-mechanism-number {
-          font-size: 0.75rem;
+          font-size: 0.8125rem;
           font-weight: 700;
           letter-spacing: 0.1em;
-          color: #0891b2;
+          color: #c4a882;
           margin-bottom: 1rem;
         }
 
         .nad-mechanism-card h3 {
           font-size: 1.125rem;
-          font-weight: 700;
-          color: #171717;
+          font-weight: 800;
+          color: #1a1a1a;
           margin-bottom: 0.75rem;
         }
 
         .nad-mechanism-card p {
           font-size: 0.875rem;
-          line-height: 1.7;
-          color: #525252;
+          line-height: 1.75;
+          color: #737373;
         }
 
         .nad-science-note {
           font-size: 0.9375rem;
-          color: #525252;
+          color: #737373;
           text-align: center;
           max-width: 700px;
           margin: 2.5rem auto 0;
-          line-height: 1.7;
+          line-height: 1.75;
           padding: 1.5rem;
           background: #fafafa;
-          border-radius: 8px;
+          border: 1px solid #e0e0e0;
         }
 
         /* Tags */
@@ -766,7 +708,6 @@ export default function NADTherapy() {
           font-size: 0.8125rem;
           font-weight: 600;
           padding: 0.75rem 1.5rem;
-          border-radius: 100px;
           border: 1px solid rgba(255, 255, 255, 0.08);
           background: rgba(255, 255, 255, 0.04);
           color: rgba(255, 255, 255, 0.6);
@@ -781,21 +722,25 @@ export default function NADTherapy() {
         .nad-protocols-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 1.5rem;
+          gap: 0;
           margin-top: 2.5rem;
+          border-top: 1px solid #e0e0e0;
         }
 
         .nad-protocol-card {
           padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
+          border-right: 1px solid #e0e0e0;
           background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          transition: background 0.2s ease;
+        }
+
+        .nad-protocol-card:nth-child(2n) {
+          border-right: none;
         }
 
         .nad-protocol-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          background: #fafafa;
         }
 
         .nad-protocol-header {
@@ -804,25 +749,25 @@ export default function NADTherapy() {
 
         .nad-protocol-name {
           font-size: 1.25rem;
-          font-weight: 700;
-          color: #171717;
+          font-weight: 800;
+          color: #1a1a1a;
           margin-bottom: 0.5rem;
         }
 
         .nad-protocol-meta {
           display: flex;
           gap: 1rem;
-          font-size: 0.75rem;
-          font-weight: 600;
+          font-size: 11px;
+          font-weight: 700;
           text-transform: uppercase;
-          letter-spacing: 0.05em;
-          color: #0891b2;
+          letter-spacing: 0.1em;
+          color: #c4a882;
         }
 
         .nad-protocol-desc {
           font-size: 0.9375rem;
-          line-height: 1.7;
-          color: #525252;
+          line-height: 1.75;
+          color: #737373;
           margin-bottom: 1.25rem;
         }
 
@@ -834,9 +779,9 @@ export default function NADTherapy() {
 
         .nad-protocol-details li {
           font-size: 0.875rem;
-          color: #525252;
+          color: #737373;
           padding: 0.5rem 0;
-          padding-left: 1.25rem;
+          padding-left: 1.5rem;
           position: relative;
           border-bottom: 1px solid #f5f5f5;
         }
@@ -846,11 +791,11 @@ export default function NADTherapy() {
         }
 
         .nad-protocol-details li::before {
-          content: "✓";
+          content: "\u2013";
           position: absolute;
           left: 0;
-          color: #0891b2;
-          font-weight: 600;
+          color: #c4a882;
+          font-weight: 700;
         }
 
         .nad-protocol-best {
@@ -864,90 +809,97 @@ export default function NADTherapy() {
         .nad-benefits-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 1.25rem;
+          gap: 0;
           margin-top: 2.5rem;
+          border-top: 1px solid #e0e0e0;
         }
 
         .nad-benefit-card {
           padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
+          border-right: 1px solid #e0e0e0;
           background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          transition: background 0.2s ease;
+        }
+
+        .nad-benefit-card:nth-child(2n) {
+          border-right: none;
         }
 
         .nad-benefit-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          background: #fafafa;
         }
 
         .nad-benefit-number {
-          font-size: 0.75rem;
+          font-size: 0.8125rem;
           font-weight: 700;
           letter-spacing: 0.1em;
           text-transform: uppercase;
-          color: #737373;
+          color: #c4a882;
           margin-bottom: 1rem;
         }
 
         .nad-benefit-title {
           font-size: 1.125rem;
-          font-weight: 700;
-          color: #171717;
+          font-weight: 800;
+          color: #1a1a1a;
           margin-bottom: 0.75rem;
         }
 
         .nad-benefit-desc {
           font-size: 0.875rem;
-          line-height: 1.7;
-          color: #525252;
+          line-height: 1.75;
+          color: #737373;
         }
 
         /* Research Cards */
         .nad-research-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 1.25rem;
+          gap: 0;
           margin-top: 2.5rem;
+          border-top: 1px solid #e0e0e0;
         }
 
         .nad-research-card {
           padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
+          border-right: 1px solid #e0e0e0;
           background: #ffffff;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: background 0.2s ease;
+        }
+
+        .nad-research-card:nth-child(2n) {
+          border-right: none;
         }
 
         .nad-research-card:hover {
-          border-color: #171717;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          transform: translateY(-2px);
+          background: #fafafa;
         }
 
         .nad-research-category {
           display: inline-block;
-          font-size: 0.6875rem;
+          font-size: 11px;
           font-weight: 700;
-          letter-spacing: 0.08em;
+          letter-spacing: 0.1em;
           text-transform: uppercase;
-          color: #0891b2;
+          color: #c4a882;
           margin-bottom: 0.875rem;
         }
 
         .nad-research-headline {
           font-size: 1.0625rem;
-          font-weight: 700;
-          color: #171717;
+          font-weight: 800;
+          color: #1a1a1a;
           margin-bottom: 0.75rem;
           line-height: 1.4;
         }
 
         .nad-research-summary {
           font-size: 0.875rem;
-          line-height: 1.7;
-          color: #525252;
+          line-height: 1.75;
+          color: #737373;
           margin-bottom: 1rem;
         }
 
@@ -963,17 +915,17 @@ export default function NADTherapy() {
           text-align: center;
           max-width: 700px;
           margin: 3rem auto 0;
-          line-height: 1.7;
+          line-height: 1.75;
         }
 
         /* FAQ */
         .nad-faq-list {
           max-width: 700px;
-          margin: 0 auto;
+          margin: 2rem auto 0;
         }
 
         .nad-faq-item {
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
         }
 
         .nad-faq-item:last-child {
@@ -996,18 +948,17 @@ export default function NADTherapy() {
         .nad-faq-question span {
           font-size: 1rem;
           font-weight: 600;
-          color: #171717;
+          color: #1a1a1a;
           padding-right: 1rem;
         }
 
-        .nad-faq-question svg {
+        .nad-faq-toggle {
           flex-shrink: 0;
+          font-size: 1.25rem;
+          font-weight: 300;
           color: #737373;
-          transition: transform 0.2s;
-        }
-
-        .nad-faq-open .nad-faq-question svg {
-          transform: rotate(180deg);
+          width: 24px;
+          text-align: center;
         }
 
         .nad-faq-answer {
@@ -1023,20 +974,18 @@ export default function NADTherapy() {
 
         .nad-faq-answer p {
           font-size: 0.9375rem;
-          color: #525252;
-          line-height: 1.7;
+          color: #737373;
+          line-height: 1.75;
           margin: 0;
         }
 
         /* CTA Section */
         .nad-cta-section {
-          padding: 6rem 1.5rem;
+          padding: 6rem 2rem;
           text-align: center;
         }
 
         .nad-cta-title {
-          font-size: 2.75rem;
-          letter-spacing: -0.02em;
           color: #ffffff;
           margin-bottom: 1.25rem;
         }
@@ -1050,9 +999,9 @@ export default function NADTherapy() {
         }
 
         .nad-cta-or {
-          font-size: 0.75rem;
+          font-size: 11px;
           font-weight: 700;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.14em;
           text-transform: uppercase;
           color: rgba(255, 255, 255, 0.25);
         }
@@ -1074,19 +1023,15 @@ export default function NADTherapy() {
         /* Responsive */
         @media (max-width: 768px) {
           .nad-section {
-            padding: 3rem 1.5rem;
+            padding: 4rem 1.5rem;
           }
 
-          .nad-page h1 {
-            font-size: 2rem;
-          }
-
-          .nad-page h2 {
-            font-size: 1.5rem;
+          .nad-section-alt {
+            padding: 4rem 1.5rem;
           }
 
           .nad-hero {
-            padding: 3rem 1.5rem;
+            padding: 4rem 1.5rem;
           }
 
           .nad-stat-row {
@@ -1098,20 +1043,32 @@ export default function NADTherapy() {
             grid-template-columns: 1fr;
           }
 
+          .nad-mechanism-card {
+            border-right: none;
+          }
+
           .nad-protocols-grid {
             grid-template-columns: 1fr;
+          }
+
+          .nad-protocol-card {
+            border-right: none;
           }
 
           .nad-benefits-grid {
             grid-template-columns: 1fr;
           }
 
+          .nad-benefit-card {
+            border-right: none;
+          }
+
           .nad-research-grid {
             grid-template-columns: 1fr;
           }
 
-          .nad-cta-title {
-            font-size: 2rem;
+          .nad-research-card {
+            border-right: none;
           }
 
           .nad-cta-buttons {

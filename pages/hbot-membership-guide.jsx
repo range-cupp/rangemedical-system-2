@@ -36,10 +36,11 @@ export default function HBOTMembershipGuide() {
       </Head>
 
       {/* Hero */}
-      <section className="peptide-hero">
+      <section className="guide-hero">
         <div className="container">
-          <span className="hero-badge">Membership Guide</span>
-          <h1>Your Hyperbaric Recovery Membership Guide</h1>
+          <div className="v2-label"><span className="v2-dot" /> MEMBERSHIP GUIDE</div>
+          <h1>YOUR HYPERBARIC RECOVERY MEMBERSHIP GUIDE</h1>
+          <div className="hero-rule" />
           <p className="hero-sub">Everything you need to know about your HBOT membership — how it works, what to expect, and how to get the most out of every session.</p>
           <div className="hero-dose">
             <div><span>Sessions:</span> 4 per month</div>
@@ -51,8 +52,8 @@ export default function HBOTMembershipGuide() {
       {/* What Is HBOT */}
       <section className="section">
         <div className="container">
-          <div className="section-kicker">The Basics</div>
-          <h2 className="section-title">What Is Hyperbaric Oxygen Therapy?</h2>
+          <div className="v2-label"><span className="v2-dot" /> THE BASICS</div>
+          <h2 className="section-title">WHAT IS HYPERBARIC OXYGEN THERAPY?</h2>
           <p className="section-subtitle">Hyperbaric Oxygen Therapy (HBOT) delivers 100% oxygen at increased atmospheric pressure inside a pressurized chamber.</p>
           <p className="body-text">At 2.0 atmospheres of pressure, your lungs absorb significantly more oxygen than at normal air pressure. This oxygen-rich blood reaches tissues throughout your body — supporting recovery, reducing inflammation, and promoting cellular repair in ways that normal breathing simply can't achieve.</p>
         </div>
@@ -61,8 +62,8 @@ export default function HBOTMembershipGuide() {
       {/* Your Membership */}
       <section className="section section-gray">
         <div className="container">
-          <div className="section-kicker">Your Plan</div>
-          <h2 className="section-title">Your HBOT Membership</h2>
+          <div className="v2-label"><span className="v2-dot" /> YOUR PLAN</div>
+          <h2 className="section-title">YOUR HBOT MEMBERSHIP</h2>
           <p className="section-subtitle">Consistent sessions are key to getting the most out of hyperbaric therapy.</p>
 
           <div className="info-grid">
@@ -81,8 +82,8 @@ export default function HBOTMembershipGuide() {
       {/* What to Expect */}
       <section className="section">
         <div className="container">
-          <div className="section-kicker">Your Visit</div>
-          <h2 className="section-title">What to Expect</h2>
+          <div className="v2-label"><span className="v2-dot" /> YOUR VISIT</div>
+          <h2 className="section-title">WHAT TO EXPECT</h2>
           <p className="section-subtitle">Each session is straightforward and relaxing. Here's the flow.</p>
 
           <div className="steps-list">
@@ -121,8 +122,8 @@ export default function HBOTMembershipGuide() {
       {/* Tips */}
       <section className="section section-gray">
         <div className="container">
-          <div className="section-kicker">Tips</div>
-          <h2 className="section-title">Getting the Most Out of HBOT</h2>
+          <div className="v2-label"><span className="v2-dot" /> TIPS</div>
+          <h2 className="section-title">GETTING THE MOST OUT OF HBOT</h2>
 
           <div className="tip-box">
             <strong>Stay Hydrated</strong>
@@ -146,8 +147,8 @@ export default function HBOTMembershipGuide() {
       {/* Safety */}
       <section className="section">
         <div className="container">
-          <div className="section-kicker">Safety</div>
-          <h2 className="section-title">Important Safety Information</h2>
+          <div className="v2-label"><span className="v2-dot" /> SAFETY</div>
+          <h2 className="section-title">IMPORTANT SAFETY INFORMATION</h2>
 
           <div className="safety-grid">
             <div className="safety-card warning">
@@ -176,163 +177,126 @@ export default function HBOTMembershipGuide() {
       {/* Final CTA */}
       <section className="final-cta">
         <div className="container">
-          <h2>Questions? We're Here.</h2>
+          <h2>QUESTIONS? WE'RE HERE.</h2>
           <p>Whether you need to schedule a session or have questions about your membership, our team can help.</p>
           <div className="cta-buttons">
-            <a href="tel:+19499973988" className="btn-white">Call (949) 997-3988</a>
-            <a href="sms:+19499973988" className="btn-outline-white">Text Us</a>
+            <a href="tel:+19499973988" className="btn-white">CALL (949) 997-3988</a>
+            <a href="sms:+19499973988" className="btn-outline-white">TEXT US</a>
           </div>
           <p className="cta-location">1901 Westcliff Dr. Suite 10, Newport Beach, CA 92660</p>
         </div>
       </section>
 
       <style jsx>{`
-        /* Hero */
-        .peptide-hero {
-          background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
-          padding: 3.5rem 1.5rem 3rem;
-          text-align: center;
+        .guide-hero {
+          background: #ffffff;
+          padding: 6rem 2rem 4rem;
+          text-align: left;
         }
-
-        .peptide-hero h1 {
-          font-size: 2.25rem;
-          font-weight: 700;
-          line-height: 1.2;
+        .guide-hero h1 {
+          font-size: 2.75rem;
+          font-weight: 900;
+          line-height: 0.95;
           letter-spacing: -0.02em;
-          margin-bottom: 1rem;
+          margin-bottom: 1.25rem;
+          text-transform: uppercase;
         }
-
-        .hero-badge {
-          display: inline-block;
-          background: #000000;
-          color: #ffffff;
-          padding: 0.5rem 1rem;
-          border-radius: 100px;
-          font-size: 0.8125rem;
-          font-weight: 600;
+        .hero-rule {
+          width: 60px;
+          height: 1px;
+          background: #e0e0e0;
           margin-bottom: 1.25rem;
         }
-
         .hero-sub {
           font-size: 1.0625rem;
-          color: #525252;
+          color: #737373;
           max-width: 600px;
-          margin: 0 auto;
           line-height: 1.7;
         }
-
         .hero-dose {
           display: inline-flex;
           gap: 1.5rem;
           margin-top: 1.5rem;
           padding: 1rem 1.5rem;
           background: #ffffff;
-          border: 1px solid #e5e5e5;
-          border-radius: 8px;
+          border: 1px solid #e0e0e0;
           font-size: 0.9rem;
-          color: #525252;
+          color: #737373;
         }
-
         .hero-dose span {
           font-weight: 600;
           color: #171717;
         }
-
-        /* Sections */
         .section {
-          padding: 3.5rem 1.5rem;
+          padding: 6rem 2rem;
         }
-
         .section-gray {
           background: #fafafa;
         }
-
-        .section-kicker {
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 0.5rem;
-        }
-
         .section-title {
           font-size: 1.75rem;
-          font-weight: 700;
+          font-weight: 900;
           letter-spacing: -0.02em;
+          line-height: 0.95;
           margin-bottom: 0.75rem;
+          text-transform: uppercase;
         }
-
         .section-subtitle {
           font-size: 1rem;
-          color: #525252;
+          color: #737373;
           max-width: 600px;
           line-height: 1.7;
           margin-bottom: 2rem;
         }
-
         .body-text {
           font-size: 0.95rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.7;
         }
-
         .container {
           max-width: 800px;
           margin: 0 auto;
         }
-
-        /* Info Grid */
         .info-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 1.5rem;
           margin-top: 1.5rem;
         }
-
         .info-card {
           background: #ffffff;
-          border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border: 1px solid #e0e0e0;
           padding: 1.75rem;
         }
-
         .info-card h3 {
           font-size: 1.125rem;
           font-weight: 700;
           margin-bottom: 0.75rem;
         }
-
         .info-card p {
           font-size: 0.9rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.7;
         }
-
-        /* Steps */
         .steps-list {
           margin-top: 1.5rem;
         }
-
         .step-item {
           display: flex;
           align-items: flex-start;
           gap: 1rem;
           padding: 1.25rem 0;
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
         }
-
         .step-item:last-child {
           border-bottom: none;
         }
-
         .step-number {
           width: 2rem;
           min-width: 2rem;
           height: 2rem;
-          background: #000000;
+          background: #c4a882;
           color: #ffffff;
-          border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -340,124 +304,103 @@ export default function HBOTMembershipGuide() {
           font-size: 0.875rem;
           flex-shrink: 0;
         }
-
         .step-content {
           flex: 1;
         }
-
         .step-content h4 {
           font-size: 1rem;
           font-weight: 700;
           margin-bottom: 0.25rem;
         }
-
         .step-content p {
           font-size: 0.9rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.6;
         }
-
-        /* Tip Box */
         .tip-box {
           background: #ffffff;
-          border-left: 4px solid #000000;
+          border-left: 4px solid #c4a882;
           padding: 1.25rem 1.5rem;
           margin-bottom: 1rem;
-          border-radius: 0 8px 8px 0;
         }
-
         .tip-box strong {
           display: block;
           margin-bottom: 0.25rem;
         }
-
         .tip-box p {
           font-size: 0.9rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.6;
           margin: 0;
         }
-
-        /* Safety */
         .safety-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 1.5rem;
         }
-
         .safety-card {
           background: #ffffff;
-          border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border: 1px solid #e0e0e0;
           padding: 1.5rem;
         }
-
         .safety-card h4 {
           font-size: 1rem;
           font-weight: 700;
           margin-bottom: 0.75rem;
           color: #171717;
         }
-
         .safety-card ul {
           list-style: none;
           padding: 0;
           margin: 0;
         }
-
         .safety-card li {
           font-size: 0.875rem;
-          color: #525252;
+          color: #737373;
           padding: 0.375rem 0;
           padding-left: 1.25rem;
           position: relative;
           line-height: 1.5;
         }
-
         .safety-card.warning li::before {
-          content: "✕";
+          content: "\\2715";
           position: absolute;
           left: 0;
           color: #171717;
           font-weight: 600;
         }
-
         .safety-card.effects li::before {
-          content: "•";
+          content: "\\2022";
           position: absolute;
           left: 0;
-          color: #737373;
+          color: #c4a882;
           font-weight: 700;
         }
-
         .safety-note {
           font-size: 0.8125rem;
           color: #737373;
           margin-top: 0.75rem;
           padding-left: 0;
         }
-
-        /* Final CTA */
         .final-cta {
-          background: #000000;
+          background: #1a1a1a;
           color: #ffffff;
-          padding: 3.5rem 1.5rem;
+          padding: 6rem 2rem;
           text-align: center;
         }
-
         .final-cta h2 {
           font-size: 1.75rem;
-          font-weight: 700;
+          font-weight: 900;
           margin-bottom: 0.75rem;
           letter-spacing: -0.02em;
+          line-height: 0.95;
+          text-transform: uppercase;
         }
-
         .final-cta p {
           font-size: 1rem;
           color: rgba(255,255,255,0.8);
           margin-bottom: 1.5rem;
         }
-
         .cta-buttons {
           display: flex;
           justify-content: center;
@@ -465,67 +408,66 @@ export default function HBOTMembershipGuide() {
           flex-wrap: wrap;
           margin-bottom: 1.5rem;
         }
-
         .btn-white {
           display: inline-block;
           background: #ffffff;
-          color: #000000;
+          color: #1a1a1a;
           padding: 0.875rem 1.75rem;
-          border-radius: 8px;
           text-decoration: none;
-          font-weight: 600;
-          font-size: 0.9375rem;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
           transition: all 0.2s;
         }
-
         .btn-white:hover {
           background: #f5f5f5;
-          transform: translateY(-1px);
         }
-
         .btn-outline-white {
           display: inline-block;
           background: transparent;
           color: #ffffff;
           padding: 0.875rem 1.75rem;
-          border-radius: 8px;
           border: 2px solid #ffffff;
           text-decoration: none;
-          font-weight: 600;
-          font-size: 0.9375rem;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
           transition: all 0.2s;
         }
-
         .btn-outline-white:hover {
           background: #ffffff;
-          color: #000000;
+          color: #1a1a1a;
         }
-
         .cta-location {
           font-size: 0.9rem;
           color: rgba(255,255,255,0.7);
         }
-
-        /* Responsive */
         @media (max-width: 768px) {
-          .peptide-hero h1 {
-            font-size: 1.875rem;
+          .guide-hero h1 {
+            font-size: 2rem;
           }
-
+          .guide-hero {
+            padding: 4rem 1.5rem 3rem;
+          }
           .hero-dose {
             flex-direction: column;
             gap: 0.5rem;
           }
-
           .info-grid,
           .safety-grid {
             grid-template-columns: 1fr;
           }
-
           .section-title {
             font-size: 1.5rem;
           }
-
+          .section {
+            padding: 4rem 1.5rem;
+          }
+          .final-cta {
+            padding: 4rem 1.5rem;
+          }
           .cta-buttons {
             flex-direction: column;
             align-items: center;

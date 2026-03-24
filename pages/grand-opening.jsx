@@ -70,10 +70,10 @@ export default function GrandOpening() {
     >
       {/* Hero */}
       <section className="go-hero">
-        <div className="go-hero-label">Range Medical</div>
-        <h1 className="go-hero-title">Grand Opening</h1>
+        <div className="v2-label"><span className="v2-dot" /> Range Medical</div>
+        <h1 className="go-hero-title">GRAND OPENING</h1>
+        <div className="go-hero-rule" />
         <p className="go-hero-subtitle">January 22&ndash;24, 2026 &middot; Newport Beach, CA</p>
-        <div className="go-hero-divider" />
       </section>
 
       {/* Gallery */}
@@ -119,38 +119,37 @@ export default function GrandOpening() {
       )}
 
       <style jsx>{`
-        /* Hero */
+        /* Hero — V2: left-aligned, hairline rule */
         .go-hero {
           background: #0a0a0a;
-          text-align: center;
-          padding: 80px 24px 60px;
-        }
-        .go-hero-label {
-          font-size: 12px;
-          font-weight: 600;
-          letter-spacing: 0.15em;
-          text-transform: uppercase;
-          color: #737373;
-          margin-bottom: 16px;
+          padding: 6rem 2rem 5rem;
+          text-align: left;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          max-width: 1200px;
+          margin: 0 auto;
         }
         .go-hero-title {
-          font-size: 3.5rem;
-          font-weight: 700;
+          font-size: 2.75rem;
+          font-weight: 900;
           color: #fff;
           letter-spacing: -0.02em;
-          line-height: 1.1;
-          margin-bottom: 16px;
+          line-height: 0.95;
+          text-transform: uppercase;
+          margin-bottom: 1.5rem;
+        }
+        .go-hero-rule {
+          width: 48px;
+          height: 1px;
+          background: rgba(255, 255, 255, 0.12);
+          margin-bottom: 1.5rem;
         }
         .go-hero-subtitle {
-          font-size: 1.125rem;
-          color: #a3a3a3;
+          font-size: 1.0625rem;
+          color: rgba(255, 255, 255, 0.55);
           font-weight: 400;
-        }
-        .go-hero-divider {
-          width: 48px;
-          height: 2px;
-          background: #333;
-          margin: 32px auto 0;
+          line-height: 1.7;
         }
 
         /* Gallery */
@@ -167,7 +166,6 @@ export default function GrandOpening() {
         .go-masonry-item {
           break-inside: avoid;
           margin-bottom: 8px;
-          border-radius: 6px;
           overflow: hidden;
           cursor: pointer;
           position: relative;
@@ -207,7 +205,6 @@ export default function GrandOpening() {
           max-width: 90vw;
           max-height: 88vh;
           object-fit: contain;
-          border-radius: 4px;
           opacity: 0;
           transition: opacity 0.2s ease;
         }
@@ -237,7 +234,6 @@ export default function GrandOpening() {
           justify-content: center;
           color: #fff;
           font-size: 28px;
-          border-radius: 50%;
           background: rgba(255, 255, 255, 0.08);
           border: none;
           cursor: pointer;
@@ -258,7 +254,6 @@ export default function GrandOpening() {
           justify-content: center;
           color: #fff;
           font-size: 24px;
-          border-radius: 50%;
           background: rgba(255, 255, 255, 0.08);
           border: none;
           cursor: pointer;
@@ -285,8 +280,8 @@ export default function GrandOpening() {
           .go-masonry { columns: 3; }
         }
         @media (max-width: 768px) {
-          .go-hero { padding: 56px 24px 40px; }
-          .go-hero-title { font-size: 2.25rem; }
+          .go-hero { padding: 4rem 1.5rem 3rem; }
+          .go-hero-title { font-size: 2rem; }
           .go-hero-subtitle { font-size: 1rem; }
           .go-lb-nav { width: 40px; height: 40px; font-size: 20px; }
           .go-lb-prev { left: 8px; }
@@ -295,12 +290,12 @@ export default function GrandOpening() {
         }
         @media (max-width: 720px) {
           .go-masonry { columns: 2; column-gap: 6px; }
-          .go-masonry-item { margin-bottom: 6px; border-radius: 4px; }
+          .go-masonry-item { margin-bottom: 6px; }
           .go-gallery { padding: 0 8px 48px; }
         }
         @media (max-width: 420px) {
           .go-masonry { columns: 2; column-gap: 4px; }
-          .go-masonry-item { margin-bottom: 4px; border-radius: 3px; }
+          .go-masonry-item { margin-bottom: 4px; }
           .go-gallery { padding: 0 4px 40px; }
         }
       `}</style>

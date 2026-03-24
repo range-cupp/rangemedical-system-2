@@ -35,395 +35,406 @@ export default function GlowGuide() {
         />
       </Head>
 
-      {/* Hero */}
-      <section className="peptide-hero">
-        <div className="container">
-          <span className="hero-badge">Your Peptide Protocol Guide</span>
-          <h1>GLOW Peptide Blend</h1>
-          <p className="hero-sub">Everything you need to know about your skin peptide therapy — how it works, how to inject, and what to expect as your skin rejuvenates.</p>
-          <div className="hero-dose">
-            <div><span>GHK-Cu:</span> 1.67 mg</div>
-            <div><span>BPC-157:</span> 333 mcg</div>
-            <div><span>TB500:</span> 333 mcg</div>
-          </div>
-        </div>
-      </section>
-
-      {/* What Are Peptides */}
-      <section className="section">
-        <div className="container">
-          <div className="section-kicker">The Basics</div>
-          <h2 className="section-title">What Are Peptides?</h2>
-          <p className="section-subtitle">Peptides are short chains of amino acids — the building blocks of proteins. They act as natural signals in your body, telling your cells what to do and when to do it.</p>
-          <p className="body-text">Unlike many medicines that force change, peptides support your body's own healing and recovery processes. Think of them as a boost to what your body already knows how to do.</p>
-        </div>
-      </section>
-
-      {/* The Blend */}
-      <section className="section section-gray">
-        <div className="container">
-          <div className="section-kicker">Your Blend</div>
-          <h2 className="section-title">GHK-Cu + BPC-157 + TB500</h2>
-          <p className="section-subtitle">Three peptides that work together to support skin repair, rejuvenation, and a healthy glow.</p>
-
-          <div className="info-grid-three">
-            <div className="info-card">
-              <h3>✨ GHK-Cu</h3>
-              <p>A copper peptide naturally found in your body that declines with age — known for its powerful skin remodeling properties.</p>
-              <ul>
-                <li>Stimulates collagen and elastin production</li>
-                <li>Promotes skin firmness and elasticity</li>
-                <li>Supports wound healing and skin renewal</li>
-              </ul>
-            </div>
-            <div className="info-card">
-              <h3>🧬 BPC-157</h3>
-              <p>Body Protection Compound — supports tissue repair from the inside out, helping your skin heal faster.</p>
-              <ul>
-                <li>Accelerates skin tissue repair</li>
-                <li>Improves blood flow to the skin</li>
-                <li>Reduces inflammation and scarring</li>
-              </ul>
-            </div>
-            <div className="info-card">
-              <h3>⚡ TB500</h3>
-              <p>A regenerative peptide that promotes cell migration and new blood vessel growth for healthier skin.</p>
-              <ul>
-                <li>Promotes new blood vessel formation</li>
-                <li>Supports cell migration and skin repair</li>
-                <li>Reduces inflammation</li>
-              </ul>
+      <div className="gl-page">
+        {/* Hero */}
+        <section className="gl-hero">
+          <div className="gl-container">
+            <div className="v2-label"><span className="v2-dot" /> YOUR PEPTIDE PROTOCOL GUIDE</div>
+            <h1>GLOW PEPTIDE BLEND</h1>
+            <div className="gl-hero-rule"></div>
+            <p className="gl-body-text">Everything you need to know about your skin peptide therapy — how it works, how to inject, and what to expect as your skin rejuvenates.</p>
+            <div className="gl-hero-dose">
+              <div><span>GHK-Cu:</span> 1.67 mg</div>
+              <div><span>BPC-157:</span> 333 mcg</div>
+              <div><span>TB500:</span> 333 mcg</div>
             </div>
           </div>
+        </section>
 
-          <div className="combo-box">
-            <h3>Why This Blend?</h3>
-            <p>GHK-Cu drives collagen remodeling and skin tightening. BPC-157 accelerates tissue repair and improves blood flow. TB500 promotes cell migration and reduces inflammation. Together, they address skin rejuvenation from multiple angles — rebuilding structure, boosting circulation, and calming inflammation for a visible, lasting glow.</p>
+        {/* What Are Peptides */}
+        <section className="gl-section">
+          <div className="gl-container">
+            <div className="v2-label"><span className="v2-dot" /> THE BASICS</div>
+            <h2>WHAT ARE PEPTIDES?</h2>
+            <div className="gl-divider"></div>
+            <p className="gl-body-text">Peptides are short chains of amino acids — the building blocks of proteins. They act as natural signals in your body, telling your cells what to do and when to do it.</p>
+            <p className="gl-body-text" style={{ marginTop: '1rem' }}>Unlike many medicines that force change, peptides support your body's own healing and recovery processes. Think of them as a boost to what your body already knows how to do.</p>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* How to Inject */}
-      <section className="section section-gray">
-        <div className="container">
-          <div className="section-kicker">Instructions</div>
-          <h2 className="section-title">How to Use Your Injections</h2>
-          <p className="section-subtitle">We did your first injection together at the clinic. Here's how to stay on track at home.</p>
+        {/* The Blend */}
+        <section className="gl-section gl-section-alt">
+          <div className="gl-container">
+            <div className="v2-label"><span className="v2-dot" /> YOUR BLEND</div>
+            <h2>GHK-CU + BPC-157 + TB500</h2>
+            <div className="gl-divider"></div>
+            <p className="gl-body-text">Three peptides that work together to support skin repair, rejuvenation, and a healthy glow.</p>
 
-          <div className="steps-list">
-            <div className="step-item">
-              <div className="step-number">1</div>
-              <div className="step-content">
-                <h4>Prep</h4>
-                <p>Wash your hands. Clean the injection site with an alcohol pad. Take the syringe out of the fridge a few minutes early to let it reach room temperature.</p>
+            <div className="gl-info-grid">
+              <div className="gl-info-card">
+                <h3>GHK-Cu</h3>
+                <p>A copper peptide naturally found in your body that declines with age — known for its powerful skin remodeling properties.</p>
+                <ul>
+                  <li>Stimulates collagen and elastin production</li>
+                  <li>Promotes skin firmness and elasticity</li>
+                  <li>Supports wound healing and skin renewal</li>
+                </ul>
+              </div>
+              <div className="gl-info-card">
+                <h3>BPC-157</h3>
+                <p>Body Protection Compound — supports tissue repair from the inside out, helping your skin heal faster.</p>
+                <ul>
+                  <li>Accelerates skin tissue repair</li>
+                  <li>Improves blood flow to the skin</li>
+                  <li>Reduces inflammation and scarring</li>
+                </ul>
+              </div>
+              <div className="gl-info-card">
+                <h3>TB500</h3>
+                <p>A regenerative peptide that promotes cell migration and new blood vessel growth for healthier skin.</p>
+                <ul>
+                  <li>Promotes new blood vessel formation</li>
+                  <li>Supports cell migration and skin repair</li>
+                  <li>Reduces inflammation</li>
+                </ul>
               </div>
             </div>
-            <div className="step-item">
-              <div className="step-number">2</div>
-              <div className="step-content">
-                <h4>Inject</h4>
-                <p>Inject just under the skin (subcutaneous) into a fatty area — lower abdomen, upper thigh, or back of the arm. Pinch the skin, insert at a 45° angle, inject slowly.</p>
+
+            <div className="gl-combo-box">
+              <h3>Why This Blend?</h3>
+              <p>GHK-Cu drives collagen remodeling and skin tightening. BPC-157 accelerates tissue repair and improves blood flow. TB500 promotes cell migration and reduces inflammation. Together, they address skin rejuvenation from multiple angles — rebuilding structure, boosting circulation, and calming inflammation for a visible, lasting glow.</p>
+            </div>
+          </div>
+        </section>
+
+        {/* How to Inject */}
+        <section className="gl-section gl-section-alt">
+          <div className="gl-container">
+            <div className="v2-label"><span className="v2-dot" /> INSTRUCTIONS</div>
+            <h2>HOW TO USE YOUR INJECTIONS</h2>
+            <div className="gl-divider"></div>
+            <p className="gl-body-text">We did your first injection together at the clinic. Here's how to stay on track at home.</p>
+
+            <div className="gl-steps-list">
+              <div className="gl-step-item">
+                <div className="gl-step-number">1</div>
+                <div className="gl-step-content">
+                  <h4>Prep</h4>
+                  <p>Wash your hands. Clean the injection site with an alcohol pad. Take the syringe out of the fridge a few minutes early to let it reach room temperature.</p>
+                </div>
+              </div>
+              <div className="gl-step-item">
+                <div className="gl-step-number">2</div>
+                <div className="gl-step-content">
+                  <h4>Inject</h4>
+                  <p>Inject just under the skin (subcutaneous) into a fatty area — lower abdomen, upper thigh, or back of the arm. Pinch the skin, insert at a 45° angle, inject slowly.</p>
+                </div>
+              </div>
+              <div className="gl-step-item">
+                <div className="gl-step-number">3</div>
+                <div className="gl-step-content">
+                  <h4>Rotate Sites</h4>
+                  <p>Don't inject in the same spot every day. Rotate between your abdomen, thighs, and arms to prevent irritation and ensure consistent absorption.</p>
+                </div>
+              </div>
+              <div className="gl-step-item">
+                <div className="gl-step-number">4</div>
+                <div className="gl-step-content">
+                  <h4>Dispose Safely</h4>
+                  <p>Each syringe is single-use — do not reuse or recap. Dispose in a sharps container or bring used syringes back to the clinic.</p>
+                </div>
               </div>
             </div>
-            <div className="step-item">
-              <div className="step-number">3</div>
-              <div className="step-content">
-                <h4>Rotate Sites</h4>
-                <p>Don't inject in the same spot every day. Rotate between your abdomen, thighs, and arms to prevent irritation and ensure consistent absorption.</p>
+
+            <div className="gl-tip-box">
+              <strong>Pro Tips</strong>
+              <p>Keep syringes refrigerated. Set a daily phone reminder to stay consistent — same time every day (morning or evening) keeps peptide levels stable and maximizes results. Mild redness at the injection site is normal and should fade quickly.</p>
+            </div>
+          </div>
+        </section>
+
+        {/* What to Expect */}
+        <section className="gl-section gl-section-inverted">
+          <div className="gl-container">
+            <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> TIMELINE</div>
+            <h2>WHAT TO EXPECT</h2>
+            <div className="gl-divider"></div>
+            <p className="gl-body-text">Everyone's different, but here's what patients typically experience.</p>
+
+            <div className="gl-timeline-grid">
+              <div className="gl-timeline-card">
+                <h4>Weeks 1–2</h4>
+                <p>Improved skin healing and texture. Reduced redness and irritation. Skin may feel smoother and more hydrated as peptides begin working at the cellular level.</p>
+              </div>
+              <div className="gl-timeline-card">
+                <h4>Weeks 3–4</h4>
+                <p>Visible improvements in skin tone and firmness. Enhanced glow and radiance. Continued collagen remodeling leads to tighter, more youthful-looking skin. Some patients also notice improved hair quality.</p>
               </div>
             </div>
-            <div className="step-item">
-              <div className="step-number">4</div>
-              <div className="step-content">
-                <h4>Dispose Safely</h4>
-                <p>Each syringe is single-use — do not reuse or recap. Dispose in a sharps container or bring used syringes back to the clinic.</p>
+          </div>
+        </section>
+
+        {/* Safety */}
+        <section className="gl-section">
+          <div className="gl-container">
+            <div className="v2-label"><span className="v2-dot" /> SAFETY</div>
+            <h2>IMPORTANT SAFETY INFORMATION</h2>
+            <div className="gl-divider"></div>
+
+            <div className="gl-safety-grid">
+              <div className="gl-safety-card gl-warning">
+                <h4>Do Not Use If You Are:</h4>
+                <ul>
+                  <li>Pregnant or breastfeeding</li>
+                  <li>Living with active cancer</li>
+                  <li>Managing serious liver, kidney, or heart conditions</li>
+                  <li>Dealing with uncontrolled medical conditions</li>
+                  <li>Allergic to any ingredient</li>
+                </ul>
+              </div>
+              <div className="gl-safety-card gl-effects">
+                <h4>Possible Side Effects:</h4>
+                <ul>
+                  <li>Mild redness, swelling, or itching at injection site</li>
+                  <li>Temporary skin flushing (common with GHK-Cu)</li>
+                  <li>Slight headache or fatigue</li>
+                  <li>Occasional nausea or lightheadedness</li>
+                </ul>
+                <p className="gl-safety-note">Usually mild and short-lived. If symptoms are moderate or severe, stop use and contact us.</p>
               </div>
             </div>
-          </div>
 
-          <div className="tip-box">
-            <strong>💡 Pro Tips</strong>
-            <p>Keep syringes refrigerated. Set a daily phone reminder to stay consistent — same time every day (morning or evening) keeps peptide levels stable and maximizes results. Mild redness at the injection site is normal and should fade quickly.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* What to Expect */}
-      <section className="section section-dark">
-        <div className="container">
-          <div className="section-kicker">Timeline</div>
-          <h2 className="section-title">What to Expect</h2>
-          <p className="section-subtitle">Everyone's different, but here's what patients typically experience.</p>
-
-          <div className="timeline-grid">
-            <div className="timeline-card">
-              <h4>Weeks 1–2</h4>
-              <p>Improved skin healing and texture. Reduced redness and irritation. Skin may feel smoother and more hydrated as peptides begin working at the cellular level.</p>
-            </div>
-            <div className="timeline-card">
-              <h4>Weeks 3–4</h4>
-              <p>Visible improvements in skin tone and firmness. Enhanced glow and radiance. Continued collagen remodeling leads to tighter, more youthful-looking skin. Some patients also notice improved hair quality.</p>
+            <div className="gl-disclaimer">
+              <p><strong>Important:</strong> Peptides are classified for research purposes only and are not FDA-approved to diagnose, treat, cure, or prevent any disease. Handle and store as instructed. Individual results vary based on health status, dosage, and consistency.</p>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Safety */}
-      <section className="section">
-        <div className="container">
-          <div className="section-kicker">Safety</div>
-          <h2 className="section-title">Important Safety Information</h2>
-
-          <div className="safety-grid">
-            <div className="safety-card warning">
-              <h4>Do Not Use If You Are:</h4>
-              <ul>
-                <li>Pregnant or breastfeeding</li>
-                <li>Living with active cancer</li>
-                <li>Managing serious liver, kidney, or heart conditions</li>
-                <li>Dealing with uncontrolled medical conditions</li>
-                <li>Allergic to any ingredient</li>
-              </ul>
+        {/* Final CTA */}
+        <section className="gl-section gl-section-inverted gl-cta-section">
+          <div className="gl-container">
+            <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '1.5rem' }}><span className="v2-dot" /> NEXT STEPS</div>
+            <h2>QUESTIONS? WE'RE HERE.</h2>
+            <p className="gl-body-text" style={{ textAlign: 'center', margin: '0 auto 2rem' }}>Whether you want to extend your protocol or add other therapies, our team can help.</p>
+            <div className="gl-cta-buttons">
+              <a href="tel:+19499973988" className="gl-btn-primary">CALL (949) 997-3988</a>
+              <a href="sms:+19499973988" className="gl-btn-outline">TEXT US</a>
             </div>
-            <div className="safety-card effects">
-              <h4>Possible Side Effects:</h4>
-              <ul>
-                <li>Mild redness, swelling, or itching at injection site</li>
-                <li>Temporary skin flushing (common with GHK-Cu)</li>
-                <li>Slight headache or fatigue</li>
-                <li>Occasional nausea or lightheadedness</li>
-              </ul>
-              <p className="safety-note">Usually mild and short-lived. If symptoms are moderate or severe, stop use and contact us.</p>
-            </div>
+            <p className="gl-cta-location">1901 Westcliff Dr. Suite 10, Newport Beach, CA 92660</p>
           </div>
-
-          <div className="disclaimer">
-            <p><strong>Important:</strong> Peptides are classified for research purposes only and are not FDA-approved to diagnose, treat, cure, or prevent any disease. Handle and store as instructed. Individual results vary based on health status, dosage, and consistency.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="final-cta">
-        <div className="container">
-          <h2>Questions? We're Here.</h2>
-          <p>Whether you want to extend your protocol or add other therapies, our team can help.</p>
-          <div className="cta-buttons">
-            <a href="tel:+19499973988" className="btn-white">Call (949) 997-3988</a>
-            <a href="sms:+19499973988" className="btn-outline-white">Text Us</a>
-          </div>
-          <p className="cta-location">📍 1901 Westcliff Dr. Suite 10, Newport Beach, CA 92660</p>
-        </div>
-      </section>
+        </section>
+      </div>
 
       <style jsx>{`
-        /* Hero */
-        .peptide-hero {
-          background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
-          padding: 3.5rem 1.5rem 3rem;
-          text-align: center;
+        /* ===== GLOW GUIDE V2 EDITORIAL DESIGN ===== */
+        .gl-page {
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          -webkit-font-smoothing: antialiased;
+          background: #ffffff;
+          color: #171717;
+          overflow-x: hidden;
         }
 
-        .peptide-hero h1 {
-          font-size: 2.25rem;
-          font-weight: 700;
-          line-height: 1.2;
+        .gl-container {
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 0 2rem;
+        }
+
+        /* Sections */
+        .gl-section {
+          padding: 6rem 2rem;
+        }
+
+        .gl-section-alt {
+          background: #fafafa;
+          padding: 6rem 2rem;
+        }
+
+        .gl-section-inverted {
+          background: #1a1a1a;
+          color: #ffffff;
+        }
+
+        /* Headlines */
+        .gl-page h1 {
+          font-size: 2.75rem;
+          font-weight: 900;
+          line-height: 0.95;
           letter-spacing: -0.02em;
+          text-transform: uppercase;
+          color: #171717;
+          margin-bottom: 1.5rem;
+        }
+
+        .gl-page h2 {
+          font-size: 2rem;
+          font-weight: 900;
+          letter-spacing: -0.02em;
+          line-height: 0.95;
+          text-transform: uppercase;
+          color: #171717;
           margin-bottom: 1rem;
         }
 
-        .hero-badge {
-          display: inline-block;
-          background: #000000;
+        .gl-page h3 {
+          font-size: 1.125rem;
+          font-weight: 700;
+          color: #171717;
+        }
+
+        .gl-section-inverted h1,
+        .gl-section-inverted h2,
+        .gl-section-inverted h3,
+        .gl-section-inverted h4 {
           color: #ffffff;
-          padding: 0.5rem 1rem;
-          border-radius: 100px;
-          font-size: 0.8125rem;
-          font-weight: 600;
-          margin-bottom: 1.25rem;
         }
 
-        .hero-sub {
+        /* Body Text */
+        .gl-body-text {
           font-size: 1.0625rem;
-          color: #525252;
-          max-width: 600px;
-          margin: 0 auto;
+          font-weight: 400;
           line-height: 1.7;
+          color: #737373;
+          max-width: 600px;
         }
 
-        .hero-dose {
+        .gl-section-inverted .gl-body-text {
+          color: rgba(255, 255, 255, 0.55);
+        }
+
+        /* Divider */
+        .gl-divider {
+          width: 48px;
+          height: 1px;
+          background: #e0e0e0;
+          margin: 1.25rem 0;
+        }
+
+        .gl-section-inverted .gl-divider {
+          background: rgba(255, 255, 255, 0.12);
+        }
+
+        /* Hero */
+        .gl-hero {
+          padding: 6rem 2rem 5rem;
+        }
+
+        .gl-hero-rule {
+          width: 48px;
+          height: 1px;
+          background: #e0e0e0;
+          margin-bottom: 1.5rem;
+        }
+
+        .gl-hero-dose {
           display: inline-flex;
           gap: 1.5rem;
           margin-top: 1.5rem;
           padding: 1rem 1.5rem;
           background: #ffffff;
-          border: 1px solid #e5e5e5;
-          border-radius: 8px;
+          border: 1px solid #e0e0e0;
           font-size: 0.9rem;
-          color: #525252;
+          color: #737373;
         }
 
-        .hero-dose span {
+        .gl-hero-dose span {
           font-weight: 600;
           color: #171717;
         }
 
-        /* Sections */
-        .section {
-          padding: 3.5rem 1.5rem;
-        }
-
-        .section-gray {
-          background: #fafafa;
-        }
-
-        .section-dark {
-          background: #000000;
-          color: #ffffff;
-        }
-
-        .section-kicker {
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 0.5rem;
-        }
-
-        .section-dark .section-kicker {
-          color: rgba(255,255,255,0.6);
-        }
-
-        .section-title {
-          font-size: 1.75rem;
-          font-weight: 700;
-          letter-spacing: -0.02em;
-          margin-bottom: 0.75rem;
-        }
-
-        .section-subtitle {
-          font-size: 1rem;
-          color: #525252;
-          max-width: 600px;
-          line-height: 1.7;
-          margin-bottom: 2rem;
-        }
-
-        .section-dark .section-subtitle {
-          color: rgba(255,255,255,0.8);
-        }
-
-        .section-dark .section-title {
-          color: #ffffff;
-        }
-
-        .body-text {
-          font-size: 0.95rem;
-          color: #525252;
-          line-height: 1.7;
-        }
-
-        .container {
-          max-width: 800px;
-          margin: 0 auto;
-        }
-
-        /* Info Grid - Three Column */
-        .info-grid-three {
+        /* Info Grid */
+        .gl-info-grid {
           display: grid;
           grid-template-columns: 1fr 1fr 1fr;
           gap: 1.5rem;
-          margin-top: 1.5rem;
+          margin-top: 2rem;
         }
 
-        .info-card {
+        .gl-info-card {
           background: #ffffff;
-          border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border: 1px solid #e0e0e0;
           padding: 1.75rem;
         }
 
-        .info-card h3 {
+        .gl-info-card h3 {
           font-size: 1.125rem;
           font-weight: 700;
           margin-bottom: 0.75rem;
         }
 
-        .info-card p {
+        .gl-info-card p {
           font-size: 0.9rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.7;
           margin-bottom: 1rem;
         }
 
-        .info-card ul {
+        .gl-info-card ul {
           list-style: none;
           padding: 0;
           margin: 0;
         }
 
-        .info-card li {
+        .gl-info-card li {
           font-size: 0.9rem;
-          color: #525252;
+          color: #737373;
           padding: 0.375rem 0;
           padding-left: 1.25rem;
           position: relative;
         }
 
-        .info-card li::before {
+        .gl-info-card li::before {
           content: "✓";
           position: absolute;
           left: 0;
-          color: #000000;
+          color: #c4a882;
           font-weight: 600;
         }
 
         /* Combo Box */
-        .combo-box {
-          background: #000000;
+        .gl-combo-box {
+          background: #1a1a1a;
           color: #ffffff;
-          border-radius: 12px;
           padding: 1.75rem;
           margin-top: 1.5rem;
           text-align: center;
         }
 
-        .combo-box h3 {
+        .gl-combo-box h3 {
           font-size: 1.125rem;
           font-weight: 700;
           margin-bottom: 0.5rem;
           color: #ffffff;
         }
 
-        .combo-box p {
+        .gl-combo-box p {
           font-size: 0.9rem;
           color: rgba(255,255,255,0.85);
           line-height: 1.7;
         }
 
         /* Steps */
-        .steps-list {
-          margin-top: 1.5rem;
+        .gl-steps-list {
+          margin-top: 2rem;
         }
 
-        .step-item {
+        .gl-step-item {
           display: flex;
           gap: 1rem;
           padding: 1.25rem 0;
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
         }
 
-        .step-item:last-child {
+        .gl-step-item:last-child {
           border-bottom: none;
         }
 
-        .step-number {
+        .gl-step-number {
           width: 2rem;
           height: 2rem;
-          background: #000000;
+          background: #1a1a1a;
           color: #ffffff;
-          border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -432,103 +443,101 @@ export default function GlowGuide() {
           flex-shrink: 0;
         }
 
-        .step-content h4 {
+        .gl-step-content h4 {
           font-size: 1rem;
           font-weight: 700;
           margin-bottom: 0.25rem;
         }
 
-        .step-content p {
+        .gl-step-content p {
           font-size: 0.9rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.6;
         }
 
         /* Tip Box */
-        .tip-box {
+        .gl-tip-box {
           background: #ffffff;
-          border-left: 4px solid #000000;
+          border-left: 4px solid #1a1a1a;
           padding: 1.25rem 1.5rem;
           margin-top: 1.5rem;
-          border-radius: 0 8px 8px 0;
         }
 
-        .tip-box strong {
+        .gl-tip-box strong {
           display: block;
           margin-bottom: 0.25rem;
         }
 
-        .tip-box p {
+        .gl-tip-box p {
           font-size: 0.9rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.6;
           margin: 0;
         }
 
         /* Timeline */
-        .timeline-grid {
+        .gl-timeline-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 1rem;
-          margin-top: 1.5rem;
+          margin-top: 2rem;
         }
 
-        .timeline-card {
-          background: rgba(255,255,255,0.1);
-          border: 1px solid rgba(255,255,255,0.2);
-          border-radius: 12px;
+        .gl-timeline-card {
+          background: rgba(255,255,255,0.06);
+          border: 1px solid rgba(255,255,255,0.12);
           padding: 1.5rem;
         }
 
-        .timeline-card h4 {
+        .gl-timeline-card h4 {
           font-size: 1rem;
           font-weight: 700;
           margin-bottom: 0.5rem;
         }
 
-        .timeline-card p {
+        .gl-timeline-card p {
           font-size: 0.875rem;
-          color: rgba(255,255,255,0.8);
+          color: rgba(255,255,255,0.7);
           line-height: 1.6;
         }
 
         /* Safety */
-        .safety-grid {
+        .gl-safety-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 1.5rem;
+          margin-top: 2rem;
         }
 
-        .safety-card {
+        .gl-safety-card {
           background: #ffffff;
-          border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border: 1px solid #e0e0e0;
           padding: 1.5rem;
         }
 
-        .safety-card h4 {
+        .gl-safety-card h4 {
           font-size: 1rem;
           font-weight: 700;
           margin-bottom: 0.75rem;
           color: #171717;
         }
 
-        .safety-card ul {
+        .gl-safety-card ul {
           list-style: none;
           padding: 0;
           margin: 0;
         }
 
-        .safety-card li {
+        .gl-safety-card li {
           font-size: 0.875rem;
-          color: #525252;
+          color: #737373;
           padding: 0.375rem 0;
           padding-left: 1.25rem;
           position: relative;
           line-height: 1.5;
         }
 
-        .safety-card.warning li::before {
+        .gl-safety-card.gl-warning li::before {
           content: "✕";
           position: absolute;
           left: 0;
@@ -536,15 +545,15 @@ export default function GlowGuide() {
           font-weight: 600;
         }
 
-        .safety-card.effects li::before {
+        .gl-safety-card.gl-effects li::before {
           content: "•";
           position: absolute;
           left: 0;
-          color: #737373;
+          color: #c4a882;
           font-weight: 700;
         }
 
-        .safety-note {
+        .gl-safety-note {
           font-size: 0.8125rem;
           color: #737373;
           margin-top: 0.75rem;
@@ -552,43 +561,26 @@ export default function GlowGuide() {
         }
 
         /* Disclaimer */
-        .disclaimer {
+        .gl-disclaimer {
           background: #fafafa;
-          border: 1px solid #e5e5e5;
-          border-radius: 8px;
+          border: 1px solid #e0e0e0;
           padding: 1.25rem;
           margin-top: 1.5rem;
         }
 
-        .disclaimer p {
+        .gl-disclaimer p {
           font-size: 0.8125rem;
           color: #737373;
           line-height: 1.6;
           margin: 0;
         }
 
-        /* Final CTA */
-        .final-cta {
-          background: #000000;
-          color: #ffffff;
-          padding: 3.5rem 1.5rem;
+        /* CTA */
+        .gl-cta-section {
           text-align: center;
         }
 
-        .final-cta h2 {
-          font-size: 1.75rem;
-          font-weight: 700;
-          margin-bottom: 0.75rem;
-          letter-spacing: -0.02em;
-        }
-
-        .final-cta p {
-          font-size: 1rem;
-          color: rgba(255,255,255,0.8);
-          margin-bottom: 1.5rem;
-        }
-
-        .cta-buttons {
+        .gl-cta-buttons {
           display: flex;
           justify-content: center;
           gap: 1rem;
@@ -596,68 +588,84 @@ export default function GlowGuide() {
           margin-bottom: 1.5rem;
         }
 
-        .btn-white {
+        .gl-btn-primary {
           display: inline-block;
           background: #ffffff;
-          color: #000000;
-          padding: 0.875rem 1.75rem;
-          border-radius: 8px;
+          color: #1a1a1a;
+          padding: 0.875rem 2rem;
           text-decoration: none;
-          font-weight: 600;
-          font-size: 0.9375rem;
-          transition: all 0.2s;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          transition: background 0.2s, transform 0.2s;
         }
 
-        .btn-white:hover {
-          background: #f5f5f5;
+        .gl-btn-primary:hover {
+          background: #e0e0e0;
           transform: translateY(-1px);
         }
 
-        .btn-outline-white {
+        .gl-btn-outline {
           display: inline-block;
           background: transparent;
           color: #ffffff;
-          padding: 0.875rem 1.75rem;
-          border-radius: 8px;
-          border: 2px solid #ffffff;
+          padding: 0.875rem 2rem;
+          border: 1px solid rgba(255,255,255,0.3);
           text-decoration: none;
-          font-weight: 600;
-          font-size: 0.9375rem;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
           transition: all 0.2s;
         }
 
-        .btn-outline-white:hover {
+        .gl-btn-outline:hover {
           background: #ffffff;
-          color: #000000;
+          color: #1a1a1a;
         }
 
-        .cta-location {
+        .gl-cta-location {
           font-size: 0.9rem;
-          color: rgba(255,255,255,0.7);
+          color: rgba(255,255,255,0.5);
         }
 
         /* Responsive */
         @media (max-width: 768px) {
-          .peptide-hero h1 {
-            font-size: 1.875rem;
+          .gl-page h1 {
+            font-size: 2rem;
           }
 
-          .hero-dose {
+          .gl-page h2 {
+            font-size: 1.5rem;
+          }
+
+          .gl-hero {
+            padding: 3.5rem 2rem;
+          }
+
+          .gl-hero-dose {
             flex-direction: column;
             gap: 0.5rem;
           }
 
-          .info-grid-three,
-          .safety-grid,
-          .timeline-grid {
+          .gl-section {
+            padding: 3.5rem 1.5rem;
+          }
+
+          .gl-section-alt {
+            padding: 3.5rem 1.5rem;
+          }
+
+          .gl-info-grid,
+          .gl-safety-grid,
+          .gl-timeline-grid {
             grid-template-columns: 1fr;
           }
 
-          .section-title {
-            font-size: 1.5rem;
-          }
-
-          .cta-buttons {
+          .gl-cta-buttons {
             flex-direction: column;
             align-items: center;
           }

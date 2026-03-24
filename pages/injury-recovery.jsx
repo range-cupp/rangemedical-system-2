@@ -62,7 +62,7 @@ export default function InjuryRecovery() {
     },
     {
       question: "What kinds of injuries does this help with?",
-      answer: "Most orthopedic injuries — sprains, strains, tendon issues, ligament tears, post-surgical recovery, and chronic pain that's slow to heal. The online assessment will help confirm it's a good fit."
+      answer: "Most orthopedic injuries \u2014 sprains, strains, tendon issues, ligament tears, post-surgical recovery, and chronic pain that's slow to heal. The online assessment will help confirm it's a good fit."
     },
     {
       question: "How quickly will I see results?",
@@ -169,39 +169,40 @@ export default function InjuryRecovery() {
         <div className="trust-bar">
           <div className="trust-inner">
             <span className="trust-item">
-              <span className="trust-rating">★★★★★</span> 5.0 on Google
+              <span className="trust-rating">&#9733;&#9733;&#9733;&#9733;&#9733;</span> 5.0 on Google
             </span>
-            <span className="trust-item">📍 Newport Beach, CA</span>
-            <span className="trust-item">✓ Licensed Providers</span>
+            <span className="trust-item">Newport Beach, CA</span>
+            <span className="trust-item">Licensed Providers</span>
           </div>
         </div>
 
         {/* Hero Section */}
         <section className="inj-hero">
-          <div className="inj-kicker">Recovery · Healing · Results</div>
-          <h1>Your Guide to Injury Recovery</h1>
+          <div className="v2-label"><span className="v2-dot" /> Recovery &middot; Healing &middot; Results</div>
+          <h1>Your Guide to<br />Injury Recovery</h1>
+          <div className="inj-hero-rule" />
           <p className="inj-body-text">
             Healing feels slow because your body needs more than time. We use targeted recovery
-            protocols that may help support your body's natural healing process — whether you're post-surgery,
+            protocols that may help support your body&apos;s natural healing process &mdash; whether you&apos;re post-surgery,
             rehabbing an injury, or stuck in a healing plateau.
           </p>
           <div className="inj-hero-scroll">
             Scroll to explore
-            <span>↓</span>
+            <span>&darr;</span>
           </div>
         </section>
 
         {/* What We Treat Section */}
         <section id="inj-conditions" className={`inj-section-alt inj-animate ${isVisible['inj-conditions'] ? 'inj-visible' : ''}`}>
           <div className="inj-container">
-            <span className="inj-section-label">Who It's For</span>
-            <h2>Injuries We Help With</h2>
+            <div className="v2-label"><span className="v2-dot" /> Who It&apos;s For</div>
+            <h2>Injuries We<br />Help With</h2>
             <p className="inj-section-intro">
-              If healing feels slow or you've hit a plateau, our recovery protocols may help support your progress.
+              If healing feels slow or you&apos;ve hit a plateau, our recovery protocols may help support your progress.
             </p>
 
             <div className="inj-conditions">
-              <span className="inj-condition-tag">Sprains & Strains</span>
+              <span className="inj-condition-tag">Sprains &amp; Strains</span>
               <span className="inj-condition-tag">Tendon Injuries</span>
               <span className="inj-condition-tag">Ligament Tears</span>
               <span className="inj-condition-tag">Post-Surgical Recovery</span>
@@ -220,7 +221,7 @@ export default function InjuryRecovery() {
                   </svg>
                 </div>
                 <h4>Progress Feels Slow</h4>
-                <p>You're doing the rehab work but recovery is taking longer than expected.</p>
+                <p>You&apos;re doing the rehab work but recovery is taking longer than expected.</p>
               </div>
 
               <div className="inj-sign-card">
@@ -240,7 +241,7 @@ export default function InjuryRecovery() {
                   </svg>
                 </div>
                 <h4>Hit a Plateau</h4>
-                <p>You improved at first but now you're stuck at the same level.</p>
+                <p>You improved at first but now you&apos;re stuck at the same level.</p>
               </div>
 
               <div className="inj-sign-card">
@@ -259,35 +260,35 @@ export default function InjuryRecovery() {
         {/* Process Section */}
         <section id="inj-process" className={`inj-section inj-animate ${isVisible['inj-process'] ? 'inj-visible' : ''}`}>
           <div className="inj-container">
-            <span className="inj-section-label">How It Works</span>
-            <h2>From Assessment to Recovery Plan</h2>
+            <div className="v2-label"><span className="v2-dot" /> How It Works</div>
+            <h2>From Assessment<br />to Recovery Plan</h2>
             <p className="inj-section-intro">
-              Start with a free assessment. We'll match you with the right recovery tools — no guesswork.
+              Start with a free assessment. We&apos;ll match you with the right recovery tools &mdash; no guesswork.
             </p>
 
             <div className="inj-process-grid">
               <div className="inj-process-step">
-                <div className="inj-process-number">1</div>
+                <div className="inj-process-number">01</div>
                 <h4>Start Online</h4>
                 <p>Answer a few questions about your injury, timeline, and recovery goals. Takes about 2 minutes.</p>
               </div>
 
               <div className="inj-process-step">
-                <div className="inj-process-number">2</div>
+                <div className="inj-process-number">02</div>
                 <h4>Get Your Recommendation</h4>
-                <p>Based on your answers, we'll show you which recovery protocols fit your situation.</p>
+                <p>Based on your answers, we&apos;ll show you which recovery protocols fit your situation.</p>
               </div>
 
               <div className="inj-process-step">
-                <div className="inj-process-number">3</div>
+                <div className="inj-process-number">03</div>
                 <h4>Come In for Treatment</h4>
                 <p>Visit our Newport Beach clinic to start your protocol. Your provider will refine the plan based on your progress.</p>
               </div>
 
               <div className="inj-process-step">
-                <div className="inj-process-number">4</div>
+                <div className="inj-process-number">04</div>
                 <h4>Track Your Progress</h4>
-                <p>We monitor your recovery and adjust your protocol based on how you're responding.</p>
+                <p>We monitor your recovery and adjust your protocol based on how you&apos;re responding.</p>
               </div>
             </div>
           </div>
@@ -296,10 +297,10 @@ export default function InjuryRecovery() {
         {/* Recovery Tools Section */}
         <section id="inj-tools" className={`inj-section-alt inj-animate ${isVisible['inj-tools'] ? 'inj-visible' : ''}`}>
           <div className="inj-container">
-            <span className="inj-section-label">Recovery Tools</span>
-            <h2>How We Help You Heal Faster</h2>
+            <div className="v2-label"><span className="v2-dot" /> Recovery Tools</div>
+            <h2>How We Help<br />You Heal Faster</h2>
             <p className="inj-section-intro">
-              Your provider picks the right combination based on your injury. You don't have to figure it out yourself.
+              Your provider picks the right combination based on your injury. You don&apos;t have to figure it out yourself.
             </p>
 
             <div className="inj-tools-grid">
@@ -359,7 +360,7 @@ export default function InjuryRecovery() {
                   </svg>
                 </div>
                 <h4>Exosome Therapy</h4>
-                <p>Cell-signaling molecules that may help support your body's natural repair signaling.</p>
+                <p>Cell-signaling molecules that may help support your body&apos;s natural repair signaling.</p>
               </Link>
 
               <Link href="/iv-therapy" className="inj-tool-card">
@@ -378,10 +379,10 @@ export default function InjuryRecovery() {
         {/* Research Section */}
         <section id="inj-research" className={`inj-section inj-animate ${isVisible['inj-research'] ? 'inj-visible' : ''}`}>
           <div className="inj-container">
-            <span className="inj-section-label">The Evidence</span>
-            <h2>Research Behind Recovery Protocols</h2>
+            <div className="v2-label"><span className="v2-dot" /> The Evidence</div>
+            <h2>Research Behind<br />Recovery Protocols</h2>
             <p className="inj-section-intro">
-              We've summarized the peer-reviewed research. Click any study to get the full breakdown — free.
+              We&apos;ve summarized the peer-reviewed research. Click any study to get the full breakdown &mdash; free.
             </p>
 
             <div className="inj-research-grid">
@@ -408,17 +409,15 @@ export default function InjuryRecovery() {
         {/* FAQ Section */}
         <section id="inj-faq" className={`inj-section-alt inj-animate ${isVisible['inj-faq'] ? 'inj-visible' : ''}`}>
           <div className="inj-container">
-            <span className="inj-section-label">Questions</span>
-            <h2>Common Questions</h2>
+            <div className="v2-label"><span className="v2-dot" /> Questions</div>
+            <h2>Common<br />Questions</h2>
 
             <div className="inj-faq-list">
               {faqs.map((faq, index) => (
                 <div key={index} className={`inj-faq-item ${openFaq === index ? 'inj-faq-open' : ''}`}>
                   <button className="inj-faq-question" onClick={() => toggleFaq(index)}>
                     <span>{faq.question}</span>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d={openFaq === index ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} />
-                    </svg>
+                    <span className="inj-faq-toggle">{openFaq === index ? '\u2212' : '+'}</span>
                   </button>
                   <div className="inj-faq-answer">
                     <p>{faq.answer}</p>
@@ -432,18 +431,14 @@ export default function InjuryRecovery() {
         {/* CTA Section */}
         <section className="inj-section-inverted">
           <div className="inj-container">
-            <span className="inj-section-label-light">Get Started</span>
-            <h2>Ready to Speed Up Your Recovery?</h2>
+            <div className="v2-label" style={{ justifyContent: 'center' }}><span className="v2-dot" /> Get Started</div>
+            <h2>Ready to Speed Up<br />Your Recovery?</h2>
             <p className="inj-cta-text">
-              Take the online assessment. It takes 2 minutes and we'll show you exactly which recovery tools fit your situation.
+              Take the online assessment. It takes 2 minutes and we&apos;ll show you exactly which recovery tools fit your situation.
             </p>
-            <Link href={assessmentLink} className="inj-btn-white">Start Now</Link>
+            <Link href={assessmentLink} className="btn-white">Start Now</Link>
             <p className="inj-cta-location">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a3a3a3" strokeWidth="2">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                <circle cx="12" cy="10" r="3"/>
-              </svg>
-              Range Medical • 1901 Westcliff Dr, Newport Beach
+              Range Medical &bull; 1901 Westcliff Dr, Newport Beach
             </p>
           </div>
         </section>
@@ -457,49 +452,46 @@ export default function InjuryRecovery() {
 
         <style jsx>{`
           /* Hero Section */
-          .inj-kicker {
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: #737373;
-            margin-bottom: 1.25rem;
-          }
-
           .inj-body-text {
             font-size: 1.125rem;
-            color: #525252;
-            line-height: 1.7;
+            color: #737373;
+            line-height: 1.75;
             max-width: 620px;
           }
 
           .inj-hero {
-            padding: 4rem 1.5rem 5rem;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            padding: 6rem 2rem 7rem;
+            max-width: 1200px;
+            margin: 0 auto;
           }
 
           .inj-hero h1 {
-            max-width: 680px;
-            margin-bottom: 1.5rem;
+            max-width: 800px;
+            margin-bottom: 2rem;
+          }
+
+          .inj-hero-rule {
+            width: 100%;
+            max-width: 700px;
+            height: 1px;
+            background: #e0e0e0;
+            margin: 2rem 0;
           }
 
           .inj-hero .inj-body-text {
-            text-align: center;
-            margin: 0 auto 2.5rem;
+            max-width: 520px;
           }
 
           .inj-hero-scroll {
-            font-size: 0.75rem;
+            font-size: 11px;
             font-weight: 700;
-            letter-spacing: 0.1em;
+            letter-spacing: 0.14em;
             text-transform: uppercase;
             color: #737373;
             display: flex;
             flex-direction: column;
-            align-items: center;
+            align-items: flex-start;
+            margin-top: 3rem;
           }
 
           .inj-hero-scroll span {
@@ -514,42 +506,20 @@ export default function InjuryRecovery() {
             50% { transform: translateY(6px); }
           }
 
-
-          :global(.inj-btn-primary) {
-            display: inline-block;
-            background: #000000 !important;
-            color: #ffffff !important;
-            padding: 1rem 2.5rem;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
-            text-decoration: none;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
-            transition: all 0.2s ease;
-            cursor: pointer;
-            border: none;
-          }
-
-          :global(.inj-btn-primary:hover) {
-            background: #171717 !important;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-          }
-
           /* Section Styles */
           .inj-section {
-            padding: 5rem 1.5rem;
+            padding: 6rem 2rem;
             background: #ffffff;
           }
 
           .inj-section-alt {
-            padding: 5rem 1.5rem;
+            padding: 6rem 2rem;
             background: #fafafa;
           }
 
           .inj-section-inverted {
-            padding: 5rem 1.5rem;
-            background: #000000;
+            padding: 6rem 2rem;
+            background: #1a1a1a;
             text-align: center;
           }
 
@@ -562,44 +532,10 @@ export default function InjuryRecovery() {
             margin: 0 auto;
           }
 
-          .inj-section-label {
-            display: inline-block;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: #737373;
-            margin-bottom: 0.75rem;
-          }
-
-          .inj-section-label-light {
-            display: inline-block;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: #a3a3a3;
-            margin-bottom: 0.75rem;
-          }
-
-          .inj-section h2 {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #171717;
-            margin: 0 0 1rem;
-          }
-
-          .inj-section-alt h2 {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #171717;
-            margin: 0 0 1rem;
-          }
-
           .inj-section-intro {
             font-size: 1.0625rem;
-            color: #525252;
-            line-height: 1.7;
+            color: #737373;
+            line-height: 1.75;
             max-width: 600px;
             margin: 0 0 2.5rem;
           }
@@ -621,14 +557,12 @@ export default function InjuryRecovery() {
             display: flex;
             flex-wrap: wrap;
             gap: 0.75rem;
-            justify-content: center;
             margin-bottom: 2.5rem;
           }
 
           .inj-condition-tag {
             background: #ffffff;
-            border: 1px solid #e5e5e5;
-            border-radius: 100px;
+            border: 1px solid #e0e0e0;
             padding: 0.5rem 1rem;
             font-size: 0.875rem;
             color: #404040;
@@ -639,45 +573,45 @@ export default function InjuryRecovery() {
           .inj-signs-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 1.5rem;
+            gap: 0;
+            border-top: 1px solid #e0e0e0;
+            border-left: 1px solid #e0e0e0;
           }
 
           .inj-sign-card {
             background: #ffffff;
-            border: 1px solid #e5e5e5;
-            border-radius: 12px;
+            border-right: 1px solid #e0e0e0;
+            border-bottom: 1px solid #e0e0e0;
             padding: 1.75rem;
             text-align: center;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            transition: background 0.2s;
           }
 
           .inj-sign-card:hover {
-            border-color: #d4d4d4;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            background: #fafafa;
           }
 
           .inj-sign-icon {
             width: 52px;
             height: 52px;
             background: #f5f5f5;
-            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             margin: 0 auto 1rem;
-            color: #525252;
+            color: #737373;
           }
 
           .inj-sign-card h4 {
             font-size: 1rem;
-            font-weight: 700;
-            color: #171717;
+            font-weight: 800;
+            color: #1a1a1a;
             margin: 0 0 0.5rem;
           }
 
           .inj-sign-card p {
             font-size: 0.875rem;
-            color: #525252;
+            color: #737373;
             line-height: 1.5;
             margin: 0;
           }
@@ -686,38 +620,35 @@ export default function InjuryRecovery() {
           .inj-process-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 1.5rem;
+            gap: 0;
+            border-top: 1px solid #e0e0e0;
+            border-left: 1px solid #e0e0e0;
           }
 
           .inj-process-step {
             text-align: center;
-            padding: 1rem;
+            padding: 2rem 1rem;
+            border-right: 1px solid #e0e0e0;
+            border-bottom: 1px solid #e0e0e0;
           }
 
           .inj-process-number {
-            width: 52px;
-            height: 52px;
-            background: #000000;
-            color: #ffffff;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 1.25rem;
-            margin: 0 auto 1rem;
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: #c4a882;
+            margin-bottom: 1rem;
           }
 
           .inj-process-step h4 {
             font-size: 1rem;
-            font-weight: 700;
-            color: #171717;
+            font-weight: 800;
+            color: #1a1a1a;
             margin: 0 0 0.5rem;
           }
 
           .inj-process-step p {
             font-size: 0.875rem;
-            color: #525252;
+            color: #737373;
             line-height: 1.6;
             margin: 0;
           }
@@ -726,51 +657,51 @@ export default function InjuryRecovery() {
           .inj-tools-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 1.25rem;
+            gap: 0;
+            border-top: 1px solid #e0e0e0;
+            border-left: 1px solid #e0e0e0;
           }
 
           .inj-tool-card {
             background: #ffffff;
-            border: 1px solid #e5e5e5;
-            border-radius: 12px;
+            border-right: 1px solid #e0e0e0;
+            border-bottom: 1px solid #e0e0e0;
             padding: 1.75rem;
             text-decoration: none;
-            transition: all 0.2s;
+            transition: background 0.2s;
           }
 
           .inj-tool-card:hover {
-            border-color: #171717;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            background: #f5f5f5;
           }
 
           .inj-tool-icon {
             width: 52px;
             height: 52px;
             background: #f5f5f5;
-            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 1rem;
-            color: #525252;
+            color: #737373;
             transition: all 0.2s;
           }
 
           .inj-tool-card:hover .inj-tool-icon {
-            background: #000000;
+            background: #1a1a1a;
             color: #ffffff;
           }
 
           .inj-tool-card h4 {
             font-size: 1rem;
-            font-weight: 700;
-            color: #171717;
+            font-weight: 800;
+            color: #1a1a1a;
             margin: 0 0 0.5rem;
           }
 
           .inj-tool-card p {
             font-size: 0.875rem;
-            color: #525252;
+            color: #737373;
             line-height: 1.5;
             margin: 0;
           }
@@ -779,46 +710,46 @@ export default function InjuryRecovery() {
           .inj-research-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 1.5rem;
+            gap: 0;
+            border-top: 1px solid #e0e0e0;
+            border-left: 1px solid #e0e0e0;
           }
 
           .inj-research-card {
             background: #fafafa;
-            border: 1px solid #e5e5e5;
-            border-radius: 12px;
+            border-right: 1px solid #e0e0e0;
+            border-bottom: 1px solid #e0e0e0;
             padding: 1.75rem;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: background 0.2s ease;
           }
 
           .inj-research-card:hover {
-            border-color: #171717;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            transform: translateY(-2px);
+            background: #ffffff;
           }
 
           .inj-research-category {
             display: inline-block;
-            font-size: 0.6875rem;
+            font-size: 11px;
             font-weight: 700;
-            letter-spacing: 0.08em;
+            letter-spacing: 0.1em;
             text-transform: uppercase;
-            color: #16a34a;
+            color: #c4a882;
             margin-bottom: 0.875rem;
           }
 
           .inj-research-headline {
             font-size: 1.0625rem;
-            font-weight: 700;
-            color: #171717;
+            font-weight: 800;
+            color: #1a1a1a;
             margin: 0 0 0.75rem;
             line-height: 1.4;
           }
 
           .inj-research-summary {
             font-size: 0.875rem;
-            line-height: 1.7;
-            color: #525252;
+            line-height: 1.75;
+            color: #737373;
             margin: 0 0 1rem;
           }
 
@@ -835,17 +766,17 @@ export default function InjuryRecovery() {
             text-align: center;
             max-width: 700px;
             margin: 3rem auto 0;
-            line-height: 1.7;
+            line-height: 1.75;
           }
 
           /* FAQ */
           .inj-faq-list {
             max-width: 700px;
-            margin: 0 auto;
+            margin: 2rem auto 0;
           }
 
           .inj-faq-item {
-            border-bottom: 1px solid #e5e5e5;
+            border-bottom: 1px solid #e0e0e0;
           }
 
           .inj-faq-item:last-child {
@@ -868,18 +799,17 @@ export default function InjuryRecovery() {
           .inj-faq-question span {
             font-size: 1rem;
             font-weight: 600;
-            color: #171717;
+            color: #1a1a1a;
             padding-right: 1rem;
           }
 
-          .inj-faq-question svg {
+          .inj-faq-toggle {
             flex-shrink: 0;
+            font-size: 1.25rem;
+            font-weight: 300;
             color: #737373;
-            transition: transform 0.2s;
-          }
-
-          .inj-faq-open .inj-faq-question svg {
-            transform: rotate(180deg);
+            width: 24px;
+            text-align: center;
           }
 
           .inj-faq-answer {
@@ -895,8 +825,8 @@ export default function InjuryRecovery() {
 
           .inj-faq-answer p {
             font-size: 0.9375rem;
-            color: #525252;
-            line-height: 1.7;
+            color: #737373;
+            line-height: 1.75;
             margin: 0;
           }
 
@@ -906,28 +836,7 @@ export default function InjuryRecovery() {
             color: #a3a3a3;
             max-width: 500px;
             margin: 0 auto 2rem;
-            line-height: 1.7;
-          }
-
-          :global(.inj-btn-white) {
-            display: inline-block;
-            background: #ffffff !important;
-            color: #000000 !important;
-            padding: 1rem 2.5rem;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 1rem;
-            text-decoration: none;
-            box-shadow: 0 4px 14px rgba(255, 255, 255, 0.3);
-            transition: all 0.2s ease;
-            cursor: pointer;
-            border: none;
-          }
-
-          :global(.inj-btn-white:hover) {
-            background: #f0f0f0 !important;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255, 255, 255, 0.4);
+            line-height: 1.75;
           }
 
           .inj-cta-location {
@@ -960,23 +869,20 @@ export default function InjuryRecovery() {
           }
 
           @media (max-width: 640px) {
-            .inj-trust-inner {
-              flex-direction: column;
-              gap: 0.5rem;
-            }
-
             .inj-hero {
-              padding: 3rem 1.5rem;
+              padding: 4rem 1.5rem;
             }
 
-            .inj-hero h1 {
-              font-size: 2rem;
+            .inj-section {
+              padding: 4rem 1.5rem;
             }
 
-            .inj-section h2,
-            .inj-section-alt h2,
-            .inj-section-inverted h2 {
-              font-size: 1.75rem;
+            .inj-section-alt {
+              padding: 4rem 1.5rem;
+            }
+
+            .inj-section-inverted {
+              padding: 4rem 1.5rem;
             }
 
             .inj-signs-grid {

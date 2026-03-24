@@ -16,33 +16,28 @@ export default function Layout({ children, title, description }) {
         <link rel="icon" href="/favicon.ico" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
       </Head>
 
       {/* Header */}
       <header className="rm-header">
         <div className="rm-header-inner">
-          <Link href="/" className="rm-logo">
-            <img 
-              src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" 
-              alt="Range Medical" 
-            />
-          </Link>
+          <Link href="/" className="rm-wordmark">RANGE MEDICAL</Link>
 
           {/* Desktop Navigation */}
           <nav className="rm-nav">
             <div className="rm-nav-links">
-              <Link href="/injury-recovery" className="rm-nav-link">Injury Recovery</Link>
+              <Link href="/injury-recovery" className="rm-nav-link">Recovery</Link>
 
               {/* How We Treat Dropdown */}
-              <div 
+              <div
                 className="rm-dropdown"
                 onMouseEnter={() => setDropdownOpen(true)}
                 onMouseLeave={() => setDropdownOpen(false)}
               >
                 <button className="rm-nav-link rm-dropdown-trigger">
-                  How We Treat 
-                  <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
+                  Treatments
+                  <svg width="8" height="5" viewBox="0 0 10 6" fill="none">
                     <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </button>
@@ -62,22 +57,21 @@ export default function Layout({ children, title, description }) {
                 </div>
               </div>
 
-              <Link href="/lab-panels" className="rm-nav-link">Labs & Testing</Link>
+              <Link href="/lab-panels" className="rm-nav-link">Labs</Link>
               <Link href="/grand-opening" className="rm-nav-link">Grand Opening</Link>
             </div>
 
             <Link href="/start" className="rm-nav-cta">
-              Start Here
+              START HERE
             </Link>
           </nav>
 
           {/* Mobile Menu Toggle */}
-          <button 
+          <button
             className="rm-mobile-toggle"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle menu"
           >
-            <span></span>
             <span></span>
             <span></span>
           </button>
@@ -85,14 +79,14 @@ export default function Layout({ children, title, description }) {
 
         {/* Mobile Menu */}
         <div className={`rm-mobile-menu ${mobileMenuOpen ? 'open' : ''}`}>
-          <Link href="/injury-recovery" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Injury Recovery</Link>
+          <Link href="/injury-recovery" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Recovery</Link>
           <button
             className="rm-mobile-accordion"
             onClick={() => setMobileTreatmentsOpen(!mobileTreatmentsOpen)}
           >
-            <span>How We Treat</span>
+            <span>Treatments</span>
             <svg
-              width="12" height="7" viewBox="0 0 12 7" fill="none"
+              width="10" height="6" viewBox="0 0 12 7" fill="none"
               style={{ transform: mobileTreatmentsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
             >
               <path d="M1 1L6 6L11 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -116,7 +110,7 @@ export default function Layout({ children, title, description }) {
           )}
           <Link href="/lab-panels" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Labs & Testing</Link>
           <Link href="/grand-opening" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Grand Opening</Link>
-          <Link href="/start" className="rm-mobile-cta" onClick={() => setMobileMenuOpen(false)}>Start Here</Link>
+          <Link href="/start" className="rm-mobile-cta" onClick={() => setMobileMenuOpen(false)}>START HERE</Link>
         </div>
       </header>
 
@@ -127,53 +121,52 @@ export default function Layout({ children, title, description }) {
       <footer className="rm-footer">
         <div className="rm-footer-inner">
           <div className="rm-footer-brand">
-            <img 
-              src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" 
-              alt="Range Medical" 
-            />
-            <p>Feel like yourself again.</p>
+            <span className="rm-footer-wordmark">RANGE MEDICAL</span>
+            <p className="rm-footer-tagline">Feel like yourself again.</p>
             <a href="tel:9499973988" className="rm-footer-contact">(949) 997-3988</a>
-            <p>
+            <p className="rm-footer-address">
               1901 Westcliff Dr. Suite 10<br />
               Newport Beach, CA 92660
             </p>
           </div>
-          <div className="rm-footer-col">
-            <h4>Start Here</h4>
-            <ul>
-              <li><Link href="/start">Start Here</Link></li>
-              <li><Link href="/injury-recovery">Injury Recovery</Link></li>
-              <li><Link href="/lab-panels">Labs & Testing</Link></li>
-            </ul>
-          </div>
-          <div className="rm-footer-col">
-            <h4>How We Treat</h4>
-            <ul>
-              <li><Link href="/hormone-optimization">Hormone Optimization</Link></li>
-              <li><Link href="/weight-loss">Weight Loss</Link></li>
-              <li><Link href="/peptide-therapy">Peptide Therapy</Link></li>
-              <li><Link href="/nad-therapy">NAD+ Therapy</Link></li>
-              <li><Link href="/iv-therapy">IV Therapy</Link></li>
-              <li><Link href="/injection-therapy">Injection Therapy</Link></li>
-              <li><Link href="/cellular-energy-reset">Cellular Reset</Link></li>
-            </ul>
-          </div>
-          <div className="rm-footer-col">
-            <h4>More</h4>
-            <ul>
-              <li><Link href="/hyperbaric-oxygen-therapy">Hyperbaric Oxygen</Link></li>
-              <li><Link href="/red-light-therapy">Red Light Therapy</Link></li>
-              <li><Link href="/prp-therapy">PRP Therapy</Link></li>
-              <li><Link href="/exosome-therapy">Exosome Therapy</Link></li>
-              <li><Link href="/methylene-blue">Methylene Blue</Link></li>
-              <li><Link href="/reviews">Reviews</Link></li>
-              <li><Link href="/gift-cards">Gift Cards</Link></li>
-              <li><Link href="/grand-opening">Grand Opening</Link></li>
-            </ul>
+          <div className="rm-footer-links">
+            <div className="rm-footer-col">
+              <h4>START</h4>
+              <ul>
+                <li><Link href="/start">Start Here</Link></li>
+                <li><Link href="/injury-recovery">Injury Recovery</Link></li>
+                <li><Link href="/lab-panels">Labs & Testing</Link></li>
+              </ul>
+            </div>
+            <div className="rm-footer-col">
+              <h4>TREATMENTS</h4>
+              <ul>
+                <li><Link href="/hormone-optimization">Hormones</Link></li>
+                <li><Link href="/weight-loss">Weight Loss</Link></li>
+                <li><Link href="/peptide-therapy">Peptides</Link></li>
+                <li><Link href="/nad-therapy">NAD+</Link></li>
+                <li><Link href="/iv-therapy">IV Therapy</Link></li>
+                <li><Link href="/injection-therapy">Injections</Link></li>
+                <li><Link href="/cellular-energy-reset">Cellular Reset</Link></li>
+              </ul>
+            </div>
+            <div className="rm-footer-col">
+              <h4>MORE</h4>
+              <ul>
+                <li><Link href="/hyperbaric-oxygen-therapy">Hyperbaric Oxygen</Link></li>
+                <li><Link href="/red-light-therapy">Red Light</Link></li>
+                <li><Link href="/prp-therapy">PRP Therapy</Link></li>
+                <li><Link href="/exosome-therapy">Exosomes</Link></li>
+                <li><Link href="/methylene-blue">Methylene Blue</Link></li>
+                <li><Link href="/reviews">Reviews</Link></li>
+                <li><Link href="/gift-cards">Gift Cards</Link></li>
+                <li><Link href="/grand-opening">Grand Opening</Link></li>
+              </ul>
+            </div>
           </div>
         </div>
         <div className="rm-footer-bottom">
-          <p>© {new Date().getFullYear()} Range Medical. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Range Medical. All rights reserved.</p>
           <div className="rm-footer-legal">
             <Link href="/terms-of-use">Terms</Link>
             <Link href="/privacy-policy">Privacy</Link>
@@ -183,32 +176,32 @@ export default function Layout({ children, title, description }) {
       </footer>
 
       <style jsx>{`
-        /* Header - RESTORED TO ORIGINAL SIZE */
+        /* ── HEADER ── */
         .rm-header {
           position: sticky;
           top: 0;
           background: #ffffff;
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e8e8e8;
           z-index: 1000;
         }
 
         .rm-header-inner {
           max-width: 1200px;
           margin: 0 auto;
-          padding: 1rem 1.5rem;
+          padding: 0 2rem;
+          height: 56px;
           display: flex;
           align-items: center;
           justify-content: space-between;
         }
 
-        .rm-logo {
-          display: flex;
-          align-items: center;
-        }
-
-        .rm-logo img {
-          height: 80px;
-          width: auto;
+        :global(.rm-wordmark) {
+          font-size: 13px;
+          font-weight: 800;
+          letter-spacing: 0.15em;
+          color: #1a1a1a;
+          text-decoration: none;
+          line-height: 1;
         }
 
         /* Desktop Nav */
@@ -225,10 +218,12 @@ export default function Layout({ children, title, description }) {
         }
 
         .rm-nav-link {
-          color: #404040;
+          color: #737373;
           text-decoration: none;
-          font-size: 0.9rem;
+          font-size: 12px;
           font-weight: 500;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
           transition: color 0.2s;
           background: none;
           border: none;
@@ -237,25 +232,27 @@ export default function Layout({ children, title, description }) {
           align-items: center;
           gap: 0.375rem;
           font-family: inherit;
+          line-height: 1;
         }
 
         .rm-nav-link:hover {
-          color: #000000;
+          color: #1a1a1a;
         }
 
-        .rm-nav-cta {
-          background: #000000;
+        :global(.rm-nav-cta) {
+          background: #1a1a1a;
           color: #ffffff;
-          padding: 0.75rem 1.25rem;
-          border-radius: 8px;
-          font-weight: 600;
-          font-size: 0.875rem;
+          padding: 10px 20px;
+          font-weight: 700;
+          font-size: 11px;
+          letter-spacing: 0.12em;
           text-decoration: none;
           transition: background 0.2s;
+          line-height: 1;
         }
 
-        .rm-nav-cta:hover {
-          background: #333333;
+        :global(.rm-nav-cta:hover) {
+          background: #404040;
         }
 
         /* Dropdown */
@@ -273,11 +270,10 @@ export default function Layout({ children, title, description }) {
           left: 50%;
           transform: translateX(-50%);
           background: #ffffff;
-          border: 1px solid #e5e5e5;
-          border-radius: 8px;
+          border: 1px solid #e8e8e8;
           padding: 0.5rem 0;
           min-width: 200px;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+          box-shadow: 0 8px 30px rgba(0,0,0,0.06);
           opacity: 0;
           visibility: hidden;
           transition: all 0.2s;
@@ -291,23 +287,24 @@ export default function Layout({ children, title, description }) {
 
         .rm-dropdown-menu :global(a) {
           display: block;
-          padding: 0.625rem 1rem;
-          font-size: 0.875rem;
-          color: #404040;
+          padding: 0.5rem 1rem;
+          font-size: 12px;
+          color: #737373;
           text-decoration: none;
           transition: all 0.15s;
+          letter-spacing: 0.02em;
         }
 
         .rm-dropdown-menu :global(a:hover) {
-          background: #f5f5f5;
-          color: #000000;
+          background: #fafafa;
+          color: #1a1a1a;
         }
 
         /* Mobile Toggle */
         .rm-mobile-toggle {
           display: none;
           flex-direction: column;
-          gap: 5px;
+          gap: 6px;
           padding: 8px;
           background: none;
           border: none;
@@ -317,8 +314,8 @@ export default function Layout({ children, title, description }) {
         .rm-mobile-toggle span {
           display: block;
           width: 24px;
-          height: 2px;
-          background: #000000;
+          height: 1.5px;
+          background: #1a1a1a;
           transition: all 0.3s;
         }
 
@@ -330,36 +327,23 @@ export default function Layout({ children, title, description }) {
           left: 0;
           right: 0;
           background: #ffffff;
-          border-bottom: 1px solid #e5e5e5;
-          padding: 1rem 1.5rem 1.5rem;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+          border-bottom: 1px solid #e8e8e8;
+          padding: 1rem 2rem 1.5rem;
+          box-shadow: 0 8px 30px rgba(0,0,0,0.06);
         }
 
         .rm-mobile-menu.open {
           display: block;
         }
 
-        .rm-mobile-link {
+        :global(.rm-mobile-link) {
           display: block;
           padding: 0.75rem 0;
           color: #404040;
           text-decoration: none;
-          font-size: 0.9375rem;
-        }
-
-        .rm-mobile-label {
-          font-size: 0.75rem;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          color: #737373;
-          padding: 0.5rem 0 0.25rem;
-        }
-
-        .rm-mobile-divider {
-          height: 1px;
-          background: #e5e5e5;
-          margin: 0.5rem 0;
+          font-size: 14px;
+          font-weight: 500;
+          border-bottom: 1px solid #f0f0f0;
         }
 
         .rm-mobile-accordion {
@@ -371,7 +355,7 @@ export default function Layout({ children, title, description }) {
           background: none;
           border: none;
           border-bottom: 1px solid #f0f0f0;
-          font-size: 0.9375rem;
+          font-size: 14px;
           font-weight: 500;
           color: #404040;
           cursor: pointer;
@@ -383,20 +367,138 @@ export default function Layout({ children, title, description }) {
         }
 
         .rm-mobile-sub :global(a) {
-          font-size: 0.875rem;
+          font-size: 13px;
           color: #737373;
         }
 
-        .rm-mobile-cta {
+        :global(.rm-mobile-cta) {
           display: block;
-          background: #000000;
+          background: #1a1a1a;
           color: #ffffff !important;
           text-align: center;
           padding: 0.875rem 1rem !important;
-          border-radius: 8px;
           margin-top: 1rem;
-          font-weight: 600 !important;
+          font-weight: 700 !important;
+          font-size: 11px !important;
+          letter-spacing: 0.12em;
           text-decoration: none;
+          border: none !important;
+        }
+
+        /* ── FOOTER ── */
+        .rm-footer {
+          background: #fafafa;
+          border-top: 1px solid #e0e0e0;
+          padding: 4rem 2rem 2rem;
+        }
+
+        .rm-footer-inner {
+          max-width: 1200px;
+          margin: 0 auto 3rem;
+          display: flex;
+          justify-content: space-between;
+          gap: 4rem;
+        }
+
+        .rm-footer-wordmark {
+          font-size: 12px;
+          font-weight: 800;
+          letter-spacing: 0.15em;
+          color: #1a1a1a;
+        }
+
+        .rm-footer-tagline {
+          font-size: 14px;
+          color: #737373;
+          margin: 0.75rem 0 0;
+        }
+
+        .rm-footer-contact {
+          display: inline-block;
+          font-size: 13px;
+          color: #737373;
+          text-decoration: none;
+          margin-top: 0.5rem;
+          transition: color 0.2s;
+        }
+
+        .rm-footer-contact:hover {
+          color: #1a1a1a;
+        }
+
+        .rm-footer-address {
+          font-size: 13px;
+          color: #a0a0a0;
+          margin: 0.375rem 0 0;
+          line-height: 1.5;
+        }
+
+        .rm-footer-links {
+          display: flex;
+          gap: 4rem;
+        }
+
+        .rm-footer-col h4 {
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.14em;
+          color: #1a1a1a;
+          margin: 0 0 1rem;
+        }
+
+        .rm-footer-col ul {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+        }
+
+        .rm-footer-col li {
+          margin: 0;
+        }
+
+        .rm-footer-col :global(a) {
+          display: block;
+          font-size: 13px;
+          color: #737373;
+          text-decoration: none;
+          padding: 0.375rem 0;
+          transition: color 0.2s;
+        }
+
+        .rm-footer-col :global(a:hover) {
+          color: #1a1a1a;
+        }
+
+        .rm-footer-bottom {
+          max-width: 1200px;
+          margin: 0 auto;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border-top: 1px solid #e0e0e0;
+          padding-top: 1.5rem;
+        }
+
+        .rm-footer-bottom p {
+          font-size: 12px;
+          color: #a0a0a0;
+          margin: 0;
+        }
+
+        .rm-footer-legal {
+          display: flex;
+          gap: 1.5rem;
+        }
+
+        .rm-footer-legal :global(a) {
+          font-size: 12px;
+          color: #a0a0a0;
+          text-decoration: none;
+          transition: color 0.2s;
+        }
+
+        .rm-footer-legal :global(a:hover) {
+          color: #1a1a1a;
         }
 
         /* Responsive */
@@ -407,6 +509,22 @@ export default function Layout({ children, title, description }) {
 
           .rm-mobile-toggle {
             display: flex;
+          }
+
+          .rm-footer-inner {
+            flex-direction: column;
+            gap: 2.5rem;
+          }
+
+          .rm-footer-links {
+            flex-direction: column;
+            gap: 2rem;
+          }
+
+          .rm-footer-bottom {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
           }
         }
       `}</style>

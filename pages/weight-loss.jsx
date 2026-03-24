@@ -119,13 +119,13 @@ export default function WeightLoss() {
   ];
 
   const steps = [
-    { step: "Step 1", title: "Get started", desc: "Get started with Range Medical. We'll discuss your weight history, goals, and determine if GLP-1 medications are right for you." },
-    { step: "Step 2", title: "Run comprehensive labs", desc: "We check metabolic markers, thyroid, hormones, and other factors that affect weight — not just the basics." },
-    { step: "Step 3", title: "Start your medication", desc: "Your provider prescribes the right medication at the right starting dose. We teach you how to self-inject (it's easier than you think)." },
-    { step: "Step 4", title: "Ongoing support", desc: "Weekly check-ins, dose adjustments based on your response, and lab monitoring throughout your journey. Real support, not just refills." }
+    { step: "01", title: "Get started", desc: "Get started with Range Medical. We'll discuss your weight history, goals, and determine if GLP-1 medications are right for you." },
+    { step: "02", title: "Run comprehensive labs", desc: "We check metabolic markers, thyroid, hormones, and other factors that affect weight — not just the basics." },
+    { step: "03", title: "Start your medication", desc: "Your provider prescribes the right medication at the right starting dose. We teach you how to self-inject (it's easier than you think)." },
+    { step: "04", title: "Ongoing support", desc: "Weekly check-ins, dose adjustments based on your response, and lab monitoring throughout your journey. Real support, not just refills." }
   ];
 
-  
+
   return (
     <Layout
       title="Medical Weight Loss | Tirzepatide & Semaglutide | Newport Beach | Range Medical"
@@ -242,18 +242,19 @@ export default function WeightLoss() {
       <div className="trust-bar">
         <div className="trust-inner">
           <span className="trust-item">
-            <span className="trust-rating">★★★★★</span> 5.0 on Google
+            <span className="trust-rating">5.0 on Google</span>
           </span>
-          <span className="trust-item">📍 Newport Beach, CA</span>
-          <span className="trust-item">✓ Licensed Providers</span>
+          <span className="trust-item">Newport Beach, CA</span>
+          <span className="trust-item">Licensed Providers</span>
         </div>
       </div>
 
       <div className="wl-page">
         {/* Hero */}
         <section className="wl-hero">
-          <div className="wl-kicker">Weight Loss · Metabolism · Results</div>
-          <h1>Your Guide to Medical Weight Loss</h1>
+          <div className="v2-label"><span className="v2-dot" /> WEIGHT LOSS</div>
+          <h1>YOUR GUIDE TO MEDICAL WEIGHT LOSS</h1>
+          <div className="wl-hero-rule"></div>
           <p className="wl-body-text">Everything you need to know about GLP-1 medications like Tirzepatide and Semaglutide — how they work, what to expect, and whether they're right for you.</p>
           <div className="wl-hero-scroll">
             Scroll to explore
@@ -265,8 +266,8 @@ export default function WeightLoss() {
         <section className="wl-section wl-section-alt">
           <div className="wl-container">
             <div className="wl-animate">
-              <div className="wl-kicker">What Is It</div>
-              <h2>A new class of medications that actually work.</h2>
+              <div className="v2-label"><span className="v2-dot" /> WHAT IS IT</div>
+              <h2>A NEW CLASS OF MEDICATIONS THAT ACTUALLY WORK.</h2>
               <div className="wl-divider"></div>
               <p className="wl-body-text">
                 GLP-1 medications (like Tirzepatide and Semaglutide) work differently than anything before them. They target hormones that control hunger, satiety, and metabolism — helping your body naturally want less food while improving how you process what you eat.
@@ -297,8 +298,8 @@ export default function WeightLoss() {
         <section className="wl-section wl-section-inverted">
           <div className="wl-container">
             <div className="wl-animate">
-              <div className="wl-kicker">Who It's For</div>
-              <h2>You've tried everything. This is different.</h2>
+              <div className="v2-label"><span className="v2-dot" /> WHO IT'S FOR</div>
+              <h2>YOU'VE TRIED EVERYTHING. THIS IS DIFFERENT.</h2>
               <div className="wl-divider"></div>
               <p className="wl-body-text">
                 If diets and exercise haven't worked long-term, it's not a character flaw — it's biology working against you. GLP-1 medications can help level the playing field. Sound familiar?
@@ -317,8 +318,8 @@ export default function WeightLoss() {
         <section className="wl-section">
           <div className="wl-container">
             <div className="wl-animate">
-              <div className="wl-kicker">Medications We Offer</div>
-              <h2>The right medication for your situation.</h2>
+              <div className="v2-label"><span className="v2-dot" /> MEDICATIONS WE OFFER</div>
+              <h2>THE RIGHT MEDICATION FOR YOUR SITUATION.</h2>
               <div className="wl-divider"></div>
               <p className="wl-body-text">
                 We offer both major GLP-1 medications. Your provider will recommend the best option based on your labs, history, and goals.
@@ -342,8 +343,8 @@ export default function WeightLoss() {
         <section className="wl-section wl-section-alt">
           <div className="wl-container">
             <div className="wl-animate">
-              <div className="wl-kicker">How It May Help</div>
-              <h2>More than just weight loss.</h2>
+              <div className="v2-label"><span className="v2-dot" /> HOW IT MAY HELP</div>
+              <h2>MORE THAN JUST WEIGHT LOSS.</h2>
               <div className="wl-divider"></div>
               <p className="wl-body-text">
                 GLP-1 medications don't just help you lose weight — they change your relationship with food and improve your metabolic health.
@@ -366,8 +367,8 @@ export default function WeightLoss() {
         <section className="wl-section wl-section-inverted">
           <div className="wl-container">
             <div className="wl-animate">
-              <div className="wl-kicker">What to Expect</div>
-              <h2>Your weight loss journey, week by week.</h2>
+              <div className="v2-label"><span className="v2-dot" /> WHAT TO EXPECT</div>
+              <h2>YOUR WEIGHT LOSS JOURNEY, WEEK BY WEEK.</h2>
               <div className="wl-divider"></div>
               <p className="wl-body-text">
                 Results don't happen overnight, but they do happen. Here's the typical timeline our patients experience.
@@ -392,8 +393,8 @@ export default function WeightLoss() {
         <section className="wl-section" id="wl-research">
           <div className="wl-container">
             <div className="wl-animate">
-              <div className="wl-kicker">Backed by Science</div>
-              <h2>Evidence-Based Results</h2>
+              <div className="v2-label"><span className="v2-dot" /> BACKED BY SCIENCE</div>
+              <h2>EVIDENCE-BASED RESULTS</h2>
               <div className="wl-divider"></div>
               <p className="wl-body-text">
                 We've summarized the peer-reviewed research. Click any study to get the full breakdown — free.
@@ -426,8 +427,8 @@ export default function WeightLoss() {
         <section className="wl-section wl-section-alt">
           <div className="wl-container">
             <div className="wl-animate">
-              <div className="wl-kicker">Getting Started</div>
-              <h2>Your first visit, step by step.</h2>
+              <div className="v2-label"><span className="v2-dot" /> GETTING STARTED</div>
+              <h2>YOUR FIRST VISIT, STEP BY STEP.</h2>
               <div className="wl-divider"></div>
               <p className="wl-body-text">
                 Getting started is straightforward. Here's exactly what happens at our Newport Beach clinic.
@@ -449,19 +450,17 @@ export default function WeightLoss() {
         </section>
 
         {/* FAQ */}
-        <section className="wl-section-alt">
+        <section className="wl-section wl-section-alt">
           <div className="wl-container">
-            <span className="wl-section-label">Questions</span>
-            <h2>Common Questions</h2>
+            <div className="v2-label"><span className="v2-dot" /> QUESTIONS</div>
+            <h2>COMMON QUESTIONS</h2>
 
             <div className="wl-faq-list">
               {faqs.map((faq, index) => (
                 <div key={index} className={`wl-faq-item ${openFaq === index ? 'wl-faq-open' : ''}`}>
                   <button className="wl-faq-question" onClick={() => toggleFaq(index)}>
                     <span>{faq.question}</span>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d={openFaq === index ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} />
-                    </svg>
+                    <span className="wl-faq-toggle">{openFaq === index ? '\u2212' : '+'}</span>
                   </button>
                   <div className="wl-faq-answer">
                     <p>{faq.answer}</p>
@@ -476,13 +475,13 @@ export default function WeightLoss() {
         <section className="wl-section wl-section-inverted wl-cta-section">
           <div className="wl-container">
             <div className="wl-animate">
-              <div className="wl-kicker" style={{ marginBottom: '1.5rem' }}>Next Steps</div>
-              <h2 className="wl-cta-title">Ready to lose weight for good?</h2>
+              <div className="v2-label" style={{ marginBottom: '1.5rem' }}><span className="v2-dot" /> NEXT STEPS</div>
+              <h2 className="wl-cta-title">READY TO LOSE WEIGHT FOR GOOD?</h2>
               <p className="wl-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
                 Get started with Range Medical. We'll review your history, run labs, and see if GLP-1 medications are right for you. Our Newport Beach team is here to help.
               </p>
               <div className="wl-cta-buttons">
-                <Link href="/start" className="wl-btn-primary">Start Now</Link>
+                <Link href="/start" className="wl-btn-primary">START NOW</Link>
                 <div className="wl-cta-or">or</div>
                 <a href="tel:9499973988" className="wl-cta-phone">(949) 997-3988</a>
               </div>
@@ -499,13 +498,22 @@ export default function WeightLoss() {
       </div>
 
       <style jsx>{`
-        /* ===== WEIGHT LOSS PAGE SCOPED STYLES ===== */
+        /* ===== WEIGHT LOSS PAGE V2 SCOPED STYLES ===== */
         .wl-page {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
           -webkit-font-smoothing: antialiased;
           background: #ffffff;
           color: #171717;
           overflow-x: hidden;
+        }
+
+        /* Trust Bar */
+        .trust-bar .trust-item {
+          font-size: 0.75rem;
+          font-weight: 600;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #737373;
         }
 
         /* Animations */
@@ -529,58 +537,37 @@ export default function WeightLoss() {
 
         /* Sections */
         .wl-section {
-          padding: 4rem 1.5rem;
+          padding: 6rem 2rem;
         }
 
         .wl-section-alt {
           background: #fafafa;
-          padding: 5rem 1.5rem;
-        }
-
-        .wl-section-label {
-          display: inline-block;
-          font-size: 0.75rem;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 0.75rem;
+          padding: 6rem 2rem;
         }
 
         .wl-section-inverted {
-          background: #000000;
+          background: #1a1a1a;
           color: #ffffff;
-        }
-
-        /* Kicker */
-        .wl-kicker {
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 1rem;
-        }
-
-        .wl-section-inverted .wl-kicker {
-          color: rgba(255, 255, 255, 0.4);
         }
 
         /* Headlines */
         .wl-page h1 {
           font-size: 2.75rem;
-          font-weight: 700;
-          line-height: 1.15;
-          letter-spacing: -0.02em;
+          font-weight: 900;
+          line-height: 0.95;
+          letter-spacing: -0.03em;
           color: #171717;
+          text-transform: uppercase;
         }
 
         .wl-page h2 {
           font-size: 2rem;
-          font-weight: 700;
-          letter-spacing: -0.02em;
+          font-weight: 900;
+          letter-spacing: -0.03em;
+          line-height: 0.95;
           color: #171717;
           margin-bottom: 1rem;
+          text-transform: uppercase;
         }
 
         .wl-page h3 {
@@ -600,7 +587,7 @@ export default function WeightLoss() {
           font-size: 1.0625rem;
           font-weight: 400;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
           max-width: 600px;
         }
 
@@ -611,8 +598,8 @@ export default function WeightLoss() {
         /* Divider */
         .wl-divider {
           width: 48px;
-          height: 2px;
-          background: #e5e5e5;
+          height: 1px;
+          background: #e0e0e0;
           margin: 1.25rem 0;
         }
 
@@ -624,30 +611,34 @@ export default function WeightLoss() {
         .wl-btn-primary {
           display: inline-block;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          font-size: 0.875rem;
-          font-weight: 600;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
           padding: 0.875rem 2rem;
           background: #ffffff;
-          color: #000000;
+          color: #1a1a1a;
           border: none;
-          border-radius: 8px;
+          border-radius: 0;
           cursor: pointer;
           text-decoration: none;
           transition: background 0.2s ease, transform 0.2s ease;
         }
 
         .wl-btn-primary:hover {
-          background: #e5e5e5;
+          background: #e0e0e0;
           transform: translateY(-1px);
         }
 
         /* Hero */
         .wl-hero {
-          padding: 4rem 1.5rem 5rem;
-          text-align: center;
+          padding: 6rem 2rem 5rem;
+          text-align: left;
           display: flex;
           flex-direction: column;
-          align-items: center;
+          align-items: flex-start;
+          max-width: 1200px;
+          margin: 0 auto;
         }
 
         .wl-hero h1 {
@@ -655,9 +646,16 @@ export default function WeightLoss() {
           margin-bottom: 1.5rem;
         }
 
+        .wl-hero-rule {
+          width: 48px;
+          height: 1px;
+          background: #e0e0e0;
+          margin-bottom: 1.5rem;
+        }
+
         .wl-hero .wl-body-text {
-          text-align: center;
-          margin: 0 auto 2.5rem;
+          text-align: left;
+          margin: 0 0 2.5rem;
         }
 
         .wl-hero-scroll {
@@ -695,11 +693,11 @@ export default function WeightLoss() {
 
         .wl-stat-number {
           font-size: 2.75rem;
-          font-weight: 800;
-          letter-spacing: -0.02em;
+          font-weight: 900;
+          letter-spacing: -0.03em;
           line-height: 1;
           margin-bottom: 0.5rem;
-          color: #171717;
+          color: #c4a882;
         }
 
         .wl-stat-label {
@@ -721,7 +719,7 @@ export default function WeightLoss() {
           font-size: 0.8125rem;
           font-weight: 600;
           padding: 0.75rem 1.5rem;
-          border-radius: 100px;
+          border-radius: 0;
           border: 1px solid rgba(255, 255, 255, 0.08);
           background: rgba(255, 255, 255, 0.04);
           color: rgba(255, 255, 255, 0.6);
@@ -736,36 +734,40 @@ export default function WeightLoss() {
         .wl-meds-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 1.25rem;
+          gap: 0;
           margin-top: 2.5rem;
         }
 
         .wl-med-card {
           padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border-radius: 0;
+          border: 1px solid #e0e0e0;
+          border-right: none;
           background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          transition: border-color 0.2s ease;
           position: relative;
         }
 
+        .wl-med-card:last-child {
+          border-right: 1px solid #e0e0e0;
+        }
+
         .wl-med-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          border-color: #1a1a1a;
         }
 
         .wl-med-badge {
           position: absolute;
           top: -10px;
           left: 1.5rem;
-          background: #16a34a;
+          background: #c4a882;
           color: #ffffff;
           font-size: 0.6875rem;
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.05em;
           padding: 0.375rem 0.75rem;
-          border-radius: 4px;
+          border-radius: 0;
         }
 
         .wl-med-name {
@@ -784,36 +786,44 @@ export default function WeightLoss() {
         .wl-med-desc {
           font-size: 0.875rem;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
         }
 
         /* Benefit Cards */
         .wl-benefits-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 1.25rem;
+          gap: 0;
           margin-top: 2.5rem;
+          border: 1px solid #e0e0e0;
         }
 
         .wl-benefit-card {
           padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border-radius: 0;
+          border-bottom: 1px solid #e0e0e0;
+          border-right: 1px solid #e0e0e0;
           background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          transition: background 0.2s ease;
+        }
+
+        .wl-benefit-card:nth-child(2n) {
+          border-right: none;
+        }
+
+        .wl-benefit-card:nth-last-child(-n+2) {
+          border-bottom: none;
         }
 
         .wl-benefit-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          background: #fafafa;
         }
 
         .wl-benefit-number {
-          font-size: 0.75rem;
-          font-weight: 700;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: #737373;
+          font-size: 1.25rem;
+          font-weight: 900;
+          letter-spacing: -0.02em;
+          color: #c4a882;
           margin-bottom: 1rem;
         }
 
@@ -827,7 +837,7 @@ export default function WeightLoss() {
         .wl-benefit-desc {
           font-size: 0.875rem;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
         }
 
         /* Timeline */
@@ -850,12 +860,12 @@ export default function WeightLoss() {
         .wl-timeline-period {
           font-size: 0.8125rem;
           font-weight: 700;
-          color: #000000;
+          color: #1a1a1a;
           min-width: 90px;
           letter-spacing: 0.02em;
-          background: #ffffff;
+          background: #c4a882;
           padding: 0.375rem 0.75rem;
-          border-radius: 4px;
+          border-radius: 0;
           text-align: center;
         }
 
@@ -876,23 +886,32 @@ export default function WeightLoss() {
         .wl-research-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 1.25rem;
+          gap: 0;
           margin-top: 2.5rem;
+          border: 1px solid #e0e0e0;
         }
 
         .wl-research-card {
           padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border-radius: 0;
+          border-bottom: 1px solid #e0e0e0;
+          border-right: 1px solid #e0e0e0;
           background: #ffffff;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: background 0.2s ease;
+        }
+
+        .wl-research-card:nth-child(2n) {
+          border-right: none;
+        }
+
+        .wl-research-card:last-child,
+        .wl-research-card:nth-last-child(2):nth-child(odd) {
+          border-bottom: none;
         }
 
         .wl-research-card:hover {
-          border-color: #171717;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          transform: translateY(-2px);
+          background: #fafafa;
         }
 
         .wl-research-category {
@@ -901,7 +920,7 @@ export default function WeightLoss() {
           font-weight: 700;
           letter-spacing: 0.08em;
           text-transform: uppercase;
-          color: #16a34a;
+          color: #c4a882;
           margin-bottom: 0.875rem;
         }
 
@@ -916,7 +935,7 @@ export default function WeightLoss() {
         .wl-research-summary {
           font-size: 0.875rem;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
           margin-bottom: 1rem;
         }
 
@@ -935,7 +954,7 @@ export default function WeightLoss() {
           line-height: 1.7;
         }
 
-        /* Expect List */
+        /* Expect List / Steps */
         .wl-expect-list {
           margin-top: 2.5rem;
         }
@@ -944,7 +963,7 @@ export default function WeightLoss() {
           display: flex;
           gap: 1.5rem;
           padding: 1.75rem 0;
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
           align-items: flex-start;
         }
 
@@ -953,11 +972,11 @@ export default function WeightLoss() {
         }
 
         .wl-expect-step {
-          font-size: 0.8125rem;
-          font-weight: 700;
-          color: #737373;
+          font-size: 1.25rem;
+          font-weight: 900;
+          color: #c4a882;
           min-width: 56px;
-          letter-spacing: 0.02em;
+          letter-spacing: -0.02em;
         }
 
         .wl-expect-content h3 {
@@ -969,7 +988,7 @@ export default function WeightLoss() {
 
         .wl-expect-content p {
           font-size: 0.875rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.7;
         }
 
@@ -980,7 +999,7 @@ export default function WeightLoss() {
         }
 
         .wl-faq-item {
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
         }
 
         .wl-faq-item:last-child {
@@ -1007,14 +1026,14 @@ export default function WeightLoss() {
           padding-right: 1rem;
         }
 
-        .wl-faq-question svg {
+        .wl-faq-toggle {
           flex-shrink: 0;
+          font-size: 1.25rem;
+          font-weight: 300;
           color: #737373;
-          transition: transform 0.2s;
-        }
-
-        .wl-faq-open .wl-faq-question svg {
-          transform: rotate(180deg);
+          width: 24px;
+          text-align: center;
+          padding-right: 0 !important;
         }
 
         .wl-faq-answer {
@@ -1030,22 +1049,25 @@ export default function WeightLoss() {
 
         .wl-faq-answer p {
           font-size: 0.9375rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.7;
           margin: 0;
         }
 
         /* CTA Section */
         .wl-cta-section {
-          padding: 6rem 1.5rem;
+          padding: 6rem 2rem;
           text-align: center;
         }
 
         .wl-cta-title {
           font-size: 2.75rem;
-          letter-spacing: -0.02em;
+          font-weight: 900;
+          letter-spacing: -0.03em;
+          line-height: 0.95;
           color: #ffffff;
           margin-bottom: 1.25rem;
+          text-transform: uppercase;
         }
 
         .wl-cta-buttons {
@@ -1084,6 +1106,10 @@ export default function WeightLoss() {
             padding: 3rem 1.5rem;
           }
 
+          .wl-section-alt {
+            padding: 3rem 1.5rem;
+          }
+
           .wl-page h1 {
             font-size: 2rem;
           }
@@ -1105,12 +1131,37 @@ export default function WeightLoss() {
             grid-template-columns: 1fr;
           }
 
+          .wl-med-card {
+            border-right: 1px solid #e0e0e0;
+            border-bottom: none;
+          }
+
+          .wl-med-card:last-child {
+            border-bottom: 1px solid #e0e0e0;
+          }
+
           .wl-benefits-grid {
             grid-template-columns: 1fr;
           }
 
+          .wl-benefit-card {
+            border-right: none;
+          }
+
+          .wl-benefit-card:last-child {
+            border-bottom: none;
+          }
+
           .wl-research-grid {
             grid-template-columns: 1fr;
+          }
+
+          .wl-research-card {
+            border-right: none;
+          }
+
+          .wl-research-card:last-child {
+            border-bottom: none;
           }
 
           .wl-timeline-item {
@@ -1125,6 +1176,10 @@ export default function WeightLoss() {
           .wl-expect-item {
             flex-direction: column;
             gap: 0.5rem;
+          }
+
+          .wl-cta-section {
+            padding: 3rem 1.5rem;
           }
 
           .wl-cta-title {

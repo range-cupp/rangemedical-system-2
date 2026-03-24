@@ -255,8 +255,8 @@ export default function UnderstandingPeptides() {
           <span className="trust-item">
             <span className="trust-rating">★★★★★</span> 5.0 on Google
           </span>
-          <span className="trust-item">📍 Newport Beach, CA</span>
-          <span className="trust-item">✓ Licensed Providers</span>
+          <span className="trust-item">Newport Beach, CA</span>
+          <span className="trust-item">Licensed Providers</span>
         </div>
       </div>
 
@@ -264,8 +264,9 @@ export default function UnderstandingPeptides() {
 
         {/* ===== HERO ===== */}
         <section className="pm-hero">
-          <div className="pm-kicker">Peptide Therapy · Range Medical</div>
-          <h1>Understanding Peptides</h1>
+          <div className="v2-label"><span className="v2-dot" /> PEPTIDE THERAPY · RANGE MEDICAL</div>
+          <h1>UNDERSTANDING PEPTIDES</h1>
+          <div className="pm-hero-rule"></div>
           <p className="pm-body-text">
             How we guide you from your first protocol to at-home therapy — with check-ins, progress tracking, and clinical oversight every step of the way.
           </p>
@@ -279,8 +280,8 @@ export default function UnderstandingPeptides() {
         <section className="pm-section pm-section-alt">
           <div className="pm-container">
             <div className="pm-animate">
-              <div className="pm-kicker">How You Get Started</div>
-              <h2>Two pathways into peptide therapy.</h2>
+              <div className="v2-label"><span className="v2-dot" /> HOW YOU GET STARTED</div>
+              <h2>TWO PATHWAYS INTO PEPTIDE THERAPY.</h2>
               <div className="pm-divider"></div>
               <p className="pm-body-text">
                 Which peptides are available to you depends on what you're looking to address. Here's how our two pathways work.
@@ -333,8 +334,8 @@ export default function UnderstandingPeptides() {
         <section className="pm-section">
           <div className="pm-container">
             <div className="pm-animate">
-              <div className="pm-kicker">The Process</div>
-              <h2>How peptide therapy works at Range.</h2>
+              <div className="v2-label"><span className="v2-dot" /> THE PROCESS</div>
+              <h2>HOW PEPTIDE THERAPY WORKS AT RANGE.</h2>
               <div className="pm-divider"></div>
               <p className="pm-body-text">
                 We don't just hand you peptides and wish you luck. Here's the guided process from start to finish.
@@ -359,8 +360,8 @@ export default function UnderstandingPeptides() {
         <section className="pm-section pm-section-inverted">
           <div className="pm-container">
             <div className="pm-animate">
-              <div className="pm-kicker">Your Starting Point</div>
-              <h2>Pre-Filled Syringe Protocols</h2>
+              <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> YOUR STARTING POINT</div>
+              <h2>PRE-FILLED SYRINGE PROTOCOLS</h2>
               <div className="pm-divider"></div>
               <p className="pm-body-text">
                 Every patient starts here. Pre-filled syringes are pre-measured, ready-to-inject doses — no mixing or guesswork. We track your progress, schedule check-ins, and adjust your protocol as needed.
@@ -417,8 +418,8 @@ export default function UnderstandingPeptides() {
         <section className="pm-section pm-section-alt">
           <div className="pm-container">
             <div className="pm-animate">
-              <div className="pm-kicker">The At-Home Option</div>
-              <h2>Peptide Vials</h2>
+              <div className="v2-label"><span className="v2-dot" /> THE AT-HOME OPTION</div>
+              <h2>PEPTIDE VIALS</h2>
               <div className="pm-divider"></div>
               <p className="pm-body-text">
                 Once you've completed a supervised protocol and you're comfortable with the process, vials give you the flexibility to self-administer at home. We train you on everything — reconstitution, injection technique, and proper storage.
@@ -463,8 +464,8 @@ export default function UnderstandingPeptides() {
         <section className="pm-section">
           <div className="pm-container">
             <div className="pm-animate">
-              <div className="pm-kicker">Vials vs. Pre-Filled</div>
-              <h2>Which option is right for you?</h2>
+              <div className="v2-label"><span className="v2-dot" /> VIALS VS. PRE-FILLED</div>
+              <h2>WHICH OPTION IS RIGHT FOR YOU?</h2>
               <div className="pm-divider"></div>
             </div>
 
@@ -498,8 +499,8 @@ export default function UnderstandingPeptides() {
         {/* ===== FAQ ===== */}
         <section className="pm-section pm-section-alt">
           <div className="pm-container">
-            <span className="pm-section-label">Questions</span>
-            <h2>Common Questions</h2>
+            <div className="v2-label"><span className="v2-dot" /> QUESTIONS</div>
+            <h2>COMMON QUESTIONS</h2>
 
             <div className="pm-faq-list">
               {faqs.map((faq, index) => (
@@ -523,13 +524,13 @@ export default function UnderstandingPeptides() {
         <section className="pm-section pm-section-inverted pm-cta-section">
           <div className="pm-container">
             <div className="pm-animate">
-              <div className="pm-kicker" style={{ marginBottom: '1.5rem' }}>Next Steps</div>
-              <h2 className="pm-cta-title">Ready to explore peptide therapy?</h2>
+              <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '1.5rem' }}><span className="v2-dot" /> NEXT STEPS</div>
+              <h2 className="pm-cta-title">READY TO EXPLORE PEPTIDE THERAPY?</h2>
               <p className="pm-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
                 Get started with Range Medical and our team will guide you to the right protocol. Or give us a call — we're happy to answer any questions.
               </p>
               <div className="pm-cta-buttons">
-                <Link href="/start" className="pm-btn-primary">Start Now</Link>
+                <Link href="/start" className="pm-btn-primary">START NOW</Link>
               </div>
               <div className="pm-cta-phone-row">
                 <div className="pm-cta-or">or call us</div>
@@ -542,7 +543,7 @@ export default function UnderstandingPeptides() {
       </div>
 
       <style jsx>{`
-        /* ===== PEPTIDE MENU PAGE SCOPED STYLES ===== */
+        /* ===== PEPTIDE MENU PAGE V2 EDITORIAL DESIGN ===== */
         .pm-page {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
           -webkit-font-smoothing: antialiased;
@@ -567,61 +568,40 @@ export default function UnderstandingPeptides() {
         .pm-container {
           max-width: 1200px;
           margin: 0 auto;
-          padding: 0 1.5rem;
+          padding: 0 2rem;
         }
 
         /* Sections */
         .pm-section {
-          padding: 5rem 1.5rem;
+          padding: 6rem 2rem;
         }
 
         .pm-section-alt {
           background: #fafafa;
-          padding: 5rem 1.5rem;
+          padding: 6rem 2rem;
         }
 
         .pm-section-inverted {
-          background: #000000;
+          background: #1a1a1a;
           color: #ffffff;
-        }
-
-        .pm-section-label {
-          display: inline-block;
-          font-size: 0.75rem;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 0.75rem;
-        }
-
-        /* Kicker */
-        .pm-kicker {
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 1rem;
-        }
-
-        .pm-section-inverted .pm-kicker {
-          color: rgba(255, 255, 255, 0.4);
         }
 
         /* Headlines */
         .pm-page h1 {
           font-size: 3rem;
-          font-weight: 800;
-          line-height: 1.1;
-          letter-spacing: -0.03em;
+          font-weight: 900;
+          line-height: 0.95;
+          letter-spacing: -0.02em;
+          text-transform: uppercase;
           color: #171717;
         }
 
         .pm-page h2 {
-          font-size: 2rem;
-          font-weight: 700;
+          font-size: 2.25rem;
+          font-weight: 900;
           letter-spacing: -0.02em;
+          line-height: 0.95;
+          text-transform: uppercase;
           color: #171717;
           margin-bottom: 1rem;
         }
@@ -644,7 +624,7 @@ export default function UnderstandingPeptides() {
           font-size: 1.0625rem;
           font-weight: 400;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
           max-width: 620px;
         }
 
@@ -655,8 +635,8 @@ export default function UnderstandingPeptides() {
         /* Divider */
         .pm-divider {
           width: 48px;
-          height: 2px;
-          background: #e5e5e5;
+          height: 1px;
+          background: #e0e0e0;
           margin: 1.25rem 0;
         }
 
@@ -666,11 +646,13 @@ export default function UnderstandingPeptides() {
 
         /* ===== HERO ===== */
         .pm-hero {
-          padding: 4rem 1.5rem 5rem;
-          text-align: center;
+          padding: 6rem 2rem 5rem;
+          text-align: left;
           display: flex;
           flex-direction: column;
-          align-items: center;
+          align-items: flex-start;
+          max-width: 1200px;
+          margin: 0 auto;
         }
 
         .pm-hero h1 {
@@ -678,9 +660,16 @@ export default function UnderstandingPeptides() {
           margin-bottom: 1.5rem;
         }
 
+        .pm-hero-rule {
+          width: 48px;
+          height: 1px;
+          background: #e0e0e0;
+          margin-bottom: 1.5rem;
+        }
+
         .pm-hero .pm-body-text {
-          text-align: center;
-          margin: 0 auto 2.5rem;
+          text-align: left;
+          margin: 0 0 2.5rem 0;
         }
 
         .pm-hero-scroll {
@@ -714,15 +703,13 @@ export default function UnderstandingPeptides() {
 
         .pm-pathway-card {
           padding: 2.5rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border: 1px solid #e0e0e0;
           background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          transition: border-color 0.2s ease;
         }
 
         .pm-pathway-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          border-color: #1a1a1a;
         }
 
         .pm-pathway-icon {
@@ -742,14 +729,13 @@ export default function UnderstandingPeptides() {
           letter-spacing: 0.05em;
           color: #ffffff;
           padding: 0.375rem 0.75rem;
-          border-radius: 4px;
           margin-bottom: 1rem;
         }
 
         .pm-pathway-desc {
           font-size: 0.9375rem;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
           margin-bottom: 1.25rem;
         }
 
@@ -761,7 +747,7 @@ export default function UnderstandingPeptides() {
 
         .pm-pathway-list li {
           font-size: 0.875rem;
-          color: #525252;
+          color: #737373;
           padding: 0.5rem 0;
           padding-left: 1.25rem;
           position: relative;
@@ -772,7 +758,7 @@ export default function UnderstandingPeptides() {
           content: '→';
           position: absolute;
           left: 0;
-          color: #737373;
+          color: #c4a882;
         }
 
         /* ===== STEPS ===== */
@@ -784,7 +770,7 @@ export default function UnderstandingPeptides() {
           display: flex;
           gap: 1.5rem;
           padding: 1.75rem 0;
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
           align-items: flex-start;
         }
 
@@ -795,7 +781,7 @@ export default function UnderstandingPeptides() {
         .pm-step-number {
           font-size: 0.8125rem;
           font-weight: 700;
-          color: #737373;
+          color: #c4a882;
           min-width: 56px;
           letter-spacing: 0.02em;
         }
@@ -809,7 +795,7 @@ export default function UnderstandingPeptides() {
 
         .pm-step-content p {
           font-size: 0.875rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.7;
         }
 
@@ -830,13 +816,12 @@ export default function UnderstandingPeptides() {
         .pm-feature-icon {
           width: 24px;
           height: 24px;
-          border-radius: 50%;
           background: rgba(255, 255, 255, 0.1);
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 0.75rem;
-          color: #10b981;
+          color: #c4a882;
           font-weight: 700;
         }
 
@@ -855,7 +840,6 @@ export default function UnderstandingPeptides() {
 
         .pm-syringe-card {
           padding: 1.75rem;
-          border-radius: 12px;
           border: 1px solid rgba(255, 255, 255, 0.08);
           background: rgba(255, 255, 255, 0.04);
           transition: border-color 0.2s ease;
@@ -873,7 +857,6 @@ export default function UnderstandingPeptides() {
           letter-spacing: 0.06em;
           color: #ffffff;
           padding: 0.25rem 0.625rem;
-          border-radius: 3px;
           margin-bottom: 0.875rem;
         }
 
@@ -955,7 +938,7 @@ export default function UnderstandingPeptides() {
           content: '✓';
           position: absolute;
           left: 0;
-          color: #10b981;
+          color: #c4a882;
           font-weight: 700;
           font-size: 0.75rem;
         }
@@ -984,7 +967,6 @@ export default function UnderstandingPeptides() {
           letter-spacing: 0.06em;
           color: #ffffff;
           padding: 0.25rem 0.625rem;
-          border-radius: 3px;
         }
 
         .pm-vial-grid {
@@ -995,14 +977,13 @@ export default function UnderstandingPeptides() {
 
         .pm-vial-item {
           padding: 1.25rem 1.5rem;
-          border-radius: 10px;
-          border: 1px solid #e5e5e5;
+          border: 1px solid #e0e0e0;
           background: #ffffff;
           transition: border-color 0.2s ease;
         }
 
         .pm-vial-item:hover {
-          border-color: #000000;
+          border-color: #1a1a1a;
         }
 
         .pm-vial-header {
@@ -1059,12 +1040,12 @@ export default function UnderstandingPeptides() {
           list-style: none;
           padding: 0.625rem 0 0;
           margin: 0;
-          border-top: 1px solid #f0f0f0;
+          border-top: 1px solid #e0e0e0;
         }
 
         .pm-vial-benefits li {
           font-size: 0.8125rem;
-          color: #525252;
+          color: #737373;
           padding: 0.25rem 0 0.25rem 1.25rem;
           position: relative;
           line-height: 1.5;
@@ -1074,7 +1055,7 @@ export default function UnderstandingPeptides() {
           content: '✓';
           position: absolute;
           left: 0;
-          color: #10b981;
+          color: #c4a882;
           font-weight: 700;
           font-size: 0.75rem;
         }
@@ -1089,8 +1070,7 @@ export default function UnderstandingPeptides() {
 
         .pm-compare-card {
           padding: 2.5rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border: 1px solid #e0e0e0;
           background: #ffffff;
         }
 
@@ -1099,7 +1079,7 @@ export default function UnderstandingPeptides() {
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.08em;
-          color: #0891b2;
+          color: #c4a882;
           margin-bottom: 0.75rem;
         }
 
@@ -1115,7 +1095,7 @@ export default function UnderstandingPeptides() {
 
         .pm-compare-list li {
           font-size: 0.875rem;
-          color: #525252;
+          color: #737373;
           padding: 0.5rem 0;
           padding-left: 1.5rem;
           position: relative;
@@ -1131,7 +1111,7 @@ export default function UnderstandingPeptides() {
           content: '✓';
           position: absolute;
           left: 0;
-          color: #10b981;
+          color: #c4a882;
           font-weight: 700;
           font-size: 0.8125rem;
         }
@@ -1143,7 +1123,7 @@ export default function UnderstandingPeptides() {
         }
 
         .pm-faq-item {
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
         }
 
         .pm-faq-item:last-child {
@@ -1193,14 +1173,14 @@ export default function UnderstandingPeptides() {
 
         .pm-faq-answer p {
           font-size: 0.9375rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.7;
           margin: 0;
         }
 
         /* ===== CTA ===== */
         .pm-cta-section {
-          padding: 6rem 1.5rem;
+          padding: 6rem 2rem;
           text-align: center;
         }
 
@@ -1222,20 +1202,21 @@ export default function UnderstandingPeptides() {
         .pm-btn-primary {
           display: inline-block;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          font-size: 0.875rem;
-          font-weight: 600;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
           padding: 0.875rem 2rem;
           background: #ffffff;
-          color: #000000;
+          color: #1a1a1a;
           border: none;
-          border-radius: 8px;
           cursor: pointer;
           text-decoration: none;
           transition: background 0.2s ease, transform 0.2s ease;
         }
 
         .pm-btn-primary:hover {
-          background: #e5e5e5;
+          background: #e0e0e0;
           transform: translateY(-1px);
         }
 
@@ -1272,11 +1253,11 @@ export default function UnderstandingPeptides() {
         /* ===== RESPONSIVE ===== */
         @media (max-width: 768px) {
           .pm-section {
-            padding: 3rem 1.5rem;
+            padding: 3.5rem 1.5rem;
           }
 
           .pm-section-alt {
-            padding: 3rem 1.5rem;
+            padding: 3.5rem 1.5rem;
           }
 
           .pm-page h1 {
@@ -1288,7 +1269,7 @@ export default function UnderstandingPeptides() {
           }
 
           .pm-hero {
-            padding: 3rem 1.5rem;
+            padding: 3.5rem 2rem;
           }
 
           .pm-pathways-grid {

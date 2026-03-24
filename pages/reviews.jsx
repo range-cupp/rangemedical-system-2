@@ -75,7 +75,7 @@ export default function ReviewsPage() {
   const totalReviews = reviews.length;
 
   return (
-    <Layout 
+    <Layout
       title="Patient Reviews | Range Medical | Newport Beach"
       description="Read what our patients say about Range Medical. 5-star rated health optimization clinic in Newport Beach. Real reviews from real patients."
     >
@@ -104,37 +104,38 @@ export default function ReviewsPage() {
       </Head>
 
       {/* Hero Section */}
-      <section className="hero">
-        <div className="container">
-          <div className="section-kicker">Patient Reviews</div>
-          <h1>What Our Patients Say</h1>
-          <p className="hero-sub">
-            Real experiences from real patients. See why Newport Beach trusts Range Medical 
+      <section className="rv-hero">
+        <div className="rv-hero-inner">
+          <div className="v2-label"><span className="v2-dot" /> PATIENT REVIEWS</div>
+          <h1>WHAT OUR<br />PATIENTS SAY</h1>
+          <div className="rv-hero-rule" />
+          <p className="rv-hero-body">
+            Real experiences from real patients. See why Newport Beach trusts Range Medical
             for health optimization, hormone therapy, and recovery.
           </p>
-          
-          <div className="rating-box">
-            <div className="rating-score">{averageRating}</div>
-            <div className="rating-info">
-              <div className="stars">★★★★★</div>
+
+          <div className="rv-rating-box">
+            <div className="rv-rating-score">{averageRating}</div>
+            <div className="rv-rating-info">
+              <div className="rv-stars">{'\u2605\u2605\u2605\u2605\u2605'}</div>
               <p>Based on {totalReviews} Google Reviews</p>
             </div>
           </div>
 
-          <a 
-            href="https://www.google.com/maps/place/Range+Medical/@33.6234,-117.9298,17z" 
-            target="_blank" 
+          <a
+            href="https://www.google.com/maps/place/Range+Medical/@33.6234,-117.9298,17z"
+            target="_blank"
             rel="noopener noreferrer"
-            className="btn-primary"
+            className="rv-btn"
           >
-            Leave Us a Review
+            LEAVE US A REVIEW
           </a>
         </div>
       </section>
 
       {/* Reviews Grid */}
-      <section className="section">
-        <div className="container">
+      <section className="rv-section">
+        <div className="rv-container">
           <div className="reviews-list">
             {reviews.map((review, index) => (
               <div key={index} className="review-card">
@@ -149,17 +150,17 @@ export default function ReviewsPage() {
                     </h3>
                     <div className="review-date-stars">
                       <span className="review-date">{review.date}</span>
-                      <span className="review-stars">★★★★★</span>
+                      <span className="review-stars">{'\u2605\u2605\u2605\u2605\u2605'}</span>
                     </div>
                   </div>
                 </div>
-                
+
                 {review.highlight && (
                   <blockquote className="review-highlight">
-                    "{review.highlight}"
+                    &ldquo;{review.highlight}&rdquo;
                   </blockquote>
                 )}
-                
+
                 <p className="review-text">{review.text}</p>
               </div>
             ))}
@@ -167,21 +168,21 @@ export default function ReviewsPage() {
 
           <div className="google-cta">
             <p>Want to share your experience?</p>
-            <a 
-              href="https://www.google.com/maps/place/Range+Medical/@33.6234,-117.9298,17z" 
-              target="_blank" 
+            <a
+              href="https://www.google.com/maps/place/Range+Medical/@33.6234,-117.9298,17z"
+              target="_blank"
               rel="noopener noreferrer"
-              className="btn-outline"
+              className="rv-btn-outline"
             >
-              Write a Google Review
+              WRITE A GOOGLE REVIEW
             </a>
           </div>
         </div>
       </section>
 
       {/* Stats Section */}
-      <section className="section section-gray">
-        <div className="container">
+      <section className="rv-section rv-section-alt">
+        <div className="rv-container">
           <div className="stats-grid">
             <div className="stat-item">
               <div className="stat-number">5.0</div>
@@ -200,76 +201,161 @@ export default function ReviewsPage() {
       </section>
 
       {/* Final CTA */}
-      <section className="final-cta">
-        <div className="container">
-          <span className="cta-step">Next Step</span>
-          <h2>Ready to Feel Like Yourself Again?</h2>
-          <p>Join our patients who have transformed their health with Range Medical.</p>
-          <Link href="/start" className="btn-white">
-            Start Now
+      <section className="rv-cta">
+        <div className="rv-container">
+          <div className="v2-label" style={{ justifyContent: 'center' }}><span className="v2-dot" style={{ background: '#c4a882' }} /> NEXT STEP</div>
+          <h2>READY TO FEEL<br />LIKE YOURSELF AGAIN?</h2>
+          <p className="rv-cta-body">Join our patients who have transformed their health with Range Medical.</p>
+          <Link href="/start" className="rv-btn-white">
+            START NOW
           </Link>
-          <p className="cta-location">
+          <p className="rv-cta-location">
             1901 Westcliff Dr. Suite 10, Newport Beach
           </p>
         </div>
       </section>
 
       <style jsx>{`
-        .hero {
-          padding: 4rem 1.5rem 3rem;
-          text-align: center;
-          background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
+        /* Hero */
+        .rv-hero {
+          padding: 6rem 2rem 4rem;
+          text-align: left;
         }
 
-        .hero h1 {
-          color: #171717;
-          margin-bottom: 1rem;
-          max-width: 700px;
-          margin-left: auto;
-          margin-right: auto;
+        .rv-hero-inner {
+          max-width: 1100px;
+          margin: 0 auto;
         }
 
-        .hero-sub {
-          font-size: 1.125rem;
-          color: #525252;
-          max-width: 600px;
-          margin: 0 auto 2rem;
+        .rv-hero h1 {
+          font-size: 3.5rem;
+          font-weight: 900;
+          color: #1a1a1a;
+          line-height: 0.95;
+          letter-spacing: -0.02em;
+          text-transform: uppercase;
+          margin: 0 0 1.5rem;
+        }
+
+        .rv-hero-rule {
+          width: 60px;
+          height: 1px;
+          background: #e0e0e0;
+          margin-bottom: 1.5rem;
+        }
+
+        .rv-hero-body {
+          font-size: 1.0625rem;
+          color: #737373;
           line-height: 1.7;
+          max-width: 540px;
+          margin: 0 0 2.5rem;
         }
 
-        .rating-box {
+        .rv-rating-box {
           display: inline-flex;
           align-items: center;
           gap: 1.25rem;
           background: #ffffff;
-          border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border: 1px solid #e0e0e0;
           padding: 1.25rem 2rem;
           margin-bottom: 2rem;
         }
 
-        .rating-score {
+        .rv-rating-score {
           font-size: 3rem;
-          font-weight: 700;
-          color: #171717;
+          font-weight: 900;
+          color: #c4a882;
           line-height: 1;
         }
 
-        .rating-info {
+        .rv-rating-info {
           text-align: left;
         }
 
-        .stars {
-          color: #000000;
+        .rv-stars {
+          color: #1a1a1a;
           font-size: 1.25rem;
           letter-spacing: 2px;
           margin-bottom: 0.25rem;
         }
 
-        .rating-info p {
+        .rv-rating-info p {
           font-size: 0.875rem;
           color: #737373;
           margin: 0;
+        }
+
+        /* Buttons */
+        .rv-btn {
+          display: inline-block;
+          background: #1a1a1a;
+          color: #ffffff;
+          padding: 0.875rem 2rem;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          text-decoration: none;
+          border: none;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+
+        .rv-btn:hover {
+          background: #333333;
+        }
+
+        .rv-btn-outline {
+          display: inline-block;
+          background: transparent;
+          color: #1a1a1a;
+          padding: 0.875rem 2rem;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          text-decoration: none;
+          border: 1px solid #e0e0e0;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .rv-btn-outline:hover {
+          border-color: #1a1a1a;
+        }
+
+        .rv-btn-white {
+          display: inline-block;
+          background: #ffffff;
+          color: #1a1a1a;
+          padding: 0.875rem 2rem;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          text-decoration: none;
+          border: none;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+
+        .rv-btn-white:hover {
+          background: #f0f0f0;
+        }
+
+        /* Sections */
+        .rv-section {
+          padding: 6rem 2rem;
+        }
+
+        .rv-section-alt {
+          background: #fafafa;
+        }
+
+        .rv-container {
+          max-width: 1100px;
+          margin: 0 auto;
         }
 
         /* Reviews List */
@@ -283,15 +369,13 @@ export default function ReviewsPage() {
 
         .review-card {
           background: #ffffff;
-          border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border: 1px solid #e0e0e0;
           padding: 1.75rem;
-          transition: all 0.2s;
+          transition: border-color 0.2s;
         }
 
         .review-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+          border-color: #1a1a1a;
         }
 
         .review-header {
@@ -304,9 +388,8 @@ export default function ReviewsPage() {
         .review-avatar {
           width: 48px;
           height: 48px;
-          background: #000000;
+          background: #1a1a1a;
           color: #ffffff;
-          border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -322,7 +405,7 @@ export default function ReviewsPage() {
         .review-name {
           font-size: 1rem;
           font-weight: 700;
-          color: #171717;
+          color: #1a1a1a;
           margin: 0 0 0.25rem 0;
           display: flex;
           align-items: center;
@@ -333,9 +416,8 @@ export default function ReviewsPage() {
         .review-badge {
           font-size: 0.6875rem;
           background: #f5f5f5;
-          color: #525252;
+          color: #737373;
           padding: 0.125rem 0.5rem;
-          border-radius: 4px;
           font-weight: 500;
         }
 
@@ -351,25 +433,25 @@ export default function ReviewsPage() {
         }
 
         .review-stars {
-          color: #000000;
+          color: #c4a882;
           font-size: 0.875rem;
           letter-spacing: 1px;
         }
 
         .review-highlight {
           background: #fafafa;
-          border-left: 3px solid #000000;
+          border-left: 2px solid #c4a882;
           padding: 1rem 1.25rem;
           margin: 0 0 1rem 0;
           font-size: 1rem;
           font-style: italic;
-          color: #171717;
+          color: #1a1a1a;
           line-height: 1.6;
         }
 
         .review-text {
           font-size: 0.9375rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.7;
           margin: 0;
         }
@@ -378,12 +460,12 @@ export default function ReviewsPage() {
           text-align: center;
           margin-top: 3rem;
           padding-top: 2rem;
-          border-top: 1px solid #e5e5e5;
+          border-top: 1px solid #e0e0e0;
         }
 
         .google-cta p {
           font-size: 0.9375rem;
-          color: #525252;
+          color: #737373;
           margin-bottom: 1rem;
         }
 
@@ -403,67 +485,75 @@ export default function ReviewsPage() {
 
         .stat-number {
           font-size: 2.5rem;
-          font-weight: 700;
-          color: #171717;
+          font-weight: 900;
+          color: #c4a882;
           line-height: 1;
           margin-bottom: 0.5rem;
         }
 
         .stat-label {
-          font-size: 0.9375rem;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
           color: #737373;
-          font-weight: 500;
         }
 
-        /* Final CTA - Override global colors */
-        .final-cta {
-          background: #000000;
-          padding: 4rem 1.5rem;
+        /* Final CTA */
+        .rv-cta {
+          background: #1a1a1a;
+          padding: 6rem 2rem;
           text-align: center;
         }
 
-        .final-cta h2 {
+        .rv-cta h2 {
+          font-size: 2.5rem;
+          font-weight: 900;
           color: #ffffff;
-          margin-bottom: 0.75rem;
+          line-height: 0.95;
+          letter-spacing: -0.02em;
+          text-transform: uppercase;
+          margin: 0 0 1.5rem;
         }
 
-        .final-cta .container > p {
-          color: rgba(255,255,255,0.8);
+        .rv-cta-body {
+          color: rgba(255,255,255,0.6);
           margin-bottom: 2rem;
           max-width: 500px;
           margin-left: auto;
           margin-right: auto;
+          line-height: 1.7;
         }
 
-        .cta-step {
-          display: inline-block;
-          background: rgba(255,255,255,0.1);
-          color: rgba(255,255,255,0.8);
-          padding: 0.375rem 1rem;
-          border-radius: 100px;
-          font-size: 0.8125rem;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          margin-bottom: 1rem;
-        }
-
-        .cta-location {
+        .rv-cta-location {
           margin-top: 1.5rem;
-          color: rgba(255,255,255,0.6) !important;
-          font-size: 0.9375rem;
+          color: rgba(255,255,255,0.4);
+          font-size: 0.875rem;
+          letter-spacing: 0.05em;
         }
 
         /* Responsive */
         @media (max-width: 640px) {
-          .rating-box {
+          .rv-hero {
+            padding: 4rem 1.5rem 3rem;
+          }
+
+          .rv-hero h1 {
+            font-size: 2.25rem;
+          }
+
+          .rv-rating-box {
             flex-direction: column;
             text-align: center;
             padding: 1.5rem;
           }
 
-          .rating-info {
+          .rv-rating-info {
             text-align: center;
+          }
+
+          .rv-section {
+            padding: 4rem 1.5rem;
           }
 
           .review-card {
@@ -494,6 +584,14 @@ export default function ReviewsPage() {
 
           .stat-number {
             font-size: 2rem;
+          }
+
+          .rv-cta {
+            padding: 4rem 1.5rem;
+          }
+
+          .rv-cta h2 {
+            font-size: 1.75rem;
           }
         }
       `}</style>

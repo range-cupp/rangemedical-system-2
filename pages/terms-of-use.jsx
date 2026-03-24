@@ -14,7 +14,9 @@ export default function TermsOfUsePage() {
 
       <div className="legal-page">
         <div className="legal-container">
-          <h1>Terms of Use</h1>
+          <div className="v2-label"><span className="v2-dot" /> LEGAL</div>
+          <h1>TERMS OF USE</h1>
+          <div className="legal-rule"></div>
           <p className="legal-effective">Effective Date: February 22, 2026</p>
 
           <section className="legal-section">
@@ -261,7 +263,7 @@ export default function TermsOfUsePage() {
 
       <style jsx>{`
         .legal-page {
-          padding: 4rem 1.5rem 5rem;
+          padding: 6rem 2rem;
           background: #ffffff;
         }
 
@@ -271,39 +273,53 @@ export default function TermsOfUsePage() {
         }
 
         .legal-container h1 {
-          font-size: 2.25rem;
-          font-weight: 700;
+          font-size: 2.75rem;
+          font-weight: 900;
           color: #171717;
-          margin: 0 0 0.5rem;
+          margin: 0 0 1.5rem;
+          text-transform: uppercase;
+          line-height: 0.95;
+          letter-spacing: -0.02em;
+        }
+
+        .legal-rule {
+          width: 48px;
+          height: 1px;
+          background: #e0e0e0;
+          margin-bottom: 1.5rem;
         }
 
         .legal-effective {
           font-size: 0.9375rem;
           color: #737373;
-          margin: 0 0 2.5rem;
+          margin: 0 0 3rem;
         }
 
         .legal-section {
-          margin-bottom: 2rem;
+          margin-bottom: 2.5rem;
         }
 
         .legal-section h2 {
           font-size: 1.25rem;
-          font-weight: 600;
+          font-weight: 900;
           color: #171717;
           margin: 0 0 0.75rem;
+          text-transform: uppercase;
+          letter-spacing: -0.02em;
         }
 
         .legal-section h3 {
           font-size: 1.0625rem;
-          font-weight: 600;
+          font-weight: 900;
           color: #171717;
           margin: 1.25rem 0 0.5rem;
+          text-transform: uppercase;
+          letter-spacing: -0.02em;
         }
 
         .legal-section p {
           font-size: 1rem;
-          color: #404040;
+          color: #737373;
           line-height: 1.75;
           margin: 0 0 1rem;
         }
@@ -312,16 +328,34 @@ export default function TermsOfUsePage() {
           margin-bottom: 0;
         }
 
+        .legal-section strong {
+          color: #171717;
+        }
+
         .legal-section ul {
           margin: 0 0 1rem;
-          padding-left: 1.5rem;
+          padding-left: 0;
+          list-style: none;
         }
 
         .legal-section li {
           font-size: 1rem;
-          color: #404040;
+          color: #737373;
           line-height: 1.75;
           margin-bottom: 0.5rem;
+          padding-left: 1.25rem;
+          position: relative;
+        }
+
+        .legal-section li::before {
+          content: "";
+          position: absolute;
+          left: 0;
+          top: 0.75em;
+          width: 6px;
+          height: 6px;
+          background: #c4a882;
+          border-radius: 50%;
         }
 
         .legal-section li:last-child {
@@ -356,11 +390,11 @@ export default function TermsOfUsePage() {
 
         @media (max-width: 640px) {
           .legal-page {
-            padding: 2.5rem 1.25rem 3.5rem;
+            padding: 3rem 1.25rem 4rem;
           }
 
           .legal-container h1 {
-            font-size: 1.75rem;
+            font-size: 2rem;
           }
 
           .legal-section h2 {

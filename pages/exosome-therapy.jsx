@@ -96,13 +96,13 @@ export default function ExosomeTherapy() {
   ];
 
   const steps = [
-    { step: "Step 1", title: "Assessment", desc: "Start with a Range Assessment. Your provider will discuss your goals, review your health history, and determine if exosome therapy is appropriate for your situation." },
-    { step: "Step 2", title: "Preparation", desc: "On treatment day, we prepare the exosome solution. Our exosomes are sourced from vetted suppliers and stored under strict quality controls." },
-    { step: "Step 3", title: "IV infusion", desc: "Exosomes are delivered through a standard IV, typically over 30-60 minutes. You can relax, read, or work during the infusion." },
-    { step: "Step 4", title: "Signaling begins", desc: "Once in your bloodstream, exosomes circulate and deliver regenerative signals to cells throughout your body. Results develop over weeks to months." }
+    { step: "01", title: "Assessment", desc: "Start with a Range Assessment. Your provider will discuss your goals, review your health history, and determine if exosome therapy is appropriate for your situation." },
+    { step: "02", title: "Preparation", desc: "On treatment day, we prepare the exosome solution. Our exosomes are sourced from vetted suppliers and stored under strict quality controls." },
+    { step: "03", title: "IV infusion", desc: "Exosomes are delivered through a standard IV, typically over 30-60 minutes. You can relax, read, or work during the infusion." },
+    { step: "04", title: "Signaling begins", desc: "Once in your bloodstream, exosomes circulate and deliver regenerative signals to cells throughout your body. Results develop over weeks to months." }
   ];
 
-  
+
   return (
     <Layout
       title="Exosome Therapy | Regenerative Medicine | Newport Beach | Range Medical"
@@ -220,16 +220,17 @@ export default function ExosomeTherapy() {
           <span className="trust-item">
             <span className="trust-rating">★★★★★</span> 5.0 on Google
           </span>
-          <span className="trust-item">📍 Newport Beach, CA</span>
-          <span className="trust-item">✓ Licensed Providers</span>
+          <span className="trust-item">Newport Beach, CA</span>
+          <span className="trust-item">Licensed Providers</span>
         </div>
       </div>
 
       <div className="exo-page">
         {/* Hero */}
         <section className="exo-hero">
-          <div className="exo-kicker">Regenerative · Anti-Aging · Recovery</div>
-          <h1>Your Guide to Exosome Therapy</h1>
+          <div className="v2-label"><span className="v2-dot" /> REGENERATIVE · ANTI-AGING · RECOVERY</div>
+          <h1>YOUR GUIDE TO EXOSOME THERAPY</h1>
+          <div className="exo-hero-rule"></div>
           <p className="exo-body-text">Everything you need to know about exosomes — what they are, how they work, and whether they're right for your regenerative goals.</p>
           <div className="exo-hero-scroll">
             Scroll to explore
@@ -241,8 +242,8 @@ export default function ExosomeTherapy() {
         <section className="exo-section exo-section-alt">
           <div className="exo-container">
             <div className="exo-animate">
-              <div className="exo-kicker">What Are Exosomes</div>
-              <h2>Your body's cellular messengers.</h2>
+              <div className="v2-label"><span className="v2-dot" /> WHAT ARE EXOSOMES</div>
+              <h2>YOUR BODY'S CELLULAR MESSENGERS.</h2>
               <div className="exo-divider"></div>
               <p className="exo-body-text">
                 Exosomes are tiny vesicles (30-150 nanometers) released by cells to communicate with other cells. They carry proteins, lipids, and genetic material that deliver instructions — telling recipient cells to repair, regenerate, or reduce inflammation.
@@ -273,8 +274,8 @@ export default function ExosomeTherapy() {
         <section className="exo-section exo-section-inverted">
           <div className="exo-container">
             <div className="exo-animate">
-              <div className="exo-kicker">Who It's For</div>
-              <h2>When you want to regenerate, not just treat.</h2>
+              <div className="v2-label"><span className="v2-dot" /> WHO IT'S FOR</div>
+              <h2>WHEN YOU WANT TO REGENERATE, NOT JUST TREAT.</h2>
               <div className="exo-divider"></div>
               <p className="exo-body-text">
                 Exosome therapy is for people looking beyond symptom management — those who want to support their body's natural repair processes. If any of these resonate, exosomes might be worth exploring.
@@ -293,8 +294,8 @@ export default function ExosomeTherapy() {
         <section className="exo-section">
           <div className="exo-container">
             <div className="exo-animate">
-              <div className="exo-kicker">The Process</div>
-              <h2>How exosome therapy works.</h2>
+              <div className="v2-label"><span className="v2-dot" /> THE PROCESS</div>
+              <h2>HOW EXOSOME THERAPY WORKS.</h2>
               <div className="exo-divider"></div>
               <p className="exo-body-text">
                 The process is straightforward. Here's what to expect at our Newport Beach clinic.
@@ -319,8 +320,8 @@ export default function ExosomeTherapy() {
         <section className="exo-section exo-section-alt">
           <div className="exo-container">
             <div className="exo-animate">
-              <div className="exo-kicker">Why Exosomes</div>
-              <h2>The potential of cellular signaling.</h2>
+              <div className="v2-label"><span className="v2-dot" /> WHY EXOSOMES</div>
+              <h2>THE POTENTIAL OF CELLULAR SIGNALING.</h2>
               <div className="exo-divider"></div>
               <p className="exo-body-text">
                 Exosome therapy represents a new frontier in regenerative medicine. Here's what makes it unique.
@@ -343,8 +344,8 @@ export default function ExosomeTherapy() {
         <section className="exo-section" id="exo-research">
           <div className="exo-container">
             <div className="exo-animate">
-              <div className="exo-kicker">Backed by Science</div>
-              <h2>Evidence-Based Results</h2>
+              <div className="v2-label"><span className="v2-dot" /> BACKED BY SCIENCE</div>
+              <h2>EVIDENCE-BASED RESULTS</h2>
               <div className="exo-divider"></div>
               <p className="exo-body-text">
                 We've summarized the peer-reviewed research. Click any study to get the full breakdown — free.
@@ -374,19 +375,17 @@ export default function ExosomeTherapy() {
         </section>
 
         {/* FAQ */}
-        <section className="exo-section-alt">
+        <section className="exo-section exo-section-alt">
           <div className="exo-container">
-            <span className="exo-section-label">Questions</span>
-            <h2>Common Questions</h2>
+            <div className="v2-label"><span className="v2-dot" /> QUESTIONS</div>
+            <h2>COMMON QUESTIONS</h2>
 
             <div className="exo-faq-list">
               {faqs.map((faq, index) => (
                 <div key={index} className={`exo-faq-item ${openFaq === index ? 'exo-faq-open' : ''}`}>
                   <button className="exo-faq-question" onClick={() => toggleFaq(index)}>
                     <span>{faq.question}</span>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d={openFaq === index ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} />
-                    </svg>
+                    <span className="exo-faq-toggle">{openFaq === index ? '\u2212' : '+'}</span>
                   </button>
                   <div className="exo-faq-answer">
                     <p>{faq.answer}</p>
@@ -401,13 +400,13 @@ export default function ExosomeTherapy() {
         <section className="exo-section exo-section-inverted exo-cta-section">
           <div className="exo-container">
             <div className="exo-animate">
-              <div className="exo-kicker" style={{ marginBottom: '1.5rem' }}>Next Steps</div>
-              <h2 className="exo-cta-title">Interested in exosome therapy?</h2>
-              <p className="exo-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
+              <div className="v2-label" style={{ marginBottom: '1.5rem' }}><span className="v2-dot" /> NEXT STEPS</div>
+              <h2 className="exo-cta-title">INTERESTED IN EXOSOME THERAPY?</h2>
+              <p className="exo-body-text" style={{ textAlign: 'left', margin: '0 auto 2.5rem', maxWidth: '600px' }}>
                 Get started with Range Medical. Your provider will review your goals and determine if exosome therapy is a good fit for your situation. Our Newport Beach team is here to help.
               </p>
               <div className="exo-cta-buttons">
-                <Link href="/start" className="exo-btn-primary">Start Now</Link>
+                <Link href="/start" className="exo-btn-primary">START NOW</Link>
                 <div className="exo-cta-or">or</div>
                 <a href="tel:9499973988" className="exo-cta-phone">(949) 997-3988</a>
               </div>
@@ -424,7 +423,7 @@ export default function ExosomeTherapy() {
       </div>
 
       <style jsx>{`
-        /* ===== EXOSOME PAGE SCOPED STYLES ===== */
+        /* ===== EXOSOME PAGE V2 EDITORIAL STYLES ===== */
         .exo-page {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
           -webkit-font-smoothing: antialiased;
@@ -454,56 +453,35 @@ export default function ExosomeTherapy() {
 
         /* Sections */
         .exo-section {
-          padding: 4rem 1.5rem;
+          padding: 6rem 2rem;
         }
 
         .exo-section-alt {
           background: #fafafa;
-          padding: 5rem 1.5rem;
-        }
-
-        .exo-section-label {
-          display: inline-block;
-          font-size: 0.75rem;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 0.75rem;
+          padding: 6rem 2rem;
         }
 
         .exo-section-inverted {
-          background: #000000;
+          background: #1a1a1a;
           color: #ffffff;
         }
 
-        /* Kicker */
-        .exo-kicker {
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 1rem;
-        }
-
-        .exo-section-inverted .exo-kicker {
-          color: rgba(255, 255, 255, 0.4);
-        }
-
-        /* Headlines */
+        /* Headlines — V2: uppercase, weight 900, tight line-height */
         .exo-page h1 {
           font-size: 2.75rem;
-          font-weight: 700;
-          line-height: 1.15;
-          letter-spacing: -0.02em;
+          font-weight: 900;
+          line-height: 0.95;
+          letter-spacing: -0.03em;
+          text-transform: uppercase;
           color: #171717;
         }
 
         .exo-page h2 {
           font-size: 2rem;
-          font-weight: 700;
-          letter-spacing: -0.02em;
+          font-weight: 900;
+          letter-spacing: -0.03em;
+          line-height: 0.95;
+          text-transform: uppercase;
           color: #171717;
           margin-bottom: 1rem;
         }
@@ -520,12 +498,12 @@ export default function ExosomeTherapy() {
           color: #ffffff;
         }
 
-        /* Body Text */
+        /* Body Text — V2: #737373 */
         .exo-body-text {
           font-size: 1.0625rem;
           font-weight: 400;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
           max-width: 600px;
         }
 
@@ -533,11 +511,11 @@ export default function ExosomeTherapy() {
           color: rgba(255, 255, 255, 0.55);
         }
 
-        /* Divider */
+        /* Divider — V2: #e0e0e0 */
         .exo-divider {
           width: 48px;
-          height: 2px;
-          background: #e5e5e5;
+          height: 1px;
+          background: #e0e0e0;
           margin: 1.25rem 0;
         }
 
@@ -545,44 +523,55 @@ export default function ExosomeTherapy() {
           background: rgba(255, 255, 255, 0.12);
         }
 
-        /* Buttons */
+        /* Buttons — V2: no border-radius, 11px, weight 700, 0.12em spacing, uppercase */
         .exo-btn-primary {
           display: inline-block;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          font-size: 0.875rem;
-          font-weight: 600;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
           padding: 0.875rem 2rem;
           background: #ffffff;
-          color: #000000;
+          color: #1a1a1a;
           border: none;
-          border-radius: 8px;
+          border-radius: 0;
           cursor: pointer;
           text-decoration: none;
           transition: background 0.2s ease, transform 0.2s ease;
         }
 
         .exo-btn-primary:hover {
-          background: #e5e5e5;
+          background: #e0e0e0;
           transform: translateY(-1px);
         }
 
-        /* Hero */
+        /* Hero — V2: left-aligned, hairline rule between title and subtitle */
         .exo-hero {
-          padding: 4rem 1.5rem 5rem;
-          text-align: center;
+          padding: 5rem 2rem 5rem;
+          text-align: left;
           display: flex;
           flex-direction: column;
-          align-items: center;
+          align-items: flex-start;
+          max-width: 1200px;
+          margin: 0 auto;
         }
 
         .exo-hero h1 {
           max-width: 680px;
-          margin-bottom: 1.5rem;
+          margin-bottom: 0;
+        }
+
+        .exo-hero-rule {
+          width: 48px;
+          height: 1px;
+          background: #e0e0e0;
+          margin: 1.5rem 0;
         }
 
         .exo-hero .exo-body-text {
-          text-align: center;
-          margin: 0 auto 2.5rem;
+          text-align: left;
+          margin: 0 0 2.5rem;
         }
 
         .exo-hero-scroll {
@@ -606,7 +595,7 @@ export default function ExosomeTherapy() {
           50% { transform: translateY(6px); }
         }
 
-        /* Stat Row */
+        /* Stat Row — V2: numbers in gold accent */
         .exo-stat-row {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
@@ -624,7 +613,7 @@ export default function ExosomeTherapy() {
           letter-spacing: -0.02em;
           line-height: 1;
           margin-bottom: 0.5rem;
-          color: #171717;
+          color: #c4a882;
         }
 
         .exo-stat-label {
@@ -634,7 +623,7 @@ export default function ExosomeTherapy() {
           line-height: 1.5;
         }
 
-        /* Tags */
+        /* Tags — V2: no border-radius */
         .exo-tags-grid {
           display: flex;
           flex-wrap: wrap;
@@ -646,7 +635,7 @@ export default function ExosomeTherapy() {
           font-size: 0.8125rem;
           font-weight: 600;
           padding: 0.75rem 1.5rem;
-          border-radius: 100px;
+          border-radius: 0;
           border: 1px solid rgba(255, 255, 255, 0.08);
           background: rgba(255, 255, 255, 0.04);
           color: rgba(255, 255, 255, 0.6);
@@ -657,7 +646,7 @@ export default function ExosomeTherapy() {
           border-color: rgba(255, 255, 255, 0.25);
         }
 
-        /* Steps List */
+        /* Steps List — V2: step numbers in gold, borders #e0e0e0 */
         .exo-steps-list {
           margin-top: 2.5rem;
         }
@@ -666,7 +655,7 @@ export default function ExosomeTherapy() {
           display: flex;
           gap: 1.5rem;
           padding: 1.75rem 0;
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
           align-items: flex-start;
         }
 
@@ -675,11 +664,11 @@ export default function ExosomeTherapy() {
         }
 
         .exo-step-number {
-          font-size: 0.8125rem;
-          font-weight: 700;
-          color: #737373;
+          font-size: 1.25rem;
+          font-weight: 800;
+          color: #c4a882;
           min-width: 56px;
-          letter-spacing: 0.02em;
+          letter-spacing: -0.01em;
         }
 
         .exo-step-content h3 {
@@ -691,37 +680,41 @@ export default function ExosomeTherapy() {
 
         .exo-step-content p {
           font-size: 0.875rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.7;
         }
 
-        /* Benefit Cards */
+        /* Benefit Cards — V2: no border-radius, no box-shadow, hairline borders, numbers in gold */
         .exo-benefits-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 1.25rem;
+          gap: 0;
           margin-top: 2.5rem;
+          border-top: 1px solid #e0e0e0;
         }
 
         .exo-benefit-card {
           padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border-radius: 0;
+          border-bottom: 1px solid #e0e0e0;
+          border-right: 1px solid #e0e0e0;
           background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          transition: background 0.2s ease;
+        }
+
+        .exo-benefit-card:nth-child(2n) {
+          border-right: none;
         }
 
         .exo-benefit-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          background: #fafafa;
         }
 
         .exo-benefit-number {
-          font-size: 0.75rem;
-          font-weight: 700;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: #737373;
+          font-size: 1.25rem;
+          font-weight: 800;
+          letter-spacing: -0.01em;
+          color: #c4a882;
           margin-bottom: 1rem;
         }
 
@@ -735,30 +728,34 @@ export default function ExosomeTherapy() {
         .exo-benefit-desc {
           font-size: 0.875rem;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
         }
 
-        /* Research Cards */
+        /* Research Cards — V2: no border-radius, no box-shadow, hairline borders */
         .exo-research-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 1.25rem;
+          gap: 0;
           margin-top: 2.5rem;
+          border-top: 1px solid #e0e0e0;
         }
 
         .exo-research-card {
           padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border-radius: 0;
+          border-bottom: 1px solid #e0e0e0;
+          border-right: 1px solid #e0e0e0;
           background: #ffffff;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: background 0.2s ease;
+        }
+
+        .exo-research-card:nth-child(2n) {
+          border-right: none;
         }
 
         .exo-research-card:hover {
-          border-color: #171717;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          transform: translateY(-2px);
+          background: #fafafa;
         }
 
         .exo-research-category {
@@ -767,7 +764,7 @@ export default function ExosomeTherapy() {
           font-weight: 700;
           letter-spacing: 0.08em;
           text-transform: uppercase;
-          color: #0891b2;
+          color: #c4a882;
           margin-bottom: 0.875rem;
         }
 
@@ -782,7 +779,7 @@ export default function ExosomeTherapy() {
         .exo-research-summary {
           font-size: 0.875rem;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
           margin-bottom: 1rem;
         }
 
@@ -801,14 +798,14 @@ export default function ExosomeTherapy() {
           line-height: 1.7;
         }
 
-        /* FAQ */
+        /* FAQ — V2: accordion with +/- toggle, borders #e0e0e0 */
         .exo-faq-list {
           max-width: 700px;
-          margin: 0 auto;
+          margin: 2rem auto 0;
         }
 
         .exo-faq-item {
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
         }
 
         .exo-faq-item:last-child {
@@ -828,21 +825,21 @@ export default function ExosomeTherapy() {
           font-family: inherit;
         }
 
-        .exo-faq-question span {
+        .exo-faq-question span:first-child {
           font-size: 1rem;
           font-weight: 600;
           color: #171717;
           padding-right: 1rem;
         }
 
-        .exo-faq-question svg {
+        .exo-faq-toggle {
           flex-shrink: 0;
+          font-size: 1.25rem;
+          font-weight: 300;
           color: #737373;
+          width: 24px;
+          text-align: center;
           transition: transform 0.2s;
-        }
-
-        .exo-faq-open .exo-faq-question svg {
-          transform: rotate(180deg);
         }
 
         .exo-faq-answer {
@@ -858,20 +855,23 @@ export default function ExosomeTherapy() {
 
         .exo-faq-answer p {
           font-size: 0.9375rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.7;
           margin: 0;
         }
 
         /* CTA Section */
         .exo-cta-section {
-          padding: 6rem 1.5rem;
+          padding: 6rem 2rem;
           text-align: center;
         }
 
         .exo-cta-title {
           font-size: 2.75rem;
-          letter-spacing: -0.02em;
+          font-weight: 900;
+          letter-spacing: -0.03em;
+          line-height: 0.95;
+          text-transform: uppercase;
           color: #ffffff;
           margin-bottom: 1.25rem;
         }
@@ -908,8 +908,9 @@ export default function ExosomeTherapy() {
 
         /* Responsive */
         @media (max-width: 768px) {
-          .exo-section {
-            padding: 3rem 1.5rem;
+          .exo-section,
+          .exo-section-alt {
+            padding: 4rem 1.5rem;
           }
 
           .exo-page h1 {
@@ -938,8 +939,16 @@ export default function ExosomeTherapy() {
             grid-template-columns: 1fr;
           }
 
+          .exo-benefit-card {
+            border-right: none;
+          }
+
           .exo-research-grid {
             grid-template-columns: 1fr;
+          }
+
+          .exo-research-card {
+            border-right: none;
           }
 
           .exo-cta-title {
@@ -948,6 +957,10 @@ export default function ExosomeTherapy() {
 
           .exo-cta-buttons {
             flex-direction: column;
+          }
+
+          .exo-cta-section {
+            padding: 4rem 1.5rem;
           }
         }
       `}</style>

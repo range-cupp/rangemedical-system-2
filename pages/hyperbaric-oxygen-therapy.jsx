@@ -85,12 +85,12 @@ export default function HyperbaricOxygenTherapy() {
   ];
 
   const athletes = [
-    { icon: "🏀", name: "LeBron James", sport: "NBA · Los Angeles Lakers" },
-    { icon: "🏊", name: "Michael Phelps", sport: "Olympic Swimming · 23 Gold Medals" },
-    { icon: "⛳", name: "Tiger Woods", sport: "PGA Golf" },
-    { icon: "⚽", name: "Cristiano Ronaldo", sport: "Professional Soccer" },
-    { icon: "🏈", name: "NFL Teams", sport: "Multiple franchises use HBOT" },
-    { icon: "🎖️", name: "U.S. Military", sport: "Navy SEALs & Special Operations" }
+    { icon: "\u{1F3C0}", name: "LeBron James", sport: "NBA \u00b7 Los Angeles Lakers" },
+    { icon: "\u{1F3CA}", name: "Michael Phelps", sport: "Olympic Swimming \u00b7 23 Gold Medals" },
+    { icon: "\u26F3", name: "Tiger Woods", sport: "PGA Golf" },
+    { icon: "\u26BD", name: "Cristiano Ronaldo", sport: "Professional Soccer" },
+    { icon: "\u{1F3C8}", name: "NFL Teams", sport: "Multiple franchises use HBOT" },
+    { icon: "\u{1F396}\uFE0F", name: "U.S. Military", sport: "Navy SEALs & Special Operations" }
   ];
 
   const tags = [
@@ -105,13 +105,13 @@ export default function HyperbaricOxygenTherapy() {
   ];
 
   const steps = [
-    { step: "Step 1", title: "Arrive & get comfortable", desc: "You'll sit down in our pressurized chamber. Wear comfortable clothes — that's it. No special prep needed." },
-    { step: "Step 2", title: "The chamber pressurizes", desc: "The air pressure slowly increases to 2.0 atmospheres. You might feel a slight pop in your ears — like being on an airplane. This is normal." },
-    { step: "Step 3", title: "Breathe & relax", desc: "Once the pressure is set, you just sit back and breathe normally. Many people read, listen to music, or even take a nap. Sessions are usually 60–90 minutes." },
-    { step: "Step 4", title: "You're done", desc: "The pressure slowly comes back to normal. You can go about your day right after — no recovery time needed. Many people say they feel more energized." }
+    { step: "01", title: "Arrive & get comfortable", desc: "You'll sit down in our pressurized chamber. Wear comfortable clothes — that's it. No special prep needed." },
+    { step: "02", title: "The chamber pressurizes", desc: "The air pressure slowly increases to 2.0 atmospheres. You might feel a slight pop in your ears — like being on an airplane. This is normal." },
+    { step: "03", title: "Breathe & relax", desc: "Once the pressure is set, you just sit back and breathe normally. Many people read, listen to music, or even take a nap. Sessions are usually 60–90 minutes." },
+    { step: "04", title: "You're done", desc: "The pressure slowly comes back to normal. You can go about your day right after — no recovery time needed. Many people say they feel more energized." }
   ];
 
-  
+
   return (
     <Layout
       title="Hyperbaric Oxygen Therapy (HBOT) | Newport Beach | Range Medical"
@@ -228,22 +228,23 @@ export default function HyperbaricOxygenTherapy() {
       <div className="trust-bar">
         <div className="trust-inner">
           <span className="trust-item">
-            <span className="trust-rating">★★★★★</span> 5.0 on Google
+            <span className="trust-rating">5.0</span> on Google
           </span>
-          <span className="trust-item">📍 Newport Beach, CA</span>
-          <span className="trust-item">✓ Licensed Providers</span>
+          <span className="trust-item">Newport Beach, CA</span>
+          <span className="trust-item">Licensed Providers</span>
         </div>
       </div>
 
       <div className="hbot-page">
         {/* Hero */}
         <section className="hbot-hero">
-          <div className="hbot-kicker">Recovery · Energy · Healing</div>
-          <h1>Your Guide to Hyperbaric Oxygen Therapy</h1>
+          <div className="v2-label"><span className="v2-dot" /> RECOVERY &middot; ENERGY &middot; HEALING</div>
+          <h1>YOUR GUIDE TO HYPERBARIC OXYGEN THERAPY</h1>
+          <div className="hbot-hero-rule"></div>
           <p className="hbot-body-text">Everything you need to know about the recovery tool used by pro athletes, the military, and top medical centers — explained simply.</p>
           <div className="hbot-hero-scroll">
             Scroll to explore
-            <span>↓</span>
+            <span>&darr;</span>
           </div>
         </section>
 
@@ -251,8 +252,8 @@ export default function HyperbaricOxygenTherapy() {
         <section className="hbot-section hbot-section-alt">
           <div className="hbot-container">
             <div className="hbot-animate">
-              <div className="hbot-kicker">What Is It</div>
-              <h2>A simple idea with powerful results.</h2>
+              <div className="v2-label"><span className="v2-dot" /> WHAT IS IT</div>
+              <h2>A SIMPLE IDEA WITH POWERFUL RESULTS.</h2>
               <div className="hbot-divider"></div>
               <p className="hbot-body-text">
                 Hyperbaric oxygen therapy (HBOT) is when you sit inside a special chamber and breathe in concentrated oxygen. The air pressure inside is raised to about twice the normal level. This pushes more oxygen into your blood — so it can reach the parts of your body that need healing the most.
@@ -268,7 +269,7 @@ export default function HyperbaricOxygenTherapy() {
                 <div className="hbot-stat-label">Atmospheres of pressure<br />in our sit-down chamber</div>
               </div>
               <div className="hbot-stat-item hbot-animate">
-                <div className="hbot-stat-number">2–3×</div>
+                <div className="hbot-stat-number">2–3&times;</div>
                 <div className="hbot-stat-label">More oxygen delivered<br />to your body's tissues</div>
               </div>
               <div className="hbot-stat-item hbot-animate">
@@ -303,8 +304,8 @@ export default function HyperbaricOxygenTherapy() {
         <section className="hbot-section hbot-section-inverted">
           <div className="hbot-container">
             <div className="hbot-animate">
-              <div className="hbot-kicker">Who It's For</div>
-              <h2>You don't have to be a pro athlete.</h2>
+              <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> WHO IT'S FOR</div>
+              <h2>YOU DON'T HAVE TO BE A PRO ATHLETE.</h2>
               <div className="hbot-divider"></div>
               <p className="hbot-body-text">
                 If any of these sound like you, hyperbaric oxygen therapy could be worth exploring at our Newport Beach clinic. It's for everyday people who want to give their body a little extra help.
@@ -323,8 +324,8 @@ export default function HyperbaricOxygenTherapy() {
         <section className="hbot-section">
           <div className="hbot-container">
             <div className="hbot-animate">
-              <div className="hbot-kicker">How It May Help</div>
-              <h2>More oxygen. Better healing.</h2>
+              <div className="v2-label"><span className="v2-dot" /> HOW IT MAY HELP</div>
+              <h2>MORE OXYGEN. BETTER HEALING.</h2>
               <div className="hbot-divider"></div>
               <p className="hbot-body-text">
                 When your body gets more oxygen than usual, a lot of good things may start to happen. Here are the main ways HBOT could support your body.
@@ -347,8 +348,8 @@ export default function HyperbaricOxygenTherapy() {
         <section className="hbot-section hbot-section-alt" id="hbot-research">
           <div className="hbot-container">
             <div className="hbot-animate">
-              <div className="hbot-kicker">Backed by Science</div>
-              <h2>Evidence-Based Results</h2>
+              <div className="v2-label"><span className="v2-dot" /> BACKED BY SCIENCE</div>
+              <h2>EVIDENCE-BASED RESULTS</h2>
               <div className="hbot-divider"></div>
               <p className="hbot-body-text">
                 We've summarized the peer-reviewed research. Click any study to get the full breakdown — free.
@@ -381,8 +382,8 @@ export default function HyperbaricOxygenTherapy() {
         <section className="hbot-section hbot-section-inverted">
           <div className="hbot-container">
             <div className="hbot-animate">
-              <div className="hbot-kicker">Who Uses It</div>
-              <h2>Trusted by the best in the world.</h2>
+              <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> WHO USES IT</div>
+              <h2>TRUSTED BY THE BEST IN THE WORLD.</h2>
               <div className="hbot-divider"></div>
               <p className="hbot-body-text">
                 Some of the biggest names in sports and the military use hyperbaric oxygen therapy as part of their recovery. Here are a few you might know.
@@ -405,8 +406,8 @@ export default function HyperbaricOxygenTherapy() {
         <section className="hbot-section hbot-section-alt">
           <div className="hbot-container">
             <div className="hbot-animate">
-              <div className="hbot-kicker">What to Expect</div>
-              <h2>Your first session, step by step.</h2>
+              <div className="v2-label"><span className="v2-dot" /> WHAT TO EXPECT</div>
+              <h2>YOUR FIRST SESSION, STEP BY STEP.</h2>
               <div className="hbot-divider"></div>
               <p className="hbot-body-text">
                 It's easier than you think. There's nothing to be nervous about — most people say it's actually relaxing.
@@ -431,8 +432,8 @@ export default function HyperbaricOxygenTherapy() {
         <section className="hbot-section" id="hbot-pricing">
           <div className="hbot-container">
             <div className="hbot-animate" style={{ textAlign: 'center', marginBottom: '3rem' }}>
-              <div className="hbot-kicker">Pricing</div>
-              <h2>Choose the path that fits your goals.</h2>
+              <div className="v2-label" style={{ justifyContent: 'center' }}><span className="v2-dot" /> PRICING</div>
+              <h2>CHOOSE THE PATH THAT FITS YOUR GOALS.</h2>
               <div className="hbot-divider" style={{ margin: '1.25rem auto' }}></div>
               <p className="hbot-body-text" style={{ textAlign: 'center', margin: '0 auto' }}>
                 Whether you want a full protocol, a regular weekly schedule, or just a few sessions — we have an option for you.
@@ -447,12 +448,12 @@ export default function HyperbaricOxygenTherapy() {
                 <h3 className="hbot-pricing-featured-title">Six-Week Cellular Energy Reset</h3>
                 <div className="hbot-pricing-featured-price">$3,999</div>
                 <ul className="hbot-pricing-featured-list">
-                  <li>18 HBOT + 18 Red Light sessions over 6 weeks</li>
-                  <li>3 sessions per week of each therapy</li>
-                  <li>Weekly provider check-ins</li>
-                  <li>Full money-back guarantee if no improvement</li>
+                  <li><span className="hbot-li-dash">&ndash;</span> 18 HBOT + 18 Red Light sessions over 6 weeks</li>
+                  <li><span className="hbot-li-dash">&ndash;</span> 3 sessions per week of each therapy</li>
+                  <li><span className="hbot-li-dash">&ndash;</span> Weekly provider check-ins</li>
+                  <li><span className="hbot-li-dash">&ndash;</span> Full money-back guarantee if no improvement</li>
                 </ul>
-                <div className="hbot-pricing-featured-note">Includes Red Light Therapy · Structured protocol with weekly check-ins</div>
+                <div className="hbot-pricing-featured-note">Includes Red Light Therapy &middot; Structured protocol with weekly check-ins</div>
                 <a href="https://buy.stripe.com/8x2cN47WQ5VKgZXebL08g02" target="_blank" rel="noopener noreferrer" className="hbot-pricing-btn-dark">Get Started</a>
               </div>
             </div>
@@ -465,11 +466,11 @@ export default function HyperbaricOxygenTherapy() {
                   <h3>HBOT Membership — 1x/Week</h3>
                   <div className="hbot-pricing-membership-price">$549 <span>/mo</span></div>
                   <ul>
-                    <li>4 HBOT sessions per month</li>
-                    <li>Additional sessions $150 each</li>
-                    <li>3-month minimum commitment</li>
+                    <li><span className="hbot-li-dash">&ndash;</span> 4 HBOT sessions per month</li>
+                    <li><span className="hbot-li-dash">&ndash;</span> Additional sessions $150 each</li>
+                    <li><span className="hbot-li-dash">&ndash;</span> 3-month minimum commitment</li>
                   </ul>
-                  <div className="hbot-pricing-per-session">$137/session · Save 26% vs singles</div>
+                  <div className="hbot-pricing-per-session">$137/session &middot; Save 26% vs singles</div>
                   <a href="https://buy.stripe.com/aFa3cudha3NC9xv0kV08g03" target="_blank" rel="noopener noreferrer" className="hbot-pricing-btn-outline">Choose Plan</a>
                 </div>
                 <div className="hbot-pricing-membership-card hbot-pricing-popular">
@@ -477,22 +478,22 @@ export default function HyperbaricOxygenTherapy() {
                   <h3>HBOT Membership — 2x/Week</h3>
                   <div className="hbot-pricing-membership-price">$999 <span>/mo</span></div>
                   <ul>
-                    <li>8 HBOT sessions per month</li>
-                    <li>Additional sessions $150 each</li>
-                    <li>3-month minimum commitment</li>
+                    <li><span className="hbot-li-dash">&ndash;</span> 8 HBOT sessions per month</li>
+                    <li><span className="hbot-li-dash">&ndash;</span> Additional sessions $150 each</li>
+                    <li><span className="hbot-li-dash">&ndash;</span> 3-month minimum commitment</li>
                   </ul>
-                  <div className="hbot-pricing-per-session">$125/session · Save 32% vs singles</div>
+                  <div className="hbot-pricing-per-session">$125/session &middot; Save 32% vs singles</div>
                   <a href="https://buy.stripe.com/4gM7sK7WQ1FudNL8Rr08g04" target="_blank" rel="noopener noreferrer" className="hbot-pricing-btn-dark">Choose Plan</a>
                 </div>
                 <div className="hbot-pricing-membership-card">
                   <h3>HBOT Membership — 3x/Week</h3>
                   <div className="hbot-pricing-membership-price">$1,399 <span>/mo</span></div>
                   <ul>
-                    <li>12 HBOT sessions per month</li>
-                    <li>Additional sessions $150 each</li>
-                    <li>3-month minimum commitment</li>
+                    <li><span className="hbot-li-dash">&ndash;</span> 12 HBOT sessions per month</li>
+                    <li><span className="hbot-li-dash">&ndash;</span> Additional sessions $150 each</li>
+                    <li><span className="hbot-li-dash">&ndash;</span> 3-month minimum commitment</li>
                   </ul>
-                  <div className="hbot-pricing-per-session">$117/session · Save 37% vs singles</div>
+                  <div className="hbot-pricing-per-session">$117/session &middot; Save 37% vs singles</div>
                   <a href="https://buy.stripe.com/14A00ia4Y0BqgZX0kV08g05" target="_blank" rel="noopener noreferrer" className="hbot-pricing-btn-outline">Choose Plan</a>
                 </div>
               </div>
@@ -511,13 +512,13 @@ export default function HyperbaricOxygenTherapy() {
                 <div className="hbot-pricing-pack-card">
                   <div className="hbot-pricing-pack-name">5-Session Pack</div>
                   <div className="hbot-pricing-pack-price">$850</div>
-                  <div className="hbot-pricing-pack-detail">$170/session · Save $75</div>
+                  <div className="hbot-pricing-pack-detail">$170/session &middot; Save $75</div>
                   <a href="https://buy.stripe.com/00w8wO1ys83SfVT2t308g07" target="_blank" rel="noopener noreferrer" className="hbot-pricing-btn-outline-sm">Buy Pack</a>
                 </div>
                 <div className="hbot-pricing-pack-card">
                   <div className="hbot-pricing-pack-name">10-Session Pack</div>
                   <div className="hbot-pricing-pack-price">$1,600</div>
-                  <div className="hbot-pricing-pack-detail">$160/session · Save $250</div>
+                  <div className="hbot-pricing-pack-detail">$160/session &middot; Save $250</div>
                   <a href="https://buy.stripe.com/9B6aEW4KE4RG7pn1oZ08g08" target="_blank" rel="noopener noreferrer" className="hbot-pricing-btn-outline-sm">Buy Pack</a>
                 </div>
               </div>
@@ -564,19 +565,17 @@ export default function HyperbaricOxygenTherapy() {
         </section>
 
         {/* FAQ */}
-        <section className="hbot-section-alt">
+        <section className="hbot-section hbot-section-alt">
           <div className="hbot-container">
-            <span className="hbot-section-label">Questions</span>
-            <h2>Common Questions</h2>
+            <div className="v2-label"><span className="v2-dot" /> QUESTIONS</div>
+            <h2>COMMON QUESTIONS</h2>
 
             <div className="hbot-faq-list">
               {faqs.map((faq, index) => (
                 <div key={index} className={`hbot-faq-item ${openFaq === index ? 'hbot-faq-open' : ''}`}>
                   <button className="hbot-faq-question" onClick={() => toggleFaq(index)}>
                     <span>{faq.question}</span>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d={openFaq === index ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} />
-                    </svg>
+                    <span className="hbot-faq-toggle">{openFaq === index ? '\u2212' : '+'}</span>
                   </button>
                   <div className="hbot-faq-answer">
                     <p>{faq.answer}</p>
@@ -591,8 +590,8 @@ export default function HyperbaricOxygenTherapy() {
         <section className="hbot-section hbot-section-inverted hbot-cta-section">
           <div className="hbot-container">
             <div className="hbot-animate">
-              <div className="hbot-kicker" style={{ marginBottom: '1.5rem' }}>Next Steps</div>
-              <h2 className="hbot-cta-title">Ready to learn more?</h2>
+              <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '1.5rem' }}><span className="v2-dot" /> NEXT STEPS</div>
+              <h2 className="hbot-cta-title">READY TO LEARN MORE?</h2>
               <p className="hbot-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
                 If you have questions or want to find out if hyperbaric oxygen therapy is right for you, our Newport Beach team is here to help. No pressure — just the information you need.
               </p>
@@ -614,7 +613,7 @@ export default function HyperbaricOxygenTherapy() {
       </div>
 
       <style jsx>{`
-        /* ===== HBOT PAGE SCOPED STYLES ===== */
+        /* ===== HBOT PAGE V2 SCOPED STYLES ===== */
         .hbot-page {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
           -webkit-font-smoothing: antialiased;
@@ -644,58 +643,37 @@ export default function HyperbaricOxygenTherapy() {
 
         /* Sections */
         .hbot-section {
-          padding: 4rem 1.5rem;
+          padding: 6rem 2rem;
         }
 
         .hbot-section-alt {
           background: #fafafa;
-          padding: 5rem 1.5rem;
-        }
-
-        .hbot-section-label {
-          display: inline-block;
-          font-size: 0.75rem;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 0.75rem;
+          padding: 6rem 2rem;
         }
 
         .hbot-section-inverted {
-          background: #000000;
+          background: #1a1a1a;
           color: #ffffff;
         }
 
-        /* Kicker */
-        .hbot-kicker {
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 1rem;
-        }
-
-        .hbot-section-inverted .hbot-kicker {
-          color: rgba(255, 255, 255, 0.4);
-        }
-
-        /* Headlines */
+        /* Headlines — V2: uppercase, 900 weight, tight leading */
         .hbot-page h1 {
           font-size: 2.75rem;
-          font-weight: 700;
-          line-height: 1.15;
-          letter-spacing: -0.02em;
+          font-weight: 900;
+          line-height: 0.95;
+          letter-spacing: -0.03em;
           color: #171717;
+          text-transform: uppercase;
         }
 
         .hbot-page h2 {
           font-size: 2rem;
-          font-weight: 700;
-          letter-spacing: -0.02em;
+          font-weight: 900;
+          letter-spacing: -0.03em;
+          line-height: 0.95;
           color: #171717;
           margin-bottom: 1rem;
+          text-transform: uppercase;
         }
 
         .hbot-page h3 {
@@ -710,12 +688,12 @@ export default function HyperbaricOxygenTherapy() {
           color: #ffffff;
         }
 
-        /* Body Text */
+        /* Body Text — V2: #737373 */
         .hbot-body-text {
           font-size: 1.0625rem;
           font-weight: 400;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
           max-width: 600px;
         }
 
@@ -723,11 +701,11 @@ export default function HyperbaricOxygenTherapy() {
           color: rgba(255, 255, 255, 0.55);
         }
 
-        /* Divider */
+        /* Divider — V2: #e0e0e0 */
         .hbot-divider {
           width: 48px;
-          height: 2px;
-          background: #e5e5e5;
+          height: 1px;
+          background: #e0e0e0;
           margin: 1.25rem 0;
         }
 
@@ -735,34 +713,37 @@ export default function HyperbaricOxygenTherapy() {
           background: rgba(255, 255, 255, 0.12);
         }
 
-        /* Buttons */
+        /* Buttons — V2: no border-radius, 11px, 700 weight, uppercase */
         .hbot-btn-primary {
           display: inline-block;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          font-size: 0.875rem;
-          font-weight: 600;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
           padding: 0.875rem 2rem;
           background: #ffffff;
-          color: #000000;
+          color: #1a1a1a;
           border: none;
-          border-radius: 8px;
+          border-radius: 0;
           cursor: pointer;
           text-decoration: none;
-          transition: background 0.2s ease, transform 0.2s ease;
+          transition: background 0.2s ease;
         }
 
         .hbot-btn-primary:hover {
-          background: #e5e5e5;
-          transform: translateY(-1px);
+          background: #e0e0e0;
         }
 
-        /* Hero */
+        /* Hero — V2: left-aligned with hairline rule */
         .hbot-hero {
-          padding: 4rem 1.5rem 5rem;
-          text-align: center;
+          padding: 6rem 2rem 5rem;
+          text-align: left;
           display: flex;
           flex-direction: column;
-          align-items: center;
+          align-items: flex-start;
+          max-width: 1200px;
+          margin: 0 auto;
         }
 
         .hbot-hero h1 {
@@ -770,15 +751,22 @@ export default function HyperbaricOxygenTherapy() {
           margin-bottom: 1.5rem;
         }
 
+        .hbot-hero-rule {
+          width: 48px;
+          height: 1px;
+          background: #e0e0e0;
+          margin-bottom: 1.5rem;
+        }
+
         .hbot-hero .hbot-body-text {
-          text-align: center;
-          margin: 0 auto 2.5rem;
+          text-align: left;
+          margin: 0 0 2.5rem;
         }
 
         .hbot-hero-scroll {
-          font-size: 0.75rem;
+          font-size: 11px;
           font-weight: 700;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.12em;
           text-transform: uppercase;
           color: #737373;
           margin-top: 2rem;
@@ -810,11 +798,11 @@ export default function HyperbaricOxygenTherapy() {
 
         .hbot-stat-number {
           font-size: 2.75rem;
-          font-weight: 800;
-          letter-spacing: -0.02em;
+          font-weight: 900;
+          letter-spacing: -0.03em;
           line-height: 1;
           margin-bottom: 0.5rem;
-          color: #171717;
+          color: #c4a882;
         }
 
         .hbot-stat-label {
@@ -824,7 +812,7 @@ export default function HyperbaricOxygenTherapy() {
           line-height: 1.5;
         }
 
-        /* Tags */
+        /* Tags — V2: no rounded corners */
         .hbot-tags-grid {
           display: flex;
           flex-wrap: wrap;
@@ -836,7 +824,7 @@ export default function HyperbaricOxygenTherapy() {
           font-size: 0.8125rem;
           font-weight: 600;
           padding: 0.75rem 1.5rem;
-          border-radius: 100px;
+          border-radius: 0;
           border: 1px solid rgba(255, 255, 255, 0.08);
           background: rgba(255, 255, 255, 0.04);
           color: rgba(255, 255, 255, 0.6);
@@ -847,7 +835,7 @@ export default function HyperbaricOxygenTherapy() {
           border-color: rgba(255, 255, 255, 0.25);
         }
 
-        /* Chamber Photos */
+        /* Chamber Photos — V2: no border-radius, no shadow */
         .hbot-photos-section {
           background: #ffffff;
         }
@@ -860,39 +848,49 @@ export default function HyperbaricOxygenTherapy() {
 
         .hbot-photo-wrapper {
           overflow: hidden;
-          border-radius: 12px;
+          border-radius: 0;
         }
 
         .hbot-photo-wrapper img {
           width: 100%;
           height: auto;
-          border-radius: 12px;
-          transition: box-shadow 0.2s ease, transform 0.2s ease;
+          border-radius: 0;
+          transition: transform 0.2s ease;
         }
 
         .hbot-photo-wrapper:hover img {
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          transform: scale(1.01);
         }
 
-        /* Benefit Cards */
+        /* Benefit Cards — V2: no radius, no shadow, hairline borders */
         .hbot-benefits-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 1.25rem;
+          gap: 0;
           margin-top: 2.5rem;
+          border: 1px solid #e0e0e0;
         }
 
         .hbot-benefit-card {
           padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border-radius: 0;
+          border: none;
+          border-right: 1px solid #e0e0e0;
+          border-bottom: 1px solid #e0e0e0;
           background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          transition: background 0.2s ease;
+        }
+
+        .hbot-benefit-card:nth-child(2n) {
+          border-right: none;
+        }
+
+        .hbot-benefit-card:nth-last-child(-n+2) {
+          border-bottom: none;
         }
 
         .hbot-benefit-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          background: #fafafa;
         }
 
         .hbot-benefit-number {
@@ -900,7 +898,7 @@ export default function HyperbaricOxygenTherapy() {
           font-weight: 700;
           letter-spacing: 0.1em;
           text-transform: uppercase;
-          color: #737373;
+          color: #c4a882;
           margin-bottom: 1rem;
         }
 
@@ -914,30 +912,40 @@ export default function HyperbaricOxygenTherapy() {
         .hbot-benefit-desc {
           font-size: 0.875rem;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
         }
 
-        /* Research Cards */
+        /* Research Cards — V2: no radius, no shadow, hairline borders */
         .hbot-research-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 1.25rem;
+          gap: 0;
           margin-top: 2.5rem;
+          border: 1px solid #e0e0e0;
         }
 
         .hbot-research-card {
           padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border-radius: 0;
+          border: none;
+          border-right: 1px solid #e0e0e0;
+          border-bottom: 1px solid #e0e0e0;
           background: #ffffff;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: background 0.2s ease;
+        }
+
+        .hbot-research-card:nth-child(2n) {
+          border-right: none;
+        }
+
+        .hbot-research-card:last-child,
+        .hbot-research-card:nth-last-child(2):nth-child(odd) {
+          border-bottom: none;
         }
 
         .hbot-research-card:hover {
-          border-color: #171717;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          transform: translateY(-2px);
+          background: #fafafa;
         }
 
         .hbot-research-category {
@@ -946,7 +954,7 @@ export default function HyperbaricOxygenTherapy() {
           font-weight: 700;
           letter-spacing: 0.08em;
           text-transform: uppercase;
-          color: #0d9488;
+          color: #c4a882;
           margin-bottom: 0.875rem;
         }
 
@@ -961,7 +969,7 @@ export default function HyperbaricOxygenTherapy() {
         .hbot-research-summary {
           font-size: 0.875rem;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
           margin-bottom: 1rem;
         }
 
@@ -980,31 +988,42 @@ export default function HyperbaricOxygenTherapy() {
           line-height: 1.7;
         }
 
-        /* Athlete Cards */
+        /* Athlete Cards — V2: no radius */
         .hbot-athletes-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 1.25rem;
+          gap: 0;
           margin-top: 2.5rem;
+          border: 1px solid rgba(255, 255, 255, 0.06);
         }
 
         .hbot-athlete-card {
           padding: 2rem 1.75rem;
-          border-radius: 12px;
+          border-radius: 0;
           text-align: center;
           background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.06);
-          transition: border-color 0.2s ease;
+          border: none;
+          border-right: 1px solid rgba(255, 255, 255, 0.06);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+          transition: background 0.2s ease;
+        }
+
+        .hbot-athlete-card:nth-child(3n) {
+          border-right: none;
+        }
+
+        .hbot-athlete-card:nth-last-child(-n+3) {
+          border-bottom: none;
         }
 
         .hbot-athlete-card:hover {
-          border-color: rgba(255, 255, 255, 0.15);
+          background: rgba(255, 255, 255, 0.06);
         }
 
         .hbot-athlete-icon {
           width: 48px;
           height: 48px;
-          border-radius: 50%;
+          border-radius: 0;
           background: rgba(255, 255, 255, 0.06);
           margin: 0 auto 1rem;
           display: flex;
@@ -1026,7 +1045,7 @@ export default function HyperbaricOxygenTherapy() {
           letter-spacing: 0.02em;
         }
 
-        /* Expect List */
+        /* Expect List — V2: gold step numbers, #e0e0e0 borders */
         .hbot-expect-list {
           margin-top: 2.5rem;
         }
@@ -1035,7 +1054,7 @@ export default function HyperbaricOxygenTherapy() {
           display: flex;
           gap: 1.5rem;
           padding: 1.75rem 0;
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
           align-items: flex-start;
         }
 
@@ -1044,11 +1063,11 @@ export default function HyperbaricOxygenTherapy() {
         }
 
         .hbot-expect-step {
-          font-size: 0.8125rem;
-          font-weight: 700;
-          color: #737373;
+          font-size: 1.25rem;
+          font-weight: 900;
+          color: #c4a882;
           min-width: 56px;
-          letter-spacing: 0.02em;
+          letter-spacing: -0.02em;
         }
 
         .hbot-expect-content h3 {
@@ -1060,18 +1079,18 @@ export default function HyperbaricOxygenTherapy() {
 
         .hbot-expect-content p {
           font-size: 0.875rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.7;
         }
 
-        /* FAQ */
+        /* FAQ — V2: +/- toggle, #e0e0e0 borders */
         .hbot-faq-list {
           max-width: 700px;
-          margin: 0 auto;
+          margin: 1.5rem auto 0;
         }
 
         .hbot-faq-item {
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
         }
 
         .hbot-faq-item:last-child {
@@ -1091,21 +1110,25 @@ export default function HyperbaricOxygenTherapy() {
           font-family: inherit;
         }
 
-        .hbot-faq-question span {
+        .hbot-faq-question span:first-child {
           font-size: 1rem;
           font-weight: 600;
           color: #171717;
           padding-right: 1rem;
         }
 
-        .hbot-faq-question svg {
+        .hbot-faq-toggle {
           flex-shrink: 0;
+          font-size: 1.25rem;
+          font-weight: 300;
           color: #737373;
-          transition: transform 0.2s;
+          width: 24px;
+          text-align: center;
+          transition: color 0.2s;
         }
 
-        .hbot-faq-open .hbot-faq-question svg {
-          transform: rotate(180deg);
+        .hbot-faq-open .hbot-faq-toggle {
+          color: #c4a882;
         }
 
         .hbot-faq-answer {
@@ -1121,22 +1144,25 @@ export default function HyperbaricOxygenTherapy() {
 
         .hbot-faq-answer p {
           font-size: 0.9375rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.7;
           margin: 0;
         }
 
         /* CTA Section */
         .hbot-cta-section {
-          padding: 6rem 1.5rem;
+          padding: 6rem 2rem;
           text-align: center;
         }
 
         .hbot-cta-title {
           font-size: 2.75rem;
-          letter-spacing: -0.02em;
+          font-weight: 900;
+          letter-spacing: -0.03em;
+          line-height: 0.95;
           color: #ffffff;
           margin-bottom: 1.25rem;
+          text-transform: uppercase;
         }
 
         .hbot-cta-buttons {
@@ -1148,9 +1174,9 @@ export default function HyperbaricOxygenTherapy() {
         }
 
         .hbot-cta-or {
-          font-size: 0.75rem;
+          font-size: 11px;
           font-weight: 700;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.12em;
           text-transform: uppercase;
           color: rgba(255, 255, 255, 0.25);
         }
@@ -1169,7 +1195,7 @@ export default function HyperbaricOxygenTherapy() {
           border-color: rgba(255, 255, 255, 0.6);
         }
 
-        /* ===== PRICING STYLES ===== */
+        /* ===== PRICING STYLES — V2 ===== */
         .hbot-pricing-tier-label {
           font-size: 0.6875rem;
           font-weight: 700;
@@ -1179,10 +1205,10 @@ export default function HyperbaricOxygenTherapy() {
           margin-bottom: 1rem;
         }
 
-        /* Featured card (Six-Week Reset) */
+        /* Featured card — V2: no radius, no shadow */
         .hbot-pricing-featured {
-          border: 2px solid #171717;
-          border-radius: 12px;
+          border: 1px solid #e0e0e0;
+          border-radius: 0;
           padding: 2.5rem;
           position: relative;
           background: #fff;
@@ -1190,29 +1216,31 @@ export default function HyperbaricOxygenTherapy() {
 
         .hbot-pricing-guarantee-badge {
           display: inline-block;
-          font-size: 0.6875rem;
+          font-size: 11px;
           font-weight: 700;
           text-transform: uppercase;
-          letter-spacing: 0.06em;
+          letter-spacing: 0.12em;
           padding: 0.375rem 0.75rem;
-          background: #171717;
+          background: #1a1a1a;
           color: #fff;
-          border-radius: 4px;
+          border-radius: 0;
           margin-bottom: 1.25rem;
         }
 
         .hbot-pricing-featured-title {
           font-size: 1.5rem;
-          font-weight: 700;
+          font-weight: 900;
           color: #171717;
           margin-bottom: 0.5rem;
+          text-transform: uppercase;
+          letter-spacing: -0.02em;
         }
 
         .hbot-pricing-featured-price {
           font-size: 2.75rem;
-          font-weight: 800;
-          color: #171717;
-          letter-spacing: -0.02em;
+          font-weight: 900;
+          color: #c4a882;
+          letter-spacing: -0.03em;
           margin-bottom: 1.5rem;
         }
 
@@ -1224,51 +1252,54 @@ export default function HyperbaricOxygenTherapy() {
 
         .hbot-pricing-featured-list li {
           font-size: 0.9375rem;
-          color: #525252;
+          color: #737373;
           padding: 0.375rem 0;
-          padding-left: 1.25rem;
+          padding-left: 0;
           position: relative;
         }
 
-        .hbot-pricing-featured-list li::before {
-          content: '•';
-          position: absolute;
-          left: 0;
-          color: #171717;
+        .hbot-li-dash {
+          color: #c4a882;
           font-weight: 700;
+          margin-right: 0.5rem;
         }
 
         .hbot-pricing-featured-note {
           font-size: 0.8125rem;
           color: #737373;
-          border-top: 1px solid #e5e5e5;
+          border-top: 1px solid #e0e0e0;
           padding-top: 1rem;
           margin-bottom: 1.5rem;
         }
 
-        /* Membership grid */
+        /* Membership grid — V2 */
         .hbot-pricing-membership-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 1.25rem;
+          gap: 0;
+          border: 1px solid #e0e0e0;
         }
 
         .hbot-pricing-membership-card {
-          border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border: none;
+          border-right: 1px solid #e0e0e0;
+          border-radius: 0;
           padding: 2rem;
           background: #fff;
           position: relative;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          transition: background 0.2s ease;
+        }
+
+        .hbot-pricing-membership-card:last-child {
+          border-right: none;
         }
 
         .hbot-pricing-membership-card:hover {
-          border-color: #171717;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          background: #fafafa;
         }
 
         .hbot-pricing-popular {
-          border: 2px solid #171717;
+          border-right: 1px solid #e0e0e0;
         }
 
         .hbot-pricing-popular-badge {
@@ -1276,14 +1307,14 @@ export default function HyperbaricOxygenTherapy() {
           top: -11px;
           left: 50%;
           transform: translateX(-50%);
-          font-size: 0.6875rem;
+          font-size: 11px;
           font-weight: 700;
           text-transform: uppercase;
-          letter-spacing: 0.06em;
+          letter-spacing: 0.12em;
           padding: 0.25rem 0.75rem;
-          background: #171717;
+          background: #1a1a1a;
           color: #fff;
-          border-radius: 4px;
+          border-radius: 0;
           white-space: nowrap;
         }
 
@@ -1296,9 +1327,9 @@ export default function HyperbaricOxygenTherapy() {
 
         .hbot-pricing-membership-price {
           font-size: 2.25rem;
-          font-weight: 800;
-          color: #171717;
-          letter-spacing: -0.02em;
+          font-weight: 900;
+          color: #c4a882;
+          letter-spacing: -0.03em;
           margin-bottom: 1.25rem;
         }
 
@@ -1316,44 +1347,41 @@ export default function HyperbaricOxygenTherapy() {
 
         .hbot-pricing-membership-card ul li {
           font-size: 0.875rem;
-          color: #525252;
+          color: #737373;
           padding: 0.3rem 0;
-          padding-left: 1.25rem;
+          padding-left: 0;
           position: relative;
-        }
-
-        .hbot-pricing-membership-card ul li::before {
-          content: '•';
-          position: absolute;
-          left: 0;
-          color: #171717;
-          font-weight: 700;
         }
 
         .hbot-pricing-per-session {
           font-size: 0.8125rem;
           color: #737373;
-          border-top: 1px solid #e5e5e5;
+          border-top: 1px solid #e0e0e0;
           padding-top: 1rem;
           margin-bottom: 1.25rem;
         }
 
-        /* Session packs grid */
+        /* Session packs grid — V2 */
         .hbot-pricing-packs-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 1.25rem;
-          border: 1px solid #e5e5e5;
-          border-radius: 12px;
-          padding: 2rem;
+          gap: 0;
+          border: 1px solid #e0e0e0;
+          border-radius: 0;
+          padding: 0;
           background: #fff;
         }
 
         .hbot-pricing-pack-card {
           text-align: center;
-          padding: 1.5rem 1rem;
-          border: 1px solid #e5e5e5;
-          border-radius: 8px;
+          padding: 2rem 1rem;
+          border: none;
+          border-right: 1px solid #e0e0e0;
+          border-radius: 0;
+        }
+
+        .hbot-pricing-pack-card:last-child {
+          border-right: none;
         }
 
         .hbot-pricing-pack-name {
@@ -1365,9 +1393,9 @@ export default function HyperbaricOxygenTherapy() {
 
         .hbot-pricing-pack-price {
           font-size: 2rem;
-          font-weight: 800;
-          color: #171717;
-          letter-spacing: -0.02em;
+          font-weight: 900;
+          color: #c4a882;
+          letter-spacing: -0.03em;
           margin-bottom: 0.25rem;
         }
 
@@ -1377,10 +1405,10 @@ export default function HyperbaricOxygenTherapy() {
           margin-bottom: 1rem;
         }
 
-        /* Comparison table */
+        /* Comparison table — V2 */
         .hbot-pricing-comparison {
-          border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border: 1px solid #e0e0e0;
+          border-radius: 0;
           padding: 1.5rem 2rem;
           background: #fff;
         }
@@ -1410,80 +1438,89 @@ export default function HyperbaricOxygenTherapy() {
 
         .hbot-pricing-comparison-value {
           font-size: 1.25rem;
-          font-weight: 800;
+          font-weight: 900;
           color: #171717;
         }
 
         .hbot-pricing-comparison-save {
           font-size: 0.6875rem;
-          color: #737373;
+          color: #c4a882;
+          font-weight: 600;
           margin-top: 0.125rem;
         }
 
-        /* Pricing buttons */
+        /* Pricing buttons — V2 */
         .hbot-pricing-btn-dark {
           display: inline-block;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          font-size: 0.875rem;
-          font-weight: 600;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
           padding: 0.75rem 2rem;
-          background: #171717;
+          background: #1a1a1a;
           color: #ffffff;
           border: none;
-          border-radius: 8px;
+          border-radius: 0;
           text-decoration: none;
-          transition: background 0.2s ease, transform 0.2s ease;
+          transition: background 0.2s ease;
           cursor: pointer;
         }
 
         .hbot-pricing-btn-dark:hover {
           background: #333;
-          transform: translateY(-1px);
         }
 
         .hbot-pricing-btn-outline {
           display: inline-block;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          font-size: 0.875rem;
-          font-weight: 600;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
           padding: 0.75rem 2rem;
           background: #fff;
-          color: #171717;
-          border: 1px solid #e5e5e5;
-          border-radius: 8px;
+          color: #1a1a1a;
+          border: 1px solid #e0e0e0;
+          border-radius: 0;
           text-decoration: none;
           transition: all 0.2s ease;
           cursor: pointer;
         }
 
         .hbot-pricing-btn-outline:hover {
-          border-color: #171717;
-          transform: translateY(-1px);
+          border-color: #1a1a1a;
         }
 
         .hbot-pricing-btn-outline-sm {
           display: inline-block;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          font-size: 0.8125rem;
-          font-weight: 600;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
           padding: 0.5rem 1.5rem;
           background: #fff;
-          color: #171717;
-          border: 1px solid #e5e5e5;
-          border-radius: 6px;
+          color: #1a1a1a;
+          border: 1px solid #e0e0e0;
+          border-radius: 0;
           text-decoration: none;
           transition: all 0.2s ease;
           cursor: pointer;
         }
 
         .hbot-pricing-btn-outline-sm:hover {
-          border-color: #171717;
+          border-color: #1a1a1a;
         }
 
         /* Responsive */
         @media (max-width: 768px) {
           .hbot-section {
-            padding: 3rem 1.5rem;
+            padding: 4rem 1.5rem;
+          }
+
+          .hbot-section-alt {
+            padding: 4rem 1.5rem;
           }
 
           .hbot-page h1 {
@@ -1495,7 +1532,7 @@ export default function HyperbaricOxygenTherapy() {
           }
 
           .hbot-hero {
-            padding: 3rem 1.5rem;
+            padding: 4rem 1.5rem;
           }
 
           .hbot-stat-row {
@@ -1511,13 +1548,40 @@ export default function HyperbaricOxygenTherapy() {
             grid-template-columns: 1fr;
           }
 
+          .hbot-benefit-card {
+            border-right: none;
+            border-bottom: 1px solid #e0e0e0;
+          }
+
+          .hbot-benefit-card:last-child {
+            border-bottom: none;
+          }
+
           .hbot-research-grid {
             grid-template-columns: 1fr;
           }
 
+          .hbot-research-card {
+            border-right: none;
+            border-bottom: 1px solid #e0e0e0;
+          }
+
+          .hbot-research-card:last-child {
+            border-bottom: none;
+          }
+
           .hbot-athletes-grid {
             grid-template-columns: 1fr;
-            gap: 0.75rem;
+            gap: 0;
+          }
+
+          .hbot-athlete-card {
+            border-right: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+          }
+
+          .hbot-athlete-card:last-child {
+            border-bottom: none;
           }
 
           .hbot-expect-item {
@@ -1537,8 +1601,26 @@ export default function HyperbaricOxygenTherapy() {
             grid-template-columns: 1fr;
           }
 
+          .hbot-pricing-membership-card {
+            border-right: none;
+            border-bottom: 1px solid #e0e0e0;
+          }
+
+          .hbot-pricing-membership-card:last-child {
+            border-bottom: none;
+          }
+
           .hbot-pricing-packs-grid {
             grid-template-columns: 1fr;
+          }
+
+          .hbot-pricing-pack-card {
+            border-right: none;
+            border-bottom: 1px solid #e0e0e0;
+          }
+
+          .hbot-pricing-pack-card:last-child {
+            border-bottom: none;
           }
 
           .hbot-pricing-comparison-row {

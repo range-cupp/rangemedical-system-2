@@ -36,10 +36,11 @@ export default function NADGuide() {
       </Head>
 
       {/* Hero */}
-      <section className="peptide-hero">
+      <section className="guide-hero">
         <div className="container">
-          <span className="hero-badge">Your NAD+ Therapy Guide</span>
-          <h1>NAD+ Therapy</h1>
+          <div className="v2-label"><span className="v2-dot" /> YOUR NAD+ THERAPY GUIDE</div>
+          <h1>NAD+ THERAPY</h1>
+          <div className="hero-rule" />
           <p className="hero-sub">Everything you need to know about NAD+ — how it works, your options, and what to expect as your cells recharge.</p>
           <div className="hero-dose">
             <div><span>NAD+ IV:</span> 225mg–1000mg</div>
@@ -51,8 +52,8 @@ export default function NADGuide() {
       {/* The Basics */}
       <section className="section">
         <div className="container">
-          <div className="section-kicker">The Basics</div>
-          <h2 className="section-title">What Is NAD+?</h2>
+          <div className="v2-label"><span className="v2-dot" /> THE BASICS</div>
+          <h2 className="section-title">WHAT IS NAD+?</h2>
           <p className="section-subtitle">NAD+ (Nicotinamide Adenine Dinucleotide) is a coenzyme found in every cell. It's essential for energy production, DNA repair, and healthy aging.</p>
           <p className="body-text">By age 50, your NAD+ levels have declined by roughly 50%. Restoring NAD+ supports cellular function across your entire body — from your brain to your muscles to your immune system.</p>
         </div>
@@ -61,33 +62,33 @@ export default function NADGuide() {
       {/* What NAD+ Does */}
       <section className="section section-gray">
         <div className="container">
-          <div className="section-kicker">How It Works</div>
-          <h2 className="section-title">What NAD+ Does for Your Body</h2>
+          <div className="v2-label"><span className="v2-dot" /> HOW IT WORKS</div>
+          <h2 className="section-title">WHAT NAD+ DOES FOR YOUR BODY</h2>
           <p className="section-subtitle">NAD+ is involved in hundreds of metabolic processes. Here's what matters most.</p>
 
           <div className="info-grid">
             <div className="info-card">
-              <h3>⚡ Cellular Energy</h3>
+              <h3>Cellular Energy</h3>
               <p>Converts food into ATP — your cells' energy currency. More NAD+ means more efficient energy production at the cellular level.</p>
             </div>
             <div className="info-card">
-              <h3>🧬 DNA Repair</h3>
+              <h3>DNA Repair</h3>
               <p>Activates PARP enzymes that repair damaged DNA. This is essential for preventing cellular aging and supporting long-term health.</p>
             </div>
             <div className="info-card">
-              <h3>🧠 Brain Function</h3>
+              <h3>Brain Function</h3>
               <p>Supports neuronal health and mental clarity. NAD+ fuels the brain cells responsible for focus, memory, and cognitive performance.</p>
             </div>
             <div className="info-card">
-              <h3>🔄 Healthy Aging</h3>
+              <h3>Healthy Aging</h3>
               <p>Activates sirtuins — proteins that regulate aging, inflammation, and stress response. Often called the "longevity proteins."</p>
             </div>
             <div className="info-card">
-              <h3>📊 Metabolic Health</h3>
+              <h3>Metabolic Health</h3>
               <p>Supports glucose metabolism and lipid balance. Helps your body process nutrients more efficiently.</p>
             </div>
             <div className="info-card">
-              <h3>💪 Recovery</h3>
+              <h3>Recovery</h3>
               <p>Accelerates cellular repair and reduces inflammation. Supports faster recovery from exercise, illness, and stress.</p>
             </div>
           </div>
@@ -97,8 +98,8 @@ export default function NADGuide() {
       {/* IV Pricing */}
       <section className="section">
         <div className="container">
-          <div className="section-kicker">IV Infusions</div>
-          <h2 className="section-title">NAD+ IV Pricing</h2>
+          <div className="v2-label"><span className="v2-dot" /> IV INFUSIONS</div>
+          <h2 className="section-title">NAD+ IV PRICING</h2>
           <p className="section-subtitle">Higher doses provide deeper cellular benefits. Your provider will recommend the right dose for your goals.</p>
 
           <div className="protocol-grid">
@@ -130,8 +131,8 @@ export default function NADGuide() {
       {/* Injection Pricing */}
       <section className="section section-gray">
         <div className="container">
-          <div className="section-kicker">Injections</div>
-          <h2 className="section-title">NAD+ Injection Pricing</h2>
+          <div className="v2-label"><span className="v2-dot" /> INJECTIONS</div>
+          <h2 className="section-title">NAD+ INJECTION PRICING</h2>
           <p className="section-subtitle">Self-administered at home. $0.50 per mg. A convenient way to maintain NAD+ levels between IV sessions or as a standalone protocol.</p>
 
           <div className="dose-table">
@@ -158,7 +159,7 @@ export default function NADGuide() {
           </div>
 
           <div className="tip-box" style={{ marginTop: '1.5rem' }}>
-            <strong>📋 Recommended Protocols</strong>
+            <strong>Recommended Protocols</strong>
             <p>Injection Protocol: 12 weeks, 3x per week, self-administered at home. IV Protocol: Quarterly — 5 IVs in 10 days + monthly maintenance IVs.</p>
           </div>
         </div>
@@ -167,8 +168,8 @@ export default function NADGuide() {
       {/* Instructions */}
       <section className="section">
         <div className="container">
-          <div className="section-kicker">Instructions</div>
-          <h2 className="section-title">What to Know Before Your Session</h2>
+          <div className="v2-label"><span className="v2-dot" /> INSTRUCTIONS</div>
+          <h2 className="section-title">WHAT TO KNOW BEFORE YOUR SESSION</h2>
 
           <div className="steps-list">
             <div className="step-item">
@@ -206,8 +207,8 @@ export default function NADGuide() {
       {/* Timeline */}
       <section className="section section-dark">
         <div className="container">
-          <div className="section-kicker">Timeline</div>
-          <h2 className="section-title">What to Expect</h2>
+          <div className="v2-label"><span className="v2-dot" /> TIMELINE</div>
+          <h2 className="section-title">WHAT TO EXPECT</h2>
           <p className="section-subtitle">NAD+ benefits build over time. Here's what patients typically experience.</p>
 
           <div className="timeline-grid">
@@ -234,8 +235,8 @@ export default function NADGuide() {
       {/* Safety */}
       <section className="section">
         <div className="container">
-          <div className="section-kicker">Safety</div>
-          <h2 className="section-title">Important Safety Information</h2>
+          <div className="v2-label"><span className="v2-dot" /> SAFETY</div>
+          <h2 className="section-title">IMPORTANT SAFETY INFORMATION</h2>
 
           <div className="safety-grid">
             <div className="safety-card warning">
@@ -268,44 +269,40 @@ export default function NADGuide() {
       {/* Final CTA */}
       <section className="final-cta">
         <div className="container">
-          <h2>Questions? We're Here.</h2>
+          <h2>QUESTIONS? WE'RE HERE.</h2>
           <p>Whether you want to schedule your next session or explore a protocol, our team can help.</p>
           <div className="cta-buttons">
-            <a href="tel:+19499973988" className="btn-white">Call (949) 997-3988</a>
-            <a href="sms:+19499973988" className="btn-outline-white">Text Us</a>
+            <a href="tel:+19499973988" className="btn-white">CALL (949) 997-3988</a>
+            <a href="sms:+19499973988" className="btn-outline-white">TEXT US</a>
           </div>
           <p className="cta-location">1901 Westcliff Dr. Suite 10, Newport Beach, CA 92660</p>
         </div>
       </section>
 
       <style jsx>{`
-        .peptide-hero {
+        .guide-hero {
           background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%);
-          padding: 3.5rem 1.5rem 3rem;
-          text-align: center;
+          padding: 6rem 2rem 4rem;
+          text-align: left;
         }
-        .peptide-hero h1 {
-          font-size: 2.25rem;
-          font-weight: 700;
-          line-height: 1.2;
+        .guide-hero h1 {
+          font-size: 2.75rem;
+          font-weight: 900;
+          line-height: 0.95;
           letter-spacing: -0.02em;
-          margin-bottom: 1rem;
+          text-transform: uppercase;
+          margin-bottom: 1.25rem;
         }
-        .hero-badge {
-          display: inline-block;
-          background: #000000;
-          color: #ffffff;
-          padding: 0.5rem 1rem;
-          border-radius: 100px;
-          font-size: 0.8125rem;
-          font-weight: 600;
+        .hero-rule {
+          width: 60px;
+          height: 1px;
+          background: #e0e0e0;
           margin-bottom: 1.25rem;
         }
         .hero-sub {
           font-size: 1.0625rem;
-          color: #525252;
+          color: #737373;
           max-width: 600px;
-          margin: 0 auto;
           line-height: 1.7;
         }
         .hero-dose {
@@ -314,45 +311,41 @@ export default function NADGuide() {
           margin-top: 1.5rem;
           padding: 1rem 1.5rem;
           background: #ffffff;
-          border: 1px solid #e5e5e5;
-          border-radius: 8px;
+          border: 1px solid #e0e0e0;
           font-size: 0.9rem;
-          color: #525252;
+          color: #737373;
         }
         .hero-dose span {
           font-weight: 600;
           color: #171717;
         }
         .section {
-          padding: 3.5rem 1.5rem;
+          padding: 6rem 2rem;
         }
         .section-gray {
           background: #fafafa;
         }
         .section-dark {
-          background: #000000;
+          background: #1a1a1a;
           color: #ffffff;
         }
-        .section-kicker {
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 0.5rem;
-        }
-        .section-dark .section-kicker {
+        .section-dark .v2-label {
           color: rgba(255,255,255,0.6);
+        }
+        .section-dark .v2-dot {
+          background: #c4a882;
         }
         .section-title {
           font-size: 1.75rem;
-          font-weight: 700;
+          font-weight: 900;
           letter-spacing: -0.02em;
+          line-height: 0.95;
+          text-transform: uppercase;
           margin-bottom: 0.75rem;
         }
         .section-subtitle {
           font-size: 1rem;
-          color: #525252;
+          color: #737373;
           max-width: 600px;
           line-height: 1.7;
           margin-bottom: 2rem;
@@ -365,7 +358,7 @@ export default function NADGuide() {
         }
         .body-text {
           font-size: 0.95rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.7;
         }
         .container {
@@ -380,8 +373,7 @@ export default function NADGuide() {
         }
         .info-card {
           background: #ffffff;
-          border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border: 1px solid #e0e0e0;
           padding: 1.75rem;
         }
         .info-card h3 {
@@ -391,7 +383,7 @@ export default function NADGuide() {
         }
         .info-card p {
           font-size: 0.9rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.7;
         }
         .protocol-grid {
@@ -401,17 +393,16 @@ export default function NADGuide() {
         }
         .protocol-card {
           background: #ffffff;
-          border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border: 1px solid #e0e0e0;
           padding: 1.5rem;
           text-align: center;
           transition: all 0.2s;
         }
         .protocol-card:hover {
-          border-color: #000000;
+          border-color: #1a1a1a;
         }
         .protocol-card.featured {
-          border: 2px solid #000000;
+          border: 2px solid #1a1a1a;
           position: relative;
         }
         .protocol-badge {
@@ -419,10 +410,9 @@ export default function NADGuide() {
           top: -0.75rem;
           left: 50%;
           transform: translateX(-50%);
-          background: #000000;
+          background: #1a1a1a;
           color: #ffffff;
           padding: 0.25rem 0.75rem;
-          border-radius: 100px;
           font-size: 0.6875rem;
           font-weight: 600;
           text-transform: uppercase;
@@ -443,13 +433,12 @@ export default function NADGuide() {
         }
         .protocol-desc {
           font-size: 0.8125rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.6;
         }
         .dose-table {
           background: #ffffff;
-          border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border: 1px solid #e0e0e0;
           overflow: hidden;
         }
         .dose-row {
@@ -457,7 +446,7 @@ export default function NADGuide() {
           justify-content: space-between;
           align-items: center;
           padding: 1rem 1.5rem;
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
         }
         .dose-row:last-child {
           border-bottom: none;
@@ -470,7 +459,7 @@ export default function NADGuide() {
         .dose-price {
           font-weight: 700;
           font-size: 1rem;
-          color: #000000;
+          color: #1a1a1a;
         }
         .steps-list {
           margin-top: 1.5rem;
@@ -479,7 +468,7 @@ export default function NADGuide() {
           display: flex;
           gap: 1rem;
           padding: 1.25rem 0;
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
         }
         .step-item:last-child {
           border-bottom: none;
@@ -487,9 +476,8 @@ export default function NADGuide() {
         .step-number {
           width: 2rem;
           height: 2rem;
-          background: #000000;
-          color: #ffffff;
-          border-radius: 50%;
+          background: #1a1a1a;
+          color: #c4a882;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -504,15 +492,14 @@ export default function NADGuide() {
         }
         .step-content p {
           font-size: 0.9rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.6;
         }
         .tip-box {
           background: #ffffff;
-          border-left: 4px solid #000000;
+          border-left: 4px solid #1a1a1a;
           padding: 1.25rem 1.5rem;
           margin-top: 1.5rem;
-          border-radius: 0 8px 8px 0;
         }
         .tip-box strong {
           display: block;
@@ -520,7 +507,7 @@ export default function NADGuide() {
         }
         .tip-box p {
           font-size: 0.9rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.6;
           margin: 0;
         }
@@ -533,7 +520,6 @@ export default function NADGuide() {
         .timeline-card {
           background: rgba(255,255,255,0.1);
           border: 1px solid rgba(255,255,255,0.2);
-          border-radius: 12px;
           padding: 1.5rem;
         }
         .timeline-card h4 {
@@ -553,8 +539,7 @@ export default function NADGuide() {
         }
         .safety-card {
           background: #ffffff;
-          border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border: 1px solid #e0e0e0;
           padding: 1.5rem;
         }
         .safety-card h4 {
@@ -570,24 +555,24 @@ export default function NADGuide() {
         }
         .safety-card li {
           font-size: 0.875rem;
-          color: #525252;
+          color: #737373;
           padding: 0.375rem 0;
           padding-left: 1.25rem;
           position: relative;
           line-height: 1.5;
         }
         .safety-card.warning li::before {
-          content: "✕";
+          content: "\\2715";
           position: absolute;
           left: 0;
           color: #171717;
           font-weight: 600;
         }
         .safety-card.effects li::before {
-          content: "•";
+          content: "\\2022";
           position: absolute;
           left: 0;
-          color: #737373;
+          color: #c4a882;
           font-weight: 700;
         }
         .safety-note {
@@ -598,8 +583,7 @@ export default function NADGuide() {
         }
         .disclaimer {
           background: #fafafa;
-          border: 1px solid #e5e5e5;
-          border-radius: 8px;
+          border: 1px solid #e0e0e0;
           padding: 1.25rem;
           margin-top: 1.5rem;
         }
@@ -610,16 +594,18 @@ export default function NADGuide() {
           margin: 0;
         }
         .final-cta {
-          background: #000000;
+          background: #1a1a1a;
           color: #ffffff;
-          padding: 3.5rem 1.5rem;
+          padding: 6rem 2rem;
           text-align: center;
         }
         .final-cta h2 {
           font-size: 1.75rem;
-          font-weight: 700;
+          font-weight: 900;
           margin-bottom: 0.75rem;
           letter-spacing: -0.02em;
+          line-height: 0.95;
+          text-transform: uppercase;
         }
         .final-cta p {
           font-size: 1rem;
@@ -636,12 +622,13 @@ export default function NADGuide() {
         .btn-white {
           display: inline-block;
           background: #ffffff;
-          color: #000000;
+          color: #1a1a1a;
           padding: 0.875rem 1.75rem;
-          border-radius: 8px;
           text-decoration: none;
-          font-weight: 600;
-          font-size: 0.9375rem;
+          font-weight: 700;
+          font-size: 11px;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
           transition: all 0.2s;
         }
         .btn-white:hover {
@@ -653,24 +640,28 @@ export default function NADGuide() {
           background: transparent;
           color: #ffffff;
           padding: 0.875rem 1.75rem;
-          border-radius: 8px;
           border: 2px solid #ffffff;
           text-decoration: none;
-          font-weight: 600;
-          font-size: 0.9375rem;
+          font-weight: 700;
+          font-size: 11px;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
           transition: all 0.2s;
         }
         .btn-outline-white:hover {
           background: #ffffff;
-          color: #000000;
+          color: #1a1a1a;
         }
         .cta-location {
           font-size: 0.9rem;
           color: rgba(255,255,255,0.7);
         }
         @media (max-width: 768px) {
-          .peptide-hero h1 {
-            font-size: 1.875rem;
+          .guide-hero {
+            padding: 4rem 1.5rem 3rem;
+          }
+          .guide-hero h1 {
+            font-size: 2rem;
           }
           .hero-dose {
             flex-direction: column;
@@ -690,6 +681,12 @@ export default function NADGuide() {
           }
           .section-title {
             font-size: 1.5rem;
+          }
+          .section {
+            padding: 4rem 1.5rem;
+          }
+          .final-cta {
+            padding: 4rem 1.5rem;
           }
           .cta-buttons {
             flex-direction: column;

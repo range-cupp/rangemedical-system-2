@@ -104,20 +104,20 @@ export default function HormoneOptimization() {
   ];
 
   const steps = [
-    { step: "Step 1", title: "Get started", desc: "Get started with Range Medical. We'll discuss your symptoms, goals, and medical history to see if HRT is right for you." },
-    { step: "Step 2", title: "Run comprehensive labs", desc: "We check testosterone, estrogen, thyroid, metabolic markers, and more — not just the basics your regular doctor runs." },
-    { step: "Step 3", title: "Review & start protocol", desc: "Your provider explains your results and designs a personalized protocol. You start your $250/month membership." },
-    { step: "Step 4", title: "Ongoing optimization", desc: "Follow-up labs at 8 weeks, then quarterly. We adjust your protocol as needed. Direct access to your provider anytime." }
+    { step: "01", title: "Get started", desc: "Get started with Range Medical. We'll discuss your symptoms, goals, and medical history to see if HRT is right for you." },
+    { step: "02", title: "Run comprehensive labs", desc: "We check testosterone, estrogen, thyroid, metabolic markers, and more — not just the basics your regular doctor runs." },
+    { step: "03", title: "Review & start protocol", desc: "Your provider explains your results and designs a personalized protocol. You start your $250/month membership." },
+    { step: "04", title: "Ongoing optimization", desc: "Follow-up labs at 8 weeks, then quarterly. We adjust your protocol as needed. Direct access to your provider anytime." }
   ];
 
   const membershipIncludes = [
-    { icon: "💊", title: "All Medications", desc: "Testosterone, estrogen, progesterone, thyroid, and support meds — all included." },
-    { icon: "💉", title: "Monthly Range IV", desc: "A custom Range IV every month ($225 value) — 5 vitamins and minerals tailored to support your protocol." },
-    { icon: "🔬", title: "Follow-Up Labs", desc: "8-week follow-up and quarterly monitoring labs — all included. Initial labs billed separately." },
-    { icon: "📱", title: "Direct Provider Access", desc: "Text or call your provider directly. No waiting for appointments for simple questions." }
+    { title: "All Medications", desc: "Testosterone, estrogen, progesterone, thyroid, and support meds — all included." },
+    { title: "Monthly Range IV", desc: "A custom Range IV every month ($225 value) — 5 vitamins and minerals tailored to support your protocol." },
+    { title: "Follow-Up Labs", desc: "8-week follow-up and quarterly monitoring labs — all included. Initial labs billed separately." },
+    { title: "Direct Provider Access", desc: "Text or call your provider directly. No waiting for appointments for simple questions." }
   ];
 
-  
+
   return (
     <Layout
       title="Hormone Optimization & HRT | Newport Beach | Range Medical"
@@ -234,22 +234,23 @@ export default function HormoneOptimization() {
       <div className="trust-bar">
         <div className="trust-inner">
           <span className="trust-item">
-            <span className="trust-rating">★★★★★</span> 5.0 on Google
+            <span className="trust-rating">&#9733;&#9733;&#9733;&#9733;&#9733;</span> 5.0 on Google
           </span>
-          <span className="trust-item">📍 Newport Beach, CA</span>
-          <span className="trust-item">✓ Licensed Providers</span>
+          <span className="trust-item">Newport Beach, CA</span>
+          <span className="trust-item">Licensed Providers</span>
         </div>
       </div>
 
       <div className="hrt-page">
         {/* Hero */}
         <section className="hrt-hero">
-          <div className="hrt-kicker">Energy · Clarity · Vitality</div>
-          <h1>Your Guide to Hormone Optimization</h1>
-          <p className="hrt-body-text">Everything you need to know about hormone replacement therapy — how it works, what to expect, and why it might help you feel like yourself again.</p>
+          <div className="v2-label"><span className="v2-dot" /> Energy &middot; Clarity &middot; Vitality</div>
+          <h1>YOUR GUIDE TO<br />HORMONE<br />OPTIMIZATION</h1>
+          <div className="hrt-hero-rule" />
+          <p className="hrt-body-text">Everything you need to know about hormone replacement therapy &mdash; how it works, what to expect, and why it might help you feel like yourself again.</p>
           <div className="hrt-hero-scroll">
             Scroll to explore
-            <span>↓</span>
+            <span>&darr;</span>
           </div>
         </section>
 
@@ -257,9 +258,8 @@ export default function HormoneOptimization() {
         <section className="hrt-section hrt-section-alt">
           <div className="hrt-container">
             <div className="hrt-animate">
-              <div className="hrt-kicker">What Is It</div>
-              <h2>Hormones control how you feel every day.</h2>
-              <div className="hrt-divider"></div>
+              <div className="v2-label"><span className="v2-dot" /> What Is It</div>
+              <h2>HORMONES CONTROL<br />HOW YOU FEEL<br />EVERY DAY.</h2>
               <p className="hrt-body-text">
                 Hormone optimization is about restoring your hormones — testosterone, estrogen, progesterone, thyroid — to levels where your body functions best. When hormones decline or become imbalanced, you feel it: fatigue, brain fog, weight gain, low mood, poor sleep.
               </p>
@@ -289,9 +289,8 @@ export default function HormoneOptimization() {
         <section className="hrt-section hrt-section-inverted">
           <div className="hrt-container">
             <div className="hrt-animate">
-              <div className="hrt-kicker">Who It's For</div>
-              <h2>Your labs say "normal" but you don't feel normal.</h2>
-              <div className="hrt-divider"></div>
+              <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> Who It&apos;s For</div>
+              <h2>YOUR LABS SAY<br />&ldquo;NORMAL&rdquo; BUT YOU<br />DON&apos;T FEEL NORMAL.</h2>
               <p className="hrt-body-text">
                 Standard lab ranges are based on population averages — not optimal function. If any of these sound like you, hormone optimization at our Newport Beach clinic could help.
               </p>
@@ -309,20 +308,21 @@ export default function HormoneOptimization() {
         <section className="hrt-section">
           <div className="hrt-container">
             <div className="hrt-animate">
-              <div className="hrt-kicker">How It May Help</div>
-              <h2>What balanced hormones can do.</h2>
-              <div className="hrt-divider"></div>
+              <div className="v2-label"><span className="v2-dot" /> How It May Help</div>
+              <h2>WHAT BALANCED<br />HORMONES CAN DO.</h2>
               <p className="hrt-body-text">
                 When your hormones are optimized, your body works the way it's supposed to. Here's what patients typically experience.
               </p>
             </div>
 
-            <div className="hrt-benefits-grid">
+            <div className="hrt-benefits-list">
               {benefits.map((benefit, i) => (
-                <div key={i} className="hrt-benefit-card hrt-animate">
+                <div key={i} className="hrt-benefit-item hrt-animate">
                   <div className="hrt-benefit-number">{benefit.number}</div>
-                  <div className="hrt-benefit-title">{benefit.title}</div>
-                  <div className="hrt-benefit-desc">{benefit.desc}</div>
+                  <div className="hrt-benefit-content">
+                    <div className="hrt-benefit-title">{benefit.title}</div>
+                    <div className="hrt-benefit-desc">{benefit.desc}</div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -333,19 +333,17 @@ export default function HormoneOptimization() {
         <section className="hrt-section hrt-section-inverted">
           <div className="hrt-container">
             <div className="hrt-animate">
-              <div className="hrt-kicker">HRT Membership</div>
-              <h2>$250/month. Everything included.</h2>
-              <div className="hrt-divider"></div>
+              <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> HRT Membership</div>
+              <h2>$250/MONTH.<br />EVERYTHING<br />INCLUDED.</h2>
               <p className="hrt-body-text">
                 No surprise bills. No separate charges for follow-up labs or medications. One monthly price that covers everything you need for ongoing hormone optimization.
               </p>
             </div>
 
-            <div className="hrt-membership-grid">
+            <div className="hrt-membership-list">
               {membershipIncludes.map((item, i) => (
-                <div key={i} className="hrt-membership-card hrt-animate">
-                  <div className="hrt-membership-icon">{item.icon}</div>
-                  <div className="hrt-membership-title">{item.title}</div>
+                <div key={i} className="hrt-membership-item hrt-animate">
+                  <div className="hrt-membership-title"><span className="hrt-list-dash">&ndash;</span> {item.title}</div>
                   <div className="hrt-membership-desc">{item.desc}</div>
                 </div>
               ))}
@@ -362,9 +360,8 @@ export default function HormoneOptimization() {
         <section className="hrt-section hrt-section-alt">
           <div className="hrt-container">
             <div className="hrt-animate">
-              <div className="hrt-kicker">What to Expect</div>
-              <h2>When you'll start feeling better.</h2>
-              <div className="hrt-divider"></div>
+              <div className="v2-label"><span className="v2-dot" /> What to Expect</div>
+              <h2>WHEN YOU&apos;LL START<br />FEELING BETTER.</h2>
               <p className="hrt-body-text">
                 Hormone optimization isn't instant — but it's not slow either. Here's the typical timeline most patients experience.
               </p>
@@ -388,9 +385,8 @@ export default function HormoneOptimization() {
         <section className="hrt-section" id="hrt-research">
           <div className="hrt-container">
             <div className="hrt-animate">
-              <div className="hrt-kicker">Backed by Science</div>
-              <h2>Evidence-Based Results</h2>
-              <div className="hrt-divider"></div>
+              <div className="v2-label"><span className="v2-dot" /> Backed by Science</div>
+              <h2>EVIDENCE-BASED<br />RESULTS</h2>
               <p className="hrt-body-text">
                 We've summarized the peer-reviewed research. Click any study to get the full breakdown — free.
               </p>
@@ -422,9 +418,8 @@ export default function HormoneOptimization() {
         <section className="hrt-section hrt-section-alt">
           <div className="hrt-container">
             <div className="hrt-animate">
-              <div className="hrt-kicker">Getting Started</div>
-              <h2>Your first visit, step by step.</h2>
-              <div className="hrt-divider"></div>
+              <div className="v2-label"><span className="v2-dot" /> Getting Started</div>
+              <h2>YOUR FIRST VISIT,<br />STEP BY STEP.</h2>
               <p className="hrt-body-text">
                 Getting started is simple. Here's exactly what happens.
               </p>
@@ -445,19 +440,17 @@ export default function HormoneOptimization() {
         </section>
 
         {/* FAQ */}
-        <section className="hrt-section-alt">
+        <section className="hrt-section hrt-section-alt">
           <div className="hrt-container">
-            <span className="hrt-section-label">Questions</span>
-            <h2>Common Questions</h2>
+            <div className="v2-label"><span className="v2-dot" /> Questions</div>
+            <h2>COMMON<br />QUESTIONS</h2>
 
             <div className="hrt-faq-list">
               {faqs.map((faq, index) => (
                 <div key={index} className={`hrt-faq-item ${openFaq === index ? 'hrt-faq-open' : ''}`}>
                   <button className="hrt-faq-question" onClick={() => toggleFaq(index)}>
                     <span>{faq.question}</span>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d={openFaq === index ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} />
-                    </svg>
+                    <span className="hrt-faq-toggle">{openFaq === index ? '\u2212' : '+'}</span>
                   </button>
                   <div className="hrt-faq-answer">
                     <p>{faq.answer}</p>
@@ -472,13 +465,13 @@ export default function HormoneOptimization() {
         <section className="hrt-section hrt-section-inverted hrt-cta-section">
           <div className="hrt-container">
             <div className="hrt-animate">
-              <div className="hrt-kicker" style={{ marginBottom: '1.5rem' }}>Next Steps</div>
-              <h2 className="hrt-cta-title">Ready to feel like yourself again?</h2>
-              <p className="hrt-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
+              <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '1.5rem' }}><span className="v2-dot" /> Next Steps</div>
+              <h2 className="hrt-cta-title">READY TO FEEL<br />LIKE YOURSELF<br />AGAIN?</h2>
+              <p className="hrt-body-text" style={{ margin: '0 auto 2.5rem' }}>
                 Get started with Range Medical. We'll review your symptoms, run comprehensive labs, and build a plan. Our Newport Beach team is here to help.
               </p>
               <div className="hrt-cta-buttons">
-                <Link href="/start" className="hrt-btn-primary">Start Now</Link>
+                <Link href="/start" className="hrt-btn-primary">START NOW</Link>
                 <div className="hrt-cta-or">or</div>
                 <a href="tel:9499973988" className="hrt-cta-phone">(949) 997-3988</a>
               </div>
@@ -495,7 +488,7 @@ export default function HormoneOptimization() {
       </div>
 
       <style jsx>{`
-        /* ===== HRT PAGE SCOPED STYLES ===== */
+        /* ===== HRT PAGE V2 SCOPED STYLES ===== */
         .hrt-page {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
           -webkit-font-smoothing: antialiased;
@@ -525,56 +518,35 @@ export default function HormoneOptimization() {
 
         /* Sections */
         .hrt-section {
-          padding: 4rem 1.5rem;
+          padding: 6rem 2rem;
         }
 
         .hrt-section-alt {
           background: #fafafa;
-          padding: 5rem 1.5rem;
-        }
-
-        .hrt-section-label {
-          display: inline-block;
-          font-size: 0.75rem;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 0.75rem;
+          padding: 6rem 2rem;
         }
 
         .hrt-section-inverted {
-          background: #000000;
+          background: #1a1a1a;
           color: #ffffff;
         }
 
-        /* Kicker */
-        .hrt-kicker {
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 1rem;
-        }
-
-        .hrt-section-inverted .hrt-kicker {
-          color: rgba(255, 255, 255, 0.4);
-        }
-
-        /* Headlines */
+        /* Headlines — V2: uppercase, weight 900, tight line-height */
         .hrt-page h1 {
           font-size: 2.75rem;
-          font-weight: 700;
-          line-height: 1.15;
-          letter-spacing: -0.02em;
+          font-weight: 900;
+          line-height: 0.95;
+          letter-spacing: -0.03em;
+          text-transform: uppercase;
           color: #171717;
         }
 
         .hrt-page h2 {
           font-size: 2rem;
-          font-weight: 700;
-          letter-spacing: -0.02em;
+          font-weight: 900;
+          letter-spacing: -0.03em;
+          line-height: 0.95;
+          text-transform: uppercase;
           color: #171717;
           margin-bottom: 1rem;
         }
@@ -591,12 +563,12 @@ export default function HormoneOptimization() {
           color: #ffffff;
         }
 
-        /* Body Text */
+        /* Body Text — V2: #737373 */
         .hrt-body-text {
           font-size: 1.0625rem;
           font-weight: 400;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
           max-width: 600px;
         }
 
@@ -604,56 +576,48 @@ export default function HormoneOptimization() {
           color: rgba(255, 255, 255, 0.55);
         }
 
-        /* Divider */
-        .hrt-divider {
-          width: 48px;
-          height: 2px;
-          background: #e5e5e5;
-          margin: 1.25rem 0;
-        }
-
-        .hrt-section-inverted .hrt-divider {
-          background: rgba(255, 255, 255, 0.12);
-        }
-
-        /* Buttons */
+        /* Buttons — V2: no border-radius, 11px, weight 700, uppercase */
         .hrt-btn-primary {
           display: inline-block;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          font-size: 0.875rem;
-          font-weight: 600;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
           padding: 0.875rem 2rem;
           background: #ffffff;
-          color: #000000;
+          color: #1a1a1a;
           border: none;
-          border-radius: 8px;
           cursor: pointer;
           text-decoration: none;
-          transition: background 0.2s ease, transform 0.2s ease;
+          transition: background 0.2s ease;
         }
 
         .hrt-btn-primary:hover {
-          background: #e5e5e5;
-          transform: translateY(-1px);
+          background: #e0e0e0;
         }
 
-        /* Hero */
+        /* Hero — V2: left-aligned with rule between title and subtitle */
         .hrt-hero {
-          padding: 4rem 1.5rem 5rem;
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
+          padding: 4rem 2rem 5rem;
+          max-width: 1200px;
+          margin: 0 auto;
         }
 
         .hrt-hero h1 {
           max-width: 680px;
-          margin-bottom: 1.5rem;
+          margin-bottom: 0;
+        }
+
+        .hrt-hero-rule {
+          width: 48px;
+          height: 1px;
+          background: #e0e0e0;
+          margin: 1.5rem 0;
         }
 
         .hrt-hero .hrt-body-text {
-          text-align: center;
-          margin: 0 auto 2.5rem;
+          margin: 0 0 2.5rem;
         }
 
         .hrt-hero-scroll {
@@ -677,7 +641,7 @@ export default function HormoneOptimization() {
           50% { transform: translateY(6px); }
         }
 
-        /* Stat Row */
+        /* Stat Row — V2: accent color for numbers */
         .hrt-stat-row {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
@@ -691,11 +655,11 @@ export default function HormoneOptimization() {
 
         .hrt-stat-number {
           font-size: 2.75rem;
-          font-weight: 800;
+          font-weight: 900;
           letter-spacing: -0.02em;
           line-height: 1;
           margin-bottom: 0.5rem;
-          color: #171717;
+          color: #c4a882;
         }
 
         .hrt-stat-label {
@@ -705,7 +669,7 @@ export default function HormoneOptimization() {
           line-height: 1.5;
         }
 
-        /* Tags */
+        /* Tags — V2: no border-radius */
         .hrt-tags-grid {
           display: flex;
           flex-wrap: wrap;
@@ -717,7 +681,6 @@ export default function HormoneOptimization() {
           font-size: 0.8125rem;
           font-weight: 600;
           padding: 0.75rem 1.5rem;
-          border-radius: 100px;
           border: 1px solid rgba(255, 255, 255, 0.08);
           background: rgba(255, 255, 255, 0.04);
           color: rgba(255, 255, 255, 0.6);
@@ -728,93 +691,83 @@ export default function HormoneOptimization() {
           border-color: rgba(255, 255, 255, 0.25);
         }
 
-        /* Benefit Cards */
-        .hrt-benefits-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1.25rem;
+        /* Benefit Items — V2: hairline-separated list, not cards */
+        .hrt-benefits-list {
           margin-top: 2.5rem;
         }
 
-        .hrt-benefit-card {
-          padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
-          background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        .hrt-benefit-item {
+          display: flex;
+          gap: 1.5rem;
+          padding: 1.75rem 0;
+          border-bottom: 1px solid #e0e0e0;
+          align-items: flex-start;
         }
 
-        .hrt-benefit-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        .hrt-benefit-item:last-child {
+          border-bottom: none;
         }
 
         .hrt-benefit-number {
-          font-size: 0.75rem;
-          font-weight: 700;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: #737373;
-          margin-bottom: 1rem;
+          font-size: 1.25rem;
+          font-weight: 900;
+          color: #c4a882;
+          min-width: 36px;
+          letter-spacing: -0.02em;
         }
 
         .hrt-benefit-title {
           font-size: 1.125rem;
           font-weight: 700;
           color: #171717;
-          margin-bottom: 0.75rem;
+          margin-bottom: 0.375rem;
         }
 
         .hrt-benefit-desc {
           font-size: 0.875rem;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
         }
 
-        /* Membership Cards */
-        .hrt-membership-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 1.25rem;
+        /* Membership Items — V2: hairline-separated list with en-dash */
+        .hrt-membership-list {
           margin-top: 2.5rem;
         }
 
-        .hrt-membership-card {
-          padding: 1.75rem;
-          border-radius: 12px;
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.06);
-          transition: border-color 0.2s ease;
+        .hrt-membership-item {
+          padding: 1.5rem 0;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
 
-        .hrt-membership-card:hover {
-          border-color: rgba(255, 255, 255, 0.15);
+        .hrt-membership-item:last-child {
+          border-bottom: none;
         }
 
-        .hrt-membership-icon {
-          font-size: 1.5rem;
-          margin-bottom: 1rem;
+        .hrt-list-dash {
+          color: #c4a882;
+          margin-right: 0.5rem;
+          font-weight: 700;
         }
 
         .hrt-membership-title {
           font-size: 1rem;
           font-weight: 700;
           color: #ffffff;
-          margin-bottom: 0.5rem;
+          margin-bottom: 0.375rem;
         }
 
         .hrt-membership-desc {
           font-size: 0.875rem;
           color: rgba(255, 255, 255, 0.55);
           line-height: 1.6;
+          padding-left: 1.25rem;
         }
 
         .hrt-membership-compare {
           margin-top: 2.5rem;
           padding: 1.5rem 2rem;
-          border-radius: 12px;
-          background: rgba(255, 255, 255, 0.03);
           border: 1px solid rgba(255, 255, 255, 0.08);
+          background: rgba(255, 255, 255, 0.03);
         }
 
         .hrt-membership-compare p {
@@ -831,7 +784,7 @@ export default function HormoneOptimization() {
           color: #ffffff;
         }
 
-        /* Timeline */
+        /* Timeline — V2: borders #e0e0e0, no border-radius on period badge */
         .hrt-timeline {
           margin-top: 2.5rem;
         }
@@ -840,7 +793,7 @@ export default function HormoneOptimization() {
           display: flex;
           gap: 1.5rem;
           padding: 1.75rem 0;
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
           align-items: flex-start;
         }
 
@@ -851,13 +804,9 @@ export default function HormoneOptimization() {
         .hrt-timeline-period {
           font-size: 0.8125rem;
           font-weight: 700;
-          color: #171717;
+          color: #c4a882;
           min-width: 80px;
           letter-spacing: 0.02em;
-          background: #e5e5e5;
-          padding: 0.375rem 0.75rem;
-          border-radius: 4px;
-          text-align: center;
         }
 
         .hrt-timeline-content h3 {
@@ -869,11 +818,11 @@ export default function HormoneOptimization() {
 
         .hrt-timeline-content p {
           font-size: 0.875rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.7;
         }
 
-        /* Research Cards */
+        /* Research Cards — V2: no border-radius, no box-shadow, hairline border */
         .hrt-research-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -883,17 +832,14 @@ export default function HormoneOptimization() {
 
         .hrt-research-card {
           padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border: 1px solid #e0e0e0;
           background: #ffffff;
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: border-color 0.2s ease;
         }
 
         .hrt-research-card:hover {
           border-color: #171717;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          transform: translateY(-2px);
         }
 
         .hrt-research-category {
@@ -902,7 +848,7 @@ export default function HormoneOptimization() {
           font-weight: 700;
           letter-spacing: 0.08em;
           text-transform: uppercase;
-          color: #7c3aed;
+          color: #c4a882;
           margin-bottom: 0.875rem;
         }
 
@@ -917,7 +863,7 @@ export default function HormoneOptimization() {
         .hrt-research-summary {
           font-size: 0.875rem;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
           margin-bottom: 1rem;
         }
 
@@ -936,7 +882,7 @@ export default function HormoneOptimization() {
           line-height: 1.7;
         }
 
-        /* Expect List */
+        /* Expect List — V2: gold step numbers */
         .hrt-expect-list {
           margin-top: 2.5rem;
         }
@@ -945,7 +891,7 @@ export default function HormoneOptimization() {
           display: flex;
           gap: 1.5rem;
           padding: 1.75rem 0;
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
           align-items: flex-start;
         }
 
@@ -954,11 +900,11 @@ export default function HormoneOptimization() {
         }
 
         .hrt-expect-step {
-          font-size: 0.8125rem;
-          font-weight: 700;
-          color: #737373;
-          min-width: 56px;
-          letter-spacing: 0.02em;
+          font-size: 1.25rem;
+          font-weight: 900;
+          color: #c4a882;
+          min-width: 36px;
+          letter-spacing: -0.02em;
         }
 
         .hrt-expect-content h3 {
@@ -970,18 +916,18 @@ export default function HormoneOptimization() {
 
         .hrt-expect-content p {
           font-size: 0.875rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.7;
         }
 
-        /* FAQ */
+        /* FAQ — V2: accordion with +/- toggle, borders #e0e0e0 */
         .hrt-faq-list {
           max-width: 700px;
-          margin: 0 auto;
+          margin-top: 2rem;
         }
 
         .hrt-faq-item {
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
         }
 
         .hrt-faq-item:last-child {
@@ -1001,21 +947,25 @@ export default function HormoneOptimization() {
           font-family: inherit;
         }
 
-        .hrt-faq-question span {
+        .hrt-faq-question span:first-child {
           font-size: 1rem;
           font-weight: 600;
           color: #171717;
           padding-right: 1rem;
         }
 
-        .hrt-faq-question svg {
-          flex-shrink: 0;
+        .hrt-faq-toggle {
+          font-size: 1.25rem;
+          font-weight: 300;
           color: #737373;
-          transition: transform 0.2s;
+          flex-shrink: 0;
+          width: 24px;
+          text-align: center;
+          transition: color 0.2s;
         }
 
-        .hrt-faq-open .hrt-faq-question svg {
-          transform: rotate(180deg);
+        .hrt-faq-open .hrt-faq-toggle {
+          color: #c4a882;
         }
 
         .hrt-faq-answer {
@@ -1031,20 +981,23 @@ export default function HormoneOptimization() {
 
         .hrt-faq-answer p {
           font-size: 0.9375rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.7;
           margin: 0;
         }
 
         /* CTA Section */
         .hrt-cta-section {
-          padding: 6rem 1.5rem;
+          padding: 6rem 2rem;
           text-align: center;
         }
 
         .hrt-cta-title {
           font-size: 2.75rem;
-          letter-spacing: -0.02em;
+          font-weight: 900;
+          letter-spacing: -0.03em;
+          line-height: 0.95;
+          text-transform: uppercase;
           color: #ffffff;
           margin-bottom: 1.25rem;
         }
@@ -1081,7 +1034,8 @@ export default function HormoneOptimization() {
 
         /* Responsive */
         @media (max-width: 768px) {
-          .hrt-section {
+          .hrt-section,
+          .hrt-section-alt {
             padding: 3rem 1.5rem;
           }
 
@@ -1102,14 +1056,6 @@ export default function HormoneOptimization() {
             gap: 2rem;
           }
 
-          .hrt-benefits-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .hrt-membership-grid {
-            grid-template-columns: 1fr;
-          }
-
           .hrt-research-grid {
             grid-template-columns: 1fr;
           }
@@ -1124,6 +1070,11 @@ export default function HormoneOptimization() {
           }
 
           .hrt-expect-item {
+            flex-direction: column;
+            gap: 0.5rem;
+          }
+
+          .hrt-benefit-item {
             flex-direction: column;
             gap: 0.5rem;
           }

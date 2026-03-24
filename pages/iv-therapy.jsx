@@ -142,7 +142,7 @@ export default function IVTherapy() {
     "General Wellness"
   ];
 
-  
+
   return (
     <Layout
       title="IV Therapy | Vitamin Infusions | Newport Beach | Range Medical"
@@ -260,16 +260,17 @@ export default function IVTherapy() {
           <span className="trust-item">
             <span className="trust-rating">★★★★★</span> 5.0 on Google
           </span>
-          <span className="trust-item">📍 Newport Beach, CA</span>
-          <span className="trust-item">✓ Walk-ins Welcome</span>
+          <span className="trust-item">Newport Beach, CA</span>
+          <span className="trust-item">Walk-ins Welcome</span>
         </div>
       </div>
 
       <div className="iv-page">
         {/* Hero */}
         <section className="iv-hero">
-          <div className="iv-kicker">Hydration · Energy · Recovery</div>
-          <h1>Your Guide to IV Therapy</h1>
+          <div className="v2-label"><span className="v2-dot" /> HYDRATION · ENERGY · RECOVERY</div>
+          <h1>YOUR GUIDE TO IV THERAPY</h1>
+          <div className="iv-hero-rule"></div>
           <p className="iv-body-text">Everything you need to know about IV vitamin therapy — what it is, how it works, and whether it's right for your goals.</p>
           <div className="iv-hero-scroll">
             Scroll to explore
@@ -281,8 +282,8 @@ export default function IVTherapy() {
         <section className="iv-section iv-section-alt">
           <div className="iv-container">
             <div className="iv-animate">
-              <div className="iv-kicker">What Is IV Therapy</div>
-              <h2>Skip the gut. Feed your cells directly.</h2>
+              <div className="v2-label"><span className="v2-dot" /> WHAT IS IV THERAPY</div>
+              <h2>SKIP THE GUT. FEED YOUR CELLS DIRECTLY.</h2>
               <div className="iv-divider"></div>
               <p className="iv-body-text">
                 When you take vitamins orally, you lose 20-80% to digestion. IV therapy bypasses your GI tract entirely, delivering nutrients directly to your bloodstream where your cells can use them immediately.
@@ -313,8 +314,8 @@ export default function IVTherapy() {
         <section className="iv-section">
           <div className="iv-container">
             <div className="iv-animate">
-              <div className="iv-kicker">Our Signature IV</div>
-              <h2>The Range IV</h2>
+              <div className="v2-label"><span className="v2-dot" /> OUR SIGNATURE IV</div>
+              <h2>THE RANGE IV</h2>
               <div className="iv-divider"></div>
               <p className="iv-body-text">
                 Our signature IV delivers 5 essential vitamins and minerals chosen for their synergistic effects on energy, immunity, and recovery. This is our most popular formulation.
@@ -323,7 +324,7 @@ export default function IVTherapy() {
 
             <div className="iv-range-card iv-animate">
               <div className="iv-range-header">
-                <div className="iv-range-badge">Signature Formula</div>
+                <div className="iv-range-badge">SIGNATURE FORMULA</div>
                 <h3>A balanced blend for everyday wellness</h3>
               </div>
               <p className="iv-range-desc">
@@ -340,8 +341,8 @@ export default function IVTherapy() {
         <section className="iv-section iv-section-alt">
           <div className="iv-container">
             <div className="iv-animate">
-              <div className="iv-kicker">Choose Your Formula</div>
-              <h2>4 Signature Formulas</h2>
+              <div className="v2-label"><span className="v2-dot" /> CHOOSE YOUR FORMULA</div>
+              <h2>4 SIGNATURE FORMULAS</h2>
               <div className="iv-divider"></div>
               <p className="iv-body-text">
                 Not sure where to start? Pick from one of our pre-built formulas — each one is a curated combination of 5 vitamins and minerals designed for a specific goal. All $225 per session.
@@ -351,7 +352,6 @@ export default function IVTherapy() {
             <div className="iv-formulas-grid">
               {signatureIVs.map((iv, i) => (
                 <div key={i} className="iv-formula-card iv-animate">
-                  <div className="iv-formula-icon">{iv.icon}</div>
                   <h3 className="iv-formula-name">{iv.name}</h3>
                   <p className="iv-formula-desc">{iv.description}</p>
                   <div className="iv-formula-ingredients">
@@ -373,8 +373,8 @@ export default function IVTherapy() {
         <section className="iv-section">
           <div className="iv-container">
             <div className="iv-animate">
-              <div className="iv-kicker">Available Nutrients</div>
-              <h2>Build your own or add on.</h2>
+              <div className="v2-label"><span className="v2-dot" /> AVAILABLE NUTRIENTS</div>
+              <h2>BUILD YOUR OWN OR ADD ON.</h2>
               <div className="iv-divider"></div>
               <p className="iv-body-text">
                 Every Range IV includes 5 of these vitamins and minerals. Want more? Add any extra for $35 each.
@@ -396,8 +396,8 @@ export default function IVTherapy() {
         <section className="iv-section iv-section-alt">
           <div className="iv-container">
             <div className="iv-animate">
-              <div className="iv-kicker">Standalone IV</div>
-              <h2>Glutathione IV</h2>
+              <div className="v2-label"><span className="v2-dot" /> STANDALONE IV</div>
+              <h2>GLUTATHIONE IV</h2>
               <div className="iv-divider"></div>
               <p className="iv-body-text">
                 Glutathione is the body's master antioxidant — critical for detox, liver function, immune support, and skin health. Available as a standalone IV push, separate from the Range IV.
@@ -423,8 +423,8 @@ export default function IVTherapy() {
         <section className="iv-section iv-section-inverted">
           <div className="iv-container">
             <div className="iv-animate">
-              <div className="iv-kicker">Who It's For</div>
-              <h2>Feel better faster.</h2>
+              <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> WHO IT'S FOR</div>
+              <h2>FEEL BETTER FASTER.</h2>
               <div className="iv-divider"></div>
               <p className="iv-body-text">
                 IV therapy helps a wide range of people. If any of these sound familiar, you might benefit from a session at our Newport Beach clinic.
@@ -443,8 +443,8 @@ export default function IVTherapy() {
         <section className="iv-section iv-section-alt">
           <div className="iv-container">
             <div className="iv-animate">
-              <div className="iv-kicker">Why IV Therapy Works</div>
-              <h2>The science of direct delivery.</h2>
+              <div className="v2-label"><span className="v2-dot" /> WHY IV THERAPY WORKS</div>
+              <h2>THE SCIENCE OF DIRECT DELIVERY.</h2>
               <div className="iv-divider"></div>
               <p className="iv-body-text">
                 IV therapy isn't just about convenience — it's about efficacy. Here's why direct nutrient delivery makes a difference.
@@ -467,8 +467,8 @@ export default function IVTherapy() {
         <section className="iv-section" id="iv-research">
           <div className="iv-container">
             <div className="iv-animate">
-              <div className="iv-kicker">Backed by Science</div>
-              <h2>Evidence-Based Results</h2>
+              <div className="v2-label"><span className="v2-dot" /> BACKED BY SCIENCE</div>
+              <h2>EVIDENCE-BASED RESULTS</h2>
               <div className="iv-divider"></div>
               <p className="iv-body-text">
                 We've summarized the peer-reviewed research. Click any study to get the full breakdown — free.
@@ -498,19 +498,17 @@ export default function IVTherapy() {
         </section>
 
         {/* FAQ */}
-        <section className="iv-section-alt">
+        <section className="iv-section iv-section-alt">
           <div className="iv-container">
-            <span className="iv-section-label">Questions</span>
-            <h2>Common Questions</h2>
+            <div className="v2-label"><span className="v2-dot" /> QUESTIONS</div>
+            <h2>COMMON QUESTIONS</h2>
 
             <div className="iv-faq-list">
               {faqs.map((faq, index) => (
                 <div key={index} className={`iv-faq-item ${openFaq === index ? 'iv-faq-open' : ''}`}>
                   <button className="iv-faq-question" onClick={() => toggleFaq(index)}>
                     <span>{faq.question}</span>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d={openFaq === index ? "M18 15l-6-6-6 6" : "M6 9l6 6 6-6"} />
-                    </svg>
+                    <span className="iv-faq-toggle">{openFaq === index ? '\u2212' : '+'}</span>
                   </button>
                   <div className="iv-faq-answer">
                     <p>{faq.answer}</p>
@@ -525,13 +523,13 @@ export default function IVTherapy() {
         <section className="iv-section iv-section-inverted iv-cta-section">
           <div className="iv-container">
             <div className="iv-animate">
-              <div className="iv-kicker" style={{ marginBottom: '1.5rem' }}>Next Steps</div>
-              <h2 className="iv-cta-title">Ready to feel the difference?</h2>
+              <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '1.5rem' }}><span className="v2-dot" /> NEXT STEPS</div>
+              <h2 className="iv-cta-title">READY TO FEEL THE DIFFERENCE?</h2>
               <p className="iv-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
                 Walk-ins welcome for established patients. New to Range? Book a quick screening to get started. Our Newport Beach team is ready to help.
               </p>
               <div className="iv-cta-buttons">
-                <Link href="/start" className="iv-btn-primary">Start Now</Link>
+                <Link href="/start" className="iv-btn-primary">START NOW</Link>
                 <div className="iv-cta-or">or</div>
                 <a href="tel:9499973988" className="iv-cta-phone">(949) 997-3988</a>
               </div>
@@ -548,7 +546,7 @@ export default function IVTherapy() {
       </div>
 
       <style jsx>{`
-        /* ===== IV PAGE SCOPED STYLES ===== */
+        /* ===== IV PAGE V2 EDITORIAL DESIGN ===== */
         .iv-page {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
           -webkit-font-smoothing: antialiased;
@@ -573,61 +571,40 @@ export default function IVTherapy() {
         .iv-container {
           max-width: 1200px;
           margin: 0 auto;
-          padding: 0 1.5rem;
+          padding: 0 2rem;
         }
 
         /* Sections */
         .iv-section {
-          padding: 4rem 1.5rem;
+          padding: 6rem 2rem;
         }
 
         .iv-section-alt {
           background: #fafafa;
-          padding: 5rem 1.5rem;
-        }
-
-        .iv-section-label {
-          display: inline-block;
-          font-size: 0.75rem;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 0.75rem;
+          padding: 6rem 2rem;
         }
 
         .iv-section-inverted {
-          background: #000000;
+          background: #1a1a1a;
           color: #ffffff;
-        }
-
-        /* Kicker */
-        .iv-kicker {
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 1rem;
-        }
-
-        .iv-section-inverted .iv-kicker {
-          color: rgba(255, 255, 255, 0.4);
         }
 
         /* Headlines */
         .iv-page h1 {
-          font-size: 2.75rem;
-          font-weight: 700;
-          line-height: 1.15;
-          letter-spacing: -0.02em;
+          font-size: 3rem;
+          font-weight: 900;
+          line-height: 0.95;
+          letter-spacing: -0.03em;
+          text-transform: uppercase;
           color: #171717;
         }
 
         .iv-page h2 {
-          font-size: 2rem;
-          font-weight: 700;
-          letter-spacing: -0.02em;
+          font-size: 2.25rem;
+          font-weight: 900;
+          letter-spacing: -0.03em;
+          line-height: 0.95;
+          text-transform: uppercase;
           color: #171717;
           margin-bottom: 1rem;
         }
@@ -649,7 +626,7 @@ export default function IVTherapy() {
           font-size: 1.0625rem;
           font-weight: 400;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
           max-width: 600px;
         }
 
@@ -660,8 +637,8 @@ export default function IVTherapy() {
         /* Divider */
         .iv-divider {
           width: 48px;
-          height: 2px;
-          background: #e5e5e5;
+          height: 1px;
+          background: #e0e0e0;
           margin: 1.25rem 0;
         }
 
@@ -673,30 +650,34 @@ export default function IVTherapy() {
         .iv-btn-primary {
           display: inline-block;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          font-size: 0.875rem;
-          font-weight: 600;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
           padding: 0.875rem 2rem;
           background: #ffffff;
-          color: #000000;
+          color: #1a1a1a;
           border: none;
-          border-radius: 8px;
+          border-radius: 0;
           cursor: pointer;
           text-decoration: none;
           transition: background 0.2s ease, transform 0.2s ease;
         }
 
         .iv-btn-primary:hover {
-          background: #e5e5e5;
+          background: #e0e0e0;
           transform: translateY(-1px);
         }
 
         /* Hero */
         .iv-hero {
-          padding: 4rem 1.5rem 5rem;
-          text-align: center;
+          padding: 6rem 2rem 5rem;
+          text-align: left;
           display: flex;
           flex-direction: column;
-          align-items: center;
+          align-items: flex-start;
+          max-width: 1200px;
+          margin: 0 auto;
         }
 
         .iv-hero h1 {
@@ -704,15 +685,22 @@ export default function IVTherapy() {
           margin-bottom: 1.5rem;
         }
 
+        .iv-hero-rule {
+          width: 48px;
+          height: 1px;
+          background: #e0e0e0;
+          margin-bottom: 1.5rem;
+        }
+
         .iv-hero .iv-body-text {
-          text-align: center;
-          margin: 0 auto 2.5rem;
+          text-align: left;
+          margin: 0 0 2.5rem 0;
         }
 
         .iv-hero-scroll {
-          font-size: 0.75rem;
+          font-size: 11px;
           font-weight: 700;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.12em;
           text-transform: uppercase;
           color: #737373;
           margin-top: 2rem;
@@ -744,11 +732,11 @@ export default function IVTherapy() {
 
         .iv-stat-number {
           font-size: 2.75rem;
-          font-weight: 800;
-          letter-spacing: -0.02em;
+          font-weight: 900;
+          letter-spacing: -0.03em;
           line-height: 1;
           margin-bottom: 0.5rem;
-          color: #171717;
+          color: #c4a882;
         }
 
         .iv-stat-label {
@@ -762,9 +750,10 @@ export default function IVTherapy() {
         .iv-range-card {
           margin-top: 2.5rem;
           padding: 2.5rem;
-          border-radius: 12px;
-          border: 2px solid #000000;
+          border-radius: 0;
+          border: 1px solid #e0e0e0;
           background: #ffffff;
+          box-shadow: none;
         }
 
         .iv-range-header {
@@ -773,14 +762,14 @@ export default function IVTherapy() {
 
         .iv-range-badge {
           display: inline-block;
-          font-size: 0.6875rem;
+          font-size: 11px;
           font-weight: 700;
           text-transform: uppercase;
-          letter-spacing: 0.05em;
+          letter-spacing: 0.12em;
           padding: 0.375rem 0.75rem;
-          background: #0891b2;
+          background: #1a1a1a;
           color: #ffffff;
-          border-radius: 4px;
+          border-radius: 0;
           margin-bottom: 0.75rem;
         }
 
@@ -793,14 +782,14 @@ export default function IVTherapy() {
         .iv-range-desc {
           font-size: 1rem;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
           margin: 0;
         }
 
         .iv-range-footer {
           margin-top: 1.5rem;
           padding-top: 1.5rem;
-          border-top: 1px solid #e5e5e5;
+          border-top: 1px solid #e0e0e0;
         }
 
         .iv-range-footer p {
@@ -813,26 +802,32 @@ export default function IVTherapy() {
         .iv-formulas-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 1.25rem;
+          gap: 0;
           margin-top: 2.5rem;
+          border: 1px solid #e0e0e0;
         }
 
         .iv-formula-card {
           padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border-radius: 0;
+          border: none;
+          border-bottom: 1px solid #e0e0e0;
+          border-right: 1px solid #e0e0e0;
           background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          box-shadow: none;
+          transition: background 0.2s ease;
+        }
+
+        .iv-formula-card:nth-child(2n) {
+          border-right: none;
+        }
+
+        .iv-formula-card:nth-last-child(-n+2) {
+          border-bottom: none;
         }
 
         .iv-formula-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-        }
-
-        .iv-formula-icon {
-          font-size: 1.75rem;
-          margin-bottom: 0.75rem;
+          background: #fafafa;
         }
 
         .iv-formula-name {
@@ -845,7 +840,7 @@ export default function IVTherapy() {
         .iv-formula-desc {
           font-size: 0.875rem;
           line-height: 1.6;
-          color: #525252;
+          color: #737373;
           margin-bottom: 1rem;
         }
 
@@ -859,24 +854,24 @@ export default function IVTherapy() {
           font-size: 0.6875rem;
           font-weight: 600;
           padding: 0.375rem 0.75rem;
-          border-radius: 100px;
+          border-radius: 0;
           background: #f5f5f5;
-          color: #525252;
-          border: 1px solid #e5e5e5;
+          color: #737373;
+          border: 1px solid #e0e0e0;
         }
 
         .iv-formulas-note {
           margin-top: 2rem;
           padding: 1.25rem 1.5rem;
-          border-radius: 8px;
+          border-radius: 0;
           background: #ffffff;
-          border: 1px solid #e5e5e5;
+          border: 1px solid #e0e0e0;
           text-align: center;
         }
 
         .iv-formulas-note p {
           font-size: 0.9375rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.6;
           margin: 0;
         }
@@ -885,21 +880,31 @@ export default function IVTherapy() {
         .iv-nutrients-grid {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
-          gap: 0.75rem;
+          gap: 0;
           margin-top: 2.5rem;
+          border: 1px solid #e0e0e0;
         }
 
         .iv-nutrient-card {
           padding: 1.25rem;
-          border-radius: 10px;
-          border: 1px solid #e5e5e5;
+          border-radius: 0;
+          border-bottom: 1px solid #e0e0e0;
+          border-right: 1px solid #e0e0e0;
           background: #fafafa;
           text-align: center;
-          transition: border-color 0.2s ease;
+          transition: background 0.2s ease;
+        }
+
+        .iv-nutrient-card:nth-child(4n) {
+          border-right: none;
+        }
+
+        .iv-nutrient-card:nth-last-child(-n+4) {
+          border-bottom: none;
         }
 
         .iv-nutrient-card:hover {
-          border-color: #171717;
+          background: #ffffff;
         }
 
         .iv-nutrient-name {
@@ -919,35 +924,41 @@ export default function IVTherapy() {
         .iv-glut-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 1rem;
+          gap: 0;
           margin-top: 2rem;
           max-width: 500px;
+          border: 1px solid #e0e0e0;
         }
 
         .iv-glut-card {
           padding: 1.5rem;
-          border-radius: 10px;
-          border: 2px solid #e5e5e5;
+          border-radius: 0;
+          border-right: 1px solid #e0e0e0;
           background: #ffffff;
           text-align: center;
-          transition: border-color 0.2s ease;
+          transition: background 0.2s ease;
+          box-shadow: none;
+        }
+
+        .iv-glut-card:last-child {
+          border-right: none;
         }
 
         .iv-glut-card:hover {
-          border-color: #171717;
+          background: #fafafa;
         }
 
         .iv-glut-dose {
           font-size: 1.5rem;
-          font-weight: 800;
-          color: #171717;
+          font-weight: 900;
+          color: #c4a882;
           margin-bottom: 0.25rem;
         }
 
         .iv-glut-price {
           font-size: 1.125rem;
           font-weight: 600;
-          color: #525252;
+          color: #737373;
         }
 
         .iv-glut-note {
@@ -969,7 +980,7 @@ export default function IVTherapy() {
           font-size: 0.8125rem;
           font-weight: 600;
           padding: 0.75rem 1.5rem;
-          border-radius: 100px;
+          border-radius: 0;
           border: 1px solid rgba(255, 255, 255, 0.08);
           background: rgba(255, 255, 255, 0.04);
           color: rgba(255, 255, 255, 0.6);
@@ -984,29 +995,38 @@ export default function IVTherapy() {
         .iv-benefits-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 1.25rem;
+          gap: 0;
           margin-top: 2.5rem;
+          border: 1px solid #e0e0e0;
         }
 
         .iv-benefit-card {
           padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border-radius: 0;
+          border-bottom: 1px solid #e0e0e0;
+          border-right: 1px solid #e0e0e0;
           background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          box-shadow: none;
+          transition: background 0.2s ease;
+        }
+
+        .iv-benefit-card:nth-child(2n) {
+          border-right: none;
+        }
+
+        .iv-benefit-card:nth-last-child(-n+2) {
+          border-bottom: none;
         }
 
         .iv-benefit-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+          background: #fafafa;
         }
 
         .iv-benefit-number {
-          font-size: 0.75rem;
-          font-weight: 700;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: #737373;
+          font-size: 1.25rem;
+          font-weight: 900;
+          letter-spacing: -0.02em;
+          color: #c4a882;
           margin-bottom: 1rem;
         }
 
@@ -1020,39 +1040,48 @@ export default function IVTherapy() {
         .iv-benefit-desc {
           font-size: 0.875rem;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
         }
 
         /* Research Cards */
         .iv-research-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 1.25rem;
+          gap: 0;
           margin-top: 2.5rem;
+          border: 1px solid #e0e0e0;
         }
 
         .iv-research-card {
           padding: 2rem;
-          border-radius: 12px;
-          border: 1px solid #e5e5e5;
+          border-radius: 0;
+          border-bottom: 1px solid #e0e0e0;
+          border-right: 1px solid #e0e0e0;
           background: #ffffff;
           cursor: pointer;
-          transition: all 0.2s ease;
+          box-shadow: none;
+          transition: background 0.2s ease;
+        }
+
+        .iv-research-card:nth-child(2n) {
+          border-right: none;
+        }
+
+        .iv-research-card:nth-last-child(-n+2) {
+          border-bottom: none;
         }
 
         .iv-research-card:hover {
-          border-color: #171717;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          transform: translateY(-2px);
+          background: #fafafa;
         }
 
         .iv-research-category {
           display: inline-block;
-          font-size: 0.6875rem;
+          font-size: 11px;
           font-weight: 700;
-          letter-spacing: 0.08em;
+          letter-spacing: 0.12em;
           text-transform: uppercase;
-          color: #0891b2;
+          color: #c4a882;
           margin-bottom: 0.875rem;
         }
 
@@ -1067,7 +1096,7 @@ export default function IVTherapy() {
         .iv-research-summary {
           font-size: 0.875rem;
           line-height: 1.7;
-          color: #525252;
+          color: #737373;
           margin-bottom: 1rem;
         }
 
@@ -1089,11 +1118,11 @@ export default function IVTherapy() {
         /* FAQ */
         .iv-faq-list {
           max-width: 700px;
-          margin: 0 auto;
+          margin: 2rem auto 0;
         }
 
         .iv-faq-item {
-          border-bottom: 1px solid #e5e5e5;
+          border-bottom: 1px solid #e0e0e0;
         }
 
         .iv-faq-item:last-child {
@@ -1120,14 +1149,13 @@ export default function IVTherapy() {
           padding-right: 1rem;
         }
 
-        .iv-faq-question svg {
+        .iv-faq-toggle {
           flex-shrink: 0;
+          font-size: 1.25rem;
+          font-weight: 300;
           color: #737373;
-          transition: transform 0.2s;
-        }
-
-        .iv-faq-open .iv-faq-question svg {
-          transform: rotate(180deg);
+          width: 24px;
+          text-align: center;
         }
 
         .iv-faq-answer {
@@ -1143,20 +1171,23 @@ export default function IVTherapy() {
 
         .iv-faq-answer p {
           font-size: 0.9375rem;
-          color: #525252;
+          color: #737373;
           line-height: 1.7;
           margin: 0;
         }
 
         /* CTA Section */
         .iv-cta-section {
-          padding: 6rem 1.5rem;
+          padding: 6rem 2rem;
           text-align: center;
         }
 
         .iv-cta-title {
           font-size: 2.75rem;
-          letter-spacing: -0.02em;
+          font-weight: 900;
+          letter-spacing: -0.03em;
+          line-height: 0.95;
+          text-transform: uppercase;
           color: #ffffff;
           margin-bottom: 1.25rem;
         }
@@ -1170,9 +1201,9 @@ export default function IVTherapy() {
         }
 
         .iv-cta-or {
-          font-size: 0.75rem;
+          font-size: 11px;
           font-weight: 700;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.12em;
           text-transform: uppercase;
           color: rgba(255, 255, 255, 0.25);
         }
@@ -1193,8 +1224,9 @@ export default function IVTherapy() {
 
         /* Responsive */
         @media (max-width: 768px) {
-          .iv-section {
-            padding: 3rem 1.5rem;
+          .iv-section,
+          .iv-section-alt {
+            padding: 4rem 1.5rem;
           }
 
           .iv-page h1 {
@@ -1206,7 +1238,7 @@ export default function IVTherapy() {
           }
 
           .iv-hero {
-            padding: 3rem 1.5rem;
+            padding: 4rem 1.5rem;
           }
 
           .iv-stat-row {
@@ -1216,10 +1248,38 @@ export default function IVTherapy() {
 
           .iv-benefits-grid {
             grid-template-columns: 1fr;
+            border: none;
+          }
+
+          .iv-benefit-card {
+            border: 1px solid #e0e0e0;
+            border-bottom: none;
+          }
+
+          .iv-benefit-card:nth-child(2n) {
+            border-right: 1px solid #e0e0e0;
+          }
+
+          .iv-benefit-card:last-child {
+            border-bottom: 1px solid #e0e0e0;
           }
 
           .iv-formulas-grid {
             grid-template-columns: 1fr;
+            border: none;
+          }
+
+          .iv-formula-card {
+            border: 1px solid #e0e0e0;
+            border-bottom: none;
+          }
+
+          .iv-formula-card:nth-child(2n) {
+            border-right: 1px solid #e0e0e0;
+          }
+
+          .iv-formula-card:last-child {
+            border-bottom: 1px solid #e0e0e0;
           }
 
           .iv-nutrients-grid {
@@ -1228,6 +1288,20 @@ export default function IVTherapy() {
 
           .iv-research-grid {
             grid-template-columns: 1fr;
+            border: none;
+          }
+
+          .iv-research-card {
+            border: 1px solid #e0e0e0;
+            border-bottom: none;
+          }
+
+          .iv-research-card:nth-child(2n) {
+            border-right: 1px solid #e0e0e0;
+          }
+
+          .iv-research-card:last-child {
+            border-bottom: 1px solid #e0e0e0;
           }
 
           .iv-cta-title {
@@ -1236,6 +1310,10 @@ export default function IVTherapy() {
 
           .iv-cta-buttons {
             flex-direction: column;
+          }
+
+          .iv-cta-section {
+            padding: 4rem 1.5rem;
           }
         }
       `}</style>

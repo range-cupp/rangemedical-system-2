@@ -103,36 +103,25 @@ export default async function handler(req, res) {
     });
 
     // ── 3. Patients: new vs returning ──────────────────────────────────
-    const { data: newPatients, error: newPatErr } = await supabase
+    // Count new patients (created today) — no names for PHI protection
+    const { count: newPatientCount, error: newPatErr } = await supabase
       .from('patients')
-      .select('id, name, first_name, last_name, created_at')
+      .select('id', { count: 'exact', head: true })
       .gte('created_at', `${today}T00:00:00`)
       .lt('created_at', `${today}T23:59:59.999`);
 
     if (newPatErr) throw newPatErr;
 
-    const newPatientCount = (newPatients || []).length;
-
     // Returning = unique patients in today's service logs who were NOT created today
+    const { data: newPatientIds } = await supabase
+      .from('patients')
+      .select('id')
+      .gte('created_at', `${today}T00:00:00`)
+      .lt('created_at', `${today}T23:59:59.999`);
+
+    const newIdSet = new Set((newPatientIds || []).map(p => p.id));
     const todaySessionPatientIds = [...new Set((sessions || []).map(s => s.patient_id).filter(Boolean))];
-    const newPatientIds = new Set((newPatients || []).map(p => p.id));
-    const returningPatientIds = todaySessionPatientIds.filter(id => !newPatientIds.has(id));
-    const returningPatientCount = returningPatientIds.length;
-
-    // Get returning patient names
-    let returningNames = [];
-    if (returningPatientIds.length > 0) {
-      const { data: retPats } = await supabase
-        .from('patients')
-        .select('id, name, first_name, last_name')
-        .in('id', returningPatientIds);
-      returningNames = (retPats || []).map(p => p.name || `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Unknown');
-    }
-
-    // New patient names
-    const newPatientNames = (newPatients || []).map(p =>
-      p.name || `${p.first_name || ''} ${p.last_name || ''}`.trim() || 'Unknown'
-    );
+    const returningPatientCount = todaySessionPatientIds.filter(id => !newIdSet.has(id)).length;
 
     // ── 4. Build and send email ────────────────────────────────────────
     const subject = `End of Day ${shortDate} — $${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -147,10 +136,8 @@ export default async function handler(req, res) {
       revenueByPayment,
       sessionCount,
       sessionsByCategory,
-      newPatientCount,
-      newPatientNames,
+      newPatientCount: newPatientCount || 0,
       returningPatientCount,
-      returningNames,
       purchases: purchases || [],
     });
 
@@ -232,7 +219,7 @@ function fmtMoney(n) {
 function buildReportEmail({
   displayDate, shortDate, today, totalRevenue, transactionCount,
   revenueByCategory, revenueByPayment, sessionCount, sessionsByCategory,
-  newPatientCount, newPatientNames, returningPatientCount, returningNames,
+  newPatientCount, returningPatientCount,
   purchases,
 }) {
   const headerBg = '#111111';
@@ -281,15 +268,7 @@ function buildReportEmail({
         </tr>`;
     }).join('');
 
-  // New patient list
-  const newPatientList = newPatientCount > 0
-    ? newPatientNames.map(n => `<div style="padding: 4px 0; color: #1f2937;">${n}</div>`).join('')
-    : '<div style="color: #9ca3af; font-style: italic;">None today</div>';
-
-  // Returning patient list
-  const returningPatientList = returningPatientCount > 0
-    ? returningNames.map(n => `<div style="padding: 4px 0; color: #1f2937;">${n}</div>`).join('')
-    : '<div style="color: #9ca3af; font-style: italic;">None today</div>';
+  // No patient names — counts only (PHI protection)
 
   return `
 <!DOCTYPE html>
@@ -395,27 +374,7 @@ function buildReportEmail({
             </td>
           </tr>` : ''}
 
-          <!-- New Patients -->
-          <tr>
-            <td style="padding: 20px 32px 0 32px;">
-              <table width="100%" cellpadding="0" cellspacing="0">
-                <tr>
-                  <td width="50%" style="vertical-align: top; padding-right: 12px;">
-                    <div style="font-size: 14px; font-weight: 700; color: #1f2937; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">New Patients (${newPatientCount})</div>
-                    <div style="padding: 12px 16px; background: #faf5ff; border-radius: 8px; border: 1px solid #e9d5ff;">
-                      ${newPatientList}
-                    </div>
-                  </td>
-                  <td width="50%" style="vertical-align: top; padding-left: 12px;">
-                    <div style="font-size: 14px; font-weight: 700; color: #1f2937; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Returning (${returningPatientCount})</div>
-                    <div style="padding: 12px 16px; background: #fff7ed; border-radius: 8px; border: 1px solid #fed7aa;">
-                      ${returningPatientList}
-                    </div>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
+          <!-- Patient counts only — no names (PHI protection) -->
 
           <!-- Footer -->
           <tr>

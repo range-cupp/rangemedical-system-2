@@ -45,7 +45,24 @@ export default async function handler(req, res) {
     if (patient_name !== undefined) updateData.patient_name = patient_name;
     if (patient_email !== undefined) updateData.patient_email = patient_email;
     if (patient_phone !== undefined) updateData.patient_phone = patient_phone;
-    if (items !== undefined) updateData.items = items;
+    if (items !== undefined) {
+      // Generate PHI-safe display names for patient-facing invoices
+      updateData.items = items.map(item => {
+        const cat = (item.category || '').toLowerCase();
+        let display_name = null;
+        if (cat === 'weight_loss') {
+          display_name = 'Weight Loss Program';
+        } else if (cat === 'peptide' || cat === 'vials') {
+          const isRecovery = /bpc|tb[-\s]?500|thymosin|kpv|mgf/i.test(item.name || '')
+            && !/blend|2x|3x|4x|ghrp/i.test(item.name || '');
+          const label = isRecovery ? 'Injury & Recovery Protocol' : 'Energy & Optimization Protocol';
+          const durationMatch = (item.name || '').match(/(\d+)\s*Day/i);
+          const duration = durationMatch ? durationMatch[1] : null;
+          display_name = duration ? `${label} — ${duration} Day` : label;
+        }
+        return display_name ? { ...item, display_name } : item;
+      });
+    }
     if (subtotal_cents !== undefined) updateData.subtotal_cents = subtotal_cents;
     if (discount_cents !== undefined) updateData.discount_cents = discount_cents;
     if (discount_description !== undefined) updateData.discount_description = discount_description;

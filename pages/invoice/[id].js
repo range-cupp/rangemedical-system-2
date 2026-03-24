@@ -71,7 +71,7 @@ function PaymentForm({ invoice, onSuccess }) {
           <tbody>
             {invoice.items.map((item, i) => (
               <tr key={i}>
-                <td style={styles.itemName}>{item.name}{item.quantity > 1 ? ` x${item.quantity}` : ''}</td>
+                <td style={styles.itemName}>{item.display_name || item.name}{item.quantity > 1 ? ` x${item.quantity}` : ''}</td>
                 <td style={styles.itemPrice}>${(item.price_cents / 100).toFixed(2)}</td>
               </tr>
             ))}
@@ -182,7 +182,7 @@ export default function InvoicePaymentPage() {
     if (!invoice || !payableStatuses.includes(invoice.status) || clientSecret || success) return;
 
     const itemNames = Array.isArray(invoice.items)
-      ? invoice.items.map(i => i.name).join(', ')
+      ? invoice.items.map(i => i.display_name || i.name).join(', ')
       : 'Medical services';
 
     fetch('/api/stripe/payment-intent', {

@@ -32,6 +32,26 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'patient_name, items, and total_cents are required' });
     }
 
+    // Generate PHI-safe display names for patient-facing invoices
+    const itemsWithDisplayNames = items.map(item => {
+      const cat = (item.category || '').toLowerCase();
+      const nameLower = (item.name || '').toLowerCase();
+      let display_name = null;
+
+      if (cat === 'weight_loss') {
+        display_name = 'Weight Loss Program';
+      } else if (cat === 'peptide' || cat === 'vials') {
+        const isRecovery = /bpc|tb[-\s]?500|thymosin|kpv|mgf/i.test(item.name || '')
+          && !/blend|2x|3x|4x|ghrp/i.test(item.name || '');
+        const label = isRecovery ? 'Injury & Recovery Protocol' : 'Energy & Optimization Protocol';
+        const durationMatch = (item.name || '').match(/(\d+)\s*Day/i);
+        const duration = durationMatch ? durationMatch[1] : null;
+        display_name = duration ? `${label} — ${duration} Day` : label;
+      }
+
+      return display_name ? { ...item, display_name } : item;
+    });
+
     // Expires in 30 days
     const expires_at = new Date();
     expires_at.setDate(expires_at.getDate() + 30);
@@ -43,7 +63,7 @@ export default async function handler(req, res) {
         patient_name,
         patient_email: patient_email || null,
         patient_phone: patient_phone || null,
-        items,
+        items: itemsWithDisplayNames,
         subtotal_cents: subtotal_cents || total_cents,
         discount_cents: discount_cents || 0,
         discount_description: discount_description || null,

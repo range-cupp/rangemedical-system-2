@@ -36,6 +36,9 @@ export default async function handler(req, res) {
         return q;
       };
 
+      // If a hard limit is set (e.g., recent purchases widget), use a single query
+      const hardLimit = limit ? parseInt(limit) : null;
+
       // Paginate to bypass Supabase 1000-row cap
       const PAGE_SIZE = 1000;
       let allPurchases = [];
@@ -43,22 +46,37 @@ export default async function handler(req, res) {
       let hasMore = true;
       let totalCount = null;
 
-      while (hasMore) {
-        const { data: batch, error, count } = await buildQuery().range(from, from + PAGE_SIZE - 1);
-
+      if (hardLimit && hardLimit <= PAGE_SIZE) {
+        // Single query with limit — fast path
+        const { data, error, count } = await buildQuery().limit(hardLimit);
         if (error) {
           console.error('Purchases fetch error:', error);
           return res.status(500).json({ error: 'Failed to fetch purchases', details: error.message });
         }
+        allPurchases = data || [];
+        totalCount = count;
+      } else {
+        while (hasMore) {
+          const { data: batch, error, count } = await buildQuery().range(from, from + PAGE_SIZE - 1);
 
-        if (totalCount === null) totalCount = count;
+          if (error) {
+            console.error('Purchases fetch error:', error);
+            return res.status(500).json({ error: 'Failed to fetch purchases', details: error.message });
+          }
 
-        if (batch && batch.length > 0) {
-          allPurchases = allPurchases.concat(batch);
-          from += PAGE_SIZE;
-          hasMore = batch.length === PAGE_SIZE;
-        } else {
-          hasMore = false;
+          if (totalCount === null) totalCount = count;
+
+          if (batch && batch.length > 0) {
+            allPurchases = allPurchases.concat(batch);
+            from += PAGE_SIZE;
+            hasMore = batch.length === PAGE_SIZE;
+            if (hardLimit && allPurchases.length >= hardLimit) {
+              allPurchases = allPurchases.slice(0, hardLimit);
+              hasMore = false;
+            }
+          } else {
+            hasMore = false;
+          }
         }
       }
 
@@ -99,34 +117,32 @@ export default async function handler(req, res) {
         }
 
         // Also handle purchases without patient_id but with patient_name
+        // Use a single batched OR query instead of one query per name
         const unlinkedNoPatientId = allPurchases.filter(p => !p.protocol_id && !p.session_logged && !p.patient_id && p.patient_name);
         const patientNames = [...new Set(unlinkedNoPatientId.map(p => p.patient_name.toLowerCase().trim()))];
 
         if (patientNames.length > 0) {
           for (let i = 0; i < patientNames.length; i += 50) {
             const batch = patientNames.slice(i, i + 50);
-            // Query protocols by patient_name for purchases without patient_id
-            for (const name of batch) {
-              const { data: protocols } = await supabase
-                .from('protocols')
-                .select('id, patient_id, patient_name, program_type, program_name, medication, status')
-                .ilike('patient_name', name)
-                .eq('status', 'active');
+            const orFilter = batch.map(name => `patient_name.ilike.${name}`).join(',');
+            const { data: protocols } = await supabase
+              .from('protocols')
+              .select('id, patient_id, patient_name, program_type, program_name, medication, status')
+              .or(orFilter)
+              .eq('status', 'active');
 
-              if (protocols && protocols.length > 0) {
-                // Store under a name-based key prefixed with 'name:'
-                const key = `name:${name}`;
+            if (protocols) {
+              for (const p of protocols) {
+                const key = `name:${(p.patient_name || '').toLowerCase().trim()}`;
                 if (!activeProtocolsByPatient[key]) {
                   activeProtocolsByPatient[key] = [];
                 }
-                for (const p of protocols) {
-                  activeProtocolsByPatient[key].push({
-                    id: p.id,
-                    program_type: p.program_type,
-                    program_name: p.program_name,
-                    medication: p.medication,
-                  });
-                }
+                activeProtocolsByPatient[key].push({
+                  id: p.id,
+                  program_type: p.program_type,
+                  program_name: p.program_name,
+                  medication: p.medication,
+                });
               }
             }
           }

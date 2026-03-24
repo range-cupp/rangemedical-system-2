@@ -270,6 +270,22 @@ export default function PatientProfile() {
   const { id } = router.query || {};
   const { session, employee } = useAuth();
 
+  // Check if current user can delete a specific note (author or admin)
+  const NOTE_AUTHOR_ALIASES = {
+    'burgess@range-medical.com': ['burgess@range-medical.com', 'dr. damien burgess', 'dr. burgess', 'damien burgess'],
+    'lily@range-medical.com': ['lily@range-medical.com', 'lily'],
+    'evan@range-medical.com': ['evan@range-medical.com', 'evan'],
+    'chris@range-medical.com': ['chris@range-medical.com', 'chris', 'chris cupp'],
+  };
+  const currentUserEmail = session?.user?.email?.toLowerCase() || '';
+  const isAdminUser = currentUserEmail === 'chris@range-medical.com';
+  const canDeleteNote = (note) => {
+    if (isAdminUser) return true;
+    if (!note.created_by) return false;
+    const aliases = NOTE_AUTHOR_ALIASES[currentUserEmail] || [];
+    return note.created_by.toLowerCase() === currentUserEmail || aliases.some(a => a === note.created_by.toLowerCase());
+  };
+
   // Email & SMS compose modals
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [smsModalOpen, setSmsModalOpen] = useState(false);
@@ -2478,9 +2494,18 @@ export default function PatientProfile() {
   };
 
   const handleDeleteNote = async (noteId) => {
-    if (!confirm('Delete this note?')) return;
+    if (!confirm('Delete this note? This cannot be undone.')) return;
     try {
-      await fetch(`/api/notes/${noteId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/notes/${noteId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requesting_user: session?.user?.email || employee?.name || 'Staff' }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        alert(data.error);
+        return;
+      }
       setNotes(prev => prev.filter(n => n.id !== noteId));
     } catch (error) {
       console.error('Delete note error:', error);
@@ -5962,7 +5987,7 @@ export default function PatientProfile() {
                               }}
                               title={note.pinned ? 'Unpin note' : 'Pin note'}
                             >📌</button>
-                            {(note.source === 'manual' || note.source === 'protocol') && (
+                            {note.status !== 'signed' && canDeleteNote(note) && (
                               <button
                                 onClick={() => handleDeleteNote(note.id)}
                                 style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 18, padding: '0 4px', lineHeight: 1 }}
@@ -7182,34 +7207,14 @@ export default function PatientProfile() {
                 <button onClick={() => { setShowAddNoteModal(false); stopDictation(); setNoteInput(''); setNoteFormatted(''); }} className="close-btn">×</button>
               </div>
               <div className="modal-body">
-                {/* Category toggle */}
-                <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                  <button
-                    onClick={() => setAddNoteCategory('clinical')}
-                    style={{
-                      flex: 1, padding: '10px 14px', fontSize: 13, fontWeight: 600, borderRadius: 8,
-                      border: addNoteCategory === 'clinical' ? '2px solid #059669' : '1.5px solid #d1d5db',
-                      background: addNoteCategory === 'clinical' ? '#ecfdf5' : '#fff',
-                      color: addNoteCategory === 'clinical' ? '#059669' : '#6b7280',
-                      cursor: 'pointer', textAlign: 'center',
-                    }}
-                  >
-                    🩺 Clinical Note
-                    <div style={{ fontSize: 11, fontWeight: 400, marginTop: 2 }}>Included in chart</div>
-                  </button>
-                  <button
-                    onClick={() => setAddNoteCategory('internal')}
-                    style={{
-                      flex: 1, padding: '10px 14px', fontSize: 13, fontWeight: 600, borderRadius: 8,
-                      border: addNoteCategory === 'internal' ? '2px solid #2563eb' : '1.5px solid #d1d5db',
-                      background: addNoteCategory === 'internal' ? '#eff6ff' : '#fff',
-                      color: addNoteCategory === 'internal' ? '#2563eb' : '#6b7280',
-                      cursor: 'pointer', textAlign: 'center',
-                    }}
-                  >
-                    📝 Internal Note
-                    <div style={{ fontSize: 11, fontWeight: 400, marginTop: 2 }}>Staff only, not in chart</div>
-                  </button>
+                {/* Category indicator (locked to whichever section the user clicked from) */}
+                <div style={{
+                  padding: '10px 14px', marginBottom: 16, borderRadius: 8, fontSize: 13, fontWeight: 600, textAlign: 'center',
+                  border: addNoteCategory === 'clinical' ? '2px solid #059669' : '2px solid #2563eb',
+                  background: addNoteCategory === 'clinical' ? '#ecfdf5' : '#eff6ff',
+                  color: addNoteCategory === 'clinical' ? '#059669' : '#2563eb',
+                }}>
+                  {addNoteCategory === 'clinical' ? '🩺 Clinical Note — Included in chart' : '📝 Internal Note — Staff only, not in chart'}
                 </div>
 
                 <div className="form-group">

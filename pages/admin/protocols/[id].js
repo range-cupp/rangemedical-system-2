@@ -10,6 +10,7 @@ import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../../lib
 import { isRecoveryPeptide, isGHPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE_OFF_DAYS, GH_CYCLE_MAX_DAYS, GH_CYCLE_OFF_DAYS, INJECTION_METHODS, HRT_SUPPLY_TYPES, HRT_SECONDARY_MEDICATIONS, PEPTIDE_OPTIONS, WEIGHT_LOSS_MEDICATIONS } from '../../../lib/protocol-config';
 import { PROTOCOL_TYPES, detectProtocolType, getDBProgramType, getDeliveryLabel } from '../../../lib/protocol-types';
 import AdminLayout from '../../../components/AdminLayout';
+import { useAuth } from '../../../components/AuthProvider';
 
 // Side effects list — matches lib/wl-side-effect-guidance.js
 const WL_SIDE_EFFECTS = ['Nausea', 'Fatigue', 'Constipation', 'Indigestion', 'Injection Site Pain'];
@@ -127,7 +128,24 @@ function getEffectiveDays(durationDays, frequency) {
 export default function ProtocolDetail() {
   const router = useRouter();
   const { id } = router.query;
-  
+  const { session } = useAuth();
+
+  // Note delete permissions — author or admin only
+  const NOTE_AUTHOR_ALIASES = {
+    'burgess@range-medical.com': ['burgess@range-medical.com', 'dr. damien burgess', 'dr. burgess', 'damien burgess'],
+    'lily@range-medical.com': ['lily@range-medical.com', 'lily'],
+    'evan@range-medical.com': ['evan@range-medical.com', 'evan'],
+    'chris@range-medical.com': ['chris@range-medical.com', 'chris', 'chris cupp'],
+  };
+  const currentUserEmail = session?.user?.email?.toLowerCase() || '';
+  const isAdminUser = currentUserEmail === 'chris@range-medical.com';
+  const canDeleteNote = (note) => {
+    if (isAdminUser) return true;
+    if (!note.created_by) return false;
+    const aliases = NOTE_AUTHOR_ALIASES[currentUserEmail] || [];
+    return note.created_by.toLowerCase() === currentUserEmail || aliases.some(a => a === note.created_by.toLowerCase());
+  };
+
   const [protocol, setProtocol] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -998,9 +1016,18 @@ export default function ProtocolDetail() {
   };
 
   const handleDeleteClinicalNote = async (noteId) => {
-    if (!confirm('Delete this note?')) return;
+    if (!confirm('Delete this note? This cannot be undone.')) return;
     try {
-      await fetch(`/api/notes/${noteId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/notes/${noteId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requesting_user: session?.user?.email || 'Staff' }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        alert(data.error);
+        return;
+      }
       setClinicalNotes(prev => prev.filter(n => n.id !== noteId));
     } catch (error) {
       console.error('Delete clinical note error:', error);
@@ -2324,11 +2351,13 @@ export default function ProtocolDetail() {
                               {formatDate(note.note_date || note.created_at)}
                               {note.created_by && <span style={{ fontWeight: 400, marginLeft: 8 }}>by {note.created_by}</span>}
                             </div>
-                            <button
-                              onClick={() => handleDeleteClinicalNote(note.id)}
-                              style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: 16, padding: '0 4px', lineHeight: 1 }}
-                              title="Delete note"
-                            >×</button>
+                            {note.status !== 'signed' && canDeleteNote(note) && (
+                              <button
+                                onClick={() => handleDeleteClinicalNote(note.id)}
+                                style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: 16, padding: '0 4px', lineHeight: 1 }}
+                                title="Delete note"
+                              >×</button>
+                            )}
                           </div>
                           <div style={{ fontSize: 14, color: '#1f2937', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
                             {note.body}

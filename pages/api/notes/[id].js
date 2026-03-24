@@ -16,11 +16,19 @@ const AUTHOR_ALIASES = {
   'chris@range-medical.com': ['chris@range-medical.com', 'chris', 'chris cupp'],
 };
 
+// Admin users who can delete any note
+const ADMIN_EMAILS = ['chris@range-medical.com'];
+
 function isNoteAuthor(noteCreatedBy, requestingUser) {
   if (!noteCreatedBy || !requestingUser) return false;
   if (noteCreatedBy === requestingUser) return true;
   const aliases = AUTHOR_ALIASES[requestingUser?.toLowerCase()] || [];
   return aliases.some(alias => alias === noteCreatedBy.toLowerCase());
+}
+
+function isAdmin(requestingUser) {
+  if (!requestingUser) return false;
+  return ADMIN_EMAILS.includes(requestingUser.toLowerCase());
 }
 
 export default async function handler(req, res) {
@@ -48,10 +56,15 @@ export default async function handler(req, res) {
         return res.status(403).json({ error: 'Cannot delete a signed note. Add an addendum instead.' });
       }
 
-      // Authorship check (if created_by is set and requester provided)
+      // Require requesting_user for authorship check
       const { requesting_user } = req.body || {};
-      if (note.created_by && requesting_user && !isNoteAuthor(note.created_by, requesting_user)) {
-        return res.status(403).json({ error: 'Only the note author can delete this note' });
+      if (!requesting_user) {
+        return res.status(400).json({ error: 'requesting_user is required' });
+      }
+
+      // Only the note author or an admin can delete
+      if (!isAdmin(requesting_user) && note.created_by && !isNoteAuthor(note.created_by, requesting_user)) {
+        return res.status(403).json({ error: 'Only the note author or an admin can delete this note' });
       }
 
       const { error } = await supabase

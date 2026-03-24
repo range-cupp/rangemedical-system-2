@@ -208,6 +208,23 @@ export default async function handler(req, res) {
       }
     }
 
+    // Retrieve card details from Stripe PaymentIntent
+    let cardBrand = null;
+    let cardLast4 = null;
+    if (stripe_payment_intent_id) {
+      try {
+        const pi = await stripe.paymentIntents.retrieve(stripe_payment_intent_id, {
+          expand: ['payment_method'],
+        });
+        if (pi.payment_method?.card) {
+          cardBrand = pi.payment_method.card.brand;
+          cardLast4 = pi.payment_method.card.last4;
+        }
+      } catch (err) {
+        console.error('Failed to retrieve card details for purchase:', err.message);
+      }
+    }
+
     const insertData = {
       patient_id,
       patient_name: patient?.name || 'Unknown',
@@ -227,6 +244,8 @@ export default async function handler(req, res) {
       shipping: shipping || 0,
       description: receiptName,
       medication: medication,
+      card_brand: cardBrand,
+      card_last4: cardLast4,
     };
 
     // Add discount fields if present

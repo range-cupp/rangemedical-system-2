@@ -33,6 +33,7 @@ export default function PaymentsPage() {
   const [sendingId, setSendingId] = useState(null);
   const [markingPaidId, setMarkingPaidId] = useState(null);
   const [showPayDropdown, setShowPayDropdown] = useState(null);
+  const [markPaidSkipNotification, setMarkPaidSkipNotification] = useState(false);
   const [editingInvoice, setEditingInvoice] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [savingEdit, setSavingEdit] = useState(false);
@@ -498,13 +499,15 @@ export default function PaymentsPage() {
   const handleMarkPaid = async (inv, paymentMethod) => {
     const label = paymentMethod === 'comp' ? 'comp (no charge)' : paymentMethod;
     if (!confirm(`Mark this ${formatCents(inv.total_cents)} invoice for ${inv.patient_name} as paid via ${label}?`)) return;
+    const skipNotif = markPaidSkipNotification;
     setMarkingPaidId(inv.id);
     setShowPayDropdown(null);
+    setMarkPaidSkipNotification(false);
     try {
       const res = await fetch(`/api/invoices/${inv.id}/mark-paid`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ payment_method: paymentMethod, notes: `Paid via ${label}` }),
+        body: JSON.stringify({ payment_method: paymentMethod, notes: `Paid via ${label}`, skip_notification: skipNotif }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -1094,6 +1097,18 @@ export default function PaymentsPage() {
                                       <div style={styles.payDropdownItem} onClick={() => handleMarkPaid(inv, 'cash')}>Cash</div>
                                       <div style={styles.payDropdownItem} onClick={() => handleMarkPaid(inv, 'card')}>Card (over phone)</div>
                                       <div style={styles.payDropdownItem} onClick={() => handleMarkPaid(inv, 'other')}>Other</div>
+                                      <label
+                                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '12px', color: '#64748b', cursor: 'pointer', borderTop: '1px solid #e2e8f0' }}
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={markPaidSkipNotification}
+                                          onChange={(e) => setMarkPaidSkipNotification(e.target.checked)}
+                                          style={{ width: '14px', height: '14px', cursor: 'pointer' }}
+                                        />
+                                        Skip receipt
+                                      </label>
                                     </div>
                                   )}
                                 </div>
@@ -1273,9 +1288,10 @@ export default function PaymentsPage() {
                 <table style={styles.table}>
                   <thead>
                     <tr>
-                      <th style={styles.th}>Description</th>
+                      <th style={styles.th}>Product / Service</th>
                       <th style={styles.th}>Patient</th>
                       <th style={styles.th}>Amount</th>
+                      <th style={styles.th}>Card</th>
                       <th style={styles.th}>Date</th>
                     </tr>
                   </thead>
@@ -1283,7 +1299,7 @@ export default function PaymentsPage() {
                     {recentPurchases.map(p => (
                       <tr key={p.id} style={styles.tr}>
                         <td style={styles.td}>
-                          <span style={{ fontWeight: '500' }}>{p.description || 'Charge'}</span>
+                          <span style={{ fontWeight: '500' }}>{p.item_name || p.description || 'Charge'}</span>
                         </td>
                         <td style={styles.td}>
                           {p.patient_name || '—'}
@@ -1296,6 +1312,15 @@ export default function PaymentsPage() {
                             <span style={{ fontSize: '11px', color: '#888', marginLeft: '6px' }}>
                               ({p.discount_type === 'percent' ? `${p.discount_amount}% off` : `$${p.discount_amount} off`})
                             </span>
+                          )}
+                        </td>
+                        <td style={styles.td}>
+                          {p.card_last4 ? (
+                            <span style={{ color: '#555', fontSize: '13px' }}>
+                              {p.card_brand ? p.card_brand.charAt(0).toUpperCase() + p.card_brand.slice(1) : ''} ····{p.card_last4}
+                            </span>
+                          ) : (
+                            <span style={{ color: '#bbb', fontSize: '13px' }}>—</span>
                           )}
                         </td>
                         <td style={styles.td}>

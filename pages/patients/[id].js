@@ -288,6 +288,14 @@ export default function PatientProfile() {
   const [assessments, setAssessments] = useState([]);
   const [patientTasks, setPatientTasks] = useState([]);
   const [expandedTaskId, setExpandedTaskId] = useState(null);
+  const [showCreateTask, setShowCreateTask] = useState(false);
+  const [creatingTask, setCreatingTask] = useState(false);
+  const [taskEmployees, setTaskEmployees] = useState([]);
+  const [taskForm, setTaskForm] = useState({ title: '', description: '', assigned_to: '', priority: 'medium', due_date: '' });
+  const [taskListening, setTaskListening] = useState(false);
+  const [taskDictationTarget, setTaskDictationTarget] = useState('title');
+  const [taskFormatting, setTaskFormatting] = useState(false);
+  const taskRecognitionRef = useRef(null);
   const [sessions, setSessions] = useState([]);
   const [symptomResponses, setSymptomResponses] = useState([]);
   const [questionnaireResponses, setQuestionnaireResponses] = useState([]);
@@ -1161,6 +1169,95 @@ export default function PatientProfile() {
       opts.year = 'numeric';
     }
     return date.toLocaleDateString('en-US', opts);
+  };
+
+  // --- Task creation helpers ---
+  const fetchTaskEmployees = async () => {
+    try {
+      const res = await fetch('/api/admin/employees?basic=true', {
+        headers: { Authorization: `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
+      });
+      const data = await res.json();
+      setTaskEmployees(Array.isArray(data.employees) ? data.employees : Array.isArray(data) ? data : []);
+    } catch {}
+  };
+
+  const handleCreateTask = async (e) => {
+    e.preventDefault();
+    if (!taskForm.title.trim() || !taskForm.assigned_to) return;
+    setCreatingTask(true);
+    try {
+      const res = await fetch('/api/admin/tasks', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: taskForm.title.trim(),
+          description: taskForm.description?.trim() || null,
+          assigned_to: taskForm.assigned_to,
+          patient_id: id,
+          patient_name: patient ? `${patient.first_name} ${patient.last_name}` : null,
+          priority: taskForm.priority,
+          due_date: taskForm.due_date || null,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setShowCreateTask(false);
+        setTaskForm({ title: '', description: '', assigned_to: '', priority: 'medium', due_date: '' });
+        fetchPatient();
+      }
+    } catch {}
+    setCreatingTask(false);
+  };
+
+  const startTaskListening = (target = 'title') => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) { alert('Speech recognition not supported in this browser'); return; }
+    stopTaskListening();
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    const startText = taskForm[target] || '';
+    recognition.onresult = (event) => {
+      let transcript = '';
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      setTaskForm(prev => ({ ...prev, [target]: startText ? startText + ' ' + transcript : transcript }));
+    };
+    recognition.onerror = () => { setTaskListening(false); };
+    recognition.onend = () => { setTaskListening(false); taskRecognitionRef.current = null; };
+    recognition.start();
+    taskRecognitionRef.current = recognition;
+    setTaskListening(true);
+    setTaskDictationTarget(target);
+  };
+
+  const stopTaskListening = () => {
+    if (taskRecognitionRef.current) {
+      taskRecognitionRef.current.stop();
+      taskRecognitionRef.current = null;
+    }
+    setTaskListening(false);
+  };
+
+  const handleTaskFormat = async () => {
+    const raw = (taskForm.title + ' ' + (taskForm.description || '')).trim();
+    if (!raw) return;
+    setTaskFormatting(true);
+    try {
+      const res = await fetch('/api/tasks/format', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ raw_text: raw }),
+      });
+      const data = await res.json();
+      if (data.formatted) {
+        setTaskForm(prev => ({ ...prev, title: data.formatted, description: '' }));
+      }
+    } catch {}
+    setTaskFormatting(false);
   };
 
   // Get session dates for a protocol from service logs
@@ -5910,8 +6007,19 @@ export default function PatientProfile() {
           {activeTab === 'tasks' && (
             <>
               <section className="card">
-                <div className="card-header">
+                <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3>Tasks ({patientTasks.length})</h3>
+                  <button
+                    onClick={() => { setShowCreateTask(true); if (taskEmployees.length === 0) fetchTaskEmployees(); }}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '6px',
+                      padding: '6px 14px', fontSize: '13px', fontWeight: 600,
+                      color: '#fff', background: '#111', border: 'none', borderRadius: '8px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    + Add Task
+                  </button>
                 </div>
                 {patientTasks.length === 0 ? (
                   <div className="empty">No tasks linked to this patient</div>
@@ -6019,6 +6127,242 @@ export default function PatientProfile() {
                   </div>
                 )}
               </section>
+
+              {/* Create Task Modal */}
+              {showCreateTask && (
+                <div style={{
+                  position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                  background: 'rgba(0,0,0,0.5)', zIndex: 1000,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }} onClick={() => { setShowCreateTask(false); stopTaskListening(); }}>
+                  <div style={{
+                    background: '#fff', borderRadius: '12px', width: '100%', maxWidth: '520px',
+                    maxHeight: '90vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+                  }} onClick={e => e.stopPropagation()}>
+                    <div style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '16px 20px', borderBottom: '1px solid #e5e7eb',
+                    }}>
+                      <h2 style={{ fontSize: '16px', fontWeight: 700, margin: 0 }}>New Task</h2>
+                      <button onClick={() => { setShowCreateTask(false); stopTaskListening(); }} style={{
+                        background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#999',
+                      }}>&#10005;</button>
+                    </div>
+                    <form onSubmit={handleCreateTask}>
+                      <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                        {/* Title with Voice + AI Format */}
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px', display: 'block' }}>Task</label>
+                            <div style={{ display: 'flex', gap: '6px', marginBottom: '6px' }}>
+                              <button
+                                type="button"
+                                onClick={() => taskListening && taskDictationTarget === 'title' ? stopTaskListening() : startTaskListening('title')}
+                                style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: '5px',
+                                  padding: '4px 10px', fontSize: '12px', fontWeight: 600,
+                                  color: taskListening && taskDictationTarget === 'title' ? '#fff' : '#dc2626',
+                                  background: taskListening && taskDictationTarget === 'title' ? '#dc2626' : '#fef2f2',
+                                  border: '1px solid', borderColor: taskListening && taskDictationTarget === 'title' ? '#dc2626' : '#fecaca',
+                                  borderRadius: '6px', cursor: 'pointer',
+                                  animation: taskListening && taskDictationTarget === 'title' ? 'pulse 1.5s infinite' : 'none',
+                                }}
+                              >
+                                {taskListening && taskDictationTarget === 'title' ? '⏹ Stop' : '🎙 Dictate'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleTaskFormat}
+                                disabled={taskFormatting || (!taskForm.title.trim() && !taskForm.description.trim())}
+                                style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: '5px',
+                                  padding: '4px 10px', fontSize: '12px', fontWeight: 600,
+                                  color: taskFormatting ? '#9ca3af' : '#7c3aed',
+                                  background: taskFormatting ? '#f3f4f6' : '#f5f3ff',
+                                  border: '1px solid', borderColor: taskFormatting ? '#e5e7eb' : '#ddd6fe',
+                                  borderRadius: '6px',
+                                  cursor: taskFormatting || (!taskForm.title.trim() && !taskForm.description.trim()) ? 'not-allowed' : 'pointer',
+                                  opacity: (!taskForm.title.trim() && !taskForm.description.trim()) ? 0.5 : 1,
+                                }}
+                              >
+                                ✨ {taskFormatting ? 'Formatting...' : 'AI Format'}
+                              </button>
+                            </div>
+                          </div>
+                          {taskListening && taskDictationTarget === 'title' && (
+                            <div style={{
+                              display: 'flex', alignItems: 'center', gap: '8px',
+                              padding: '6px 10px', marginBottom: '6px',
+                              background: '#fef2f2', borderRadius: '6px',
+                              fontSize: '12px', color: '#dc2626', fontWeight: 500,
+                            }}>
+                              <span style={{
+                                width: '8px', height: '8px', borderRadius: '50%',
+                                background: '#dc2626', animation: 'pulse 1s infinite',
+                              }} />
+                              Listening... speak now
+                            </div>
+                          )}
+                          <input
+                            type="text"
+                            value={taskForm.title}
+                            onChange={e => setTaskForm(prev => ({ ...prev, title: e.target.value }))}
+                            placeholder="Type or tap Dictate to speak your task..."
+                            style={{
+                              width: '100%', padding: '10px 12px', fontSize: '14px',
+                              border: '1px solid #d1d5db', borderRadius: '8px', outline: 'none',
+                              boxSizing: 'border-box',
+                              ...(taskListening && taskDictationTarget === 'title' ? { borderColor: '#dc2626', boxShadow: '0 0 0 2px rgba(220,38,38,0.1)' } : {}),
+                            }}
+                            autoFocus
+                            required
+                          />
+                        </div>
+
+                        {/* Description with Voice */}
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px', display: 'block' }}>Details (optional)</label>
+                            <button
+                              type="button"
+                              onClick={() => taskListening && taskDictationTarget === 'description' ? stopTaskListening() : startTaskListening('description')}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '5px',
+                                padding: '3px 8px', fontSize: '11px', fontWeight: 600,
+                                color: taskListening && taskDictationTarget === 'description' ? '#fff' : '#dc2626',
+                                background: taskListening && taskDictationTarget === 'description' ? '#dc2626' : '#fef2f2',
+                                border: '1px solid', borderColor: taskListening && taskDictationTarget === 'description' ? '#dc2626' : '#fecaca',
+                                borderRadius: '5px', cursor: 'pointer', marginBottom: '6px',
+                              }}
+                            >
+                              {taskListening && taskDictationTarget === 'description' ? '⏹ Stop' : '🎙 Dictate'}
+                            </button>
+                          </div>
+                          {taskListening && taskDictationTarget === 'description' && (
+                            <div style={{
+                              display: 'flex', alignItems: 'center', gap: '8px',
+                              padding: '6px 10px', marginBottom: '6px',
+                              background: '#fef2f2', borderRadius: '6px',
+                              fontSize: '12px', color: '#dc2626', fontWeight: 500,
+                            }}>
+                              <span style={{
+                                width: '8px', height: '8px', borderRadius: '50%',
+                                background: '#dc2626', animation: 'pulse 1s infinite',
+                              }} />
+                              Listening... speak now
+                            </div>
+                          )}
+                          <textarea
+                            value={taskForm.description}
+                            onChange={e => setTaskForm(prev => ({ ...prev, description: e.target.value }))}
+                            placeholder="Additional details..."
+                            style={{
+                              width: '100%', padding: '10px 12px', fontSize: '14px',
+                              border: '1px solid #d1d5db', borderRadius: '8px', outline: 'none',
+                              resize: 'vertical', fontFamily: 'inherit', lineHeight: '1.5',
+                              minHeight: '80px', boxSizing: 'border-box',
+                              ...(taskListening && taskDictationTarget === 'description' ? { borderColor: '#dc2626', boxShadow: '0 0 0 2px rgba(220,38,38,0.1)' } : {}),
+                            }}
+                          />
+                        </div>
+
+                        {/* Assign to */}
+                        <div>
+                          <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px', display: 'block' }}>Assign to</label>
+                          <select
+                            value={taskForm.assigned_to}
+                            onChange={e => setTaskForm(prev => ({ ...prev, assigned_to: e.target.value }))}
+                            style={{
+                              width: '100%', padding: '10px 12px', fontSize: '14px',
+                              border: '1px solid #d1d5db', borderRadius: '8px', outline: 'none',
+                              boxSizing: 'border-box', background: '#fff',
+                            }}
+                            required
+                          >
+                            <option value="">Select team member...</option>
+                            {taskEmployees
+                              .filter(e => e.is_active !== false)
+                              .map(e => (
+                                <option key={e.id} value={e.id}>
+                                  {e.name}{e.id === employee?.id ? ' (Me)' : ''}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+
+                        {/* Priority + Due Date row */}
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                          <div style={{ flex: 1 }}>
+                            <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px', display: 'block' }}>Priority</label>
+                            <select
+                              value={taskForm.priority}
+                              onChange={e => setTaskForm(prev => ({ ...prev, priority: e.target.value }))}
+                              style={{
+                                width: '100%', padding: '10px 12px', fontSize: '14px',
+                                border: '1px solid #d1d5db', borderRadius: '8px', outline: 'none',
+                                boxSizing: 'border-box', background: '#fff',
+                              }}
+                            >
+                              <option value="low">Low</option>
+                              <option value="medium">Medium</option>
+                              <option value="high">High</option>
+                              <option value="urgent">Urgent</option>
+                            </select>
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px', display: 'block' }}>Due Date (optional)</label>
+                            <input
+                              type="date"
+                              value={taskForm.due_date}
+                              onChange={e => setTaskForm(prev => ({ ...prev, due_date: e.target.value }))}
+                              style={{
+                                width: '100%', padding: '10px 12px', fontSize: '14px',
+                                border: '1px solid #d1d5db', borderRadius: '8px', outline: 'none',
+                                boxSizing: 'border-box',
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Patient pre-linked */}
+                        <div>
+                          <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px', display: 'block' }}>Linked Patient</label>
+                          <div style={{
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            padding: '8px 12px', background: '#f0f9ff', borderRadius: '8px',
+                            border: '1px solid #bae6fd',
+                          }}>
+                            <span style={{ flex: 1, fontSize: '13px', fontWeight: 600 }}>
+                              {patient ? `${patient.first_name} ${patient.last_name}` : 'This patient'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{
+                        display: 'flex', justifyContent: 'flex-end', gap: '10px',
+                        padding: '14px 20px', borderTop: '1px solid #e5e7eb',
+                      }}>
+                        <button type="button" onClick={() => { setShowCreateTask(false); stopTaskListening(); }} style={{
+                          padding: '8px 16px', fontSize: '13px', fontWeight: 600,
+                          color: '#374151', background: '#fff', border: '1px solid #d1d5db',
+                          borderRadius: '8px', cursor: 'pointer',
+                        }}>
+                          Cancel
+                        </button>
+                        <button type="submit" disabled={creatingTask} style={{
+                          padding: '8px 16px', fontSize: '13px', fontWeight: 600,
+                          color: '#fff', background: '#111', border: 'none', borderRadius: '8px',
+                          cursor: creatingTask ? 'not-allowed' : 'pointer',
+                          opacity: creatingTask ? 0.6 : 1,
+                        }}>
+                          {creatingTask ? 'Creating...' : 'Create Task'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
             </>
           )}
 
@@ -6570,11 +6914,20 @@ export default function PatientProfile() {
                     <div className="pay-empty">No purchases found</div>
                   ) : (
                     <div className="pay-list">
-                      {allPurchases.map(purchase => (
-                        <div key={purchase.id} className="pay-item" style={{ cursor: 'pointer' }} onClick={() => openEditPurchase(purchase)}>
+                      {allPurchases.map(purchase => {
+                        const isStripePayment = !!purchase.stripe_payment_intent_id;
+                        return (
+                        <div key={purchase.id} className="pay-item" style={{ cursor: isStripePayment ? 'default' : 'pointer' }} onClick={() => !isStripePayment && openEditPurchase(purchase)}>
                           <div className="pay-item-info">
-                            <div className="pay-item-title">{purchase.description || purchase.product_name || purchase.item_name || 'Purchase'}</div>
-                            <div className="pay-item-sub">{formatDate(purchase.purchased_at || purchase.purchase_date || purchase.created_at)}</div>
+                            <div className="pay-item-title">{purchase.item_name || purchase.description || purchase.product_name || 'Purchase'}</div>
+                            <div className="pay-item-sub">
+                              {formatDate(purchase.purchased_at || purchase.purchase_date || purchase.created_at)}
+                              {purchase.card_last4 && (
+                                <span style={{ marginLeft: 8, color: '#888' }}>
+                                  {purchase.card_brand ? purchase.card_brand.charAt(0).toUpperCase() + purchase.card_brand.slice(1) : ''} ····{purchase.card_last4}
+                                </span>
+                              )}
+                            </div>
                           </div>
                           <div className="pay-item-amount">${(purchase.amount_paid || purchase.amount || 0).toFixed(2)}</div>
                           <div style={{ display: 'flex', gap: 4 }}>
@@ -6593,7 +6946,8 @@ export default function PatientProfile() {
                             </span>
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>

@@ -325,32 +325,28 @@ export default function EnergyCheckPage() {
 
           /* Hero */
           .ec-hero {
-            padding: 80px 20px 40px;
-            text-align: center;
+            padding: 6rem 2rem 2rem;
+            text-align: left;
             max-width: 680px;
             margin: 0 auto;
           }
-          .ec-hero-badge {
-            display: inline-block;
-            background: #F0FDF4;
-            color: #16A34A;
-            font-size: 13px;
-            font-weight: 600;
-            padding: 6px 14px;
-            border-radius: 20px;
-            margin-bottom: 20px;
-            letter-spacing: 0.02em;
-          }
           .ec-hero h1 {
             font-size: 40px;
-            font-weight: 700;
-            line-height: 1.15;
-            margin: 0 0 16px;
+            font-weight: 900;
+            line-height: 0.95;
+            margin: 0 0 20px;
             letter-spacing: -0.02em;
+            text-transform: uppercase;
+          }
+          .ec-hero-rule {
+            width: 100%;
+            height: 1px;
+            background: #e0e0e0;
+            margin-bottom: 20px;
           }
           .ec-hero p {
             font-size: 18px;
-            color: #525252;
+            color: #737373;
             line-height: 1.6;
             margin: 0;
           }
@@ -359,12 +355,11 @@ export default function EnergyCheckPage() {
           .ec-form-section {
             max-width: 480px;
             margin: 0 auto;
-            padding: 40px 20px 80px;
+            padding: 40px 2rem 6rem;
           }
           .ec-form-card {
             background: #fafafa;
-            border: 1px solid #e5e5e5;
-            border-radius: 16px;
+            border: 1px solid #e0e0e0;
             padding: 36px 28px;
           }
           .ec-form-card h3 {
@@ -384,7 +379,7 @@ export default function EnergyCheckPage() {
             display: block;
             font-size: 13px;
             font-weight: 600;
-            color: #525252;
+            color: #737373;
             margin-bottom: 6px;
           }
           .ec-field input[type="text"],
@@ -392,8 +387,7 @@ export default function EnergyCheckPage() {
           .ec-field input[type="tel"] {
             width: 100%;
             padding: 12px 14px;
-            border: 1px solid #d4d4d4;
-            border-radius: 8px;
+            border: 1px solid #e0e0e0;
             font-size: 15px;
             font-family: inherit;
             background: #fff;
@@ -421,7 +415,7 @@ export default function EnergyCheckPage() {
           }
           .ec-consent label {
             font-size: 13px;
-            color: #525252;
+            color: #737373;
             line-height: 1.5;
           }
 
@@ -429,12 +423,13 @@ export default function EnergyCheckPage() {
           .ec-btn {
             width: 100%;
             padding: 16px;
-            background: #171717;
+            background: #1a1a1a;
             color: #fff;
             border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
             cursor: pointer;
             transition: background 0.2s;
             font-family: inherit;
@@ -450,11 +445,12 @@ export default function EnergyCheckPage() {
             width: 100%;
             padding: 16px;
             background: #fff;
-            color: #171717;
-            border: 2px solid #171717;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
+            color: #1a1a1a;
+            border: 2px solid #1a1a1a;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
             cursor: pointer;
             transition: all 0.2s;
             font-family: inherit;
@@ -466,7 +462,6 @@ export default function EnergyCheckPage() {
             background: #FEF2F2;
             color: #DC2626;
             padding: 12px 16px;
-            border-radius: 8px;
             font-size: 14px;
             margin-bottom: 16px;
           }
@@ -475,20 +470,18 @@ export default function EnergyCheckPage() {
           .ec-quiz-section {
             max-width: 560px;
             margin: 0 auto;
-            padding: 40px 20px 80px;
+            padding: 40px 2rem 6rem;
           }
           .ec-progress-bar {
             width: 100%;
             height: 6px;
-            background: #e5e5e5;
-            border-radius: 3px;
+            background: #e0e0e0;
             margin-bottom: 8px;
             overflow: hidden;
           }
           .ec-progress-fill {
             height: 100%;
-            background: #171717;
-            border-radius: 3px;
+            background: #c4a882;
             transition: width 0.4s ease;
           }
           .ec-progress-text {
@@ -498,8 +491,7 @@ export default function EnergyCheckPage() {
           }
           .ec-question-card {
             background: #fff;
-            border: 1px solid #e5e5e5;
-            border-radius: 16px;
+            border: 1px solid #e0e0e0;
             padding: 36px 28px;
           }
           .ec-question-card h2 {
@@ -512,8 +504,7 @@ export default function EnergyCheckPage() {
             display: block;
             width: 100%;
             padding: 16px 18px;
-            border: 2px solid #e5e5e5;
-            border-radius: 10px;
+            border: 1px solid #e0e0e0;
             background: #fff;
             font-size: 15px;
             font-weight: 500;
@@ -529,7 +520,7 @@ export default function EnergyCheckPage() {
             background: #fafafa;
           }
           .ec-option.selected {
-            border-color: #171717;
+            border-color: #1a1a1a;
             background: #f5f5f5;
           }
 
@@ -548,8 +539,7 @@ export default function EnergyCheckPage() {
             width: 100%;
             -webkit-appearance: none;
             height: 8px;
-            border-radius: 4px;
-            background: #e5e5e5;
+            background: #e0e0e0;
             outline: none;
           }
           .ec-slider-input::-webkit-slider-thumb {
@@ -557,16 +547,16 @@ export default function EnergyCheckPage() {
             width: 28px;
             height: 28px;
             border-radius: 50%;
-            background: #171717;
+            background: #1a1a1a;
             cursor: pointer;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
           }
           .ec-slider-value {
             text-align: center;
             font-size: 48px;
-            font-weight: 700;
+            font-weight: 900;
             margin: 20px 0;
             line-height: 1;
+            color: #c4a882;
           }
           .ec-slider-confirm {
             margin-top: 8px;
@@ -576,40 +566,42 @@ export default function EnergyCheckPage() {
           .ec-results-section {
             max-width: 600px;
             margin: 0 auto;
-            padding: 40px 20px 80px;
+            padding: 6rem 2rem;
           }
           .ec-score-card {
-            border-radius: 16px;
             padding: 36px 28px;
             text-align: center;
             margin-bottom: 32px;
           }
           .ec-score-badge {
             display: inline-block;
-            font-size: 13px;
+            font-size: 11px;
             font-weight: 700;
             padding: 6px 16px;
-            border-radius: 20px;
-            letter-spacing: 0.08em;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
             margin-bottom: 16px;
           }
           .ec-score-card h2 {
             font-size: 28px;
-            font-weight: 700;
+            font-weight: 900;
             margin: 0 0 12px;
-            line-height: 1.2;
+            line-height: 0.95;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
           }
           .ec-score-card p {
             font-size: 16px;
-            color: #525252;
+            color: #737373;
             line-height: 1.6;
             margin: 0;
           }
           .ec-score-number {
             font-size: 64px;
-            font-weight: 700;
+            font-weight: 900;
             line-height: 1;
             margin-bottom: 8px;
+            color: #c4a882;
           }
           .ec-score-label {
             font-size: 14px;
@@ -631,33 +623,24 @@ export default function EnergyCheckPage() {
             gap: 12px;
             padding: 16px;
             background: #fafafa;
-            border: 1px solid #e5e5e5;
-            border-radius: 10px;
+            border: 1px solid #e0e0e0;
             margin-bottom: 10px;
             font-size: 14px;
             line-height: 1.6;
-            color: #404040;
+            color: #737373;
           }
-          .ec-tip-icon {
+          .ec-tip-number {
             flex-shrink: 0;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: #171717;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: 700;
+            font-size: 14px;
+            font-weight: 900;
+            color: #c4a882;
             margin-top: 2px;
           }
 
           /* Pivot */
           .ec-pivot {
             background: #fafafa;
-            border: 1px solid #e5e5e5;
-            border-radius: 16px;
+            border: 1px solid #e0e0e0;
             padding: 32px 28px;
             margin-bottom: 24px;
           }
@@ -668,7 +651,7 @@ export default function EnergyCheckPage() {
           }
           .ec-pivot p {
             font-size: 15px;
-            color: #525252;
+            color: #737373;
             line-height: 1.7;
             margin: 0 0 24px;
           }
@@ -682,12 +665,7 @@ export default function EnergyCheckPage() {
             text-align: center;
             padding: 16px 8px;
             background: #fff;
-            border: 1px solid #e5e5e5;
-            border-radius: 10px;
-          }
-          .ec-pivot-feature-icon {
-            font-size: 24px;
-            margin-bottom: 8px;
+            border: 1px solid #e0e0e0;
           }
           .ec-pivot-feature-text {
             font-size: 13px;
@@ -710,7 +688,7 @@ export default function EnergyCheckPage() {
 
           /* Responsive */
           @media (max-width: 640px) {
-            .ec-hero { padding: 60px 20px 32px; }
+            .ec-hero { padding: 4rem 2rem 2rem; }
             .ec-hero h1 { font-size: 32px; }
             .ec-hero p { font-size: 16px; }
             .ec-form-card { padding: 28px 20px; }
@@ -721,7 +699,7 @@ export default function EnergyCheckPage() {
             .ec-score-number { font-size: 48px; }
             .ec-pivot { padding: 24px 20px; }
             .ec-pivot-features { grid-template-columns: 1fr; gap: 8px; }
-            .ec-results-section { padding: 24px 20px 60px; }
+            .ec-results-section { padding: 4rem 2rem; }
           }
         `}</style>
       </Head>
@@ -731,8 +709,9 @@ export default function EnergyCheckPage() {
         {step === 'landing' && (
           <div className="ec-fade-in">
             <div className="ec-hero">
-              <div className="ec-hero-badge">Free — Takes 3 Minutes</div>
+              <div className="v2-label"><span className="v2-dot" /> FREE — TAKES 3 MINUTES</div>
               <h1>Energy & Recovery Check</h1>
+              <div className="ec-hero-rule" />
               <p>Find out why you feel tired, foggy, or slow to recover — and what to do about it in the next 30 days.</p>
             </div>
 
@@ -886,7 +865,7 @@ export default function EnergyCheckPage() {
                 <div className="ec-score-badge" style={{ background: severityInfo.color, color: '#fff' }}>
                   {severityInfo.label} CONCERN
                 </div>
-                <div className="ec-score-number" style={{ color: severityInfo.color }}>
+                <div className="ec-score-number">
                   {score}
                 </div>
                 <div className="ec-score-label">out of 24 points</div>
@@ -897,10 +876,10 @@ export default function EnergyCheckPage() {
               {/* Tips */}
               {tips.length > 0 && (
                 <div className="ec-tips">
-                  <h3>Based on your answers:</h3>
+                  <div className="v2-label"><span className="v2-dot" /> BASED ON YOUR ANSWERS</div>
                   {tips.map((tip, i) => (
                     <div key={i} className="ec-tip">
-                      <div className="ec-tip-icon">{i + 1}</div>
+                      <div className="ec-tip-number">{i + 1}</div>
                       <div>{tip}</div>
                     </div>
                   ))}
@@ -917,15 +896,12 @@ export default function EnergyCheckPage() {
 
                 <div className="ec-pivot-features">
                   <div className="ec-pivot-feature">
-                    <div className="ec-pivot-feature-icon">🧪</div>
                     <div className="ec-pivot-feature-text">Comprehensive<br/>Lab Panel</div>
                   </div>
                   <div className="ec-pivot-feature">
-                    <div className="ec-pivot-feature-icon">👨‍⚕️</div>
                     <div className="ec-pivot-feature-text">1-on-1 Provider<br/>Review</div>
                   </div>
                   <div className="ec-pivot-feature">
-                    <div className="ec-pivot-feature-icon">📋</div>
                     <div className="ec-pivot-feature-text">Written<br/>Action Plan</div>
                   </div>
                 </div>

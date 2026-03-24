@@ -33,6 +33,11 @@ export default function StartThankYou() {
   const { path, name } = router.query;
   const config = PATH_CONFIG[path];
 
+  // Hooks must be called before any early returns
+  const [bioTab, setBioTab] = useState('men');
+  const [expandedMarker, setExpandedMarker] = useState(null);
+  const [openFaq, setOpenFaq] = useState(null);
+
   // Invalid path
   if (router.isReady && !config) {
     return (
@@ -60,10 +65,6 @@ export default function StartThankYou() {
 
   const firstName = name || 'there';
   const isInjury = path === 'injury';
-
-  // Biomarker chart state
-  const [bioTab, setBioTab] = useState('men');
-  const [expandedMarker, setExpandedMarker] = useState(null);
 
   const biomarkerInfo = {
     "Complete Metabolic Panel (CMP)": "Evaluates kidney and liver function, blood sugar, and electrolyte balance. Helps detect diabetes, kidney disease, and liver problems early.",
@@ -119,48 +120,56 @@ export default function StartThankYou() {
       <Head>
         <style>{`
           .ty-page { color: #171717; }
+
+          /* ── HERO ── */
           .ty-hero {
             max-width: 680px;
             margin: 0 auto;
-            padding: 80px 20px 60px;
-            text-align: center;
+            padding: 6rem 2rem 4rem;
+            text-align: left;
           }
           .ty-badge {
             display: inline-block;
-            font-size: 12px;
-            font-weight: 600;
+            font-size: 11px;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.06em;
+            letter-spacing: 0.12em;
             padding: 6px 14px;
-            border-radius: 6px;
+            border: 1px solid #e0e0e0;
             margin-bottom: 20px;
           }
           .ty-hero h1 {
-            font-size: 36px;
-            font-weight: 700;
-            line-height: 1.2;
-            margin: 0 0 8px;
+            font-size: 42px;
+            font-weight: 900;
+            line-height: 0.95;
+            margin: 0 0 0;
             letter-spacing: -0.02em;
+            text-transform: uppercase;
           }
           .ty-hero .ty-greeting {
             font-size: 18px;
             color: #737373;
             margin: 0 0 32px;
           }
+          .ty-hero-rule {
+            width: 100%;
+            height: 1px;
+            background: #e0e0e0;
+            margin: 20px 0;
+          }
           .ty-hero p.ty-desc {
             font-size: 16px;
-            color: #525252;
+            color: #737373;
             line-height: 1.6;
             margin: 0 0 40px;
           }
 
-          /* Video */
+          /* ── VIDEO ── */
           .ty-video-wrap {
-            max-width: 600px;
+            max-width: 680px;
             margin: 0 auto 48px;
-            border-radius: 12px;
             overflow: hidden;
-            background: #000;
+            background: #1a1a1a;
             aspect-ratio: 16/9;
             position: relative;
           }
@@ -171,7 +180,6 @@ export default function StartThankYou() {
           .ty-video-placeholder .play-icon {
             width: 64px;
             height: 64px;
-            border-radius: 50%;
             background: rgba(255,255,255,0.15);
             display: flex;
             align-items: center;
@@ -188,19 +196,20 @@ export default function StartThankYou() {
             font-size: 14px;
           }
 
-          /* CTA section */
+          /* ── CTA ── */
           .ty-cta-section {
             text-align: center;
-            padding-bottom: 60px;
+            padding: 0 2rem 4rem;
           }
           .ty-cta-btn {
             display: inline-block;
-            background: #171717;
+            background: #1a1a1a;
             color: #fff;
             padding: 16px 40px;
-            border-radius: 10px;
-            font-size: 17px;
-            font-weight: 600;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
             text-decoration: none;
             transition: background 0.2s;
           }
@@ -218,16 +227,28 @@ export default function StartThankYou() {
             text-decoration: none;
           }
 
-          /* Lab panels */
+          /* ── SECTION PATTERN ── */
+          .ty-section {
+            padding: 6rem 2rem;
+          }
+          .ty-section-inner {
+            max-width: 680px;
+            margin: 0 auto;
+          }
+
+          /* ── LAB PANELS ── */
           .ty-panels {
             max-width: 700px;
             margin: 0 auto;
-            padding: 0 20px 60px;
+            padding: 0 2rem 4rem;
           }
           .ty-panels h2 {
             text-align: center;
-            font-size: 24px;
-            font-weight: 700;
+            font-size: 28px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+            line-height: 0.95;
             margin: 0 0 8px;
           }
           .ty-panels > p {
@@ -242,45 +263,45 @@ export default function StartThankYou() {
             gap: 20px;
           }
           .ty-panel-card {
-            border: 2px solid #e5e5e5;
-            border-radius: 16px;
+            border: 1px solid #e0e0e0;
             padding: 32px 24px;
             text-align: center;
             position: relative;
             background: #fff;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            transition: border-color 0.2s;
           }
           .ty-panel-card:hover {
             border-color: #a3a3a3;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
           }
           .ty-panel-card.recommended {
-            border-color: #171717;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border-color: #1a1a1a;
+            border-width: 2px;
           }
           .ty-panel-badge {
             position: absolute;
             top: -12px;
             left: 50%;
             transform: translateX(-50%);
-            background: #171717;
+            background: #1a1a1a;
             color: #fff;
             font-size: 11px;
-            font-weight: 600;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.06em;
+            letter-spacing: 0.12em;
             padding: 4px 14px;
-            border-radius: 20px;
             white-space: nowrap;
           }
           .ty-panel-name {
             font-size: 20px;
-            font-weight: 700;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
             margin: 8px 0 4px;
           }
           .ty-panel-price {
             font-size: 32px;
-            font-weight: 700;
+            font-weight: 900;
+            color: #c4a882;
             margin: 0 0 4px;
           }
           .ty-panel-note {
@@ -290,7 +311,7 @@ export default function StartThankYou() {
           }
           .ty-panel-desc {
             font-size: 14px;
-            color: #525252;
+            color: #737373;
             line-height: 1.6;
             margin: 0 0 20px;
             text-align: left;
@@ -300,34 +321,35 @@ export default function StartThankYou() {
             margin: 0 0 24px;
           }
           .ty-panel-includes h4 {
-            font-size: 12px;
-            font-weight: 600;
+            font-size: 11px;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.12em;
             color: #737373;
             margin: 0 0 8px;
           }
           .ty-panel-includes li {
             font-size: 13px;
-            color: #525252;
+            color: #737373;
             padding: 3px 0;
             list-style: none;
           }
           .ty-panel-includes li::before {
-            content: "\\2713  ";
-            color: #16a34a;
+            content: "\\2013  ";
+            color: #c4a882;
             font-weight: 700;
           }
           .ty-panel-btn {
             display: block;
             width: 100%;
             padding: 14px;
-            background: #171717;
+            background: #1a1a1a;
             color: #fff;
             border: none;
-            border-radius: 10px;
-            font-size: 15px;
-            font-weight: 600;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
             cursor: pointer;
             font-family: inherit;
             text-decoration: none;
@@ -340,54 +362,57 @@ export default function StartThankYou() {
           }
           .ty-panel-btn-outline {
             background: #fff;
-            color: #171717;
-            border: 2px solid #171717;
+            color: #1a1a1a;
+            border: 1px solid #1a1a1a;
           }
           .ty-panel-btn-outline:hover {
             background: #f5f5f5;
-            color: #171717;
+            color: #1a1a1a;
           }
 
-          /* Why labs first */
+          /* ── WHY LABS / INFO CARDS ── */
           .ty-why-labs {
-            max-width: 620px;
+            max-width: 680px;
             margin: 0 auto;
-            padding: 0 20px 48px;
+            padding: 0 2rem 3rem;
           }
           .ty-why-labs-inner {
             background: #fafafa;
-            border: 1px solid #e5e5e5;
-            border-radius: 12px;
+            border: 1px solid #e0e0e0;
             padding: 32px;
           }
           .ty-why-labs h2 {
             font-size: 22px;
-            font-weight: 700;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+            line-height: 0.95;
             margin: 0 0 12px;
           }
           .ty-why-labs p {
             font-size: 15px;
-            color: #525252;
+            color: #737373;
             line-height: 1.7;
             margin: 0 0 12px;
           }
           .ty-why-labs p:last-child { margin-bottom: 0; }
 
-          /* What's included callout */
+          /* ── INCLUDED CALLOUT ── */
           .ty-included-callout {
-            max-width: 620px;
+            max-width: 680px;
             margin: 0 auto;
-            padding: 0 20px 48px;
+            padding: 0 2rem 3rem;
           }
           .ty-included-inner {
-            background: #171717;
-            border-radius: 12px;
+            background: #1a1a1a;
             padding: 32px;
             color: #fff;
           }
           .ty-included-inner h3 {
             font-size: 20px;
-            font-weight: 700;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
             margin: 0 0 24px;
             color: #fff;
           }
@@ -401,10 +426,14 @@ export default function StartThankYou() {
             gap: 16px;
             align-items: flex-start;
           }
-          .ty-included-icon {
-            font-size: 24px;
+          .ty-included-num {
+            font-size: 20px;
+            font-weight: 900;
+            color: #c4a882;
             min-width: 32px;
             text-align: center;
+            line-height: 1;
+            padding-top: 2px;
           }
           .ty-included-item strong {
             display: block;
@@ -419,18 +448,17 @@ export default function StartThankYou() {
             margin: 0;
           }
 
-          /* Panel "who should pick" */
+          /* ── WHO SHOULD PICK ── */
           .ty-panel-who {
             text-align: left;
             margin: 0 0 16px;
             padding: 12px 14px;
             background: #f5f5f5;
-            border-radius: 8px;
           }
           .ty-panel-who h4 {
             font-size: 13px;
             font-weight: 600;
-            color: #525252;
+            color: #737373;
             margin: 0 0 6px;
           }
           .ty-panel-who ul {
@@ -440,19 +468,19 @@ export default function StartThankYou() {
           }
           .ty-panel-who li {
             font-size: 13px;
-            color: #525252;
+            color: #737373;
             padding: 2px 0;
           }
           .ty-panel-who li::before {
-            content: "\\2192  ";
-            color: #a3a3a3;
+            content: "\\2013  ";
+            color: #c4a882;
           }
 
-          /* Both include */
+          /* ── BOTH INCLUDE ── */
           .ty-both-include {
-            max-width: 600px;
+            max-width: 680px;
             margin: 0 auto;
-            padding: 0 20px 20px;
+            padding: 0 2rem 20px;
             text-align: center;
           }
           .ty-both-include p {
@@ -464,21 +492,22 @@ export default function StartThankYou() {
             color: #171717;
           }
 
-          /* What to expect */
+          /* ── STEPS / EXPECT ── */
           .ty-expect {
-            max-width: 600px;
+            max-width: 680px;
             margin: 0 auto;
-            padding: 0 20px 80px;
+            padding: 0 2rem 6rem;
           }
           .ty-expect-card {
             background: #fafafa;
-            border: 1px solid #e5e5e5;
-            border-radius: 12px;
+            border: 1px solid #e0e0e0;
             padding: 32px;
           }
           .ty-expect-card h3 {
             font-size: 18px;
-            font-weight: 700;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
             margin: 0 0 20px;
           }
           .ty-expect-item {
@@ -489,17 +518,12 @@ export default function StartThankYou() {
           }
           .ty-expect-item:last-child { margin-bottom: 0; }
           .ty-expect-num {
-            width: 28px;
-            height: 28px;
             min-width: 28px;
-            border-radius: 50%;
-            background: #171717;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 13px;
-            font-weight: 700;
+            font-size: 20px;
+            font-weight: 900;
+            color: #c4a882;
+            line-height: 1;
+            padding-top: 2px;
           }
           .ty-expect-text h4 {
             font-size: 15px;
@@ -513,16 +537,19 @@ export default function StartThankYou() {
             line-height: 1.5;
           }
 
-          /* Biomarker chart */
+          /* ── BIOMARKER CHART ── */
           .ty-bio-section {
             max-width: 700px;
             margin: 0 auto;
-            padding: 0 20px 48px;
+            padding: 0 2rem 3rem;
           }
           .ty-bio-section h2 {
             text-align: center;
             font-size: 22px;
-            font-weight: 700;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+            line-height: 0.95;
             margin: 0 0 4px;
           }
           .ty-bio-subtitle {
@@ -539,35 +566,37 @@ export default function StartThankYou() {
           }
           .ty-bio-tab {
             padding: 10px 24px;
-            border: 2px solid #e5e5e5;
+            border: 1px solid #e0e0e0;
             background: #fff;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            color: #525252;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #737373;
             cursor: pointer;
             font-family: inherit;
             transition: all 0.2s;
           }
           .ty-bio-tab:hover { border-color: #d4d4d4; }
           .ty-bio-tab.active {
-            background: #171717;
-            border-color: #171717;
+            background: #1a1a1a;
+            border-color: #1a1a1a;
             color: #fff;
           }
           .ty-bio-chart {
             background: #fff;
-            border: 1px solid #e5e5e5;
-            border-radius: 12px;
+            border: 1px solid #e0e0e0;
             overflow: hidden;
           }
           .ty-bio-header {
             display: grid;
             grid-template-columns: 1fr 80px 80px;
             background: #fafafa;
-            border-bottom: 2px solid #e5e5e5;
-            font-weight: 600;
-            font-size: 13px;
+            border-bottom: 1px solid #e0e0e0;
+            font-weight: 700;
+            font-size: 11px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
           }
           .ty-bio-header .ty-bio-name-col {
             padding: 12px 16px;
@@ -576,10 +605,10 @@ export default function StartThankYou() {
           .ty-bio-header .ty-bio-check-col {
             padding: 12px 8px;
             text-align: center;
-            color: #525252;
+            color: #737373;
           }
           .ty-bio-header .ty-bio-elite-col {
-            background: #171717;
+            background: #1a1a1a;
             color: #fff;
           }
           .ty-bio-body {
@@ -628,7 +657,7 @@ export default function StartThankYou() {
           .ty-bio-row-elite .ty-bio-elite-col {
             background: rgba(0,0,0,0.04);
           }
-          .ty-bio-check { color: #22c55e; font-size: 16px; font-weight: 700; }
+          .ty-bio-check { color: #c4a882; font-size: 16px; font-weight: 700; }
           .ty-bio-dash { color: #d4d4d4; font-size: 14px; }
           .ty-bio-desc {
             padding: 12px 16px;
@@ -639,33 +668,129 @@ export default function StartThankYou() {
           .ty-bio-desc p {
             margin: 0;
             font-size: 13px;
-            color: #525252;
+            color: #737373;
+            line-height: 1.6;
+          }
+
+          /* ── TRUST BAR ── */
+          .ty-trust-bar {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+            padding: 3rem 2rem;
+            border-top: 1px solid #e0e0e0;
+            border-bottom: 1px solid #e0e0e0;
+          }
+          .ty-trust-item {
+            font-size: 13px;
+            font-weight: 600;
+            color: #737373;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+          }
+
+          /* ── FIT GRID ── */
+          .ty-fit-section {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 0 2rem 3rem;
+          }
+          .ty-fit-inner {
+            border: 1px solid #e0e0e0;
+            padding: 32px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+          }
+          .ty-fit-col h4 {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            margin: 0 0 10px;
+          }
+          .ty-fit-col ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+          }
+          .ty-fit-col li {
+            font-size: 14px;
+            color: #737373;
+            padding: 3px 0;
+          }
+
+          /* ── FAQ ACCORDION ── */
+          .ty-faq {
+            max-width: 680px;
+            margin: 0 auto;
+            padding: 0 2rem 6rem;
+          }
+          .ty-faq h2 {
+            font-size: 22px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+            line-height: 0.95;
+            margin: 0 0 24px;
+            text-align: center;
+          }
+          .ty-faq-item {
+            border-bottom: 1px solid #e0e0e0;
+          }
+          .ty-faq-item:first-child {
+            border-top: 1px solid #e0e0e0;
+          }
+          .ty-faq-q {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            cursor: pointer;
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+            font-family: inherit;
+            font-size: 15px;
+            font-weight: 600;
+            color: #171717;
+          }
+          .ty-faq-toggle {
+            font-size: 20px;
+            font-weight: 300;
+            color: #737373;
+            min-width: 24px;
+            text-align: center;
+          }
+          .ty-faq-a {
+            padding: 0 0 16px;
+            font-size: 14px;
+            color: #737373;
             line-height: 1.6;
           }
 
           @media (max-width: 768px) {
-            .ty-hero { padding: 60px 20px 40px; }
-            .ty-hero h1 { font-size: 28px; }
+            .ty-hero { padding: 4rem 2rem 2.5rem; }
+            .ty-hero h1 { font-size: 32px; }
             .ty-panels-grid { grid-template-columns: 1fr; }
-            .ty-fit-grid { grid-template-columns: 1fr !important; }
+            .ty-fit-inner { grid-template-columns: 1fr !important; }
             .ty-bio-header { grid-template-columns: 1fr 60px 60px; }
             .ty-bio-row { grid-template-columns: 1fr 60px 60px; }
             .ty-bio-name-col { font-size: 13px; padding: 10px 12px; }
+            .ty-trust-bar { gap: 1rem; }
           }
         `}</style>
       </Head>
 
       <div className="ty-page">
         <section className="ty-hero">
-          <div
-            className="ty-badge"
-            style={{ background: config.bgColor, color: config.color }}
-          >
-            {config.badgeText}
-          </div>
+          <div className="v2-label"><span className="v2-dot" /> {config.badgeText.toUpperCase()}</div>
 
           <p className="ty-greeting">Hey {firstName}, we got your info.</p>
           <h1>{config.headline}</h1>
+          <div className="ty-hero-rule" />
           <p className="ty-desc">{config.description}</p>
 
           <div className="ty-video-wrap">
@@ -684,9 +809,10 @@ export default function StartThankYou() {
         {/* --- INJURY PATH --- */}
         {isInjury && (
           <>
-            {/* What Range does */}
+            {/* How Range fits */}
             <section className="ty-why-labs">
               <div className="ty-why-labs-inner">
+                <div className="v2-label" style={{ marginBottom: 12 }}><span className="v2-dot" /> HOW RANGE FITS IN</div>
                 <h2>How Range fits into your recovery</h2>
                 <p>
                   Most people we see are already working with a chiropractor, physical therapist,
@@ -707,34 +833,34 @@ export default function StartThankYou() {
               </div>
             </section>
 
-            {/* What's in the Recovery Visit — prominent callout */}
+            {/* What's in the Recovery Visit */}
             <section className="ty-included-callout">
               <div className="ty-included-inner">
                 <h3>What happens in your Recovery Visit:</h3>
                 <div className="ty-included-items">
                   <div className="ty-included-item">
-                    <div className="ty-included-icon">🗣️</div>
+                    <div className="ty-included-num">01</div>
                     <div>
                       <strong>We listen to your story</strong>
                       <p>How you got hurt. What makes it better or worse. What treatment you've had so far.</p>
                     </div>
                   </div>
                   <div className="ty-included-item">
-                    <div className="ty-included-icon">🔍</div>
+                    <div className="ty-included-num">02</div>
                     <div>
                       <strong>We look at how you move</strong>
                       <p>A focused exam to see what your body can and can't do right now — so we're not just guessing.</p>
                     </div>
                   </div>
                   <div className="ty-included-item">
-                    <div className="ty-included-icon">📋</div>
+                    <div className="ty-included-num">03</div>
                     <div>
                       <strong>We review your current plan</strong>
                       <p>Whether you're already working with a provider or starting fresh, we look at what you're doing and how we can support it.</p>
                     </div>
                   </div>
                   <div className="ty-included-item">
-                    <div className="ty-included-icon">✍️</div>
+                    <div className="ty-included-num">04</div>
                     <div>
                       <strong>You leave with a written recovery plan</strong>
                       <p>In plain language: what we think is going on, what services at Range might help, and what the next 4–6 weeks should look like.</p>
@@ -751,8 +877,15 @@ export default function StartThankYou() {
               If your provider feels something deeper is slowing healing, they'll explain why labs might make sense.</p>
             </div>
 
+            {/* Trust bar */}
+            <div className="ty-trust-bar">
+              <span className="ty-trust-item">Newport Beach</span>
+              <span className="ty-trust-item">San Clemente</span>
+              <span className="ty-trust-item">Same-week availability</span>
+            </div>
+
             {/* CTA */}
-            <div className="ty-cta-section" style={{ paddingTop: 24 }}>
+            <div className="ty-cta-section" style={{ paddingTop: 48 }}>
               <Link href="/range-assessment?path=injury" className="ty-cta-btn">
                 Book a Recovery Visit
               </Link>
@@ -765,21 +898,21 @@ export default function StartThankYou() {
             </div>
 
             {/* Who this is for */}
-            <section className="ty-why-labs" style={{ paddingTop: 0 }}>
-              <div className="ty-why-labs-inner ty-fit-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
-                <div>
-                  <h4 style={{ fontSize: 14, fontWeight: 700, color: '#16a34a', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>This is right for you if:</h4>
-                  <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                    <li style={{ fontSize: 14, color: '#525252', padding: '3px 0' }}>✓ You're tired of guessing and hoping an injury will just "work itself out"</li>
-                    <li style={{ fontSize: 14, color: '#525252', padding: '3px 0' }}>✓ You're doing rehab but want everything working in the same direction</li>
-                    <li style={{ fontSize: 14, color: '#525252', padding: '3px 0' }}>✓ You want a clear, realistic plan for the next few weeks</li>
+            <section className="ty-fit-section">
+              <div className="ty-fit-inner">
+                <div className="ty-fit-col">
+                  <h4 style={{ color: '#16a34a' }}>This is right for you if:</h4>
+                  <ul>
+                    <li><span style={{ color: '#c4a882', fontWeight: 700 }}>\u2013</span>  You're tired of guessing and hoping an injury will just "work itself out"</li>
+                    <li><span style={{ color: '#c4a882', fontWeight: 700 }}>\u2013</span>  You're doing rehab but want everything working in the same direction</li>
+                    <li><span style={{ color: '#c4a882', fontWeight: 700 }}>\u2013</span>  You want a clear, realistic plan for the next few weeks</li>
                   </ul>
                 </div>
-                <div>
-                  <h4 style={{ fontSize: 14, fontWeight: 700, color: '#dc2626', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Not for you if:</h4>
-                  <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                    <li style={{ fontSize: 14, color: '#525252', padding: '3px 0' }}>✗ You're looking for a quick fix without putting in any work</li>
-                    <li style={{ fontSize: 14, color: '#525252', padding: '3px 0' }}>✗ You're not willing to follow through on a plan</li>
+                <div className="ty-fit-col">
+                  <h4 style={{ color: '#dc2626' }}>Not for you if:</h4>
+                  <ul>
+                    <li><span style={{ color: '#c4a882', fontWeight: 700 }}>\u2013</span>  You're looking for a quick fix without putting in any work</li>
+                    <li><span style={{ color: '#c4a882', fontWeight: 700 }}>\u2013</span>  You're not willing to follow through on a plan</li>
                   </ul>
                 </div>
               </div>
@@ -788,23 +921,24 @@ export default function StartThankYou() {
             {/* Step by step */}
             <section className="ty-expect">
               <div className="ty-expect-card">
+                <div className="v2-label" style={{ marginBottom: 12 }}><span className="v2-dot" /> NEXT STEPS</div>
                 <h3>How it works from here</h3>
                 <div className="ty-expect-item">
-                  <div className="ty-expect-num">1</div>
+                  <div className="ty-expect-num">01</div>
                   <div className="ty-expect-text">
                     <h4>Choose a time that works for you</h4>
                     <p>Click the button above. You'll see available times for Newport Beach or San Clemente.</p>
                   </div>
                 </div>
                 <div className="ty-expect-item">
-                  <div className="ty-expect-num">2</div>
+                  <div className="ty-expect-num">02</div>
                   <div className="ty-expect-text">
                     <h4>Enter your info and confirm</h4>
                     <p>Quick form so we know who you are. We'll text and email you with appointment details and what to bring (like imaging reports or notes from current providers).</p>
                   </div>
                 </div>
                 <div className="ty-expect-item">
-                  <div className="ty-expect-num">3</div>
+                  <div className="ty-expect-num">03</div>
                   <div className="ty-expect-text">
                     <h4>Come in for your Recovery Visit</h4>
                     <p>You meet with your provider, we go through your story, exam, and options — and you leave with a clear recovery plan in writing.</p>
@@ -821,6 +955,7 @@ export default function StartThankYou() {
             {/* Why labs first */}
             <section className="ty-why-labs">
               <div className="ty-why-labs-inner">
+                <div className="v2-label" style={{ marginBottom: 12 }}><span className="v2-dot" /> WHY LABS FIRST</div>
                 <h2>Why we start with labs</h2>
                 <p>
                   Most places either treat only the symptoms or glance at a few basic labs and say
@@ -836,27 +971,27 @@ export default function StartThankYou() {
               </div>
             </section>
 
-            {/* What's included callout — prominent */}
+            {/* What's included callout */}
             <section className="ty-included-callout">
               <div className="ty-included-inner">
                 <h3>Whichever panel you choose, you get:</h3>
                 <div className="ty-included-items">
                   <div className="ty-included-item">
-                    <div className="ty-included-icon">🩸</div>
+                    <div className="ty-included-num">01</div>
                     <div>
                       <strong>Your blood work</strong>
                       <p>Through our lab partners. No surprise bills, no random add-ons.</p>
                     </div>
                   </div>
                   <div className="ty-included-item">
-                    <div className="ty-included-icon">👨‍⚕️</div>
+                    <div className="ty-included-num">02</div>
                     <div>
                       <strong>A 1:1 visit with your provider</strong>
                       <p>Not a rushed appointment. We review your labs together, connect them to your symptoms, and answer every question.</p>
                     </div>
                   </div>
                   <div className="ty-included-item">
-                    <div className="ty-included-icon">📋</div>
+                    <div className="ty-included-num">03</div>
                     <div>
                       <strong>A written plan in plain language</strong>
                       <p>You leave knowing exactly what's going on and what to do about it. Hormones, weight loss, energy, sleep — clear next steps and timelines.</p>
@@ -868,6 +1003,7 @@ export default function StartThankYou() {
 
             {/* Panel selection */}
             <section className="ty-panels">
+              <div className="v2-label" style={{ justifyContent: 'center', marginBottom: 12 }}><span className="v2-dot" /> CHOOSE YOUR PANEL</div>
               <h2>Pick your panel</h2>
               <p>One payment. Labs, provider review, and written plan included.</p>
 
@@ -952,6 +1088,7 @@ export default function StartThankYou() {
 
             {/* Biomarker comparison chart */}
             <section className="ty-bio-section">
+              <div className="v2-label" style={{ justifyContent: 'center', marginBottom: 12 }}><span className="v2-dot" /> BIOMARKER BREAKDOWN</div>
               <h2>What we test — and why</h2>
               <p className="ty-bio-subtitle">Tap any biomarker to see why it matters.</p>
 
@@ -1008,7 +1145,14 @@ export default function StartThankYou() {
               </div>
             </section>
 
-            <div className="ty-cta-section" style={{ paddingTop: 20 }}>
+            {/* Trust bar */}
+            <div className="ty-trust-bar">
+              <span className="ty-trust-item">Labs included</span>
+              <span className="ty-trust-item">1:1 provider review</span>
+              <span className="ty-trust-item">Written plan</span>
+            </div>
+
+            <div className="ty-cta-section" style={{ paddingTop: 48 }}>
               <p className="ty-or">
                 Questions? Call/text <a href="tel:9499973988">(949) 997-3988</a>
               </p>
@@ -1016,23 +1160,24 @@ export default function StartThankYou() {
 
             <section className="ty-expect">
               <div className="ty-expect-card">
+                <div className="v2-label" style={{ marginBottom: 12 }}><span className="v2-dot" /> HOW IT WORKS</div>
                 <h3>How it works</h3>
                 <div className="ty-expect-item">
-                  <div className="ty-expect-num">1</div>
+                  <div className="ty-expect-num">01</div>
                   <div className="ty-expect-text">
                     <h4>Pick your panel and check out</h4>
                     <p>Click Essential or Elite above. Enter your info, pay, and book your blood draw — all in one step.</p>
                   </div>
                 </div>
                 <div className="ty-expect-item">
-                  <div className="ty-expect-num">2</div>
+                  <div className="ty-expect-num">02</div>
                   <div className="ty-expect-text">
                     <h4>Get your blood drawn</h4>
                     <p>We'll text you lab prep instructions and intake forms. Show up, get the draw done. Results in 5-7 business days.</p>
                   </div>
                 </div>
                 <div className="ty-expect-item">
-                  <div className="ty-expect-num">3</div>
+                  <div className="ty-expect-num">03</div>
                   <div className="ty-expect-text">
                     <h4>1:1 review + your plan</h4>
                     <p>Meet with your provider. We review labs together, connect them to how you feel, and give you a clear written plan.</p>

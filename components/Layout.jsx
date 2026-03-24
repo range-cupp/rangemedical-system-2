@@ -186,10 +186,10 @@ export default function Layout({ children, title, description }) {
         }
 
         .rm-header-inner {
-          max-width: 1200px;
+          max-width: 1400px;
           margin: 0 auto;
-          padding: 0 2rem;
-          height: 56px;
+          padding: 0 2.5rem;
+          height: 64px;
           display: flex;
           align-items: center;
           justify-content: space-between;

@@ -832,9 +832,13 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
       if (res.ok) {
         setSelectedAppt(null);
         fetchAppointments();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || 'Failed to delete appointment. Please try again.');
       }
     } catch (err) {
       console.error('Delete appointment error:', err);
+      alert('Failed to delete appointment. Please try again.');
     }
   };
 

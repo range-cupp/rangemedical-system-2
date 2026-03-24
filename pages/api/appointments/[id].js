@@ -41,6 +41,12 @@ export default async function handler(req, res) {
   // ── DELETE: Remove appointment silently (no patient notification) ──
   if (req.method === 'DELETE') {
     try {
+      // Clear any rescheduled_from references pointing to this appointment
+      await supabase
+        .from('appointments')
+        .update({ rescheduled_from: null })
+        .eq('rescheduled_from', id);
+
       // Delete related events first
       await supabase
         .from('appointment_events')

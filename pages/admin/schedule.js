@@ -124,9 +124,13 @@ export default function SchedulePage() {
       const res = await fetch(`/api/appointments/${apptId}`, { method: 'DELETE' });
       if (res.ok) {
         setAppointments(prev => prev.filter(a => a.id !== apptId));
+      } else {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || 'Failed to delete appointment. Please try again.');
       }
     } catch (err) {
       console.error('Delete appointment error:', err);
+      alert('Failed to delete appointment. Please try again.');
     }
   };
 

@@ -62,6 +62,10 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const [clearNote, setClearNote] = useState('');
   const [botPaused, setBotPaused] = useState(false);
   const [togglingBot, setTogglingBot] = useState(false);
+  const [showAutomations, setShowAutomations] = useState(false);
+  const [automations, setAutomations] = useState([]);
+  const [loadingAutomations, setLoadingAutomations] = useState(false);
+  const [togglingAutomation, setTogglingAutomation] = useState(null);
   const nameInputRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const shouldScrollRef = useRef(false);
@@ -314,6 +318,45 @@ export default function ConversationView({ patientId, patientName, patientPhone,
       console.error('Toggle bot error:', err);
     } finally {
       setTogglingBot(false);
+    }
+  };
+
+  const fetchAutomations = async () => {
+    const pid = linkedPatientId || patientId;
+    if (!pid) return;
+    setLoadingAutomations(true);
+    try {
+      const res = await fetch(`/api/admin/patient-automations?patientId=${pid}`);
+      const data = await res.json();
+      setAutomations(data.automations || []);
+    } catch (err) {
+      console.error('Fetch automations error:', err);
+    } finally {
+      setLoadingAutomations(false);
+    }
+  };
+
+  const toggleAutomation = async (automation) => {
+    setTogglingAutomation(automation.id);
+    try {
+      const res = await fetch('/api/admin/patient-automations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          protocolId: automation.protocolId,
+          type: automation.type,
+          active: !automation.active,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Remove the automation from the list (it's now off)
+        setAutomations(prev => prev.filter(a => a.id !== automation.id));
+      }
+    } catch (err) {
+      console.error('Toggle automation error:', err);
+    } finally {
+      setTogglingAutomation(null);
     }
   };
 
@@ -761,6 +804,20 @@ export default function ConversationView({ patientId, patientName, patientPhone,
               {botPaused ? '⏸ Bot Off' : '⚡ Bot On'}
             </button>
           )}
+          {(linkedPatientId || patientId) && (
+            <button
+              onClick={() => { setShowAutomations(!showAutomations); if (!showAutomations) fetchAutomations(); }}
+              style={{
+                ...styles.actionBtn,
+                background: showAutomations ? '#eff6ff' : undefined,
+                borderColor: showAutomations ? '#93c5fd' : undefined,
+                color: showAutomations ? '#2563eb' : undefined,
+              }}
+              title="View and manage active automations"
+            >
+              🔄 Automations
+            </button>
+          )}
           <button
             onClick={() => { setShowForms(true); setFormsResult(null); setSelectedForms([]); }}
             style={styles.actionBtn}
@@ -834,6 +891,42 @@ export default function ConversationView({ patientId, patientName, patientPhone,
               Cancel
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Automations Panel */}
+      {showAutomations && (
+        <div style={styles.automationsPanel}>
+          <div style={styles.automationsPanelHeader}>
+            <span style={{ fontWeight: '600', fontSize: '13px', color: '#111' }}>Active Automations</span>
+            <button onClick={() => setShowAutomations(false)} style={{ background: 'none', border: 'none', fontSize: '16px', color: '#999', cursor: 'pointer', padding: '0 4px' }}>×</button>
+          </div>
+          {loadingAutomations ? (
+            <div style={{ padding: '12px 16px', color: '#999', fontSize: '13px' }}>Loading...</div>
+          ) : automations.length === 0 ? (
+            <div style={{ padding: '12px 16px', color: '#999', fontSize: '13px' }}>No active automations for this patient.</div>
+          ) : (
+            <div style={styles.automationsList}>
+              {automations.map(a => (
+                <div key={a.id} style={styles.automationRow}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '13px', fontWeight: '500', color: '#111' }}>{a.name}</div>
+                    <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
+                      {a.protocol} {a.description ? `— ${a.description}` : ''}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => toggleAutomation(a)}
+                    disabled={togglingAutomation === a.id}
+                    style={styles.automationStopBtn}
+                    title={`Stop ${a.name}`}
+                  >
+                    {togglingAutomation === a.id ? '...' : 'Stop'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -2000,5 +2093,43 @@ const styles = {
     color: '#111827',
     whiteSpace: 'pre-wrap',
     wordBreak: 'break-word',
+  },
+  // Automations panel
+  automationsPanel: {
+    background: '#f0f7ff',
+    borderBottom: '1px solid #bfdbfe',
+    padding: '0',
+  },
+  automationsPanelHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '10px 16px 6px',
+  },
+  automationsList: {
+    padding: '0 16px 10px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+  },
+  automationRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    background: '#fff',
+    border: '1px solid #dbeafe',
+    borderRadius: '8px',
+    padding: '8px 12px',
+  },
+  automationStopBtn: {
+    background: '#fee2e2',
+    color: '#dc2626',
+    border: '1px solid #fca5a5',
+    borderRadius: '6px',
+    padding: '4px 10px',
+    fontSize: '12px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    flexShrink: 0,
   },
 };

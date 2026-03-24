@@ -31,14 +31,31 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Contact ID required' });
     }
 
-    // Find patient by GHL contact ID
-    const { data: patient, error: patientError } = await supabase
+    // Find patient by GHL contact ID first, then fall back to patient UUID
+    let patient = null;
+
+    const { data: ghlPatient } = await supabase
       .from('patients')
       .select('id, name, email, phone, ghl_contact_id')
       .eq('ghl_contact_id', contact_id)
       .single();
 
-    if (patientError || !patient) {
+    if (ghlPatient) {
+      patient = ghlPatient;
+    } else {
+      // Try by patient UUID (cron falls back to patient.id when no ghl_contact_id)
+      const { data: uuidPatient } = await supabase
+        .from('patients')
+        .select('id, name, email, phone, ghl_contact_id')
+        .eq('id', contact_id)
+        .single();
+
+      if (uuidPatient) {
+        patient = uuidPatient;
+      }
+    }
+
+    if (!patient) {
       return res.status(404).json({ error: 'Patient not found' });
     }
 

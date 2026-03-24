@@ -384,7 +384,7 @@ export default function HomeV2() {
           display: inline-block;
           width: 8px;
           height: 8px;
-          background: #c4a882;
+          background: #808080;
         }
 
         .v2-hero h1 {
@@ -480,7 +480,7 @@ export default function HomeV2() {
           display: block;
           font-size: 0.75rem;
           font-weight: 600;
-          color: #c4a882;
+          color: #808080;
           letter-spacing: 0.05em;
           margin-bottom: 1rem;
         }
@@ -520,7 +520,7 @@ export default function HomeV2() {
           content: "–";
           position: absolute;
           left: 0;
-          color: #c4a882;
+          color: #808080;
           font-weight: 600;
         }
 
@@ -571,7 +571,7 @@ export default function HomeV2() {
         .v2-service-num {
           font-size: 0.75rem;
           font-weight: 600;
-          color: #c4a882;
+          color: #808080;
           letter-spacing: 0.05em;
         }
 

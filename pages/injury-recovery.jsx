@@ -635,7 +635,7 @@ export default function InjuryRecovery() {
           .inj-process-number {
             font-size: 1.5rem;
             font-weight: 900;
-            color: #c4a882;
+            color: #808080;
             margin-bottom: 1rem;
           }
 
@@ -734,7 +734,7 @@ export default function InjuryRecovery() {
             font-weight: 700;
             letter-spacing: 0.1em;
             text-transform: uppercase;
-            color: #c4a882;
+            color: #808080;
             margin-bottom: 0.875rem;
           }
 

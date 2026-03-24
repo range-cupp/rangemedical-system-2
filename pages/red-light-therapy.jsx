@@ -784,7 +784,7 @@ export default function RedLightTherapy() {
           letter-spacing: -0.02em;
           line-height: 1;
           margin-bottom: 0.5rem;
-          color: #c4a882;
+          color: #808080;
         }
 
         .rlt-stat-label {
@@ -879,7 +879,7 @@ export default function RedLightTherapy() {
           font-size: 1.25rem;
           font-weight: 800;
           letter-spacing: -0.02em;
-          color: #c4a882;
+          color: #808080;
           margin-bottom: 1rem;
         }
 
@@ -934,7 +934,7 @@ export default function RedLightTherapy() {
           font-weight: 700;
           letter-spacing: 0.08em;
           text-transform: uppercase;
-          color: #c4a882;
+          color: #808080;
           margin-bottom: 0.875rem;
         }
 
@@ -1047,7 +1047,7 @@ export default function RedLightTherapy() {
         .rlt-expect-step {
           font-size: 1.25rem;
           font-weight: 800;
-          color: #c4a882;
+          color: #808080;
           min-width: 56px;
           letter-spacing: -0.02em;
         }
@@ -1170,7 +1170,7 @@ export default function RedLightTherapy() {
         .rlt-pricing-membership-price {
           font-size: 2.75rem;
           font-weight: 800;
-          color: #c4a882;
+          color: #808080;
           letter-spacing: -0.02em;
           line-height: 1;
         }
@@ -1202,7 +1202,7 @@ export default function RedLightTherapy() {
           content: "\u2013";
           position: absolute;
           left: 0;
-          color: #c4a882;
+          color: #808080;
           font-weight: 600;
         }
 
@@ -1310,7 +1310,7 @@ export default function RedLightTherapy() {
         .rlt-pricing-pack-price {
           font-size: 1.5rem;
           font-weight: 800;
-          color: #c4a882;
+          color: #808080;
           letter-spacing: -0.02em;
         }
 
@@ -1384,7 +1384,7 @@ export default function RedLightTherapy() {
         .rlt-pricing-compare-value {
           font-size: 1.5rem;
           font-weight: 800;
-          color: #c4a882;
+          color: #808080;
           letter-spacing: -0.02em;
         }
 

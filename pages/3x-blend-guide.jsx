@@ -379,7 +379,7 @@ export default function ThreeXBlendGuide() {
 
         .tx-peptide-role {
           font-size: 0.8125rem;
-          color: #c4a882;
+          color: #808080;
           margin-bottom: 0.75rem;
         }
 
@@ -408,7 +408,7 @@ export default function ThreeXBlendGuide() {
           content: "✓";
           position: absolute;
           left: 0;
-          color: #c4a882;
+          color: #808080;
           font-weight: 600;
         }
 
@@ -440,7 +440,7 @@ export default function ThreeXBlendGuide() {
           content: "✓";
           position: absolute;
           left: 0;
-          color: #c4a882;
+          color: #808080;
           font-weight: 600;
         }
 
@@ -596,7 +596,7 @@ export default function ThreeXBlendGuide() {
           content: "•";
           position: absolute;
           left: 0;
-          color: #c4a882;
+          color: #808080;
           font-weight: 700;
         }
 

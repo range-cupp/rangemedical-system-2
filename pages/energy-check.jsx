@@ -481,7 +481,7 @@ export default function EnergyCheckPage() {
           }
           .ec-progress-fill {
             height: 100%;
-            background: #c4a882;
+            background: #808080;
             transition: width 0.4s ease;
           }
           .ec-progress-text {
@@ -556,7 +556,7 @@ export default function EnergyCheckPage() {
             font-weight: 900;
             margin: 20px 0;
             line-height: 1;
-            color: #c4a882;
+            color: #808080;
           }
           .ec-slider-confirm {
             margin-top: 8px;
@@ -601,7 +601,7 @@ export default function EnergyCheckPage() {
             font-weight: 900;
             line-height: 1;
             margin-bottom: 8px;
-            color: #c4a882;
+            color: #808080;
           }
           .ec-score-label {
             font-size: 14px;
@@ -633,7 +633,7 @@ export default function EnergyCheckPage() {
             flex-shrink: 0;
             font-size: 14px;
             font-weight: 900;
-            color: #c4a882;
+            color: #808080;
             margin-top: 2px;
           }
 

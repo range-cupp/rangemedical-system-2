@@ -388,7 +388,7 @@ export default function GlowGuide() {
           content: "✓";
           position: absolute;
           left: 0;
-          color: #c4a882;
+          color: #808080;
           font-weight: 600;
         }
 
@@ -549,7 +549,7 @@ export default function GlowGuide() {
           content: "•";
           position: absolute;
           left: 0;
-          color: #c4a882;
+          color: #808080;
           font-weight: 700;
         }
 

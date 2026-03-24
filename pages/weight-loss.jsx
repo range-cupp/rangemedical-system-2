@@ -697,7 +697,7 @@ export default function WeightLoss() {
           letter-spacing: -0.03em;
           line-height: 1;
           margin-bottom: 0.5rem;
-          color: #c4a882;
+          color: #808080;
         }
 
         .wl-stat-label {
@@ -760,7 +760,7 @@ export default function WeightLoss() {
           position: absolute;
           top: -10px;
           left: 1.5rem;
-          background: #c4a882;
+          background: #808080;
           color: #ffffff;
           font-size: 0.6875rem;
           font-weight: 700;
@@ -823,7 +823,7 @@ export default function WeightLoss() {
           font-size: 1.25rem;
           font-weight: 900;
           letter-spacing: -0.02em;
-          color: #c4a882;
+          color: #808080;
           margin-bottom: 1rem;
         }
 
@@ -863,7 +863,7 @@ export default function WeightLoss() {
           color: #1a1a1a;
           min-width: 90px;
           letter-spacing: 0.02em;
-          background: #c4a882;
+          background: #808080;
           padding: 0.375rem 0.75rem;
           border-radius: 0;
           text-align: center;
@@ -920,7 +920,7 @@ export default function WeightLoss() {
           font-weight: 700;
           letter-spacing: 0.08em;
           text-transform: uppercase;
-          color: #c4a882;
+          color: #808080;
           margin-bottom: 0.875rem;
         }
 
@@ -974,7 +974,7 @@ export default function WeightLoss() {
         .wl-expect-step {
           font-size: 1.25rem;
           font-weight: 900;
-          color: #c4a882;
+          color: #808080;
           min-width: 56px;
           letter-spacing: -0.02em;
         }

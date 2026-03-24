@@ -659,7 +659,7 @@ export default function HormoneOptimization() {
           letter-spacing: -0.02em;
           line-height: 1;
           margin-bottom: 0.5rem;
-          color: #c4a882;
+          color: #808080;
         }
 
         .hrt-stat-label {
@@ -711,7 +711,7 @@ export default function HormoneOptimization() {
         .hrt-benefit-number {
           font-size: 1.25rem;
           font-weight: 900;
-          color: #c4a882;
+          color: #808080;
           min-width: 36px;
           letter-spacing: -0.02em;
         }
@@ -744,7 +744,7 @@ export default function HormoneOptimization() {
         }
 
         .hrt-list-dash {
-          color: #c4a882;
+          color: #808080;
           margin-right: 0.5rem;
           font-weight: 700;
         }
@@ -804,7 +804,7 @@ export default function HormoneOptimization() {
         .hrt-timeline-period {
           font-size: 0.8125rem;
           font-weight: 700;
-          color: #c4a882;
+          color: #808080;
           min-width: 80px;
           letter-spacing: 0.02em;
         }
@@ -848,7 +848,7 @@ export default function HormoneOptimization() {
           font-weight: 700;
           letter-spacing: 0.08em;
           text-transform: uppercase;
-          color: #c4a882;
+          color: #808080;
           margin-bottom: 0.875rem;
         }
 
@@ -902,7 +902,7 @@ export default function HormoneOptimization() {
         .hrt-expect-step {
           font-size: 1.25rem;
           font-weight: 900;
-          color: #c4a882;
+          color: #808080;
           min-width: 36px;
           letter-spacing: -0.02em;
         }
@@ -965,7 +965,7 @@ export default function HormoneOptimization() {
         }
 
         .hrt-faq-open .hrt-faq-toggle {
-          color: #c4a882;
+          color: #808080;
         }
 
         .hrt-faq-answer {

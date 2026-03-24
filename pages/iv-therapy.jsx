@@ -736,7 +736,7 @@ export default function IVTherapy() {
           letter-spacing: -0.03em;
           line-height: 1;
           margin-bottom: 0.5rem;
-          color: #c4a882;
+          color: #808080;
         }
 
         .iv-stat-label {
@@ -951,7 +951,7 @@ export default function IVTherapy() {
         .iv-glut-dose {
           font-size: 1.5rem;
           font-weight: 900;
-          color: #c4a882;
+          color: #808080;
           margin-bottom: 0.25rem;
         }
 
@@ -1026,7 +1026,7 @@ export default function IVTherapy() {
           font-size: 1.25rem;
           font-weight: 900;
           letter-spacing: -0.02em;
-          color: #c4a882;
+          color: #808080;
           margin-bottom: 1rem;
         }
 
@@ -1081,7 +1081,7 @@ export default function IVTherapy() {
           font-weight: 700;
           letter-spacing: 0.12em;
           text-transform: uppercase;
-          color: #c4a882;
+          color: #808080;
           margin-bottom: 0.875rem;
         }
 

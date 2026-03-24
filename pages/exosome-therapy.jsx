@@ -613,7 +613,7 @@ export default function ExosomeTherapy() {
           letter-spacing: -0.02em;
           line-height: 1;
           margin-bottom: 0.5rem;
-          color: #c4a882;
+          color: #808080;
         }
 
         .exo-stat-label {
@@ -666,7 +666,7 @@ export default function ExosomeTherapy() {
         .exo-step-number {
           font-size: 1.25rem;
           font-weight: 800;
-          color: #c4a882;
+          color: #808080;
           min-width: 56px;
           letter-spacing: -0.01em;
         }
@@ -714,7 +714,7 @@ export default function ExosomeTherapy() {
           font-size: 1.25rem;
           font-weight: 800;
           letter-spacing: -0.01em;
-          color: #c4a882;
+          color: #808080;
           margin-bottom: 1rem;
         }
 
@@ -764,7 +764,7 @@ export default function ExosomeTherapy() {
           font-weight: 700;
           letter-spacing: 0.08em;
           text-transform: uppercase;
-          color: #c4a882;
+          color: #808080;
           margin-bottom: 0.875rem;
         }
 

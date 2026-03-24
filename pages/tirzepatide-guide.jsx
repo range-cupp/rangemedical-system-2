@@ -377,7 +377,7 @@ export default function TirzepatideGuide() {
         .dose-price {
           font-weight: 700;
           font-size: 1rem;
-          color: #c4a882;
+          color: #808080;
         }
         .steps-list {
           margin-top: 1.5rem;
@@ -394,7 +394,7 @@ export default function TirzepatideGuide() {
         .step-number {
           width: 2rem;
           height: 2rem;
-          background: #c4a882;
+          background: #808080;
           color: #ffffff;
           display: flex;
           align-items: center;
@@ -415,7 +415,7 @@ export default function TirzepatideGuide() {
         }
         .tip-box {
           background: #ffffff;
-          border-left: 4px solid #c4a882;
+          border-left: 4px solid #808080;
           padding: 1.25rem 1.5rem;
           margin-top: 1.5rem;
         }
@@ -490,7 +490,7 @@ export default function TirzepatideGuide() {
           content: "\\2022";
           position: absolute;
           left: 0;
-          color: #c4a882;
+          color: #808080;
           font-weight: 700;
         }
         .safety-note {

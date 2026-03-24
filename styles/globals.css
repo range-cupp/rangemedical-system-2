@@ -483,7 +483,7 @@ p {
    ======================================== */
 
 :root {
-  --accent: #c4a882;
+  --accent: #808080;  /* was #808080 gold, now neutral gray */
   --black: #1a1a1a;
   --dark-gray: #404040;
   --mid-gray: #737373;

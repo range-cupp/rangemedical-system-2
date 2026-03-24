@@ -411,7 +411,7 @@ export default function GiftCards() {
         .gc-benefit-number {
           font-size: 2rem;
           font-weight: 900;
-          color: #c4a882;
+          color: #808080;
           margin-bottom: 1rem;
           letter-spacing: -0.03em;
         }
@@ -461,7 +461,7 @@ export default function GiftCards() {
 
         .gc-service-item::before {
           content: "\\2713";
-          color: #c4a882;
+          color: #808080;
           font-weight: 700;
           flex-shrink: 0;
         }
@@ -489,7 +489,7 @@ export default function GiftCards() {
           width: 50px;
           height: 50px;
           background: #1a1a1a;
-          color: #c4a882;
+          color: #808080;
           display: flex;
           align-items: center;
           justify-content: center;

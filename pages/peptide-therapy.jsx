@@ -671,7 +671,7 @@ export default function PeptideTherapy() {
           letter-spacing: -0.02em;
           line-height: 1;
           margin-bottom: 0.5rem;
-          color: #c4a882;
+          color: #808080;
         }
 
         .pep-stat-label {
@@ -744,7 +744,7 @@ export default function PeptideTherapy() {
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.1em;
-          color: #c4a882;
+          color: #808080;
           margin-bottom: 0.5rem;
         }
 
@@ -780,7 +780,7 @@ export default function PeptideTherapy() {
         .pep-benefit-number {
           font-size: 12px;
           font-weight: 600;
-          color: #c4a882;
+          color: #808080;
           letter-spacing: 0.05em;
           min-width: 2rem;
           padding-top: 0.25rem;
@@ -832,7 +832,7 @@ export default function PeptideTherapy() {
           font-weight: 700;
           letter-spacing: 0.1em;
           text-transform: uppercase;
-          color: #c4a882;
+          color: #808080;
           margin-bottom: 0.875rem;
         }
 
@@ -884,7 +884,7 @@ export default function PeptideTherapy() {
         .pep-expect-step {
           font-size: 12px;
           font-weight: 600;
-          color: #c4a882;
+          color: #808080;
           letter-spacing: 0.05em;
           min-width: 2rem;
           padding-top: 0.25rem;
@@ -988,7 +988,7 @@ export default function PeptideTherapy() {
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.1em;
-          color: #c4a882;
+          color: #808080;
           margin-bottom: 0.5rem;
         }
 

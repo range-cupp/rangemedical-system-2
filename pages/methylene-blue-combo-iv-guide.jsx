@@ -241,12 +241,12 @@ export default function MethyleneBlueComboIVGuide() {
         .protocol-card:hover { border-color: #1a1a1a; }
         .protocol-card.featured { border: 2px solid #1a1a1a; position: relative; }
         .protocol-days { font-size: 0.8125rem; font-weight: 700; color: #737373; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
-        .protocol-price { font-size: 1.75rem; font-weight: 900; margin-bottom: 0.75rem; color: #c4a882; }
+        .protocol-price { font-size: 1.75rem; font-weight: 900; margin-bottom: 0.75rem; color: #808080; }
         .protocol-desc { font-size: 0.8125rem; color: #737373; line-height: 1.6; }
         .steps-list { margin-top: 1.5rem; }
         .step-item { display: flex; gap: 1rem; padding: 1.25rem 0; border-bottom: 1px solid #e0e0e0; }
         .step-item:last-child { border-bottom: none; }
-        .step-number { width: 2rem; height: 2rem; background: #c4a882; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.875rem; flex-shrink: 0; }
+        .step-number { width: 2rem; height: 2rem; background: #808080; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.875rem; flex-shrink: 0; }
         .step-content h4 { font-size: 1rem; font-weight: 700; margin-bottom: 0.25rem; color: #1a1a1a; }
         .step-content p { font-size: 0.9rem; color: #737373; line-height: 1.6; }
         .timeline-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.5rem; }
@@ -259,7 +259,7 @@ export default function MethyleneBlueComboIVGuide() {
         .safety-card ul { list-style: none; padding: 0; margin: 0; }
         .safety-card li { font-size: 0.875rem; color: #737373; padding: 0.375rem 0; padding-left: 1.25rem; position: relative; line-height: 1.5; }
         .safety-card.warning li::before { content: "\\2715"; position: absolute; left: 0; color: #1a1a1a; font-weight: 600; }
-        .safety-card.effects li::before { content: "\\2022"; position: absolute; left: 0; color: #c4a882; font-weight: 700; }
+        .safety-card.effects li::before { content: "\\2022"; position: absolute; left: 0; color: #808080; font-weight: 700; }
         .safety-note { font-size: 0.8125rem; color: #737373; margin-top: 0.75rem; padding-left: 0; }
         .disclaimer { background: #fafafa; border: 1px solid #e0e0e0; padding: 1.25rem; margin-top: 1.5rem; }
         .disclaimer p { font-size: 0.8125rem; color: #737373; line-height: 1.6; margin: 0; }

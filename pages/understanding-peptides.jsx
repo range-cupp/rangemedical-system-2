@@ -758,7 +758,7 @@ export default function UnderstandingPeptides() {
           content: '→';
           position: absolute;
           left: 0;
-          color: #c4a882;
+          color: #808080;
         }
 
         /* ===== STEPS ===== */
@@ -781,7 +781,7 @@ export default function UnderstandingPeptides() {
         .pm-step-number {
           font-size: 0.8125rem;
           font-weight: 700;
-          color: #c4a882;
+          color: #808080;
           min-width: 56px;
           letter-spacing: 0.02em;
         }
@@ -821,7 +821,7 @@ export default function UnderstandingPeptides() {
           align-items: center;
           justify-content: center;
           font-size: 0.75rem;
-          color: #c4a882;
+          color: #808080;
           font-weight: 700;
         }
 
@@ -938,7 +938,7 @@ export default function UnderstandingPeptides() {
           content: '✓';
           position: absolute;
           left: 0;
-          color: #c4a882;
+          color: #808080;
           font-weight: 700;
           font-size: 0.75rem;
         }
@@ -1055,7 +1055,7 @@ export default function UnderstandingPeptides() {
           content: '✓';
           position: absolute;
           left: 0;
-          color: #c4a882;
+          color: #808080;
           font-weight: 700;
           font-size: 0.75rem;
         }
@@ -1079,7 +1079,7 @@ export default function UnderstandingPeptides() {
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.08em;
-          color: #c4a882;
+          color: #808080;
           margin-bottom: 0.75rem;
         }
 
@@ -1111,7 +1111,7 @@ export default function UnderstandingPeptides() {
           content: '✓';
           position: absolute;
           left: 0;
-          color: #c4a882;
+          color: #808080;
           font-weight: 700;
           font-size: 0.8125rem;
         }

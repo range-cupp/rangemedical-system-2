@@ -566,7 +566,7 @@ export default function MethyleneBlue() {
           display: block;
           font-size: 12px;
           font-weight: 600;
-          color: #c4a882;
+          color: #808080;
           letter-spacing: 0.05em;
           margin-bottom: 0.75rem;
         }
@@ -666,7 +666,7 @@ export default function MethyleneBlue() {
           letter-spacing: -0.02em;
           line-height: 1;
           margin-bottom: 0.5rem;
-          color: #c4a882;
+          color: #808080;
         }
 
         .mb-stat-label {
@@ -782,7 +782,7 @@ export default function MethyleneBlue() {
           content: '\\2713';
           position: absolute;
           left: 0;
-          color: #c4a882;
+          color: #808080;
           font-weight: 700;
           font-size: 0.75rem;
         }

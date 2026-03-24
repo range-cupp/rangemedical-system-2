@@ -426,7 +426,7 @@ export default function RecoveryBlendGuide() {
           content: "✓";
           position: absolute;
           left: 0;
-          color: #c4a882;
+          color: #808080;
           font-weight: 600;
         }
 
@@ -494,7 +494,7 @@ export default function RecoveryBlendGuide() {
         .rb-protocol-days {
           font-size: 0.8125rem;
           font-weight: 700;
-          color: #c4a882;
+          color: #808080;
           text-transform: uppercase;
           letter-spacing: 0.05em;
           margin-bottom: 0.25rem;
@@ -647,7 +647,7 @@ export default function RecoveryBlendGuide() {
           content: "•";
           position: absolute;
           left: 0;
-          color: #c4a882;
+          color: #808080;
           font-weight: 700;
         }
 

@@ -504,7 +504,7 @@ export default function WeightLossMedicationGuide() {
           font-size: 0.75rem;
           font-weight: 700;
           letter-spacing: 0.1em;
-          color: #c4a882;
+          color: #808080;
           margin-bottom: 1rem;
         }
 
@@ -655,7 +655,7 @@ export default function WeightLossMedicationGuide() {
           top: 0.85rem;
           width: 5px;
           height: 5px;
-          background: #c4a882;
+          background: #808080;
         }
 
         /* Warning Box */

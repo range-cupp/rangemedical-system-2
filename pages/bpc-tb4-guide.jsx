@@ -381,7 +381,7 @@ export default function BPCTB4Guide() {
           content: "\\2713";
           position: absolute;
           left: 0;
-          color: #c4a882;
+          color: #808080;
           font-weight: 600;
         }
 
@@ -458,7 +458,7 @@ export default function BPCTB4Guide() {
           font-size: 1.75rem;
           font-weight: 700;
           margin-bottom: 0.75rem;
-          color: #c4a882;
+          color: #808080;
         }
 
         .protocol-desc {
@@ -486,7 +486,7 @@ export default function BPCTB4Guide() {
         .step-number {
           width: 2rem;
           height: 2rem;
-          background: #c4a882;
+          background: #808080;
           color: #ffffff;
           display: flex;
           align-items: center;
@@ -511,7 +511,7 @@ export default function BPCTB4Guide() {
         /* Tip Box */
         .tip-box {
           background: #ffffff;
-          border-left: 4px solid #c4a882;
+          border-left: 4px solid #808080;
           padding: 1.25rem 1.5rem;
           margin-top: 1.5rem;
         }
@@ -601,7 +601,7 @@ export default function BPCTB4Guide() {
           content: "\\2022";
           position: absolute;
           left: 0;
-          color: #c4a882;
+          color: #808080;
           font-weight: 700;
         }
 

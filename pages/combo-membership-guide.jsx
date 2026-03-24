@@ -401,7 +401,7 @@ export default function ComboMembershipGuide() {
           font-size: 1.75rem;
           font-weight: 700;
           margin-bottom: 0.75rem;
-          color: #c4a882;
+          color: #808080;
         }
         .price-period {
           font-size: 1rem;
@@ -428,7 +428,7 @@ export default function ComboMembershipGuide() {
         .step-number {
           width: 2rem;
           height: 2rem;
-          background: #c4a882;
+          background: #808080;
           color: #ffffff;
           display: flex;
           align-items: center;
@@ -508,7 +508,7 @@ export default function ComboMembershipGuide() {
           content: "\\2022";
           position: absolute;
           left: 0;
-          color: #c4a882;
+          color: #808080;
           font-weight: 700;
         }
         .safety-note {

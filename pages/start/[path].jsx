@@ -301,7 +301,7 @@ export default function StartThankYou() {
           .ty-panel-price {
             font-size: 32px;
             font-weight: 900;
-            color: #c4a882;
+            color: #808080;
             margin: 0 0 4px;
           }
           .ty-panel-note {
@@ -336,7 +336,7 @@ export default function StartThankYou() {
           }
           .ty-panel-includes li::before {
             content: "\\2013  ";
-            color: #c4a882;
+            color: #808080;
             font-weight: 700;
           }
           .ty-panel-btn {
@@ -429,7 +429,7 @@ export default function StartThankYou() {
           .ty-included-num {
             font-size: 20px;
             font-weight: 900;
-            color: #c4a882;
+            color: #808080;
             min-width: 32px;
             text-align: center;
             line-height: 1;
@@ -473,7 +473,7 @@ export default function StartThankYou() {
           }
           .ty-panel-who li::before {
             content: "\\2013  ";
-            color: #c4a882;
+            color: #808080;
           }
 
           /* ── BOTH INCLUDE ── */
@@ -521,7 +521,7 @@ export default function StartThankYou() {
             min-width: 28px;
             font-size: 20px;
             font-weight: 900;
-            color: #c4a882;
+            color: #808080;
             line-height: 1;
             padding-top: 2px;
           }
@@ -657,7 +657,7 @@ export default function StartThankYou() {
           .ty-bio-row-elite .ty-bio-elite-col {
             background: rgba(0,0,0,0.04);
           }
-          .ty-bio-check { color: #c4a882; font-size: 16px; font-weight: 700; }
+          .ty-bio-check { color: #808080; font-size: 16px; font-weight: 700; }
           .ty-bio-dash { color: #d4d4d4; font-size: 14px; }
           .ty-bio-desc {
             padding: 12px 16px;
@@ -903,16 +903,16 @@ export default function StartThankYou() {
                 <div className="ty-fit-col">
                   <h4 style={{ color: '#16a34a' }}>This is right for you if:</h4>
                   <ul>
-                    <li><span style={{ color: '#c4a882', fontWeight: 700 }}>\u2013</span>  You're tired of guessing and hoping an injury will just "work itself out"</li>
-                    <li><span style={{ color: '#c4a882', fontWeight: 700 }}>\u2013</span>  You're doing rehab but want everything working in the same direction</li>
-                    <li><span style={{ color: '#c4a882', fontWeight: 700 }}>\u2013</span>  You want a clear, realistic plan for the next few weeks</li>
+                    <li><span style={{ color: '#808080', fontWeight: 700 }}>\u2013</span>  You're tired of guessing and hoping an injury will just "work itself out"</li>
+                    <li><span style={{ color: '#808080', fontWeight: 700 }}>\u2013</span>  You're doing rehab but want everything working in the same direction</li>
+                    <li><span style={{ color: '#808080', fontWeight: 700 }}>\u2013</span>  You want a clear, realistic plan for the next few weeks</li>
                   </ul>
                 </div>
                 <div className="ty-fit-col">
                   <h4 style={{ color: '#dc2626' }}>Not for you if:</h4>
                   <ul>
-                    <li><span style={{ color: '#c4a882', fontWeight: 700 }}>\u2013</span>  You're looking for a quick fix without putting in any work</li>
-                    <li><span style={{ color: '#c4a882', fontWeight: 700 }}>\u2013</span>  You're not willing to follow through on a plan</li>
+                    <li><span style={{ color: '#808080', fontWeight: 700 }}>\u2013</span>  You're looking for a quick fix without putting in any work</li>
+                    <li><span style={{ color: '#808080', fontWeight: 700 }}>\u2013</span>  You're not willing to follow through on a plan</li>
                   </ul>
                 </div>
               </div>

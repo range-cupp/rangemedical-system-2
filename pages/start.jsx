@@ -440,7 +440,7 @@ export default function StartPage() {
             font-weight: 700;
             min-width: 28px;
             text-align: center;
-            color: #c4a882;
+            color: #808080;
           }
 
           /* Toggle */
@@ -688,7 +688,7 @@ export default function StartPage() {
             width: 40px;
             height: 40px;
             background: #1a1a1a;
-            color: #c4a882;
+            color: #808080;
             display: flex;
             align-items: center;
             justify-content: center;

@@ -802,7 +802,7 @@ export default function HyperbaricOxygenTherapy() {
           letter-spacing: -0.03em;
           line-height: 1;
           margin-bottom: 0.5rem;
-          color: #c4a882;
+          color: #808080;
         }
 
         .hbot-stat-label {
@@ -898,7 +898,7 @@ export default function HyperbaricOxygenTherapy() {
           font-weight: 700;
           letter-spacing: 0.1em;
           text-transform: uppercase;
-          color: #c4a882;
+          color: #808080;
           margin-bottom: 1rem;
         }
 
@@ -954,7 +954,7 @@ export default function HyperbaricOxygenTherapy() {
           font-weight: 700;
           letter-spacing: 0.08em;
           text-transform: uppercase;
-          color: #c4a882;
+          color: #808080;
           margin-bottom: 0.875rem;
         }
 
@@ -1065,7 +1065,7 @@ export default function HyperbaricOxygenTherapy() {
         .hbot-expect-step {
           font-size: 1.25rem;
           font-weight: 900;
-          color: #c4a882;
+          color: #808080;
           min-width: 56px;
           letter-spacing: -0.02em;
         }
@@ -1128,7 +1128,7 @@ export default function HyperbaricOxygenTherapy() {
         }
 
         .hbot-faq-open .hbot-faq-toggle {
-          color: #c4a882;
+          color: #808080;
         }
 
         .hbot-faq-answer {
@@ -1239,7 +1239,7 @@ export default function HyperbaricOxygenTherapy() {
         .hbot-pricing-featured-price {
           font-size: 2.75rem;
           font-weight: 900;
-          color: #c4a882;
+          color: #808080;
           letter-spacing: -0.03em;
           margin-bottom: 1.5rem;
         }
@@ -1259,7 +1259,7 @@ export default function HyperbaricOxygenTherapy() {
         }
 
         .hbot-li-dash {
-          color: #c4a882;
+          color: #808080;
           font-weight: 700;
           margin-right: 0.5rem;
         }
@@ -1328,7 +1328,7 @@ export default function HyperbaricOxygenTherapy() {
         .hbot-pricing-membership-price {
           font-size: 2.25rem;
           font-weight: 900;
-          color: #c4a882;
+          color: #808080;
           letter-spacing: -0.03em;
           margin-bottom: 1.25rem;
         }
@@ -1394,7 +1394,7 @@ export default function HyperbaricOxygenTherapy() {
         .hbot-pricing-pack-price {
           font-size: 2rem;
           font-weight: 900;
-          color: #c4a882;
+          color: #808080;
           letter-spacing: -0.03em;
           margin-bottom: 0.25rem;
         }
@@ -1444,7 +1444,7 @@ export default function HyperbaricOxygenTherapy() {
 
         .hbot-pricing-comparison-save {
           font-size: 0.6875rem;
-          color: #c4a882;
+          color: #808080;
           font-weight: 600;
           margin-top: 0.125rem;
         }

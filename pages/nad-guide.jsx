@@ -333,7 +333,7 @@ export default function NADGuide() {
           color: rgba(255,255,255,0.6);
         }
         .section-dark .v2-dot {
-          background: #c4a882;
+          background: #808080;
         }
         .section-title {
           font-size: 1.75rem;
@@ -477,7 +477,7 @@ export default function NADGuide() {
           width: 2rem;
           height: 2rem;
           background: #1a1a1a;
-          color: #c4a882;
+          color: #808080;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -572,7 +572,7 @@ export default function NADGuide() {
           content: "\\2022";
           position: absolute;
           left: 0;
-          color: #c4a882;
+          color: #808080;
           font-weight: 700;
         }
         .safety-note {

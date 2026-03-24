@@ -123,7 +123,7 @@ export default function ReviewsPage() {
           </div>
 
           <a
-            href="https://www.google.com/maps/place/Range+Medical/@33.6234,-117.9298,17z"
+            href="https://g.page/r/CR-a12vKevOkEAI/review"
             target="_blank"
             rel="noopener noreferrer"
             className="rv-btn"
@@ -169,7 +169,7 @@ export default function ReviewsPage() {
           <div className="google-cta">
             <p>Want to share your experience?</p>
             <a
-              href="https://www.google.com/maps/place/Range+Medical/@33.6234,-117.9298,17z"
+              href="https://g.page/r/CR-a12vKevOkEAI/review"
               target="_blank"
               rel="noopener noreferrer"
               className="rv-btn-outline"
@@ -203,7 +203,7 @@ export default function ReviewsPage() {
       {/* Final CTA */}
       <section className="rv-cta">
         <div className="rv-container">
-          <div className="v2-label" style={{ justifyContent: 'center' }}><span className="v2-dot" style={{ background: '#c4a882' }} /> NEXT STEP</div>
+          <div className="v2-label" style={{ justifyContent: 'center' }}><span className="v2-dot" style={{ background: '#808080' }} /> NEXT STEP</div>
           <h2>READY TO FEEL<br />LIKE YOURSELF AGAIN?</h2>
           <p className="rv-cta-body">Join our patients who have transformed their health with Range Medical.</p>
           <Link href="/start" className="rv-btn-white">
@@ -265,7 +265,7 @@ export default function ReviewsPage() {
         .rv-rating-score {
           font-size: 3rem;
           font-weight: 900;
-          color: #c4a882;
+          color: #808080;
           line-height: 1;
         }
 
@@ -433,14 +433,14 @@ export default function ReviewsPage() {
         }
 
         .review-stars {
-          color: #c4a882;
+          color: #808080;
           font-size: 0.875rem;
           letter-spacing: 1px;
         }
 
         .review-highlight {
           background: #fafafa;
-          border-left: 2px solid #c4a882;
+          border-left: 2px solid #808080;
           padding: 1rem 1.25rem;
           margin: 0 0 1rem 0;
           font-size: 1rem;
@@ -486,7 +486,7 @@ export default function ReviewsPage() {
         .stat-number {
           font-size: 2.5rem;
           font-weight: 900;
-          color: #c4a882;
+          color: #808080;
           line-height: 1;
           margin-bottom: 0.5rem;
         }

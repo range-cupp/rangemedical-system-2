@@ -666,7 +666,7 @@ export default function CellularEnergyReset() {
             display: block;
             font-size: 12px;
             font-weight: 600;
-            color: #c4a882;
+            color: #808080;
             letter-spacing: 0.05em;
             margin-bottom: 0.75rem;
           }
@@ -707,7 +707,7 @@ export default function CellularEnergyReset() {
           .cer-included-number {
             font-size: 2.5rem;
             font-weight: 900;
-            color: #c4a882;
+            color: #808080;
             line-height: 1;
             margin-bottom: 0.5rem;
           }
@@ -744,7 +744,7 @@ export default function CellularEnergyReset() {
           .cer-step-num {
             font-size: 12px;
             font-weight: 600;
-            color: #c4a882;
+            color: #808080;
             letter-spacing: 0.05em;
             min-width: 2rem;
             padding-top: 0.25rem;
@@ -832,7 +832,7 @@ export default function CellularEnergyReset() {
             content: "\\2713";
             position: absolute;
             left: 0;
-            color: #c4a882;
+            color: #808080;
             font-weight: 700;
           }
 
@@ -854,7 +854,7 @@ export default function CellularEnergyReset() {
             width: 32px;
             height: 32px;
             min-width: 32px;
-            background: #c4a882;
+            background: #808080;
             color: #ffffff;
             display: flex;
             align-items: center;
@@ -935,7 +935,7 @@ export default function CellularEnergyReset() {
             content: "\\2192";
             position: absolute;
             left: 0;
-            color: #c4a882;
+            color: #808080;
           }
 
           /* ── MAINTENANCE ── */
@@ -987,7 +987,7 @@ export default function CellularEnergyReset() {
           .cer-maintenance-price {
             font-size: 1rem;
             font-weight: 900;
-            color: #c4a882;
+            color: #808080;
           }
 
           /* ── RESEARCH ── */
@@ -1017,7 +1017,7 @@ export default function CellularEnergyReset() {
 
           .cer-research-journal {
             font-size: 0.8125rem;
-            color: #c4a882;
+            color: #808080;
             font-weight: 600;
             display: block;
             margin-bottom: 0.75rem;

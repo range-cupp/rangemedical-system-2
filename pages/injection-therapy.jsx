@@ -609,7 +609,7 @@ export default function InjectionTherapy() {
           letter-spacing: -0.02em;
           line-height: 1;
           margin-bottom: 0.5rem;
-          color: #c4a882;
+          color: #808080;
         }
 
         .inj-stat-label {
@@ -725,7 +725,7 @@ export default function InjectionTherapy() {
         .inj-nad-price {
           font-size: 1.125rem;
           font-weight: 700;
-          color: #c4a882;
+          color: #808080;
         }
 
         /* Packages */
@@ -754,7 +754,7 @@ export default function InjectionTherapy() {
         }
 
         .inj-package-card-featured {
-          border-left: 3px solid #c4a882;
+          border-left: 3px solid #808080;
         }
 
         .inj-package-badge {
@@ -770,7 +770,7 @@ export default function InjectionTherapy() {
         }
 
         .inj-package-badge-featured {
-          background: #c4a882;
+          background: #808080;
           color: #ffffff;
         }
 
@@ -813,7 +813,7 @@ export default function InjectionTherapy() {
           content: '\u2013';
           position: absolute;
           left: 0;
-          color: #c4a882;
+          color: #808080;
           font-weight: 700;
         }
 
@@ -884,7 +884,7 @@ export default function InjectionTherapy() {
           font-weight: 700;
           letter-spacing: 0.1em;
           text-transform: uppercase;
-          color: #c4a882;
+          color: #808080;
           margin-bottom: 1rem;
         }
 

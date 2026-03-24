@@ -628,7 +628,7 @@ export default function NADTherapy() {
           letter-spacing: -0.02em;
           line-height: 1;
           margin-bottom: 0.5rem;
-          color: #c4a882;
+          color: #808080;
         }
 
         .nad-stat-label {
@@ -667,7 +667,7 @@ export default function NADTherapy() {
           font-size: 0.8125rem;
           font-weight: 700;
           letter-spacing: 0.1em;
-          color: #c4a882;
+          color: #808080;
           margin-bottom: 1rem;
         }
 
@@ -761,7 +761,7 @@ export default function NADTherapy() {
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.1em;
-          color: #c4a882;
+          color: #808080;
         }
 
         .nad-protocol-desc {
@@ -794,7 +794,7 @@ export default function NADTherapy() {
           content: "\u2013";
           position: absolute;
           left: 0;
-          color: #c4a882;
+          color: #808080;
           font-weight: 700;
         }
 
@@ -835,7 +835,7 @@ export default function NADTherapy() {
           font-weight: 700;
           letter-spacing: 0.1em;
           text-transform: uppercase;
-          color: #c4a882;
+          color: #808080;
           margin-bottom: 1rem;
         }
 
@@ -884,7 +884,7 @@ export default function NADTherapy() {
           font-weight: 700;
           letter-spacing: 0.1em;
           text-transform: uppercase;
-          color: #c4a882;
+          color: #808080;
           margin-bottom: 0.875rem;
         }
 

@@ -623,7 +623,7 @@ export default function LabPanels() {
         {/* CTA Section */}
         <section className="lp-section-inverted">
           <div className="lp-container">
-            <div className="v2-label" style={{ justifyContent: 'center' }}><span className="v2-dot" style={{ background: '#c4a882' }} /> GET STARTED</div>
+            <div className="v2-label" style={{ justifyContent: 'center' }}><span className="v2-dot" style={{ background: '#808080' }} /> GET STARTED</div>
             <h2>READY TO SEE WHAT&apos;S<br />REALLY GOING ON?</h2>
             <p className="lp-cta-text">
               Book your panel below and we&apos;ll get you scheduled for your blood draw. Results in 3&ndash;5 business days.
@@ -1059,7 +1059,7 @@ export default function LabPanels() {
           }
 
           .lp-marker-toggle {
-            color: #c4a882;
+            color: #808080;
             font-size: 1.125rem;
             font-weight: 700;
             margin-left: 0.5rem;
@@ -1106,7 +1106,7 @@ export default function LabPanels() {
           }
 
           .lp-check {
-            color: #c4a882;
+            color: #808080;
             font-size: 1.125rem;
             font-weight: 700;
           }
@@ -1174,7 +1174,7 @@ export default function LabPanels() {
           .lp-compare-price {
             font-size: 2.25rem;
             font-weight: 900;
-            color: #c4a882;
+            color: #808080;
             margin-bottom: 0.25rem;
           }
 
@@ -1253,7 +1253,7 @@ export default function LabPanels() {
           .lp-list-dash {
             position: absolute;
             left: 0;
-            color: #c4a882;
+            color: #808080;
             font-weight: 700;
           }
 
@@ -1272,7 +1272,7 @@ export default function LabPanels() {
           .lp-process-number {
             font-size: 2rem;
             font-weight: 900;
-            color: #c4a882;
+            color: #808080;
             margin-bottom: 1rem;
             letter-spacing: -0.02em;
           }
@@ -1327,7 +1327,7 @@ export default function LabPanels() {
 
           .lp-faq-toggle {
             flex-shrink: 0;
-            color: #c4a882;
+            color: #808080;
             font-size: 1.25rem;
             font-weight: 700;
             width: 24px;

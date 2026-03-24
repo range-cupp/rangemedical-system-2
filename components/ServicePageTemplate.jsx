@@ -323,7 +323,7 @@ export default function ServicePageTemplate({
           display: block;
           font-size: 12px;
           font-weight: 600;
-          color: #c4a882;
+          color: #808080;
           letter-spacing: 0.05em;
           margin-bottom: 0.75rem;
         }
@@ -360,7 +360,7 @@ export default function ServicePageTemplate({
         .spt-step-num {
           font-size: 12px;
           font-weight: 600;
-          color: #c4a882;
+          color: #808080;
           letter-spacing: 0.05em;
           min-width: 2rem;
           padding-top: 0.25rem;
@@ -405,7 +405,7 @@ export default function ServicePageTemplate({
         .spt-tool-num {
           font-size: 12px;
           font-weight: 600;
-          color: #c4a882;
+          color: #808080;
           letter-spacing: 0.05em;
         }
 

@@ -294,7 +294,7 @@ export default function RLTMembershipGuide() {
           width: 2rem;
           min-width: 2rem;
           height: 2rem;
-          background: #c4a882;
+          background: #808080;
           color: #ffffff;
           display: flex;
           align-items: center;
@@ -318,7 +318,7 @@ export default function RLTMembershipGuide() {
         }
         .tip-box {
           background: #ffffff;
-          border-left: 4px solid #c4a882;
+          border-left: 4px solid #808080;
           padding: 1.25rem 1.5rem;
           margin-bottom: 1rem;
         }
@@ -372,7 +372,7 @@ export default function RLTMembershipGuide() {
           content: "\\2022";
           position: absolute;
           left: 0;
-          color: #c4a882;
+          color: #808080;
           font-weight: 700;
         }
         .safety-note {

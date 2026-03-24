@@ -354,7 +354,7 @@ export default function TermsOfUsePage() {
           top: 0.75em;
           width: 6px;
           height: 6px;
-          background: #c4a882;
+          background: #808080;
           border-radius: 50%;
         }
 

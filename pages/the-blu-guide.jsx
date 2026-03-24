@@ -243,7 +243,7 @@ export default function TheBluGuide() {
         .blu-safety-card ul { list-style: none; padding: 0; margin: 0; }
         .blu-safety-card li { font-size: 0.875rem; color: #737373; padding: 0.375rem 0; padding-left: 1.25rem; position: relative; line-height: 1.5; }
         .blu-safety-card.blu-warning li::before { content: "✕"; position: absolute; left: 0; color: #171717; font-weight: 600; }
-        .blu-safety-card.blu-effects li::before { content: "•"; position: absolute; left: 0; color: #c4a882; font-weight: 700; }
+        .blu-safety-card.blu-effects li::before { content: "•"; position: absolute; left: 0; color: #808080; font-weight: 700; }
         .blu-safety-note { font-size: 0.8125rem; color: #737373; margin-top: 0.75rem; padding-left: 0; }
         .blu-disclaimer { background: #fafafa; border: 1px solid #e0e0e0; padding: 1.25rem; margin-top: 1.5rem; }
         .blu-disclaimer p { font-size: 0.8125rem; color: #737373; line-height: 1.6; margin: 0; }

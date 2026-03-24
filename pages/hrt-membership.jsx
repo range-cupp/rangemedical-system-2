@@ -414,7 +414,7 @@ export default function HRTMembership() {
           gap: 0.5rem;
         }
         .trust-rating {
-          color: #c4a882;
+          color: #808080;
         }
 
         /* Hero */
@@ -627,7 +627,7 @@ export default function HRTMembership() {
           border-bottom: none;
         }
         .check-mark {
-          color: #c4a882 !important;
+          color: #808080 !important;
           font-weight: 700 !important;
         }
         .comparison-total {
@@ -669,7 +669,7 @@ export default function HRTMembership() {
         .benefit-number {
           font-size: 1.5rem;
           font-weight: 900;
-          color: #c4a882;
+          color: #808080;
           flex-shrink: 0;
           line-height: 1;
         }
@@ -706,7 +706,7 @@ export default function HRTMembership() {
         .timeline-period {
           font-size: 11px;
           font-weight: 700;
-          color: #c4a882;
+          color: #808080;
           text-transform: uppercase;
           letter-spacing: 0.12em;
         }
@@ -753,7 +753,7 @@ export default function HRTMembership() {
         .step-number {
           font-size: 2rem;
           font-weight: 900;
-          color: #c4a882;
+          color: #808080;
           margin-bottom: 0.75rem;
           line-height: 1;
         }
@@ -834,7 +834,7 @@ export default function HRTMembership() {
         .visual-stat-number {
           font-size: 4rem;
           font-weight: 900;
-          color: #c4a882;
+          color: #808080;
           letter-spacing: -0.03em;
           line-height: 1;
           margin-bottom: 1rem;
@@ -862,7 +862,7 @@ export default function HRTMembership() {
           content: "✓";
           position: absolute;
           left: 0;
-          color: #c4a882;
+          color: #808080;
           font-weight: 700;
         }
 

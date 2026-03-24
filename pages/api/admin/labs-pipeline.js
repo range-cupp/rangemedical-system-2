@@ -6,6 +6,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { todayPacific } from '../../../lib/date-utils';
+import { buildAdaptiveHRTSchedule } from '../../../lib/hrt-lab-schedule';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -62,8 +63,9 @@ async function getLabsPipeline(req, res) {
 
     const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
-    // Fetch "Due for Labs" to-do list: HRT patients with upcoming follow-up lab needs
+    // Fetch "Due for Labs" to-do list using buildAdaptiveHRTSchedule (single source of truth)
     let dueForLabs = [];
+    let scheduledForLabs = [];
     try {
       // Get active HRT protocols with their lab schedule info
       const { data: hrtProtocols } = await supabase
@@ -75,10 +77,11 @@ async function getLabsPipeline(req, res) {
 
       if (hrtProtocols && hrtProtocols.length > 0) {
         const today = new Date();
+        today.setHours(0, 0, 0, 0);
         const thirtyDaysFromNow = new Date(today);
         thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
-        // Get all patient IDs that already have an active lab protocol
+        // Get all patient IDs that already have an active lab protocol in the pipeline
         const hrtPatientIds = hrtProtocols.map(p => p.patient_id).filter(Boolean);
         const { data: existingLabProtocols } = await supabase
           .from('protocols')
@@ -89,60 +92,83 @@ async function getLabsPipeline(req, res) {
 
         const patientsWithActiveLabs = new Set((existingLabProtocols || []).map(p => p.patient_id));
 
-        // Get blood draw logs to determine completed draws
-        const { data: bloodDrawLogs } = await supabase
+        // Fetch ALL data sources needed by buildAdaptiveHRTSchedule for all patients at once
+        const hrtProtoIds = hrtProtocols.map(p => p.id);
+
+        // 1. Blood draw logs (protocol_logs)
+        const { data: allBloodDrawLogs } = await supabase
           .from('protocol_logs')
-          .select('protocol_id, log_date, notes')
-          .in('protocol_id', hrtProtocols.map(p => p.id))
+          .select('id, protocol_id, patient_id, log_date, notes')
+          .in('protocol_id', hrtProtoIds)
           .eq('log_type', 'blood_draw')
           .order('log_date', { ascending: true });
 
         const logsByProtocol = {};
-        for (const log of (bloodDrawLogs || [])) {
+        for (const log of (allBloodDrawLogs || [])) {
           if (!logsByProtocol[log.protocol_id]) logsByProtocol[log.protocol_id] = [];
           logsByProtocol[log.protocol_id].push(log);
         }
 
+        // 2. Labs table (actual lab results)
+        const { data: allLabs } = await supabase
+          .from('labs')
+          .select('id, patient_id, test_date, completed_date')
+          .in('patient_id', hrtPatientIds)
+          .order('test_date', { ascending: false });
+
+        const labsByPatient = {};
+        for (const lab of (allLabs || [])) {
+          if (!labsByPatient[lab.patient_id]) labsByPatient[lab.patient_id] = [];
+          labsByPatient[lab.patient_id].push(lab);
+        }
+
+        // 3. Lab protocols (auto-scheduled from HRT)
+        const { data: allLabProtocols } = await supabase
+          .from('protocols')
+          .select('id, patient_id, start_date, status')
+          .eq('program_type', 'labs')
+          .in('patient_id', hrtPatientIds);
+
+        const labProtosByPatient = {};
+        for (const lp of (allLabProtocols || [])) {
+          if (!labProtosByPatient[lp.patient_id]) labProtosByPatient[lp.patient_id] = [];
+          labProtosByPatient[lp.patient_id].push(lp);
+        }
+
         for (const proto of hrtProtocols) {
-          // Skip if patient already has an active lab protocol
+          // Skip if patient already has an active lab protocol in pipeline
           if (patientsWithActiveLabs.has(proto.patient_id)) continue;
 
-          const startDate = new Date(proto.start_date + 'T00:00:00');
           const firstWeeks = proto.first_followup_weeks || 8;
-          const logs = logsByProtocol[proto.id] || [];
 
-          // Calculate next due date based on schedule
-          // First follow-up at firstWeeks, then every 12 weeks
-          const schedule = [];
-          schedule.push({ weeks: firstWeeks, label: `${firstWeeks}-Week Labs` });
-          for (let w = firstWeeks + 12; w <= 104; w += 12) {
-            schedule.push({ weeks: w, label: `${w}-Week Labs` });
-          }
+          // Use the SAME adaptive schedule the patient page uses
+          const schedule = buildAdaptiveHRTSchedule(
+            proto.start_date,
+            firstWeeks,
+            logsByProtocol[proto.id] || [],
+            labsByPatient[proto.patient_id] || [],
+            labProtosByPatient[proto.patient_id] || []
+          );
 
-          // Find the next unlogged draw
-          for (const entry of schedule) {
-            const dueDate = new Date(startDate);
-            dueDate.setDate(dueDate.getDate() + entry.weeks * 7);
+          // Find the next overdue or upcoming draw within our window
+          const nextDraw = schedule.find(d => d.status === 'overdue' || d.status === 'upcoming');
+          if (!nextDraw) continue;
 
-            // Check if this draw was already logged
-            const alreadyLogged = logs.some(l => l.notes === entry.label || l.notes === entry.label.replace('-Week', ' Week'));
+          const dueDate = new Date(nextDraw.targetDate + 'T00:00:00');
+          if (dueDate > thirtyDaysFromNow || dueDate < new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000)) continue;
 
-            if (!alreadyLogged && dueDate <= thirtyDaysFromNow && dueDate >= new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000)) {
-              const patient = proto.patients;
-              const patientName = patient?.name || `${patient?.first_name || ''} ${patient?.last_name || ''}`.trim();
-              dueForLabs.push({
-                patientId: proto.patient_id,
-                patientName,
-                phone: patient?.phone || null,
-                protocolId: proto.id,
-                protocolName: proto.program_name,
-                dueDate: dueDate.toISOString().split('T')[0],
-                drawLabel: entry.label,
-                daysUntilDue: Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24))
-              });
-              break; // Only show next upcoming draw per patient
-            }
-          }
+          const patient = proto.patients;
+          const patientName = patient?.name || `${patient?.first_name || ''} ${patient?.last_name || ''}`.trim();
+          dueForLabs.push({
+            patientId: proto.patient_id,
+            patientName,
+            phone: patient?.phone || null,
+            protocolId: proto.id,
+            protocolName: proto.program_name,
+            dueDate: nextDraw.targetDate,
+            drawLabel: nextDraw.label,
+            daysUntilDue: Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24))
+          });
         }
 
         // Check for scheduled blood draw appointments
@@ -173,6 +199,10 @@ async function getLabsPipeline(req, res) {
           }
         }
 
+        // Filter out patients who already have a scheduled blood draw appointment
+        scheduledForLabs = dueForLabs.filter(d => d.hasAppointment);
+        dueForLabs = dueForLabs.filter(d => !d.hasAppointment);
+
         // Sort by due date
         dueForLabs.sort((a, b) => a.daysUntilDue - b.daysUntilDue);
       }
@@ -185,7 +215,8 @@ async function getLabsPipeline(req, res) {
       stages,
       counts,
       total,
-      dueForLabs
+      dueForLabs,
+      scheduledForLabs
     });
 
   } catch (error) {

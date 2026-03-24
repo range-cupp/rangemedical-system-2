@@ -84,7 +84,7 @@ export default async function handler(req, res) {
     try {
       const { data: labProto } = await supabase
         .from('protocols')
-        .select('id')
+        .select('id, program_name')
         .eq('patient_id', patientId)
         .eq('program_type', 'labs')
         .eq('status', 'blood_draw_complete')
@@ -102,6 +102,65 @@ export default async function handler(req, res) {
     } catch (pipelineErr) {
       // Non-fatal — don't block the upload response
       console.error('Lab pipeline auto-advance error (non-fatal):', pipelineErr);
+    }
+
+    // Auto-log blood draw for HRT protocol so patient is removed from "Due for Labs" list
+    try {
+      const { data: hrtProtos } = await supabase
+        .from('protocols')
+        .select('id, start_date, first_followup_weeks')
+        .eq('patient_id', patientId)
+        .in('program_type', ['hrt', 'hrt_male', 'hrt_female'])
+        .in('status', ['active', 'completed']);
+
+      if (hrtProtos && hrtProtos.length > 0) {
+        const hrtProto = hrtProtos[0];
+        const startDate = new Date(hrtProto.start_date + 'T00:00:00');
+        const firstWeeks = hrtProto.first_followup_weeks || 8;
+        const today = new Date();
+
+        // Build the lab schedule
+        const schedule = [];
+        schedule.push({ weeks: firstWeeks, label: `${firstWeeks}-Week Labs` });
+        for (let w = firstWeeks + 12; w <= 104; w += 12) {
+          schedule.push({ weeks: w, label: `${w}-Week Labs` });
+        }
+
+        // Get existing blood draw logs
+        const { data: existingLogs } = await supabase
+          .from('protocol_logs')
+          .select('notes')
+          .eq('protocol_id', hrtProto.id)
+          .eq('log_type', 'blood_draw');
+
+        const loggedLabels = new Set((existingLogs || []).map(l => l.notes));
+
+        // Find the next unlogged draw that's due (within -30 to +30 days of today)
+        for (const entry of schedule) {
+          const dueDate = new Date(startDate);
+          dueDate.setDate(dueDate.getDate() + entry.weeks * 7);
+
+          const alreadyLogged = loggedLabels.has(entry.label) || loggedLabels.has(entry.label.replace('-Week', ' Week'));
+
+          if (!alreadyLogged) {
+            const daysDiff = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+            if (daysDiff >= -30 && daysDiff <= 30) {
+              await supabase.from('protocol_logs').insert({
+                protocol_id: hrtProto.id,
+                patient_id: patientId,
+                log_type: 'blood_draw',
+                log_date: collectionDate || new Date().toISOString().split('T')[0],
+                notes: entry.label
+              });
+              console.log(`✓ Auto-logged blood draw for HRT protocol ${hrtProto.id}: ${entry.label}`);
+              break;
+            }
+          }
+        }
+      }
+    } catch (hrtLogErr) {
+      // Non-fatal — don't block the upload response
+      console.error('HRT blood draw auto-log error (non-fatal):', hrtLogErr);
     }
 
     return res.status(200).json({

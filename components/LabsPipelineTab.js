@@ -132,9 +132,10 @@ export default function LabsPipelineTab() {
   if (!data) return <div style={{ padding: '60px 20px', textAlign: 'center', color: '#ef4444', fontSize: '14px' }}>Error loading labs pipeline</div>;
 
   const dueForLabs = data.dueForLabs || [];
+  const scheduledForLabs = data.scheduledForLabs || [];
   const overdueCount = dueForLabs.filter(d => d.daysUntilDue < 0).length;
-  const scheduledCount = dueForLabs.filter(d => d.hasAppointment).length;
-  const needsOutreach = dueForLabs.filter(d => !d.hasAppointment).length;
+  const scheduledCount = scheduledForLabs.length;
+  const needsOutreach = dueForLabs.length;
 
   return (
     <div>

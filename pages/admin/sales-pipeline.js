@@ -13,20 +13,27 @@ const STAGE_CONFIG = {
   follow_up:  { label: 'Follow-Up',  color: '#f59e0b', bg: '#fffbeb' },
   booked:     { label: 'Booked',     color: '#10b981', bg: '#ecfdf5' },
   showed:     { label: 'Showed',     color: '#06b6d4', bg: '#ecfeff' },
-  started:    { label: 'Started',    color: '#000',    bg: '#f3f4f6' },
+  started:    { label: 'Started',    color: '#111',    bg: '#f3f4f6' },
   lost:       { label: 'Lost',       color: '#ef4444', bg: '#fef2f2' },
 };
 
-const SOURCE_LABELS = {
-  assessment: 'Assessment',
-  energy_check: 'Energy Check',
-  start_funnel: 'Start Funnel',
-  manual: 'Manual',
-  referral: 'Referral',
-  walk_in: 'Walk-In',
-  instagram: 'Instagram',
-  google: 'Google',
-  website: 'Website',
+const SOURCE_CONFIG = {
+  assessment:     { label: 'Assessment',    color: '#7c3aed', bg: '#f5f3ff' },
+  energy_check:   { label: 'Energy Check',  color: '#059669', bg: '#ecfdf5' },
+  start_funnel:   { label: 'Start Funnel',  color: '#2563eb', bg: '#eff6ff' },
+  research:       { label: 'Research',       color: '#0891b2', bg: '#ecfeff' },
+  cellular_reset: { label: 'Cellular Reset', color: '#7c3aed', bg: '#faf5ff' },
+  manual:         { label: 'Manual',         color: '#6b7280', bg: '#f3f4f6' },
+  referral:       { label: 'Referral',       color: '#d97706', bg: '#fffbeb' },
+  walk_in:        { label: 'Walk-In',        color: '#ea580c', bg: '#fff7ed' },
+  instagram:      { label: 'Instagram',      color: '#c026d3', bg: '#fdf4ff' },
+  google:         { label: 'Google',         color: '#2563eb', bg: '#eff6ff' },
+  website:        { label: 'Website',        color: '#4f46e5', bg: '#eef2ff' },
+  facebook:       { label: 'Facebook',       color: '#2563eb', bg: '#eff6ff' },
+  tiktok:         { label: 'TikTok',         color: '#111',    bg: '#f3f4f6' },
+  yelp:           { label: 'Yelp',           color: '#dc2626', bg: '#fef2f2' },
+  friend:         { label: 'Friend',         color: '#d97706', bg: '#fffbeb' },
+  other:          { label: 'Other',          color: '#6b7280', bg: '#f3f4f6' },
 };
 
 const PATH_LABELS = {
@@ -109,12 +116,13 @@ export default function SalesPipeline() {
     const data = JSON.parse(e.dataTransfer.getData('text/plain'));
     if (!data.id || data.fromStage === toStage) return;
 
-    // If moving to "lost", prompt for reason
+    // If moving to "lost", open detail panel for reason
     if (toStage === 'lost') {
-      setSelectedLead(columns.flatMap(c => c.leads).find(l => l.id === data.id));
+      const lead = columns.flatMap(c => c.leads).find(l => l.id === data.id);
+      setSelectedLead({ ...lead, stage: toStage });
       setEditLostReason('');
-      setEditNotes(columns.flatMap(c => c.leads).find(l => l.id === data.id)?.notes || '');
-      // We'll handle this in the detail panel
+      setEditNotes(lead?.notes || '');
+      setEditAssigned(lead?.assigned_to || '');
     }
 
     // Optimistic update
@@ -132,7 +140,7 @@ export default function SalesPipeline() {
         body: JSON.stringify({ id: data.id, stage: toStage }),
       });
     } catch {
-      fetchBoard(); // Revert on error
+      fetchBoard();
     }
     setDragItem(null);
   };
@@ -236,22 +244,17 @@ export default function SalesPipeline() {
     <AdminLayout title="Sales Pipeline">
       {/* Summary Stats */}
       <div style={styles.statsRow}>
-        <div style={styles.stat}>
-          <span style={styles.statNum}>{summary.total}</span>
-          <span style={styles.statLabel}>Total Leads</span>
-        </div>
-        <div style={styles.stat}>
-          <span style={{ ...styles.statNum, color: '#3b82f6' }}>{summary.active}</span>
-          <span style={styles.statLabel}>Active</span>
-        </div>
-        <div style={styles.stat}>
-          <span style={{ ...styles.statNum, color: '#10b981' }}>{summary.converted}</span>
-          <span style={styles.statLabel}>Converted</span>
-        </div>
-        <div style={styles.stat}>
-          <span style={{ ...styles.statNum, color: '#ef4444' }}>{summary.lost}</span>
-          <span style={styles.statLabel}>Lost</span>
-        </div>
+        {[
+          { num: summary.total, label: 'Total Leads', color: '#111' },
+          { num: summary.active, label: 'Active', color: '#3b82f6' },
+          { num: summary.converted, label: 'Converted', color: '#10b981' },
+          { num: summary.lost, label: 'Lost', color: '#ef4444' },
+        ].map(s => (
+          <div key={s.label} style={styles.stat}>
+            <span style={{ ...styles.statNum, color: s.color }}>{s.num}</span>
+            <span style={styles.statLabel}>{s.label}</span>
+          </div>
+        ))}
       </div>
 
       {/* Actions Bar */}
@@ -266,8 +269,8 @@ export default function SalesPipeline() {
           />
           <select value={filterSource} onChange={e => setFilterSource(e.target.value)} style={styles.filterSelect}>
             <option value="all">All Sources</option>
-            {Object.entries(SOURCE_LABELS).map(([k, v]) => (
-              <option key={k} value={k}>{v}</option>
+            {Object.entries(SOURCE_CONFIG).map(([k, v]) => (
+              <option key={k} value={k}>{v.label}</option>
             ))}
           </select>
           <select value={filterPath} onChange={e => setFilterPath(e.target.value)} style={styles.filterSelect}>
@@ -306,9 +309,8 @@ export default function SalesPipeline() {
                 onDragLeave={handleDragLeave}
                 onDrop={e => handleDrop(e, col.key)}
               >
-                <div style={styles.columnHeader}>
+                <div style={{ ...styles.columnHeader, borderTop: `3px solid ${config.color}` }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ ...styles.stageDot, background: config.color }} />
                     <span style={styles.columnTitle}>{config.label}</span>
                   </div>
                   <span style={styles.columnCount}>{col.leads.length}</span>
@@ -344,13 +346,17 @@ export default function SalesPipeline() {
       {/* Add Lead Modal */}
       {showAddModal && (
         <div style={sharedStyles.modalOverlay} onClick={() => setShowAddModal(false)}>
-          <div style={{ ...sharedStyles.modal, maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: '600' }}>Add New Lead</h3>
+          <div style={styles.modalBox} onClick={e => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
+              <h3 style={styles.modalTitle}>Add New Lead</h3>
+              <button onClick={() => setShowAddModal(false)} style={styles.modalClose}>&times;</button>
+            </div>
             <div style={styles.formGrid}>
               <div>
                 <label style={styles.formLabel}>First Name *</label>
                 <input
                   style={styles.formInput}
+                  placeholder="First name"
                   value={addForm.first_name}
                   onChange={e => setAddForm(f => ({ ...f, first_name: e.target.value }))}
                   autoFocus
@@ -360,6 +366,7 @@ export default function SalesPipeline() {
                 <label style={styles.formLabel}>Last Name</label>
                 <input
                   style={styles.formInput}
+                  placeholder="Last name"
                   value={addForm.last_name}
                   onChange={e => setAddForm(f => ({ ...f, last_name: e.target.value }))}
                 />
@@ -368,6 +375,7 @@ export default function SalesPipeline() {
                 <label style={styles.formLabel}>Phone</label>
                 <input
                   style={styles.formInput}
+                  placeholder="(555) 123-4567"
                   value={addForm.phone}
                   onChange={e => setAddForm(f => ({ ...f, phone: e.target.value }))}
                 />
@@ -376,12 +384,13 @@ export default function SalesPipeline() {
                 <label style={styles.formLabel}>Email</label>
                 <input
                   style={styles.formInput}
+                  placeholder="email@example.com"
                   value={addForm.email}
                   onChange={e => setAddForm(f => ({ ...f, email: e.target.value }))}
                 />
               </div>
               <div>
-                <label style={styles.formLabel}>Source</label>
+                <label style={styles.formLabel}>Lead Source</label>
                 <select
                   style={styles.formInput}
                   value={addForm.source}
@@ -389,10 +398,15 @@ export default function SalesPipeline() {
                 >
                   <option value="manual">Manual Entry</option>
                   <option value="referral">Referral</option>
+                  <option value="friend">Friend</option>
                   <option value="walk_in">Walk-In</option>
                   <option value="instagram">Instagram</option>
+                  <option value="facebook">Facebook</option>
+                  <option value="tiktok">TikTok</option>
                   <option value="google">Google</option>
+                  <option value="yelp">Yelp</option>
                   <option value="website">Website</option>
+                  <option value="other">Other</option>
                 </select>
               </div>
               <div>
@@ -409,10 +423,11 @@ export default function SalesPipeline() {
                 </select>
               </div>
             </div>
-            <div style={{ marginTop: '12px' }}>
+            <div style={{ marginTop: '16px' }}>
               <label style={styles.formLabel}>Notes</label>
               <textarea
-                style={{ ...styles.formInput, height: '60px', resize: 'vertical' }}
+                style={{ ...styles.formInput, height: '70px', resize: 'vertical' }}
+                placeholder="Any notes about this lead..."
                 value={addForm.notes}
                 onChange={e => setAddForm(f => ({ ...f, notes: e.target.value }))}
               />
@@ -430,76 +445,79 @@ export default function SalesPipeline() {
       {/* Lead Detail Panel */}
       {selectedLead && (
         <div style={sharedStyles.modalOverlay} onClick={() => setSelectedLead(null)}>
-          <div style={{ ...sharedStyles.modal, maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+          <div style={styles.modalBox} onClick={e => e.stopPropagation()}>
+            <div style={styles.modalHeader}>
               <div>
-                <h3 style={{ margin: '0 0 4px', fontSize: '16px', fontWeight: '600' }}>
+                <h3 style={styles.modalTitle}>
                   {selectedLead.first_name} {selectedLead.last_name}
                 </h3>
-                <div style={{ fontSize: '13px', color: '#666' }}>
+                <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>
                   {selectedLead.phone && <span>{selectedLead.phone}</span>}
-                  {selectedLead.email && <span style={{ marginLeft: selectedLead.phone ? '12px' : 0 }}>{selectedLead.email}</span>}
+                  {selectedLead.phone && selectedLead.email && <span style={{ margin: '0 6px', color: '#d1d5db' }}>|</span>}
+                  {selectedLead.email && <span>{selectedLead.email}</span>}
                 </div>
               </div>
-              <span style={{
-                ...styles.sourceBadge,
-                background: STAGE_CONFIG[selectedLead.stage]?.bg || '#f3f4f6',
-                color: STAGE_CONFIG[selectedLead.stage]?.color || '#666',
-              }}>
-                {STAGE_CONFIG[selectedLead.stage]?.label || selectedLead.stage}
-              </span>
+              <button onClick={() => setSelectedLead(null)} style={styles.modalClose}>&times;</button>
             </div>
 
-            <div style={styles.detailRow}>
-              <span style={styles.detailLabel}>Source</span>
-              <span>{SOURCE_LABELS[selectedLead.source] || SOURCE_LABELS[selectedLead.lead_type] || selectedLead.source || '—'}</span>
-            </div>
-            {selectedLead.path && (
-              <div style={styles.detailRow}>
-                <span style={styles.detailLabel}>Interest</span>
-                <span>{PATH_LABELS[selectedLead.path] || selectedLead.path}</span>
+            {/* Detail info */}
+            <div style={styles.detailGrid}>
+              <div style={styles.detailItem}>
+                <span style={styles.detailLabel}>Source</span>
+                <SourceBadge source={selectedLead.source || selectedLead.lead_type} />
               </div>
-            )}
-            {selectedLead.urgency && (
-              <div style={styles.detailRow}>
-                <span style={styles.detailLabel}>Urgency</span>
-                <span>{selectedLead.urgency}/10</span>
+              {selectedLead.path && (
+                <div style={styles.detailItem}>
+                  <span style={styles.detailLabel}>Interest</span>
+                  <span style={styles.detailValue}>{PATH_LABELS[selectedLead.path] || selectedLead.path}</span>
+                </div>
+              )}
+              {selectedLead.urgency && (
+                <div style={styles.detailItem}>
+                  <span style={styles.detailLabel}>Urgency</span>
+                  <span style={styles.detailValue}>{selectedLead.urgency}/10</span>
+                </div>
+              )}
+              <div style={styles.detailItem}>
+                <span style={styles.detailLabel}>Created</span>
+                <span style={styles.detailValue}>
+                  {new Date(selectedLead.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </span>
               </div>
-            )}
-            <div style={styles.detailRow}>
-              <span style={styles.detailLabel}>Created</span>
-              <span>{new Date(selectedLead.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
             </div>
 
-            <div style={{ marginTop: '16px' }}>
-              <label style={styles.formLabel}>Move to Stage</label>
-              <select
-                style={styles.formInput}
-                value={selectedLead.stage}
-                onChange={e => {
-                  const newStage = e.target.value;
-                  handleMoveStage(selectedLead.id, newStage);
-                  setSelectedLead(prev => ({ ...prev, stage: newStage }));
-                }}
-              >
-                {Object.entries(STAGE_CONFIG).map(([k, v]) => (
-                  <option key={k} value={k}>{v.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div style={{ marginTop: '12px' }}>
-              <label style={styles.formLabel}>Assigned To</label>
-              <select
-                style={styles.formInput}
-                value={editAssigned}
-                onChange={e => setEditAssigned(e.target.value)}
-              >
-                <option value="">Unassigned</option>
-                {employees.map(emp => (
-                  <option key={emp.id} value={emp.name}>{emp.name}</option>
-                ))}
-              </select>
+            <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '16px', marginTop: '16px' }}>
+              <div style={styles.formGrid}>
+                <div>
+                  <label style={styles.formLabel}>Stage</label>
+                  <select
+                    style={styles.formInput}
+                    value={selectedLead.stage}
+                    onChange={e => {
+                      const newStage = e.target.value;
+                      handleMoveStage(selectedLead.id, newStage);
+                      setSelectedLead(prev => ({ ...prev, stage: newStage }));
+                    }}
+                  >
+                    {Object.entries(STAGE_CONFIG).map(([k, v]) => (
+                      <option key={k} value={k}>{v.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={styles.formLabel}>Assigned To</label>
+                  <select
+                    style={styles.formInput}
+                    value={editAssigned}
+                    onChange={e => setEditAssigned(e.target.value)}
+                  >
+                    <option value="">Unassigned</option>
+                    {employees.map(emp => (
+                      <option key={emp.id} value={emp.name}>{emp.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
 
             <div style={{ marginTop: '12px' }}>
@@ -508,6 +526,7 @@ export default function SalesPipeline() {
                 style={{ ...styles.formInput, height: '80px', resize: 'vertical' }}
                 value={editNotes}
                 onChange={e => setEditNotes(e.target.value)}
+                placeholder="Add notes..."
               />
             </div>
 
@@ -543,9 +562,25 @@ export default function SalesPipeline() {
   );
 }
 
+function SourceBadge({ source }) {
+  const config = SOURCE_CONFIG[source] || SOURCE_CONFIG.other || { label: source || 'Unknown', color: '#6b7280', bg: '#f3f4f6' };
+  return (
+    <span style={{
+      fontSize: '11px',
+      fontWeight: '600',
+      padding: '2px 8px',
+      borderRadius: '3px',
+      background: config.bg,
+      color: config.color,
+      whiteSpace: 'nowrap',
+    }}>
+      {config.label}
+    </span>
+  );
+}
+
 function LeadCard({ lead, stageKey, onDragStart, onClick }) {
   const [dragging, setDragging] = useState(false);
-  const sourceName = SOURCE_LABELS[lead.source] || SOURCE_LABELS[lead.lead_type] || lead.source || '';
   const pathName = PATH_LABELS[lead.path] || '';
 
   return (
@@ -567,8 +602,10 @@ function LeadCard({ lead, stageKey, onDragStart, onClick }) {
         <div style={styles.cardPhone}>{lead.phone}</div>
       )}
       <div style={styles.cardMeta}>
-        {sourceName && <span style={styles.cardTag}>{sourceName}</span>}
-        {pathName && <span style={styles.cardTag}>{pathName}</span>}
+        <SourceBadge source={lead.source || lead.lead_type} />
+        {pathName && (
+          <span style={styles.cardPathTag}>{pathName}</span>
+        )}
       </div>
       <div style={styles.cardFooter}>
         <span style={styles.cardTime}>{timeAgo(lead.created_at)}</span>
@@ -584,33 +621,38 @@ function LeadCard({ lead, stageKey, onDragStart, onClick }) {
 const styles = {
   statsRow: {
     display: 'flex',
-    gap: '16px',
-    marginBottom: '16px',
+    gap: '12px',
+    marginBottom: '20px',
     flexWrap: 'wrap',
   },
   stat: {
     display: 'flex',
     flexDirection: 'column',
-    padding: '12px 20px',
+    padding: '16px 24px',
     background: '#fff',
-    border: '1px solid #e5e5e5',
-    minWidth: '100px',
+    border: '1px solid #e5e7eb',
+    borderRadius: '6px',
+    minWidth: '110px',
+    flex: '1 0 110px',
   },
   statNum: {
-    fontSize: '22px',
+    fontSize: '24px',
     fontWeight: '700',
     lineHeight: 1,
   },
   statLabel: {
     fontSize: '12px',
-    color: '#888',
-    marginTop: '4px',
+    color: '#9ca3af',
+    marginTop: '6px',
+    fontWeight: '500',
+    textTransform: 'uppercase',
+    letterSpacing: '0.03em',
   },
   actionsBar: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '16px',
+    marginBottom: '20px',
     gap: '12px',
     flexWrap: 'wrap',
   },
@@ -626,16 +668,18 @@ const styles = {
     alignItems: 'center',
   },
   searchInput: {
-    padding: '7px 12px',
+    padding: '8px 12px',
     border: '1px solid #d1d5db',
+    borderRadius: '6px',
     fontSize: '13px',
     fontFamily: 'inherit',
-    width: '180px',
+    width: '200px',
     outline: 'none',
   },
   filterSelect: {
-    padding: '7px 8px',
+    padding: '8px 10px',
     border: '1px solid #d1d5db',
+    borderRadius: '6px',
     fontSize: '13px',
     fontFamily: 'inherit',
     background: '#fff',
@@ -643,18 +687,21 @@ const styles = {
     outline: 'none',
   },
   importBtn: {
-    padding: '7px 14px',
+    padding: '8px 14px',
     border: '1px solid #d1d5db',
+    borderRadius: '6px',
     background: '#fff',
     fontSize: '13px',
     fontFamily: 'inherit',
     cursor: 'pointer',
-    color: '#333',
+    color: '#374151',
+    fontWeight: '500',
   },
   addBtn: {
-    padding: '7px 14px',
-    border: '1px solid #000',
-    background: '#000',
+    padding: '8px 16px',
+    border: '1px solid #111',
+    borderRadius: '6px',
+    background: '#111',
     color: '#fff',
     fontSize: '13px',
     fontWeight: '600',
@@ -663,37 +710,34 @@ const styles = {
   },
   board: {
     display: 'flex',
-    gap: '12px',
+    gap: '10px',
     overflowX: 'auto',
     paddingBottom: '16px',
     minHeight: '500px',
   },
   column: {
-    minWidth: '240px',
-    flex: '0 0 240px',
+    minWidth: '250px',
+    flex: '1 0 250px',
     background: '#f9fafb',
     border: '1px solid #e5e7eb',
+    borderRadius: '8px',
     display: 'flex',
     flexDirection: 'column',
-    maxHeight: 'calc(100vh - 280px)',
+    maxHeight: 'calc(100vh - 300px)',
+    overflow: 'hidden',
   },
   columnDragOver: {
-    background: '#e8e8e8',
-    outline: '2px dashed #000',
+    background: '#f0f0f0',
+    boxShadow: 'inset 0 0 0 2px #111',
   },
   columnHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '10px 12px',
+    padding: '12px 14px',
     borderBottom: '1px solid #e5e7eb',
     background: '#fff',
-  },
-  stageDot: {
-    width: '8px',
-    height: '8px',
-    borderRadius: '50%',
-    display: 'inline-block',
+    borderRadius: '8px 8px 0 0',
   },
   columnTitle: {
     fontSize: '13px',
@@ -705,8 +749,10 @@ const styles = {
     fontWeight: '600',
     color: '#6b7280',
     background: '#e5e7eb',
-    padding: '1px 8px',
+    padding: '2px 8px',
     borderRadius: '10px',
+    minWidth: '24px',
+    textAlign: 'center',
   },
   columnBody: {
     flex: 1,
@@ -714,7 +760,7 @@ const styles = {
     padding: '8px',
   },
   emptyCol: {
-    padding: '24px 12px',
+    padding: '32px 12px',
     textAlign: 'center',
     color: '#9ca3af',
     fontSize: '13px',
@@ -723,33 +769,35 @@ const styles = {
   card: {
     background: '#fff',
     border: '1px solid #e5e7eb',
-    padding: '10px 12px',
+    borderRadius: '6px',
+    padding: '12px',
     marginBottom: '6px',
-    transition: 'box-shadow 0.15s',
+    transition: 'box-shadow 0.15s, transform 0.1s',
   },
   cardName: {
     fontSize: '13px',
     fontWeight: '600',
     color: '#111',
-    marginBottom: '2px',
+    marginBottom: '3px',
   },
   cardPhone: {
     fontSize: '12px',
     color: '#6b7280',
-    marginBottom: '6px',
+    marginBottom: '8px',
   },
   cardMeta: {
     display: 'flex',
     gap: '4px',
     flexWrap: 'wrap',
-    marginBottom: '6px',
+    marginBottom: '8px',
   },
-  cardTag: {
+  cardPathTag: {
     fontSize: '11px',
-    padding: '1px 6px',
+    padding: '2px 8px',
     background: '#f3f4f6',
     color: '#6b7280',
-    borderRadius: '2px',
+    borderRadius: '3px',
+    fontWeight: '500',
   },
   cardFooter: {
     display: 'flex',
@@ -762,78 +810,132 @@ const styles = {
   },
   cardAssigned: {
     fontSize: '11px',
-    color: '#6b7280',
-    fontWeight: '500',
+    color: '#374151',
+    fontWeight: '600',
+    background: '#f3f4f6',
+    padding: '1px 6px',
+    borderRadius: '3px',
   },
   cardNotes: {
     fontSize: '11px',
     color: '#9ca3af',
-    marginTop: '4px',
+    marginTop: '6px',
     fontStyle: 'italic',
-    lineHeight: '1.3',
+    lineHeight: '1.4',
+    borderTop: '1px solid #f3f4f6',
+    paddingTop: '6px',
+  },
+  // Modal styles
+  modalBox: {
+    background: '#fff',
+    borderRadius: '10px',
+    padding: '24px',
+    maxWidth: '500px',
+    width: '100%',
+    maxHeight: '90vh',
+    overflow: 'auto',
+    position: 'relative',
+  },
+  modalHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: '20px',
+  },
+  modalTitle: {
+    margin: 0,
+    fontSize: '17px',
+    fontWeight: '600',
+    color: '#111',
+  },
+  modalClose: {
+    background: 'none',
+    border: 'none',
+    fontSize: '22px',
+    color: '#9ca3af',
+    cursor: 'pointer',
+    padding: '0 4px',
+    lineHeight: 1,
   },
   formGrid: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr',
-    gap: '12px',
+    gap: '14px',
   },
   formLabel: {
     display: 'block',
     fontSize: '12px',
-    fontWeight: '500',
-    color: '#666',
-    marginBottom: '4px',
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: '5px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.03em',
   },
   formInput: {
     width: '100%',
-    padding: '7px 10px',
+    padding: '9px 12px',
     border: '1px solid #d1d5db',
+    borderRadius: '6px',
     fontSize: '13px',
     fontFamily: 'inherit',
     outline: 'none',
     boxSizing: 'border-box',
+    transition: 'border-color 0.15s',
   },
   modalActions: {
     display: 'flex',
     justifyContent: 'flex-end',
     gap: '8px',
-    marginTop: '20px',
+    marginTop: '24px',
+    paddingTop: '16px',
+    borderTop: '1px solid #f3f4f6',
   },
   cancelBtn: {
-    padding: '8px 16px',
+    padding: '9px 18px',
     border: '1px solid #d1d5db',
+    borderRadius: '6px',
     background: '#fff',
     fontSize: '13px',
+    fontWeight: '500',
     fontFamily: 'inherit',
     cursor: 'pointer',
-    color: '#666',
+    color: '#374151',
   },
   saveBtn: {
-    padding: '8px 16px',
-    border: '1px solid #000',
-    background: '#000',
+    padding: '9px 18px',
+    border: '1px solid #111',
+    borderRadius: '6px',
+    background: '#111',
     color: '#fff',
     fontSize: '13px',
     fontWeight: '600',
     fontFamily: 'inherit',
     cursor: 'pointer',
   },
-  sourceBadge: {
-    fontSize: '11px',
-    fontWeight: '600',
-    padding: '3px 8px',
-    borderRadius: '2px',
-    whiteSpace: 'nowrap',
+  // Detail panel
+  detailGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '12px',
+    padding: '14px',
+    background: '#f9fafb',
+    borderRadius: '6px',
   },
-  detailRow: {
+  detailItem: {
     display: 'flex',
-    justifyContent: 'space-between',
-    padding: '6px 0',
-    borderBottom: '1px solid #f3f4f6',
-    fontSize: '13px',
+    flexDirection: 'column',
+    gap: '4px',
   },
   detailLabel: {
-    color: '#888',
+    fontSize: '11px',
+    fontWeight: '600',
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
+  },
+  detailValue: {
+    fontSize: '13px',
+    color: '#111',
     fontWeight: '500',
   },
 };

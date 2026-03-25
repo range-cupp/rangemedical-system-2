@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { capitalizeName } from '../admin/capitalize-names';
+import { insertIntoPipeline } from '../../../lib/pipeline-insert';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -196,6 +197,19 @@ export default async function handler(req, res) {
         // Continue — don't block the user flow
       }
     }
+
+    // Auto-add to sales pipeline
+    await insertIntoPipeline({
+      first_name: firstName,
+      last_name: lastName,
+      email: email.toLowerCase().trim(),
+      phone,
+      source: 'assessment',
+      lead_type: 'assessment',
+      lead_id: savedLead?.id || null,
+      patient_id: patientId || null,
+      path: assessmentPath,
+    });
 
     // 2-4. GHL sync, SMS notifications removed — GHL integration disabled
 

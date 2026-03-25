@@ -7,6 +7,7 @@ import { Resend } from 'resend';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
 import { getResultsEmailHtml } from '../../../lib/energy-check-emails';
+import { insertIntoPipeline } from '../../../lib/pipeline-insert';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -127,6 +128,21 @@ export default async function handler(req, res) {
         console.error('Patient upsert error:', patientErr);
       }
     }
+
+    // Auto-add to sales pipeline
+    await insertIntoPipeline({
+      first_name: capFirst,
+      last_name: '',
+      email: normalizedEmail,
+      phone,
+      source: 'energy_check',
+      lead_type: 'energy_check',
+      lead_id: savedLead?.id || null,
+      patient_id: patientId || null,
+      path: 'energy',
+      notes: primaryConcern || null,
+      urgency: score || null,
+    });
 
     // 3. Send results email to lead
     try {

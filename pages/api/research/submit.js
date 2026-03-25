@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { getStudyById } from '../../../data/researchStudies';
+import { insertIntoPipeline } from '../../../lib/pipeline-insert';
 
 // Initialize Supabase only if credentials are available
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -402,6 +403,17 @@ export default async function handler(req, res) {
     } else {
       console.warn('Supabase not configured, skipping database save');
     }
+
+    // Auto-add to sales pipeline
+    await insertIntoPipeline({
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      source: 'research',
+      lead_type: 'research',
+      lead_id: lead?.id || null,
+      notes: `Research: ${studyTitle || study.headline}`,
+    });
 
     // 2. Sync to GHL
     const ghlContactId = await createOrUpdateGHLContact({

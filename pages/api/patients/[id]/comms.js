@@ -51,7 +51,7 @@ export default async function handler(req, res) {
     // Get paginated data
     let query = supabase
       .from('comms_log')
-      .select('id, channel, message_type, message, status, error_message, recipient, subject, direction, source, created_at, needs_response');
+      .select('id, channel, message_type, message, html_body, status, error_message, recipient, subject, direction, source, created_at, needs_response');
     query = buildFilter(query);
     query = query.order('created_at', { ascending: false }).range(offset, offset + limit - 1);
 
@@ -69,7 +69,7 @@ export default async function handler(req, res) {
       if (digits.length >= 7) {
         const { data: orphaned } = await supabase
           .from('comms_log')
-          .select('id, channel, message_type, message, status, error_message, recipient, subject, direction, source, created_at, needs_response')
+          .select('id, channel, message_type, message, html_body, status, error_message, recipient, subject, direction, source, created_at, needs_response')
           .is('patient_id', null)
           .ilike('recipient', `%${digits}`)
           .order('created_at', { ascending: false })

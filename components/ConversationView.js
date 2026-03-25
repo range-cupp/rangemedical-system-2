@@ -1349,10 +1349,18 @@ export default function ConversationView({ patientId, patientName, patientPhone,
             </div>
             <div style={styles.modalBody}>
               {selectedMessage.channel === 'email' ? (
-                <div
-                  style={styles.modalEmailContent}
-                  dangerouslySetInnerHTML={{ __html: selectedMessage.message || '' }}
-                />
+                selectedMessage.html_body ? (
+                  <iframe
+                    srcDoc={selectedMessage.html_body}
+                    style={{ width: '100%', minHeight: '500px', border: 'none', borderRadius: '8px', background: '#fff' }}
+                    title="Email preview"
+                  />
+                ) : (
+                  <div
+                    style={styles.modalEmailContent}
+                    dangerouslySetInnerHTML={{ __html: selectedMessage.message || '' }}
+                  />
+                )
               ) : (
                 <div style={styles.modalSmsContent}>
                   {selectedMessage.message || ''}

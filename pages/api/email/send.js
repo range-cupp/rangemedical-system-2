@@ -184,11 +184,12 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to send email', details: emailError.message });
     }
 
-    // Log successful send to comms_log
+    // Log successful send to comms_log (includes full rendered HTML)
     await logComm({
       channel: 'email',
       messageType: 'staff_email',
       message: body,
+      htmlBody: html,
       source: 'email-send',
       patientId: patientId || null,
       patientName: patientName || null,

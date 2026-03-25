@@ -108,16 +108,13 @@ export default async function handler(req, res) {
         continue;
       }
 
-      const bookingUrl = lead.door === 'recovery'
-        ? 'https://range-medical.com/start/injury?from=energy-check'
-        : `https://range-medical.com/start/energy?name=${encodeURIComponent(lead.first_name)}&from=energy-check`;
+      const bookingUrl = `https://range-medical.com/start/energy?name=${encodeURIComponent(lead.first_name)}&from=energy-check`;
 
       const emailData = {
         firstName: lead.first_name,
         score: lead.score,
         severity: lead.severity,
         bookingUrl,
-        door: lead.door,
       };
 
       // Send email

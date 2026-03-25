@@ -130,9 +130,7 @@ export default async function handler(req, res) {
 
     // 3. Send results email to lead
     try {
-      const bookingUrl = door === 'recovery'
-        ? 'https://range-medical.com/start/injury?from=energy-check'
-        : `https://range-medical.com/start/energy?name=${encodeURIComponent(capFirst)}&from=energy-check`;
+      const bookingUrl = `https://range-medical.com/start/energy?name=${encodeURIComponent(capFirst)}&from=energy-check`;
 
       const emailHtml = getResultsEmailHtml({
         firstName: capFirst,
@@ -169,9 +167,7 @@ export default async function handler(req, res) {
       try {
         const normalized = normalizePhone(phone);
         if (normalized) {
-          const bookingUrl = door === 'recovery'
-            ? 'https://range-medical.com/start/injury?from=energy-check'
-            : `https://range-medical.com/start/energy?name=${encodeURIComponent(capFirst)}&from=energy-check`;
+          const bookingUrl = `https://range-medical.com/start/energy?name=${encodeURIComponent(capFirst)}&from=energy-check`;
 
           const message = `Hey ${capFirst}, your Energy & Recovery Check results are in.\n\nYour score: ${score}/24 (${SEVERITY_LABELS[severity]})\n\nReady for the next step? See your options here:\n${bookingUrl}\n\n- Range Medical`;
 

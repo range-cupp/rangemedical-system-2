@@ -12,16 +12,6 @@ const META_PIXEL_ID = '4295373617400545';
 
 const QUESTIONS = [
   {
-    id: 'concern',
-    text: "What's bothering you most right now?",
-    type: 'single',
-    options: [
-      { label: 'Low energy or fatigue', value: 'energy', score: 0 },
-      { label: 'Slow recovery from workouts or injuries', value: 'recovery', score: 0 },
-      { label: 'Both', value: 'both', score: 0 },
-    ],
-  },
-  {
     id: 'energy_level',
     text: 'How would you rate your daily energy level?',
     type: 'slider',
@@ -274,11 +264,11 @@ export default function EnergyCheckPage() {
           firstName: contact.firstName.trim(),
           email: contact.email.trim().toLowerCase(),
           phone: contact.phone.trim(),
-          primaryConcern: finalAnswers.concern || 'both',
+          primaryConcern: 'energy',
           answers: finalAnswers,
           score: computedScore,
           severity: computedSeverity,
-          door: finalAnswers.concern || 'both',
+          door: 'energy',
           consentSms: contact.consentSms,
           source,
         }),
@@ -304,14 +294,11 @@ export default function EnergyCheckPage() {
 
   const currentQuestion = QUESTIONS[Math.min(quizIndex, QUESTIONS.length - 1)];
   const progress = ((quizIndex + 1) / QUESTIONS.length) * 100;
-  const door = answers.concern || 'both';
   const tips = severity ? getTips(answers) : [];
   const severityInfo = severity ? SEVERITY_CONFIG[severity] : null;
 
-  const ctaUrl = door === 'recovery'
-    ? '/start/injury?from=energy-check'
-    : `/start/energy?name=${encodeURIComponent(contact.firstName.trim())}&from=energy-check`;
-  const ctaLabel = door === 'recovery' ? 'Book Recovery Visit' : 'See Lab Panels & Pricing';
+  const ctaUrl = `/start/energy?name=${encodeURIComponent(contact.firstName.trim())}&from=energy-check`;
+  const ctaLabel = 'See Lab Panels & Pricing';
 
   return (
     <Layout title="Energy & Recovery Check | Range Medical" description="Take the free 3-minute Energy & Recovery Check. Find out why you feel tired, foggy, or slow to recover.">
@@ -832,7 +819,7 @@ export default function EnergyCheckPage() {
             <div className="ec-form-section">
               <div className="ec-form-card">
                 <h3>Start Your Check</h3>
-                <p>We&apos;ll ask 10 quick questions, then show you exactly what&apos;s going on.</p>
+                <p>We&apos;ll ask 9 quick questions, then show you exactly what&apos;s going on.</p>
 
                 {error && <div className="ec-error">{error}</div>}
 
@@ -898,6 +885,10 @@ export default function EnergyCheckPage() {
               <div className="ec-testimonial-card">
                 &ldquo;My labs were thoroughly reviewed, clearly explained, and a thoughtful health plan was put in place. From start to finish, the entire experience was professional, efficient, and genuinely personalized.&rdquo;
                 <div className="ec-testimonial-attr">&mdash; Mark T., Google Review</div>
+              </div>
+              <div className="ec-testimonial-card" style={{ marginTop: 12 }}>
+                &ldquo;Clear communication, no pressure, and a plan that actually made sense. This is what healthcare should be.&rdquo;
+                <div className="ec-testimonial-attr">&mdash; Jennifer K., Google Review</div>
               </div>
             </div>
           </div>
@@ -1001,7 +992,7 @@ export default function EnergyCheckPage() {
                   <strong>5.0 stars</strong> on Google
                 </div>
                 <div className="ec-trust-item">
-                  Physician-led &middot; 500+ patients
+                  Board-certified providers &middot; Newport Beach
                 </div>
               </div>
 
@@ -1041,17 +1032,6 @@ export default function EnergyCheckPage() {
                 <a href={ctaUrl} style={{ textDecoration: 'none' }}>
                   <button className="ec-btn">{ctaLabel}</button>
                 </a>
-
-                {door !== 'recovery' && (
-                  <a href="/start/injury?from=energy-check" style={{ textDecoration: 'none', display: 'block', marginTop: 12 }}>
-                    <button className="ec-btn-outline">I also have an injury</button>
-                  </a>
-                )}
-                {door === 'recovery' && (
-                  <a href={`/start/energy?name=${encodeURIComponent(contact.firstName.trim())}&from=energy-check`} style={{ textDecoration: 'none', display: 'block', marginTop: 12 }}>
-                    <button className="ec-btn-outline">I&apos;m also interested in labs</button>
-                  </a>
-                )}
               </div>
 
               <div className="ec-trust">

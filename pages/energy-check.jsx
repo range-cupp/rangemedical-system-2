@@ -822,7 +822,7 @@ export default function EnergyCheckPage() {
             <div className="ec-trust-bar">
               <div className="ec-trust-item">
                 <span className="ec-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
-                <strong>4.9 stars</strong> on Google
+                <strong>5.0 stars</strong> on Google
               </div>
               <div className="ec-trust-item">
                 Newport Beach &middot; Board-certified providers
@@ -998,7 +998,7 @@ export default function EnergyCheckPage() {
               <div className="ec-trust-bar" style={{ paddingBottom: 24 }}>
                 <div className="ec-trust-item">
                   <span className="ec-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
-                  <strong>4.9 stars</strong> on Google
+                  <strong>5.0 stars</strong> on Google
                 </div>
                 <div className="ec-trust-item">
                   Physician-led &middot; 500+ patients

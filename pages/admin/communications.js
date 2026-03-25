@@ -110,6 +110,7 @@ export default function CommunicationsPage() {
         duration: 0,
         status: c.status || 'completed',
         startTime: c.created_at,
+        patientId: c.patient_id || null,
         patientName: c.patient_name || null,
         message: c.message,
       }));
@@ -556,9 +557,20 @@ export default function CommunicationsPage() {
                         </span>
                       </td>
                       <td style={styles.td}>
-                        <span style={{ fontWeight: '500' }}>
-                          {call.patientName || '-'}
-                        </span>
+                        {call.patientId ? (
+                          <a
+                            href={`/patients/${call.patientId}`}
+                            style={{ fontWeight: '500', color: '#2563eb', textDecoration: 'none' }}
+                            onMouseEnter={e => e.target.style.textDecoration = 'underline'}
+                            onMouseLeave={e => e.target.style.textDecoration = 'none'}
+                          >
+                            {call.patientName || '-'}
+                          </a>
+                        ) : (
+                          <span style={{ fontWeight: '500' }}>
+                            {call.patientName || '-'}
+                          </span>
+                        )}
                       </td>
                       <td style={styles.td}>
                         <span style={styles.phoneText}>

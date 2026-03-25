@@ -54,12 +54,14 @@ function playNewPatientSound() {
   }
 }
 
-// Hook for unread SMS polling + notifications
+// Hook for unread SMS polling + notifications + in-app toast
 function useUnreadNotifications(router) {
   const [unreadCount, setUnreadCount] = useState(0);
+  const [toast, setToast] = useState(null);
   const prevCountRef = useRef(0);
   const hasInteractedRef = useRef(false);
   const notifPermissionRef = useRef('default');
+  const toastTimeoutRef = useRef(null);
 
   // Track user interaction (needed for autoplay policy)
   useEffect(() => {
@@ -86,6 +88,22 @@ function useUnreadNotifications(router) {
     };
   }, []);
 
+  const showToast = useCallback((data) => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setToast({
+      patientName: data.patientName || 'Unknown',
+      message: data.message || '',
+      patientId: data.patientId || null,
+      time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+    });
+    toastTimeoutRef.current = setTimeout(() => setToast(null), 15000);
+  }, []);
+
+  const dismissToast = useCallback(() => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setToast(null);
+  }, []);
+
   // Poll for unread messages — only when tab is visible
   useEffect(() => {
     let mounted = true;
@@ -105,9 +123,18 @@ function useUnreadNotifications(router) {
 
         setUnreadCount(newCount);
 
-        // New message arrived — play sound + show notification
+        // New message arrived — play sound + show notifications
         if (newCount > prevCount && prevCount >= 0 && hasInteractedRef.current) {
           playNotificationSound();
+
+          // In-app toast notification
+          if (data.latest) {
+            showToast({
+              patientName: data.latest.patientName,
+              message: data.latest.message,
+              patientId: data.latest.patientId || null,
+            });
+          }
 
           // Browser notification
           if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && data.latest) {
@@ -134,7 +161,7 @@ function useUnreadNotifications(router) {
     const startPolling = () => {
       if (interval) clearInterval(interval);
       checkUnread();
-      interval = setInterval(checkUnread, 120000); // Poll every 2 minutes
+      interval = setInterval(checkUnread, 15000); // Poll every 15 seconds
     };
 
     const handleVisibility = () => {
@@ -153,11 +180,12 @@ function useUnreadNotifications(router) {
     return () => {
       mounted = false;
       if (interval) clearInterval(interval);
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [router]);
+  }, [router, showToast]);
 
-  return unreadCount;
+  return { unreadCount, toast, dismissToast };
 }
 
 // Hook for new external patient notifications
@@ -300,6 +328,7 @@ function useUnreadTasks(employeeId) {
 
 const NAV_ITEMS = [
   { href: '/admin', label: 'Dashboard', icon: 'grid' },
+  { href: '/admin/sales-pipeline', label: 'Sales Pipeline', icon: 'trending-down' },
   { href: '/admin/patients', label: 'Patients', icon: 'users' },
   { href: '/admin/protocols', label: 'Protocols', icon: 'activity' },
   { href: '/admin/schedule', label: 'Schedule', icon: 'calendar' },
@@ -442,7 +471,7 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
   const router = useRouter();
   const currentPath = router.pathname;
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const unreadCount = useUnreadNotifications(router);
+  const { unreadCount, toast, dismissToast } = useUnreadNotifications(router);
   useNewPatientNotifications(router);
   const { employee, loading: authLoading, signOut, hasPermission, isAuthenticated } = useAuth();
   const taskCount = useUnreadTasks(employee?.id);
@@ -603,6 +632,41 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
 
       {/* Floating staff chat — available on every admin page */}
       <StaffChatPanel />
+
+      {/* In-app SMS toast notification */}
+      {toast && (
+        <div
+          style={toastStyles.container}
+          onClick={() => {
+            dismissToast();
+            router.push('/admin/communications');
+          }}
+        >
+          <div style={toastStyles.iconCol}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+          </div>
+          <div style={toastStyles.body}>
+            <div style={toastStyles.header}>
+              <span style={toastStyles.label}>NEW TEXT</span>
+              <span style={toastStyles.time}>{toast.time}</span>
+            </div>
+            <div style={toastStyles.name}>{toast.patientName}</div>
+            <div style={toastStyles.message}>
+              {toast.message.length > 120 ? toast.message.substring(0, 120) + '...' : toast.message}
+            </div>
+            <div style={toastStyles.hint}>Click to view conversation</div>
+          </div>
+          <button
+            style={toastStyles.dismiss}
+            onClick={(e) => { e.stopPropagation(); dismissToast(); }}
+            title="Dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </>
   );
 }
@@ -619,6 +683,85 @@ export function overlayClickProps(closeFn) {
     },
   };
 }
+
+// Toast notification styles
+const toastStyles = {
+  container: {
+    position: 'fixed',
+    top: '16px',
+    right: '16px',
+    width: '380px',
+    maxWidth: 'calc(100vw - 32px)',
+    background: '#111',
+    color: '#fff',
+    display: 'flex',
+    gap: '12px',
+    padding: '14px 16px',
+    cursor: 'pointer',
+    zIndex: 9999,
+    boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+    animation: 'slideInToast 0.3s ease-out',
+  },
+  iconCol: {
+    width: '36px',
+    height: '36px',
+    background: '#ea580c',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  body: {
+    flex: 1,
+    minWidth: 0,
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '4px',
+  },
+  label: {
+    fontSize: '10px',
+    fontWeight: '700',
+    letterSpacing: '1px',
+    color: '#ea580c',
+  },
+  time: {
+    fontSize: '11px',
+    color: '#999',
+  },
+  name: {
+    fontSize: '14px',
+    fontWeight: '600',
+    marginBottom: '2px',
+  },
+  message: {
+    fontSize: '13px',
+    color: '#ccc',
+    lineHeight: '1.4',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    display: '-webkit-box',
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: 'vertical',
+  },
+  hint: {
+    fontSize: '11px',
+    color: '#666',
+    marginTop: '6px',
+  },
+  dismiss: {
+    background: 'none',
+    border: 'none',
+    color: '#666',
+    fontSize: '16px',
+    cursor: 'pointer',
+    padding: '0 4px',
+    alignSelf: 'flex-start',
+    lineHeight: 1,
+  },
+};
 
 // Shared styles that can be imported by pages
 export const sharedStyles = {
@@ -1137,6 +1280,10 @@ if (typeof document !== 'undefined') {
       @keyframes pulse-badge {
         0%, 100% { opacity: 1; transform: scale(1); }
         50% { opacity: 0.8; transform: scale(1.1); }
+      }
+      @keyframes slideInToast {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
       }
       @media (max-width: 768px) {
         [data-admin-sidebar] {

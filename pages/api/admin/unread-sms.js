@@ -34,7 +34,7 @@ export default async function handler(req, res) {
     if (count > 0) {
       const { data: latestMsg } = await supabase
         .from('comms_log')
-        .select('id, patient_name, message, recipient, created_at')
+        .select('id, patient_id, patient_name, message, recipient, created_at')
         .eq('direction', 'inbound')
         .eq('channel', 'sms')
         .is('read_at', null)
@@ -45,6 +45,7 @@ export default async function handler(req, res) {
       if (latestMsg) {
         latest = {
           id: latestMsg.id,
+          patientId: latestMsg.patient_id || null,
           patientName: latestMsg.patient_name || latestMsg.recipient,
           message: latestMsg.message ? latestMsg.message.substring(0, 100) : '',
           time: latestMsg.created_at,

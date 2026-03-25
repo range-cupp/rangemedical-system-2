@@ -27,9 +27,10 @@ export default async function handler(req, res) {
 
   const accountSid = (process.env.TWILIO_ACCOUNT_SID || '').trim();
   const authToken = (process.env.TWILIO_AUTH_TOKEN || '').trim();
-  const clinicPhone = (process.env.TWILIO_PHONE_NUMBER || '').trim();
+  const rawPhone = (process.env.TWILIO_PHONE_NUMBER || '').trim();
+  const clinicPhone = normalizePhone(rawPhone) || rawPhone || '+19499973988';
 
-  if (!accountSid || !authToken || !clinicPhone) {
+  if (!accountSid || !authToken) {
     return res.status(200).json({ synced: 0, error: 'Twilio credentials not configured' });
   }
 

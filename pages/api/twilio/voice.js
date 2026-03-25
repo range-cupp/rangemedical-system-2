@@ -29,8 +29,8 @@ export default async function handler(req, res) {
 
     return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial callerId="+19499973988" statusCallbackEvent="completed busy no-answer failed canceled" statusCallback="${statusCallback}">
-    <Number>${dialNumber}</Number>
+  <Dial callerId="+19499973988">
+    <Number statusCallbackEvent="initiated ringing answered completed" statusCallback="${statusCallback}" statusCallbackMethod="POST">${dialNumber}</Number>
   </Dial>
 </Response>`);
   }
@@ -38,8 +38,8 @@ export default async function handler(req, res) {
   // Incoming call — ring the Grandstream via SIP
   return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial timeout="30" action="/api/twilio/voicemail" statusCallbackEvent="completed busy no-answer failed canceled" statusCallback="${statusCallback}">
-    <Sip>sip:rangemedical@rangemedical.sip.twilio.com</Sip>
+  <Dial timeout="30" action="/api/twilio/voicemail">
+    <Sip statusCallbackEvent="initiated ringing answered completed" statusCallback="${statusCallback}" statusCallbackMethod="POST">sip:rangemedical@rangemedical.sip.twilio.com</Sip>
   </Dial>
 </Response>`);
 }

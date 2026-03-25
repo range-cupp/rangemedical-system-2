@@ -66,6 +66,9 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const [automations, setAutomations] = useState([]);
   const [loadingAutomations, setLoadingAutomations] = useState(false);
   const [togglingAutomation, setTogglingAutomation] = useState(null);
+  const [playingCallSid, setPlayingCallSid] = useState(null);
+  const [loadingRecording, setLoadingRecording] = useState(null);
+  const audioRef = useRef(null);
   const nameInputRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const shouldScrollRef = useRef(false);
@@ -695,19 +698,19 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                     if (e.key === 'Escape') setEditingName(false);
                   }}
                   placeholder="First Last"
-                  style={{ fontSize: 14, fontWeight: 600, border: '1px solid #d0d5dd', borderRadius: 6, padding: '4px 8px', width: 180, outline: 'none' }}
+                  style={{ fontSize: 14, fontWeight: 600, border: '1px solid #d0d5dd', borderRadius: 0, padding: '4px 8px', width: 180, outline: 'none' }}
                   disabled={savingName}
                 />
                 <button
                   onClick={handleSaveName}
                   disabled={savingName || editName.trim().split(/\s+/).length < 2}
-                  style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, border: 'none', background: editName.trim().split(/\s+/).length >= 2 ? '#059669' : '#e0e0e0', color: '#fff', cursor: editName.trim().split(/\s+/).length >= 2 ? 'pointer' : 'default', fontWeight: 600 }}
+                  style={{ fontSize: 11, padding: '4px 10px', borderRadius: 0, border: 'none', background: editName.trim().split(/\s+/).length >= 2 ? '#059669' : '#e0e0e0', color: '#fff', cursor: editName.trim().split(/\s+/).length >= 2 ? 'pointer' : 'default', fontWeight: 600 }}
                 >
                   {savingName ? '…' : 'Save'}
                 </button>
                 <button
                   onClick={() => setEditingName(false)}
-                  style={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: '1px solid #e0e0e0', background: '#fff', color: '#666', cursor: 'pointer' }}
+                  style={{ fontSize: 11, padding: '4px 8px', borderRadius: 0, border: '1px solid #e0e0e0', background: '#fff', color: '#666', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
@@ -965,7 +968,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
               {FORM_OPTIONS.map(form => (
                 <label key={form.id} style={{
                   display: 'flex', alignItems: 'center', gap: '10px',
-                  padding: '10px 12px', borderRadius: '8px', cursor: 'pointer',
+                  padding: '10px 12px', borderRadius: '0', cursor: 'pointer',
                   background: selectedForms.includes(form.id) ? '#f0f9ff' : '#fff',
                   border: selectedForms.includes(form.id) ? '1px solid #93c5fd' : '1px solid #e5e7eb',
                   marginBottom: '6px', transition: 'all 0.15s',
@@ -981,7 +984,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
               ))}
               {formsResult && (
                 <div style={{
-                  padding: '10px 14px', borderRadius: '8px', marginTop: '10px', fontSize: '13px',
+                  padding: '10px 14px', borderRadius: '0', marginTop: '10px', fontSize: '13px',
                   background: formsResult.success ? '#f0fdf4' : '#fef2f2',
                   color: formsResult.success ? '#16a34a' : '#dc2626',
                   border: formsResult.success ? '1px solid #bbf7d0' : '1px solid #fecaca',
@@ -996,7 +999,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                   width: '100%', padding: '12px', marginTop: '12px',
                   background: selectedForms.length ? '#000' : '#e5e7eb',
                   color: selectedForms.length ? '#fff' : '#9ca3af',
-                  border: 'none', borderRadius: '10px', fontSize: '14px',
+                  border: 'none', borderRadius: '0', fontSize: '14px',
                   fontWeight: 600, cursor: selectedForms.length ? 'pointer' : 'default',
                   fontFamily: 'inherit',
                 }}
@@ -1018,7 +1021,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
             </div>
             <form onSubmit={handleCreateTask}>
               <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ padding: '8px 12px', background: '#f0f9ff', borderRadius: '8px', fontSize: '13px', color: '#2563eb' }}>
+                <div style={{ padding: '8px 12px', background: '#f0f9ff', borderRadius: '0', fontSize: '13px', color: '#2563eb' }}>
                   Linked to: <strong>{displayName || patientName || 'Unknown'}</strong>
                 </div>
                 <div>
@@ -1028,7 +1031,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                     value={taskForm.title}
                     onChange={e => setTaskForm(prev => ({ ...prev, title: e.target.value }))}
                     placeholder="What needs to be done?"
-                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '0', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box' }}
                     autoFocus
                     required
                   />
@@ -1040,7 +1043,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                     onChange={e => setTaskForm(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Additional context..."
                     rows={2}
-                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '0', fontSize: '14px', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }}
                   />
                 </div>
                 <div>
@@ -1048,7 +1051,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                   <select
                     value={taskForm.assigned_to}
                     onChange={e => setTaskForm(prev => ({ ...prev, assigned_to: e.target.value }))}
-                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '0', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box' }}
                     required
                   >
                     <option value="">Select team member...</option>
@@ -1063,7 +1066,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                     <select
                       value={taskForm.priority}
                       onChange={e => setTaskForm(prev => ({ ...prev, priority: e.target.value }))}
-                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '0', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box' }}
                     >
                       <option value="low">Low</option>
                       <option value="medium">Medium</option>
@@ -1077,13 +1080,13 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                       type="date"
                       value={taskForm.due_date}
                       onChange={e => setTaskForm(prev => ({ ...prev, due_date: e.target.value }))}
-                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '0', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box' }}
                     />
                   </div>
                 </div>
                 {taskResult && (
                   <div style={{
-                    padding: '10px 14px', borderRadius: '8px', fontSize: '13px',
+                    padding: '10px 14px', borderRadius: '0', fontSize: '13px',
                     background: taskResult.success ? '#f0fdf4' : '#fef2f2',
                     color: taskResult.success ? '#16a34a' : '#dc2626',
                     border: taskResult.success ? '1px solid #bbf7d0' : '1px solid #fecaca',
@@ -1098,7 +1101,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                     width: '100%', padding: '12px',
                     background: (taskForm.title.trim() && taskForm.assigned_to) ? '#000' : '#e5e7eb',
                     color: (taskForm.title.trim() && taskForm.assigned_to) ? '#fff' : '#9ca3af',
-                    border: 'none', borderRadius: '10px', fontSize: '14px',
+                    border: 'none', borderRadius: '0', fontSize: '14px',
                     fontWeight: 600, cursor: (taskForm.title.trim() && taskForm.assigned_to) ? 'pointer' : 'default',
                     fontFamily: 'inherit',
                   }}
@@ -1134,7 +1137,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                 onClick={loadEarlierMessages}
                 disabled={loadingMore}
                 style={{
-                  background: 'none', border: '1px solid #e5e7eb', borderRadius: '20px',
+                  background: 'none', border: '1px solid #e5e7eb', borderRadius: '0',
                   padding: '6px 18px', fontSize: '13px', color: '#2563eb', cursor: 'pointer',
                   fontWeight: 500, opacity: loadingMore ? 0.6 : 1,
                 }}
@@ -1173,9 +1176,13 @@ export default function ConversationView({ patientId, patientName, patientPhone,
               );
             }
 
-            // Call events — centered timeline card
+            // Call events — centered timeline card with recording playback
             if (isCall) {
               const isMissed = item.status === 'missed' || item.status === 'no-answer';
+              const callSid = item.twilio_message_sid;
+              const isPlaying = playingCallSid === callSid;
+              const isLoadingRec = loadingRecording === callSid;
+              const canPlay = item.status === 'completed' && callSid;
               return (
                 <div key={item.id || idx} style={styles.callEvent} onClick={() => setSelectedMessage(item)}>
                   <span style={{ ...styles.callIcon, color: isMissed ? '#ef4444' : '#6b7280' }}>
@@ -1184,6 +1191,29 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                   <span style={{ ...styles.callText, color: isMissed ? '#ef4444' : '#6b7280' }}>
                     {item.message || 'Call'}
                   </span>
+                  {canPlay && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (isPlaying) {
+                          if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+                          setPlayingCallSid(null);
+                        } else {
+                          setLoadingRecording(callSid);
+                          const audio = new Audio(`/api/twilio/call-recording?callSid=${callSid}`);
+                          audio.oncanplay = () => { setLoadingRecording(null); setPlayingCallSid(callSid); audio.play(); };
+                          audio.onended = () => { setPlayingCallSid(null); audioRef.current = null; };
+                          audio.onerror = () => { setLoadingRecording(null); setPlayingCallSid(null); audioRef.current = null; };
+                          if (audioRef.current) audioRef.current.pause();
+                          audioRef.current = audio;
+                        }
+                      }}
+                      style={{ ...styles.callPlayBtn, opacity: isLoadingRec ? 0.5 : 1 }}
+                      title={isPlaying ? 'Stop' : 'Play recording'}
+                    >
+                      {isLoadingRec ? '...' : isPlaying ? '⏹' : '▶'}
+                    </button>
+                  )}
                   <span style={styles.callTime}>{formatTime(item.created_at)}</span>
                 </div>
               );
@@ -1352,7 +1382,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                 selectedMessage.html_body ? (
                   <iframe
                     srcDoc={selectedMessage.html_body}
-                    style={{ width: '100%', minHeight: '500px', border: 'none', borderRadius: '8px', background: '#fff' }}
+                    style={{ width: '100%', minHeight: '500px', border: 'none', borderRadius: '0', background: '#fff' }}
                     title="Email preview"
                   />
                 ) : (
@@ -1496,7 +1526,7 @@ const styles = {
   backBtn: {
     background: 'none',
     border: '1px solid #ddd',
-    borderRadius: '8px',
+    borderRadius: '0',
     padding: '6px 10px',
     fontSize: '18px',
     cursor: 'pointer',
@@ -1507,7 +1537,7 @@ const styles = {
   navBtn: {
     background: 'none',
     border: '1px solid #ddd',
-    borderRadius: '8px',
+    borderRadius: '0',
     padding: '6px 8px',
     fontSize: '20px',
     cursor: 'pointer',
@@ -1536,7 +1566,7 @@ const styles = {
   pill: {
     padding: '4px 10px',
     border: '1px solid #e5e5e5',
-    borderRadius: '14px',
+    borderRadius: '0',
     background: '#fff',
     fontSize: '11px',
     color: '#666',
@@ -1554,7 +1584,7 @@ const styles = {
     background: '#fff7ed',
     color: '#ea580c',
     border: '1px solid #fb923c',
-    borderRadius: '6px',
+    borderRadius: '0',
     padding: '6px 12px',
     fontSize: '12px',
     fontWeight: 600,
@@ -1566,7 +1596,7 @@ const styles = {
     background: '#f0f9ff',
     color: '#2563eb',
     border: '1px solid #bfdbfe',
-    borderRadius: '6px',
+    borderRadius: '0',
     padding: '6px 12px',
     fontSize: '12px',
     fontWeight: 600,
@@ -1578,7 +1608,7 @@ const styles = {
     background: '#000',
     color: '#fff',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: '0',
     padding: '6px 12px',
     fontSize: '12px',
     fontWeight: 600,
@@ -1597,7 +1627,7 @@ const styles = {
   },
   bookingModal: {
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: '0',
     width: '90%',
     maxWidth: '560px',
     maxHeight: '85vh',
@@ -1628,7 +1658,7 @@ const styles = {
   refreshBtn: {
     background: 'none',
     border: '1px solid #ddd',
-    borderRadius: '6px',
+    borderRadius: '0',
     padding: '6px 10px',
     fontSize: '16px',
     cursor: 'pointer',
@@ -1659,7 +1689,7 @@ const styles = {
   dateLabel: {
     padding: '4px 12px',
     background: '#e5e7eb',
-    borderRadius: '12px',
+    borderRadius: '0',
     fontSize: '11px',
     color: '#6b7280',
     fontWeight: '500',
@@ -1671,7 +1701,7 @@ const styles = {
   bubble: {
     maxWidth: '75%',
     padding: '10px 14px',
-    borderRadius: '16px',
+    borderRadius: '0',
     fontSize: '14px',
     lineHeight: '1.4',
   },
@@ -1732,7 +1762,7 @@ const styles = {
   ghlBadge: {
     marginLeft: '4px',
     padding: '1px 4px',
-    borderRadius: '3px',
+    borderRadius: '0',
     fontSize: '8px',
     fontWeight: '600',
     background: 'rgba(255,255,255,0.2)',
@@ -1751,7 +1781,7 @@ const styles = {
     marginBottom: '8px',
     background: '#fffbeb',
     border: '1px dashed #f59e0b',
-    borderRadius: '8px',
+    borderRadius: '0',
     marginLeft: '40px',
     marginRight: '40px',
   },
@@ -1791,7 +1821,7 @@ const styles = {
   clearNoteQuickBtn: {
     padding: '4px 10px',
     border: '1px solid #fed7aa',
-    borderRadius: '14px',
+    borderRadius: '0',
     background: '#fff',
     fontSize: '12px',
     cursor: 'pointer',
@@ -1807,7 +1837,7 @@ const styles = {
     flex: 1,
     padding: '8px 12px',
     border: '1px solid #fed7aa',
-    borderRadius: '6px',
+    borderRadius: '0',
     fontSize: '13px',
     outline: 'none',
     fontFamily: 'inherit',
@@ -1816,7 +1846,7 @@ const styles = {
   clearNoteSubmitBtn: {
     padding: '8px 16px',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: '0',
     background: '#ea580c',
     color: '#fff',
     fontSize: '13px',
@@ -1828,7 +1858,7 @@ const styles = {
   clearNoteCancelBtn: {
     padding: '8px 12px',
     border: '1px solid #e5e5e5',
-    borderRadius: '6px',
+    borderRadius: '0',
     background: '#fff',
     color: '#666',
     fontSize: '13px',
@@ -1857,11 +1887,26 @@ const styles = {
     fontSize: '11px',
     color: '#9ca3af',
   },
+  callPlayBtn: {
+    background: 'none',
+    border: '1px solid #d1d5db',
+    borderRadius: '50%',
+    width: '24px',
+    height: '24px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    fontSize: '10px',
+    color: '#6b7280',
+    padding: 0,
+    flexShrink: 0,
+  },
   // Email card style
   emailCard: {
     background: '#fff',
     border: '1px solid #e5e5e5',
-    borderRadius: '10px',
+    borderRadius: '0',
     padding: '12px 16px',
     marginBottom: '8px',
     cursor: 'pointer',
@@ -1940,7 +1985,7 @@ const styles = {
     padding: '3px 10px',
     fontSize: '12px',
     border: '1px solid #ddd',
-    borderRadius: '12px',
+    borderRadius: '0',
     background: '#fff',
     color: '#666',
     cursor: 'pointer',
@@ -1962,7 +2007,7 @@ const styles = {
   templateBtn: {
     background: 'none',
     border: '1px solid #ddd',
-    borderRadius: '8px',
+    borderRadius: '0',
     padding: '8px 10px',
     fontSize: '16px',
     cursor: 'pointer',
@@ -1973,7 +2018,7 @@ const styles = {
     flex: 1,
     padding: '10px 14px',
     border: '1px solid #ddd',
-    borderRadius: '12px',
+    borderRadius: '0',
     fontSize: '14px',
     outline: 'none',
     fontFamily: 'inherit',
@@ -1987,7 +2032,7 @@ const styles = {
     background: '#000',
     color: '#fff',
     border: 'none',
-    borderRadius: '10px',
+    borderRadius: '0',
     fontSize: '14px',
     fontWeight: '500',
     cursor: 'pointer',
@@ -2025,7 +2070,7 @@ const styles = {
   },
   modal: {
     background: '#fff',
-    borderRadius: '14px',
+    borderRadius: '0',
     width: '100%',
     maxWidth: '600px',
     maxHeight: '80vh',
@@ -2062,7 +2107,7 @@ const styles = {
     color: '#999',
     cursor: 'pointer',
     padding: '4px 8px',
-    borderRadius: '6px',
+    borderRadius: '0',
     flexShrink: 0,
   },
   modalMeta: {
@@ -2126,14 +2171,14 @@ const styles = {
     gap: '10px',
     background: '#fff',
     border: '1px solid #dbeafe',
-    borderRadius: '8px',
+    borderRadius: '0',
     padding: '8px 12px',
   },
   automationStopBtn: {
     background: '#fee2e2',
     color: '#dc2626',
     border: '1px solid #fca5a5',
-    borderRadius: '6px',
+    borderRadius: '0',
     padding: '4px 10px',
     fontSize: '12px',
     fontWeight: '500',

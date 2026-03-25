@@ -297,9 +297,8 @@ export default function LabsPipelineTab() {
           return (
             <div key={stage.id} style={styles.pipelineColumn}>
               {/* Column Header */}
-              <div style={styles.columnHeader}>
+              <div style={{ ...styles.columnHeader, borderTop: `3px solid ${stage.color}` }}>
                 <div style={styles.columnHeaderLeft}>
-                  <span style={{ ...styles.columnDot, background: stage.color, boxShadow: `0 0 0 3px ${stage.color}20` }} />
                   <span style={styles.columnLabel}>{stage.label}</span>
                 </div>
                 <span style={styles.columnCount}>{items.length}</span>
@@ -540,80 +539,87 @@ function AddLabModal({ patientSearch, onPatientSearch, patientResults, onAdd, on
 
 // ─── Styles ────────────────────────────────────────────────────────────────
 const styles = {
-  // Summary cards
+  // Summary cards — matches sales pipeline
   summaryGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '16px',
-    marginBottom: '24px'
+    display: 'flex',
+    gap: '12px',
+    marginBottom: '20px',
+    flexWrap: 'wrap',
   },
   statCard: {
+    display: 'flex',
+    flexDirection: 'column',
+    padding: '16px 24px',
     background: '#fff',
-    border: '1px solid #e5e5e5',
-    borderRadius: '0',
-    padding: '20px',
-    textAlign: 'center'
+    border: '1px solid #e5e7eb',
+    borderRadius: '6px',
+    minWidth: '110px',
+    flex: '1 0 110px',
   },
   statValue: {
-    fontSize: '32px',
+    fontSize: '24px',
     fontWeight: '700',
-    lineHeight: 1.2
+    lineHeight: 1,
   },
   statLabel: {
     fontSize: '12px',
-    fontWeight: '600',
-    color: '#666',
+    fontWeight: '500',
+    color: '#9ca3af',
     textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-    marginTop: '4px'
+    letterSpacing: '0.03em',
+    marginTop: '6px',
   },
 
   // Pipeline Kanban
   pipelineGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(5, 1fr)',
-    gap: '12px',
-    minHeight: '400px'
+    display: 'flex',
+    gap: '10px',
+    overflowX: 'auto',
+    paddingBottom: '16px',
+    minHeight: '400px',
   },
   pipelineColumn: {
-    background: '#fafafa',
-    borderRadius: '0',
-    border: '1px solid #e5e5e5',
+    minWidth: '250px',
+    flex: '1 0 250px',
+    background: '#f9fafb',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
     display: 'flex',
     flexDirection: 'column',
-    overflow: 'hidden'
+    overflow: 'hidden',
+    maxHeight: 'calc(100vh - 300px)',
   },
   columnHeader: {
-    padding: '14px',
+    padding: '12px 14px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottom: '1px solid #f0f0f0',
-    background: '#fff'
+    borderBottom: '1px solid #e5e7eb',
+    background: '#fff',
+    borderRadius: '8px 8px 0 0',
   },
   columnHeaderLeft: {
     display: 'flex',
     alignItems: 'center',
-    gap: '8px'
+    gap: '8px',
   },
   columnDot: {
-    width: '10px',
-    height: '10px',
-    borderRadius: '50%',
-    flexShrink: 0
+    display: 'none',
   },
   columnLabel: {
     fontSize: '13px',
     fontWeight: '600',
-    color: '#111'
+    color: '#111',
   },
   columnCount: {
     fontSize: '12px',
     fontWeight: '600',
-    color: '#9ca3af',
-    background: '#f5f5f5',
+    color: '#6b7280',
+    background: '#e5e7eb',
     padding: '2px 8px',
-    borderRadius: '0'
+    borderRadius: '10px',
+    minWidth: '24px',
+    textAlign: 'center',
   },
   columnBody: {
     padding: '8px',
@@ -621,85 +627,87 @@ const styles = {
     overflowY: 'auto',
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px'
+    gap: '6px',
   },
   emptyColumn: {
     textAlign: 'center',
-    color: '#d1d5db',
+    color: '#9ca3af',
     padding: '32px 12px',
-    fontSize: '13px'
+    fontSize: '13px',
+    fontStyle: 'italic',
   },
 
   // Pipeline Cards
   pipelineCard: {
     background: '#fff',
-    borderRadius: '0',
-    padding: '14px',
-    border: '1px solid #e5e5e5'
+    borderRadius: '6px',
+    padding: '12px',
+    border: '1px solid #e5e7eb',
+    transition: 'box-shadow 0.15s',
   },
   cardTop: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     gap: '8px',
-    marginBottom: '8px'
+    marginBottom: '8px',
   },
   cardName: {
     fontWeight: '600',
-    fontSize: '14px',
-    color: '#000',
+    fontSize: '13px',
+    color: '#111',
     textDecoration: 'none',
-    lineHeight: 1.3
+    lineHeight: 1.3,
   },
   cardBadges: {
     display: 'flex',
-    gap: '5px',
-    marginBottom: '10px',
-    flexWrap: 'wrap'
+    gap: '4px',
+    marginBottom: '8px',
+    flexWrap: 'wrap',
   },
   panelBadge: {
     fontSize: '11px',
     fontWeight: '600',
     padding: '2px 8px',
-    borderRadius: '0',
+    borderRadius: '3px',
     border: '1px solid transparent',
-    letterSpacing: '0.2px'
+    letterSpacing: '0.2px',
   },
   typeBadge: {
     fontSize: '11px',
     fontWeight: '500',
     padding: '2px 8px',
-    borderRadius: '0',
-    background: '#f5f5f5',
-    color: '#666',
-    border: '1px solid #ebebeb'
+    borderRadius: '3px',
+    background: '#f3f4f6',
+    color: '#6b7280',
+    border: '1px solid #e5e7eb',
   },
   cardNotes: {
-    marginTop: '4px',
-    padding: '5px 8px',
+    marginTop: '6px',
+    padding: '6px 8px',
     background: '#fffbeb',
     border: '1px solid #fef3c7',
-    borderRadius: '0',
+    borderRadius: '4px',
     fontSize: '11px',
     color: '#92400e',
     fontStyle: 'italic',
-    lineHeight: 1.4
+    lineHeight: 1.4,
   },
   cardActions: {
     paddingTop: '10px',
-    borderTop: '1px solid #f5f5f5',
-    position: 'relative'
+    borderTop: '1px solid #f3f4f6',
+    position: 'relative',
   },
   moveBtn: {
     flex: 1,
     padding: '5px 10px',
-    border: '1px solid #e5e5e5',
-    borderRadius: '0',
+    border: '1px solid #d1d5db',
+    borderRadius: '4px',
     background: '#fff',
     cursor: 'pointer',
     fontSize: '11px',
     fontWeight: '500',
-    color: '#9ca3af'
+    color: '#6b7280',
   },
   moveMenu: {
     position: 'absolute',
@@ -707,19 +715,19 @@ const styles = {
     left: 0,
     right: 0,
     background: '#fff',
-    border: '1px solid #e5e5e5',
-    borderRadius: '0',
+    border: '1px solid #e5e7eb',
+    borderRadius: '6px',
     boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
     zIndex: 100,
     marginTop: '4px',
     overflow: 'hidden',
-    padding: '4px'
+    padding: '4px',
   },
   moveOption: {
     width: '100%',
     padding: '8px 10px',
     border: 'none',
-    borderRadius: '0',
+    borderRadius: '4px',
     background: 'transparent',
     cursor: 'pointer',
     fontSize: '12px',
@@ -728,7 +736,7 @@ const styles = {
     display: 'flex',
     gap: '8px',
     alignItems: 'center',
-    color: '#374151'
+    color: '#374151',
   },
 
   // Due for Labs
@@ -738,17 +746,17 @@ const styles = {
     alignItems: 'center',
     padding: '16px 20px',
     cursor: 'pointer',
-    borderBottom: '1px solid #f0f0f0'
+    borderBottom: '1px solid #e5e7eb',
   },
   dueHeaderLeft: {
     display: 'flex',
     alignItems: 'center',
-    gap: '10px'
+    gap: '10px',
   },
   dueTitle: {
     fontSize: '15px',
     fontWeight: '700',
-    color: '#000'
+    color: '#111',
   },
   dueBadge: {
     fontSize: '11px',
@@ -756,7 +764,7 @@ const styles = {
     color: '#92400e',
     background: '#fef3c7',
     padding: '2px 8px',
-    borderRadius: '0'
+    borderRadius: '10px',
   },
   scheduledBadge: {
     fontSize: '11px',
@@ -764,11 +772,11 @@ const styles = {
     color: '#166534',
     background: '#dcfce7',
     padding: '2px 8px',
-    borderRadius: '0'
+    borderRadius: '10px',
   },
   dueToggle: {
     fontSize: '14px',
-    color: '#9ca3af'
+    color: '#9ca3af',
   },
 
   // Text button
@@ -782,36 +790,36 @@ const styles = {
     color: '#1e40af',
     background: '#eff6ff',
     border: '1px solid #bfdbfe',
-    borderRadius: '0',
-    cursor: 'pointer'
+    borderRadius: '4px',
+    cursor: 'pointer',
   },
 
   // SMS Composer
   smsComposer: {
     background: '#f9fafb',
     border: '1px solid #e5e7eb',
-    borderRadius: '0',
+    borderRadius: '6px',
     padding: '14px 20px',
-    margin: '0 16px 16px'
+    margin: '0 16px 16px',
   },
   smsHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '10px'
+    marginBottom: '10px',
   },
   smsClose: {
     background: 'none',
     border: 'none',
     fontSize: '18px',
-    color: '#999',
-    cursor: 'pointer'
+    color: '#9ca3af',
+    cursor: 'pointer',
   },
   smsTextarea: {
     width: '100%',
     padding: '10px 12px',
     border: '1px solid #d1d5db',
-    borderRadius: '0',
+    borderRadius: '6px',
     fontSize: '13px',
     fontFamily: 'inherit',
     lineHeight: 1.5,
@@ -819,13 +827,13 @@ const styles = {
     background: '#fff',
     boxSizing: 'border-box',
     outline: 'none',
-    resize: 'vertical'
+    resize: 'vertical',
   },
   smsActions: {
     display: 'flex',
     gap: '8px',
     marginTop: '8px',
-    justifyContent: 'flex-end'
+    justifyContent: 'flex-end',
   },
   smsSendBtn: {
     display: 'inline-flex',
@@ -835,13 +843,13 @@ const styles = {
     fontWeight: '600',
     color: '#fff',
     border: 'none',
-    borderRadius: '0',
-    cursor: 'pointer'
+    borderRadius: '6px',
+    cursor: 'pointer',
   },
   smsError: {
     fontSize: '12px',
     color: '#dc2626',
-    marginTop: '6px'
+    marginTop: '6px',
   },
 
   // Pipeline table actions
@@ -849,32 +857,32 @@ const styles = {
     width: '100%',
     padding: '7px 10px',
     border: 'none',
-    borderRadius: '0',
+    borderRadius: '4px',
     color: '#fff',
     cursor: 'pointer',
     fontWeight: '600',
     fontSize: '12px',
     marginBottom: '8px',
-    letterSpacing: '0.2px'
+    letterSpacing: '0.2px',
   },
   removeBtn: {
     padding: '5px 8px',
     border: '1px solid #fecaca',
-    borderRadius: '0',
+    borderRadius: '4px',
     background: '#fff',
     cursor: 'pointer',
     fontSize: '14px',
     color: '#ef4444',
     fontWeight: '600',
-    lineHeight: 1
+    lineHeight: 1,
   },
 
   // Action bar
   actionBar: {
     display: 'flex',
     gap: '8px',
-    marginTop: '16px',
-    justifyContent: 'flex-end'
+    marginTop: '20px',
+    justifyContent: 'flex-end',
   },
 
   // Modal
@@ -886,106 +894,109 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 1000
+    zIndex: 1000,
   },
   modal: {
     background: '#fff',
-    borderRadius: '0',
-    padding: '28px',
+    borderRadius: '10px',
+    padding: '24px',
     width: '90%',
-    maxWidth: '440px',
+    maxWidth: '500px',
     maxHeight: '90vh',
     overflowY: 'auto',
-    boxShadow: '0 24px 48px rgba(0,0,0,0.16)'
+    boxShadow: '0 24px 48px rgba(0,0,0,0.16)',
   },
   modalTitle: {
     margin: 0,
-    fontSize: '18px',
-    fontWeight: '700',
-    color: '#000'
+    fontSize: '17px',
+    fontWeight: '600',
+    color: '#111',
   },
   modalFooter: {
     display: 'flex',
-    gap: '10px',
-    marginTop: '24px'
+    gap: '8px',
+    marginTop: '24px',
+    paddingTop: '16px',
+    borderTop: '1px solid #f3f4f6',
   },
 
   // Form elements
-  formGroup: { marginBottom: '18px' },
+  formGroup: { marginBottom: '16px' },
   formLabel: {
     display: 'block',
     fontSize: '12px',
     fontWeight: '600',
-    color: '#666',
-    marginBottom: '6px',
+    color: '#374151',
+    marginBottom: '5px',
     textTransform: 'uppercase',
-    letterSpacing: '0.4px'
+    letterSpacing: '0.03em',
   },
   input: {
     width: '100%',
-    padding: '10px 14px',
-    border: '1px solid #ddd',
-    borderRadius: '0',
+    padding: '9px 12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
     fontFamily: 'inherit',
-    fontSize: '14px',
+    fontSize: '13px',
     boxSizing: 'border-box',
-    outline: 'none'
+    outline: 'none',
+    transition: 'border-color 0.15s',
   },
   textarea: {
     width: '100%',
-    padding: '10px 14px',
-    border: '1px solid #ddd',
-    borderRadius: '0',
+    padding: '9px 12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
     minHeight: '60px',
     resize: 'vertical',
     fontFamily: 'inherit',
-    fontSize: '14px',
+    fontSize: '13px',
     boxSizing: 'border-box',
-    outline: 'none'
+    outline: 'none',
   },
   segmentedControl: {
     display: 'flex',
-    background: '#f5f5f5',
-    borderRadius: '0',
+    background: '#f3f4f6',
+    borderRadius: '6px',
     padding: '3px',
-    gap: '3px'
+    gap: '3px',
   },
   segmentBtn: {
     flex: 1,
     padding: '8px 12px',
     background: 'transparent',
     border: 'none',
-    borderRadius: '0',
+    borderRadius: '4px',
     fontSize: '13px',
     fontWeight: '500',
     cursor: 'pointer',
     color: '#6b7280',
-    transition: 'all 0.12s ease'
+    transition: 'all 0.12s ease',
   },
   segmentBtnActive: {
-    background: '#000',
+    background: '#111',
     color: '#fff',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
   },
   searchDropdown: {
     marginTop: '4px',
-    border: '1px solid #e5e5e5',
-    borderRadius: '0',
+    border: '1px solid #e5e7eb',
+    borderRadius: '6px',
     overflow: 'hidden',
     background: '#fff',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
   },
   searchItem: {
     width: '100%',
     padding: '10px 14px',
     border: 'none',
-    borderBottom: '1px solid #f5f5f5',
+    borderBottom: '1px solid #f3f4f6',
     background: '#fff',
     cursor: 'pointer',
     textAlign: 'left',
     display: 'flex',
     flexDirection: 'column',
     gap: '2px',
-    fontSize: '14px'
-  }
+    fontSize: '13px',
+  },
 };

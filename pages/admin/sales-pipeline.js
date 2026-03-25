@@ -72,6 +72,7 @@ export default function SalesPipeline() {
   const [filterSource, setFilterSource] = useState('all');
   const [filterPath, setFilterPath] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const fetchBoard = useCallback(async () => {
     try {
@@ -220,6 +221,27 @@ export default function SalesPipeline() {
       });
     } catch {
       fetchBoard();
+    }
+  };
+
+  const handleDeleteLead = async (leadId) => {
+    try {
+      const res = await fetch('/api/admin/sales-pipeline', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: leadId }),
+      });
+      if (res.ok) {
+        setColumns(prev => prev.map(col => ({
+          ...col,
+          leads: col.leads.filter(l => l.id !== leadId),
+        })));
+        setDeleteConfirm(null);
+        setSelectedLead(null);
+        fetchBoard();
+      }
+    } catch (err) {
+      console.error('Delete lead error:', err);
     }
   };
 
@@ -550,9 +572,37 @@ export default function SalesPipeline() {
             )}
 
             <div style={styles.modalActions}>
+              <button
+                onClick={() => setDeleteConfirm(selectedLead)}
+                style={styles.deleteBtn}
+              >
+                Delete
+              </button>
+              <div style={{ flex: 1 }} />
               <button onClick={() => setSelectedLead(null)} style={styles.cancelBtn}>Close</button>
               <button onClick={handleUpdateLead} disabled={saving} style={styles.saveBtn}>
                 {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation */}
+      {deleteConfirm && (
+        <div style={sharedStyles.modalOverlay} onClick={() => setDeleteConfirm(null)}>
+          <div style={styles.modalBox} onClick={e => e.stopPropagation()}>
+            <h3 style={styles.modalTitle}>Delete Lead?</h3>
+            <p style={{ margin: '12px 0 0', color: '#374151', fontSize: '14px', lineHeight: 1.5 }}>
+              Remove <strong>{deleteConfirm.first_name} {deleteConfirm.last_name}</strong> from the pipeline? This cannot be undone.
+            </p>
+            <div style={styles.modalActions}>
+              <button onClick={() => setDeleteConfirm(null)} style={styles.cancelBtn}>Cancel</button>
+              <button
+                onClick={() => handleDeleteLead(deleteConfirm.id)}
+                style={{ ...styles.saveBtn, background: '#dc2626', borderColor: '#dc2626' }}
+              >
+                Delete
               </button>
             </div>
           </div>
@@ -889,6 +939,17 @@ const styles = {
     marginTop: '24px',
     paddingTop: '16px',
     borderTop: '1px solid #f3f4f6',
+  },
+  deleteBtn: {
+    padding: '9px 18px',
+    border: '1px solid #fecaca',
+    borderRadius: '6px',
+    background: '#fff',
+    fontSize: '13px',
+    fontWeight: '500',
+    fontFamily: 'inherit',
+    cursor: 'pointer',
+    color: '#dc2626',
   },
   cancelBtn: {
     padding: '9px 18px',

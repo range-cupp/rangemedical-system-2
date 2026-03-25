@@ -26,6 +26,7 @@ export default async function handler(req, res) {
   if (req.method === 'GET') return handleGet(req, res);
   if (req.method === 'PATCH') return handlePatch(req, res);
   if (req.method === 'POST') return handlePost(req, res);
+  if (req.method === 'DELETE') return handleDelete(req, res);
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
@@ -232,5 +233,28 @@ async function importLeads(res) {
   } catch (err) {
     console.error('Import leads error:', err);
     return res.status(500).json({ error: err.message, imported });
+  }
+}
+
+async function handleDelete(req, res) {
+  const { id, ids } = req.body;
+
+  // Support single delete or bulk delete
+  const deleteIds = ids || (id ? [id] : []);
+  if (deleteIds.length === 0) {
+    return res.status(400).json({ error: 'id or ids required' });
+  }
+
+  try {
+    const { error } = await supabase
+      .from('sales_pipeline')
+      .delete()
+      .in('id', deleteIds);
+
+    if (error) throw error;
+    return res.status(200).json({ deleted: deleteIds.length });
+  } catch (err) {
+    console.error('Sales pipeline DELETE error:', err);
+    return res.status(500).json({ error: err.message });
   }
 }

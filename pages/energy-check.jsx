@@ -896,8 +896,8 @@ export default function EnergyCheckPage() {
 
             <div className="ec-testimonial">
               <div className="ec-testimonial-card">
-                &ldquo;I had no idea my levels were that off. Range found things my regular doctor never tested for — and I started feeling different within weeks.&rdquo;
-                <div className="ec-testimonial-attr">&mdash; Range Medical patient, Newport Beach</div>
+                &ldquo;My labs were thoroughly reviewed, clearly explained, and a thoughtful health plan was put in place. From start to finish, the entire experience was professional, efficient, and genuinely personalized.&rdquo;
+                <div className="ec-testimonial-attr">&mdash; Mark T., Google Review</div>
               </div>
             </div>
           </div>

@@ -169,7 +169,7 @@ export default async function handler(req, res) {
         if (normalized) {
           const bookingUrl = `https://range-medical.com/start/energy?name=${encodeURIComponent(capFirst)}&from=energy-check`;
 
-          const message = `Hey ${capFirst}, your Energy & Recovery Check results are in.\n\nYour score: ${score}/24 (${SEVERITY_LABELS[severity]})\n\nReady for the next step? See your options here:\n${bookingUrl}\n\n- Range Medical`;
+          const message = `Hey ${capFirst}, your Energy & Recovery Check results are in.\n\nYour score: ${score}/24 (${SEVERITY_LABELS[severity]})\n\nReady for the next step? Pick your lab panel here:\n${bookingUrl}\n\n- Range Medical`;
 
           const smsResult = await sendSMS({ to: normalized, message });
 

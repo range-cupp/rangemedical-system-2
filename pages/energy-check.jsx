@@ -298,7 +298,7 @@ export default function EnergyCheckPage() {
   const severityInfo = severity ? SEVERITY_CONFIG[severity] : null;
 
   const ctaUrl = `/start/energy?name=${encodeURIComponent(contact.firstName.trim())}&from=energy-check`;
-  const ctaLabel = 'See Lab Panels & Pricing';
+  const ctaLabel = 'Pick Your Lab Panel';
 
   return (
     <Layout title="Energy & Recovery Check | Range Medical" description="Take the free 3-minute Energy & Recovery Check. Find out why you feel tired, foggy, or slow to recover.">
@@ -804,6 +804,7 @@ export default function EnergyCheckPage() {
               <h1>Energy & Recovery Check</h1>
               <div className="ec-hero-rule" />
               <p>Find out why you feel tired, foggy, or slow to recover — and what to do about it in the next 30 days.</p>
+              <p style={{ fontSize: 14, color: '#a3a3a3', marginTop: 12 }}>If your score shows moderate or high concern, we may recommend starting with a lab panel so your provider has real data to work from.</p>
             </div>
 
             <div className="ec-trust-bar">
@@ -1009,12 +1010,20 @@ export default function EnergyCheckPage() {
                 </div>
               )}
 
-              {/* Pivot */}
-              <div className="ec-pivot">
+              {/* What the quiz can't do */}
+              <div className="ec-pivot" style={{ marginBottom: 16 }}>
                 <h3>Here&apos;s the thing this quiz can&apos;t do.</h3>
                 <p>
                   It can spot patterns in your symptoms — but it can&apos;t see your hormones, nutrients, or deeper cellular markers.
-                  That&apos;s where the Range Assessment comes in: detailed labs, a 1-on-1 provider review, and a written plan built around your results.
+                </p>
+              </div>
+
+              {/* Step 1: Pick your lab panel */}
+              <div className="ec-pivot">
+                <div className="v2-label"><span className="v2-dot" /> STEP 1</div>
+                <h3>Pick your lab panel.</h3>
+                <p>
+                  The first step for patients with a score like yours is a comprehensive lab panel. You come into our Newport Beach clinic for a quick blood draw. When your results are back, your provider reviews them with you 1-on-1 and builds a written plan.
                 </p>
 
                 <div className="ec-pivot-features">
@@ -1029,9 +1038,17 @@ export default function EnergyCheckPage() {
                   </div>
                 </div>
 
+                <p style={{ fontSize: 13, color: '#737373', margin: '0 0 20px', lineHeight: 1.6 }}>
+                  Your lab visit is first. Your provider review happens once your results are in.
+                </p>
+
                 <a href={ctaUrl} style={{ textDecoration: 'none' }}>
                   <button className="ec-btn">{ctaLabel}</button>
                 </a>
+
+                <p style={{ fontSize: 13, color: '#a3a3a3', marginTop: 12, lineHeight: 1.6, textAlign: 'center' }}>
+                  Choose Essential or Elite, pick a time for your blood draw, and we&apos;ll text you a confirmation.
+                </p>
               </div>
 
               <div className="ec-trust">

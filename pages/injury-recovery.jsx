@@ -263,32 +263,32 @@ export default function InjuryRecovery() {
             <div className="v2-label"><span className="v2-dot" /> How It Works</div>
             <h2>From Assessment<br />to Recovery Plan</h2>
             <p className="inj-section-intro">
-              Start with a free assessment. We&apos;ll match you with the right recovery tools &mdash; no guesswork.
+              Start with a free assessment. We&apos;ll learn about your situation so your provider can determine the best approach during your visit.
             </p>
 
             <div className="inj-process-grid">
               <div className="inj-process-step">
                 <div className="inj-process-number">01</div>
                 <h4>Start Online</h4>
-                <p>Answer a few questions about your injury, timeline, and recovery goals. Takes about 2 minutes.</p>
+                <p>Answer a few questions about what you&apos;re dealing with and your recovery goals. Takes about 2 minutes.</p>
               </div>
 
               <div className="inj-process-step">
                 <div className="inj-process-number">02</div>
-                <h4>Get Your Recommendation</h4>
-                <p>Based on your answers, we&apos;ll show you which recovery protocols fit your situation.</p>
+                <h4>Learn About Your Options</h4>
+                <p>We&apos;ll share general information about recovery tools that may be worth exploring with a provider.</p>
               </div>
 
               <div className="inj-process-step">
                 <div className="inj-process-number">03</div>
-                <h4>Come In for Treatment</h4>
-                <p>Visit our Newport Beach clinic to start your protocol. Your provider will refine the plan based on your progress.</p>
+                <h4>Meet with a Provider</h4>
+                <p>Visit our Newport Beach clinic for an in-person evaluation. Your provider will assess your situation and discuss what makes sense for you.</p>
               </div>
 
               <div className="inj-process-step">
                 <div className="inj-process-number">04</div>
-                <h4>Track Your Progress</h4>
-                <p>We monitor your recovery and adjust your protocol based on how you&apos;re responding.</p>
+                <h4>Follow-Up &amp; Progress</h4>
+                <p>If treatment is recommended, your provider will monitor your progress and make adjustments as needed.</p>
               </div>
             </div>
           </div>
@@ -298,9 +298,9 @@ export default function InjuryRecovery() {
         <section id="inj-tools" className={`inj-section-alt inj-animate ${isVisible['inj-tools'] ? 'inj-visible' : ''}`}>
           <div className="inj-container">
             <div className="v2-label"><span className="v2-dot" /> Recovery Tools</div>
-            <h2>How We Help<br />You Heal Faster</h2>
+            <h2>Recovery Tools<br />We Offer</h2>
             <p className="inj-section-intro">
-              Your provider picks the right combination based on your injury. You don&apos;t have to figure it out yourself.
+              These are some of the tools our providers may consider during your evaluation. What&apos;s right for you depends on your specific situation.
             </p>
 
             <div className="inj-tools-grid">
@@ -428,13 +428,22 @@ export default function InjuryRecovery() {
           </div>
         </section>
 
+        {/* Medical Disclaimer */}
+        <section className="inj-section" style={{ paddingTop: '2rem', paddingBottom: '2rem' }}>
+          <div className="inj-container">
+            <p style={{ fontSize: '0.8125rem', color: '#a3a3a3', lineHeight: 1.7, fontStyle: 'italic', maxWidth: 700, margin: 0 }}>
+              The information on this page is for educational purposes only and does not constitute medical advice for any specific condition or individual. All treatment decisions are made by a licensed provider after an in-person evaluation. Results vary by individual. Nothing on this page should be interpreted as a guarantee of outcomes or a recommendation to pursue any particular treatment.
+            </p>
+          </div>
+        </section>
+
         {/* CTA Section */}
         <section className="inj-section-inverted">
           <div className="inj-container">
             <div className="v2-label" style={{ justifyContent: 'center' }}><span className="v2-dot" /> Get Started</div>
-            <h2>Ready to Speed Up<br />Your Recovery?</h2>
+            <h2>Ready to Explore<br />Your Options?</h2>
             <p className="inj-cta-text">
-              Take the online assessment. It takes 2 minutes and we&apos;ll show you exactly which recovery tools fit your situation.
+              Take the online assessment. It takes 2 minutes and helps our team understand your situation before your visit.
             </p>
             <Link href={assessmentLink} className="btn-white">Start Now</Link>
             <p className="inj-cta-location">

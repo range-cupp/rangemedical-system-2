@@ -88,8 +88,8 @@ export default function BookRecovery() {
       <section className="section section-gray">
         <div className="container">
           <div className="section-kicker">If We Can Help</div>
-          <h2 className="section-title">Your Treatment Options</h2>
-          <p className="section-subtitle">Based on your assessment, your provider may recommend one or more of these recovery tools.</p>
+          <h2 className="section-title">Treatment Options We Offer</h2>
+          <p className="section-subtitle">Depending on your evaluation, your provider may discuss one or more of these recovery tools.</p>
           
           <div className="conditions-grid">
             <div className="condition-card">
@@ -113,7 +113,7 @@ export default function BookRecovery() {
             <div className="condition-card">
               <div>
                 <h4><span className="condition-icon">🫁</span>Hyperbaric Oxygen</h4>
-                <p>Pressurized oxygen therapy to accelerate healing and reduce inflammation.</p>
+                <p>Pressurized oxygen therapy that may help support healing and reduce inflammation.</p>
               </div>
             </div>
           </div>
@@ -219,6 +219,15 @@ export default function BookRecovery() {
               />
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Medical Disclaimer */}
+      <section className="section" style={{ paddingTop: '1rem', paddingBottom: '2rem' }}>
+        <div className="container">
+          <p style={{ fontSize: '0.8125rem', color: '#a3a3a3', lineHeight: 1.7, fontStyle: 'italic', maxWidth: 700 }}>
+            The information on this page is for educational purposes only and does not constitute medical advice for any specific condition or individual. All treatment decisions are made by a licensed provider after an in-person evaluation. Results vary by individual.
+          </p>
         </div>
       </section>
 

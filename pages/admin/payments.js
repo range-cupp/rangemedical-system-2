@@ -1209,13 +1209,15 @@ export default function PaymentsPage() {
                                   )}
                                   {inv.status === 'paid' && (
                                     <div style={{ marginTop: '10px' }}>
-                                      <button
-                                        onClick={() => window.open(`/api/receipt/invoice/${inv.id}`, '_blank')}
+                                      <a
+                                        href={`/api/receipt/invoice/${inv.id}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
                                         style={styles.printReceiptBtn}
                                         title="Print receipt"
                                       >
                                         🖨️ Print Receipt
-                                      </button>
+                                      </a>
                                     </div>
                                   )}
                                 </div>
@@ -2434,6 +2436,7 @@ const styles = {
     textDecoration: 'none',
   },
   printReceiptBtn: {
+    display: 'inline-block',
     padding: '6px 14px',
     fontSize: '13px',
     fontWeight: '500',
@@ -2442,6 +2445,7 @@ const styles = {
     border: '1px solid #d1d5db',
     borderRadius: '4px',
     cursor: 'pointer',
+    textDecoration: 'none',
   },
   link: {
     display: 'inline-block',

@@ -355,13 +355,15 @@ function PurchasesInner({ embedded } = {}) {
                           >
                             {resendingReceipt === purchase.id ? '...' : '📧'}
                           </button>
-                          <button
-                            onClick={() => window.open(`/api/receipt/${purchase.id}`, '_blank')}
+                          <a
+                            href={`/api/receipt/${purchase.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             style={styles.receiptBtn}
                             title="Print receipt"
                           >
                             🖨️
-                          </button>
+                          </a>
                         </div>
                       </td>
                       <td style={styles.td}>
@@ -2047,6 +2049,7 @@ const styles = {
     cursor: 'pointer'
   },
   receiptBtn: {
+    display: 'inline-block',
     background: 'none',
     border: '1px solid #e5e5e5',
     borderRadius: 0,
@@ -2054,6 +2057,8 @@ const styles = {
     cursor: 'pointer',
     fontSize: '14px',
     lineHeight: '1',
+    textDecoration: 'none',
+    color: 'inherit',
   },
   saleBadge: {
     display: 'inline-block',

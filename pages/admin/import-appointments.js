@@ -157,7 +157,7 @@ export default function ImportAppointments() {
         </p>
 
         {/* Upload Card */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: 24, marginBottom: 20 }}>
+        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 0, padding: 24, marginBottom: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
             <input
               type="file"
@@ -190,7 +190,7 @@ export default function ImportAppointments() {
         </div>
 
         {error && (
-          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: 14, color: '#dc2626', fontSize: 14, marginBottom: 20 }}>
+          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 0, padding: 14, color: '#dc2626', fontSize: 14, marginBottom: 20 }}>
             {error}
           </div>
         )}
@@ -212,7 +212,7 @@ export default function ImportAppointments() {
 
         {/* Patient Mapping Section */}
         {showMapping && unmatchedNames.length > 0 && (
-          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: 20, marginBottom: 20 }}>
+          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 0, padding: 20, marginBottom: 20 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <div>
                 <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#92400e' }}>
@@ -234,7 +234,7 @@ export default function ImportAppointments() {
                 const sug = suggestions[name] || [];
 
                 return (
-                  <div key={name} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: '10px 14px', marginBottom: 8 }}>
+                  <div key={name} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 0, padding: '10px 14px', marginBottom: 8 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: mapped ? 0 : 6 }}>
                       <div>
                         <span style={{ fontWeight: 600, fontSize: 14 }}>{name}</span>
@@ -242,7 +242,7 @@ export default function ImportAppointments() {
                       </div>
                       {mapped && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ background: '#dcfce7', color: '#16a34a', padding: '2px 8px', borderRadius: 10, fontSize: 12, fontWeight: 600 }}>
+                          <span style={{ background: '#dcfce7', color: '#16a34a', padding: '2px 8px', borderRadius: 0, fontSize: 12, fontWeight: 600 }}>
                             → {mappedPatient?.name || mappedPatient?.first_name + ' ' + mappedPatient?.last_name}
                           </span>
                           <button onClick={() => unmapPatient(name)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 12 }}>
@@ -262,7 +262,7 @@ export default function ImportAppointments() {
                                 key={s.id}
                                 onClick={() => mapPatient(name, s.id)}
                                 style={{
-                                  background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6,
+                                  background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 0,
                                   padding: '3px 10px', fontSize: 12, color: '#2563eb', cursor: 'pointer',
                                 }}
                               >
@@ -279,12 +279,12 @@ export default function ImportAppointments() {
                             placeholder="Search patients..."
                             value={searchTerms[name] || ''}
                             onChange={e => searchPatients(name, e.target.value)}
-                            style={{ width: '100%', padding: '6px 10px', fontSize: 13, border: '1px solid #d1d5db', borderRadius: 6, boxSizing: 'border-box' }}
+                            style={{ width: '100%', padding: '6px 10px', fontSize: 13, border: '1px solid #d1d5db', borderRadius: 0, boxSizing: 'border-box' }}
                           />
                           {(searchResults[name] || []).length > 0 && (
                             <div style={{
                               position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
-                              background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6, boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                              background: '#fff', border: '1px solid #e5e7eb', borderRadius: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                               maxHeight: 200, overflow: 'auto',
                             }}>
                               {searchResults[name].map(p => (
@@ -319,7 +319,7 @@ export default function ImportAppointments() {
         {preview && !showMapping && unmatchedNames.length > 0 && (
           <button
             onClick={() => setShowMapping(true)}
-            style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 14px', fontSize: 13, color: '#92400e', cursor: 'pointer', marginBottom: 20, display: 'block' }}
+            style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 0, padding: '8px 14px', fontSize: 13, color: '#92400e', cursor: 'pointer', marginBottom: 20, display: 'block' }}
           >
             Show patient mapping ({unmatchedNames.length} unmatched names)
           </button>
@@ -327,7 +327,7 @@ export default function ImportAppointments() {
 
         {/* Results success message */}
         {results?.success && (
-          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 14, color: '#16a34a', fontSize: 14, marginBottom: 20 }}>
+          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 0, padding: 14, color: '#16a34a', fontSize: 14, marginBottom: 20 }}>
             Successfully imported {results.summary.imported} appointments.
             {results.summary.unmatched > 0 && ` (${results.summary.unmatched} without patient match — they'll show on the calendar but aren't linked to a patient profile.)`}
           </div>
@@ -360,7 +360,7 @@ export default function ImportAppointments() {
             </div>
 
             {/* Table */}
-            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, overflow: 'auto' }}>
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 0, overflow: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
@@ -376,7 +376,7 @@ export default function ImportAppointments() {
                     <tr key={i} style={{ borderBottom: '1px solid #f3f4f6' }}>
                       <td style={tdStyle}>
                         <span style={{
-                          display: 'inline-block', padding: '2px 8px', borderRadius: 10, fontSize: 11, fontWeight: 600,
+                          display: 'inline-block', padding: '2px 8px', borderRadius: 0, fontSize: 11, fontWeight: 600,
                           background: statusColors[d.status]?.bg || '#f3f4f6',
                           color: statusColors[d.status]?.text || '#374151',
                         }}>
@@ -406,7 +406,7 @@ export default function ImportAppointments() {
 
 function StatCard({ label, value, color }) {
   return (
-    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '14px 16px', textAlign: 'center' }}>
+    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 0, padding: '14px 16px', textAlign: 'center' }}>
       <div style={{ fontSize: 24, fontWeight: 700, color }}>{value}</div>
       <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{label}</div>
     </div>
@@ -415,7 +415,7 @@ function StatCard({ label, value, color }) {
 
 function btnStyle(bg) {
   return {
-    background: bg, color: '#fff', border: 'none', borderRadius: 8,
+    background: bg, color: '#fff', border: 'none', borderRadius: 0,
     padding: '8px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer',
   };
 }

@@ -606,7 +606,7 @@ const styles = {
   },
   card: {
     backgroundColor: '#fff',
-    borderRadius: '12px',
+    borderRadius: '0',
     border: '1px solid #e5e7eb',
     padding: '24px',
     marginBottom: '16px'
@@ -688,7 +688,7 @@ const styles = {
   },
   labBadge: {
     padding: '3px 10px',
-    borderRadius: '20px',
+    borderRadius: '0',
     fontSize: '12px',
     fontWeight: 600,
     flexShrink: 0
@@ -700,7 +700,7 @@ const styles = {
     backgroundColor: '#000',
     color: '#fff',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: '0',
     cursor: 'pointer',
     flexShrink: 0
   },
@@ -717,7 +717,7 @@ const styles = {
   },
   ivBadge: {
     padding: '10px 16px',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '14px',
     fontWeight: 600
   },
@@ -734,7 +734,7 @@ const styles = {
     backgroundColor: '#000',
     color: '#fff',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '0',
     cursor: 'pointer',
     alignSelf: 'flex-start'
   },
@@ -749,7 +749,7 @@ const styles = {
     fontSize: '13px',
     fontWeight: 600,
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '0',
     cursor: 'pointer',
     transition: 'all 0.15s'
   },
@@ -759,7 +759,7 @@ const styles = {
     color: '#6b7280'
   },
   calendarEmbed: {
-    borderRadius: '8px',
+    borderRadius: '0',
     overflow: 'hidden',
     border: '1px solid #e5e7eb'
   },
@@ -774,7 +774,7 @@ const styles = {
     alignItems: 'center',
     padding: '12px 16px',
     backgroundColor: '#fafafa',
-    borderRadius: '8px',
+    borderRadius: '0',
     gap: '12px'
   },
   appointmentInfo: {
@@ -803,7 +803,7 @@ const styles = {
     backgroundColor: '#fff',
     color: '#dc2626',
     border: '1px solid #fca5a5',
-    borderRadius: '6px',
+    borderRadius: '0',
     cursor: 'pointer',
     flexShrink: 0
   },
@@ -848,7 +848,7 @@ const styles = {
     marginTop: '20px',
     padding: '16px',
     backgroundColor: '#f0f9ff',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '14px',
     color: '#111'
   },

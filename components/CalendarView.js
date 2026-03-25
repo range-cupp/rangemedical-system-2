@@ -979,7 +979,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   const getStatusBadge = (status) => {
     const s = STATUS_LABELS[status] || STATUS_LABELS.scheduled;
     return (
-      <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600', background: s.bg, color: s.text }}>
+      <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '0', fontSize: '11px', fontWeight: '600', background: s.bg, color: s.text }}>
         {s.label}
       </span>
     );
@@ -1153,7 +1153,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                   <div style={{
                     position: 'sticky', top: 8, fontSize: 11, fontWeight: 600,
                     color: '#dc2626', background: '#fee2e2', padding: '3px 8px',
-                    borderRadius: 6, display: 'inline-block', marginLeft: 8, marginTop: 8,
+                    borderRadius: 0, display: 'inline-block', marginLeft: 8, marginTop: 8,
                   }}>
                     {block.provider_name} — {block.reason || 'Day Off'}
                     {block.reason_note ? ` (${block.reason_note})` : ''}
@@ -1180,13 +1180,13 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                     background: 'repeating-linear-gradient(135deg, transparent, transparent 8px, rgba(220,38,38,0.08) 8px, rgba(220,38,38,0.08) 16px)',
                     borderLeft: '3px solid #dc2626',
                     pointerEvents: 'none', zIndex: 1,
-                    borderRadius: 4,
+                    borderRadius: 0,
                   }}
                 >
                   <div style={{
                     fontSize: 11, fontWeight: 600, color: '#dc2626',
                     background: '#fee2e2', padding: '2px 6px',
-                    borderRadius: 4, display: 'inline-block', marginLeft: 6, marginTop: 2,
+                    borderRadius: 0, display: 'inline-block', marginLeft: 6, marginTop: 2,
                   }}>
                     {block.provider_name} — {block.reason || 'Blocked'}
                   </div>
@@ -1238,7 +1238,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 {calendarBlocks.filter(b => b.date === dayStr).length > 0 && (
                   <div style={{
                     fontSize: '10px', fontWeight: 600, color: '#dc2626',
-                    background: '#fee2e2', padding: '2px 6px', borderRadius: 4,
+                    background: '#fee2e2', padding: '2px 6px', borderRadius: 0,
                     marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4,
                   }}>
                     <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#dc2626', display: 'inline-block' }} />
@@ -1339,7 +1339,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                         fontSize: '11px',
                         padding: '1px 4px',
                         marginBottom: '1px',
-                        borderRadius: '3px',
+                        borderRadius: '0',
                         background: cs.bg,
                         color: cs.text,
                         overflow: 'hidden',
@@ -1463,7 +1463,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                       }}>
                         <div style={{
                           fontSize: 10, fontWeight: 600, color: '#dc2626',
-                          background: '#fee2e2', padding: '2px 6px', borderRadius: 4,
+                          background: '#fee2e2', padding: '2px 6px', borderRadius: 0,
                           display: 'inline-block', marginLeft: 4, marginTop: 4,
                         }}>
                           {block.reason || 'Off'}
@@ -1644,7 +1644,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 <div style={{
                   margin: '12px 0',
                   padding: '10px 12px',
-                  borderRadius: '8px',
+                  borderRadius: '0',
                   background: allDone ? '#f0fdf4' : '#fefce8',
                   border: `1px solid ${allDone ? '#bbf7d0' : '#fde68a'}`,
                 }}>
@@ -1671,7 +1671,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               <div style={{
                 margin: '12px 0',
                 padding: '10px 12px',
-                borderRadius: '8px',
+                borderRadius: '0',
                 background: '#fffbeb',
                 border: '1px solid #fef3c7'
               }}>
@@ -1696,7 +1696,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                     </div>
                     <span style={{
                       padding: '2px 8px',
-                      borderRadius: '10px',
+                      borderRadius: '0',
                       fontSize: '11px',
                       fontWeight: '600',
                       background: renewal.renewal_urgency_color?.bg || '#fef3c7',
@@ -1733,7 +1733,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
 
               return (
                 <div style={{
-                  margin: '12px 0', padding: '10px 12px', borderRadius: '8px',
+                  margin: '12px 0', padding: '10px 12px', borderRadius: '0',
                   background: isExhausted ? '#fef2f2' : '#f0f9ff',
                   border: `1px solid ${isExhausted ? '#fecaca' : '#bae6fd'}`,
                 }}>
@@ -1748,8 +1748,8 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                       {isExhausted ? 'Package exhausted' : `${remaining} remaining`}
                     </span>
                   </div>
-                  <div style={{ background: '#e5e7eb', borderRadius: '4px', height: '6px', overflow: 'hidden', marginBottom: '8px' }}>
-                    <div style={{ width: `${pct}%`, height: '100%', background: isExhausted ? '#dc2626' : pct >= 80 ? '#d97706' : '#0ea5e9', borderRadius: '4px', transition: 'width 0.3s' }} />
+                  <div style={{ background: '#e5e7eb', borderRadius: '0', height: '6px', overflow: 'hidden', marginBottom: '8px' }}>
+                    <div style={{ width: `${pct}%`, height: '100%', background: isExhausted ? '#dc2626' : pct >= 80 ? '#d97706' : '#0ea5e9', borderRadius: '0', transition: 'width 0.3s' }} />
                   </div>
                   {sessionLogResult?.success && (
                     <div style={{ fontSize: '12px', color: '#166534', fontWeight: 600, padding: '6px 0' }}>
@@ -1767,7 +1767,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                       disabled={loggingSession}
                       style={{
                         width: '100%', padding: '8px 0', background: loggingSession ? '#93c5fd' : '#1e40af',
-                        color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600,
+                        color: '#fff', border: 'none', borderRadius: '0', fontSize: '13px', fontWeight: 600,
                         cursor: loggingSession ? 'wait' : 'pointer',
                       }}
                     >
@@ -1787,7 +1787,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                     value={apptNotesValue}
                     onChange={e => setApptNotesValue(e.target.value)}
                     rows={3}
-                    style={{ width: '100%', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', resize: 'vertical', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '0', fontSize: '13px', resize: 'vertical', boxSizing: 'border-box' }}
                     autoFocus
                   />
                   <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
@@ -1826,7 +1826,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
 
             {/* Reschedule form */}
             {rescheduleAppt?.id === appt.id && (
-              <div style={{ marginTop: '12px', padding: '12px', background: '#f9fafb', borderRadius: '8px' }}>
+              <div style={{ marginTop: '12px', padding: '12px', background: '#f9fafb', borderRadius: '0' }}>
                 <p style={{ fontSize: '13px', fontWeight: '600', marginBottom: '8px' }}>Reschedule to:</p>
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
                   <input type="date" value={rescheduleDate} onChange={e => setRescheduleDate(e.target.value)} style={styles.input} />
@@ -1897,7 +1897,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             {bookingConfirmed.notificationSent ? 'Confirmation sent to patient.' : 'No notification sent.'}
           </p>
 
-          <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '10px', padding: '16px', textAlign: 'left', marginBottom: '20px' }}>
+          <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '0', padding: '16px', textAlign: 'left', marginBottom: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #dcfce7' }}>
               <span style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Patient</span>
               <span style={{ fontSize: '13px', color: '#111', fontWeight: '600' }}>{bookingConfirmed.patientName}</span>
@@ -2076,7 +2076,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{
-                          width: '18px', height: '18px', borderRadius: '4px', flexShrink: 0,
+                          width: '18px', height: '18px', borderRadius: '0', flexShrink: 0,
                           border: isSelected ? '2px solid #3730a3' : '2px solid #d1d5db',
                           background: isSelected ? '#3730a3' : '#fff',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -2140,7 +2140,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <div style={{
-                        width: '18px', height: '18px', borderRadius: '4px', flexShrink: 0,
+                        width: '18px', height: '18px', borderRadius: '0', flexShrink: 0,
                         border: isSelected ? '2px solid #3730a3' : '2px solid #d1d5db',
                         background: isSelected ? '#3730a3' : '#fff',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -2173,7 +2173,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                       flex: 1,
                       padding: '12px',
                       border: panelType === panel.key ? '2px solid #000' : '1px solid #e5e5e5',
-                      borderRadius: '8px',
+                      borderRadius: '0',
                       background: panelType === panel.key ? '#000' : '#fff',
                       color: panelType === panel.key ? '#fff' : '#111',
                       cursor: 'pointer',
@@ -2193,7 +2193,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
 
           {/* Selected services summary + Continue button */}
           {selectedServices.length > 0 && (
-            <div style={{ marginTop: '14px', padding: '12px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '8px' }}>
+            <div style={{ marginTop: '14px', padding: '12px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '0' }}>
               <div style={{ fontSize: '13px', fontWeight: '600', color: '#166534', marginBottom: '6px' }}>
                 {selectedServices.length === 1 ? '1 service selected' : `${selectedServices.length} services selected`}
                 {' · '}
@@ -2299,7 +2299,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                       onClick={() => setSelectedProviders(prev => ({ ...prev, [svc.name]: prov }))}
                       style={{
                         padding: '8px 16px',
-                        borderRadius: '6px',
+                        borderRadius: '0',
                         border: assigned?.name === prov.name ? '2px solid #3730a3' : '1px solid #e5e5e5',
                         background: assigned?.name === prov.name ? '#e0e7ff' : '#fff',
                         color: assigned?.name === prov.name ? '#3730a3' : '#374151',
@@ -2392,7 +2392,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                     <span style={{ fontWeight: 400, color: '#16a34a', marginLeft: '8px', fontSize: '11px' }}>Live availability</span>
                   </label>
                   {validTimes.length === 0 ? (
-                    <div style={{ padding: '12px', background: '#fef3c7', borderRadius: '8px', color: '#92400e', fontSize: '13px', textAlign: 'center', marginTop: '6px' }}>
+                    <div style={{ padding: '12px', background: '#fef3c7', borderRadius: '0', color: '#92400e', fontSize: '13px', textAlign: 'center', marginTop: '6px' }}>
                       No times where all providers are free on this date. Try another date or use custom time.
                     </div>
                   ) : (
@@ -2404,7 +2404,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                             key={t}
                             onClick={() => setApptTime(t)}
                             style={{
-                              padding: '7px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer',
+                              padding: '7px 12px', borderRadius: '0', fontSize: '13px', cursor: 'pointer',
                               border: active ? '2px solid #16a34a' : '1px solid #e5e5e5',
                               background: active ? '#f0fdf4' : '#fff',
                               color: active ? '#166534' : '#111',
@@ -2420,7 +2420,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
 
                   {/* Staggered schedule breakdown */}
                   {apptTime && (
-                    <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '8px', padding: '12px', marginTop: '12px' }}>
+                    <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '0', padding: '12px', marginTop: '12px' }}>
                       <div style={{ fontSize: '11px', fontWeight: '700', color: '#166534', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                         Appointment Schedule
                       </div>
@@ -2468,10 +2468,10 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                     type="time"
                     value={apptTime}
                     onChange={e => setApptTime(e.target.value)}
-                    style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '14px', width: '160px' }}
+                    style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '0', fontSize: '14px', width: '160px' }}
                   />
                   {apptTime && (
-                    <div style={{ background: '#fefce8', border: '1px solid #fde047', borderRadius: '8px', padding: '12px', marginTop: '10px' }}>
+                    <div style={{ background: '#fefce8', border: '1px solid #fde047', borderRadius: '0', padding: '12px', marginTop: '10px' }}>
                       <div style={{ fontSize: '11px', color: '#854d0e', fontWeight: '600', marginBottom: '8px' }}>⚠ Custom time — availability not verified</div>
                       {selectedServices.map((svc, idx) => {
                         const offset = selectedServices.slice(0, idx).reduce((s, x) => s + (x.duration || 0), 0);
@@ -2571,7 +2571,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                           padding: '8px',
                           background: isSelected ? '#000' : '#f3f4f6',
                           color: isSelected ? '#fff' : '#111',
-                          borderRadius: '8px 8px 0 0',
+                          borderRadius: '0',
                           fontSize: '13px',
                           fontWeight: '600',
                           textAlign: 'center',
@@ -2584,7 +2584,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                         <div style={{
                           border: isSelected ? '2px solid #000' : '1px solid #e5e5e5',
                           borderTop: 'none',
-                          borderRadius: '0 0 8px 8px',
+                          borderRadius: '0',
                           padding: '6px',
                           minHeight: '80px',
                           display: 'flex',
@@ -2605,7 +2605,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                                 style={{
                                   padding: '7px 4px',
                                   border: active ? '2px solid #000' : '1px solid #e5e5e5',
-                                  borderRadius: '6px',
+                                  borderRadius: '0',
                                   background: active ? '#000' : '#fff',
                                   color: active ? '#fff' : '#111',
                                   fontSize: '12px',
@@ -2625,7 +2625,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 </div>
                 {/* Selected summary */}
                 {selectedProvider && apptTime && (
-                  <div style={{ marginTop: '10px', padding: '10px 12px', background: '#f0fdf4', borderRadius: '8px', fontSize: '13px', color: '#166534' }}>
+                  <div style={{ marginTop: '10px', padding: '10px 12px', background: '#f0fdf4', borderRadius: '0', fontSize: '13px', color: '#166534' }}>
                     ✓ {formatTimeLabel(apptTime)} with <strong>{selectedProvider.label}</strong>
                   </div>
                 )}
@@ -2634,7 +2634,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
 
             {/* No availability for any provider */}
             {!loadingSlots && hasCalcom && apptDate && availableSlots && availableSlots.length === 0 && !useCustomTime && (
-              <div style={{ padding: '16px', background: '#fef3c7', borderRadius: '8px', color: '#92400e', fontSize: '13px', textAlign: 'center' }}>
+              <div style={{ padding: '16px', background: '#fef3c7', borderRadius: '0', color: '#92400e', fontSize: '13px', textAlign: 'center' }}>
                 No availability on this date. Try a different date or use custom time below.
               </div>
             )}
@@ -2672,7 +2672,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                           key={prov.name}
                           onClick={() => setSelectedProvider(prov)}
                           style={{
-                            padding: '6px 14px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer',
+                            padding: '6px 14px', borderRadius: '0', fontSize: '12px', cursor: 'pointer',
                             border: selectedProvider?.name === prov.name ? '2px solid #000' : '1px solid #e5e5e5',
                             background: selectedProvider?.name === prov.name ? '#000' : '#fff',
                             color: selectedProvider?.name === prov.name ? '#fff' : '#111',
@@ -2688,13 +2688,13 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                   type="time"
                   value={apptTime}
                   onChange={e => setApptTime(e.target.value)}
-                  style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '14px', width: '160px' }}
+                  style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '0', fontSize: '14px', width: '160px' }}
                 />
                 <p style={{ fontSize: '11px', color: '#92400e', marginTop: '6px', marginBottom: 0 }}>
                   This will override availability and may double-book the provider.
                 </p>
                 {selectedProvider && apptTime && (
-                  <div style={{ marginTop: '10px', padding: '10px 12px', background: '#fefce8', borderRadius: '8px', fontSize: '13px', color: '#854d0e' }}>
+                  <div style={{ marginTop: '10px', padding: '10px 12px', background: '#fefce8', borderRadius: '0', fontSize: '13px', color: '#854d0e' }}>
                     ✓ {formatTimeLabel(apptTime)} with <strong>{selectedProvider.label}</strong> (custom)
                   </div>
                 )}
@@ -2720,7 +2720,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                           key={prov.name}
                           onClick={() => setSelectedProvider(prov)}
                           style={{
-                            padding: '6px 14px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer',
+                            padding: '6px 14px', borderRadius: '0', fontSize: '12px', cursor: 'pointer',
                             border: selectedProvider?.name === prov.name ? '2px solid #000' : '1px solid #e5e5e5',
                             background: selectedProvider?.name === prov.name ? '#000' : '#fff',
                             color: selectedProvider?.name === prov.name ? '#fff' : '#111',
@@ -2917,7 +2917,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             </div>
             {viewMode === 'day' && (
               <div style={{
-                display: 'flex', borderRadius: 8, overflow: 'hidden',
+                display: 'flex', borderRadius: 0, overflow: 'hidden',
                 border: '1px solid #d1d5db',
               }}>
                 <button
@@ -2989,7 +2989,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
         const pastAppts = appts.filter(a => new Date(a.start_time) < new Date());
 
         const sectionHead = { margin: '0 0 10px', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#888' };
-        const card = { background: '#f9fafb', borderRadius: '10px', padding: '14px 16px', marginBottom: '16px' };
+        const card = { background: '#f9fafb', borderRadius: '0', padding: '14px 16px', marginBottom: '16px' };
 
         return (
           <>
@@ -3009,7 +3009,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   {pt && (
                     <a href={`/patients/${pt.id}`}
-                      style={{ fontSize: '12px', color: '#fff', textDecoration: 'none', padding: '4px 12px', border: '1px solid rgba(255,255,255,0.4)', borderRadius: '6px' }}>
+                      style={{ fontSize: '12px', color: '#fff', textDecoration: 'none', padding: '4px 12px', border: '1px solid rgba(255,255,255,0.4)', borderRadius: '0' }}>
                       Full Profile →
                     </a>
                   )}
@@ -3030,13 +3030,13 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                     <div style={{ marginBottom: '16px' }}>
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', fontSize: '13px', color: '#666' }}>
                         {pt.date_of_birth && (
-                          <span style={{ background: '#f3f4f6', padding: '3px 8px', borderRadius: '4px' }}>
+                          <span style={{ background: '#f3f4f6', padding: '3px 8px', borderRadius: '0' }}>
                             DOB: {new Date(pt.date_of_birth + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                           </span>
                         )}
-                        {pt.gender && <span style={{ background: '#f3f4f6', padding: '3px 8px', borderRadius: '4px' }}>{pt.gender}</span>}
+                        {pt.gender && <span style={{ background: '#f3f4f6', padding: '3px 8px', borderRadius: '0' }}>{pt.gender}</span>}
                         {pt.created_at && (
-                          <span style={{ background: '#f3f4f6', padding: '3px 8px', borderRadius: '4px' }}>
+                          <span style={{ background: '#f3f4f6', padding: '3px 8px', borderRadius: '0' }}>
                             Since {new Date(pt.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                           </span>
                         )}
@@ -3088,7 +3088,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                                 <div style={{ fontSize: '14px', fontWeight: '600', color: '#111' }}>{proto.program_name || proto.medication || 'Protocol'}</div>
                                 {renewal.renewal_label && (
                                   <span style={{
-                                    fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '4px',
+                                    fontSize: '10px', fontWeight: '600', padding: '2px 6px', borderRadius: '0',
                                     background: renewal.renewal_urgency_color.bg, color: renewal.renewal_urgency_color.text
                                   }}>
                                     {renewal.renewal_label}
@@ -3102,8 +3102,8 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                             )}
                             {/* Progress bar */}
                             {total > 0 && (
-                              <div style={{ marginTop: '6px', background: '#e5e7eb', borderRadius: '4px', height: '6px', overflow: 'hidden' }}>
-                                <div style={{ width: `${pct}%`, height: '100%', background: pct >= 100 ? '#16a34a' : '#1e40af', borderRadius: '4px', transition: 'width 0.3s' }} />
+                              <div style={{ marginTop: '6px', background: '#e5e7eb', borderRadius: '0', height: '6px', overflow: 'hidden' }}>
+                                <div style={{ width: `${pct}%`, height: '100%', background: pct >= 100 ? '#16a34a' : '#1e40af', borderRadius: '0', transition: 'width 0.3s' }} />
                               </div>
                             )}
                             <div style={{ fontSize: '11px', color: '#aaa', marginTop: '4px' }}>
@@ -3136,7 +3136,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                           <div key={apt.id || i} style={{ padding: '8px 0', borderBottom: i < Math.min(upcomingAppts.length, 4) - 1 ? '1px solid #e5e7eb' : 'none' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                               <span style={{ fontSize: '13px', fontWeight: '500', color: '#111' }}>{apt.service_name || apt.title || 'Appointment'}</span>
-                              <span style={{ fontSize: '12px', padding: '1px 6px', borderRadius: '4px', background: STATUS_LABELS[apt.status]?.bg || '#f3f4f6', color: STATUS_LABELS[apt.status]?.text || '#333' }}>
+                              <span style={{ fontSize: '12px', padding: '1px 6px', borderRadius: '0', background: STATUS_LABELS[apt.status]?.bg || '#f3f4f6', color: STATUS_LABELS[apt.status]?.text || '#333' }}>
                                 {STATUS_LABELS[apt.status]?.label || apt.status}
                               </span>
                             </div>
@@ -3329,7 +3329,7 @@ const styles = {
     gap: '0',
     minHeight: '700px',
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: '0',
     overflow: 'hidden',
     border: '1px solid #e5e5e5',
   },
@@ -3361,7 +3361,7 @@ const styles = {
   viewBtn: {
     padding: '6px 16px',
     border: '1px solid #e5e5e5',
-    borderRadius: '6px',
+    borderRadius: '0',
     background: '#fff',
     fontSize: '13px',
     cursor: 'pointer',
@@ -3382,7 +3382,7 @@ const styles = {
     width: '32px',
     height: '32px',
     border: '1px solid #e5e5e5',
-    borderRadius: '6px',
+    borderRadius: '0',
     background: '#fff',
     fontSize: '14px',
     cursor: 'pointer',
@@ -3393,7 +3393,7 @@ const styles = {
   todayBtn: {
     padding: '6px 12px',
     border: '1px solid #e5e5e5',
-    borderRadius: '6px',
+    borderRadius: '0',
     background: '#fff',
     fontSize: '13px',
     cursor: 'pointer',
@@ -3454,7 +3454,7 @@ const styles = {
     left: '75px',
     right: '10px',
     padding: '6px 10px',
-    borderRadius: '6px',
+    borderRadius: '0',
     fontSize: '12px',
     cursor: 'pointer',
     overflow: 'hidden',
@@ -3524,7 +3524,7 @@ const styles = {
   },
   weekApptCard: {
     padding: '6px 8px',
-    borderRadius: '4px',
+    borderRadius: '0',
     marginBottom: '4px',
     cursor: 'pointer',
   },
@@ -3576,7 +3576,7 @@ const styles = {
   },
   popover: {
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: '0',
     width: '420px',
     maxWidth: '90vw',
     maxHeight: '80vh',
@@ -3620,7 +3620,7 @@ const styles = {
   actionBtn: {
     padding: '6px 12px',
     border: '1px solid #e5e5e5',
-    borderRadius: '6px',
+    borderRadius: '0',
     fontSize: '12px',
     fontWeight: '600',
     cursor: 'pointer',
@@ -3676,7 +3676,7 @@ const styles = {
     width: '100%',
     padding: '10px 12px',
     border: '1px solid #e5e5e5',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '14px',
     outline: 'none',
     boxSizing: 'border-box',
@@ -3688,7 +3688,7 @@ const styles = {
   },
   searchResults: {
     border: '1px solid #e5e5e5',
-    borderRadius: '8px',
+    borderRadius: '0',
     marginTop: '4px',
     maxHeight: '200px',
     overflowY: 'auto',
@@ -3713,7 +3713,7 @@ const styles = {
     background: '#000',
     color: '#fff',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '14px',
     fontWeight: '600',
     cursor: 'pointer',
@@ -3734,7 +3734,7 @@ const styles = {
   serviceGroupBtn: {
     padding: '6px 12px',
     border: '1px solid #e5e5e5',
-    borderRadius: '16px',
+    borderRadius: '0',
     background: '#fff',
     fontSize: '12px',
     cursor: 'pointer',
@@ -3748,7 +3748,7 @@ const styles = {
   },
   serviceList: {
     border: '1px solid #e5e5e5',
-    borderRadius: '8px',
+    borderRadius: '0',
     overflow: 'hidden',
   },
   serviceItem: {
@@ -3768,7 +3768,7 @@ const styles = {
   timeSlot: {
     padding: '8px',
     border: '1px solid #e5e5e5',
-    borderRadius: '6px',
+    borderRadius: '0',
     background: '#fff',
     fontSize: '12px',
     cursor: 'pointer',
@@ -3781,7 +3781,7 @@ const styles = {
   },
   confirmCard: {
     background: '#f9fafb',
-    borderRadius: '10px',
+    borderRadius: '0',
     padding: '16px',
     border: '1px solid #e5e5e5',
   },

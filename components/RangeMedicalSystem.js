@@ -3385,7 +3385,7 @@ const RangeMedicalSystem = () => {
                             padding: '0.25rem 0.5rem',
                             background: '#10b981',
                             color: '#ffffff',
-                            borderRadius: '4px'
+                            borderRadius: '0'
                           }}>
                             SELECTED
                           </div>

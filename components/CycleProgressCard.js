@@ -91,18 +91,18 @@ export default function CycleProgressCard({ protocol }) {
 
 const cycleStyles = {
   card: {
-    background: '#f9fafb', borderRadius: '10px', padding: '16px',
+    background: '#f9fafb', borderRadius: '0', padding: '16px',
     marginTop: '12px', border: '1px solid #e5e7eb'
   },
   title: {
     fontSize: '14px', fontWeight: '600', color: '#1f2937', margin: '0'
   },
   barBg: {
-    height: '10px', background: '#e5e7eb', borderRadius: '5px',
+    height: '10px', background: '#e5e7eb', borderRadius: '0',
     overflow: 'hidden', margin: '10px 0'
   },
   barFill: {
-    height: '100%', borderRadius: '5px', transition: 'width 0.3s ease'
+    height: '100%', borderRadius: '0', transition: 'width 0.3s ease'
   },
   dateRow: {
     display: 'flex', justifyContent: 'space-between',
@@ -110,6 +110,6 @@ const cycleStyles = {
   },
   offWarning: {
     marginTop: '8px', padding: '8px 12px', background: '#fef3c7',
-    borderRadius: '6px', fontSize: '12px', color: '#92400e', textAlign: 'center'
+    borderRadius: '0', fontSize: '12px', color: '#92400e', textAlign: 'center'
   }
 };

@@ -80,11 +80,11 @@ function RangeBar({ value, refLow, refHigh, flag }) {
   const barColor = flagColors[flag] || colors.normal;
 
   return (
-    <div style={{ marginTop: '6px', position: 'relative', height: '6px', borderRadius: '3px', background: colors.track }}>
+    <div style={{ marginTop: '6px', position: 'relative', height: '6px', borderRadius: '0', background: colors.track }}>
       <div style={{
         position: 'absolute', left: `${((refLow - min) / total) * 100}%`,
         width: `${((refHigh - refLow) / total) * 100}%`,
-        height: '100%', background: '#D1FAE5', borderRadius: '3px'
+        height: '100%', background: '#D1FAE5', borderRadius: '0'
       }} />
       <div style={{
         position: 'absolute', left: `${pct}%`, top: '-3px',
@@ -132,7 +132,7 @@ function InsightPanel({ biomarkerData, flag }) {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
             {biomarkerData.influencing_factors.split(',').map((f, i) => (
               <span key={i} style={{
-                padding: '2px 10px', borderRadius: '12px',
+                padding: '2px 10px', borderRadius: '0',
                 background: colors.white, border: `1px solid ${colors.border}`,
                 fontSize: '0.8125rem', color: colors.textSecondary
               }}>
@@ -160,7 +160,7 @@ function InsightPanel({ biomarkerData, flag }) {
       )}
       {isFlagged && (
         <div style={{
-          marginTop: '12px', padding: '12px', borderRadius: '8px',
+          marginTop: '12px', padding: '12px', borderRadius: '0',
           background: '#FFF5F5', border: `1px solid ${colors.flagged}`,
           display: 'flex', alignItems: 'flex-start', gap: '10px'
         }}>
@@ -197,7 +197,7 @@ function MarkerCard({ result, biomarkerData }) {
     <div
       onClick={() => hasMeta && setExpanded(!expanded)}
       style={{
-        background: colors.white, borderRadius: '10px',
+        background: colors.white, borderRadius: '0',
         border: `1px solid ${colors.border}`,
         borderLeft: `4px solid ${borderColor}`,
         marginBottom: '8px', overflow: 'hidden',
@@ -213,7 +213,7 @@ function MarkerCard({ result, biomarkerData }) {
               <span style={{ fontWeight: 600, fontSize: '0.9375rem', color: colors.text }}>{display_name}</span>
               {flagLabel && (flag === 'high' || flag === 'low' || flag === 'borderline_high' || flag === 'borderline_low') && (
                 <span style={{
-                  padding: '2px 7px', borderRadius: '4px',
+                  padding: '2px 7px', borderRadius: '0',
                   fontSize: '0.625rem', fontWeight: 700,
                   textTransform: 'uppercase', letterSpacing: '0.05em',
                   background: bgColor, color: borderColor, whiteSpace: 'nowrap'
@@ -351,7 +351,7 @@ export default function PatientLabsPage() {
               style={{
                 color: colors.white, textDecoration: 'none', fontSize: '0.8125rem',
                 background: 'rgba(255,255,255,0.12)', padding: '6px 12px',
-                borderRadius: '20px', fontWeight: 500
+                borderRadius: '0', fontWeight: 500
               }}
             >
               📞 (949) 997-3988
@@ -372,7 +372,7 @@ export default function PatientLabsPage() {
           {/* Error */}
           {!loading && error && (
             <div style={{
-              background: colors.white, borderRadius: '12px', padding: '40px 24px',
+              background: colors.white, borderRadius: '0', padding: '40px 24px',
               textAlign: 'center', marginTop: '24px',
               border: `1px solid ${colors.border}`, boxShadow: '0 1px 4px rgba(0,0,0,0.06)'
             }}>
@@ -385,7 +385,7 @@ export default function PatientLabsPage() {
               </div>
               <a href="tel:+19499973988" style={{
                 display: 'inline-block', background: colors.brand, color: colors.white,
-                padding: '12px 24px', borderRadius: '8px', textDecoration: 'none',
+                padding: '12px 24px', borderRadius: '0', textDecoration: 'none',
                 fontWeight: 600, fontSize: '0.9375rem'
               }}>
                 Call Range Medical
@@ -398,7 +398,7 @@ export default function PatientLabsPage() {
             <>
               {/* Patient greeting + lab info */}
               <div style={{
-                background: colors.white, borderRadius: '12px', padding: '20px',
+                background: colors.white, borderRadius: '0', padding: '20px',
                 marginBottom: '16px', border: `1px solid ${colors.border}`,
                 boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
               }}>
@@ -421,7 +421,7 @@ export default function PatientLabsPage() {
                     <span> · {data.lab.lab_type}</span>
                   )}
                 </div>
-                <div style={{ marginTop: '12px', padding: '10px', background: '#F0F7FF', borderRadius: '8px', fontSize: '0.8125rem', color: '#1E40AF', lineHeight: '1.5' }}>
+                <div style={{ marginTop: '12px', padding: '10px', background: '#F0F7FF', borderRadius: '0', fontSize: '0.8125rem', color: '#1E40AF', lineHeight: '1.5' }}>
                   💡 Tap any result to learn what it measures, why it matters, and what affects it.
                 </div>
               </div>
@@ -433,7 +433,7 @@ export default function PatientLabsPage() {
                   marginBottom: '16px'
                 }}>
                   <div style={{
-                    flex: 1, minWidth: '80px', background: colors.white, borderRadius: '10px',
+                    flex: 1, minWidth: '80px', background: colors.white, borderRadius: '0',
                     padding: '12px', textAlign: 'center', border: `1px solid ${colors.border}`,
                     boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
                   }}>
@@ -441,7 +441,7 @@ export default function PatientLabsPage() {
                     <div style={{ fontSize: '0.6875rem', color: colors.textSecondary, marginTop: '2px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total</div>
                   </div>
                   <div style={{
-                    flex: 1, minWidth: '80px', background: '#F0FFF4', borderRadius: '10px',
+                    flex: 1, minWidth: '80px', background: '#F0FFF4', borderRadius: '0',
                     padding: '12px', textAlign: 'center', border: `1px solid #BBF7D0`,
                     boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
                   }}>
@@ -450,7 +450,7 @@ export default function PatientLabsPage() {
                   </div>
                   {stats.flagged > 0 && (
                     <div style={{
-                      flex: 1, minWidth: '80px', background: colors.flaggedBg, borderRadius: '10px',
+                      flex: 1, minWidth: '80px', background: colors.flaggedBg, borderRadius: '0',
                       padding: '12px', textAlign: 'center', border: `1px solid #FECACA`,
                       boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
                     }}>
@@ -460,7 +460,7 @@ export default function PatientLabsPage() {
                   )}
                   {stats.borderline > 0 && (
                     <div style={{
-                      flex: 1, minWidth: '80px', background: colors.borderlineBg, borderRadius: '10px',
+                      flex: 1, minWidth: '80px', background: colors.borderlineBg, borderRadius: '0',
                       padding: '12px', textAlign: 'center', border: `1px solid #FDE68A`,
                       boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
                     }}>
@@ -482,7 +482,7 @@ export default function PatientLabsPage() {
                     key={f.id}
                     onClick={() => setFilter(f.id)}
                     style={{
-                      padding: '8px 16px', borderRadius: '20px',
+                      padding: '8px 16px', borderRadius: '0',
                       border: filter === f.id ? 'none' : `1px solid ${colors.border}`,
                       background: filter === f.id ? colors.brand : colors.white,
                       color: filter === f.id ? colors.white : colors.textSecondary,
@@ -526,7 +526,7 @@ export default function PatientLabsPage() {
               {/* Footer */}
               <div style={{
                 marginTop: '40px', padding: '20px', background: colors.white,
-                borderRadius: '12px', border: `1px solid ${colors.border}`,
+                borderRadius: '0', border: `1px solid ${colors.border}`,
                 textAlign: 'center'
               }}>
                 <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: colors.text, marginBottom: '6px' }}>
@@ -539,7 +539,7 @@ export default function PatientLabsPage() {
                   href="tel:+19499973988"
                   style={{
                     display: 'inline-block', background: colors.brand, color: colors.white,
-                    padding: '12px 28px', borderRadius: '8px', textDecoration: 'none',
+                    padding: '12px 28px', borderRadius: '0', textDecoration: 'none',
                     fontWeight: 600, fontSize: '0.9375rem', letterSpacing: '-0.01em'
                   }}
                 >

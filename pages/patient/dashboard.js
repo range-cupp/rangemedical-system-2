@@ -896,7 +896,7 @@ const styles = {
   // Service Card
   serviceCard: {
     border: '1px solid #e5e5e5',
-    borderRadius: '12px',
+    borderRadius: '0',
     overflow: 'hidden'
   },
   cardHeader: {
@@ -919,7 +919,7 @@ const styles = {
   },
   statusBadge: {
     padding: '4px 10px',
-    borderRadius: '4px',
+    borderRadius: '0',
     fontSize: '11px',
     fontWeight: '600',
     textTransform: 'uppercase'
@@ -973,13 +973,13 @@ const styles = {
   progressBar: {
     height: '6px',
     backgroundColor: '#f0f0f0',
-    borderRadius: '3px',
+    borderRadius: '0',
     overflow: 'hidden'
   },
   progressFill: {
     height: '100%',
     backgroundColor: '#000',
-    borderRadius: '3px'
+    borderRadius: '0'
   },
   progressText: {
     fontSize: '12px',
@@ -1004,7 +1004,7 @@ const styles = {
     backgroundColor: '#000',
     color: '#fff',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '13px',
     fontWeight: '500',
     cursor: 'pointer',
@@ -1019,7 +1019,7 @@ const styles = {
   },
   protocolCard: {
     border: '1px solid #e5e5e5',
-    borderRadius: '12px',
+    borderRadius: '0',
     padding: '16px',
     backgroundColor: '#fff'
   },
@@ -1038,7 +1038,7 @@ const styles = {
     padding: '4px 10px',
     backgroundColor: '#dcfce7',
     color: '#166534',
-    borderRadius: '4px',
+    borderRadius: '0',
     fontSize: '11px',
     fontWeight: '600',
     textTransform: 'uppercase'
@@ -1047,7 +1047,7 @@ const styles = {
     padding: '4px 10px',
     backgroundColor: '#f3f4f6',
     color: '#666',
-    borderRadius: '4px',
+    borderRadius: '0',
     fontSize: '11px',
     fontWeight: '600',
     textTransform: 'uppercase'
@@ -1067,7 +1067,7 @@ const styles = {
   },
   daysRemainingBox: {
     backgroundColor: '#f9f9f9',
-    borderRadius: '8px',
+    borderRadius: '0',
     padding: '12px',
     textAlign: 'center',
     marginBottom: '12px'
@@ -1086,7 +1086,7 @@ const styles = {
     color: '#666',
     backgroundColor: '#f9f9f9',
     padding: '10px',
-    borderRadius: '6px',
+    borderRadius: '0',
     marginBottom: '12px'
   },
   protocolDetails: {
@@ -1108,7 +1108,7 @@ const styles = {
   },
   sessionCard: {
     border: '1px solid #e5e5e5',
-    borderRadius: '12px',
+    borderRadius: '0',
     padding: '20px',
     textAlign: 'center'
   },
@@ -1140,7 +1140,7 @@ const styles = {
   },
   challengeCard: {
     border: '1px solid #e5e5e5',
-    borderRadius: '12px',
+    borderRadius: '0',
     padding: '20px'
   },
   challengeTitle: {
@@ -1177,7 +1177,7 @@ const styles = {
     width: '100%',
     padding: '10px 12px',
     border: '1px solid #e5e5e5',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '14px',
     outline: 'none',
     boxSizing: 'border-box'
@@ -1186,7 +1186,7 @@ const styles = {
     width: '100%',
     padding: '10px 12px',
     border: '1px solid #e5e5e5',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '14px',
     outline: 'none',
     boxSizing: 'border-box',
@@ -1198,7 +1198,7 @@ const styles = {
     backgroundColor: '#000',
     color: '#fff',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '14px',
     fontWeight: '600',
     cursor: 'pointer'
@@ -1207,7 +1207,7 @@ const styles = {
     backgroundColor: '#dcfce7',
     color: '#166534',
     padding: '12px 16px',
-    borderRadius: '8px',
+    borderRadius: '0',
     marginBottom: '20px',
     fontSize: '14px',
     fontWeight: '500'
@@ -1222,7 +1222,7 @@ const styles = {
     maxWidth: '800px',
     margin: '0 auto',
     backgroundColor: '#f9f9f9',
-    borderRadius: '12px',
+    borderRadius: '0',
     padding: '24px',
     textAlign: 'center'
   },
@@ -1263,7 +1263,7 @@ const styles = {
   },
   modal: {
     backgroundColor: '#fff',
-    borderRadius: '12px',
+    borderRadius: '0',
     width: '100%',
     maxWidth: '400px',
     margin: '20px'

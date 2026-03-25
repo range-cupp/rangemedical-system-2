@@ -79,13 +79,13 @@ export default function AppCalls() {
       <AppLayout title="Calls" voiceHook={voice}>
         {/* Voice device status */}
         {voice.error && (
-          <div style={{ margin: '12px 12px 0', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: '#dc2626' }}>
+          <div style={{ margin: '12px 12px 0', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 0, padding: '10px 14px', fontSize: 13, color: '#dc2626' }}>
             {voice.error}
           </div>
         )}
 
         {/* Quick dial */}
-        <div style={{ margin: '12px 12px 0', background: '#fff', borderRadius: 12, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <div style={{ margin: '12px 12px 0', background: '#fff', borderRadius: 0, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#94a3b8', marginBottom: 10 }}>Quick Dial</div>
           <QuickDial onCall={(to) => { voice.initDevice(); voice.call({ to }); }} isActive={voice.isActive} />
         </div>
@@ -101,7 +101,7 @@ export default function AppCalls() {
             No call history yet
           </div>
         ) : (
-          <div style={{ background: '#fff', margin: '0 12px', borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <div style={{ background: '#fff', margin: '0 12px', borderRadius: 0, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
             {calls.map((c, i) => {
               const number = c.direction === 'inbound' ? c.from_number || c.from : c.to_number || c.to;
               const name = c.patient_name || c.contact_name || null;
@@ -173,7 +173,7 @@ function QuickDial({ onCall, isActive }) {
         onKeyDown={e => e.key === 'Enter' && handleCall()}
         placeholder="Enter phone number"
         type="tel"
-        style={{ flex: 1, border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '10px 12px', fontSize: 15, outline: 'none', WebkitAppearance: 'none' }}
+        style={{ flex: 1, border: '1.5px solid #e2e8f0', borderRadius: 0, padding: '10px 12px', fontSize: 15, outline: 'none', WebkitAppearance: 'none' }}
       />
       <button
         onClick={handleCall}
@@ -181,7 +181,7 @@ function QuickDial({ onCall, isActive }) {
         style={{
           background: (!number.trim() || isActive) ? '#e2e8f0' : '#22c55e',
           border: 'none',
-          borderRadius: 10,
+          borderRadius: 0,
           padding: '10px 16px',
           color: (!number.trim() || isActive) ? '#94a3b8' : '#fff',
           fontWeight: 700,

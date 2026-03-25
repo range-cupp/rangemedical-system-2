@@ -186,7 +186,7 @@ export default function EmployeeActivityPage() {
                     <td style={{ ...styles.td, width: '200px' }}>
                       <span style={{
                         padding: '4px 10px',
-                        borderRadius: '12px',
+                        borderRadius: 0,
                         fontSize: '11px',
                         fontWeight: '600',
                         background: ac.bg,
@@ -243,7 +243,7 @@ const styles = {
   filterInput: {
     padding: '8px 12px',
     border: '1px solid #ddd',
-    borderRadius: '8px',
+    borderRadius: 0,
     fontSize: '14px',
     width: '220px',
     outline: 'none',
@@ -251,7 +251,7 @@ const styles = {
   filterSelect: {
     padding: '8px 12px',
     border: '1px solid #ddd',
-    borderRadius: '8px',
+    borderRadius: 0,
     fontSize: '14px',
     background: '#fff',
     cursor: 'pointer',
@@ -260,7 +260,7 @@ const styles = {
   refreshBtn: {
     padding: '8px 14px',
     border: '1px solid #ddd',
-    borderRadius: '8px',
+    borderRadius: 0,
     background: '#fff',
     fontSize: '13px',
     cursor: 'pointer',
@@ -268,7 +268,7 @@ const styles = {
   },
   card: {
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: 0,
     overflow: 'hidden',
     border: '1px solid #e5e5e5',
   },
@@ -313,7 +313,7 @@ const styles = {
   pageBtn: {
     padding: '6px 14px',
     border: '1px solid #ddd',
-    borderRadius: '8px',
+    borderRadius: 0,
     background: '#fff',
     fontSize: '13px',
     cursor: 'pointer',

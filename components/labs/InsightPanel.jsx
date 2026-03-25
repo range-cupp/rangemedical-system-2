@@ -47,7 +47,7 @@ export default function InsightPanel({ biomarkerData, flag }) {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
             {biomarkerData.influencing_factors.split(',').map((f, i) => (
               <span key={i} style={{
-                padding: '2px 8px', borderRadius: '12px',
+                padding: '2px 8px', borderRadius: '0',
                 background: colors.white, border: `1px solid ${colors.border}`,
                 fontSize: '0.75rem', color: colors.textSecondary
               }}>
@@ -86,7 +86,7 @@ export default function InsightPanel({ biomarkerData, flag }) {
 
       {isFlagged && (
         <div style={{
-          marginTop: '12px', padding: '12px', borderRadius: '6px',
+          marginTop: '12px', padding: '12px', borderRadius: '0',
           background: '#FFF5F5', border: `1px solid ${colors.flagged}`,
           display: 'flex', alignItems: 'center', gap: '8px'
         }}>

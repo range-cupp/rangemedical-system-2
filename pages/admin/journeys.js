@@ -251,7 +251,7 @@ const styles = {
     padding: '8px 16px',
     border: '1px solid #d1d5db',
     background: '#fff',
-    borderRadius: '20px',
+    borderRadius: 0,
     fontSize: '13px',
     fontWeight: '500',
     cursor: 'pointer',
@@ -267,7 +267,7 @@ const styles = {
     display: 'flex',
     gap: '2px',
     background: '#f3f4f6',
-    borderRadius: '8px',
+    borderRadius: 0,
     padding: '3px',
     flexShrink: 0
   },
@@ -277,7 +277,7 @@ const styles = {
     gap: '6px',
     padding: '6px 14px',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: 0,
     fontSize: '13px',
     fontWeight: '500',
     cursor: 'pointer',
@@ -298,7 +298,7 @@ const styles = {
     padding: '10px 16px',
     background: '#fff',
     border: '1px solid #e5e7eb',
-    borderRadius: '8px'
+    borderRadius: 0
   },
   templateName: {
     fontWeight: '600',
@@ -312,7 +312,7 @@ const styles = {
     textAlign: 'center',
     padding: '60px 20px',
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: 0,
     border: '1px solid #e5e7eb'
   },
   emptyIcon: {
@@ -334,7 +334,7 @@ const styles = {
     background: '#000',
     color: '#fff',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: 0,
     fontSize: '14px',
     fontWeight: '500',
     cursor: 'pointer'

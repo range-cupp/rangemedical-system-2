@@ -95,7 +95,7 @@ export default function CompareLabs() {
         alignItems: 'center', 
         justifyContent: 'center', 
         height: '100vh',
-        fontFamily: 'system-ui, -apple-system, sans-serif'
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
       }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Loading labs...</div>
@@ -111,7 +111,7 @@ export default function CompareLabs() {
         alignItems: 'center', 
         justifyContent: 'center', 
         height: '100vh',
-        fontFamily: 'system-ui, -apple-system, sans-serif'
+        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
       }}>
         <div style={{ textAlign: 'center', color: '#ef4444' }}>
           <div style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Error</div>
@@ -125,7 +125,7 @@ export default function CompareLabs() {
 
   return (
     <div style={{ 
-      fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
       padding: '2rem',
       maxWidth: '1600px',
       margin: '0 auto',

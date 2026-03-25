@@ -450,7 +450,7 @@ export default function MOTSc() {
         .mots-fact-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1.75rem;
           text-align: center;
           transition: all 0.2s;
@@ -507,7 +507,7 @@ export default function MOTSc() {
           background: #fafafa;
           border-left: 3px solid #000000;
           padding: 1.25rem 1.5rem;
-          border-radius: 0 8px 8px 0;
+          border-radius: 0;
           margin: 1.5rem 0;
         }
 
@@ -532,7 +532,7 @@ export default function MOTSc() {
         .mots-mechanism-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 2rem;
           transition: all 0.2s;
         }
@@ -572,7 +572,7 @@ export default function MOTSc() {
           padding: 1.5rem;
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           transition: all 0.2s;
         }
 
@@ -590,7 +590,7 @@ export default function MOTSc() {
           align-items: center;
           justify-content: center;
           background: #fafafa;
-          border-radius: 8px;
+          border-radius: 0;
         }
 
         .mots-benefit-content h3 {
@@ -609,7 +609,7 @@ export default function MOTSc() {
         .mots-protocol-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 2.5rem;
           max-width: 800px;
           margin: 0 auto;
@@ -645,7 +645,7 @@ export default function MOTSc() {
           margin-top: 1.5rem;
           padding: 1rem 1.25rem;
           background: #fafafa;
-          border-radius: 8px;
+          border-radius: 0;
           font-size: 0.8125rem;
           color: #737373;
           line-height: 1.6;
@@ -661,7 +661,7 @@ export default function MOTSc() {
         .mots-who-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 2rem;
         }
 
@@ -711,7 +711,7 @@ export default function MOTSc() {
         .mots-stack-card {
           background: rgba(255,255,255,0.05);
           border: 1px solid rgba(255,255,255,0.12);
-          border-radius: 12px;
+          border-radius: 0;
           padding: 2rem;
         }
 
@@ -747,7 +747,7 @@ export default function MOTSc() {
         .mots-safety-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1.75rem;
           text-align: center;
         }

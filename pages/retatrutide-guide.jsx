@@ -256,18 +256,19 @@ export default function RetatrutideGuide() {
           text-align: center;
         }
         .peptide-hero h1 {
-          font-size: 2.25rem;
-          font-weight: 700;
-          line-height: 1.2;
+          font-size: 2.75rem;
+          font-weight: 900;
+          line-height: 0.95;
           letter-spacing: -0.02em;
-          margin-bottom: 1rem;
+          text-transform: uppercase;
+          margin-bottom: 1.25rem;
         }
         .hero-badge {
           display: inline-block;
           background: #000000;
           color: #ffffff;
           padding: 0.5rem 1rem;
-          border-radius: 100px;
+          border-radius: 0;
           font-size: 0.8125rem;
           font-weight: 600;
           margin-bottom: 1.25rem;
@@ -286,7 +287,7 @@ export default function RetatrutideGuide() {
           padding: 1rem 1.5rem;
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 8px;
+          border-radius: 0;
           font-size: 0.9rem;
           color: #525252;
         }
@@ -352,7 +353,7 @@ export default function RetatrutideGuide() {
         .info-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1.75rem;
         }
         .info-card h3 {
@@ -368,7 +369,7 @@ export default function RetatrutideGuide() {
         .dose-table {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           overflow: hidden;
         }
         .dose-row {
@@ -431,7 +432,7 @@ export default function RetatrutideGuide() {
           border-left: 4px solid #000000;
           padding: 1.25rem 1.5rem;
           margin-top: 1.5rem;
-          border-radius: 0 8px 8px 0;
+          border-radius: 0;
         }
         .tip-box strong {
           display: block;
@@ -452,7 +453,7 @@ export default function RetatrutideGuide() {
         .timeline-card {
           background: rgba(255,255,255,0.1);
           border: 1px solid rgba(255,255,255,0.2);
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1.5rem;
         }
         .timeline-card h4 {
@@ -473,7 +474,7 @@ export default function RetatrutideGuide() {
         .safety-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1.5rem;
         }
         .safety-card h4 {
@@ -518,7 +519,7 @@ export default function RetatrutideGuide() {
         .disclaimer {
           background: #fafafa;
           border: 1px solid #e5e5e5;
-          border-radius: 8px;
+          border-radius: 0;
           padding: 1.25rem;
           margin-top: 1.5rem;
         }
@@ -557,7 +558,7 @@ export default function RetatrutideGuide() {
           background: #ffffff;
           color: #000000;
           padding: 0.875rem 1.75rem;
-          border-radius: 8px;
+          border-radius: 0;
           text-decoration: none;
           font-weight: 600;
           font-size: 0.9375rem;
@@ -572,7 +573,7 @@ export default function RetatrutideGuide() {
           background: transparent;
           color: #ffffff;
           padding: 0.875rem 1.75rem;
-          border-radius: 8px;
+          border-radius: 0;
           border: 2px solid #ffffff;
           text-decoration: none;
           font-weight: 600;
@@ -589,7 +590,7 @@ export default function RetatrutideGuide() {
         }
         @media (max-width: 768px) {
           .peptide-hero h1 {
-            font-size: 1.875rem;
+            font-size: 2rem;
           }
           .hero-dose {
             flex-direction: column;

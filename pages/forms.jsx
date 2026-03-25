@@ -160,7 +160,7 @@ export default function Forms() {
           padding: 1.5rem;
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           text-decoration: none;
           color: inherit;
           transition: all 0.2s;
@@ -180,7 +180,7 @@ export default function Forms() {
           align-items: center;
           justify-content: center;
           background: #fafafa;
-          border-radius: 12px;
+          border-radius: 0;
           flex-shrink: 0;
         }
         
@@ -221,7 +221,7 @@ export default function Forms() {
           color: #dc2626;
           background: #fee2e2;
           padding: 0.25rem 0.5rem;
-          border-radius: 4px;
+          border-radius: 0;
         }
         
         .form-card-arrow {
@@ -238,7 +238,7 @@ export default function Forms() {
         .help-box {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 2rem;
           text-align: center;
           max-width: 600px;

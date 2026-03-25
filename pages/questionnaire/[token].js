@@ -570,7 +570,7 @@ function Page({ title, children }) {
           -webkit-appearance: none;
           width: 100%;
           height: 8px;
-          border-radius: 4px;
+          border-radius: 0;
           background: var(--gray-200);
           outline: none;
         }
@@ -655,13 +655,13 @@ const styles = {
     flex: 1,
     height: 6,
     backgroundColor: '#e5e5e5',
-    borderRadius: 3,
+    borderRadius: 0,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     backgroundColor: '#000',
-    borderRadius: 3,
+    borderRadius: 0,
     transition: 'width 0.3s ease',
   },
   progressText: {
@@ -673,7 +673,7 @@ const styles = {
   // Form container
   formContainer: {
     background: '#fff',
-    borderRadius: 8,
+    borderRadius: 0,
     padding: '1.5rem',
     boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
   },
@@ -719,7 +719,7 @@ const styles = {
   // Options grid (single select)
   optionsGrid: { display: 'flex', flexDirection: 'column', gap: '0.5rem' },
   optionCard: {
-    padding: '0.875rem 1rem', border: '1.5px solid #d4d4d4', borderRadius: 8,
+    padding: '0.875rem 1rem', border: '1.5px solid #d4d4d4', borderRadius: 0,
     background: '#fff', cursor: 'pointer', fontSize: '0.9375rem', fontWeight: 500,
     textAlign: 'left', transition: 'all 0.15s ease', fontFamily: 'inherit',
   },
@@ -727,14 +727,14 @@ const styles = {
   // Frequency options (PHQ-9, GAD-7, etc.)
   frequencyOptions: { display: 'flex', flexDirection: 'column', gap: '0.5rem' },
   frequencyCard: {
-    padding: '0.75rem 1rem', border: '1.5px solid #d4d4d4', borderRadius: 8,
+    padding: '0.75rem 1rem', border: '1.5px solid #d4d4d4', borderRadius: 0,
     background: '#fff', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500,
     textAlign: 'left', transition: 'all 0.15s ease', fontFamily: 'inherit',
   },
 
   // Bother cards (MENQOL)
   botherCard: {
-    padding: '0.625rem 1rem', border: '1.5px solid #d4d4d4', borderRadius: 8,
+    padding: '0.625rem 1rem', border: '1.5px solid #d4d4d4', borderRadius: 0,
     background: '#fff', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500,
     textAlign: 'left', transition: 'all 0.15s ease', fontFamily: 'inherit',
   },
@@ -742,17 +742,17 @@ const styles = {
   // Text/number inputs
   textInput: {
     width: '100%', padding: '0.75rem', border: '1px solid #d4d4d4',
-    borderRadius: 4, fontSize: '1rem', fontFamily: 'inherit', outline: 'none',
+    borderRadius: 0, fontSize: '1rem', fontFamily: 'inherit', outline: 'none',
   },
   numberContainer: { display: 'flex', alignItems: 'center', gap: '0.5rem' },
   numberInput: {
     width: 120, padding: '0.75rem', border: '1px solid #d4d4d4',
-    borderRadius: 4, fontSize: '1rem', fontFamily: 'inherit', outline: 'none',
+    borderRadius: 0, fontSize: '1rem', fontFamily: 'inherit', outline: 'none',
   },
   numberSuffix: { fontSize: '0.875rem', color: '#737373' },
   textarea: {
     width: '100%', padding: '0.75rem', border: '1px solid #d4d4d4',
-    borderRadius: 4, fontSize: '1rem', fontFamily: 'inherit', outline: 'none',
+    borderRadius: 0, fontSize: '1rem', fontFamily: 'inherit', outline: 'none',
     resize: 'vertical', minHeight: 100,
   },
 
@@ -763,12 +763,12 @@ const styles = {
   },
   backButton: {
     padding: '0.75rem 1.5rem', background: 'transparent', border: '1.5px solid #d4d4d4',
-    borderRadius: 8, fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer',
+    borderRadius: 0, fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer',
     fontFamily: 'inherit', color: '#525252',
   },
   nextButton: {
     padding: '0.75rem 2rem', background: '#000', color: '#fff', border: 'none',
-    borderRadius: 8, fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer',
+    borderRadius: 0, fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer',
     fontFamily: 'inherit', transition: 'opacity 0.15s ease',
   },
 
@@ -789,7 +789,7 @@ const styles = {
   // Success
   successContainer: {
     textAlign: 'center', padding: '4rem 2rem', background: '#fff',
-    borderRadius: 8, boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+    borderRadius: 0, boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
   },
   successIcon: {
     width: 56, height: 56, lineHeight: '56px', borderRadius: '50%',

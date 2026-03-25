@@ -117,10 +117,10 @@ export default function ElitePanelFemaleGuide() {
 
       <style jsx>{`
         .peptide-hero { background: linear-gradient(180deg, #fafafa 0%, #ffffff 100%); padding: 3.5rem 1.5rem 3rem; text-align: center; }
-        .peptide-hero h1 { font-size: 2.25rem; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; margin-bottom: 1rem; }
-        .hero-badge { display: inline-block; background: #000000; color: #ffffff; padding: 0.5rem 1rem; border-radius: 100px; font-size: 0.8125rem; font-weight: 600; margin-bottom: 1.25rem; }
+        .peptide-hero h1 { font-size: 2.75rem; font-weight: 900; line-height: 0.95; letter-spacing: -0.02em; text-transform: uppercase; margin-bottom: 1.25rem; }
+        .hero-badge { display: inline-block; background: #000000; color: #ffffff; padding: 0.5rem 1rem; border-radius: 0; font-size: 0.8125rem; font-weight: 600; margin-bottom: 1.25rem; }
         .hero-sub { font-size: 1.0625rem; color: #525252; max-width: 600px; margin: 0 auto; line-height: 1.7; }
-        .hero-dose { display: inline-flex; gap: 1.5rem; margin-top: 1.5rem; padding: 1rem 1.5rem; background: #ffffff; border: 1px solid #e5e5e5; border-radius: 8px; font-size: 0.9rem; color: #525252; }
+        .hero-dose { display: inline-flex; gap: 1.5rem; margin-top: 1.5rem; padding: 1rem 1.5rem; background: #ffffff; border: 1px solid #e5e5e5; border-radius: 0; font-size: 0.9rem; color: #525252; }
         .hero-dose span { font-weight: 600; color: #171717; }
         .section { padding: 3.5rem 1.5rem; }
         .section-gray { background: #fafafa; }
@@ -130,28 +130,28 @@ export default function ElitePanelFemaleGuide() {
         .body-text { font-size: 0.95rem; color: #525252; line-height: 1.7; }
         .container { max-width: 800px; margin: 0 auto; }
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
-        .info-card { background: #ffffff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 1.75rem; }
-        .info-card h3 { font-size: 1.125rem; font-weight: 700; margin-bottom: 0.75rem; }
+        .info-card { background: #ffffff; border: 1px solid #e5e5e5; border-radius: 0; padding: 1.75rem; }
+        .info-card h3 { font-size: 1rem; font-weight: 900; text-transform: uppercase; letter-spacing: -0.01em; margin-bottom: 0.75rem; }
         .info-card p { font-size: 0.9rem; color: #525252; line-height: 1.7; }
         .info-card ul { list-style: none; padding: 0; margin: 0; }
         .info-card li { font-size: 0.9rem; color: #525252; padding: 0.375rem 0; padding-left: 1.25rem; position: relative; }
         .info-card li::before { content: "✓"; position: absolute; left: 0; color: #000000; font-weight: 600; }
-        .tip-box { background: #ffffff; border-left: 4px solid #000000; padding: 1.25rem 1.5rem; border-radius: 0 8px 8px 0; }
+        .tip-box { background: #ffffff; border-left: 4px solid #000000; padding: 1.25rem 1.5rem; border-radius: 0; }
         .tip-box strong { display: block; margin-bottom: 0.25rem; }
         .tip-box p { font-size: 0.9rem; color: #525252; line-height: 1.6; margin: 0; }
-        .disclaimer { background: #fafafa; border: 1px solid #e5e5e5; border-radius: 8px; padding: 1.25rem; }
+        .disclaimer { background: #fafafa; border: 1px solid #e5e5e5; border-radius: 0; padding: 1.25rem; }
         .disclaimer p { font-size: 0.8125rem; color: #737373; line-height: 1.6; margin: 0; }
         .final-cta { background: #000000; color: #ffffff; padding: 3.5rem 1.5rem; text-align: center; }
-        .final-cta h2 { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.75rem; letter-spacing: -0.02em; }
+        .final-cta h2 { font-size: clamp(1.75rem, 4vw, 2.25rem); font-weight: 900; line-height: 0.95; letter-spacing: -0.02em; text-transform: uppercase; margin-bottom: 1rem; }
         .final-cta p { font-size: 1rem; color: rgba(255,255,255,0.8); margin-bottom: 1.5rem; }
         .cta-buttons { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
-        .btn-white { display: inline-block; background: #ffffff; color: #000000; padding: 0.875rem 1.75rem; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 0.9375rem; transition: all 0.2s; }
+        .btn-white { display: inline-block; background: #ffffff; color: #000000; padding: 0.875rem 1.75rem; border-radius: 0; text-decoration: none; font-weight: 600; font-size: 0.9375rem; transition: all 0.2s; }
         .btn-white:hover { background: #f5f5f5; transform: translateY(-1px); }
-        .btn-outline-white { display: inline-block; background: transparent; color: #ffffff; padding: 0.875rem 1.75rem; border-radius: 8px; border: 2px solid #ffffff; text-decoration: none; font-weight: 600; font-size: 0.9375rem; transition: all 0.2s; }
+        .btn-outline-white { display: inline-block; background: transparent; color: #ffffff; padding: 0.875rem 1.75rem; border-radius: 0; border: 2px solid #ffffff; text-decoration: none; font-weight: 600; font-size: 0.9375rem; transition: all 0.2s; }
         .btn-outline-white:hover { background: #ffffff; color: #000000; }
         .cta-location { font-size: 0.9rem; color: rgba(255,255,255,0.7); }
         @media (max-width: 768px) {
-          .peptide-hero h1 { font-size: 1.875rem; }
+          .peptide-hero h1 { font-size: 2rem; }
           .hero-dose { flex-direction: column; gap: 0.5rem; }
           .info-grid { grid-template-columns: 1fr; }
           .section-title { font-size: 1.5rem; }

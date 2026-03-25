@@ -865,7 +865,7 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
           display: 'flex', alignItems: 'center', justifyContent: 'center'
         }}>
           <div style={{
-            background: '#fff', borderRadius: 12, padding: 28, maxWidth: 460, width: '90%',
+            background: '#fff', borderRadius: 0, padding: 28, maxWidth: 460, width: '90%',
             boxShadow: '0 20px 60px rgba(0,0,0,0.25)'
           }}>
             <div style={{ fontSize: 24, marginBottom: 8 }}>⚠️</div>
@@ -874,7 +874,7 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
               {duplicateWarning.messages.map((msg, i) => (
                 <div key={i} style={{
                   background: '#fef3c7', border: '1px solid #f59e0b',
-                  borderRadius: 8, padding: '10px 14px', marginBottom: 8,
+                  borderRadius: 0, padding: '10px 14px', marginBottom: 8,
                   fontSize: 14, color: '#92400e'
                 }}>
                   {msg}
@@ -893,7 +893,7 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
               <button
                 onClick={() => setDuplicateWarning(null)}
                 style={{
-                  padding: '9px 20px', borderRadius: 7, border: '1px solid #d1d5db',
+                  padding: '9px 20px', borderRadius: 0, border: '1px solid #d1d5db',
                   background: '#fff', cursor: 'pointer', fontWeight: 500, fontSize: 14
                 }}
               >
@@ -903,7 +903,7 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
                 onClick={handleForceSubmit}
                 disabled={submitting}
                 style={{
-                  padding: '9px 20px', borderRadius: 7, border: 'none',
+                  padding: '9px 20px', borderRadius: 0, border: 'none',
                   background: '#dc2626', color: '#fff',
                   cursor: submitting ? 'not-allowed' : 'pointer',
                   fontWeight: 600, fontSize: 14
@@ -1072,8 +1072,8 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
                 <textarea value={editingLog.notes || ''} onChange={e => setEditingLog({ ...editingLog, notes: e.target.value })} rows={3} style={{ ...slcStyles.editInput, resize: 'vertical' }} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
-                <button onClick={() => setEditingLog(null)} style={{ padding: '8px 20px', border: '1px solid #D1D5DB', borderRadius: '6px', background: '#fff', cursor: 'pointer', fontSize: '14px' }}>Cancel</button>
-                <button onClick={saveEditLog} style={{ padding: '8px 20px', border: 'none', borderRadius: '6px', background: '#2563eb', color: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Save</button>
+                <button onClick={() => setEditingLog(null)} style={{ padding: '8px 20px', border: '1px solid #D1D5DB', borderRadius: '0', background: '#fff', cursor: 'pointer', fontSize: '14px' }}>Cancel</button>
+                <button onClick={saveEditLog} style={{ padding: '8px 20px', border: 'none', borderRadius: '0', background: '#2563eb', color: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>Save</button>
               </div>
             </div>
           </div>
@@ -1666,7 +1666,7 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
 
                         {/* Single protocol indicator */}
                         {availableProtocols.length === 1 && (
-                          <div style={{ padding: '8px 12px', background: '#F0FDF4', borderRadius: '6px', fontSize: '13px', color: '#166534', marginBottom: '12px' }}>
+                          <div style={{ padding: '8px 12px', background: '#F0FDF4', borderRadius: '0', fontSize: '13px', color: '#166534', marginBottom: '12px' }}>
                             Linked to: <strong>{availableProtocols[0].program_name || availableProtocols[0].medication || 'Vitamin Protocol'}</strong>
                             {availableProtocols[0].total_sessions > 0 &&
                               ` (${availableProtocols[0].total_sessions - (availableProtocols[0].sessions_used || 0)} of ${availableProtocols[0].total_sessions} remaining)`
@@ -2143,7 +2143,7 @@ const slcStyles = {
     marginTop: '16px',
     padding: '16px',
     background: '#f9fafb',
-    borderRadius: '8px',
+    borderRadius: '0',
     border: '1px solid #e5e7eb'
   },
   dispensingSectionTitle: {
@@ -2169,7 +2169,7 @@ const slcStyles = {
     background: '#059669',
     color: '#FFFFFF',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: '0',
     fontSize: '14px',
     fontWeight: '600',
     cursor: 'pointer',
@@ -2190,7 +2190,7 @@ const slcStyles = {
     padding: '6px 14px',
     background: '#FFFFFF',
     border: '1px solid #D1D5DB',
-    borderRadius: '20px',
+    borderRadius: '0',
     fontSize: '13px',
     fontWeight: '500',
     color: '#555',
@@ -2209,7 +2209,7 @@ const slcStyles = {
     padding: '10px 16px',
     background: '#FFFFFF',
     border: '1px solid #D1D5DB',
-    borderRadius: '6px',
+    borderRadius: '0',
     color: '#1A1A1A',
     fontSize: '14px',
     width: '100%',
@@ -2218,7 +2218,7 @@ const slcStyles = {
   tableContainer: {
     overflowX: 'auto',
     background: '#FFFFFF',
-    borderRadius: '8px',
+    borderRadius: '0',
     border: '1px solid #E5E5E5',
     boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
   },
@@ -2258,7 +2258,7 @@ const slcStyles = {
   badge: {
     display: 'inline-block',
     padding: '4px 10px',
-    borderRadius: '12px',
+    borderRadius: '0',
     fontSize: '11px',
     fontWeight: '600',
   },
@@ -2296,7 +2296,7 @@ const slcStyles = {
     width: '100%',
     padding: '8px 12px',
     border: '1px solid #D1D5DB',
-    borderRadius: '6px',
+    borderRadius: '0',
     fontSize: '14px',
     boxSizing: 'border-box',
   },
@@ -2310,7 +2310,7 @@ const slcStyles = {
     marginTop: '16px',
     padding: '12px 16px',
     background: '#FFFFFF',
-    borderRadius: '8px',
+    borderRadius: '0',
     border: '1px solid #E5E5E5',
     fontSize: '14px',
     color: '#666',
@@ -2331,7 +2331,7 @@ const slcStyles = {
   },
   modal: {
     background: '#fff',
-    borderRadius: '16px',
+    borderRadius: '0',
     width: '560px',
     maxWidth: '95vw',
     maxHeight: '90vh',
@@ -2397,7 +2397,7 @@ const slcStyles = {
     width: '100%',
     padding: '10px 12px',
     border: '2px solid #e5e7eb',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '14px',
     boxSizing: 'border-box'
   },
@@ -2405,7 +2405,7 @@ const slcStyles = {
     width: '100%',
     padding: '10px 12px',
     border: '2px solid #e5e7eb',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '14px',
     boxSizing: 'border-box',
     background: '#fff'
@@ -2414,7 +2414,7 @@ const slcStyles = {
     width: '100%',
     padding: '10px 12px',
     border: '2px solid #e5e7eb',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '14px',
     boxSizing: 'border-box',
     resize: 'vertical'
@@ -2427,7 +2427,7 @@ const slcStyles = {
     background: '#fff',
     border: '2px solid #e5e7eb',
     borderTop: 'none',
-    borderRadius: '0 0 8px 8px',
+    borderRadius: '0',
     maxHeight: '240px',
     overflowY: 'auto',
     zIndex: 10
@@ -2451,7 +2451,7 @@ const slcStyles = {
     marginTop: '16px',
     padding: '16px',
     background: '#f9fafb',
-    borderRadius: '12px',
+    borderRadius: '0',
     border: '2px solid #e5e7eb'
   },
   selectedPatientName: {
@@ -2495,7 +2495,7 @@ const slcStyles = {
     alignItems: 'center',
     padding: '8px 12px',
     background: '#fff',
-    borderRadius: '6px',
+    borderRadius: '0',
     border: '1px solid #e5e7eb'
   },
   protocolName: {
@@ -2513,7 +2513,7 @@ const slcStyles = {
     background: '#111',
     color: '#fff',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '15px',
     fontWeight: '600',
     cursor: 'pointer'
@@ -2533,7 +2533,7 @@ const slcStyles = {
     textAlign: 'center',
     color: '#9ca3af',
     background: '#f9fafb',
-    borderRadius: '8px',
+    borderRadius: '0',
     marginBottom: '12px'
   },
   visitItemsList: {
@@ -2549,7 +2549,7 @@ const slcStyles = {
     padding: '12px 14px',
     background: '#fff',
     border: '2px solid #e5e7eb',
-    borderRadius: '8px'
+    borderRadius: '0'
   },
   visitItemMain: {
     display: 'flex',
@@ -2576,7 +2576,7 @@ const slcStyles = {
     padding: '2px 6px',
     background: '#dbeafe',
     color: '#1d4ed8',
-    borderRadius: '4px',
+    borderRadius: '0',
     fontSize: '11px',
     fontWeight: '500'
   },
@@ -2594,7 +2594,7 @@ const slcStyles = {
     background: '#f3f4f6',
     color: '#374151',
     border: '2px dashed #d1d5db',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '14px',
     fontWeight: '500',
     cursor: 'pointer'
@@ -2613,7 +2613,7 @@ const slcStyles = {
     padding: '16px',
     background: '#fff',
     border: '2px solid #e5e7eb',
-    borderRadius: '12px',
+    borderRadius: '0',
     cursor: 'pointer',
     transition: 'all 0.15s'
   },
@@ -2644,7 +2644,7 @@ const slcStyles = {
     gap: '10px',
     padding: '12px 14px',
     background: '#f3f4f6',
-    borderRadius: '8px',
+    borderRadius: '0',
     marginBottom: '16px'
   },
   serviceTypeIcon: {
@@ -2659,7 +2659,7 @@ const slcStyles = {
     padding: '4px 10px',
     background: '#fff',
     border: '1px solid #d1d5db',
-    borderRadius: '4px',
+    borderRadius: '0',
     fontSize: '12px',
     cursor: 'pointer'
   },
@@ -2668,7 +2668,7 @@ const slcStyles = {
   protocolNotice: {
     padding: '12px 14px',
     background: '#fef3c7',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '13px',
     color: '#92400e',
     marginBottom: '16px'
@@ -2677,7 +2677,7 @@ const slcStyles = {
     padding: '14px',
     background: '#f0f9ff',
     border: '1px solid #bae6fd',
-    borderRadius: '8px',
+    borderRadius: '0',
     marginBottom: '16px'
   },
   protocolFieldsTitle: {
@@ -2699,7 +2699,7 @@ const slcStyles = {
     padding: '10px',
     background: '#fff',
     border: '2px solid #e5e7eb',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '13px',
     fontWeight: '500',
     cursor: 'pointer'
@@ -2713,7 +2713,7 @@ const slcStyles = {
   infoBox: {
     padding: '12px',
     background: '#f0fdf4',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '14px',
     color: '#166534',
     fontWeight: '500',
@@ -2726,7 +2726,7 @@ const slcStyles = {
     background: '#059669',
     color: '#fff',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '15px',
     fontWeight: '600',
     cursor: 'pointer'
@@ -2738,7 +2738,7 @@ const slcStyles = {
     background: '#059669',
     color: '#fff',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '15px',
     fontWeight: '600',
     cursor: 'pointer',

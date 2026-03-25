@@ -185,7 +185,7 @@ export default function SuperBowlThanks() {
         .thanks-pick {
           background: #fafafa;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1.25rem;
           margin-bottom: 1rem;
         }
@@ -235,7 +235,7 @@ export default function SuperBowlThanks() {
           gap: 0.5rem;
           background: #fafafa;
           border: 1px solid #e5e5e5;
-          border-radius: 8px;
+          border-radius: 0;
           padding: 0.875rem 1rem;
           margin-bottom: 1.5rem;
           font-size: 0.9375rem;
@@ -258,7 +258,7 @@ export default function SuperBowlThanks() {
           gap: 0.625rem;
           background: #f0fdf4;
           border: 1px solid #bbf7d0;
-          border-radius: 8px;
+          border-radius: 0;
           padding: 1rem;
           margin-bottom: 2rem;
           font-size: 0.9375rem;
@@ -294,7 +294,7 @@ export default function SuperBowlThanks() {
           font-size: 0.9375rem;
           font-weight: 600;
           padding: 0.75rem 1.25rem;
-          border-radius: 8px;
+          border-radius: 0;
           text-decoration: none;
           transition: transform 0.2s, box-shadow 0.2s;
         }

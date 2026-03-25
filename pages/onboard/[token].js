@@ -104,7 +104,7 @@ export default function PatientOnboarding() {
         <style>{`
           * { box-sizing: border-box; }
           body { margin: 0; background: #fafafa; }
-          input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; border-radius: 4px; background: #e5e5e5; }
+          input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; border-radius: 0; background: #e5e5e5; }
           input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%; background: #000; cursor: pointer; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
         `}</style>
       </Head>
@@ -350,7 +350,7 @@ const styles = {
   progress: {
     height: '4px',
     background: '#f0f0f0',
-    borderRadius: '2px',
+    borderRadius: '0',
     overflow: 'hidden'
   },
   progressFill: {
@@ -393,7 +393,7 @@ const styles = {
     justifyContent: 'center',
     padding: '20px 16px',
     border: '2px solid',
-    borderRadius: '12px',
+    borderRadius: '0',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
     minHeight: '90px'
@@ -412,7 +412,7 @@ const styles = {
     padding: '16px',
     fontSize: '16px',
     border: '2px solid #e5e5e5',
-    borderRadius: '12px',
+    borderRadius: '0',
     resize: 'none',
     fontFamily: 'inherit',
     marginBottom: '32px',
@@ -490,7 +490,7 @@ const styles = {
     fontWeight: '600',
     textAlign: 'center',
     border: '2px solid #e5e5e5',
-    borderRadius: '12px'
+    borderRadius: '0'
   },
   weightUnit: {
     fontSize: '18px',
@@ -500,7 +500,7 @@ const styles = {
   summary: {
     background: '#fff',
     border: '1px solid #e5e5e5',
-    borderRadius: '12px',
+    borderRadius: '0',
     padding: '20px',
     marginBottom: '32px'
   },
@@ -529,7 +529,7 @@ const styles = {
     background: '#f5f5f5',
     color: '#333',
     border: 'none',
-    borderRadius: '12px',
+    borderRadius: '0',
     fontSize: '16px',
     fontWeight: '600',
     cursor: 'pointer'
@@ -540,7 +540,7 @@ const styles = {
     background: '#000',
     color: '#fff',
     border: 'none',
-    borderRadius: '12px',
+    borderRadius: '0',
     fontSize: '16px',
     fontWeight: '600',
     cursor: 'pointer'
@@ -551,15 +551,15 @@ const styles = {
     background: '#000',
     color: '#fff',
     border: 'none',
-    borderRadius: '12px',
+    borderRadius: '0',
     fontSize: '16px',
     fontWeight: '600',
     cursor: 'pointer'
   },
-  
+
   successCard: {
     background: '#fff',
-    borderRadius: '16px',
+    borderRadius: '0',
     padding: '48px 32px',
     textAlign: 'center',
     maxWidth: '400px',

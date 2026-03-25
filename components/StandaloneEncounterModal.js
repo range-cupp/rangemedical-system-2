@@ -282,7 +282,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
         style={{
           position: 'fixed', top: '50%', left: '50%',
           transform: 'translate(-50%, -50%)',
-          background: '#fff', borderRadius: 12,
+          background: '#fff', borderRadius: 0,
           width: '95%', maxWidth: noteMode === 'interactive' ? 780 : 620,
           maxHeight: '90vh', overflowY: 'auto',
           zIndex: 10001,
@@ -326,7 +326,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
                 type="date"
                 value={form.visitDate}
                 onChange={e => setForm(prev => ({ ...prev, visitDate: e.target.value }))}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
               />
             </div>
             <div>
@@ -336,7 +336,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
               <select
                 value={form.serviceType}
                 onChange={e => { setForm(prev => ({ ...prev, serviceType: e.target.value })); setShowTemplateMenu(false); }}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, fontFamily: 'inherit', background: '#fff', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, fontFamily: 'inherit', background: '#fff', boxSizing: 'border-box' }}
               >
                 {SERVICE_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -355,7 +355,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
               value={form.provider}
               onChange={e => setForm(prev => ({ ...prev, provider: e.target.value }))}
               placeholder="Dr. Burgess"
-              style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
             />
           </div>
 
@@ -366,7 +366,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
                 type="button"
                 onClick={() => setNoteMode('interactive')}
                 style={{
-                  flex: 1, padding: '12px 16px', borderRadius: 10, cursor: 'pointer',
+                  flex: 1, padding: '12px 16px', borderRadius: 0, cursor: 'pointer',
                   border: noteMode === 'interactive' ? '2px solid #6d28d9' : '2px solid #e5e7eb',
                   background: noteMode === 'interactive' ? '#faf8ff' : '#fff',
                   display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'inherit',
@@ -382,7 +382,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
                 type="button"
                 onClick={() => setNoteMode('freetext')}
                 style={{
-                  flex: 1, padding: '12px 16px', borderRadius: 10, cursor: 'pointer',
+                  flex: 1, padding: '12px 16px', borderRadius: 0, cursor: 'pointer',
                   border: noteMode === 'freetext' ? '2px solid #111' : '2px solid #e5e7eb',
                   background: noteMode === 'freetext' ? '#f9fafb' : '#fff',
                   display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'inherit',
@@ -456,7 +456,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
                   onClick={() => setShowTemplateMenu(prev => !prev)}
                   style={{
                     width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-                    padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: 6,
+                    padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: 0,
                     background: '#f9fafb', color: '#374151', fontSize: 13.5,
                     cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
                   }}
@@ -468,7 +468,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
                 {showTemplateMenu && (
                   <div style={{
                     position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
-                    background: '#fff', border: '1px solid #d1d5db', borderRadius: 8,
+                    background: '#fff', border: '1px solid #d1d5db', borderRadius: 0,
                     boxShadow: '0 8px 24px rgba(0,0,0,0.12)', marginTop: 4,
                     maxHeight: 320, overflowY: 'auto',
                   }}>
@@ -569,7 +569,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
                     minHeight: 180,
                     padding: '10px 48px 10px 12px',
                     border: '1px solid #d1d5db',
-                    borderRadius: 6,
+                    borderRadius: 0,
                     fontSize: 14,
                     fontFamily: 'inherit',
                     lineHeight: 1.7,
@@ -619,7 +619,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
                 rows={10}
                 style={{
                   width: '100%', padding: '10px 12px',
-                  border: '1px solid #d1d5db', borderRadius: 6,
+                  border: '1px solid #d1d5db', borderRadius: 0,
                   fontSize: 13.5, fontFamily: 'inherit', lineHeight: 1.6,
                   resize: 'vertical', boxSizing: 'border-box',
                   background: '#f9fafb',
@@ -650,7 +650,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
                         setNoteIsEmpty(false);
                       }
                     }}
-                    style={{ padding: '3px 10px', fontSize: 12, borderRadius: 20, border: '1px solid #d1d5db', background: '#f9fafb', color: '#374151', cursor: 'pointer' }}
+                    style={{ padding: '3px 10px', fontSize: 12, borderRadius: 0, border: '1px solid #d1d5db', background: '#f9fafb', color: '#374151', cursor: 'pointer' }}
                   >
                     + {qn}
                   </button>
@@ -666,7 +666,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
         {noteMode === 'freetext' && <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 24px', borderTop: '1px solid #e5e7eb', gap: 10 }}>
           <button
             onClick={onClose}
-            style={{ padding: '8px 18px', border: '1px solid #d1d5db', borderRadius: 6, background: '#fff', color: '#374151', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{ padding: '8px 18px', border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}
           >
             Cancel
           </button>
@@ -676,7 +676,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
                 onClick={handleFormatWithAI}
                 disabled={noteIsEmpty || formatting}
                 style={{
-                  padding: '8px 18px', borderRadius: 6, border: '1px solid #d1d5db',
+                  padding: '8px 18px', borderRadius: 0, border: '1px solid #d1d5db',
                   background: '#fff', color: '#374151', fontSize: 14,
                   cursor: (noteIsEmpty || formatting) ? 'not-allowed' : 'pointer',
                   opacity: (noteIsEmpty || formatting) ? 0.5 : 1,
@@ -690,7 +690,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
               onClick={handleSave}
               disabled={!canSave || saving}
               style={{
-                padding: '8px 20px', borderRadius: 6, border: 'none',
+                padding: '8px 20px', borderRadius: 0, border: 'none',
                 background: '#2563eb', color: '#fff', fontSize: 14, fontWeight: 600,
                 cursor: (!canSave || saving) ? 'not-allowed' : 'pointer',
                 opacity: (!canSave || saving) ? 0.5 : 1,

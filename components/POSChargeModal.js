@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
 import { formatPrice } from '../lib/pos-pricing';
-import { findMatchingPeptide, findPeptideInfo } from '../lib/protocol-config';
+
 import { overlayClickProps } from './AdminLayout';
 
 // Category display order and labels
@@ -101,6 +101,9 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   // Account credit state
   const [creditBalanceCents, setCreditBalanceCents] = useState(0);
   const [loadingCredit, setLoadingCredit] = useState(false);
+
+  // Skip patient notification (receipt email) state
+  const [skipNotification, setSkipNotification] = useState(false);
 
   // Invoice state
   const [showInvoiceSend, setShowInvoiceSend] = useState(false);
@@ -543,6 +546,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           service_name: customDescription,
           quantity: 1,
           shipping: shippingCents,
+          skip_receipt: skipNotification,
           ...discountData,
           ...extraFields,
         }),
@@ -601,8 +605,8 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       if (data.purchase?.id) purchaseIds.push(data.purchase.id);
     }
 
-    // Send one consolidated receipt for all items
-    if (purchaseIds.length > 0) {
+    // Send one consolidated receipt for all items (unless notification skipped)
+    if (purchaseIds.length > 0 && !skipNotification) {
       fetch('/api/stripe/send-consolidated-receipt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -634,6 +638,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           service_name: customDescription,
           quantity: 1,
           shipping: shippingCents,
+          skip_receipt: skipNotification,
           ...discountData,
           ...extraFields,
         }),
@@ -674,7 +679,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           shipping: itemShipping,
           fulfillment_method: ['peptide', 'weight_loss', 'hrt', 'vials'].includes(item.category) ? fulfillmentMethod : null,
           tracking_number: ['peptide', 'weight_loss', 'hrt', 'vials'].includes(item.category) && fulfillmentMethod === 'overnight' ? trackingNumber : null,
-          skip_receipt: cartItems.length > 1,
+          skip_receipt: skipNotification || cartItems.length > 1,
           ...(itemDiscountAmt > 0 ? {
             discount_type: item.itemDiscountType,
             discount_amount: parseFloat(item.itemDiscountValue),
@@ -688,7 +693,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       if (data.purchase?.id) purchaseIds.push(data.purchase.id);
     }
 
-    if (purchaseIds.length > 1) {
+    if (purchaseIds.length > 1 && !skipNotification) {
       fetch('/api/stripe/send-consolidated-receipt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -699,101 +704,9 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     return firstPurchase;
   }
 
-  // After successful payment, auto-create protocols for peptide purchases
-  // Patient has already done consult + forms, so start at 'dispensed' stage
-  async function createProtocolsForPeptides() {
-    if (!patient) return;
-
-    const peptideItems = cartItems.filter(i => i.category === 'peptide');
-    if (peptideItems.length === 0) return;
-
-    for (const item of peptideItems) {
-      try {
-        // New format: name="Peptide Therapy — 10 Day", peptide_identifier="BPC-157 (500mcg)"
-        // Legacy format: name="Peptide Protocol — 10 Day — BPC-157 (500mcg)"
-        const parts = item.name.split(' — ');
-        let durationStr, peptidePart;
-
-        if (item.peptide_identifier) {
-          // New format — peptide_identifier is a separate field
-          durationStr = parts[1]?.trim() || '10 Day';
-          peptidePart = item.peptide_identifier;
-        } else if (parts.length >= 3) {
-          // Legacy format — peptide name is embedded in the name
-          durationStr = parts[1].trim();
-          peptidePart = parts.slice(2).join(' — ').trim();
-        } else {
-          continue;
-        }
-
-        // Extract duration: try item.duration_days first, then parse from name
-        // Handles "Recovery 30 Day", "30 Day Protocol", "Monthly" (=30), "90 Day Program", "As Needed" (=30)
-        let duration = item.duration_days;
-        if (!duration) {
-          const dayMatch = durationStr.match(/(\d+)/);
-          if (dayMatch) {
-            duration = parseInt(dayMatch[1]);
-          } else if (durationStr.toLowerCase().includes('monthly') || durationStr.toLowerCase().includes('as needed')) {
-            duration = 30;
-          } else {
-            duration = 30; // safe default for peptide protocols
-          }
-        }
-
-        // Split base name from dose detail
-        const parenMatch = peptidePart.match(/^(.+?)\s*\((.+)\)$/);
-        const rawMedication = parenMatch ? parenMatch[1].trim() : peptidePart;
-        const dosageStr = parenMatch ? parenMatch[2].trim() : '';
-
-        // Parse dose and injection count: "1mg × 20 inj" → dose="1mg", injections=20
-        let parsedDose = dosageStr;
-        let parsedInjections = null;
-        const doseInjMatch = dosageStr.match(/^([\d.]+\s*m[cg]+g?)\s*[×x]\s*(\d+)\s*inj/i);
-        if (doseInjMatch) {
-          parsedDose = doseInjMatch[1].trim();
-          parsedInjections = parseInt(doseInjMatch[2]);
-        }
-
-        // Fuzzy-match medication to known peptide config
-        const matchedPeptideName = findMatchingPeptide(rawMedication);
-        const peptideInfo = findPeptideInfo(matchedPeptideName);
-
-        // Use peptide config for frequency (e.g., "5 on / 2 off") — don't hardcode "daily"
-        const peptideFrequency = peptideInfo?.frequency || 'Daily';
-
-        const today = new Date();
-        const startDate = today.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }); // YYYY-MM-DD
-
-        await fetch('/api/admin/protocols/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            patient_id: patient.id,
-            ghl_contact_id: patient.ghl_contact_id || null,
-            protocolType: 'peptide',
-            patientName: patient.name,
-            patientPhone: patient.phone || '',
-            patientEmail: patient.email || '',
-            medication: matchedPeptideName || rawMedication,
-            dosage: parsedDose,
-            frequency: peptideFrequency,
-            deliveryMethod: 'take_home',
-            startDate,
-            duration,
-            totalSessions: parsedInjections || undefined,
-            notes: `Auto-created from POS purchase: ${item.name}`,
-            initial_journey_stage: 'dispensed',
-            source: 'pos',
-          }),
-        });
-
-        console.log(`✓ Protocol auto-created for ${patient.name}: ${medication} ${duration}-day`);
-      } catch (err) {
-        console.error('Auto-create protocol error (non-fatal):', err);
-        // Don't fail the payment over protocol creation issues
-      }
-    }
-  }
+  // NOTE: Protocol creation for ALL categories (including peptides) is now handled
+  // exclusively by record-purchase.js → autoCreateOrExtendProtocol() in lib/auto-protocol.js.
+  // This prevents duplicate protocols when extending existing ones.
 
   // Gift card: add custom amount as a synthetic cart item
   function addGiftCardCustom() {
@@ -866,7 +779,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       ? { stripe_payment_intent_id: stripePaymentIntentId }
       : {};
     const purchaseData = await recordPurchasesWithReturn(extraFields);
-    await createProtocolsForPeptides();
+
 
     let message = getResultMessage(amount);
     if (isGiftCardPurchase() && purchaseData?.purchase?.id) {
@@ -890,7 +803,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       setStep('processing');
       try {
         await recordPurchases({ payment_method: 'comp' });
-        await createProtocolsForPeptides();
+    
         setResultStatus('success');
         setResultMessage(`Comped ${description} for ${patient.name}`);
         setStep('result');
@@ -908,7 +821,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       setStep('processing');
       try {
         const purchaseData = await recordPurchasesWithReturn({ payment_method: 'cash' });
-        await createProtocolsForPeptides();
+    
         // If this was a gift card purchase, create the gift card
         if (isGiftCardPurchase() && purchaseData?.purchase?.id) {
           const code = await createGiftCardAfterPurchase(purchaseData.purchase.id, amount);
@@ -951,7 +864,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
         });
         const redeemData = await redeemRes.json();
         if (!redeemRes.ok) throw new Error(redeemData.error || 'Failed to redeem gift card');
-        await createProtocolsForPeptides();
+    
         const remaining = redeemData.redemption?.balance_after ?? 0;
         setResultStatus('success');
         setResultMessage(
@@ -987,7 +900,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
         });
         const applyData = await applyRes.json();
         if (!applyRes.ok) throw new Error(applyData.error || 'Failed to apply credit');
-        await createProtocolsForPeptides();
+    
         const remaining = applyData.new_balance_cents ?? 0;
         setResultStatus('success');
         setResultMessage(
@@ -1451,7 +1364,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                         </button>
                       ))}
                     </div>
-                    <div style={{ marginTop: '16px', padding: '16px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                    <div style={{ marginTop: '16px', padding: '16px', background: '#f9fafb', borderRadius: '0', border: '1px solid #e5e7eb' }}>
                       <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px', color: '#374151' }}>Custom Amount</div>
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                         <input
@@ -1483,7 +1396,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                       </div>
                     </div>
                     {cartItems.length > 0 && cartItems[0]?.category === 'gift_card' && (
-                      <div style={{ marginTop: '12px', padding: '12px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                      <div style={{ marginTop: '12px', padding: '12px', background: '#f0fdf4', borderRadius: '0', border: '1px solid #bbf7d0' }}>
                         <div style={{ fontWeight: 600, color: '#166534' }}>
                           Selected: {cartItems[0].name} — {formatPrice(cartItems[0].price)}
                         </div>
@@ -1670,7 +1583,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                                     padding: '2px 8px',
                                     fontSize: '11px',
                                     border: '1px solid #d1d5db',
-                                    borderRadius: '4px',
+                                    borderRadius: '0',
                                     background: item.itemDiscountType === type ? '#000' : '#fff',
                                     color: item.itemDiscountType === type ? '#fff' : '#555',
                                     cursor: 'pointer',
@@ -1693,7 +1606,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                                   value={item.itemDiscountValue}
                                   onChange={e => updateItemDiscount(item.id, 'value', e.target.value)}
                                   placeholder={item.itemDiscountType === 'percent' ? '10' : '25'}
-                                  style={{ width: '60px', padding: '2px 6px', fontSize: '12px', border: '1px solid #d1d5db', borderRadius: '4px', textAlign: 'center' }}
+                                  style={{ width: '60px', padding: '2px 6px', fontSize: '12px', border: '1px solid #d1d5db', borderRadius: '0', textAlign: 'center' }}
                                 />
                                 {item.itemDiscountType === 'percent' && <span style={{ fontSize: '12px', color: '#888' }}>%</span>}
                                 {lineDiscount > 0 && (
@@ -1820,33 +1733,33 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
 
                   {/* Invoice send options */}
                   {showInvoiceSend && (
-                    <div style={{ marginTop: '12px', padding: '14px', background: '#f0f9ff', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
+                    <div style={{ marginTop: '12px', padding: '14px', background: '#f0f9ff', borderRadius: '0', border: '1px solid #bfdbfe' }}>
                       <p style={{ fontSize: '13px', fontWeight: '600', marginBottom: '10px', color: '#1e40af' }}>Send invoice via:</p>
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <button
                           onClick={() => handleSendInvoice('sms')}
                           disabled={invoiceSending}
-                          style={{ padding: '8px 16px', border: '1px solid #bfdbfe', borderRadius: '6px', background: '#fff', fontSize: '13px', cursor: 'pointer', fontWeight: '500' }}
+                          style={{ padding: '8px 16px', border: '1px solid #bfdbfe', borderRadius: '0', background: '#fff', fontSize: '13px', cursor: 'pointer', fontWeight: '500' }}
                         >
                           SMS
                         </button>
                         <button
                           onClick={() => handleSendInvoice('email')}
                           disabled={invoiceSending}
-                          style={{ padding: '8px 16px', border: '1px solid #bfdbfe', borderRadius: '6px', background: '#fff', fontSize: '13px', cursor: 'pointer', fontWeight: '500' }}
+                          style={{ padding: '8px 16px', border: '1px solid #bfdbfe', borderRadius: '0', background: '#fff', fontSize: '13px', cursor: 'pointer', fontWeight: '500' }}
                         >
                           Email
                         </button>
                         <button
                           onClick={() => handleSendInvoice('both')}
                           disabled={invoiceSending}
-                          style={{ padding: '8px 16px', border: '1px solid #bfdbfe', borderRadius: '6px', background: '#fff', fontSize: '13px', cursor: 'pointer', fontWeight: '500' }}
+                          style={{ padding: '8px 16px', border: '1px solid #bfdbfe', borderRadius: '0', background: '#fff', fontSize: '13px', cursor: 'pointer', fontWeight: '500' }}
                         >
                           Both
                         </button>
                         <button
                           onClick={() => setShowInvoiceSend(false)}
-                          style={{ padding: '8px 16px', border: '1px solid #e5e5e5', borderRadius: '6px', background: '#fff', fontSize: '13px', cursor: 'pointer', color: '#888' }}
+                          style={{ padding: '8px 16px', border: '1px solid #e5e5e5', borderRadius: '0', background: '#fff', fontSize: '13px', cursor: 'pointer', color: '#888' }}
                         >
                           Cancel
                         </button>
@@ -1857,7 +1770,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
 
                   {/* Invoice result */}
                   {invoiceResult && (
-                    <div style={{ marginTop: '12px', padding: '14px', background: invoiceResult.success ? '#dcfce7' : '#fee2e2', borderRadius: '8px' }}>
+                    <div style={{ marginTop: '12px', padding: '14px', background: invoiceResult.success ? '#dcfce7' : '#fee2e2', borderRadius: '0' }}>
                       <p style={{ fontSize: '14px', fontWeight: '600', color: invoiceResult.success ? '#166534' : '#dc2626' }}>
                         {invoiceResult.message}
                       </p>
@@ -1869,12 +1782,12 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                               type="text"
                               readOnly
                               value={invoiceResult.url}
-                              style={{ flex: 1, padding: '6px 10px', border: '1px solid #e5e5e5', borderRadius: '4px', fontSize: '12px', background: '#fff' }}
+                              style={{ flex: 1, padding: '6px 10px', border: '1px solid #e5e5e5', borderRadius: '0', fontSize: '12px', background: '#fff' }}
                               onClick={e => e.target.select()}
                             />
                             <button
                               onClick={() => navigator.clipboard.writeText(invoiceResult.url)}
-                              style={{ padding: '6px 12px', border: '1px solid #e5e5e5', borderRadius: '4px', background: '#fff', fontSize: '12px', cursor: 'pointer' }}
+                              style={{ padding: '6px 12px', border: '1px solid #e5e5e5', borderRadius: '0', background: '#fff', fontSize: '12px', cursor: 'pointer' }}
                             >
                               Copy
                             </button>
@@ -1960,7 +1873,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                 value={shippingAmount}
                 onChange={e => setShippingAmount(e.target.value)}
                 placeholder="0.00"
-                style={{ width: '90px', padding: '6px 10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px' }}
+                style={{ width: '90px', padding: '6px 10px', border: '1px solid #ddd', borderRadius: '0', fontSize: '14px' }}
               />
               {getShippingCents() > 0 && (
                 <span style={{ fontSize: '12px', color: '#888' }}>
@@ -1971,7 +1884,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
 
             {/* Fulfillment Method — all medication categories */}
             {cartItems.some(i => ['peptide', 'weight_loss', 'hrt', 'vials'].includes(i.category)) && (
-              <div style={{ marginBottom: '16px', padding: '12px', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
+              <div style={{ marginBottom: '16px', padding: '12px', background: '#f8f9fa', borderRadius: '0', border: '1px solid #e9ecef' }}>
                 <div style={{ fontSize: '12px', fontWeight: '600', color: '#555', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Fulfillment</div>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: fulfillmentMethod === 'overnight' ? '10px' : '0' }}>
                   {/* In-Clinic Injections — only for weight loss */}
@@ -1980,7 +1893,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                       type="button"
                       onClick={() => setFulfillmentMethod('in_clinic_injections')}
                       style={{
-                        flex: 1, padding: '8px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: '500', cursor: 'pointer',
+                        flex: 1, padding: '8px 12px', borderRadius: '0', fontSize: '13px', fontWeight: '500', cursor: 'pointer',
                         border: fulfillmentMethod === 'in_clinic_injections' ? '2px solid #7c3aed' : '1px solid #ddd',
                         background: fulfillmentMethod === 'in_clinic_injections' ? '#f5f3ff' : '#fff',
                         color: fulfillmentMethod === 'in_clinic_injections' ? '#7c3aed' : '#666',
@@ -1994,7 +1907,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                     type="button"
                     onClick={() => setFulfillmentMethod('in_clinic')}
                     style={{
-                      flex: 1, padding: '8px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: '500', cursor: 'pointer',
+                      flex: 1, padding: '8px 12px', borderRadius: '0', fontSize: '13px', fontWeight: '500', cursor: 'pointer',
                       border: fulfillmentMethod === 'in_clinic' ? '2px solid #2E75B6' : '1px solid #ddd',
                       background: fulfillmentMethod === 'in_clinic' ? '#EBF3FB' : '#fff',
                       color: fulfillmentMethod === 'in_clinic' ? '#2E75B6' : '#666',
@@ -2006,7 +1919,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                     type="button"
                     onClick={() => setFulfillmentMethod('overnight')}
                     style={{
-                      flex: 1, padding: '8px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: '500', cursor: 'pointer',
+                      flex: 1, padding: '8px 12px', borderRadius: '0', fontSize: '13px', fontWeight: '500', cursor: 'pointer',
                       border: fulfillmentMethod === 'overnight' ? '2px solid #e67e22' : '1px solid #ddd',
                       background: fulfillmentMethod === 'overnight' ? '#FFF5EB' : '#fff',
                       color: fulfillmentMethod === 'overnight' ? '#e67e22' : '#666',
@@ -2026,7 +1939,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                     placeholder="Tracking number (optional)"
                     value={trackingNumber}
                     onChange={e => setTrackingNumber(e.target.value)}
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box', marginTop: '6px' }}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: '0', fontSize: '13px', boxSizing: 'border-box', marginTop: '6px' }}
                   />
                 )}
               </div>
@@ -2110,12 +2023,12 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                     </label>
                     {selectedCard === 'account_credit' && (
                       <div style={{ padding: '12px 16px', borderTop: '1px solid #f0f0f0' }}>
-                        <div style={{ padding: '12px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                        <div style={{ padding: '12px', background: '#f0fdf4', borderRadius: '0', border: '1px solid #bbf7d0' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontWeight: 600, color: '#166534' }}>
                               Balance: {formatPrice(creditBalanceCents)}
                             </span>
-                            <span style={{ fontSize: '12px', color: '#15803d', background: '#dcfce7', padding: '2px 8px', borderRadius: '4px' }}>
+                            <span style={{ fontSize: '12px', color: '#15803d', background: '#dcfce7', padding: '2px 8px', borderRadius: '0' }}>
                               available
                             </span>
                           </div>
@@ -2173,10 +2086,10 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                         </div>
 
                         {giftCardLookup && !giftCardLookup.error && (
-                          <div style={{ padding: '12px', background: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+                          <div style={{ padding: '12px', background: '#f0fdf4', borderRadius: '0', border: '1px solid #bbf7d0' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <span style={{ fontWeight: 600, color: '#166534' }}>Balance: {formatPrice(giftCardLookup.remaining_amount)}</span>
-                              <span style={{ fontSize: '12px', color: '#15803d', background: '#dcfce7', padding: '2px 8px', borderRadius: '4px' }}>
+                              <span style={{ fontSize: '12px', color: '#15803d', background: '#dcfce7', padding: '2px 8px', borderRadius: '0' }}>
                                 {giftCardLookup.status}
                               </span>
                             </div>
@@ -2196,7 +2109,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                         )}
 
                         {giftCardLookup?.error && (
-                          <div style={{ padding: '10px', background: '#fee2e2', borderRadius: '6px', fontSize: '13px', color: '#dc2626' }}>
+                          <div style={{ padding: '10px', background: '#fee2e2', borderRadius: '0', fontSize: '13px', color: '#dc2626' }}>
                             {giftCardLookup.error}
                           </div>
                         )}
@@ -2206,6 +2119,17 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                 )}
               </>
             )}
+
+            {/* Skip notification toggle */}
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0 4px', cursor: 'pointer', fontSize: '13px', color: '#64748b' }}>
+              <input
+                type="checkbox"
+                checked={skipNotification}
+                onChange={(e) => setSkipNotification(e.target.checked)}
+                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+              />
+              Don't send receipt to patient
+            </label>
 
             <div style={modalStyles.footer}>
               <button style={modalStyles.secondaryBtn} onClick={() => setStep('select')}>
@@ -2257,13 +2181,13 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                   <p style={{ ...modalStyles.resultText, whiteSpace: 'pre-line' }}>{resultMessage}</p>
                   {createdGiftCardCode && (
                     <div style={{
-                      marginTop: '16px', padding: '16px', background: '#f0fdf4', borderRadius: '10px',
+                      marginTop: '16px', padding: '16px', background: '#f0fdf4', borderRadius: '0',
                       border: '2px solid #86efac', textAlign: 'center',
                     }}>
                       <div style={{ fontSize: '12px', color: '#15803d', marginBottom: '6px', fontWeight: 600 }}>GIFT CARD CODE</div>
                       <div style={{
                         fontSize: '24px', fontWeight: 700, fontFamily: 'monospace', letterSpacing: '2px',
-                        color: '#166534', padding: '8px', background: '#fff', borderRadius: '6px', border: '1px solid #bbf7d0',
+                        color: '#166534', padding: '8px', background: '#fff', borderRadius: '0', border: '1px solid #bbf7d0',
                       }}>
                         {createdGiftCardCode}
                       </div>
@@ -2271,7 +2195,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                         onClick={() => navigator.clipboard.writeText(createdGiftCardCode)}
                         style={{
                           marginTop: '10px', padding: '6px 16px', background: '#166534', color: '#fff',
-                          border: 'none', borderRadius: '6px', fontSize: '13px', cursor: 'pointer',
+                          border: 'none', borderRadius: '0', fontSize: '13px', cursor: 'pointer',
                         }}
                       >
                         Copy Code
@@ -2351,7 +2275,7 @@ const modalStyles = {
     left: '50%',
     transform: 'translate(-50%, -50%)',
     background: '#fff',
-    borderRadius: '16px',
+    borderRadius: '0',
     width: '540px',
     maxWidth: '95vw',
     maxHeight: '85vh',
@@ -2367,7 +2291,7 @@ const modalStyles = {
     position: 'sticky',
     top: 0,
     background: '#fff',
-    borderRadius: '16px 16px 0 0',
+    borderRadius: '0',
     zIndex: 1,
   },
   title: {
@@ -2391,7 +2315,7 @@ const modalStyles = {
     color: '#94a3b8',
     cursor: 'pointer',
     padding: '4px 8px',
-    borderRadius: '6px',
+    borderRadius: '0',
   },
   body: {
     padding: '16px 24px 24px',
@@ -2406,7 +2330,7 @@ const modalStyles = {
   },
   categoryTab: {
     padding: '5px 12px',
-    borderRadius: '20px',
+    borderRadius: '0',
     border: '1px solid #e2e8f0',
     background: '#fff',
     fontSize: '11px',
@@ -2431,7 +2355,7 @@ const modalStyles = {
     position: 'relative',
     padding: '10px 12px',
     border: '1px solid #e2e8f0',
-    borderRadius: '8px',
+    borderRadius: '0',
     background: '#fff',
     cursor: 'pointer',
     textAlign: 'left',
@@ -2473,7 +2397,7 @@ const modalStyles = {
     width: '100%',
     padding: '10px 14px',
     border: '1px solid #e2e8f0',
-    borderRadius: '8px',
+    borderRadius: '0',
     background: '#fff',
     cursor: 'pointer',
     textAlign: 'left',
@@ -2500,7 +2424,7 @@ const modalStyles = {
     position: 'relative',
     padding: '10px 12px',
     border: '1px solid #e2e8f0',
-    borderRadius: '8px',
+    borderRadius: '0',
     background: '#fff',
     cursor: 'pointer',
     textAlign: 'left',
@@ -2546,7 +2470,7 @@ const modalStyles = {
     width: '100%',
     padding: '10px 12px',
     border: '1px solid #d1d5db',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '15px',
     outline: 'none',
     boxSizing: 'border-box',
@@ -2555,7 +2479,7 @@ const modalStyles = {
   discountSection: {
     padding: '12px 16px',
     background: '#f8fafc',
-    borderRadius: '8px',
+    borderRadius: '0',
     marginBottom: '16px',
     border: '1px solid #e2e8f0',
   },
@@ -2579,7 +2503,7 @@ const modalStyles = {
   },
   discountBtn: {
     padding: '5px 12px',
-    borderRadius: '6px',
+    borderRadius: '0',
     border: '1px solid #e2e8f0',
     background: '#fff',
     fontSize: '13px',
@@ -2615,7 +2539,7 @@ const modalStyles = {
     width: '100%',
     padding: '6px 10px',
     border: '1px solid #d1d5db',
-    borderRadius: '6px',
+    borderRadius: '0',
     fontSize: '14px',
     outline: 'none',
     boxSizing: 'border-box',
@@ -2628,7 +2552,7 @@ const modalStyles = {
     right: 0,
     background: '#fff',
     border: '1px solid #d1d5db',
-    borderRadius: '8px',
+    borderRadius: '0',
     boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
     zIndex: 10,
     maxHeight: '240px',
@@ -2655,7 +2579,7 @@ const modalStyles = {
   },
   primaryBtn: {
     padding: '12px 24px',
-    borderRadius: '10px',
+    borderRadius: '0',
     border: 'none',
     background: '#2563eb',
     color: '#fff',
@@ -2667,7 +2591,7 @@ const modalStyles = {
   },
   secondaryBtn: {
     padding: '10px 20px',
-    borderRadius: '10px',
+    borderRadius: '0',
     border: '1px solid #e2e8f0',
     background: '#fff',
     color: '#475569',
@@ -2687,7 +2611,7 @@ const modalStyles = {
     alignItems: 'center',
     padding: '12px 16px',
     background: '#f8fafc',
-    borderRadius: '8px',
+    borderRadius: '0',
     marginBottom: '16px',
     fontSize: '15px',
     border: '1px solid #e2e8f0',
@@ -2713,7 +2637,7 @@ const modalStyles = {
     alignItems: 'center',
     gap: '10px',
     padding: '10px 12px',
-    borderRadius: '8px',
+    borderRadius: '0',
     border: '1px solid #e2e8f0',
     marginBottom: '6px',
     cursor: 'pointer',
@@ -2726,7 +2650,7 @@ const modalStyles = {
     color: '#333',
     background: '#f3f4f6',
     padding: '2px 8px',
-    borderRadius: '4px',
+    borderRadius: '0',
   },
   cardExp: {
     color: '#999',
@@ -2736,7 +2660,7 @@ const modalStyles = {
   cardElementWrapper: {
     padding: '14px',
     border: '1px solid #d1d5db',
-    borderRadius: '8px',
+    borderRadius: '0',
     marginTop: '8px',
     background: '#fafafa',
   },
@@ -2807,7 +2731,7 @@ const modalStyles = {
   // Cart styles
   cartSection: {
     background: '#f8fafc',
-    borderRadius: '8px',
+    borderRadius: '0',
     padding: '12px 16px',
     marginBottom: '16px',
     border: '1px solid #e2e8f0',
@@ -2838,7 +2762,7 @@ const modalStyles = {
   qtyBtn: {
     width: '26px',
     height: '26px',
-    borderRadius: '6px',
+    borderRadius: '0',
     border: '1px solid #d1d5db',
     background: '#fff',
     fontSize: '16px',
@@ -2852,7 +2776,7 @@ const modalStyles = {
   cartWarning: {
     background: '#fef3c7',
     border: '1px solid #f59e0b',
-    borderRadius: '8px',
+    borderRadius: '0',
     padding: '8px 12px',
     fontSize: '13px',
     color: '#92400e',
@@ -2864,7 +2788,7 @@ const modalStyles = {
     right: '6px',
     width: '18px',
     height: '18px',
-    borderRadius: '4px',
+    borderRadius: '0',
     background: '#2563eb',
     color: '#fff',
     fontSize: '11px',

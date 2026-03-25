@@ -197,7 +197,7 @@ function QuickTile({ icon, label, sub, color, badge, onClick }) {
       onClick={onClick}
       style={{
         background: color,
-        borderRadius: 14,
+        borderRadius: 0,
         padding: '16px 14px',
         border: 'none',
         cursor: 'pointer',
@@ -211,7 +211,7 @@ function QuickTile({ icon, label, sub, color, badge, onClick }) {
           position: 'absolute', top: 10, right: 10,
           background: '#ef4444', color: '#fff',
           fontSize: 10, fontWeight: 700,
-          borderRadius: 10, minWidth: 18, height: 18,
+          borderRadius: 0, minWidth: 18, height: 18,
           lineHeight: '18px', textAlign: 'center', padding: '0 5px',
         }}>{badge > 9 ? '9+' : badge}</span>
       )}
@@ -224,7 +224,7 @@ function QuickTile({ icon, label, sub, color, badge, onClick }) {
 
 function StatCard({ label, value, accent }) {
   return (
-    <div style={{ background: '#fff', borderRadius: 10, padding: '12px 10px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', textAlign: 'center' }}>
+    <div style={{ background: '#fff', borderRadius: 0, padding: '12px 10px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', textAlign: 'center' }}>
       <div style={{ fontSize: 22, fontWeight: 800, color: accent ? '#ef4444' : '#0f172a' }}>{value}</div>
       <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2, lineHeight: 1.3 }}>{label}</div>
     </div>

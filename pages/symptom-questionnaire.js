@@ -286,7 +286,7 @@ const styles = {
     maxWidth: '600px',
     margin: '0 auto',
     padding: '24px',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif"
   },
   header: {
     textAlign: 'center',
@@ -307,7 +307,7 @@ const styles = {
   },
   card: {
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: '0',
     padding: '24px',
     marginBottom: '20px',
     boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
@@ -336,7 +336,7 @@ const styles = {
     width: '100%',
     padding: '12px',
     border: '1px solid #e5e7eb',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '16px',
     boxSizing: 'border-box'
   },
@@ -353,7 +353,7 @@ const styles = {
     width: '100%',
     padding: '12px',
     border: '1px solid #e5e7eb',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '16px',
     boxSizing: 'border-box',
     resize: 'vertical'
@@ -371,7 +371,7 @@ const styles = {
   slider: {
     width: '100%',
     height: '8px',
-    borderRadius: '4px',
+    borderRadius: '0',
     appearance: 'none',
     background: '#e5e7eb',
     outline: 'none'
@@ -389,13 +389,13 @@ const styles = {
   progressBar: {
     height: '4px',
     background: '#e5e7eb',
-    borderRadius: '2px',
+    borderRadius: '0',
     marginBottom: '8px'
   },
   progressFill: {
     height: '100%',
     background: '#000',
-    borderRadius: '2px',
+    borderRadius: '0',
     transition: 'width 0.3s ease'
   },
   progressText: {
@@ -411,7 +411,7 @@ const styles = {
     padding: '14px 24px',
     background: '#fff',
     border: '1px solid #e5e7eb',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '16px',
     cursor: 'pointer'
   },
@@ -420,7 +420,7 @@ const styles = {
     background: '#000',
     color: '#fff',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '16px',
     cursor: 'pointer',
     marginLeft: 'auto'
@@ -430,7 +430,7 @@ const styles = {
     background: '#000',
     color: '#fff',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '16px',
     fontWeight: '600',
     cursor: 'pointer',

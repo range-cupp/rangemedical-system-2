@@ -51,15 +51,7 @@ const STAGE_NOTIFICATIONS = {
     subject: 'Program Completion — Range Medical',
   },
 
-  // Peptide
-  midpoint_review: {
-    sms: (name) => `Hi ${name}, you're at the midpoint of your peptide cycle. How's it going? Reply or call (949) 997-3988 for a check-in.`,
-    subject: 'Midpoint Review — Range Medical',
-  },
-  cycle_complete: {
-    sms: (name) => `Hi ${name}, your peptide cycle is complete. Let's discuss your results and whether to continue. Call (949) 997-3988.`,
-    subject: 'Cycle Complete — Range Medical',
-  },
+  // Peptide — no automated SMS; tasks are created for Tara instead (see below)
 
   // Session-based (HBOT, RLT, IV)
   completing: {
@@ -107,8 +99,25 @@ export default async function handler(req, res) {
 
     const notifiedSet = new Set((alreadyNotified || []).map(c => c.source));
 
+    // Peptide stages that should create tasks instead of sending SMS
+    const PEPTIDE_TASK_STAGES = {
+      midpoint_review: 'Peptide Midpoint Review',
+      cycle_complete: 'Peptide Cycle Complete',
+      renewal: 'Peptide Renewal Follow-Up',
+    };
+
+    // Pre-fetch Tara's employee ID for peptide follow-up tasks
+    let taraId = null;
+    const { data: taraEmployee } = await supabase
+      .from('employees')
+      .select('id')
+      .eq('email', 'tara@range-medical.com')
+      .single();
+    if (taraEmployee) taraId = taraEmployee.id;
+
     let notified = 0;
     let skipped = 0;
+    let peptideTasksCreated = 0;
     const errors = [];
     const notifications = [];
 
@@ -116,6 +125,71 @@ export default async function handler(req, res) {
       // Skip if already notified
       if (notifiedSet.has(`journey-notification:${transition.id}`)) {
         skipped++;
+        continue;
+      }
+
+      // Fetch the protocol to check program_type
+      const { data: protocol } = await supabase
+        .from('protocols')
+        .select('id, program_type, program_name')
+        .eq('id', transition.protocol_id)
+        .single();
+
+      const isPeptide = protocol?.program_type === 'peptide';
+
+      // For peptide protocols: create a task for Tara instead of sending SMS
+      if (isPeptide && PEPTIDE_TASK_STAGES[transition.current_stage] && taraId) {
+        const { data: patient } = await supabase
+          .from('patients')
+          .select('id, name, first_name, last_name')
+          .eq('id', transition.patient_id)
+          .single();
+
+        const patientName = patient?.first_name && patient?.last_name
+          ? `${patient.first_name} ${patient.last_name}`
+          : patient?.name || 'Unknown';
+
+        const taskTitle = `${PEPTIDE_TASK_STAGES[transition.current_stage]}: ${patientName} — ${protocol.program_name}`;
+
+        // Check if task already exists to avoid duplicates
+        const { data: existingTasks } = await supabase
+          .from('tasks')
+          .select('id')
+          .eq('patient_id', transition.patient_id)
+          .ilike('title', `%${PEPTIDE_TASK_STAGES[transition.current_stage]}%${protocol.program_name}%`)
+          .eq('status', 'pending')
+          .limit(1);
+
+        if (!existingTasks || existingTasks.length === 0) {
+          await supabase.from('tasks').insert({
+            title: taskTitle,
+            description: `${patientName}'s ${protocol.program_name} reached ${transition.current_stage.replace(/_/g, ' ')} stage. Reach out to discuss next steps.`,
+            assigned_to: taraId,
+            assigned_by: taraId,
+            patient_id: transition.patient_id,
+            patient_name: patientName,
+            priority: 'medium',
+            status: 'pending',
+          });
+          peptideTasksCreated++;
+          notifications.push({
+            patient: patientName,
+            stage: transition.current_stage,
+            channel: 'task',
+          });
+        }
+
+        // Log so we don't re-process this transition
+        await logComm({
+          channel: 'task',
+          messageType: 'journey_stage',
+          message: `Task created for ${transition.current_stage}: ${taskTitle}`,
+          source: `journey-notification:${transition.id}`,
+          patientId: transition.patient_id,
+          protocolId: transition.protocol_id,
+          patientName,
+        });
+
         continue;
       }
 
@@ -197,6 +271,7 @@ export default async function handler(req, res) {
       transitions_found: transitions.length,
       notified,
       skipped,
+      peptideTasksCreated,
       notifications: notifications.length > 0 ? notifications : undefined,
       errors: errors.length > 0 ? errors : undefined,
       run_at: new Date().toISOString(),

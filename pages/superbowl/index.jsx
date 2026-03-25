@@ -263,7 +263,7 @@ export default function SuperBowlGiveaway() {
             text-transform: uppercase;
             letter-spacing: 0.05em;
             padding: 0.5rem 1rem;
-            border-radius: 100px;
+            border-radius: 0;
             margin-bottom: 1.5rem;
           }
           .sb-closed-content h1 {
@@ -290,7 +290,7 @@ export default function SuperBowlGiveaway() {
             color: #ffffff;
             text-decoration: none;
             padding: 0.875rem 2rem;
-            border-radius: 8px;
+            border-radius: 0;
             font-weight: 600;
             font-size: 1rem;
             transition: background 0.2s;
@@ -667,7 +667,7 @@ export default function SuperBowlGiveaway() {
           text-transform: uppercase;
           letter-spacing: 0.05em;
           padding: 0.5rem 1rem;
-          border-radius: 100px;
+          border-radius: 0;
           margin-bottom: 1.25rem;
         }
 
@@ -734,7 +734,7 @@ export default function SuperBowlGiveaway() {
         .sb-panel-card {
           background: #ffffff;
           border: 2px solid #171717;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1.5rem;
           margin-bottom: 1.5rem;
         }
@@ -788,7 +788,7 @@ export default function SuperBowlGiveaway() {
 
         .sb-accordion {
           border: 1px solid #e5e5e5;
-          border-radius: 8px;
+          border-radius: 0;
           overflow: hidden;
         }
 
@@ -886,7 +886,7 @@ export default function SuperBowlGiveaway() {
           background: #22c55e;
           color: #ffffff;
           padding: 1rem 1.5rem;
-          border-radius: 8px;
+          border-radius: 0;
           text-align: center;
         }
 
@@ -923,7 +923,7 @@ export default function SuperBowlGiveaway() {
           border: 1px solid #fecaca;
           color: #dc2626;
           padding: 0.875rem 1rem;
-          border-radius: 8px;
+          border-radius: 0;
           font-size: 0.875rem;
           margin-bottom: 1.5rem;
           text-align: center;
@@ -960,7 +960,7 @@ export default function SuperBowlGiveaway() {
           width: 100%;
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 8px;
+          border-radius: 0;
           padding: 0.875rem 1rem;
           font-size: 1rem;
           color: #171717;
@@ -995,7 +995,7 @@ export default function SuperBowlGiveaway() {
           gap: 0.375rem;
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 100px;
+          border-radius: 0;
           padding: 0.5rem 1rem;
           font-size: 0.8125rem;
           color: #525252;
@@ -1032,7 +1032,7 @@ export default function SuperBowlGiveaway() {
           position: relative;
           background: #ffffff;
           border: 2px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1.5rem 1rem;
           cursor: pointer;
           transition: all 0.2s;
@@ -1120,7 +1120,7 @@ export default function SuperBowlGiveaway() {
           width: 100%;
           background: #000000;
           border: none;
-          border-radius: 8px;
+          border-radius: 0;
           padding: 1rem 2rem;
           font-size: 1rem;
           font-weight: 600;

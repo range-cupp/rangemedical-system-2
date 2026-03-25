@@ -423,7 +423,7 @@ export default function MedicationsPage() {
             key={c.key}
             onClick={() => setCategoryFilter(c.key)}
             style={{
-              padding: '6px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: 500,
+              padding: '6px 14px', borderRadius: 0, fontSize: '13px', fontWeight: 500,
               cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
               border: categoryFilter === c.key ? `2px solid ${c.color}` : '1px solid #e5e7eb',
               background: categoryFilter === c.key ? c.color : '#fff',
@@ -503,7 +503,7 @@ export default function MedicationsPage() {
                           else { statusText = formatDate(sec.next_expected_date); }
                         }
                         return (
-                          <div key={sec.medication} style={{ marginTop: '4px', padding: '3px 8px', background: '#faf5ff', borderRadius: '4px', border: '1px solid #e9d5ff', fontSize: '11px' }}>
+                          <div key={sec.medication} style={{ marginTop: '4px', padding: '3px 8px', background: '#faf5ff', borderRadius: 0, border: '1px solid #e9d5ff', fontSize: '11px' }}>
                             <span style={{ fontWeight: 600, color: '#7c3aed' }}>+ {sec.medication}</span>
                             {sec.num_vials && <span style={{ color: '#6b7280', marginLeft: '6px' }}>{sec.num_vials} vial{sec.num_vials > 1 ? 's' : ''}</span>}
                             {statusText && <span style={{ color: statusColor, marginLeft: '6px', fontWeight: 600 }}>· {statusText}</span>}
@@ -536,7 +536,7 @@ export default function MedicationsPage() {
                       style={{
                         marginLeft: '6px', padding: '6px 10px', fontSize: '13px',
                         background: 'transparent', color: '#9ca3af', border: '1px solid #e5e7eb',
-                        borderRadius: '6px', cursor: 'pointer', fontFamily: 'inherit',
+                        borderRadius: 0, cursor: 'pointer', fontFamily: 'inherit',
                       }}
                     >
                       {dismissing === med.id ? '...' : '✕'}
@@ -618,7 +618,7 @@ export default function MedicationsPage() {
                             autoFocus
                             style={{
                               flex: 1, padding: '10px 12px', fontSize: '14px', fontWeight: 600,
-                              border: '2px solid #2563eb', borderRadius: '8px', fontFamily: 'inherit',
+                              border: '2px solid #2563eb', borderRadius: 0, fontFamily: 'inherit',
                               color: '#111', background: '#eff6ff', outline: 'none',
                             }}
                           />
@@ -631,7 +631,7 @@ export default function MedicationsPage() {
                             }}
                             style={{
                               padding: '10px 16px', fontSize: '13px', fontWeight: 600,
-                              background: '#111', color: '#fff', border: 'none', borderRadius: '8px',
+                              background: '#111', color: '#fff', border: 'none', borderRadius: 0,
                               cursor: 'pointer',
                             }}
                           >Set</button>
@@ -640,7 +640,7 @@ export default function MedicationsPage() {
                             style={{
                               padding: '10px 12px', fontSize: '13px', fontWeight: 600,
                               background: '#f3f4f6', color: '#374151', border: '1px solid #e5e7eb',
-                              borderRadius: '8px', cursor: 'pointer',
+                              borderRadius: 0, cursor: 'pointer',
                             }}
                           >Cancel</button>
                         </div>
@@ -658,7 +658,7 @@ export default function MedicationsPage() {
                           style={{
                             width: '100%', padding: '10px 12px', fontSize: '14px', fontWeight: 600,
                             border: dispenseDosage !== dispensingProtocol.dosage ? '2px solid #f59e0b' : '1px solid #e5e7eb',
-                            borderRadius: '8px', fontFamily: 'inherit', color: '#111',
+                            borderRadius: 0, fontFamily: 'inherit', color: '#111',
                             background: dispenseDosage !== dispensingProtocol.dosage ? '#fffbeb' : '#fff',
                             cursor: 'pointer', outline: 'none', marginTop: '6px',
                             appearance: 'none', backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath d=\'M6 8L1 3h10z\' fill=\'%236b7280\'/%3E%3C/svg%3E")',
@@ -711,7 +711,7 @@ export default function MedicationsPage() {
                             onClick={() => setSelectedSupplyType(opt.value)}
                             style={{
                               padding: '8px 16px',
-                              borderRadius: '8px',
+                              borderRadius: 0,
                               fontSize: '13px',
                               fontWeight: 600,
                               fontFamily: 'inherit',
@@ -767,7 +767,7 @@ export default function MedicationsPage() {
                     placeholder="e.g. 2mg x 2wks → 4mg x 2wks"
                     value={dosingNotes}
                     onChange={e => setDosingNotes(e.target.value)}
-                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box', fontFamily: 'inherit', color: '#111' }}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 0, fontSize: '13px', boxSizing: 'border-box', fontFamily: 'inherit', color: '#111' }}
                   />
                 </div>
               )}
@@ -789,7 +789,7 @@ export default function MedicationsPage() {
                       type="button"
                       onClick={() => setRefillOverride(opt.value)}
                       style={{
-                        padding: '7px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: '500',
+                        padding: '7px 14px', borderRadius: 0, fontSize: '13px', fontWeight: '500',
                         cursor: 'pointer', fontFamily: 'inherit',
                         border: refillOverride === opt.value ? '2px solid #111' : '1px solid #ddd',
                         background: refillOverride === opt.value ? '#111' : '#fff',
@@ -817,14 +817,14 @@ export default function MedicationsPage() {
 
               {/* Fulfillment Method */}
               {dispensingProtocol && ['hrt', 'weight_loss', 'peptide'].includes((dispensingProtocol.program_type || '').toLowerCase()) && (
-                <div style={{ marginBottom: '14px', padding: '12px', background: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
+                <div style={{ marginBottom: '14px', padding: '12px', background: '#f8f9fa', borderRadius: 0, border: '1px solid #e9ecef' }}>
                   <div style={{ fontSize: '12px', fontWeight: '600', color: '#555', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Fulfillment</div>
                   <div style={{ display: 'flex', gap: '8px', marginBottom: fulfillmentMethod === 'overnight' ? '10px' : '0' }}>
                     <button
                       type="button"
                       onClick={() => setFulfillmentMethod('in_clinic')}
                       style={{
-                        flex: 1, padding: '8px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: '500', cursor: 'pointer',
+                        flex: 1, padding: '8px 12px', borderRadius: 0, fontSize: '13px', fontWeight: '500', cursor: 'pointer',
                         border: fulfillmentMethod === 'in_clinic' ? '2px solid #2E75B6' : '1px solid #ddd',
                         background: fulfillmentMethod === 'in_clinic' ? '#EBF3FB' : '#fff',
                         color: fulfillmentMethod === 'in_clinic' ? '#2E75B6' : '#666',
@@ -837,7 +837,7 @@ export default function MedicationsPage() {
                       type="button"
                       onClick={() => setFulfillmentMethod('overnight')}
                       style={{
-                        flex: 1, padding: '8px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: '500', cursor: 'pointer',
+                        flex: 1, padding: '8px 12px', borderRadius: 0, fontSize: '13px', fontWeight: '500', cursor: 'pointer',
                         border: fulfillmentMethod === 'overnight' ? '2px solid #e67e22' : '1px solid #ddd',
                         background: fulfillmentMethod === 'overnight' ? '#FFF5EB' : '#fff',
                         color: fulfillmentMethod === 'overnight' ? '#e67e22' : '#666',
@@ -853,7 +853,7 @@ export default function MedicationsPage() {
                       placeholder="Tracking number (optional)"
                       value={trackingNumber}
                       onChange={e => setTrackingNumber(e.target.value)}
-                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                      style={{ width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: 0, fontSize: '13px', boxSizing: 'border-box', fontFamily: 'inherit' }}
                     />
                   )}
                 </div>
@@ -862,7 +862,7 @@ export default function MedicationsPage() {
               {/* Result */}
               {logResult && (
                 <div style={{
-                  padding: '10px 14px', borderRadius: '8px', marginBottom: '12px', fontSize: '13px',
+                  padding: '10px 14px', borderRadius: 0, marginBottom: '12px', fontSize: '13px',
                   background: logResult.success ? '#f0fdf4' : '#fef2f2',
                   color: logResult.success ? '#16a34a' : '#dc2626',
                   border: logResult.success ? '1px solid #bbf7d0' : '1px solid #fecaca',
@@ -876,7 +876,7 @@ export default function MedicationsPage() {
                 onClick={handleDispense}
                 disabled={logging || logResult?.success || !dispenseDate}
                 style={{
-                  width: '100%', padding: '14px', border: 'none', borderRadius: '10px',
+                  width: '100%', padding: '14px', border: 'none', borderRadius: 0,
                   background: logResult?.success ? '#e5e7eb' : '#000',
                   color: logResult?.success ? '#9ca3af' : '#fff',
                   fontSize: '15px', fontWeight: 600,
@@ -903,7 +903,7 @@ const s = {
   },
   statCard: {
     background: '#fff',
-    borderRadius: '10px',
+    borderRadius: 0,
     padding: '16px 18px',
     boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
   },
@@ -933,7 +933,7 @@ const s = {
   pill: {
     padding: '6px 14px',
     border: '1px solid #e5e7eb',
-    borderRadius: '20px',
+    borderRadius: 0,
     background: '#fff',
     fontSize: '13px',
     color: '#666',
@@ -949,7 +949,7 @@ const s = {
   searchInput: {
     padding: '8px 14px',
     border: '1px solid #e5e7eb',
-    borderRadius: '8px',
+    borderRadius: 0,
     fontSize: '13px',
     outline: 'none',
     width: '260px',
@@ -958,7 +958,7 @@ const s = {
   },
   tableWrap: {
     background: '#fff',
-    borderRadius: '10px',
+    borderRadius: 0,
     overflow: 'auto',
     boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
   },
@@ -990,7 +990,7 @@ const s = {
   badge: {
     display: 'inline-block',
     padding: '3px 10px',
-    borderRadius: '12px',
+    borderRadius: 0,
     fontSize: '12px',
     fontWeight: 600,
     whiteSpace: 'nowrap',
@@ -1006,7 +1006,7 @@ const s = {
     background: '#fff7ed',
     color: '#c2410c',
     border: '1px solid #fed7aa',
-    borderRadius: '6px',
+    borderRadius: 0,
     fontSize: '12px',
     fontWeight: 600,
     cursor: 'pointer',
@@ -1024,7 +1024,7 @@ const s = {
   },
   modal: {
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: 0,
     width: '100%',
     maxWidth: '440px',
     overflow: 'hidden',
@@ -1067,7 +1067,7 @@ const s = {
     marginTop: '6px',
     padding: '10px 14px',
     border: '1px solid #e5e7eb',
-    borderRadius: '8px',
+    borderRadius: 0,
     fontSize: '14px',
     fontFamily: 'inherit',
     outline: 'none',
@@ -1077,7 +1077,7 @@ const s = {
   previewBox: {
     background: '#f0f9ff',
     border: '1px solid #bfdbfe',
-    borderRadius: '10px',
+    borderRadius: 0,
     padding: '14px 16px',
     marginTop: '14px',
     marginBottom: '14px',

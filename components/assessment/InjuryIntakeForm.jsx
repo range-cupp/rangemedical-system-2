@@ -187,7 +187,7 @@ export default function InjuryIntakeForm({ intakeData, onIntakeChange, onSubmit,
                                   padding: '0.625rem 0.875rem',
                                   fontSize: '0.875rem',
                                   border: '1px solid #e5e5e5',
-                                  borderRadius: '6px',
+                                  borderRadius: '0',
                                   fontFamily: 'inherit'
                                 }}
                               />
@@ -202,7 +202,7 @@ export default function InjuryIntakeForm({ intakeData, onIntakeChange, onSubmit,
                                     padding: '0.625rem 0.875rem',
                                     fontSize: '0.875rem',
                                     border: '1px solid #e5e5e5',
-                                    borderRadius: '6px',
+                                    borderRadius: '0',
                                     fontFamily: 'inherit'
                                   }}
                                 />
@@ -277,21 +277,21 @@ export default function InjuryIntakeForm({ intakeData, onIntakeChange, onSubmit,
                           placeholder="Medication name"
                           value={med.name}
                           onChange={(e) => updateMedication(i, 'name', e.target.value)}
-                          style={{ flex: 2, padding: '0.75rem', fontSize: '0.875rem', border: '1px solid #e5e5e5', borderRadius: '6px', fontFamily: 'inherit' }}
+                          style={{ flex: 2, padding: '0.75rem', fontSize: '0.875rem', border: '1px solid #e5e5e5', borderRadius: '0', fontFamily: 'inherit' }}
                         />
                         <input
                           type="text"
                           placeholder="Dosage"
                           value={med.dosage}
                           onChange={(e) => updateMedication(i, 'dosage', e.target.value)}
-                          style={{ flex: 1, padding: '0.75rem', fontSize: '0.875rem', border: '1px solid #e5e5e5', borderRadius: '6px', fontFamily: 'inherit' }}
+                          style={{ flex: 1, padding: '0.75rem', fontSize: '0.875rem', border: '1px solid #e5e5e5', borderRadius: '0', fontFamily: 'inherit' }}
                         />
                         <input
                           type="text"
                           placeholder="Frequency"
                           value={med.frequency}
                           onChange={(e) => updateMedication(i, 'frequency', e.target.value)}
-                          style={{ flex: 1, padding: '0.75rem', fontSize: '0.875rem', border: '1px solid #e5e5e5', borderRadius: '6px', fontFamily: 'inherit' }}
+                          style={{ flex: 1, padding: '0.75rem', fontSize: '0.875rem', border: '1px solid #e5e5e5', borderRadius: '0', fontFamily: 'inherit' }}
                         />
                         <button
                           onClick={() => removeMedication(i)}
@@ -308,7 +308,7 @@ export default function InjuryIntakeForm({ intakeData, onIntakeChange, onSubmit,
                       onClick={addMedication}
                       style={{
                         display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
-                        background: 'none', border: '1px dashed #d4d4d4', borderRadius: '6px',
+                        background: 'none', border: '1px dashed #d4d4d4', borderRadius: '0',
                         padding: '0.625rem 1rem', fontSize: '0.875rem', color: '#525252',
                         cursor: 'pointer', fontFamily: 'inherit'
                       }}
@@ -356,7 +356,7 @@ export default function InjuryIntakeForm({ intakeData, onIntakeChange, onSubmit,
                       onChange={(e) => updateField('knownAllergiesText', e.target.value)}
                       placeholder="List any allergies (medications, foods, environmental)..."
                       rows={3}
-                      style={{ width: '100%', padding: '0.875rem 1rem', fontSize: '0.9375rem', border: '1px solid #e5e5e5', borderRadius: '8px', fontFamily: 'inherit', resize: 'vertical' }}
+                      style={{ width: '100%', padding: '0.875rem 1rem', fontSize: '0.9375rem', border: '1px solid #e5e5e5', borderRadius: '0', fontFamily: 'inherit', resize: 'vertical' }}
                     />
                   </div>
                 )}
@@ -423,14 +423,14 @@ export default function InjuryIntakeForm({ intakeData, onIntakeChange, onSubmit,
                           placeholder="Procedure"
                           value={surgery.procedure}
                           onChange={(e) => updateSurgery(i, 'procedure', e.target.value)}
-                          style={{ flex: 2, padding: '0.75rem', fontSize: '0.875rem', border: '1px solid #e5e5e5', borderRadius: '6px', fontFamily: 'inherit' }}
+                          style={{ flex: 2, padding: '0.75rem', fontSize: '0.875rem', border: '1px solid #e5e5e5', borderRadius: '0', fontFamily: 'inherit' }}
                         />
                         <input
                           type="text"
                           placeholder="Year"
                           value={surgery.year}
                           onChange={(e) => updateSurgery(i, 'year', e.target.value)}
-                          style={{ flex: 1, padding: '0.75rem', fontSize: '0.875rem', border: '1px solid #e5e5e5', borderRadius: '6px', fontFamily: 'inherit' }}
+                          style={{ flex: 1, padding: '0.75rem', fontSize: '0.875rem', border: '1px solid #e5e5e5', borderRadius: '0', fontFamily: 'inherit' }}
                         />
                         <button
                           onClick={() => removeSurgery(i)}
@@ -447,7 +447,7 @@ export default function InjuryIntakeForm({ intakeData, onIntakeChange, onSubmit,
                       onClick={addSurgery}
                       style={{
                         display: 'inline-flex', alignItems: 'center', gap: '0.375rem',
-                        background: 'none', border: '1px dashed #d4d4d4', borderRadius: '6px',
+                        background: 'none', border: '1px dashed #d4d4d4', borderRadius: '0',
                         padding: '0.625rem 1rem', fontSize: '0.875rem', color: '#525252',
                         cursor: 'pointer', fontFamily: 'inherit'
                       }}
@@ -474,7 +474,7 @@ export default function InjuryIntakeForm({ intakeData, onIntakeChange, onSubmit,
                     value={intakeData.emergencyContactName || ''}
                     onChange={(e) => updateField('emergencyContactName', e.target.value)}
                     placeholder="Jane Smith"
-                    style={{ width: '100%', padding: '0.875rem 1rem', fontSize: '1rem', border: '1px solid #e5e5e5', borderRadius: '8px', fontFamily: 'inherit' }}
+                    style={{ width: '100%', padding: '0.875rem 1rem', fontSize: '1rem', border: '1px solid #e5e5e5', borderRadius: '0', fontFamily: 'inherit' }}
                   />
                 </div>
                 <div className="ra-field">
@@ -485,7 +485,7 @@ export default function InjuryIntakeForm({ intakeData, onIntakeChange, onSubmit,
                     value={intakeData.emergencyContactPhone || ''}
                     onChange={(e) => updateField('emergencyContactPhone', e.target.value)}
                     placeholder="(949) 555-1234"
-                    style={{ width: '100%', padding: '0.875rem 1rem', fontSize: '1rem', border: '1px solid #e5e5e5', borderRadius: '8px', fontFamily: 'inherit' }}
+                    style={{ width: '100%', padding: '0.875rem 1rem', fontSize: '1rem', border: '1px solid #e5e5e5', borderRadius: '0', fontFamily: 'inherit' }}
                   />
                 </div>
                 <div className="ra-field">
@@ -496,7 +496,7 @@ export default function InjuryIntakeForm({ intakeData, onIntakeChange, onSubmit,
                     value={intakeData.emergencyContactRelationship || ''}
                     onChange={(e) => updateField('emergencyContactRelationship', e.target.value)}
                     placeholder="Spouse, parent, sibling..."
-                    style={{ width: '100%', padding: '0.875rem 1rem', fontSize: '1rem', border: '1px solid #e5e5e5', borderRadius: '8px', fontFamily: 'inherit' }}
+                    style={{ width: '100%', padding: '0.875rem 1rem', fontSize: '1rem', border: '1px solid #e5e5e5', borderRadius: '0', fontFamily: 'inherit' }}
                   />
                 </div>
               </div>

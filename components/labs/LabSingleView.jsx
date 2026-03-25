@@ -94,7 +94,7 @@ export default function LabSingleView({ results, biomarkerLibrary, previousResul
         <div style={{
           marginBottom: '24px',
           border: `1px solid ${synopsis ? '#C7D2FE' : colors.border}`,
-          borderRadius: '8px',
+          borderRadius: '0',
           background: synopsis ? '#F5F3FF' : colors.white,
           overflow: 'hidden'
         }}>
@@ -124,7 +124,7 @@ export default function LabSingleView({ results, biomarkerLibrary, previousResul
                   onClick={(e) => { e.stopPropagation(); onRegenerateSynopsis(); }}
                   disabled={synopsisLoading}
                   style={{
-                    padding: '4px 10px', borderRadius: '4px', border: '1px solid #C7D2FE',
+                    padding: '4px 10px', borderRadius: '0', border: '1px solid #C7D2FE',
                     background: colors.white, cursor: synopsisLoading ? 'not-allowed' : 'pointer',
                     fontSize: '0.75rem', fontWeight: 500, color: '#4338CA',
                     opacity: synopsisLoading ? 0.6 : 1

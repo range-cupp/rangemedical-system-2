@@ -689,7 +689,7 @@ export default function PaymentsPage() {
         {tab === 'invoices' && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             {/* View toggle */}
-            <div style={{ display: 'flex', border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', border: '1px solid #e2e8f0', borderRadius: 0, overflow: 'hidden' }}>
               <button
                 onClick={() => setViewMode('list')}
                 style={{
@@ -871,7 +871,7 @@ export default function PaymentsPage() {
                                     <span style={{
                                       fontSize: '10px',
                                       padding: '1px 6px',
-                                      borderRadius: '4px',
+                                      borderRadius: 0,
                                       background: '#f1f5f9',
                                       color: '#64748b',
                                       fontWeight: '500',
@@ -882,7 +882,7 @@ export default function PaymentsPage() {
                                   <span style={{
                                     fontSize: '10px',
                                     padding: '1px 6px',
-                                    borderRadius: '4px',
+                                    borderRadius: 0,
                                     background: txn.type === 'invoice' ? '#eff6ff' : '#f0fdf4',
                                     color: txn.type === 'invoice' ? '#1e40af' : '#166534',
                                     fontWeight: '500',
@@ -1651,7 +1651,7 @@ export default function PaymentsPage() {
               </button>
               <button
                 onClick={fetchAllSubscriptions}
-                style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #ddd', background: '#fff', fontSize: 13, cursor: 'pointer' }}
+                style={{ padding: '8px 14px', borderRadius: 0, border: '1px solid #ddd', background: '#fff', fontSize: 13, cursor: 'pointer' }}
               >
                 {subsLoading ? 'Loading...' : 'Refresh'}
               </button>
@@ -1733,13 +1733,13 @@ export default function PaymentsPage() {
                             ${((sub.amount_cents || 0) / 100).toFixed(0)}/{sub.interval || 'mo'}
                           </td>
                           <td style={styles.td}>
-                            <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700, background: statusBg, color: statusColor }}>
+                            <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 0, fontSize: 11, fontWeight: 700, background: statusBg, color: statusColor }}>
                               {statusLabel}
                             </span>
                           </td>
                           <td style={styles.td}>
                             {sub.service_category && (
-                              <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', background: cat.bg, color: cat.text }}>
+                              <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 0, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', background: cat.bg, color: cat.text }}>
                                 {sub.service_category}
                               </span>
                             )}
@@ -1751,7 +1751,7 @@ export default function PaymentsPage() {
                                   <button
                                     onClick={() => handleSubAction(sub.stripe_subscription_id, 'retry_payment')}
                                     disabled={!!subActionLoading}
-                                    style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, borderRadius: 4, background: '#16a34a', color: '#fff', border: 'none', cursor: 'pointer' }}
+                                    style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, borderRadius: 0, background: '#16a34a', color: '#fff', border: 'none', cursor: 'pointer' }}
                                   >
                                     Retry
                                   </button>
@@ -1760,7 +1760,7 @@ export default function PaymentsPage() {
                                   <button
                                     onClick={() => handleSubAction(sub.stripe_subscription_id, 'resume')}
                                     disabled={!!subActionLoading}
-                                    style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, borderRadius: 4, background: '#16a34a', color: '#fff', border: 'none', cursor: 'pointer' }}
+                                    style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, borderRadius: 0, background: '#16a34a', color: '#fff', border: 'none', cursor: 'pointer' }}
                                   >
                                     Resume
                                   </button>
@@ -1768,7 +1768,7 @@ export default function PaymentsPage() {
                                   <button
                                     onClick={() => handleSubAction(sub.stripe_subscription_id, 'pause')}
                                     disabled={!!subActionLoading}
-                                    style={{ padding: '4px 10px', fontSize: 11, borderRadius: 4, background: '#fff', color: '#f59e0b', border: '1px solid #fcd34d', cursor: 'pointer' }}
+                                    style={{ padding: '4px 10px', fontSize: 11, borderRadius: 0, background: '#fff', color: '#f59e0b', border: '1px solid #fcd34d', cursor: 'pointer' }}
                                   >
                                     Pause
                                   </button>
@@ -1777,7 +1777,7 @@ export default function PaymentsPage() {
                                   <button
                                     onClick={() => handleSubAction(sub.stripe_subscription_id, 'undo_cancel')}
                                     disabled={!!subActionLoading}
-                                    style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, borderRadius: 4, background: '#16a34a', color: '#fff', border: 'none', cursor: 'pointer' }}
+                                    style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600, borderRadius: 0, background: '#16a34a', color: '#fff', border: 'none', cursor: 'pointer' }}
                                   >
                                     Undo Cancel
                                   </button>
@@ -1785,7 +1785,7 @@ export default function PaymentsPage() {
                                   <button
                                     onClick={() => handleCancelSub(sub.stripe_subscription_id, false)}
                                     disabled={!!subActionLoading}
-                                    style={{ padding: '4px 10px', fontSize: 11, borderRadius: 4, background: '#fff', color: '#dc2626', border: '1px solid #fca5a5', cursor: 'pointer' }}
+                                    style={{ padding: '4px 10px', fontSize: 11, borderRadius: 0, background: '#fff', color: '#dc2626', border: '1px solid #fca5a5', cursor: 'pointer' }}
                                   >
                                     Cancel
                                   </button>
@@ -1807,10 +1807,10 @@ export default function PaymentsPage() {
       {/* New Subscription Modal */}
       {showNewSubModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: 20 }}>
-          <div style={{ background: '#fff', borderRadius: 16, width: 500, maxWidth: '90vw', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+          <div style={{ background: '#fff', borderRadius: 0, width: 500, maxWidth: '90vw', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px 12px', borderBottom: '1px solid #f1f5f9' }}>
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0f172a' }}>New Subscription</h3>
-              <button onClick={() => { setShowNewSubModal(false); setNewSubPatient(null); setNewSubPatientCards([]); }} style={{ background: 'none', border: 'none', fontSize: 18, color: '#94a3b8', cursor: 'pointer', padding: '4px 8px', borderRadius: 6 }}>✕</button>
+              <button onClick={() => { setShowNewSubModal(false); setNewSubPatient(null); setNewSubPatientCards([]); }} style={{ background: 'none', border: 'none', fontSize: 18, color: '#94a3b8', cursor: 'pointer', padding: '4px 8px', borderRadius: 0 }}>✕</button>
             </div>
             <div style={{ padding: '16px 24px 24px' }}>
 
@@ -1823,11 +1823,11 @@ export default function PaymentsPage() {
                   placeholder="Search patient by name or email..."
                   value={newSubPatientSearch}
                   onChange={e => searchNewSubPatients(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, boxSizing: 'border-box' }}
                   autoFocus
                 />
                 {newSubPatientResults.length > 0 && (
-                  <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, marginTop: 4, maxHeight: 200, overflow: 'auto' }}>
+                  <div style={{ border: '1px solid #e5e7eb', borderRadius: 0, marginTop: 4, maxHeight: 200, overflow: 'auto' }}>
                     {newSubPatientResults.map(p => (
                       <div
                         key={p.id}
@@ -1845,7 +1845,7 @@ export default function PaymentsPage() {
                 )}
               </div>
             ) : (
-              <div style={{ marginBottom: 16, padding: '10px 14px', background: '#f0fdf4', borderRadius: 8, border: '1px solid #bbf7d0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ marginBottom: 16, padding: '10px 14px', background: '#f0fdf4', borderRadius: 0, border: '1px solid #bbf7d0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <strong>{newSubPatient.first_name} {newSubPatient.last_name}</strong>
                   <span style={{ color: '#64748b', marginLeft: 8, fontSize: 12 }}>{newSubPatient.email}</span>
@@ -1860,7 +1860,7 @@ export default function PaymentsPage() {
             )}
 
             {newSubPatientCards.length === 0 && newSubPatient && (
-              <div style={{ padding: '10px 14px', background: '#fef2f2', borderRadius: 8, border: '1px solid #fecaca', marginBottom: 12, fontSize: 13, color: '#991b1b' }}>
+              <div style={{ padding: '10px 14px', background: '#fef2f2', borderRadius: 0, border: '1px solid #fecaca', marginBottom: 12, fontSize: 13, color: '#991b1b' }}>
                 No card on file. Add a card on the patient&apos;s profile first.
               </div>
             )}
@@ -1881,7 +1881,7 @@ export default function PaymentsPage() {
                     });
                   }
                 }}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13, boxSizing: 'border-box' }}
               >
                 <option value="">{loadingSubPlans ? 'Loading plans...' : '-- Select a plan --'}</option>
                 {subPlans.map(plan => (
@@ -1902,13 +1902,13 @@ export default function PaymentsPage() {
                       type="number" step="0.01" min="0" placeholder="250"
                       value={newSubForm.amount}
                       onChange={e => setNewSubForm(f => ({ ...f, amount: e.target.value }))}
-                      style={{ width: 100, padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14 }}
+                      style={{ width: 100, padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
                     />
                   </div>
                   <div>
                     <label style={{ fontSize: 11, fontWeight: 600, display: 'block', marginBottom: 3 }}>Interval</label>
                     <select value={newSubForm.interval} onChange={e => setNewSubForm(f => ({ ...f, interval: e.target.value }))}
-                      style={{ padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}>
+                      style={{ padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }}>
                       <option value="month">Monthly</option>
                       <option value="year">Yearly</option>
                       <option value="week">Weekly</option>
@@ -1921,7 +1921,7 @@ export default function PaymentsPage() {
                     type="text" placeholder="e.g. Male HRT Membership"
                     value={newSubForm.description}
                     onChange={e => setNewSubForm(f => ({ ...f, description: e.target.value }))}
-                    style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13, boxSizing: 'border-box' }}
                   />
                 </div>
               </>
@@ -1930,7 +1930,7 @@ export default function PaymentsPage() {
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button
                 onClick={() => { setShowNewSubModal(false); setNewSubPatient(null); setNewSubPatientCards([]); setNewSubForm({ amount: '', interval: 'month', description: '', service_category: 'hrt' }); }}
-                style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', fontSize: 13, cursor: 'pointer', color: '#475569', fontWeight: 500, fontFamily: 'inherit' }}
+                style={{ padding: '8px 16px', borderRadius: 0, border: '1px solid #e2e8f0', background: '#fff', fontSize: 13, cursor: 'pointer', color: '#475569', fontWeight: 500, fontFamily: 'inherit' }}
               >
                 Cancel
               </button>
@@ -1938,7 +1938,7 @@ export default function PaymentsPage() {
                 onClick={handleCreateNewSub}
                 disabled={creatingSub || !newSubPatient || newSubPatientCards.length === 0 || !newSubForm.description}
                 style={{
-                  padding: '8px 20px', borderRadius: 8, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                  padding: '8px 20px', borderRadius: 0, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                   background: (!newSubPatient || newSubPatientCards.length === 0 || !newSubForm.description) ? '#e2e8f0' : '#16a34a', color: '#fff',
                   opacity: (creatingSub || !newSubPatient || newSubPatientCards.length === 0 || !newSubForm.description) ? 0.6 : 1,
                 }}
@@ -1954,10 +1954,10 @@ export default function PaymentsPage() {
       {/* Edit Invoice Modal */}
       {editingInvoice && editForm && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: 20 }}>
-          <div style={{ background: '#fff', borderRadius: 16, width: 560, maxWidth: '90vw', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+          <div style={{ background: '#fff', borderRadius: 0, width: 560, maxWidth: '90vw', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px 12px', borderBottom: '1px solid #f1f5f9' }}>
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Edit Invoice</h3>
-              <button onClick={() => { setEditingInvoice(null); setEditForm(null); }} style={{ background: 'none', border: 'none', fontSize: 18, color: '#94a3b8', cursor: 'pointer', padding: '4px 8px', borderRadius: 6 }}>✕</button>
+              <button onClick={() => { setEditingInvoice(null); setEditForm(null); }} style={{ background: 'none', border: 'none', fontSize: 18, color: '#94a3b8', cursor: 'pointer', padding: '4px 8px', borderRadius: 0 }}>✕</button>
             </div>
             <div style={{ padding: '16px 24px 24px' }}>
               {/* Patient info */}
@@ -1968,7 +1968,7 @@ export default function PaymentsPage() {
                     type="text"
                     value={editForm.patient_name}
                     onChange={e => setEditForm(f => ({ ...f, patient_name: e.target.value }))}
-                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13, boxSizing: 'border-box' }}
                   />
                 </div>
                 <div>
@@ -1977,7 +1977,7 @@ export default function PaymentsPage() {
                     type="email"
                     value={editForm.patient_email}
                     onChange={e => setEditForm(f => ({ ...f, patient_email: e.target.value }))}
-                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13, boxSizing: 'border-box' }}
                   />
                 </div>
               </div>
@@ -1995,7 +1995,7 @@ export default function PaymentsPage() {
                         items[idx] = { ...items[idx], name: e.target.value };
                         setEditForm(f => ({ ...f, items }));
                       }}
-                      style={{ flex: 1, padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}
+                      style={{ flex: 1, padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }}
                       placeholder="Item name"
                     />
                     <input
@@ -2006,7 +2006,7 @@ export default function PaymentsPage() {
                         items[idx] = { ...items[idx], price_cents: Math.round(parseFloat(e.target.value || 0) * 100) };
                         setEditForm(f => ({ ...f, items }));
                       }}
-                      style={{ width: 90, padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}
+                      style={{ width: 90, padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }}
                       placeholder="Price"
                       step="0.01"
                       min="0"
@@ -2019,7 +2019,7 @@ export default function PaymentsPage() {
                         items[idx] = { ...items[idx], quantity: parseInt(e.target.value || 1) };
                         setEditForm(f => ({ ...f, items }));
                       }}
-                      style={{ width: 50, padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, textAlign: 'center' }}
+                      style={{ width: 50, padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13, textAlign: 'center' }}
                       min="1"
                     />
                     <button
@@ -2049,7 +2049,7 @@ export default function PaymentsPage() {
                     type="number"
                     value={(editForm.discount_cents / 100).toFixed(2)}
                     onChange={e => setEditForm(f => ({ ...f, discount_cents: Math.round(parseFloat(e.target.value || 0) * 100) }))}
-                    style={{ width: 100, padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}
+                    style={{ width: 100, padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }}
                     step="0.01"
                     min="0"
                   />
@@ -2060,7 +2060,7 @@ export default function PaymentsPage() {
                     type="text"
                     value={editForm.discount_description}
                     onChange={e => setEditForm(f => ({ ...f, discount_description: e.target.value }))}
-                    style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13, boxSizing: 'border-box' }}
                     placeholder="e.g. 20% off"
                   />
                 </div>
@@ -2073,7 +2073,7 @@ export default function PaymentsPage() {
                   value={editForm.notes}
                   onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
                   rows={3}
-                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' }}
+                  style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13, boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' }}
                 />
               </div>
 
@@ -2082,7 +2082,7 @@ export default function PaymentsPage() {
                 const subtotal = editForm.items.reduce((s, i) => s + (i.price_cents * (i.quantity || 1)), 0);
                 const total = Math.max(subtotal - (editForm.discount_cents || 0), 0);
                 return (
-                  <div style={{ padding: '10px 14px', background: '#f8fafc', borderRadius: 8, marginBottom: 16, display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 600 }}>
+                  <div style={{ padding: '10px 14px', background: '#f8fafc', borderRadius: 0, marginBottom: 16, display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 600 }}>
                     <span>Total</span>
                     <span>{formatCents(total)}</span>
                   </div>
@@ -2093,7 +2093,7 @@ export default function PaymentsPage() {
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 <button
                   onClick={() => { setEditingInvoice(null); setEditForm(null); }}
-                  style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', fontSize: 13, cursor: 'pointer', color: '#475569', fontWeight: 500, fontFamily: 'inherit' }}
+                  style={{ padding: '8px 16px', borderRadius: 0, border: '1px solid #e2e8f0', background: '#fff', fontSize: 13, cursor: 'pointer', color: '#475569', fontWeight: 500, fontFamily: 'inherit' }}
                 >
                   Cancel
                 </button>
@@ -2101,7 +2101,7 @@ export default function PaymentsPage() {
                   onClick={handleSaveEdit}
                   disabled={savingEdit || !editForm.patient_name || editForm.items.length === 0}
                   style={{
-                    padding: '8px 20px', borderRadius: 8, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                    padding: '8px 20px', borderRadius: 0, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                     background: savingEdit ? '#e2e8f0' : '#2563eb', color: '#fff',
                     opacity: savingEdit ? 0.6 : 1,
                   }}
@@ -2141,7 +2141,7 @@ const styles = {
   tab: {
     padding: '6px 14px',
     border: '1px solid #e2e8f0',
-    borderRadius: '20px',
+    borderRadius: 0,
     background: '#fff',
     fontSize: '12px',
     cursor: 'pointer',
@@ -2160,7 +2160,7 @@ const styles = {
     background: '#16a34a',
     color: '#fff',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: 0,
     fontSize: '13px',
     fontWeight: '600',
     cursor: 'pointer',
@@ -2175,7 +2175,7 @@ const styles = {
   stat: {
     flex: 1,
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: 0,
     border: '1px solid #e2e8f0',
     padding: '14px 16px',
     textAlign: 'center',
@@ -2204,7 +2204,7 @@ const styles = {
   searchInput: {
     padding: '8px 14px',
     border: '1px solid #e2e8f0',
-    borderRadius: '8px',
+    borderRadius: 0,
     fontSize: '13px',
     width: '260px',
     outline: 'none',
@@ -2219,7 +2219,7 @@ const styles = {
   filterPill: {
     padding: '5px 12px',
     border: '1px solid #e2e8f0',
-    borderRadius: '20px',
+    borderRadius: 0,
     background: '#fff',
     fontSize: '11px',
     cursor: 'pointer',
@@ -2240,7 +2240,7 @@ const styles = {
     padding: '12px 20px',
     background: '#0f172a',
     color: '#fff',
-    borderRadius: '10px',
+    borderRadius: 0,
     fontSize: '13px',
     fontWeight: '500',
     zIndex: 1100,
@@ -2254,7 +2254,7 @@ const styles = {
   },
   card: {
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: 0,
     overflow: 'hidden',
     border: '1px solid #e2e8f0',
   },
@@ -2290,7 +2290,7 @@ const styles = {
   },
   badge: {
     padding: '3px 10px',
-    borderRadius: '12px',
+    borderRadius: 0,
     fontSize: '10px',
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -2302,7 +2302,7 @@ const styles = {
   actionBtn: {
     padding: '4px 10px',
     border: '1px solid #e2e8f0',
-    borderRadius: '6px',
+    borderRadius: 0,
     background: '#fff',
     fontSize: '11px',
     cursor: 'pointer',
@@ -2314,7 +2314,7 @@ const styles = {
   textBtn: {
     padding: '4px 10px',
     border: '1px solid #bbf7d0',
-    borderRadius: '6px',
+    borderRadius: 0,
     background: '#f0fdf4',
     fontSize: '11px',
     cursor: 'pointer',
@@ -2325,7 +2325,7 @@ const styles = {
   payBtn: {
     padding: '4px 10px',
     border: '1px solid #bbf7d0',
-    borderRadius: '6px',
+    borderRadius: 0,
     background: '#f0fdf4',
     fontSize: '11px',
     cursor: 'pointer',
@@ -2339,7 +2339,7 @@ const styles = {
     right: 0,
     background: '#fff',
     border: '1px solid #e2e8f0',
-    borderRadius: '8px',
+    borderRadius: 0,
     boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
     zIndex: 20,
     marginTop: '4px',
@@ -2358,7 +2358,7 @@ const styles = {
   editBtn: {
     padding: '4px 10px',
     border: '1px solid #bfdbfe',
-    borderRadius: '6px',
+    borderRadius: 0,
     background: '#eff6ff',
     fontSize: '11px',
     cursor: 'pointer',
@@ -2369,7 +2369,7 @@ const styles = {
   voidBtn: {
     padding: '4px 10px',
     border: '1px solid #fecaca',
-    borderRadius: '6px',
+    borderRadius: 0,
     background: '#fff',
     fontSize: '11px',
     cursor: 'pointer',
@@ -2428,7 +2428,7 @@ const styles = {
     padding: '10px 20px',
     background: '#1e40af',
     color: '#fff',
-    borderRadius: '8px',
+    borderRadius: 0,
     textDecoration: 'none',
     fontSize: '13px',
     fontWeight: '600',
@@ -2452,7 +2452,7 @@ const styles = {
     width: '100%',
     padding: '10px 14px',
     border: '1px solid #e2e8f0',
-    borderRadius: '10px',
+    borderRadius: 0,
     fontSize: '14px',
     outline: 'none',
     boxSizing: 'border-box',
@@ -2466,7 +2466,7 @@ const styles = {
     right: 0,
     background: '#fff',
     border: '1px solid #e2e8f0',
-    borderRadius: '10px',
+    borderRadius: 0,
     boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
     zIndex: 10,
     maxHeight: '240px',
@@ -2483,7 +2483,7 @@ const styles = {
   },
   posChargeBtn: {
     padding: '10px 24px',
-    borderRadius: '10px',
+    borderRadius: 0,
     border: 'none',
     background: '#2563eb',
     color: '#fff',
@@ -2500,7 +2500,7 @@ const styles = {
   },
   productCategory: {
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: 0,
     border: '1px solid #e2e8f0',
     overflow: 'hidden',
   },
@@ -2590,7 +2590,7 @@ const styles = {
   },
   dayModal: {
     background: '#fff',
-    borderRadius: '16px',
+    borderRadius: 0,
     width: '90%',
     maxWidth: '900px',
     maxHeight: '80vh',
@@ -2606,7 +2606,7 @@ const styles = {
     position: 'sticky',
     top: 0,
     background: '#fff',
-    borderRadius: '16px 16px 0 0',
+    borderRadius: 0,
     zIndex: 1,
   },
   dayModalClose: {
@@ -2616,7 +2616,7 @@ const styles = {
     width: '32px',
     height: '32px',
     border: '1px solid #e2e8f0',
-    borderRadius: '8px',
+    borderRadius: 0,
     background: '#fff',
     cursor: 'pointer',
     color: '#64748b',

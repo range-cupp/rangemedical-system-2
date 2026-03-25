@@ -113,7 +113,7 @@ export default function TesamorelinIpamorelin() {
           background: var(--color-primary);
           color: var(--color-bg);
           padding: 0.5rem 1rem;
-          border-radius: var(--radius-full);
+          border-radius: 0;
           font-size: 0.8125rem;
           font-weight: 600;
           margin-bottom: 1.5rem;
@@ -203,7 +203,7 @@ export default function TesamorelinIpamorelin() {
         .peptide-card {
           background: var(--color-bg);
           border: 1px solid var(--color-border);
-          border-radius: var(--radius-lg);
+          border-radius: 0;
           padding: 2rem;
           transition: var(--transition);
         }
@@ -256,7 +256,7 @@ export default function TesamorelinIpamorelin() {
         .synergy-box {
           background: var(--color-bg);
           border: 2px solid var(--color-primary);
-          border-radius: var(--radius-lg);
+          border-radius: 0;
           padding: 2.5rem;
           max-width: 900px;
           margin: 0 auto;
@@ -327,7 +327,7 @@ export default function TesamorelinIpamorelin() {
         .card {
           background: var(--color-bg);
           border: 1px solid var(--color-border);
-          border-radius: var(--radius-lg);
+          border-radius: 0;
           padding: 1.75rem;
           transition: var(--transition);
         }
@@ -370,7 +370,7 @@ export default function TesamorelinIpamorelin() {
           padding: 1rem 1.25rem;
           background: var(--color-bg);
           border: 1px solid var(--color-border);
-          border-radius: var(--radius-md);
+          border-radius: 0;
           font-size: 0.9375rem;
         }
 
@@ -426,7 +426,7 @@ export default function TesamorelinIpamorelin() {
         .info-card {
           background: var(--color-bg);
           border: 1px solid var(--color-border);
-          border-radius: var(--radius-lg);
+          border-radius: 0;
           padding: 2rem;
         }
 

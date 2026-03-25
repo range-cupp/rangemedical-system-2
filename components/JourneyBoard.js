@@ -21,7 +21,7 @@ const boardStyles = {
     width: '260px',
     flex: '0 0 260px',
     background: '#f5f5f5',
-    borderRadius: '10px',
+    borderRadius: '0',
     display: 'flex',
     flexDirection: 'column',
     maxHeight: 'calc(100vh - 280px)'
@@ -48,7 +48,7 @@ const boardStyles = {
     background: '#e5e7eb',
     color: '#374151',
     padding: '2px 8px',
-    borderRadius: '10px',
+    borderRadius: '0',
     fontSize: '12px',
     fontWeight: '500'
   },
@@ -87,7 +87,7 @@ const boardStyles = {
   dropHint: {
     padding: '12px',
     border: '2px dashed #d1d5db',
-    borderRadius: '8px',
+    borderRadius: '0',
     textAlign: 'center',
     color: '#9ca3af',
     fontSize: '12px',

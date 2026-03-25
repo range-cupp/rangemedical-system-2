@@ -191,7 +191,7 @@ export default function PatientPortal() {
           return (
             <div style={{ margin: '24px 20px 0' }}>
               <h2 style={styles.sectionTitle}>Your Progress</h2>
-              <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
+              <div style={{ background: '#fff', borderRadius: '0', padding: '20px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: '16px' }}>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '11px', color: '#999', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px' }}>Starting</div>
@@ -213,7 +213,7 @@ export default function PatientPortal() {
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                     <YAxis domain={['dataMin - 2', 'dataMax + 2']} tick={{ fontSize: 12 }} unit=" lbs" width={65} />
-                    <Tooltip formatter={(value) => [`${value} lbs`, 'Weight']} contentStyle={{ fontSize: 13, borderRadius: 8 }} />
+                    <Tooltip formatter={(value) => [`${value} lbs`, 'Weight']} contentStyle={{ fontSize: 13, borderRadius: 0 }} />
                     <Line type="monotone" dataKey="weight" stroke="#1e40af" strokeWidth={2} dot={{ r: 4, fill: '#1e40af' }} activeDot={{ r: 6 }} />
                   </LineChart>
                 </ResponsiveContainer>
@@ -403,7 +403,7 @@ const styles = {
     margin: '0 20px',
     padding: '32px 24px',
     background: '#fff',
-    borderRadius: '16px',
+    borderRadius: '0',
     textAlign: 'center',
     boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
   },
@@ -467,13 +467,13 @@ const styles = {
   progressBar: {
     height: '8px',
     background: '#e5e5e5',
-    borderRadius: '4px',
+    borderRadius: '0',
     overflow: 'hidden'
   },
   progressFill: {
     height: '100%',
     background: 'linear-gradient(90deg, #000 0%, #333 100%)',
-    borderRadius: '4px',
+    borderRadius: '0',
     transition: 'width 0.5s ease'
   },
   progressLabels: {
@@ -503,7 +503,7 @@ const styles = {
   },
   calendarDay: {
     aspectRatio: '1',
-    borderRadius: '10px',
+    borderRadius: '0',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -524,7 +524,7 @@ const styles = {
     margin: '32px 20px 0',
     padding: '20px',
     background: '#fff',
-    borderRadius: '12px'
+    borderRadius: '0'
   },
   infoRow: {
     display: 'flex',
@@ -546,7 +546,7 @@ const styles = {
     margin: '24px 20px 0',
     padding: '20px',
     background: '#fffbeb',
-    borderRadius: '12px',
+    borderRadius: '0',
     border: '1px solid #fef3c7'
   },
   instructions: {
@@ -571,7 +571,7 @@ const styles = {
     padding: '12px 24px',
     background: '#000',
     color: '#fff',
-    borderRadius: '8px',
+    borderRadius: '0',
     textDecoration: 'none',
     fontSize: '16px',
     fontWeight: '500'

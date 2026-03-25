@@ -84,7 +84,8 @@ export default async function handler(req, res) {
     const typesLabel = consultation_types.join(' / ');
     const schedTitle = `📅 Schedule ${patientName} — ${typesLabel}`;
 
-    let schedDesc = `Dr. ${employee.name || 'Provider'} reviewed lab results for ${patientName} and is ready to schedule.\n\nConsultation type(s): ${typesLabel}`;
+    const reviewerName = employee.email === 'burgess@range-medical.com' ? `Dr. ${employee.name}` : (employee.name || 'Provider');
+    let schedDesc = `${reviewerName} reviewed lab results for ${patientName} and is ready to schedule.\n\nConsultation type(s): ${typesLabel}`;
     if (instructions?.trim()) {
       schedDesc += `\n\nInstructions: ${instructions.trim()}`;
     }

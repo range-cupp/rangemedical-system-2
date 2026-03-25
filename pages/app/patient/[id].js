@@ -83,20 +83,20 @@ export default function AppPatientDetail() {
                     voice.call({ to: patient.phone, name: `${patient.first_name} ${patient.last_name}` });
                   }}
                   disabled={voice.isActive}
-                  style={{ flex: 1, background: voice.isActive ? '#e2e8f0' : '#dbeafe', color: voice.isActive ? '#94a3b8' : '#1d4ed8', borderRadius: 10, padding: '12px 8px', textAlign: 'center', border: 'none', cursor: voice.isActive ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 700 }}
+                  style={{ flex: 1, background: voice.isActive ? '#e2e8f0' : '#dbeafe', color: voice.isActive ? '#94a3b8' : '#1d4ed8', borderRadius: 0, padding: '12px 8px', textAlign: 'center', border: 'none', cursor: voice.isActive ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 700 }}
                 >
                   {voice.isActive ? '📞 On call…' : '📞 Call'}
                 </button>
               )}
               <button
                 onClick={() => router.push(`/app/messages?patient_id=${id}`)}
-                style={{ flex: 1, background: '#f0fdf4', color: '#166534', borderRadius: 10, padding: '12px 8px', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}
+                style={{ flex: 1, background: '#f0fdf4', color: '#166534', borderRadius: 0, padding: '12px 8px', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}
               >
                 💬 Message
               </button>
               <button
                 onClick={() => window.open(`/patients/${id}`, '_blank')}
-                style={{ flex: 1, background: '#f8fafc', color: '#475569', borderRadius: 10, padding: '12px 8px', border: '1px solid #e2e8f0', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}
+                style={{ flex: 1, background: '#f8fafc', color: '#475569', borderRadius: 0, padding: '12px 8px', border: '1px solid #e2e8f0', cursor: 'pointer', fontSize: 13, fontWeight: 700 }}
               >
                 📋 Full Profile
               </button>
@@ -153,7 +153,7 @@ export default function AppPatientDetail() {
             <div style={{ padding: '4px 12px 32px' }}>
               <button
                 onClick={() => router.push('/app/service-log')}
-                style={{ width: '100%', padding: '14px', borderRadius: 12, border: 'none', background: '#0f172a', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}
+                style={{ width: '100%', padding: '14px', borderRadius: 0, border: 'none', background: '#0f172a', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer' }}
               >
                 + Log Session for This Patient
               </button>

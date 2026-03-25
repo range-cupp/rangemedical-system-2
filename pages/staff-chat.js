@@ -63,7 +63,7 @@ function renderMarkdown(text, dark) {
       else parts.push(
         <code key={m.index} style={{
           background: dark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)',
-          borderRadius: 3, padding: '1px 5px', fontSize: 13,
+          borderRadius: 0, padding: '1px 5px', fontSize: 13,
         }}>{m[4]}</code>
       );
       last = m.index + m[0].length;
@@ -91,7 +91,7 @@ function MessageBubble({ msg, dark }) {
         color: isUser
           ? (dark ? '#111' : '#fff')
           : (dark ? '#e8e8e8' : '#111'),
-        borderRadius: isUser ? '20px 20px 5px 20px' : '20px 20px 20px 5px',
+        borderRadius: isUser ? '0' : '0',
         padding: '11px 15px',
         fontSize: 15,
         lineHeight: 1.55,
@@ -113,7 +113,7 @@ function TypingIndicator({ dark }) {
     <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 8, padding: '0 4px' }}>
       <div style={{
         background: dark ? '#2a2a2a' : '#f3f4f6',
-        borderRadius: '20px 20px 20px 5px',
+        borderRadius: '0',
         padding: '13px 18px',
         display: 'flex', gap: 5, alignItems: 'center',
       }}>
@@ -292,7 +292,7 @@ export default function StaffChat() {
       maxWidth: isMobile ? '100%' : 680,
       margin: isMobile ? 0 : '0 auto',
       background: dark ? '#141414' : '#fff',
-      borderRadius: isMobile ? 0 : 16,
+      borderRadius: 0,
       border: isMobile ? 'none' : '1px solid #e5e7eb',
       overflow: 'hidden',
       boxShadow: isMobile ? 'none' : '0 2px 12px rgba(0,0,0,0.06)',
@@ -371,7 +371,7 @@ export default function StaffChat() {
                 whiteSpace: 'nowrap',
                 background: dark ? '#222' : '#f9fafb',
                 border: `1px solid ${dark ? '#333' : '#e5e7eb'}`,
-                borderRadius: 20,
+                borderRadius: 0,
                 padding: '8px 14px',
                 fontSize: 13,
                 color: dark ? '#ccc' : '#374151',
@@ -426,7 +426,7 @@ export default function StaffChat() {
           style={{
             flex: 1,
             border: `1.5px solid ${listening ? '#ef4444' : (dark ? '#2e2e2e' : '#e5e7eb')}`,
-            borderRadius: 22,
+            borderRadius: 0,
             padding: '11px 15px',
             // 16px minimum prevents iOS from zooming in on focus
             fontSize: 16,

@@ -83,7 +83,7 @@ export default function AppProtocols() {
         .cat-chip {
           flex-shrink: 0;
           padding: 6px 12px;
-          border-radius: 20px;
+          border-radius: 0;
           border: 1.5px solid #e2e8f0;
           background: #fff;
           font-size: 12px;
@@ -94,7 +94,7 @@ export default function AppProtocols() {
         .cat-chip.active { background: #0f172a; border-color: #0f172a; color: #fff; }
         .proto-card {
           background: #fff;
-          border-radius: 12px;
+          border-radius: 0;
           margin: 0 12px 8px;
           padding: 14px;
           box-shadow: 0 1px 3px rgba(0,0,0,0.06);
@@ -106,7 +106,7 @@ export default function AppProtocols() {
       <AppLayout title="Protocols">
         {/* Search */}
         <div style={{ padding: '12px 16px 0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '0 12px', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: 0, padding: '0 12px', gap: 8 }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round">
               <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
             </svg>

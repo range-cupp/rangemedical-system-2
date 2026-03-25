@@ -641,7 +641,7 @@ export const sharedStyles = {
   // Cards
   card: {
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: '0',
     border: '1px solid #e5e5e5',
     overflow: 'hidden'
   },
@@ -694,7 +694,7 @@ export const sharedStyles = {
     background: '#000',
     color: '#fff',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '14px',
     fontWeight: '500',
     cursor: 'pointer',
@@ -708,7 +708,7 @@ export const sharedStyles = {
     background: '#fff',
     color: '#000',
     border: '1px solid #ddd',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '14px',
     fontWeight: '500',
     cursor: 'pointer',
@@ -720,7 +720,7 @@ export const sharedStyles = {
   btnSmall: {
     padding: '6px 12px',
     fontSize: '12px',
-    borderRadius: '6px'
+    borderRadius: '0'
   },
   btnSuccess: {
     background: '#22c55e',
@@ -737,7 +737,7 @@ export const sharedStyles = {
   input: {
     padding: '10px 14px',
     border: '1px solid #ddd',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '14px',
     width: '100%',
     boxSizing: 'border-box'
@@ -745,7 +745,7 @@ export const sharedStyles = {
   select: {
     padding: '10px 14px',
     border: '1px solid #ddd',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '14px',
     background: '#fff',
     cursor: 'pointer'
@@ -764,7 +764,7 @@ export const sharedStyles = {
   // Badges
   badge: {
     padding: '4px 10px',
-    borderRadius: '12px',
+    borderRadius: '0',
     fontSize: '11px',
     fontWeight: '600',
     textTransform: 'uppercase'
@@ -786,7 +786,7 @@ export const sharedStyles = {
   statCard: {
     padding: '20px',
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: '0',
     border: '1px solid #e5e5e5'
   },
   statValue: {
@@ -813,7 +813,7 @@ export const sharedStyles = {
   searchInput: {
     padding: '10px 14px',
     border: '1px solid #ddd',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '14px',
     width: '280px'
   },
@@ -873,7 +873,7 @@ export const sharedStyles = {
   },
   modal: {
     background: '#fff',
-    borderRadius: '16px',
+    borderRadius: '0',
     width: '100%',
     maxWidth: '600px',
     maxHeight: '90vh',
@@ -968,7 +968,7 @@ const styles = {
   navLink: {
     textDecoration: 'none',
     padding: '10px 12px',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '14px',
     display: 'flex',
     alignItems: 'center',
@@ -989,7 +989,7 @@ const styles = {
     fontWeight: '700',
     minWidth: '20px',
     height: '20px',
-    borderRadius: '10px',
+    borderRadius: '0',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1007,7 +1007,7 @@ const styles = {
     color: 'rgba(255,255,255,0.5)',
     fontSize: '12px',
     padding: '8px 12px',
-    borderRadius: '8px',
+    borderRadius: '0',
     transition: 'color 0.15s'
   },
   employeeInfo: {
@@ -1016,7 +1016,7 @@ const styles = {
     gap: '10px',
     padding: '10px 12px',
     marginTop: '8px',
-    borderRadius: '10px',
+    borderRadius: '0',
     background: 'rgba(255,255,255,0.06)',
   },
   employeeAvatar: {
@@ -1054,7 +1054,7 @@ const styles = {
     color: 'rgba(255,255,255,0.4)',
     cursor: 'pointer',
     padding: '4px',
-    borderRadius: '6px',
+    borderRadius: '0',
     display: 'flex',
     alignItems: 'center',
     transition: 'color 0.15s',
@@ -1098,7 +1098,7 @@ const styles = {
   navArrowBtn: {
     background: '#f3f4f6',
     border: '1px solid #e5e7eb',
-    borderRadius: '6px',
+    borderRadius: '0',
     width: '32px',
     height: '32px',
     display: 'flex',

@@ -3414,7 +3414,7 @@ const styles = `
   .ra-progress {
     height: 4px;
     background: #e5e5e5;
-    border-radius: 2px;
+    border-radius: 0;
     margin-bottom: 2rem;
     overflow: hidden;
   }
@@ -3422,7 +3422,7 @@ const styles = `
   .ra-progress-bar {
     height: 100%;
     background: #000000;
-    border-radius: 2px;
+    border-radius: 0;
     transition: width 0.3s ease;
   }
 

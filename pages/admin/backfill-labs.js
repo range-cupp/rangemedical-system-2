@@ -243,7 +243,7 @@ const styles = {
   },
   card: {
     background: 'white',
-    borderRadius: '16px',
+    borderRadius: 0,
     padding: '32px',
     maxWidth: '800px',
     width: '100%',
@@ -268,7 +268,7 @@ const styles = {
   calendarItem: {
     background: '#f3f4f6',
     padding: '8px 16px',
-    borderRadius: '8px',
+    borderRadius: 0,
     fontSize: '13px',
     color: '#374151'
   },
@@ -289,7 +289,7 @@ const styles = {
   input: {
     padding: '10px 12px',
     border: '2px solid #e5e7eb',
-    borderRadius: '8px',
+    borderRadius: 0,
     fontSize: '14px'
   },
   buttons: {
@@ -301,7 +301,7 @@ const styles = {
     padding: '14px 20px',
     border: '2px solid #e5e7eb',
     background: 'white',
-    borderRadius: '8px',
+    borderRadius: 0,
     fontSize: '14px',
     fontWeight: '600',
     cursor: 'pointer'
@@ -312,7 +312,7 @@ const styles = {
     border: 'none',
     background: '#111',
     color: 'white',
-    borderRadius: '8px',
+    borderRadius: 0,
     fontSize: '14px',
     fontWeight: '600',
     cursor: 'pointer'
@@ -322,12 +322,12 @@ const styles = {
     border: '1px solid #fecaca',
     color: '#dc2626',
     padding: '16px',
-    borderRadius: '8px',
+    borderRadius: 0,
     marginBottom: '16px'
   },
   results: {
     background: '#f9fafb',
-    borderRadius: '12px',
+    borderRadius: 0,
     padding: '20px'
   },
   resultsTitle: {
@@ -343,7 +343,7 @@ const styles = {
   stat: {
     background: 'white',
     padding: '16px',
-    borderRadius: '8px',
+    borderRadius: 0,
     textAlign: 'center'
   },
   statValue: {
@@ -359,14 +359,14 @@ const styles = {
   created: {
     background: '#f0fdf4',
     padding: '12px 16px',
-    borderRadius: '8px',
+    borderRadius: 0,
     color: '#166534',
     marginBottom: '16px'
   },
   errors: {
     background: '#fef2f2',
     padding: '12px 16px',
-    borderRadius: '8px',
+    borderRadius: 0,
     color: '#dc2626',
     marginBottom: '16px'
   },
@@ -391,7 +391,7 @@ const styles = {
     padding: '12px 20px',
     background: '#2563eb',
     color: 'white',
-    borderRadius: '8px',
+    borderRadius: 0,
     textDecoration: 'none',
     fontWeight: '600'
   }

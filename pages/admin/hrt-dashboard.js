@@ -399,7 +399,7 @@ const styles = {
     textAlign: 'center',
     padding: '48px',
     backgroundColor: '#1f2937',
-    borderRadius: '12px',
+    borderRadius: 0,
     maxWidth: '400px',
     margin: '48px auto'
   },
@@ -409,7 +409,7 @@ const styles = {
     backgroundColor: '#3b82f6',
     color: '#fff',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: 0,
     cursor: 'pointer',
     fontSize: '14px'
   },
@@ -434,7 +434,7 @@ const styles = {
     backgroundColor: '#374151',
     color: '#fff',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: 0,
     cursor: 'pointer',
     fontSize: '14px'
   },
@@ -446,7 +446,7 @@ const styles = {
   },
   summaryCard: {
     backgroundColor: '#1f2937',
-    borderRadius: '12px',
+    borderRadius: 0,
     padding: '20px',
     borderLeft: '4px solid',
     textAlign: 'center'
@@ -469,7 +469,7 @@ const styles = {
     padding: '12px 16px',
     backgroundColor: '#1f2937',
     border: '1px solid #374151',
-    borderRadius: '8px',
+    borderRadius: 0,
     color: '#fff',
     fontSize: '14px',
     outline: 'none'
@@ -487,7 +487,7 @@ const styles = {
     gap: '8px',
     padding: '8px 16px',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: 0,
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: '500',
@@ -495,13 +495,13 @@ const styles = {
   },
   tabCount: {
     padding: '2px 8px',
-    borderRadius: '12px',
+    borderRadius: 0,
     fontSize: '12px',
     fontWeight: '600'
   },
   tableContainer: {
     backgroundColor: '#1f2937',
-    borderRadius: '12px',
+    borderRadius: 0,
     overflow: 'hidden'
   },
   table: {
@@ -546,7 +546,7 @@ const styles = {
   statusBadge: {
     display: 'inline-block',
     padding: '4px 12px',
-    borderRadius: '20px',
+    borderRadius: 0,
     fontSize: '12px',
     fontWeight: '600'
   },
@@ -568,7 +568,7 @@ const styles = {
     backgroundColor: '#374151',
     color: '#fff',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: 0,
     cursor: 'pointer',
     fontSize: '12px',
     fontWeight: '500'

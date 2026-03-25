@@ -1445,10 +1445,10 @@ export default function CommandCenter() {
   const fvStyles = {
     formGroup: { marginBottom: '16px' },
     label: { display: 'block', fontSize: '14px', fontWeight: '500', color: '#374151', marginBottom: '6px' },
-    input: { width: '100%', padding: '10px 12px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box' },
-    select: { width: '100%', padding: '10px 12px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', background: '#fff' },
+    input: { width: '100%', padding: '10px 12px', border: '2px solid #e5e7eb', borderRadius: 0, fontSize: '14px', boxSizing: 'border-box' },
+    select: { width: '100%', padding: '10px 12px', border: '2px solid #e5e7eb', borderRadius: 0, fontSize: '14px', boxSizing: 'border-box', background: '#fff' },
     toggleGroup: { display: 'flex', gap: '8px' },
-    toggleBtn: { flex: 1, padding: '10px', background: '#fff', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' },
+    toggleBtn: { flex: 1, padding: '10px', background: '#fff', border: '2px solid #e5e7eb', borderRadius: 0, fontSize: '13px', fontWeight: '500', cursor: 'pointer' },
     toggleBtnActive: { background: '#111', color: '#fff', borderColor: '#111' },
   };
 
@@ -2230,14 +2230,14 @@ export default function CommandCenter() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {isWeightLossType(protocolDetailPanel.protocol.program_type) && (
                   <button
-                    style={{ padding: '6px 16px', background: '#FEE2E2', color: '#DC2626', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}
+                    style={{ padding: '6px 16px', background: '#FEE2E2', color: '#DC2626', border: 'none', borderRadius: 0, cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}
                     onClick={() => { openMissedModal(protocolDetailPanel.protocol); }}
                   >
                     Missed
                   </button>
                 )}
                 <button
-                  style={{ padding: '6px 16px', background: '#3B82F6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}
+                  style={{ padding: '6px 16px', background: '#3B82F6', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}
                   onClick={() => { handleEditProtocol(protocolDetailPanel.protocol); closeProtocolDetail(); }}
                 >
                   Edit
@@ -2538,7 +2538,7 @@ export default function CommandCenter() {
                                         value={editingDrawDate}
                                         onChange={e => setEditingDrawDate(e.target.value)}
                                         style={{
-                                          fontSize: '12px', padding: '2px 6px', borderRadius: '6px',
+                                          fontSize: '12px', padding: '2px 6px', borderRadius: 0,
                                           border: '1px solid #d1d5db', outline: 'none'
                                         }}
                                       />
@@ -2547,7 +2547,7 @@ export default function CommandCenter() {
                                         disabled={savingDrawLabel === draw.label}
                                         style={{
                                           fontSize: '11px', fontWeight: '600', padding: '2px 10px',
-                                          borderRadius: '10px', border: 'none',
+                                          borderRadius: 0, border: 'none',
                                           background: '#22c55e', color: '#fff',
                                           cursor: savingDrawLabel === draw.label ? 'not-allowed' : 'pointer',
                                           opacity: savingDrawLabel === draw.label ? 0.6 : 1
@@ -2563,7 +2563,7 @@ export default function CommandCenter() {
                                   ) : draw.status === 'completed' ? (
                                     <span style={{
                                       fontSize: '11px', fontWeight: '600', padding: '2px 8px',
-                                      borderRadius: '10px', background: '#dcfce7', color: '#22c55e',
+                                      borderRadius: 0, background: '#dcfce7', color: '#22c55e',
                                       textTransform: 'uppercase'
                                     }}>✓ Done</span>
                                   ) : (
@@ -2571,7 +2571,7 @@ export default function CommandCenter() {
                                       {draw.status === 'overdue' && (
                                         <span style={{
                                           fontSize: '11px', fontWeight: '600', padding: '2px 8px',
-                                          borderRadius: '10px', background: '#fee2e2', color: '#dc2626',
+                                          borderRadius: 0, background: '#fee2e2', color: '#dc2626',
                                           textTransform: 'uppercase'
                                         }}>Overdue</span>
                                       )}
@@ -2579,7 +2579,7 @@ export default function CommandCenter() {
                                         onClick={() => logBloodDraw(draw)}
                                         style={{
                                           fontSize: '11px', fontWeight: '600', padding: '2px 10px',
-                                          borderRadius: '10px', border: '1px solid #22c55e',
+                                          borderRadius: 0, border: '1px solid #22c55e',
                                           background: draw.status === 'overdue' ? '#22c55e' : '#fff',
                                           color: draw.status === 'overdue' ? '#fff' : '#22c55e',
                                           cursor: 'pointer'
@@ -2625,7 +2625,7 @@ export default function CommandCenter() {
                       <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                         <div style={{ flex: 1, minWidth: '200px' }}>
                           <span style={{ fontSize: '12px', color: '#6B7280', display: 'block', marginBottom: '6px' }}>Check-in & Re-up Texts</span>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: '6px', background: protocolDetailPanel.protocol.peptide_reminders_enabled ? '#F0FDF4' : '#fff' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: 0, background: protocolDetailPanel.protocol.peptide_reminders_enabled ? '#F0FDF4' : '#fff' }}>
                             <input
                               type="checkbox"
                               checked={protocolDetailPanel.protocol.peptide_reminders_enabled || false}
@@ -2654,7 +2654,7 @@ export default function CommandCenter() {
                           <select
                             value={protocolDetailPanel.protocol.hrt_reminder_schedule || ''}
                             onChange={e => updateProtocolField(protocolDetailPanel.protocol.id, { hrt_reminder_schedule: e.target.value || null })}
-                            style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: '6px', fontSize: '14px', background: '#fff' }}
+                            style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: 0, fontSize: '14px', background: '#fff' }}
                           >
                             <option value="">Not set</option>
                             <option value="mon_thu">Monday / Thursday</option>
@@ -2664,7 +2664,7 @@ export default function CommandCenter() {
                         </div>
                         <div style={{ flex: 1, minWidth: '160px' }}>
                           <span style={{ fontSize: '12px', color: '#6B7280', display: 'block', marginBottom: '6px' }}>Injection Reminder SMS</span>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: '6px', background: protocolDetailPanel.protocol.hrt_reminders_enabled ? '#F0FDF4' : '#fff' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: 0, background: protocolDetailPanel.protocol.hrt_reminders_enabled ? '#F0FDF4' : '#fff' }}>
                             <input
                               type="checkbox"
                               checked={protocolDetailPanel.protocol.hrt_reminders_enabled || false}
@@ -2693,7 +2693,7 @@ export default function CommandCenter() {
                           <select
                             value={protocolDetailPanel.protocol.injection_day || ''}
                             onChange={e => updateProtocolField(protocolDetailPanel.protocol.id, { injection_day: e.target.value || null })}
-                            style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: '6px', fontSize: '14px', background: '#fff' }}
+                            style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: 0, fontSize: '14px', background: '#fff' }}
                           >
                             <option value="">Not set</option>
                             <option value="Monday">Monday</option>
@@ -2707,7 +2707,7 @@ export default function CommandCenter() {
                         </div>
                         <div style={{ flex: 1, minWidth: '160px' }}>
                           <span style={{ fontSize: '12px', color: '#6B7280', display: 'block', marginBottom: '6px' }}>Weekly Check-in SMS</span>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: '6px', background: protocolDetailPanel.protocol.checkin_reminder_enabled ? '#F0FDF4' : '#fff' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: 0, background: protocolDetailPanel.protocol.checkin_reminder_enabled ? '#F0FDF4' : '#fff' }}>
                             <input
                               type="checkbox"
                               checked={protocolDetailPanel.protocol.checkin_reminder_enabled || false}
@@ -2744,7 +2744,7 @@ export default function CommandCenter() {
                                   onBlur={saveStartingWeight}
                                   onKeyDown={e => { if (e.key === 'Enter') saveStartingWeight(); if (e.key === 'Escape') setEditingStartingWeight(null); }}
                                   autoFocus
-                                  style={{ width: '80px', fontSize: '20px', fontWeight: '700', textAlign: 'center', border: '1px solid #4A90D9', borderRadius: '4px', padding: '2px 4px', outline: 'none' }}
+                                  style={{ width: '80px', fontSize: '20px', fontWeight: '700', textAlign: 'center', border: '1px solid #4A90D9', borderRadius: 0, padding: '2px 4px', outline: 'none' }}
                                 />
                               ) : (
                                 <span
@@ -2780,7 +2780,7 @@ export default function CommandCenter() {
                           </div>
                         </div>
                       ) : (
-                        <div style={{ color: '#888', fontSize: '14px', padding: '16px', background: '#F5F5F5', borderRadius: '8px' }}>
+                        <div style={{ color: '#888', fontSize: '14px', padding: '16px', background: '#F5F5F5', borderRadius: 0 }}>
                           {protocolDetailPanel.protocol.starting_weight
                             ? `Starting weight: ${protocolDetailPanel.protocol.starting_weight} lbs - No check-ins yet`
                             : 'No weight data recorded yet'}
@@ -2832,11 +2832,11 @@ export default function CommandCenter() {
                                       onChange={e => setEditingWeightCheckin(prev => ({ ...prev, weight: e.target.value }))}
                                       onKeyDown={e => { if (e.key === 'Enter') saveWeightCheckinEdit(); if (e.key === 'Escape') setEditingWeightCheckin(null); }}
                                       autoFocus
-                                      style={{ width: '80px', padding: '4px 8px', border: '1px solid #3B82F6', borderRadius: '4px', fontSize: '14px', fontWeight: '600' }}
+                                      style={{ width: '80px', padding: '4px 8px', border: '1px solid #3B82F6', borderRadius: 0, fontSize: '14px', fontWeight: '600' }}
                                     />
                                     <span style={{ fontSize: '13px', color: '#6B7280' }}>lbs</span>
-                                    <button onClick={saveWeightCheckinEdit} style={{ padding: '2px 8px', background: '#22c55e', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>Save</button>
-                                    <button onClick={() => setEditingWeightCheckin(null)} style={{ padding: '2px 8px', background: '#e5e7eb', color: '#374151', border: 'none', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}>Cancel</button>
+                                    <button onClick={saveWeightCheckinEdit} style={{ padding: '2px 8px', background: '#22c55e', color: '#fff', border: 'none', borderRadius: 0, fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>Save</button>
+                                    <button onClick={() => setEditingWeightCheckin(null)} style={{ padding: '2px 8px', background: '#e5e7eb', color: '#374151', border: 'none', borderRadius: 0, fontSize: '11px', cursor: 'pointer' }}>Cancel</button>
                                   </div>
                                 ) : (
                                   <div
@@ -2849,7 +2849,7 @@ export default function CommandCenter() {
                                     <button
                                       onClick={e => { e.stopPropagation(); deleteWeightCheckin(item); }}
                                       title="Delete check-in"
-                                      style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer', fontSize: '14px', fontWeight: '600', padding: '2px 6px', borderRadius: '4px', lineHeight: 1 }}
+                                      style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#9CA3AF', cursor: 'pointer', fontSize: '14px', fontWeight: '600', padding: '2px 6px', borderRadius: 0, lineHeight: 1 }}
                                       onMouseEnter={e => { e.currentTarget.style.color = '#dc2626'; e.currentTarget.style.background = '#fef2f2'; }}
                                       onMouseLeave={e => { e.currentTarget.style.color = '#9CA3AF'; e.currentTarget.style.background = 'none'; }}
                                     >✕</button>
@@ -2907,7 +2907,7 @@ export default function CommandCenter() {
                               }}
                               style={{
                                 padding: '5px 12px', fontSize: '12px', fontWeight: 600,
-                                background: '#000', color: '#fff', border: 'none', borderRadius: '4px',
+                                background: '#000', color: '#fff', border: 'none', borderRadius: 0,
                                 cursor: 'pointer'
                               }}
                             >
@@ -2922,7 +2922,7 @@ export default function CommandCenter() {
                               <div key={email.num} style={{
                                 display: 'flex', alignItems: 'center', gap: '8px',
                                 padding: '8px 10px', background: sent ? '#f0fdf4' : '#fafafa',
-                                borderRadius: '6px', border: `1px solid ${sent ? '#bbf7d0' : '#e5e7eb'}`
+                                borderRadius: 0, border: `1px solid ${sent ? '#bbf7d0' : '#e5e7eb'}`
                               }}>
                                 <span style={{
                                   width: '20px', height: '20px', borderRadius: '50%', display: 'flex',
@@ -3038,7 +3038,7 @@ export default function CommandCenter() {
                 <div style={{
                   background: '#F0F9FF',
                   border: '1px solid #BAE6FD',
-                  borderRadius: '12px',
+                  borderRadius: 0,
                   padding: '16px',
                   fontSize: '14px',
                   lineHeight: '1.5',
@@ -3061,7 +3061,7 @@ export default function CommandCenter() {
                   padding: '10px 20px',
                   background: '#F3F4F6',
                   border: 'none',
-                  borderRadius: '6px',
+                  borderRadius: 0,
                   fontSize: '14px',
                   cursor: 'pointer'
                 }}
@@ -3075,7 +3075,7 @@ export default function CommandCenter() {
                   background: smsModal.sending ? '#9CA3AF' : '#10B981',
                   color: '#fff',
                   border: 'none',
-                  borderRadius: '6px',
+                  borderRadius: 0,
                   fontSize: '14px',
                   fontWeight: '500',
                   cursor: smsModal.sending ? 'not-allowed' : 'pointer'
@@ -3171,7 +3171,7 @@ export default function CommandCenter() {
                   padding: '10px 20px',
                   background: '#F3F4F6',
                   border: 'none',
-                  borderRadius: '6px',
+                  borderRadius: 0,
                   fontSize: '14px',
                   cursor: 'pointer'
                 }}
@@ -3185,7 +3185,7 @@ export default function CommandCenter() {
                   background: missedModal.saving ? '#9CA3AF' : '#DC2626',
                   color: '#fff',
                   border: 'none',
-                  borderRadius: '6px',
+                  borderRadius: 0,
                   fontSize: '14px',
                   fontWeight: '500',
                   cursor: missedModal.saving ? 'not-allowed' : 'pointer'
@@ -3227,7 +3227,7 @@ export default function CommandCenter() {
             <div style={styles.modalFormGroup}>
               <label style={styles.formLabel}>Protocol Template *</label>
               {Object.keys(templates.grouped || {}).length === 0 ? (
-                <div style={{ padding: '12px', background: '#FEF3C7', borderRadius: '6px', color: '#92400E', fontSize: '13px' }}>
+                <div style={{ padding: '12px', background: '#FEF3C7', borderRadius: 0, color: '#92400E', fontSize: '13px' }}>
                   Loading templates... If this persists, please refresh the page.
                 </div>
               ) : (
@@ -3369,7 +3369,7 @@ export default function CommandCenter() {
                             const updated = selected ? current.filter(x => x !== m) : [...current, m];
                             setAssignForm({...assignForm, hrtSecondaryMedications: updated});
                           }}
-                          style={{ padding: '6px 14px', borderRadius: '20px', border: selected ? '2px solid #7C3AED' : '1px solid #D1D5DB', background: selected ? '#F3E8FF' : '#fff', color: selected ? '#7C3AED' : '#374151', fontSize: '13px', fontWeight: selected ? '600' : '400', cursor: 'pointer' }}
+                          style={{ padding: '6px 14px', borderRadius: 0, border: selected ? '2px solid #7C3AED' : '1px solid #D1D5DB', background: selected ? '#F3E8FF' : '#fff', color: selected ? '#7C3AED' : '#374151', fontSize: '13px', fontWeight: selected ? '600' : '400', cursor: 'pointer' }}
                         >
                           {selected ? '✓ ' : ''}{m}
                         </button>
@@ -3516,7 +3516,7 @@ export default function CommandCenter() {
                   return (
                     <div style={{ padding: '0 24px 12px', gridColumn: 'span 2' }}>
                       <label style={{ ...styles.formLabel, marginBottom: '8px', display: 'block' }}>Lab Schedule Preview</label>
-                      <div style={{ background: '#F0F9FF', borderRadius: '8px', padding: '12px', border: '1px solid #BAE6FD' }}>
+                      <div style={{ background: '#F0F9FF', borderRadius: 0, padding: '12px', border: '1px solid #BAE6FD' }}>
                         {labSchedule.slice(0, 2).map(draw => (
                           <div key={draw.label} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0' }}>
                             <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0EA5E9', flexShrink: 0 }} />
@@ -3577,7 +3577,7 @@ export default function CommandCenter() {
                   </label>
                 </div>
                 {extendExistingWL && (
-                  <div style={{ marginTop: '12px', padding: '12px', background: '#FEF3C7', borderRadius: '6px', fontSize: '13px', color: '#92400E' }}>
+                  <div style={{ marginTop: '12px', padding: '12px', background: '#FEF3C7', borderRadius: 0, fontSize: '13px', color: '#92400E' }}>
                     <strong>Continuing protocol:</strong> Update medication/dose below if needed. Protocol will be extended by 28 days (4 weeks).
                   </div>
                 )}
@@ -3626,7 +3626,7 @@ export default function CommandCenter() {
 
                 {/* Add vs Deduct decision tree */}
                 {addToExistingVitamin && (
-                  <div style={{ marginTop: '12px', padding: '12px', background: '#ECFDF5', borderRadius: '6px' }}>
+                  <div style={{ marginTop: '12px', padding: '12px', background: '#ECFDF5', borderRadius: 0 }}>
                     <label style={{ ...styles.formLabel, marginBottom: '8px', display: 'block', fontSize: '13px' }}>
                       What should this purchase do?
                     </label>
@@ -3763,13 +3763,13 @@ export default function CommandCenter() {
                     <div style={{ padding: '16px 24px', background: cycleExhausted ? '#FEF2F2' : '#F0FDF4', borderBottom: '1px solid #E5E5E5' }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                         <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>{label}</span>
-                        <span style={{ fontSize: '12px', fontWeight: '600', color: barColor, background: barColor + '18', padding: '2px 10px', borderRadius: '10px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: '600', color: barColor, background: barColor + '18', padding: '2px 10px', borderRadius: 0 }}>
                           {cycleDaysUsed} / {maxDays} days used
                         </span>
                       </div>
                       {/* Progress bar */}
-                      <div style={{ height: '8px', background: '#E5E7EB', borderRadius: '4px', overflow: 'hidden', marginBottom: '8px' }}>
-                        <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: '4px', transition: 'width 0.3s ease' }} />
+                      <div style={{ height: '8px', background: '#E5E7EB', borderRadius: 0, overflow: 'hidden', marginBottom: '8px' }}>
+                        <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: 0, transition: 'width 0.3s ease' }} />
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#6B7280', marginBottom: subProtocols.length > 0 ? '10px' : '0' }}>
                         <span>{daysRemaining} days remaining</span>
@@ -3789,14 +3789,14 @@ export default function CommandCenter() {
                       )}
                       {/* Warning if cycle exhausted */}
                       {cycleExhausted && (
-                        <div style={{ marginTop: '10px', padding: '10px 12px', background: '#FEE2E2', borderRadius: '6px', fontSize: '13px', color: '#DC2626' }}>
+                        <div style={{ marginTop: '10px', padding: '10px 12px', background: '#FEE2E2', borderRadius: 0, fontSize: '13px', color: '#DC2626' }}>
                           <strong>Cycle exhausted.</strong> A {offLabel} off period is recommended.
                           {offPeriodEnds && <span> Off period ends: <strong>{formatDate(offPeriodEnds)}</strong></span>}
                         </div>
                       )}
                       {/* Warning if new protocol would exceed */}
                       {!cycleExhausted && wouldExceed && newDays > 0 && (
-                        <div style={{ marginTop: '10px', padding: '10px 12px', background: '#FEF3C7', borderRadius: '6px', fontSize: '13px', color: '#92400E' }}>
+                        <div style={{ marginTop: '10px', padding: '10px 12px', background: '#FEF3C7', borderRadius: 0, fontSize: '13px', color: '#92400E' }}>
                           <strong>Warning:</strong> This {newDays}-day protocol would push the cycle to {cycleDaysUsed + newDays} / {maxDays} days, exceeding the 90-day limit.
                         </div>
                       )}
@@ -3869,7 +3869,7 @@ export default function CommandCenter() {
                           padding: '12px',
                           background: '#EFF6FF',
                           border: '1px solid #BFDBFE',
-                          borderRadius: '6px',
+                          borderRadius: 0,
                           fontSize: '13px',
                           color: '#1E40AF'
                         }}>
@@ -4176,7 +4176,7 @@ export default function CommandCenter() {
                   padding: '10px 12px',
                   background: '#F0FDF4',
                   border: '1px solid #BBF7D0',
-                  borderRadius: '6px',
+                  borderRadius: 0,
                   fontSize: '12px',
                   color: '#166534'
                 }}>
@@ -4210,7 +4210,7 @@ export default function CommandCenter() {
 
             {/* Show info when adding to existing */}
             {addToExistingProtocol && (
-              <div style={{ padding: '16px 24px', background: '#FEF3C7', borderRadius: '6px', margin: '0 24px 16px' }}>
+              <div style={{ padding: '16px 24px', background: '#FEF3C7', borderRadius: 0, margin: '0 24px 16px' }}>
                 <p style={{ margin: 0, fontSize: '13px', color: '#92400E' }}>
                   This will record the monthly payment and extend the billing period by 30 days.
                 </p>
@@ -4255,7 +4255,7 @@ export default function CommandCenter() {
                   return (
                     <div style={{
                       border: '2px solid #e5e7eb',
-                      borderRadius: '12px',
+                      borderRadius: 0,
                       padding: '16px',
                       background: '#fff'
                     }}>
@@ -4956,7 +4956,7 @@ export default function CommandCenter() {
                             const updated = selected ? meds.filter(x => x !== m) : [...meds, m];
                             setEditingProtocol({...editingProtocol, secondary_medications: updated});
                           }}
-                          style={{ padding: '6px 14px', borderRadius: '20px', border: selected ? '2px solid #7C3AED' : '1px solid #D1D5DB', background: selected ? '#F3E8FF' : '#fff', color: selected ? '#7C3AED' : '#374151', fontSize: '13px', fontWeight: selected ? '600' : '400', cursor: 'pointer' }}
+                          style={{ padding: '6px 14px', borderRadius: 0, border: selected ? '2px solid #7C3AED' : '1px solid #D1D5DB', background: selected ? '#F3E8FF' : '#fff', color: selected ? '#7C3AED' : '#374151', fontSize: '13px', fontWeight: selected ? '600' : '400', cursor: 'pointer' }}
                         >
                           {selected ? '✓ ' : ''}{m}
                         </button>
@@ -5241,12 +5241,12 @@ function CycleProgressSection({ protocol, formatDate }) {
       <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#111', margin: '0 0 12px 0' }}>{label}</h4>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
         <span style={{ fontSize: '12px', color: '#6B7280' }}>Cycle started: {formatDate(cycleData.cycleStartDate)}</span>
-        <span style={{ fontSize: '12px', fontWeight: '600', color: barColor, background: barColor + '18', padding: '2px 10px', borderRadius: '10px' }}>
+        <span style={{ fontSize: '12px', fontWeight: '600', color: barColor, background: barColor + '18', padding: '2px 10px', borderRadius: 0 }}>
           {cycleDaysUsed} / {maxDays} days
         </span>
       </div>
-      <div style={{ height: '8px', background: '#E5E7EB', borderRadius: '4px', overflow: 'hidden', marginBottom: '8px' }}>
-        <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: '4px', transition: 'width 0.3s ease' }} />
+      <div style={{ height: '8px', background: '#E5E7EB', borderRadius: 0, overflow: 'hidden', marginBottom: '8px' }}>
+        <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: 0, transition: 'width 0.3s ease' }} />
       </div>
       <div style={{ fontSize: '12px', color: '#6B7280', marginBottom: subProtocols.length > 0 ? '12px' : '0' }}>
         {daysRemaining} days remaining in cycle
@@ -5263,7 +5263,7 @@ function CycleProgressSection({ protocol, formatDate }) {
         </div>
       )}
       {cycleExhausted && (
-        <div style={{ marginTop: '10px', padding: '10px 12px', background: '#FEE2E2', borderRadius: '6px', fontSize: '13px', color: '#DC2626' }}>
+        <div style={{ marginTop: '10px', padding: '10px 12px', background: '#FEE2E2', borderRadius: 0, fontSize: '13px', color: '#DC2626' }}>
           <strong>Cycle exhausted.</strong> A {offLabel} off period is recommended.
           {offPeriodEnds && <span> Off period ends: <strong>{formatDate(offPeriodEnds)}</strong></span>}
         </div>
@@ -5327,7 +5327,7 @@ function MyTasksWidget({ session, employeeId }) {
     <div style={{
       background: '#fff',
       border: '1px solid #e5e7eb',
-      borderRadius: '12px',
+      borderRadius: 0,
       padding: '16px 20px',
       marginBottom: '16px',
     }}>
@@ -5348,7 +5348,7 @@ function MyTasksWidget({ session, employeeId }) {
             <button
               onClick={() => toggleComplete(task.id)}
               style={{
-                width: '18px', height: '18px', borderRadius: '4px',
+                width: '18px', height: '18px', borderRadius: 0,
                 border: '2px solid #d1d5db', background: '#fff',
                 cursor: 'pointer', flexShrink: 0,
               }}
@@ -5429,7 +5429,7 @@ function OverviewTab({ data, setActiveTab, onAssignFromPurchase, onEditProtocol,
         <div style={{
           background: 'linear-gradient(135deg, #FFF7ED 0%, #FFFBF5 100%)',
           border: '1px solid #F59E0B',
-          borderRadius: 12,
+          borderRadius: 0,
           padding: '16px 20px',
           display: 'flex',
           gap: 16,
@@ -5451,7 +5451,7 @@ function OverviewTab({ data, setActiveTab, onAssignFromPurchase, onEditProtocol,
                       background: '#FDE68A',
                       color: '#92400E',
                       padding: '1px 8px',
-                      borderRadius: 8,
+                      borderRadius: 0,
                       fontSize: 11,
                       fontWeight: 600,
                     }}>NO CONSENT</span>
@@ -5473,7 +5473,7 @@ function OverviewTab({ data, setActiveTab, onAssignFromPurchase, onEditProtocol,
         <div style={{
           background: 'linear-gradient(135deg, #EBF2FF 0%, #F0F6FF 100%)',
           border: '1px solid #4488FF',
-          borderRadius: 12,
+          borderRadius: 0,
           padding: '16px 20px',
           display: 'flex',
           gap: 16,
@@ -5491,7 +5491,7 @@ function OverviewTab({ data, setActiveTab, onAssignFromPurchase, onEditProtocol,
                     background: '#4488FF',
                     color: '#fff',
                     padding: '2px 8px',
-                    borderRadius: 6,
+                    borderRadius: 0,
                     fontSize: 12,
                     fontWeight: 600,
                   }}>
@@ -5600,7 +5600,7 @@ function OverviewTab({ data, setActiveTab, onAssignFromPurchase, onEditProtocol,
                         background: '#059669',
                         color: '#FFFFFF',
                         border: 'none',
-                        borderRadius: '6px',
+                        borderRadius: 0,
                         fontSize: '11px',
                         fontWeight: '600',
                         cursor: 'pointer',
@@ -5635,7 +5635,7 @@ function OverviewTab({ data, setActiveTab, onAssignFromPurchase, onEditProtocol,
                   </span>
                   <span style={{ ...styles.protocolStatus, flex: 1 }}>{getProtocolStatus(p)}</span>
                   <button
-                    style={{ padding: '3px 10px', background: '#3B82F6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: '600', marginLeft: '6px', whiteSpace: 'nowrap' }}
+                    style={{ padding: '3px 10px', background: '#3B82F6', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer', fontSize: '11px', fontWeight: '600', marginLeft: '6px', whiteSpace: 'nowrap' }}
                     onClick={() => onEditProtocol && onEditProtocol(p)}
                   >
                     Edit
@@ -6121,7 +6121,7 @@ function DueSoonTab({ data, onEdit, onViewDetail, onSendText, onMarkMissed }) {
                         <span style={{
                           ...dueSoonStyles.categoryBadge,
                           background: CATEGORY_COLORS[protocol.program_type] || '#888',
-                          padding: '2px 8px', borderRadius: '4px', color: '#fff', fontSize: '11px', fontWeight: '600'
+                          padding: '2px 8px', borderRadius: 0, color: '#fff', fontSize: '11px', fontWeight: '600'
                         }}>
                           {CATEGORY_LABELS[protocol.program_type] || protocol.program_type}
                         </span>
@@ -6135,7 +6135,7 @@ function DueSoonTab({ data, onEdit, onViewDetail, onSendText, onMarkMissed }) {
                       <button
                         onClick={() => handleRestore(protocol.id)}
                         style={{
-                          padding: '4px 12px', borderRadius: '6px', border: '1px solid #D1D5DB',
+                          padding: '4px 12px', borderRadius: 0, border: '1px solid #D1D5DB',
                           background: '#fff', color: '#374151', fontSize: '12px', cursor: 'pointer', fontWeight: '500'
                         }}
                       >
@@ -6168,7 +6168,7 @@ const dueSoonStyles = {
     background: '#F3F4F6',
     color: '#374151',
     border: 'none',
-    borderRadius: '16px',
+    borderRadius: 0,
     fontSize: '13px',
     fontWeight: '500',
     cursor: 'pointer',
@@ -6186,7 +6186,7 @@ const dueSoonStyles = {
   summary: {
     padding: '12px 16px',
     background: '#FEF3C7',
-    borderRadius: '8px',
+    borderRadius: 0,
     marginBottom: '20px',
   },
   summaryText: {
@@ -6203,7 +6203,7 @@ const dueSoonStyles = {
     gap: '8px',
     padding: '8px 12px',
     background: '#F9FAFB',
-    borderRadius: '6px',
+    borderRadius: 0,
     borderLeft: '4px solid',
     marginBottom: '12px',
   },
@@ -6218,7 +6218,7 @@ const dueSoonStyles = {
   },
   sectionCount: {
     padding: '2px 10px',
-    borderRadius: '12px',
+    borderRadius: 0,
     fontSize: '12px',
     fontWeight: '600',
     color: '#fff',
@@ -6231,7 +6231,7 @@ const dueSoonStyles = {
   card: {
     background: '#fff',
     border: '1px solid #E5E7EB',
-    borderRadius: '8px',
+    borderRadius: 0,
     padding: '16px',
     boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
   },
@@ -6257,7 +6257,7 @@ const dueSoonStyles = {
   },
   urgencyBadge: {
     padding: '4px 10px',
-    borderRadius: '12px',
+    borderRadius: 0,
     fontSize: '12px',
     fontWeight: '600',
     color: '#fff',
@@ -6276,7 +6276,7 @@ const dueSoonStyles = {
   },
   categoryBadge: {
     padding: '3px 8px',
-    borderRadius: '4px',
+    borderRadius: 0,
     fontSize: '11px',
     fontWeight: '600',
     color: '#fff',
@@ -6290,7 +6290,7 @@ const dueSoonStyles = {
     color: '#6B7280',
     background: '#F3F4F6',
     padding: '2px 6px',
-    borderRadius: '4px',
+    borderRadius: 0,
   },
   deliveryInfo: {
     display: 'flex',
@@ -6316,7 +6316,7 @@ const dueSoonStyles = {
     background: '#F3F4F6',
     color: '#374151',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: 0,
     fontSize: '13px',
     fontWeight: '500',
     cursor: 'pointer',
@@ -6496,7 +6496,7 @@ function LeadsTab({ data, patients, leads, filter, setFilter, onAssignFromPurcha
                       background: '#059669',
                       color: '#FFFFFF',
                       border: 'none',
-                      borderRadius: '6px',
+                      borderRadius: 0,
                       fontSize: '13px',
                       fontWeight: '600',
                       cursor: 'pointer',
@@ -6517,7 +6517,7 @@ function LeadsTab({ data, patients, leads, filter, setFilter, onAssignFromPurcha
                         background: '#0891B2',
                         color: '#FFFFFF',
                         border: 'none',
-                        borderRadius: '6px',
+                        borderRadius: 0,
                         fontSize: '13px',
                         fontWeight: '600',
                         cursor: 'pointer',
@@ -6536,7 +6536,7 @@ function LeadsTab({ data, patients, leads, filter, setFilter, onAssignFromPurcha
                       background: '#F3F4F6',
                       color: '#6B7280',
                       border: '1px solid #D1D5DB',
-                      borderRadius: '6px',
+                      borderRadius: 0,
                       fontSize: '13px',
                       cursor: dismissingId === p.id ? 'wait' : 'pointer',
                       whiteSpace: 'nowrap',
@@ -6673,7 +6673,7 @@ function LeadsTab({ data, patients, leads, filter, setFilter, onAssignFromPurcha
                   type="date"
                   value={logVisitDate}
                   onChange={e => setLogVisitDate(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: '6px', fontSize: '14px', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: 0, fontSize: '14px', boxSizing: 'border-box' }}
                 />
               </div>
               <div style={{ marginBottom: '20px' }}>
@@ -6683,14 +6683,14 @@ function LeadsTab({ data, patients, leads, filter, setFilter, onAssignFromPurcha
                   onChange={e => setLogVisitNotes(e.target.value)}
                   placeholder="Any notes about the visit..."
                   rows={2}
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: '6px', fontSize: '14px', resize: 'vertical', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #D1D5DB', borderRadius: 0, fontSize: '14px', resize: 'vertical', boxSizing: 'border-box' }}
                 />
               </div>
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                 <button
                   onClick={() => setLogVisitPurchase(null)}
                   disabled={!!loggingVisitId}
-                  style={{ padding: '8px 16px', background: '#F3F4F6', color: '#374151', border: '1px solid #D1D5DB', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', background: '#F3F4F6', color: '#374151', border: '1px solid #D1D5DB', borderRadius: 0, fontSize: '14px', cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
@@ -6702,7 +6702,7 @@ function LeadsTab({ data, patients, leads, filter, setFilter, onAssignFromPurcha
                     background: loggingVisitId ? '#93C5FD' : '#0891B2',
                     color: '#FFFFFF',
                     border: 'none',
-                    borderRadius: '6px',
+                    borderRadius: 0,
                     fontSize: '14px',
                     fontWeight: '600',
                     cursor: loggingVisitId ? 'wait' : 'pointer',
@@ -7147,12 +7147,12 @@ function PatientsTab({ patients, search, setSearch, selected, setSelected, detai
                     {CATEGORY_LABELS[p.program_type] || p.program_type}
                   </span>
                   {p.cycle_start_date && (
-                    <span style={{ fontSize: '10px', fontWeight: '600', color: '#7C3AED', background: '#F3E8FF', padding: '1px 6px', borderRadius: '4px', marginRight: '4px' }}>Cycle</span>
+                    <span style={{ fontSize: '10px', fontWeight: '600', color: '#7C3AED', background: '#F3E8FF', padding: '1px 6px', borderRadius: 0, marginRight: '4px' }}>Cycle</span>
                   )}
                   <span style={styles.detailItemName}>{getDisplayProgramName(p)}</span>
                   <span style={{ color: URGENCY_COLORS[p.urgency], flex: 1 }}>{getProtocolStatus(p)}</span>
                   <button
-                    style={{ padding: '3px 10px', background: '#3B82F6', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', marginLeft: '8px' }}
+                    style={{ padding: '3px 10px', background: '#3B82F6', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer', fontSize: '12px', fontWeight: '600', marginLeft: '8px' }}
                     onClick={() => onEditProtocol && onEditProtocol(p)}
                   >
                     Edit
@@ -7227,7 +7227,7 @@ function PatientsTab({ patients, search, setSearch, selected, setSelected, detai
         justifyContent: 'center', zIndex: 1000
       }} onClick={() => setShowBookingModal(false)}>
         <div style={{
-          background: '#fff', borderRadius: '12px', width: '95%', maxWidth: '1200px',
+          background: '#fff', borderRadius: 0, width: '95%', maxWidth: '1200px',
           maxHeight: '90vh', overflow: 'auto'
         }} onClick={e => e.stopPropagation()}>
           <div style={{
@@ -7915,7 +7915,7 @@ function CommsLogTab() {
   const channelBadge = (ch) => ({
     display: 'inline-block',
     padding: '2px 8px',
-    borderRadius: '10px',
+    borderRadius: 0,
     fontSize: '11px',
     fontWeight: '600',
     background: ch === 'sms' ? '#E0F2FE' : '#F3E8FF',
@@ -7925,7 +7925,7 @@ function CommsLogTab() {
   const statusBadge = (s) => ({
     display: 'inline-block',
     padding: '2px 8px',
-    borderRadius: '10px',
+    borderRadius: 0,
     fontSize: '11px',
     fontWeight: '600',
     background: s === 'sent' ? '#DCFCE7' : '#FEE2E2',
@@ -7949,7 +7949,7 @@ function CommsLogTab() {
             onClick={() => { setChannelFilter(ch); setPage(1); }}
             style={{
               padding: '6px 16px',
-              borderRadius: '20px',
+              borderRadius: 0,
               border: '1px solid #E5E5E5',
               background: channelFilter === ch ? '#1A1A1A' : '#fff',
               color: channelFilter === ch ? '#fff' : '#333',
@@ -7968,16 +7968,16 @@ function CommsLogTab() {
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
             placeholder="Search patient name..."
-            style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #E5E5E5', fontSize: '13px', width: '200px' }}
+            style={{ padding: '6px 12px', borderRadius: 0, border: '1px solid #E5E5E5', fontSize: '13px', width: '200px' }}
           />
-          <button type="submit" style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #E5E5E5', background: '#fff', cursor: 'pointer', fontSize: '13px' }}>Search</button>
+          <button type="submit" style={{ padding: '6px 12px', borderRadius: 0, border: '1px solid #E5E5E5', background: '#fff', cursor: 'pointer', fontSize: '13px' }}>Search</button>
         </form>
 
         {/* Days filter */}
         <select
           value={days}
           onChange={e => { setDays(parseInt(e.target.value)); setPage(1); }}
-          style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #E5E5E5', fontSize: '13px', background: '#fff' }}
+          style={{ padding: '6px 12px', borderRadius: 0, border: '1px solid #E5E5E5', fontSize: '13px', background: '#fff' }}
         >
           <option value={7}>Last 7 days</option>
           <option value={30}>Last 30 days</option>
@@ -7987,7 +7987,7 @@ function CommsLogTab() {
       </div>
 
       {/* Table */}
-      <div style={{ background: '#fff', borderRadius: '8px', border: '1px solid #E5E5E5', overflow: 'hidden' }}>
+      <div style={{ background: '#fff', borderRadius: 0, border: '1px solid #E5E5E5', overflow: 'hidden' }}>
         {loading ? (
           <div style={{ padding: '40px', textAlign: 'center', color: '#999' }}>Loading...</div>
         ) : logs.length === 0 ? (
@@ -8027,7 +8027,7 @@ function CommsLogTab() {
                           {log.subject && <div><strong>Subject:</strong> {log.subject}</div>}
                           {log.recipient && <div><strong>To:</strong> {log.recipient}</div>}
                           <div><strong>Source:</strong> {log.source || '—'}</div>
-                          <div style={{ marginTop: '8px', padding: '10px', background: '#fff', borderRadius: '6px', border: '1px solid #E5E5E5', whiteSpace: 'pre-wrap', maxHeight: '200px', overflow: 'auto' }}>
+                          <div style={{ marginTop: '8px', padding: '10px', background: '#fff', borderRadius: 0, border: '1px solid #E5E5E5', whiteSpace: 'pre-wrap', maxHeight: '200px', overflow: 'auto' }}>
                             {log.message || 'No message body'}
                           </div>
                           {log.error_message && (
@@ -8052,7 +8052,7 @@ function CommsLogTab() {
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
             disabled={page === 1}
-            style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #E5E5E5', background: page === 1 ? '#F5F5F5' : '#fff', cursor: page === 1 ? 'default' : 'pointer', fontSize: '13px', color: page === 1 ? '#999' : '#333' }}
+            style={{ padding: '6px 14px', borderRadius: 0, border: '1px solid #E5E5E5', background: page === 1 ? '#F5F5F5' : '#fff', cursor: page === 1 ? 'default' : 'pointer', fontSize: '13px', color: page === 1 ? '#999' : '#333' }}
           >
             Prev
           </button>
@@ -8060,7 +8060,7 @@ function CommsLogTab() {
           <button
             onClick={() => setPage(p => Math.min(totalPages, p + 1))}
             disabled={page === totalPages}
-            style={{ padding: '6px 14px', borderRadius: '6px', border: '1px solid #E5E5E5', background: page === totalPages ? '#F5F5F5' : '#fff', cursor: page === totalPages ? 'default' : 'pointer', fontSize: '13px', color: page === totalPages ? '#999' : '#333' }}
+            style={{ padding: '6px 14px', borderRadius: 0, border: '1px solid #E5E5E5', background: page === totalPages ? '#F5F5F5' : '#fff', cursor: page === totalPages ? 'default' : 'pointer', fontSize: '13px', color: page === totalPages ? '#999' : '#333' }}
           >
             Next
           </button>
@@ -8107,21 +8107,21 @@ function OxygenTab() {
   const oxygenStyles = {
     container: { maxWidth: '900px', margin: '0 auto' },
     statsRow: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '28px' },
-    statCard: { background: '#fafafa', borderRadius: '12px', padding: '20px', textAlign: 'center', border: '1px solid #f0f0f0' },
+    statCard: { background: '#fafafa', borderRadius: 0, padding: '20px', textAlign: 'center', border: '1px solid #f0f0f0' },
     statNum: { fontSize: '32px', fontWeight: '700', color: '#0a0a0a', marginBottom: '4px' },
     statLabel: { fontSize: '13px', color: '#888', fontWeight: '500' },
     sectionTitle: { fontSize: '16px', fontWeight: '600', marginBottom: '12px', color: '#1a1a1a' },
     table: { width: '100%', borderCollapse: 'collapse' },
     th: { padding: '10px 14px', textAlign: 'left', fontSize: '12px', color: '#888', fontWeight: '600', borderBottom: '2px solid #e5e5e5' },
     td: { padding: '12px 14px', fontSize: '14px', borderBottom: '1px solid #f5f5f5' },
-    badge: { display: 'inline-block', padding: '2px 10px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' },
+    badge: { display: 'inline-block', padding: '2px 10px', borderRadius: 0, fontSize: '11px', fontWeight: '600' },
   };
 
   return (
     <div style={oxygenStyles.container}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h2 style={{ fontSize: '20px', fontWeight: '700', margin: 0 }}>30 Days Email Series</h2>
-        <button onClick={loadSubscribers} style={{ padding: '6px 14px', border: '1px solid #e5e5e5', borderRadius: '6px', background: '#fff', fontSize: '13px', cursor: 'pointer' }}>
+        <button onClick={loadSubscribers} style={{ padding: '6px 14px', border: '1px solid #e5e5e5', borderRadius: 0, background: '#fff', fontSize: '13px', cursor: 'pointer' }}>
           Refresh
         </button>
       </div>
@@ -8388,7 +8388,7 @@ function POSTab({ stripePromise }) {
   const posTabStyles = {
     viewToggle: { display: 'flex', gap: '4px', marginBottom: '20px' },
     viewBtn: {
-      padding: '8px 20px', borderRadius: '6px', border: '1px solid #d1d5db',
+      padding: '8px 20px', borderRadius: 0, border: '1px solid #d1d5db',
       background: '#fff', fontSize: '14px', fontWeight: 500, cursor: 'pointer', color: '#555',
     },
     viewBtnActive: { background: '#1A1A1A', color: '#fff', border: '1px solid #1A1A1A' },
@@ -8397,11 +8397,11 @@ function POSTab({ stripePromise }) {
     searchWrap: { position: 'relative', maxWidth: '400px', marginBottom: '20px' },
     searchInput: {
       width: '100%', padding: '10px 14px', border: '1px solid #d1d5db',
-      borderRadius: '8px', fontSize: '15px', outline: 'none', boxSizing: 'border-box',
+      borderRadius: 0, fontSize: '15px', outline: 'none', boxSizing: 'border-box',
     },
     dropdown: {
       position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff',
-      border: '1px solid #d1d5db', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+      border: '1px solid #d1d5db', borderRadius: 0, boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
       zIndex: 10, maxHeight: '240px', overflowY: 'auto',
     },
     dropdownItem: {
@@ -8419,39 +8419,39 @@ function POSTab({ stripePromise }) {
     },
     editInput: {
       width: '80px', padding: '4px 8px', border: '1px solid #16A34A',
-      borderRadius: '4px', fontSize: '14px', outline: 'none',
+      borderRadius: 0, fontSize: '14px', outline: 'none',
     },
     clickToEdit: { cursor: 'pointer', borderBottom: '1px dashed #ccc' },
     badge: {
-      display: 'inline-block', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 600,
+      display: 'inline-block', padding: '2px 8px', borderRadius: 0, fontSize: '11px', fontWeight: 600,
     },
     activeBadge: { background: '#DCFCE7', color: '#166534' },
     inactiveBadge: { background: '#FEE2E2', color: '#991B1B' },
     actionBtnSm: {
-      padding: '4px 10px', borderRadius: '4px', border: '1px solid #d1d5db',
+      padding: '4px 10px', borderRadius: 0, border: '1px solid #d1d5db',
       background: '#fff', fontSize: '12px', cursor: 'pointer', color: '#555',
     },
     addBtn: {
-      padding: '8px 16px', borderRadius: '6px', border: 'none',
+      padding: '8px 16px', borderRadius: 0, border: 'none',
       background: '#16A34A', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
     },
     addForm: {
-      padding: '16px', background: '#f9fafb', borderRadius: '8px',
+      padding: '16px', background: '#f9fafb', borderRadius: 0,
       border: '1px solid #e5e7eb', marginBottom: '16px',
     },
     addFormRow: { display: 'flex', gap: '10px', marginBottom: '10px', flexWrap: 'wrap', alignItems: 'flex-end' },
     addFormField: { display: 'flex', flexDirection: 'column', gap: '4px' },
     addFormLabel: { fontSize: '12px', fontWeight: 500, color: '#666' },
     addFormInput: {
-      padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px', outline: 'none',
+      padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: '14px', outline: 'none',
     },
     purchaseList: { display: 'flex', flexDirection: 'column', gap: '6px' },
     purchaseItem: {
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      padding: '10px 14px', background: '#fafafa', borderRadius: '8px', border: '1px solid #f3f4f6',
+      padding: '10px 14px', background: '#fafafa', borderRadius: 0, border: '1px solid #f3f4f6',
     },
     chargeBtn: {
-      padding: '10px 24px', borderRadius: '8px', border: 'none',
+      padding: '10px 24px', borderRadius: 0, border: 'none',
       background: '#16A34A', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
     },
   };
@@ -8779,7 +8779,7 @@ function POSTab({ stripePromise }) {
                           ${(inv.total_cents / 100).toFixed(2)}
                         </td>
                         <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                          <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: '10px', fontSize: '11px', fontWeight: '600', background: sc.bg, color: sc.text }}>
+                          <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: 0, fontSize: '11px', fontWeight: '600', background: sc.bg, color: sc.text }}>
                             {inv.status}
                           </span>
                         </td>
@@ -8788,14 +8788,14 @@ function POSTab({ stripePromise }) {
                             {['pending', 'sent'].includes(inv.status) && (
                               <button
                                 onClick={() => resendInvoice(inv.id, inv.patient_email ? 'email' : 'sms')}
-                                style={{ padding: '4px 10px', border: '1px solid #e5e5e5', borderRadius: '4px', background: '#fff', fontSize: '11px', cursor: 'pointer' }}
+                                style={{ padding: '4px 10px', border: '1px solid #e5e5e5', borderRadius: 0, background: '#fff', fontSize: '11px', cursor: 'pointer' }}
                               >
                                 Resend
                               </button>
                             )}
                             <button
                               onClick={() => { navigator.clipboard.writeText(payUrl); }}
-                              style={{ padding: '4px 10px', border: '1px solid #e5e5e5', borderRadius: '4px', background: '#fff', fontSize: '11px', cursor: 'pointer' }}
+                              style={{ padding: '4px 10px', border: '1px solid #e5e5e5', borderRadius: 0, background: '#fff', fontSize: '11px', cursor: 'pointer' }}
                             >
                               Copy Link
                             </button>
@@ -8850,7 +8850,7 @@ const styles = {
     background: '#1A1A1A',
     color: '#fff',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: 0,
     cursor: 'pointer',
   },
   header: {
@@ -8881,7 +8881,7 @@ const styles = {
     background: '#1A1A1A',
     color: '#FFFFFF',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: 0,
     cursor: 'pointer',
     fontSize: '14px',
     transition: 'all 0.15s ease',
@@ -8921,7 +8921,7 @@ const styles = {
     padding: '2px 8px',
     background: '#DC2626',
     color: '#fff',
-    borderRadius: '10px',
+    borderRadius: 0,
     fontSize: '11px',
     fontWeight: '600',
   },
@@ -8943,7 +8943,7 @@ const styles = {
     padding: '16px 20px',
     background: '#FEF2F2',
     border: '2px solid #DC2626',
-    borderRadius: '8px',
+    borderRadius: 0,
     marginBottom: '20px',
   },
   sessionAlertsIcon: {
@@ -8969,13 +8969,13 @@ const styles = {
     gap: '12px',
     padding: '8px 12px',
     background: '#FFFFFF',
-    borderRadius: '6px',
+    borderRadius: 0,
     border: '1px solid #FECACA',
     flexWrap: 'wrap',
   },
   sessionAlertBadge: {
     padding: '2px 8px',
-    borderRadius: '4px',
+    borderRadius: 0,
     fontSize: '10px',
     fontWeight: '700',
     color: '#FFFFFF',
@@ -9007,7 +9007,7 @@ const styles = {
     background: '#FFFFFF',
     border: '1px solid #E5E5E5',
     borderLeft: '3px solid',
-    borderRadius: '8px',
+    borderRadius: 0,
     padding: '16px 20px',
     transition: 'all 0.15s ease',
     boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
@@ -9037,7 +9037,7 @@ const styles = {
   card: {
     background: '#FFFFFF',
     border: '1px solid #E5E5E5',
-    borderRadius: '8px',
+    borderRadius: 0,
     padding: '20px',
     boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
   },
@@ -9074,12 +9074,12 @@ const styles = {
     flex: 1,
     height: '8px',
     background: '#E5E5E5',
-    borderRadius: '4px',
+    borderRadius: 0,
     overflow: 'hidden',
   },
   categoryBarInner: {
     height: '100%',
-    borderRadius: '4px',
+    borderRadius: 0,
     transition: 'width 0.3s ease',
   },
   categoryCount: {
@@ -9156,7 +9156,7 @@ const styles = {
   },
   categoryBadge: {
     padding: '3px 8px',
-    borderRadius: '4px',
+    borderRadius: 0,
     fontSize: '11px',
     fontWeight: '600',
     color: '#fff',
@@ -9183,7 +9183,7 @@ const styles = {
     padding: '16px 20px',
     background: '#FFF7ED',
     border: '1px solid #FB923C',
-    borderRadius: '8px',
+    borderRadius: 0,
     marginBottom: '20px',
   },
   alertIcon: {
@@ -9218,7 +9218,7 @@ const styles = {
     padding: '10px 16px',
     background: '#FFFFFF',
     border: '1px solid #D1D5DB',
-    borderRadius: '6px',
+    borderRadius: 0,
     color: '#1A1A1A',
     fontSize: '14px',
     width: '100%',
@@ -9233,7 +9233,7 @@ const styles = {
     padding: '6px 14px',
     background: '#FFFFFF',
     border: '1px solid #D1D5DB',
-    borderRadius: '20px',
+    borderRadius: 0,
     color: '#555',
     fontSize: '13px',
     cursor: 'pointer',
@@ -9252,7 +9252,7 @@ const styles = {
   leadCard: {
     background: '#FFFFFF',
     border: '1px solid #E5E5E5',
-    borderRadius: '8px',
+    borderRadius: 0,
     overflow: 'hidden',
     boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
   },
@@ -9285,7 +9285,7 @@ const styles = {
   },
   leadStatus: {
     padding: '4px 10px',
-    borderRadius: '12px',
+    borderRadius: 0,
     fontSize: '11px',
     fontWeight: '600',
     color: '#fff',
@@ -9308,14 +9308,14 @@ const styles = {
   leadTag: {
     padding: '3px 8px',
     background: '#E5E5E5',
-    borderRadius: '4px',
+    borderRadius: 0,
     fontSize: '11px',
     color: '#555',
   },
   leadSource: {
     padding: '3px 8px',
     background: '#D1FAE5',
-    borderRadius: '4px',
+    borderRadius: 0,
     fontSize: '11px',
     color: '#047857',
   },
@@ -9328,7 +9328,7 @@ const styles = {
     padding: '8px 14px',
     background: '#FFFFFF',
     border: '1px solid #D1D5DB',
-    borderRadius: '6px',
+    borderRadius: 0,
     color: '#1A1A1A',
     fontSize: '13px',
     cursor: 'pointer',
@@ -9340,7 +9340,7 @@ const styles = {
   tableContainer: {
     overflowX: 'auto',
     background: '#FFFFFF',
-    borderRadius: '8px',
+    borderRadius: 0,
     border: '1px solid #E5E5E5',
     boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
   },
@@ -9375,7 +9375,7 @@ const styles = {
   deliveryBadge: {
     padding: '3px 8px',
     background: '#F3F4F6',
-    borderRadius: '4px',
+    borderRadius: 0,
     fontSize: '11px',
     color: '#555',
   },
@@ -9383,7 +9383,7 @@ const styles = {
     padding: '4px 10px',
     background: '#F3F4F6',
     border: '1px solid #D1D5DB',
-    borderRadius: '4px',
+    borderRadius: 0,
     color: '#555',
     fontSize: '11px',
     cursor: 'pointer',
@@ -9401,7 +9401,7 @@ const styles = {
   patientList: {
     background: '#FFFFFF',
     border: '1px solid #E5E5E5',
-    borderRadius: '8px',
+    borderRadius: 0,
     padding: '16px',
     display: 'flex',
     flexDirection: 'column',
@@ -9419,7 +9419,7 @@ const styles = {
   },
   patientItem: {
     padding: '12px 16px',
-    borderRadius: '6px',
+    borderRadius: 0,
     cursor: 'pointer',
     transition: 'background 0.15s ease',
     border: '1px solid transparent',
@@ -9441,7 +9441,7 @@ const styles = {
   patientDetail: {
     background: '#FFFFFF',
     border: '1px solid #E5E5E5',
-    borderRadius: '8px',
+    borderRadius: 0,
     padding: '24px',
     maxHeight: 'calc(100vh - 200px)',
     overflowY: 'auto',
@@ -9503,7 +9503,7 @@ const styles = {
     background: '#059669',
     color: '#FFFFFF',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: 0,
     fontSize: '12px',
     fontWeight: '600',
     cursor: 'pointer',
@@ -9523,7 +9523,7 @@ const styles = {
   detailItemType: {
     padding: '2px 8px',
     background: '#F3F4F6',
-    borderRadius: '4px',
+    borderRadius: 0,
     fontSize: '11px',
     color: '#555',
   },
@@ -9551,7 +9551,7 @@ const styles = {
     padding: '4px 8px',
     background: '#EFF6FF',
     border: '1px solid #BFDBFE',
-    borderRadius: '4px',
+    borderRadius: 0,
     color: '#1D4ED8',
     fontSize: '11px',
     fontWeight: '500',
@@ -9605,7 +9605,7 @@ const styles = {
     color: '#666',
     cursor: 'pointer',
     padding: '4px 8px',
-    borderRadius: '4px',
+    borderRadius: 0,
   },
   pdfSlideOutFrame: {
     flex: 1,
@@ -9682,7 +9682,7 @@ const styles = {
   },
   weightProgressCard: {
     background: '#F9FAFB',
-    borderRadius: '12px',
+    borderRadius: 0,
     padding: '20px',
   },
   weightProgressStats: {
@@ -9712,7 +9712,7 @@ const styles = {
   },
   weightChangeBox: {
     padding: '12px 16px',
-    borderRadius: '8px',
+    borderRadius: 0,
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
@@ -9729,7 +9729,7 @@ const styles = {
     gap: '12px',
     padding: '12px',
     background: '#F9FAFB',
-    borderRadius: '8px',
+    borderRadius: 0,
   },
   checkinDate: {
     fontSize: '13px',
@@ -9760,7 +9760,7 @@ const styles = {
     gap: '12px',
     padding: '12px',
     background: '#F9FAFB',
-    borderRadius: '8px',
+    borderRadius: 0,
   },
   activityIcon: {
     fontSize: '16px',
@@ -9789,7 +9789,7 @@ const styles = {
     lineHeight: '1.5',
     background: '#F9FAFB',
     padding: '12px',
-    borderRadius: '8px',
+    borderRadius: 0,
     whiteSpace: 'pre-wrap',
   },
 
@@ -9808,7 +9808,7 @@ const styles = {
   },
   modal: {
     background: '#FFFFFF',
-    borderRadius: '12px',
+    borderRadius: 0,
     width: '90%',
     maxWidth: '500px',
     maxHeight: '90vh',
@@ -9857,7 +9857,7 @@ const styles = {
     padding: '10px 12px',
     fontSize: '14px',
     border: '1px solid #D1D5DB',
-    borderRadius: '6px',
+    borderRadius: 0,
     background: '#FFFFFF',
     color: '#1A1A1A',
   },
@@ -9866,7 +9866,7 @@ const styles = {
     padding: '10px 12px',
     fontSize: '14px',
     border: '1px solid #D1D5DB',
-    borderRadius: '6px',
+    borderRadius: 0,
     background: '#FFFFFF',
     color: '#1A1A1A',
   },
@@ -9878,7 +9878,7 @@ const styles = {
     background: '#FFFFFF',
     border: '1px solid #D1D5DB',
     borderTop: 'none',
-    borderRadius: '0 0 6px 6px',
+    borderRadius: 0,
     maxHeight: '200px',
     overflow: 'auto',
     zIndex: 100,
@@ -9925,7 +9925,7 @@ const styles = {
     background: '#FFFFFF',
     color: '#555',
     border: '1px solid #D1D5DB',
-    borderRadius: '6px',
+    borderRadius: 0,
     fontSize: '14px',
     fontWeight: '500',
     cursor: 'pointer',
@@ -9935,7 +9935,7 @@ const styles = {
     background: '#059669',
     color: '#FFFFFF',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: 0,
     fontSize: '14px',
     fontWeight: '600',
     cursor: 'pointer',
@@ -9949,7 +9949,7 @@ const styles = {
   formsCard: {
     background: '#FFFFFF',
     border: '1px solid #E5E5E5',
-    borderRadius: '8px',
+    borderRadius: 0,
     padding: '24px',
     boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
   },
@@ -9964,7 +9964,7 @@ const styles = {
     gap: '0',
     marginBottom: '20px',
     border: '1px solid #D1D5DB',
-    borderRadius: '6px',
+    borderRadius: 0,
     overflow: 'hidden',
   },
   modeBtn: {
@@ -9985,7 +9985,7 @@ const styles = {
   selectedPatientCard: {
     background: '#F0FDF4',
     border: '1px solid #16A34A',
-    borderRadius: '6px',
+    borderRadius: 0,
     padding: '12px 16px',
     marginBottom: '16px',
     display: 'flex',
@@ -10020,7 +10020,7 @@ const styles = {
     fontSize: '12px',
     fontWeight: '600',
     border: '1px solid #D1D5DB',
-    borderRadius: '4px',
+    borderRadius: 0,
     background: '#FFFFFF',
     cursor: 'pointer',
     transition: 'all 0.15s',
@@ -10041,7 +10041,7 @@ const styles = {
     gap: '10px',
     padding: '10px 12px',
     border: '1px solid #E5E5E5',
-    borderRadius: '6px',
+    borderRadius: 0,
     cursor: 'pointer',
     transition: 'all 0.15s',
   },
@@ -10053,7 +10053,7 @@ const styles = {
     width: '18px',
     height: '18px',
     border: '2px solid #D1D5DB',
-    borderRadius: '3px',
+    borderRadius: 0,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -10089,7 +10089,7 @@ const styles = {
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: 0,
     background: '#1A1A1A',
     color: '#FFFFFF',
     cursor: 'pointer',
@@ -10101,7 +10101,7 @@ const styles = {
     padding: '12px',
     textAlign: 'center',
     fontWeight: '500',
-    borderRadius: '6px',
+    borderRadius: 0,
     border: '1px solid',
   },
   recentSends: {

@@ -310,8 +310,8 @@ export default function InvoicePaymentPage() {
                   theme: 'stripe',
                   variables: {
                     colorPrimary: '#000000',
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    borderRadius: '8px',
+                    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+                    borderRadius: '0',
                   },
                 },
               }}
@@ -351,7 +351,7 @@ const styles = {
   page: {
     minHeight: '100vh',
     background: '#f5f5f5',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
     display: 'flex',
     justifyContent: 'center',
     padding: '20px',
@@ -360,7 +360,7 @@ const styles = {
     width: '100%',
     maxWidth: '480px',
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: '0',
     overflow: 'hidden',
     boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
     alignSelf: 'flex-start',
@@ -431,7 +431,7 @@ const styles = {
   notesSection: {
     background: '#fafafa',
     padding: '12px 16px',
-    borderRadius: '8px',
+    borderRadius: '0',
     marginBottom: '24px',
   },
   notesLabel: {
@@ -454,7 +454,7 @@ const styles = {
     marginBottom: '12px',
     padding: '8px 12px',
     background: '#fef2f2',
-    borderRadius: '6px',
+    borderRadius: '0',
   },
   payButton: {
     width: '100%',
@@ -462,7 +462,7 @@ const styles = {
     background: '#16A34A',
     color: '#fff',
     border: 'none',
-    borderRadius: '10px',
+    borderRadius: '0',
     fontSize: '16px',
     fontWeight: '600',
     cursor: 'pointer',

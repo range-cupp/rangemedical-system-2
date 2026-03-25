@@ -144,7 +144,7 @@ const styles = {
     width: '100%',
     padding: '10px 16px',
     border: '1px solid #e5e7eb',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '14px',
     boxSizing: 'border-box'
   },
@@ -158,7 +158,7 @@ const styles = {
     padding: '48px',
     color: '#666',
     background: '#f9fafb',
-    borderRadius: '8px'
+    borderRadius: '0'
   },
   count: {
     fontSize: '14px',
@@ -167,7 +167,7 @@ const styles = {
   },
   table: {
     background: '#fff',
-    borderRadius: '8px',
+    borderRadius: '0',
     border: '1px solid #e5e7eb',
     overflow: 'hidden'
   },
@@ -218,7 +218,7 @@ const styles = {
     background: '#fef3c7',
     color: '#92400e',
     padding: '4px 8px',
-    borderRadius: '4px',
+    borderRadius: '0',
     fontSize: '12px',
     fontWeight: '500'
   },
@@ -226,7 +226,7 @@ const styles = {
     background: '#dcfce7',
     color: '#166534',
     padding: '4px 8px',
-    borderRadius: '4px',
+    borderRadius: '0',
     fontSize: '12px',
     fontWeight: '500'
   }

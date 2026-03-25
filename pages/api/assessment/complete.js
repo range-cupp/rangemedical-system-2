@@ -67,92 +67,103 @@ export default async function handler(req, res) {
       }
     }
 
-    // Ensure storage bucket exists and is public
+    // --- CRITICAL PATH: Save intake data + upload images, then respond fast ---
+
+    // Upload signature and photo ID in parallel
+    let signatureUrl = null;
+    let photoIdUrl = null;
+
     if (supabase) {
-      await supabase.storage.createBucket('assessment-pdfs', { public: true }).catch(() => {});
-      await supabase.storage.updateBucket('assessment-pdfs', { public: true }).catch(() => {});
+      const uploadPromises = [];
+
+      if (intakeData.signatureData) {
+        uploadPromises.push(
+          (async () => {
+            try {
+              const base64Data = intakeData.signatureData.replace(/^data:image\/png;base64,/, '');
+              const sigBuffer = Buffer.from(base64Data, 'base64');
+              const sigFileName = `${leadId || 'unknown'}/${Date.now()}-signature.png`;
+              const { error: sigUploadErr } = await supabase.storage
+                .from('assessment-pdfs')
+                .upload(sigFileName, sigBuffer, { contentType: 'image/png', upsert: false });
+              if (!sigUploadErr) {
+                const { data: sigUrlData } = supabase.storage
+                  .from('assessment-pdfs')
+                  .getPublicUrl(sigFileName);
+                signatureUrl = sigUrlData?.publicUrl || null;
+              }
+            } catch (sigErr) {
+              console.error('Signature upload error:', sigErr);
+            }
+          })()
+        );
+      }
+
+      if (intakeData.photoIdData) {
+        uploadPromises.push(
+          (async () => {
+            try {
+              const photoBase64 = intakeData.photoIdData.replace(/^data:image\/\w+;base64,/, '');
+              const photoBuffer = Buffer.from(photoBase64, 'base64');
+              const photoContentType = intakeData.photoIdData.startsWith('data:image/png') ? 'image/png' : 'image/jpeg';
+              const photoExt = photoContentType === 'image/png' ? 'png' : 'jpg';
+              const photoFileName = `${leadId || 'unknown'}/${Date.now()}-photo-id.${photoExt}`;
+              const { error: photoUploadErr } = await supabase.storage
+                .from('assessment-pdfs')
+                .upload(photoFileName, photoBuffer, { contentType: photoContentType, upsert: false });
+              if (!photoUploadErr) {
+                const { data: photoUrlData } = supabase.storage
+                  .from('assessment-pdfs')
+                  .getPublicUrl(photoFileName);
+                photoIdUrl = photoUrlData?.publicUrl || null;
+              }
+            } catch (photoErr) {
+              console.error('Photo ID upload error:', photoErr);
+            }
+          })()
+        );
+      }
+
+      if (uploadPromises.length > 0) {
+        await Promise.all(uploadPromises);
+      }
     }
 
-    // 1. Update assessment_leads with intake data
+    // Build medical history and save to DB
+    const medicalHistoryData = {
+      personalInfo: {
+        dob: intakeData.dob || null,
+        gender: intakeData.gender || null,
+        preferredName: intakeData.preferredName || null,
+        address: {
+          street: intakeData.streetAddress || null,
+          city: intakeData.city || null,
+          state: intakeData.state || null,
+          postalCode: intakeData.postalCode || null,
+        },
+        howHeardAboutUs: intakeData.howHeardAboutUs || null,
+        howHeardOther: intakeData.howHeardOther || null,
+        howHeardFriend: intakeData.howHeardFriend || null,
+        isMinor: intakeData.isMinor || 'No',
+        guardianName: intakeData.guardianName || null,
+        guardianRelationship: intakeData.guardianRelationship || null,
+      },
+      healthcareProviders: {
+        hasPCP: intakeData.hasPCP || null,
+        pcpName: intakeData.pcpName || null,
+        recentHospitalization: intakeData.recentHospitalization || null,
+        hospitalizationReason: intakeData.hospitalizationReason || null,
+      },
+      conditions: intakeData.conditions || {},
+      hrt: {
+        onHRT: intakeData.onHRT || null,
+        hrtDetails: intakeData.hrtDetails || null,
+      },
+      signatureUrl,
+      photoIdUrl,
+    };
+
     if (supabase && leadId) {
-      // Store comprehensive intake data in medical_history JSONB
-      const medicalHistoryData = {
-        personalInfo: {
-          dob: intakeData.dob || null,
-          gender: intakeData.gender || null,
-          preferredName: intakeData.preferredName || null,
-          address: {
-            street: intakeData.streetAddress || null,
-            city: intakeData.city || null,
-            state: intakeData.state || null,
-            postalCode: intakeData.postalCode || null,
-          },
-          howHeardAboutUs: intakeData.howHeardAboutUs || null,
-          howHeardOther: intakeData.howHeardOther || null,
-          howHeardFriend: intakeData.howHeardFriend || null,
-          isMinor: intakeData.isMinor || 'No',
-          guardianName: intakeData.guardianName || null,
-          guardianRelationship: intakeData.guardianRelationship || null,
-        },
-        healthcareProviders: {
-          hasPCP: intakeData.hasPCP || null,
-          pcpName: intakeData.pcpName || null,
-          recentHospitalization: intakeData.recentHospitalization || null,
-          hospitalizationReason: intakeData.hospitalizationReason || null,
-        },
-        conditions: intakeData.conditions || {},
-        hrt: {
-          onHRT: intakeData.onHRT || null,
-          hrtDetails: intakeData.hrtDetails || null,
-        },
-      };
-
-      // Upload signature image if present
-      let signatureUrl = null;
-      if (intakeData.signatureData && supabase) {
-        try {
-          const base64Data = intakeData.signatureData.replace(/^data:image\/png;base64,/, '');
-          const sigBuffer = Buffer.from(base64Data, 'base64');
-          const sigFileName = `${leadId || 'unknown'}/${Date.now()}-signature.png`;
-          const { error: sigUploadErr } = await supabase.storage
-            .from('assessment-pdfs')
-            .upload(sigFileName, sigBuffer, { contentType: 'image/png', upsert: false });
-          if (!sigUploadErr) {
-            const { data: sigUrlData } = supabase.storage
-              .from('assessment-pdfs')
-              .getPublicUrl(sigFileName);
-            signatureUrl = sigUrlData?.publicUrl || null;
-          }
-        } catch (sigErr) {
-          console.error('Signature upload error:', sigErr);
-        }
-      }
-      medicalHistoryData.signatureUrl = signatureUrl;
-
-      // Upload photo ID if present
-      let photoIdUrl = null;
-      if (intakeData.photoIdData && supabase) {
-        try {
-          const photoBase64 = intakeData.photoIdData.replace(/^data:image\/\w+;base64,/, '');
-          const photoBuffer = Buffer.from(photoBase64, 'base64');
-          const photoContentType = intakeData.photoIdData.startsWith('data:image/png') ? 'image/png' : 'image/jpeg';
-          const photoExt = photoContentType === 'image/png' ? 'png' : 'jpg';
-          const photoFileName = `${leadId || 'unknown'}/${Date.now()}-photo-id.${photoExt}`;
-          const { error: photoUploadErr } = await supabase.storage
-            .from('assessment-pdfs')
-            .upload(photoFileName, photoBuffer, { contentType: photoContentType, upsert: false });
-          if (!photoUploadErr) {
-            const { data: photoUrlData } = supabase.storage
-              .from('assessment-pdfs')
-              .getPublicUrl(photoFileName);
-            photoIdUrl = photoUrlData?.publicUrl || null;
-          }
-        } catch (photoErr) {
-          console.error('Photo ID upload error:', photoErr);
-        }
-      }
-      medicalHistoryData.photoIdUrl = photoIdUrl;
-
       const updateData = {
         intake_completed_at: new Date().toISOString(),
         intake_status: 'completed',
@@ -178,62 +189,68 @@ export default async function handler(req, res) {
       }
     }
 
-    // 1b. Push demographics to patient profile (single source of truth)
-    // Also creates patient if one doesn't exist (safety net for submit failures)
-    if (supabase && email) {
+    // --- RESPOND TO PATIENT IMMEDIATELY ---
+    // Intake data is saved. Send success now, do the rest in the background.
+    res.status(200).json({ success: true });
+
+    // --- BACKGROUND WORK: PDF, email, patient profile, tagging ---
+    // These run after the response is sent. Errors are logged but don't affect the patient.
+
+    const normalizedEmail = email ? email.toLowerCase().trim() : null;
+
+    // Look up patient ONCE for all background operations
+    let patientId = null;
+    if (supabase && normalizedEmail) {
       try {
-        const normalizedEmail = email.toLowerCase().trim();
         const { data: patientMatch } = await supabase
           .from('patients')
-          .select('id, date_of_birth, gender, address, city, state, zip_code, preferred_name')
+          .select('id, date_of_birth, gender, address, city, state, zip_code, preferred_name, tags')
           .eq('email', normalizedEmail)
           .maybeSingle();
 
-        // Extract demographics from intakeData
-        const pi = intakeData.personalInfo || intakeData || {};
-        const addr = pi.address || {};
-        const dob = pi.dob || pi.date_of_birth || pi.dateOfBirth || intakeData.dob;
-        const gender = pi.gender || pi.sex || intakeData.gender;
-        const preferredName = pi.preferredName || intakeData.preferredName || null;
-        const street = addr.street || addr.streetAddress || pi.streetAddress || intakeData.streetAddress;
-        const city = addr.city || pi.city || intakeData.city;
-        const state = addr.state || pi.state || intakeData.state;
-        const zip = addr.postalCode || addr.zip || addr.zipCode || pi.postalCode || intakeData.postalCode;
-
-        // Parse DOB format
-        let parsedDob = dob || null;
-        if (typeof dob === 'string' && dob.includes('/')) {
-          const parts = dob.split('/');
-          if (parts.length === 3) {
-            const [m, d, y] = parts;
-            parsedDob = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-          }
-        }
-
         if (patientMatch) {
-          const demographicUpdates = {};
+          patientId = patientMatch.id;
 
-          // Only update fields that are empty on the patient — don't overwrite existing data
-          if (!patientMatch.date_of_birth && parsedDob) {
-            demographicUpdates.date_of_birth = parsedDob;
+          // Push demographics (only fill empty fields)
+          const pi = intakeData.personalInfo || intakeData || {};
+          const addr = pi.address || {};
+          const dob = pi.dob || pi.date_of_birth || pi.dateOfBirth || intakeData.dob;
+          const gender = pi.gender || pi.sex || intakeData.gender;
+          const preferredName = pi.preferredName || intakeData.preferredName || null;
+          const street = addr.street || addr.streetAddress || pi.streetAddress || intakeData.streetAddress;
+          const city = addr.city || pi.city || intakeData.city;
+          const state = addr.state || pi.state || intakeData.state;
+          const zip = addr.postalCode || addr.zip || addr.zipCode || pi.postalCode || intakeData.postalCode;
+
+          let parsedDob = dob || null;
+          if (typeof dob === 'string' && dob.includes('/')) {
+            const parts = dob.split('/');
+            if (parts.length === 3) {
+              const [m, d, y] = parts;
+              parsedDob = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+            }
           }
-          if (!patientMatch.gender && gender) {
-            demographicUpdates.gender = gender;
+
+          const demographicUpdates = {};
+          if (!patientMatch.date_of_birth && parsedDob) demographicUpdates.date_of_birth = parsedDob;
+          if (!patientMatch.gender && gender) demographicUpdates.gender = gender;
+          if (!patientMatch.address && street) demographicUpdates.address = street;
+          if (!patientMatch.city && city) demographicUpdates.city = city;
+          if (!patientMatch.state && state) demographicUpdates.state = state;
+          if (!patientMatch.zip_code && zip) demographicUpdates.zip_code = zip;
+          if (!patientMatch.preferred_name && preferredName) demographicUpdates.preferred_name = preferredName;
+
+          // Add condition tags
+          const conditions = intakeData.conditions || {};
+          const conditionTags = [];
+          for (const [key, val] of Object.entries(conditions)) {
+            if (val && val.response === 'Yes') {
+              conditionTags.push(`condition:${key}`);
+            }
           }
-          if (!patientMatch.address && street) {
-            demographicUpdates.address = street;
-          }
-          if (!patientMatch.city && city) {
-            demographicUpdates.city = city;
-          }
-          if (!patientMatch.state && state) {
-            demographicUpdates.state = state;
-          }
-          if (!patientMatch.zip_code && zip) {
-            demographicUpdates.zip_code = zip;
-          }
-          if (!patientMatch.preferred_name && preferredName) {
-            demographicUpdates.preferred_name = preferredName;
+          if (conditionTags.length > 0) {
+            const existingTags = patientMatch.tags || [];
+            demographicUpdates.tags = [...new Set([...existingTags, ...conditionTags])];
           }
 
           if (Object.keys(demographicUpdates).length > 0) {
@@ -241,16 +258,25 @@ export default async function handler(req, res) {
               .from('patients')
               .update(demographicUpdates)
               .eq('id', patientMatch.id);
-            if (demoError) {
-              console.error('Patient demographics update error:', demoError);
-            } else {
-              console.log(`Updated patient ${patientMatch.id} demographics from assessment:`, Object.keys(demographicUpdates).join(', '));
-            }
+            if (demoError) console.error('Patient demographics update error:', demoError);
+            else console.log(`Updated patient ${patientMatch.id} demographics + tags from assessment`);
           }
         } else {
-          // No patient record exists — create one as safety net
+          // No patient record — create one as safety net
           const capFirst = firstName ? firstName.charAt(0).toUpperCase() + firstName.slice(1).toLowerCase() : '';
           const capLast = lastName ? lastName.charAt(0).toUpperCase() + lastName.slice(1).toLowerCase() : '';
+
+          const pi = intakeData.personalInfo || intakeData || {};
+          const addr = pi.address || {};
+          const dob = pi.dob || pi.date_of_birth || pi.dateOfBirth || intakeData.dob;
+          let parsedDob = dob || null;
+          if (typeof dob === 'string' && dob.includes('/')) {
+            const parts = dob.split('/');
+            if (parts.length === 3) {
+              const [m, d, y] = parts;
+              parsedDob = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+            }
+          }
 
           const insertData = {
             first_name: capFirst,
@@ -259,12 +285,12 @@ export default async function handler(req, res) {
             email: normalizedEmail,
             phone: phone || null,
             date_of_birth: parsedDob,
-            gender: gender || null,
-            preferred_name: preferredName || null,
-            address: street || null,
-            city: city || null,
-            state: state || null,
-            zip_code: zip || null,
+            gender: (pi.gender || pi.sex || intakeData.gender) || null,
+            preferred_name: (pi.preferredName || intakeData.preferredName) || null,
+            address: (addr.street || addr.streetAddress || pi.streetAddress || intakeData.streetAddress) || null,
+            city: (addr.city || pi.city || intakeData.city) || null,
+            state: (addr.state || pi.state || intakeData.state) || null,
+            zip_code: (addr.postalCode || addr.zip || addr.zipCode || pi.postalCode || intakeData.postalCode) || null,
             tags: ['assessment-lead', `assessment-${assessmentPath}`],
           };
 
@@ -276,62 +302,27 @@ export default async function handler(req, res) {
 
           if (createError) {
             console.error('Patient creation from complete error:', createError);
-            // Retry without tags column if it doesn't exist
             if (createError.message?.includes('tags')) {
               delete insertData.tags;
-              const { error: retryError } = await supabase
+              const { data: retryPatient, error: retryError } = await supabase
                 .from('patients')
                 .insert(insertData)
                 .select('id')
                 .single();
-              if (retryError) {
-                console.error('Patient creation retry error:', retryError);
-              } else {
-                console.log(`Assessment complete: created new patient for ${capFirst} ${capLast} (${normalizedEmail})`);
-              }
+              if (retryError) console.error('Patient creation retry error:', retryError);
+              else patientId = retryPatient?.id;
             }
           } else {
-            console.log(`Assessment complete: created new patient ${newPatient.id} for ${capFirst} ${capLast} (${normalizedEmail})`);
+            patientId = newPatient?.id;
+            console.log(`Assessment complete: created new patient ${patientId} for ${capFirst} ${capLast}`);
           }
         }
       } catch (demoErr) {
         console.error('Demographics push error:', demoErr);
       }
-
-      // Add medical condition tags based on intake conditions
-      try {
-        const normalizedEmailForTags = email.toLowerCase().trim();
-        const { data: tagPatient } = await supabase
-          .from('patients')
-          .select('id, tags')
-          .eq('email', normalizedEmailForTags)
-          .maybeSingle();
-
-        if (tagPatient) {
-          const conditions = intakeData.conditions || {};
-          const conditionTags = [];
-          for (const [key, val] of Object.entries(conditions)) {
-            if (val && val.response === 'Yes') {
-              conditionTags.push(`condition:${key}`);
-            }
-          }
-
-          if (conditionTags.length > 0) {
-            const existingTags = tagPatient.tags || [];
-            const mergedTags = [...new Set([...existingTags, ...conditionTags])];
-            await supabase
-              .from('patients')
-              .update({ tags: mergedTags })
-              .eq('id', tagPatient.id);
-            console.log(`Tagged patient ${tagPatient.id} with conditions: ${conditionTags.join(', ')}`);
-          }
-        }
-      } catch (tagErr) {
-        console.error('Condition tagging error:', tagErr);
-      }
     }
 
-    // 2. Generate PDF
+    // Generate PDF + upload + link + email (all background)
     let pdfUrl = null;
     try {
       const pdfBytes = await generateAssessmentPDF({
@@ -339,11 +330,10 @@ export default async function handler(req, res) {
         assessmentPath, formData, intakeData, recommendation
       });
 
-      // Upload to Supabase Storage
       if (supabase && pdfBytes) {
         const filePrefix = leadId || email?.replace(/[^a-z0-9]/gi, '_') || 'unknown';
         const fileName = `${filePrefix}/${Date.now()}-assessment-${assessmentPath}.pdf`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from('assessment-pdfs')
           .upload(fileName, pdfBytes, {
             contentType: 'application/pdf',
@@ -353,48 +343,37 @@ export default async function handler(req, res) {
         if (uploadError) {
           console.error('PDF upload error:', uploadError);
         } else {
-          // Get public URL
           const { data: urlData } = supabase.storage
             .from('assessment-pdfs')
             .getPublicUrl(fileName);
           pdfUrl = urlData?.publicUrl || null;
 
-          // Save URL to DB
+          // Save PDF URL + link as medical document in parallel
+          const pdfPromises = [];
+
           if (leadId) {
-            await supabase
-              .from('assessment_leads')
-              .update({ pdf_url: pdfUrl })
-              .eq('id', leadId);
+            pdfPromises.push(
+              supabase.from('assessment_leads').update({ pdf_url: pdfUrl }).eq('id', leadId)
+            );
           }
 
-          // Link PDF as a medical document on the patient profile
-          if (pdfUrl && email) {
-            try {
-              const normalizedEmail = email.toLowerCase().trim();
-              const { data: patientMatch } = await supabase
-                .from('patients')
-                .select('id')
-                .eq('email', normalizedEmail)
-                .maybeSingle();
+          if (pdfUrl && patientId) {
+            const pathLabel = assessmentPath === 'injury' ? 'Injury & Recovery' : 'Energy & Optimization';
+            const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            pdfPromises.push(
+              supabase.from('medical_documents').insert({
+                patient_id: patientId,
+                document_name: `Range Assessment — ${pathLabel} (${dateStr})`,
+                document_url: pdfUrl,
+                document_type: 'Assessment',
+                notes: `Completed ${pathLabel} assessment`,
+                uploaded_by: 'System'
+              })
+            );
+          }
 
-              if (patientMatch) {
-                const pathLabel = assessmentPath === 'injury' ? 'Injury & Recovery' : 'Energy & Optimization';
-                const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                await supabase
-                  .from('medical_documents')
-                  .insert({
-                    patient_id: patientMatch.id,
-                    document_name: `Range Assessment — ${pathLabel} (${dateStr})`,
-                    document_url: pdfUrl,
-                    document_type: 'Assessment',
-                    notes: `Completed ${pathLabel} assessment`,
-                    uploaded_by: 'System'
-                  });
-                console.log(`Linked assessment PDF as medical document for patient ${patientMatch.id}`);
-              }
-            } catch (docErr) {
-              console.error('Medical document link error:', docErr);
-            }
+          if (pdfPromises.length > 0) {
+            await Promise.all(pdfPromises);
           }
         }
       }
@@ -402,7 +381,7 @@ export default async function handler(req, res) {
       console.error('PDF generation error:', pdfError);
     }
 
-    // 3. Send consolidated clinic email
+    // Send consolidated clinic email
     try {
       await sendConsolidatedEmail({
         firstName, lastName, email, phone,
@@ -419,9 +398,7 @@ export default async function handler(req, res) {
       console.error('Consolidated email error:', emailError);
     }
 
-    // 4. GHL contact update removed — GHL integration disabled
-
-    return res.status(200).json({ success: true, pdfUrl });
+    return;
 
   } catch (error) {
     console.error('Assessment complete error:', error);

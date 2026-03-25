@@ -217,7 +217,7 @@ export default function MethyleneBlueComboIVGuide() {
 
       <style jsx>{`
         .guide-hero { padding: 6rem 2rem 5rem; }
-        .guide-hero h1 { font-size: clamp(2rem, 5vw, 3rem); font-weight: 900; line-height: 0.95; letter-spacing: -0.02em; text-transform: uppercase; color: #1a1a1a; margin-bottom: 2rem; }
+        .guide-hero h1 { font-size: clamp(2.5rem, 6vw, 3.5rem); font-weight: 900; line-height: 0.95; letter-spacing: -0.02em; text-transform: uppercase; color: #1a1a1a; margin-bottom: 2rem; }
         .hero-rule { width: 100%; max-width: 700px; height: 1px; background: #e0e0e0; margin-bottom: 1.5rem; }
         .hero-sub { font-size: 1.0625rem; color: #737373; max-width: 600px; line-height: 1.75; }
         .hero-dose { display: inline-flex; gap: 1.5rem; margin-top: 1.5rem; padding: 1rem 1.5rem; background: #ffffff; border: 1px solid #e0e0e0; font-size: 0.9rem; color: #737373; }

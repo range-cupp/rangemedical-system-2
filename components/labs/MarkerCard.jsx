@@ -27,7 +27,7 @@ export default function MarkerCard({ biomarker, value, unit, refLow, refHigh, fl
 
   return (
     <div style={{
-      background: colors.white, borderRadius: '8px',
+      background: colors.white, borderRadius: '0',
       border: `1px solid ${colors.border}`,
       borderLeft: `4px solid ${borderColor}`,
       marginBottom: '8px', overflow: 'hidden',
@@ -45,7 +45,7 @@ export default function MarkerCard({ biomarker, value, unit, refLow, refHigh, fl
               </span>
               {flagLabel && (flag === 'high' || flag === 'low' || flag === 'borderline_high' || flag === 'borderline_low') && (
                 <span style={{
-                  padding: '1px 6px', borderRadius: '4px',
+                  padding: '1px 6px', borderRadius: '0',
                   fontSize: '0.625rem', fontWeight: 700,
                   textTransform: 'uppercase', letterSpacing: '0.05em',
                   background: bgColor, color: borderColor

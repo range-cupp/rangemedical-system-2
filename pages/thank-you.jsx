@@ -135,7 +135,7 @@ export default function ThankYou() {
 
         .ty-card {
           background: #ffffff;
-          border-radius: 16px;
+          border-radius: 0;
           padding: 2.5rem;
           box-shadow: 0 4px 20px rgba(0,0,0,0.06);
           margin-bottom: 2rem;
@@ -197,7 +197,7 @@ export default function ThankYou() {
 
         .ty-info-card {
           background: #ffffff;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1.5rem;
           box-shadow: 0 2px 10px rgba(0,0,0,0.04);
         }
@@ -246,7 +246,7 @@ export default function ThankYou() {
           background: #000000;
           color: #ffffff;
           padding: 1rem 2rem;
-          border-radius: 8px;
+          border-radius: 0;
           font-weight: 600;
           text-decoration: none;
           transition: background 0.2s;

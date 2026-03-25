@@ -273,7 +273,7 @@ export default function Dashboard() {
           {/* ═══ ALERTS ═══ */}
           {consentAlerts.length > 0 && (
             <div style={{
-              background: '#FFFBEB', border: '1px solid #F59E0B', borderRadius: 12,
+              background: '#FFFBEB', border: '1px solid #F59E0B', borderRadius: 0,
               padding: '16px 20px', marginBottom: 24,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
@@ -291,7 +291,7 @@ export default function Dashboard() {
                     <div key={alert.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
                       <span style={{
                         background: '#FDE68A', color: '#92400E', padding: '1px 8px',
-                        borderRadius: 8, fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
+                        borderRadius: 0, fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
                       }}>NO {consentType.toUpperCase()} CONSENT</span>
                       <Link href={`/patients/${alert.patient_id}`} style={{ fontWeight: 500, color: '#111', textDecoration: 'none' }}>
                         {patientName}
@@ -306,7 +306,7 @@ export default function Dashboard() {
 
           {renewalAlerts.length > 0 && (
             <div style={{
-              background: '#FFF7ED', border: '1px solid #FB923C', borderRadius: 12,
+              background: '#FFF7ED', border: '1px solid #FB923C', borderRadius: 0,
               padding: '16px 20px', marginBottom: 24,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
@@ -320,7 +320,7 @@ export default function Dashboard() {
                     <span style={{
                       background: alert.isDue ? '#FEE2E2' : '#FEF3C7',
                       color: alert.isDue ? '#DC2626' : '#92400E',
-                      padding: '1px 8px', borderRadius: 8, fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
+                      padding: '1px 8px', borderRadius: 0, fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
                     }}>{alert.isDue ? 'RENEWAL DUE' : 'RENEWAL SOON'}</span>
                     <Link href={`/patients/${alert.patient_id}`} style={{ fontWeight: 500, color: '#111', textDecoration: 'none' }}>
                       {alert.patient_name || 'Patient'}
@@ -337,7 +337,7 @@ export default function Dashboard() {
 
           {refillsDue.length > 0 && (
             <div style={{
-              background: '#EFF6FF', border: '1px solid #60A5FA', borderRadius: 12,
+              background: '#EFF6FF', border: '1px solid #60A5FA', borderRadius: 0,
               padding: '16px 20px', marginBottom: 24,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
@@ -356,7 +356,7 @@ export default function Dashboard() {
                       <span style={{
                         background: isOverdue ? '#FEE2E2' : '#DBEAFE',
                         color: isOverdue ? '#DC2626' : '#1D4ED8',
-                        padding: '1px 8px', borderRadius: 8, fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
+                        padding: '1px 8px', borderRadius: 0, fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
                       }}>{isOverdue ? 'OVERDUE' : 'DUE SOON'}</span>
                       <Link href={`/patients/${r.patient_id}`} style={{ fontWeight: 500, color: '#111', textDecoration: 'none' }}>
                         {r.patient_name}
@@ -564,7 +564,7 @@ const styles = {
   // ═══ Labs Pipeline ═══
   pipelineSection: {
     background: '#fff',
-    borderRadius: 12,
+    borderRadius: 0,
     border: '1px solid #e5e5e5',
     padding: '20px 24px',
     marginBottom: 28,
@@ -584,7 +584,7 @@ const styles = {
     background: '#000',
     color: '#fff',
     padding: '3px 10px',
-    borderRadius: 10,
+    borderRadius: 0,
     fontSize: 12,
     fontWeight: 600,
   },
@@ -604,7 +604,7 @@ const styles = {
     marginBottom: 20,
     padding: '12px 0',
     background: '#fafafa',
-    borderRadius: 8,
+    borderRadius: 0,
   },
   stageCountItem: {
     display: 'flex',
@@ -649,7 +649,7 @@ const styles = {
   },
   kanbanColumn: {
     background: '#fafafa',
-    borderRadius: 8,
+    borderRadius: 0,
     overflow: 'hidden',
     minHeight: 80,
   },
@@ -673,7 +673,7 @@ const styles = {
     color: '#000',
     background: '#e5e5e5',
     padding: '1px 6px',
-    borderRadius: 6,
+    borderRadius: 0,
   },
   kanbanColumnBody: {
     padding: 8,
@@ -691,7 +691,7 @@ const styles = {
   },
   kanbanCard: {
     background: '#fff',
-    borderRadius: 8,
+    borderRadius: 0,
     padding: '10px 12px',
     border: '1px solid #e5e5e5',
   },
@@ -720,7 +720,7 @@ const styles = {
   },
   kanbanBadge: {
     padding: '1px 6px',
-    borderRadius: 4,
+    borderRadius: 0,
     fontSize: 10,
     fontWeight: 600,
   },
@@ -736,7 +736,7 @@ const styles = {
     color: '#000',
     background: '#f5f5f5',
     border: '1px solid #e5e5e5',
-    borderRadius: 4,
+    borderRadius: 0,
     cursor: 'pointer',
     textAlign: 'center',
   },
@@ -757,7 +757,7 @@ const styles = {
   statCard: {
     background: '#fff',
     padding: '16px',
-    borderRadius: '12px',
+    borderRadius: 0,
     border: '1px solid #e5e5e5',
   },
   statValue: {
@@ -797,7 +797,7 @@ const styles = {
     alignItems: 'center',
     padding: '20px 12px',
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: 0,
     textDecoration: 'none',
     color: '#000',
     border: '1px solid #e5e5e5',
@@ -809,7 +809,7 @@ const styles = {
     padding: '3px 8px',
     background: '#fee2e2',
     color: '#dc2626',
-    borderRadius: '10px',
+    borderRadius: 0,
     fontSize: '11px',
     fontWeight: '500'
   },
@@ -824,7 +824,7 @@ const styles = {
 
   // ═══ Table ═══
   tableCard: {
-    background: '#fff', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e5e5',
+    background: '#fff', borderRadius: 0, overflow: 'hidden', border: '1px solid #e5e5e5',
   },
   empty: { padding: '32px', textAlign: 'center', color: '#999', fontSize: '14px' },
   table: { width: '100%', borderCollapse: 'collapse' },
@@ -836,15 +836,15 @@ const styles = {
   td: { padding: '12px 16px', fontSize: '14px' },
   patientName: { fontWeight: '500' },
   progressContainer: { display: 'flex', alignItems: 'center', gap: '12px' },
-  progressBar: { width: '100px', height: '6px', background: '#e5e5e5', borderRadius: '3px', overflow: 'hidden' },
-  progressFill: { height: '100%', background: '#000', borderRadius: '3px' },
+  progressBar: { width: '100px', height: '6px', background: '#e5e5e5', borderRadius: 0, overflow: 'hidden' },
+  progressFill: { height: '100%', background: '#000', borderRadius: 0 },
   progressText: { fontSize: '12px', color: '#666', whiteSpace: 'nowrap' },
   viewBtn: {
-    padding: '6px 12px', background: '#000', color: '#fff', borderRadius: '6px',
+    padding: '6px 12px', background: '#000', color: '#fff', borderRadius: 0,
     fontSize: '12px', fontWeight: '500', textDecoration: 'none'
   },
   badge: {
-    padding: '4px 10px', borderRadius: '12px', fontSize: '11px',
+    padding: '4px 10px', borderRadius: 0, fontSize: '11px',
     fontWeight: '600', textTransform: 'uppercase',
   },
 };

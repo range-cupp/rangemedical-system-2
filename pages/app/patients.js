@@ -88,7 +88,7 @@ export default function AppPatients() {
           align-items: center;
           background: #fff;
           border: 1.5px solid #e2e8f0;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 0 14px;
           gap: 10px;
         }

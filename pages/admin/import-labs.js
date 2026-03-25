@@ -286,34 +286,34 @@ const styles = {
   title: { fontSize: '28px', fontWeight: '600', margin: '0 0 8px 0' },
   subtitle: { color: '#666', marginBottom: '32px' },
   card: {
-    background: '#fff', borderRadius: '12px', padding: '24px',
+    background: '#fff', borderRadius: 0, padding: '24px',
     marginBottom: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
   },
   cardTitle: { fontSize: '18px', fontWeight: '600', marginTop: 0, marginBottom: '16px' },
   cardText: { color: '#666', marginBottom: '16px', fontSize: '14px' },
   newBadge: {
     fontSize: '10px', fontWeight: '700', letterSpacing: '0.05em',
-    background: '#ede9fe', color: '#6366f1', padding: '2px 8px', borderRadius: '4px'
+    background: '#ede9fe', color: '#6366f1', padding: '2px 8px', borderRadius: 0
   },
   uploadArea: { marginBottom: '16px' },
   fileInput: { display: 'none' },
   uploadLabel: {
     display: 'block', padding: '32px', border: '2px dashed #e5e7eb',
-    borderRadius: '8px', textAlign: 'center', cursor: 'pointer',
+    borderRadius: 0, textAlign: 'center', cursor: 'pointer',
     color: '#666', fontSize: '15px', transition: 'border-color 0.15s'
   },
   button: {
     width: '100%', padding: '14px', background: '#000', color: '#fff',
-    border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: '500', cursor: 'pointer'
+    border: 'none', borderRadius: 0, fontSize: '16px', fontWeight: '500', cursor: 'pointer'
   },
   infoBox: {
     marginTop: '16px', padding: '12px', background: '#f0f9ff',
-    borderRadius: '8px', fontSize: '13px', color: '#0369a1'
+    borderRadius: 0, fontSize: '13px', color: '#0369a1'
   },
   progressBar: {
     display: 'flex', alignItems: 'center', gap: '8px',
     marginTop: '12px', padding: '10px', background: '#f5f3ff',
-    borderRadius: '8px', fontSize: '13px', color: '#6366f1'
+    borderRadius: 0, fontSize: '13px', color: '#6366f1'
   },
   progressDot: {
     width: '8px', height: '8px', borderRadius: '50%',
@@ -321,23 +321,23 @@ const styles = {
   },
   error: {
     marginTop: '16px', padding: '12px',
-    background: '#fee2e2', color: '#dc2626', borderRadius: '8px'
+    background: '#fee2e2', color: '#dc2626', borderRadius: 0
   },
   results: {
-    marginTop: '24px', padding: '16px', background: '#f9fafb', borderRadius: '8px'
+    marginTop: '24px', padding: '16px', background: '#f9fafb', borderRadius: 0
   },
   resultsTitle: { margin: '0 0 16px 0', fontSize: '16px' },
   statsRow: { display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' },
   stat: {
     flex: 1, minWidth: '80px', textAlign: 'center', padding: '12px',
-    borderRadius: '8px', border: '1px solid #e5e7eb'
+    borderRadius: 0, border: '1px solid #e5e7eb'
   },
   statNumber: { fontSize: '24px', fontWeight: '700' },
   statLabel: { fontSize: '12px', color: '#666' },
   tabBar: { display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' },
   tab: {
     padding: '8px 16px', border: '1px solid #e5e7eb',
-    borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '500'
+    borderRadius: 0, cursor: 'pointer', fontSize: '13px', fontWeight: '500'
   },
   detailsList: { borderTop: '1px solid #e5e7eb', paddingTop: '16px' },
   scrollArea: { maxHeight: '320px', overflowY: 'auto' },
@@ -351,7 +351,7 @@ const styles = {
   detailDate: { fontSize: '12px', color: '#666' },
   detailRight: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' },
   statusBadge: {
-    padding: '2px 8px', borderRadius: '4px',
+    padding: '2px 8px', borderRadius: 0,
     fontSize: '11px', fontWeight: '600', textTransform: 'uppercase'
   },
   detailReason: { fontSize: '11px', color: '#666', maxWidth: '220px', textAlign: 'right' },

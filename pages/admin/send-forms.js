@@ -807,7 +807,7 @@ export default function SendFormsPage() {
               <div style={{
                 marginTop: '10px',
                 padding: '8px 12px',
-                borderRadius: '8px',
+                borderRadius: 0,
                 fontSize: '12px',
                 fontWeight: '500',
                 background: blooioOptIn ? '#f0fdf4' : '#fffbeb',
@@ -883,7 +883,7 @@ const styles = {
   },
   mainCard: {
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: 0,
     border: '1px solid #e5e5e5',
     overflow: 'hidden',
   },
@@ -947,7 +947,7 @@ const styles = {
   modeBtn: {
     padding: '6px 14px',
     border: '1px solid #ddd',
-    borderRadius: '6px',
+    borderRadius: 0,
     background: '#fff',
     fontSize: '13px',
     cursor: 'pointer',
@@ -964,7 +964,7 @@ const styles = {
     width: '100%',
     padding: '10px 14px',
     border: '1px solid #ddd',
-    borderRadius: '8px',
+    borderRadius: 0,
     fontSize: '14px',
     outline: 'none',
     fontFamily: 'inherit',
@@ -983,7 +983,7 @@ const styles = {
     right: 0,
     background: '#fff',
     border: '1px solid #ddd',
-    borderRadius: '8px',
+    borderRadius: 0,
     boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
     zIndex: 10,
     maxHeight: '240px',
@@ -1013,7 +1013,7 @@ const styles = {
     alignItems: 'center',
     padding: '12px 16px',
     background: '#f9fafb',
-    borderRadius: '8px',
+    borderRadius: 0,
     border: '1px solid #e5e5e5',
   },
   selectedName: {
@@ -1028,7 +1028,7 @@ const styles = {
   changeBtn: {
     padding: '6px 12px',
     border: '1px solid #ddd',
-    borderRadius: '6px',
+    borderRadius: 0,
     background: '#fff',
     fontSize: '12px',
     cursor: 'pointer',
@@ -1045,7 +1045,7 @@ const styles = {
   quickBtn: {
     padding: '5px 12px',
     border: '1px solid #e5e5e5',
-    borderRadius: '16px',
+    borderRadius: 0,
     background: '#fff',
     fontSize: '12px',
     cursor: 'pointer',
@@ -1062,7 +1062,7 @@ const styles = {
   selectAllBtn: {
     padding: '4px 10px',
     border: '1px solid #ddd',
-    borderRadius: '6px',
+    borderRadius: 0,
     background: '#fff',
     fontSize: '11px',
     cursor: 'pointer',
@@ -1089,7 +1089,7 @@ const styles = {
     gap: '8px',
     padding: '10px 12px',
     border: '1px solid #e5e5e5',
-    borderRadius: '8px',
+    borderRadius: 0,
     cursor: 'pointer',
     background: '#fff',
     transition: 'all 0.1s',
@@ -1126,7 +1126,7 @@ const styles = {
   deliveryBtn: {
     padding: '10px 20px',
     border: '1px solid #ddd',
-    borderRadius: '8px',
+    borderRadius: 0,
     background: '#fff',
     fontSize: '14px',
     cursor: 'pointer',
@@ -1158,7 +1158,7 @@ const styles = {
     background: '#000',
     color: '#fff',
     border: 'none',
-    borderRadius: '10px',
+    borderRadius: 0,
     fontSize: '15px',
     fontWeight: '600',
     cursor: 'pointer',
@@ -1167,14 +1167,14 @@ const styles = {
   resultMsg: {
     marginTop: '12px',
     padding: '10px 14px',
-    borderRadius: '8px',
+    borderRadius: 0,
     fontSize: '13px',
     fontWeight: '500',
   },
   // Recent sends
   recentCard: {
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: 0,
     border: '1px solid #e5e5e5',
     padding: '20px',
   },
@@ -1210,7 +1210,7 @@ const styles = {
     gap: '16px',
     padding: '20px',
     background: '#f9fafb',
-    borderRadius: '10px',
+    borderRadius: 0,
     border: '1px solid #e5e5e5',
   },
   questionnaireIcon: {
@@ -1238,7 +1238,7 @@ const styles = {
   copyLinkBtn: {
     padding: '8px 14px',
     border: '1px solid #ddd',
-    borderRadius: '8px',
+    borderRadius: 0,
     background: '#fff',
     fontSize: '13px',
     cursor: 'pointer',

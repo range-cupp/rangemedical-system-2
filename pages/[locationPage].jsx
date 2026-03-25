@@ -398,7 +398,7 @@ export default function LocationPage({ pageData, schemas, serviceSlug, citySlug 
           background: #000000;
           color: #ffffff;
           border: none;
-          border-radius: 8px;
+          border-radius: 0;
           cursor: pointer;
           text-decoration: none;
           transition: background 0.2s ease, transform 0.2s ease;
@@ -442,7 +442,7 @@ export default function LocationPage({ pageData, schemas, serviceSlug, citySlug 
 
         .loc-card {
           padding: 2rem;
-          border-radius: 12px;
+          border-radius: 0;
           border: 1px solid #e5e5e5;
           background: #ffffff;
           transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -580,7 +580,7 @@ export default function LocationPage({ pageData, schemas, serviceSlug, citySlug 
           font-size: 0.8125rem;
           font-weight: 600;
           padding: 0.625rem 1.25rem;
-          border-radius: 100px;
+          border-radius: 0;
           border: 1px solid #e5e5e5;
           color: #171717;
           text-decoration: none;
@@ -603,7 +603,7 @@ export default function LocationPage({ pageData, schemas, serviceSlug, citySlug 
 
         .loc-related-card {
           padding: 1.5rem;
-          border-radius: 12px;
+          border-radius: 0;
           border: 1px solid #e5e5e5;
           text-decoration: none;
           transition: border-color 0.2s ease, box-shadow 0.2s ease;

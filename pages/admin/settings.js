@@ -108,7 +108,7 @@ const styles = {
     display: 'block',
     padding: '20px',
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: 0,
     border: '1px solid #e5e5e5',
     textDecoration: 'none',
     color: '#000',
@@ -125,7 +125,7 @@ const styles = {
   },
   card: {
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: 0,
     border: '1px solid #e5e5e5',
     overflow: 'hidden'
   },

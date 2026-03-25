@@ -96,6 +96,89 @@ export default async function handler(req, res) {
 
     if (error) throw error;
 
+    // ── Auto-create appointment if encounter note has no linked appointment ──
+    // When staff creates an encounter note for a patient with no appointment today,
+    // automatically create a visit on the schedule under the note author
+    if (!appointment_id && encounter_service && patient_id) {
+      try {
+        const noteDay = note_date
+          ? new Date(note_date).toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' })
+          : todayPacific();
+
+        // Check if patient already has an appointment today
+        const dayStart = `${noteDay}T00:00:00-08:00`;
+        const dayEnd = `${noteDay}T23:59:59-08:00`;
+
+        const { data: existingAppts } = await supabase
+          .from('appointments')
+          .select('id')
+          .eq('patient_id', patient_id)
+          .gte('start_time', dayStart)
+          .lte('start_time', dayEnd)
+          .not('status', 'in', '("cancelled","no_show")')
+          .limit(1);
+
+        if (!existingAppts || existingAppts.length === 0) {
+          // Look up patient name
+          const { data: patientRow } = await supabase
+            .from('patients')
+            .select('name, phone')
+            .eq('id', patient_id)
+            .single();
+
+          if (patientRow) {
+            // Use the note_date time or current time for the appointment
+            const apptTime = note_date ? new Date(note_date) : new Date();
+            const startTime = apptTime.toISOString();
+            const endTime = new Date(apptTime.getTime() + 30 * 60 * 1000).toISOString();
+
+            const { data: newAppt } = await supabase
+              .from('appointments')
+              .insert({
+                patient_id,
+                patient_name: patientRow.name,
+                patient_phone: patientRow.phone || null,
+                service_name: encounter_service,
+                provider: created_by || null,
+                location: 'Range Medical — Newport Beach',
+                start_time: startTime,
+                end_time: endTime,
+                duration_minutes: 30,
+                status: 'completed',
+                source: 'encounter_note',
+                created_by: created_by || null,
+                notes: 'Auto-created from encounter note',
+              })
+              .select('id')
+              .single();
+
+            if (newAppt) {
+              // Link the note to the new appointment
+              await supabase
+                .from('patient_notes')
+                .update({ appointment_id: newAppt.id })
+                .eq('id', data.id);
+
+              data.appointment_id = newAppt.id;
+
+              // Log the event
+              await supabase.from('appointment_events').insert({
+                appointment_id: newAppt.id,
+                event_type: 'created',
+                new_status: 'completed',
+                metadata: { created_by, source: 'encounter_note', auto_created: true },
+              });
+
+              console.log(`Auto-created appointment ${newAppt.id} from encounter note for ${patientRow.name}`);
+            }
+          }
+        }
+      } catch (apptErr) {
+        // Don't fail the note save if auto-appointment creation fails
+        console.error('Auto-appointment creation error (non-fatal):', apptErr.message);
+      }
+    }
+
     // ── Weight Loss: Sync note data → service_logs, protocol, vitals ──
     // Detect weight loss encounter by encounter_service string or form type
     const esLower = (encounter_service || '').toLowerCase();

@@ -394,7 +394,7 @@ const panelStyles = {
   },
   statusBadge: {
     padding: '3px 10px',
-    borderRadius: '10px',
+    borderRadius: '0',
     fontSize: '11px',
     fontWeight: '600',
     whiteSpace: 'nowrap',
@@ -417,7 +417,7 @@ const panelStyles = {
     padding: '4px',
     cursor: 'pointer',
     color: '#9ca3af',
-    borderRadius: '6px',
+    borderRadius: '0',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -434,7 +434,7 @@ const panelStyles = {
     padding: '10px 14px',
     background: '#fef3c7',
     border: '1px solid #fde68a',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '13px',
     color: '#92400e'
   },
@@ -477,13 +477,13 @@ const panelStyles = {
   progressBar: {
     height: '8px',
     background: '#e5e7eb',
-    borderRadius: '4px',
+    borderRadius: '0',
     overflow: 'hidden'
   },
   progressFill: {
     height: '100%',
     background: '#000',
-    borderRadius: '4px',
+    borderRadius: '0',
     transition: 'width 0.3s ease'
   },
   progressText: {
@@ -498,7 +498,7 @@ const panelStyles = {
     display: 'inline-block',
     padding: '6px 14px',
     background: '#f3f4f6',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '13px',
     fontWeight: '600',
     color: '#374151'
@@ -509,7 +509,7 @@ const panelStyles = {
     lineHeight: '1.6',
     background: '#f9fafb',
     padding: '12px',
-    borderRadius: '8px',
+    borderRadius: '0',
     border: '1px solid #f3f4f6'
   },
   loadingText: {
@@ -576,7 +576,7 @@ const panelStyles = {
     background: '#000',
     color: '#fff',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '13px',
     fontWeight: '600',
     textAlign: 'center',
@@ -589,7 +589,7 @@ const panelStyles = {
     background: '#fff',
     color: '#374151',
     border: '1px solid #d1d5db',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '13px',
     fontWeight: '500',
     textAlign: 'center',

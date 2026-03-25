@@ -280,11 +280,12 @@ export default function TesamorelinIpamorelinGuide() {
         }
 
         .peptide-hero h1 {
-          font-size: 2.25rem;
-          font-weight: 700;
-          line-height: 1.2;
+          font-size: 2.75rem;
+          font-weight: 900;
+          line-height: 0.95;
           letter-spacing: -0.02em;
-          margin-bottom: 1rem;
+          text-transform: uppercase;
+          margin-bottom: 1.25rem;
         }
 
         .hero-badge {
@@ -292,7 +293,7 @@ export default function TesamorelinIpamorelinGuide() {
           background: #000000;
           color: #ffffff;
           padding: 0.5rem 1rem;
-          border-radius: 100px;
+          border-radius: 0;
           font-size: 0.8125rem;
           font-weight: 600;
           margin-bottom: 1.25rem;
@@ -312,7 +313,7 @@ export default function TesamorelinIpamorelinGuide() {
           padding: 0.75rem 1.5rem;
           background: #000000;
           color: #ffffff;
-          border-radius: 8px;
+          border-radius: 0;
           font-size: 1.25rem;
           font-weight: 700;
         }
@@ -389,7 +390,7 @@ export default function TesamorelinIpamorelinGuide() {
         .info-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1.5rem;
         }
 
@@ -438,7 +439,7 @@ export default function TesamorelinIpamorelinGuide() {
         .benefits-box {
           background: #fafafa;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1.5rem 2rem;
           margin-top: 1.5rem;
         }
@@ -472,7 +473,7 @@ export default function TesamorelinIpamorelinGuide() {
         .combo-box {
           background: #000000;
           color: #ffffff;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1.75rem;
           margin-top: 1.5rem;
           text-align: center;
@@ -501,7 +502,7 @@ export default function TesamorelinIpamorelinGuide() {
         .phase-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1.5rem;
           text-align: center;
         }
@@ -540,7 +541,7 @@ export default function TesamorelinIpamorelinGuide() {
           background: #000000;
           color: #ffffff;
           padding: 0.375rem 1rem;
-          border-radius: 6px;
+          border-radius: 0;
           font-size: 0.9375rem;
           font-weight: 700;
         }
@@ -593,7 +594,7 @@ export default function TesamorelinIpamorelinGuide() {
           border-left: 4px solid #000000;
           padding: 1.25rem 1.5rem;
           margin-top: 1.5rem;
-          border-radius: 0 8px 8px 0;
+          border-radius: 0;
         }
 
         .section-gray .tip-box {
@@ -623,7 +624,7 @@ export default function TesamorelinIpamorelinGuide() {
         .timeline-card {
           background: rgba(255,255,255,0.1);
           border: 1px solid rgba(255,255,255,0.2);
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1.5rem;
         }
 
@@ -649,7 +650,7 @@ export default function TesamorelinIpamorelinGuide() {
         .safety-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1.5rem;
         }
 
@@ -702,7 +703,7 @@ export default function TesamorelinIpamorelinGuide() {
         .disclaimer {
           background: #fafafa;
           border: 1px solid #e5e5e5;
-          border-radius: 8px;
+          border-radius: 0;
           padding: 1.25rem;
           margin-top: 1.5rem;
         }
@@ -748,7 +749,7 @@ export default function TesamorelinIpamorelinGuide() {
           background: #ffffff;
           color: #000000;
           padding: 0.875rem 1.75rem;
-          border-radius: 8px;
+          border-radius: 0;
           text-decoration: none;
           font-weight: 600;
           font-size: 0.9375rem;
@@ -765,7 +766,7 @@ export default function TesamorelinIpamorelinGuide() {
           background: transparent;
           color: #ffffff;
           padding: 0.875rem 1.75rem;
-          border-radius: 8px;
+          border-radius: 0;
           border: 2px solid #ffffff;
           text-decoration: none;
           font-weight: 600;
@@ -786,7 +787,7 @@ export default function TesamorelinIpamorelinGuide() {
         /* Responsive */
         @media (max-width: 768px) {
           .peptide-hero h1 {
-            font-size: 1.875rem;
+            font-size: 2rem;
           }
 
           .info-grid-two,

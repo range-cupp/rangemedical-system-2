@@ -523,7 +523,7 @@ export default function OxygenLanding() {
           background: #ffffff;
           color: #000000;
           border: none;
-          border-radius: 8px;
+          border-radius: 0;
           cursor: pointer;
           text-decoration: none;
           transition: background 0.2s ease, transform 0.2s ease;
@@ -623,7 +623,7 @@ export default function OxygenLanding() {
           font-size: 0.8125rem;
           font-weight: 600;
           padding: 0.75rem 1.5rem;
-          border-radius: 100px;
+          border-radius: 0;
           border: 1px solid rgba(255, 255, 255, 0.08);
           background: rgba(255, 255, 255, 0.04);
           color: rgba(255, 255, 255, 0.6);
@@ -644,7 +644,7 @@ export default function OxygenLanding() {
 
         .benefit-card {
           padding: 2rem;
-          border-radius: 12px;
+          border-radius: 0;
           border: 1px solid #e5e5e5;
           background: #ffffff;
           transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -687,7 +687,7 @@ export default function OxygenLanding() {
 
         .research-card {
           padding: 2rem;
-          border-radius: 12px;
+          border-radius: 0;
           border: 1px solid #e5e5e5;
           background: #ffffff;
           transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -748,7 +748,7 @@ export default function OxygenLanding() {
 
         .athlete-card {
           padding: 2rem 1.75rem;
-          border-radius: 12px;
+          border-radius: 0;
           text-align: center;
           background: rgba(255, 255, 255, 0.03);
           border: 1px solid rgba(255, 255, 255, 0.06);

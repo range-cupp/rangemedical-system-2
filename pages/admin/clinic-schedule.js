@@ -293,7 +293,7 @@ const styles = {
     fontSize: '14px',
     padding: '8px 16px',
     border: '1px solid #e5e7eb',
-    borderRadius: '6px'
+    borderRadius: 0
   },
   dateNav: {
     display: 'flex',
@@ -302,12 +302,12 @@ const styles = {
     marginBottom: '24px',
     padding: '12px 16px',
     background: '#f9fafb',
-    borderRadius: '8px'
+    borderRadius: 0
   },
   navBtn: {
     padding: '8px 16px',
     border: '1px solid #e5e7eb',
-    borderRadius: '6px',
+    borderRadius: 0,
     background: '#fff',
     cursor: 'pointer',
     fontSize: '14px'
@@ -324,7 +324,7 @@ const styles = {
   todayBtn: {
     padding: '4px 12px',
     border: '1px solid #2563eb',
-    borderRadius: '4px',
+    borderRadius: 0,
     background: '#fff',
     color: '#2563eb',
     cursor: 'pointer',
@@ -339,7 +339,7 @@ const styles = {
   statCard: {
     background: '#fff',
     border: '2px solid #e5e7eb',
-    borderRadius: '8px',
+    borderRadius: 0,
     padding: '16px',
     textAlign: 'center'
   },
@@ -363,14 +363,14 @@ const styles = {
     padding: '48px',
     color: '#dc2626',
     background: '#fef2f2',
-    borderRadius: '8px'
+    borderRadius: 0
   },
   empty: {
     textAlign: 'center',
     padding: '48px',
     color: '#9ca3af',
     background: '#f9fafb',
-    borderRadius: '8px',
+    borderRadius: 0,
     border: '1px solid #e5e7eb'
   },
   timeline: {
@@ -386,7 +386,7 @@ const styles = {
     padding: '16px',
     background: '#fff',
     border: '1px solid #e5e7eb',
-    borderRadius: '8px'
+    borderRadius: 0
   },
   timeColumn: {
     width: '80px',
@@ -404,7 +404,7 @@ const styles = {
   calendarIndicator: {
     width: '4px',
     alignSelf: 'stretch',
-    borderRadius: '2px',
+    borderRadius: 0,
     minHeight: '40px'
   },
   appointmentContent: {
@@ -428,7 +428,7 @@ const styles = {
     fontSize: '12px',
     fontWeight: '500',
     padding: '4px 10px',
-    borderRadius: '4px'
+    borderRadius: 0
   },
   appointmentDetails: {
     fontSize: '14px',
@@ -466,7 +466,7 @@ const styles = {
     fontSize: '13px',
     fontWeight: '600',
     padding: '4px 12px',
-    borderRadius: '4px'
+    borderRadius: 0
   },
   calendarCount: {
     fontSize: '13px',
@@ -484,7 +484,7 @@ const styles = {
     gap: '12px',
     padding: '8px 12px',
     background: '#f9fafb',
-    borderRadius: '6px'
+    borderRadius: 0
   },
   miniTime: {
     fontSize: '13px',
@@ -506,7 +506,7 @@ const styles = {
     padding: '12px',
     marginTop: '24px',
     border: '1px solid #e5e7eb',
-    borderRadius: '8px',
+    borderRadius: 0,
     background: '#fff',
     cursor: 'pointer',
     fontSize: '14px',
@@ -518,7 +518,7 @@ const styles = {
     marginTop: '16px',
     background: '#dcfce7',
     color: '#166534',
-    borderRadius: '8px',
+    borderRadius: 0,
     fontSize: '14px'
   }
 };

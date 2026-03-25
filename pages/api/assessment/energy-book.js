@@ -132,12 +132,12 @@ export default async function handler(req, res) {
       })
       .eq('id', leadId);
 
-    // --- Create tasks for Damon and Tara ---
+    // --- Create task for Tara ---
     try {
       const { data: staffMembers } = await supabase
         .from('employees')
         .select('id, email')
-        .in('email', ['damon@range-medical.com', 'tara@range-medical.com'])
+        .eq('email', 'tara@range-medical.com')
         .eq('is_active', true);
 
       if (staffMembers && staffMembers.length > 0) {
@@ -156,9 +156,9 @@ export default async function handler(req, res) {
             status: 'pending',
           });
         }
-        console.log(`Tasks created for ${staffMembers.length} staff members for energy booking ${calResult.uid}`);
+        console.log(`Task created for Tara for energy booking ${calResult.uid}`);
       } else {
-        console.warn('No active staff found for Damon/Tara task assignment');
+        console.warn('No active staff found for Tara task assignment');
       }
     } catch (taskErr) {
       console.error('Task creation error for energy booking:', taskErr);

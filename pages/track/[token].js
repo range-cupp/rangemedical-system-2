@@ -589,7 +589,7 @@ export default function PatientTracker() {
         <span style={{ fontSize: '24px', fontWeight: '700', color }}>{value}</span>
       </div>
       <input type="range" min="1" max="10" value={value} onChange={(e) => onChange(parseInt(e.target.value))} 
-        style={{ width: '100%', height: '8px', borderRadius: '4px', outline: 'none', WebkitAppearance: 'none', 
+        style={{ width: '100%', height: '8px', borderRadius: '0', outline: 'none', WebkitAppearance: 'none', 
           background: `linear-gradient(to right, ${color} ${(value - 1) * 11.1}%, #e0e0e0 ${(value - 1) * 11.1}%)` }} />
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
         <span style={{ fontSize: '11px', color: '#888' }}>{lowLabel}</span>
@@ -635,7 +635,7 @@ export default function PatientTracker() {
       <Confetti />
       <div style={{
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        borderRadius: '24px', padding: '40px', textAlign: 'center', color: 'white',
+        borderRadius: '0', padding: '40px', textAlign: 'center', color: 'white',
         maxWidth: '320px', width: '100%', animation: 'pop-in 0.3s ease'
       }}>
         <div style={{ fontSize: '64px', marginBottom: '16px' }}>🎉</div>
@@ -701,7 +701,7 @@ export default function PatientTracker() {
         <div style={{ margin: '0 20px 20px' }}>
           <div style={{ 
             background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)', 
-            borderRadius: '20px', 
+            borderRadius: '0', 
             padding: '24px',
             color: 'white',
             textAlign: 'center'
@@ -718,7 +718,7 @@ export default function PatientTracker() {
                 color: '#f57c00',
                 border: 'none',
                 padding: '12px 32px',
-                borderRadius: '25px',
+                borderRadius: '0',
                 fontSize: '15px',
                 fontWeight: '600',
                 cursor: 'pointer'
@@ -770,7 +770,7 @@ export default function PatientTracker() {
         {/* Main Stats Card */}
         <div style={{ 
           background: 'linear-gradient(135deg, #1a1a1a 0%, #333 100%)', 
-          borderRadius: '20px', 
+          borderRadius: '0', 
           padding: '24px',
           color: 'white',
           marginBottom: '16px'
@@ -788,17 +788,17 @@ export default function PatientTracker() {
           
           {/* Stats Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
-            <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
+            <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '0', padding: '12px', textAlign: 'center' }}>
               <div style={{ fontSize: '11px', opacity: 0.7, marginBottom: '4px' }}>Start</div>
               <div style={{ fontSize: '18px', fontWeight: '600' }}>{startWeight}</div>
               <div style={{ fontSize: '10px', opacity: 0.5 }}>lbs</div>
             </div>
-            <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
+            <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '0', padding: '12px', textAlign: 'center' }}>
               <div style={{ fontSize: '11px', opacity: 0.7, marginBottom: '4px' }}>Current</div>
               <div style={{ fontSize: '18px', fontWeight: '600' }}>{currentWeight}</div>
               <div style={{ fontSize: '10px', opacity: 0.5 }}>lbs</div>
             </div>
-            <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
+            <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '0', padding: '12px', textAlign: 'center' }}>
               <div style={{ fontSize: '11px', opacity: 0.7, marginBottom: '4px' }}>Weekly Avg</div>
               <div style={{ fontSize: '18px', fontWeight: '600', color: weeklyAvg > 0 ? '#4caf50' : '#fff' }}>
                 {weeklyAvg > 0 ? '-' : ''}{Math.abs(weeklyAvg)}
@@ -823,7 +823,7 @@ export default function PatientTracker() {
               color: 'white',
               border: 'none',
               padding: '14px',
-              borderRadius: '12px',
+              borderRadius: '0',
               fontSize: '15px',
               fontWeight: '600',
               cursor: 'pointer'
@@ -837,7 +837,7 @@ export default function PatientTracker() {
         {nextMilestone && (
           <div style={{ 
             background: 'white', 
-            borderRadius: '16px', 
+            borderRadius: '0', 
             padding: '16px',
             boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
             marginBottom: '16px'
@@ -848,7 +848,7 @@ export default function PatientTracker() {
             </div>
             <div style={{ 
               background: '#f0f0f0', 
-              borderRadius: '10px', 
+              borderRadius: '0', 
               height: '12px', 
               overflow: 'hidden',
               marginBottom: '8px'
@@ -857,7 +857,7 @@ export default function PatientTracker() {
                 width: `${progressToNext}%`, 
                 height: '100%', 
                 background: 'linear-gradient(90deg, #ff9800 0%, #f57c00 100%)',
-                borderRadius: '10px',
+                borderRadius: '0',
                 transition: 'width 0.5s ease'
               }} />
             </div>
@@ -872,7 +872,7 @@ export default function PatientTracker() {
         {achievedMilestones.length > 0 && (
           <div style={{ 
             background: 'white', 
-            borderRadius: '16px', 
+            borderRadius: '0', 
             padding: '16px',
             boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
             marginBottom: '16px'
@@ -885,7 +885,7 @@ export default function PatientTracker() {
                 <div key={i} style={{
                   background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
                   padding: '8px 14px',
-                  borderRadius: '20px',
+                  borderRadius: '0',
                   fontSize: '13px',
                   fontWeight: '500',
                   display: 'flex',
@@ -903,7 +903,7 @@ export default function PatientTracker() {
         {logs.length > 0 && (
           <div style={{ 
             background: 'white', 
-            borderRadius: '16px', 
+            borderRadius: '0', 
             padding: '16px',
             boxShadow: '0 2px 12px rgba(0,0,0,0.06)'
           }}>
@@ -921,7 +921,7 @@ export default function PatientTracker() {
                     alignItems: 'center',
                     padding: '10px 12px',
                     background: '#fafafa',
-                    borderRadius: '10px'
+                    borderRadius: '0'
                   }}>
                     <div>
                       <div style={{ fontSize: '14px', fontWeight: '500' }}>{log.weight} lbs</div>
@@ -936,7 +936,7 @@ export default function PatientTracker() {
                         color: change < 0 ? '#4caf50' : change > 0 ? '#f44336' : '#888',
                         background: change < 0 ? '#e8f5e9' : change > 0 ? '#ffebee' : '#f5f5f5',
                         padding: '4px 10px',
-                        borderRadius: '12px'
+                        borderRadius: '0'
                       }}>
                         {change > 0 ? '+' : ''}{change} lbs
                       </span>
@@ -975,8 +975,8 @@ export default function PatientTracker() {
 
   const WellnessCheckInModal = () => (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-      <div style={{ background: 'white', borderRadius: '20px', width: '100%', maxWidth: '400px', maxHeight: '90vh', overflow: 'auto' }}>
-        <div style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #333 100%)', color: 'white', padding: '24px', borderRadius: '20px 20px 0 0', textAlign: 'center' }}>
+      <div style={{ background: 'white', borderRadius: '0', width: '100%', maxWidth: '400px', maxHeight: '90vh', overflow: 'auto' }}>
+        <div style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #333 100%)', color: 'white', padding: '24px', borderRadius: '0', textAlign: 'center' }}>
           <div style={{ fontSize: '28px', marginBottom: '8px' }}>🌟</div>
           <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>Daily Check-In</h2>
           <p style={{ margin: '8px 0 0', fontSize: '13px', opacity: 0.8 }}>{todayLogged ? 'Update your scores' : 'How are you feeling today?'}</p>
@@ -988,13 +988,13 @@ export default function PatientTracker() {
                 <span style={{ fontSize: '14px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span>{metric.icon}</span> {metric.label}
                 </span>
-                <span style={{ fontSize: '20px', fontWeight: '700', color: metric.color, background: `${metric.color}15`, padding: '4px 12px', borderRadius: '12px' }}>
+                <span style={{ fontSize: '20px', fontWeight: '700', color: metric.color, background: `${metric.color}15`, padding: '4px 12px', borderRadius: '0' }}>
                   {wellnessData[metric.key]}
                 </span>
               </div>
               <input type="range" min="1" max="10" value={wellnessData[metric.key]} 
                 onChange={(e) => setWellnessData(prev => ({ ...prev, [metric.key]: parseInt(e.target.value) }))}
-                style={{ width: '100%', height: '8px', borderRadius: '4px', WebkitAppearance: 'none',
+                style={{ width: '100%', height: '8px', borderRadius: '0', WebkitAppearance: 'none',
                   background: `linear-gradient(to right, ${metric.color} ${(wellnessData[metric.key] - 1) * 11.1}%, #e8e8e8 ${(wellnessData[metric.key] - 1) * 11.1}%)` }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
                 <span style={{ fontSize: '10px', color: '#999' }}>{metric.lowLabel}</span>
@@ -1004,11 +1004,11 @@ export default function PatientTracker() {
           ))}
           <textarea value={wellnessData.notes} onChange={(e) => setWellnessData(prev => ({ ...prev, notes: e.target.value }))}
             placeholder="Notes (optional)..." rows={2}
-            style={{ width: '100%', padding: '12px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '14px', resize: 'none', boxSizing: 'border-box', marginTop: '8px' }} />
+            style={{ width: '100%', padding: '12px', border: '1px solid #e0e0e0', borderRadius: '0', fontSize: '14px', resize: 'none', boxSizing: 'border-box', marginTop: '8px' }} />
         </div>
         <div style={{ padding: '0 24px 24px', display: 'flex', gap: '12px' }}>
-          <button onClick={() => setShowWellnessCheckIn(false)} style={{ flex: 1, padding: '14px', background: '#f5f5f5', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '500', cursor: 'pointer' }}>Cancel</button>
-          <button onClick={saveWellnessCheckIn} disabled={savingWellness} style={{ flex: 2, padding: '14px', background: savingWellness ? '#ccc' : 'linear-gradient(135deg, #000 0%, #333 100%)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '600', cursor: savingWellness ? 'wait' : 'pointer' }}>
+          <button onClick={() => setShowWellnessCheckIn(false)} style={{ flex: 1, padding: '14px', background: '#f5f5f5', border: 'none', borderRadius: '0', fontSize: '15px', fontWeight: '500', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={saveWellnessCheckIn} disabled={savingWellness} style={{ flex: 2, padding: '14px', background: savingWellness ? '#ccc' : 'linear-gradient(135deg, #000 0%, #333 100%)', color: 'white', border: 'none', borderRadius: '0', fontSize: '15px', fontWeight: '600', cursor: savingWellness ? 'wait' : 'pointer' }}>
             {savingWellness ? 'Saving...' : 'Save'}
           </button>
         </div>
@@ -1018,8 +1018,8 @@ export default function PatientTracker() {
 
   const WeightLogModal = () => (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-      <div style={{ background: 'white', borderRadius: '20px', width: '100%', maxWidth: '340px' }}>
-        <div style={{ background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)', color: 'white', padding: '24px', borderRadius: '20px 20px 0 0', textAlign: 'center' }}>
+      <div style={{ background: 'white', borderRadius: '0', width: '100%', maxWidth: '340px' }}>
+        <div style={{ background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)', color: 'white', padding: '24px', borderRadius: '0', textAlign: 'center' }}>
           <div style={{ fontSize: '28px', marginBottom: '8px' }}>⚖️</div>
           <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>Log Weight</h2>
         </div>
@@ -1030,7 +1030,7 @@ export default function PatientTracker() {
             <span style={{ fontSize: '24px', color: '#888', marginLeft: '8px' }}>lbs</span>
           </div>
           {weightLogs.stats?.startWeight && (
-            <div style={{ background: '#fff3e0', borderRadius: '12px', padding: '16px', textAlign: 'center' }}>
+            <div style={{ background: '#fff3e0', borderRadius: '0', padding: '16px', textAlign: 'center' }}>
               <div style={{ fontSize: '13px', color: '#e65100' }}>
                 Started at {weightLogs.stats.startWeight} lbs
                 {weightLogs.stats.totalChange !== 0 && (
@@ -1041,8 +1041,8 @@ export default function PatientTracker() {
           )}
         </div>
         <div style={{ padding: '0 24px 24px', display: 'flex', gap: '12px' }}>
-          <button onClick={() => setShowWeightLog(false)} style={{ flex: 1, padding: '14px', background: '#f5f5f5', border: 'none', borderRadius: '12px', fontSize: '15px', cursor: 'pointer' }}>Cancel</button>
-          <button onClick={saveWeight} disabled={!currentWeight || savingWeight} style={{ flex: 2, padding: '14px', background: !currentWeight || savingWeight ? '#ccc' : 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '600', cursor: !currentWeight || savingWeight ? 'not-allowed' : 'pointer' }}>
+          <button onClick={() => setShowWeightLog(false)} style={{ flex: 1, padding: '14px', background: '#f5f5f5', border: 'none', borderRadius: '0', fontSize: '15px', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={saveWeight} disabled={!currentWeight || savingWeight} style={{ flex: 2, padding: '14px', background: !currentWeight || savingWeight ? '#ccc' : 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)', color: 'white', border: 'none', borderRadius: '0', fontSize: '15px', fontWeight: '600', cursor: !currentWeight || savingWeight ? 'not-allowed' : 'pointer' }}>
             {savingWeight ? 'Saving...' : 'Save'}
           </button>
         </div>
@@ -1052,8 +1052,8 @@ export default function PatientTracker() {
 
   const MessageModal = () => (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-      <div style={{ background: 'white', borderRadius: '20px', width: '100%', maxWidth: '400px', maxHeight: '90vh', overflow: 'auto' }}>
-        <div style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #333 100%)', color: 'white', padding: '24px', borderRadius: '20px 20px 0 0' }}>
+      <div style={{ background: 'white', borderRadius: '0', width: '100%', maxWidth: '400px', maxHeight: '90vh', overflow: 'auto' }}>
+        <div style={{ background: 'linear-gradient(135deg, #1a1a1a 0%, #333 100%)', color: 'white', padding: '24px', borderRadius: '0' }}>
           <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>💬 Message the Clinic</h2>
           <p style={{ margin: '8px 0 0', fontSize: '13px', opacity: 0.8 }}>We'll respond within 24 hours</p>
         </div>
@@ -1063,7 +1063,7 @@ export default function PatientTracker() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               {MESSAGE_CATEGORIES.map(cat => (
                 <button key={cat.value} onClick={() => setMessageCategory(cat.value)}
-                  style={{ padding: '12px', border: messageCategory === cat.value ? '2px solid #000' : '1px solid #e0e0e0', borderRadius: '12px', background: messageCategory === cat.value ? '#f5f5f5' : 'white', cursor: 'pointer', textAlign: 'left' }}>
+                  style={{ padding: '12px', border: messageCategory === cat.value ? '2px solid #000' : '1px solid #e0e0e0', borderRadius: '0', background: messageCategory === cat.value ? '#f5f5f5' : 'white', cursor: 'pointer', textAlign: 'left' }}>
                   <div style={{ fontSize: '14px', fontWeight: '500' }}>{cat.label}</div>
                 </button>
               ))}
@@ -1073,12 +1073,12 @@ export default function PatientTracker() {
             <label style={{ fontSize: '14px', fontWeight: '600', display: 'block', marginBottom: '8px' }}>Your message</label>
             <textarea value={messageText} onChange={(e) => setMessageText(e.target.value)}
               placeholder="Type your message here..." rows={4}
-              style={{ width: '100%', padding: '14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '15px', resize: 'none', boxSizing: 'border-box' }} />
+              style={{ width: '100%', padding: '14px', border: '1px solid #e0e0e0', borderRadius: '0', fontSize: '15px', resize: 'none', boxSizing: 'border-box' }} />
           </div>
         </div>
         <div style={{ padding: '0 24px 24px', display: 'flex', gap: '12px' }}>
-          <button onClick={() => setShowMessageModal(false)} style={{ flex: 1, padding: '14px', background: '#f5f5f5', border: 'none', borderRadius: '12px', fontSize: '15px', cursor: 'pointer' }}>Cancel</button>
-          <button onClick={sendMessage} disabled={!messageText.trim() || sendingMessage} style={{ flex: 2, padding: '14px', background: !messageText.trim() || sendingMessage ? '#ccc' : '#000', color: 'white', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '600', cursor: !messageText.trim() || sendingMessage ? 'not-allowed' : 'pointer' }}>
+          <button onClick={() => setShowMessageModal(false)} style={{ flex: 1, padding: '14px', background: '#f5f5f5', border: 'none', borderRadius: '0', fontSize: '15px', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={sendMessage} disabled={!messageText.trim() || sendingMessage} style={{ flex: 2, padding: '14px', background: !messageText.trim() || sendingMessage ? '#ccc' : '#000', color: 'white', border: 'none', borderRadius: '0', fontSize: '15px', fontWeight: '600', cursor: !messageText.trim() || sendingMessage ? 'not-allowed' : 'pointer' }}>
             {sendingMessage ? 'Sending...' : 'Send Message'}
           </button>
         </div>
@@ -1088,8 +1088,8 @@ export default function PatientTracker() {
 
   const RefillModal = () => (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-      <div style={{ background: 'white', borderRadius: '20px', width: '100%', maxWidth: '380px' }}>
-        <div style={{ background: 'linear-gradient(135deg, #4caf50 0%, #2e7d32 100%)', color: 'white', padding: '24px', borderRadius: '20px 20px 0 0', textAlign: 'center' }}>
+      <div style={{ background: 'white', borderRadius: '0', width: '100%', maxWidth: '380px' }}>
+        <div style={{ background: 'linear-gradient(135deg, #4caf50 0%, #2e7d32 100%)', color: 'white', padding: '24px', borderRadius: '0', textAlign: 'center' }}>
           <div style={{ fontSize: '28px', marginBottom: '8px' }}>📦</div>
           <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>Request Refill</h2>
           <p style={{ margin: '8px 0 0', fontSize: '13px', opacity: 0.9 }}>{data?.protocol?.program_name}</p>
@@ -1100,11 +1100,11 @@ export default function PatientTracker() {
           </p>
           <textarea value={refillNotes} onChange={(e) => setRefillNotes(e.target.value)}
             placeholder="Any notes? (optional)" rows={2}
-            style={{ width: '100%', padding: '12px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '14px', resize: 'none', boxSizing: 'border-box' }} />
+            style={{ width: '100%', padding: '12px', border: '1px solid #e0e0e0', borderRadius: '0', fontSize: '14px', resize: 'none', boxSizing: 'border-box' }} />
         </div>
         <div style={{ padding: '0 24px 24px', display: 'flex', gap: '12px' }}>
-          <button onClick={() => setShowRefillModal(false)} style={{ flex: 1, padding: '14px', background: '#f5f5f5', border: 'none', borderRadius: '12px', fontSize: '15px', cursor: 'pointer' }}>Cancel</button>
-          <button onClick={requestRefill} disabled={sendingRefill} style={{ flex: 2, padding: '14px', background: sendingRefill ? '#ccc' : 'linear-gradient(135deg, #4caf50 0%, #2e7d32 100%)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '600', cursor: sendingRefill ? 'wait' : 'pointer' }}>
+          <button onClick={() => setShowRefillModal(false)} style={{ flex: 1, padding: '14px', background: '#f5f5f5', border: 'none', borderRadius: '0', fontSize: '15px', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={requestRefill} disabled={sendingRefill} style={{ flex: 2, padding: '14px', background: sendingRefill ? '#ccc' : 'linear-gradient(135deg, #4caf50 0%, #2e7d32 100%)', color: 'white', border: 'none', borderRadius: '0', fontSize: '15px', fontWeight: '600', cursor: sendingRefill ? 'wait' : 'pointer' }}>
             {sendingRefill ? 'Submitting...' : 'Request Refill'}
           </button>
         </div>
@@ -1114,7 +1114,7 @@ export default function PatientTracker() {
 
   const SettingsModal = () => (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-      <div style={{ background: 'white', borderRadius: '20px', width: '100%', maxWidth: '360px' }}>
+      <div style={{ background: 'white', borderRadius: '0', width: '100%', maxWidth: '360px' }}>
         <div style={{ padding: '24px', borderBottom: '1px solid #f0f0f0' }}>
           <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>⚙️ Settings</h2>
         </div>
@@ -1125,15 +1125,15 @@ export default function PatientTracker() {
               <div style={{ fontSize: '12px', color: '#888' }}>Get reminded to log injections</div>
             </div>
             <button onClick={() => setRemindersEnabled(!remindersEnabled)}
-              style={{ width: '52px', height: '32px', borderRadius: '16px', border: 'none', background: remindersEnabled ? '#4caf50' : '#e0e0e0', cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}>
-              <div style={{ width: '26px', height: '26px', borderRadius: '13px', background: 'white', position: 'absolute', top: '3px', left: remindersEnabled ? '23px' : '3px', transition: 'left 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }} />
+              style={{ width: '52px', height: '32px', borderRadius: '0', border: 'none', background: remindersEnabled ? '#4caf50' : '#e0e0e0', cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}>
+              <div style={{ width: '26px', height: '26px', borderRadius: '0', background: 'white', position: 'absolute', top: '3px', left: remindersEnabled ? '23px' : '3px', transition: 'left 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }} />
             </button>
           </div>
           {remindersEnabled && (
             <div>
               <label style={{ fontSize: '14px', fontWeight: '600', display: 'block', marginBottom: '10px' }}>Reminder Time</label>
               <select value={reminderTime} onChange={(e) => setReminderTime(e.target.value)}
-                style={{ width: '100%', padding: '14px', border: '1px solid #e0e0e0', borderRadius: '12px', fontSize: '15px', background: 'white' }}>
+                style={{ width: '100%', padding: '14px', border: '1px solid #e0e0e0', borderRadius: '0', fontSize: '15px', background: 'white' }}>
                 {REMINDER_TIMES.map(t => (
                   <option key={t.value} value={t.value}>{t.label}</option>
                 ))}
@@ -1142,8 +1142,8 @@ export default function PatientTracker() {
           )}
         </div>
         <div style={{ padding: '0 24px 24px', display: 'flex', gap: '12px' }}>
-          <button onClick={() => setShowSettings(false)} style={{ flex: 1, padding: '14px', background: '#f5f5f5', border: 'none', borderRadius: '12px', fontSize: '15px', cursor: 'pointer' }}>Cancel</button>
-          <button onClick={savePreferences} disabled={savingPrefs} style={{ flex: 1, padding: '14px', background: savingPrefs ? '#ccc' : '#000', color: 'white', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '600', cursor: savingPrefs ? 'wait' : 'pointer' }}>
+          <button onClick={() => setShowSettings(false)} style={{ flex: 1, padding: '14px', background: '#f5f5f5', border: 'none', borderRadius: '0', fontSize: '15px', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={savePreferences} disabled={savingPrefs} style={{ flex: 1, padding: '14px', background: savingPrefs ? '#ccc' : '#000', color: 'white', border: 'none', borderRadius: '0', fontSize: '15px', fontWeight: '600', cursor: savingPrefs ? 'wait' : 'pointer' }}>
             {savingPrefs ? 'Saving...' : 'Save'}
           </button>
         </div>
@@ -1159,7 +1159,7 @@ export default function PatientTracker() {
     
     return (
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-        <div style={{ background: 'white', borderRadius: '20px', width: '100%', maxWidth: '400px', maxHeight: '90vh', overflow: 'auto' }}>
+        <div style={{ background: 'white', borderRadius: '0', width: '100%', maxWidth: '400px', maxHeight: '90vh', overflow: 'auto' }}>
           <div style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', padding: '32px 24px', textAlign: 'center' }}>
             <div style={{ fontSize: '48px', marginBottom: '12px' }}>🏆</div>
             <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '700' }}>Protocol Complete!</h2>
@@ -1189,7 +1189,7 @@ export default function PatientTracker() {
             
             {/* Weight loss results */}
             {wLogs.stats?.hasData && wLogs.stats.totalChange !== 0 && (
-              <div style={{ background: '#fff3e0', borderRadius: '16px', padding: '20px', textAlign: 'center', marginBottom: '24px' }}>
+              <div style={{ background: '#fff3e0', borderRadius: '0', padding: '20px', textAlign: 'center', marginBottom: '24px' }}>
                 <div style={{ fontSize: '14px', color: '#e65100', marginBottom: '8px' }}>Total Weight Change</div>
                 <div style={{ fontSize: '36px', fontWeight: '700', color: wLogs.stats.totalChange < 0 ? '#4caf50' : '#f44336' }}>
                   {wLogs.stats.totalChange > 0 ? '+' : ''}{wLogs.stats.totalChange.toFixed(1)} lbs
@@ -1198,7 +1198,7 @@ export default function PatientTracker() {
             )}
             
             {/* Next steps */}
-            <div style={{ background: '#f5f5f5', borderRadius: '16px', padding: '20px' }}>
+            <div style={{ background: '#f5f5f5', borderRadius: '0', padding: '20px' }}>
               <h4 style={{ margin: '0 0 12px', fontSize: '15px', fontWeight: '600' }}>What's Next?</h4>
               <p style={{ margin: 0, fontSize: '14px', color: '#666', lineHeight: '1.5' }}>
                 Ready to continue your progress? Request a refill or schedule a follow-up with our team.
@@ -1206,8 +1206,8 @@ export default function PatientTracker() {
             </div>
           </div>
           <div style={{ padding: '0 24px 24px', display: 'flex', gap: '12px' }}>
-            <button onClick={() => setShowCompletionSummary(false)} style={{ flex: 1, padding: '14px', background: '#f5f5f5', border: 'none', borderRadius: '12px', fontSize: '15px', cursor: 'pointer' }}>Close</button>
-            <a href={`sms:9499973988?body=${encodeURIComponent(`Hi, I'd like to request a refill for my ${protocol?.program_name || 'prescription'}. - ${protocol?.patient_name || ''}`)}`} onClick={() => setShowCompletionSummary(false)} style={{ flex: 1, padding: '14px', background: '#4caf50', color: 'white', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Request Refill</a>
+            <button onClick={() => setShowCompletionSummary(false)} style={{ flex: 1, padding: '14px', background: '#f5f5f5', border: 'none', borderRadius: '0', fontSize: '15px', cursor: 'pointer' }}>Close</button>
+            <a href={`sms:9499973988?body=${encodeURIComponent(`Hi, I'd like to request a refill for my ${protocol?.program_name || 'prescription'}. - ${protocol?.patient_name || ''}`)}`} onClick={() => setShowCompletionSummary(false)} style={{ flex: 1, padding: '14px', background: '#4caf50', color: 'white', border: 'none', borderRadius: '0', fontSize: '15px', fontWeight: '600', cursor: 'pointer', textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Request Refill</a>
           </div>
         </div>
       </div>
@@ -1291,7 +1291,7 @@ export default function PatientTracker() {
         </header>
 
         {/* Welcome Card */}
-        <div style={{ margin: '20px', background: 'white', borderRadius: '16px', padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+        <div style={{ margin: '20px', background: 'white', borderRadius: '0', padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div style={{ fontSize: '12px', color: '#888' }}>Welcome back,</div>
@@ -1299,14 +1299,14 @@ export default function PatientTracker() {
               <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>{protocol?.program_name}</div>
             </div>
             {streak > 0 && (
-              <div style={{ background: '#fff3e0', borderRadius: '12px', padding: '8px 12px' }}>
+              <div style={{ background: '#fff3e0', borderRadius: '0', padding: '8px 12px' }}>
                 <span style={{ fontSize: '13px', color: '#e65100', fontWeight: '600' }}>🔥 {streak} day streak</span>
               </div>
             )}
           </div>
           <div style={{ display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap' }}>
-            {daysLeft > 0 && <span style={{ background: '#f5f5f5', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', color: '#666' }}>📅 {daysLeft} days left</span>}
-            {isComplete && <span style={{ background: '#e8f5e9', borderRadius: '8px', padding: '6px 12px', fontSize: '12px', color: '#2e7d32', fontWeight: '600' }}>✓ Complete!</span>}
+            {daysLeft > 0 && <span style={{ background: '#f5f5f5', borderRadius: '0', padding: '6px 12px', fontSize: '12px', color: '#666' }}>📅 {daysLeft} days left</span>}
+            {isComplete && <span style={{ background: '#e8f5e9', borderRadius: '0', padding: '6px 12px', fontSize: '12px', color: '#2e7d32', fontWeight: '600' }}>✓ Complete!</span>}
           </div>
         </div>
 
@@ -1314,7 +1314,7 @@ export default function PatientTracker() {
         {!activeForm && (!isInClinic || isWeightLoss) && (
           <div style={{ margin: '0 20px 20px', display: 'grid', gridTemplateColumns: isWeightLoss ? '1fr 1fr' : '1fr', gap: '12px' }}>
             {/* Wellness Check-in */}
-            <button onClick={() => setShowWellnessCheckIn(true)} style={{ padding: '16px', background: todayLogged ? '#e8f5e9' : '#fff8e1', border: 'none', borderRadius: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left' }}>
+            <button onClick={() => setShowWellnessCheckIn(true)} style={{ padding: '16px', background: todayLogged ? '#e8f5e9' : '#fff8e1', border: 'none', borderRadius: '0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left' }}>
               <span style={{ fontSize: '24px' }}>{todayLogged ? '✅' : '📊'}</span>
               <div>
                 <div style={{ fontSize: '14px', fontWeight: '600', color: '#1a1a1a' }}>{todayLogged ? 'Check-In Done' : 'Daily Check-In'}</div>
@@ -1324,7 +1324,7 @@ export default function PatientTracker() {
             
             {/* Weight Log (weight loss only) */}
             {isWeightLoss && (
-              <button onClick={() => setShowWeightLog(true)} style={{ padding: '16px', background: '#fff3e0', border: 'none', borderRadius: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left' }}>
+              <button onClick={() => setShowWeightLog(true)} style={{ padding: '16px', background: '#fff3e0', border: 'none', borderRadius: '0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px', textAlign: 'left' }}>
                 <span style={{ fontSize: '24px' }}>⚖️</span>
                 <div>
                   <div style={{ fontSize: '14px', fontWeight: '600', color: '#1a1a1a' }}>Log Weight</div>
@@ -1340,7 +1340,7 @@ export default function PatientTracker() {
         {/* Upcoming Appointments Card */}
         {upcomingAppts.length > 0 && !activeForm && (
           <div style={{ margin: '0 20px 20px' }}>
-            <div style={{ background: 'white', borderRadius: '16px', padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+            <div style={{ background: 'white', borderRadius: '0', padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <span style={{ fontSize: '15px', fontWeight: '600' }}>Upcoming Appointments</span>
                 {upcomingAppts.length > 1 && (
@@ -1371,7 +1371,7 @@ export default function PatientTracker() {
         {/* Wellness Progress Card */}
         {symptoms.logs?.length >= 2 && !activeForm && (
           <div style={{ margin: '0 20px 20px' }}>
-            <div style={{ background: 'white', borderRadius: '16px', padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+            <div style={{ background: 'white', borderRadius: '0', padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <span style={{ fontSize: '15px', fontWeight: '600' }}>Your Progress</span>
                 <span style={{ fontSize: '11px', color: '#888' }}>{symptoms.logs.length} check-ins</span>
@@ -1385,7 +1385,7 @@ export default function PatientTracker() {
                   const change = last - first;
                   const improved = metric.inverted ? change < 0 : change > 0;
                   return (
-                    <div key={metric.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: '#fafafa', borderRadius: '10px' }}>
+                    <div key={metric.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: '#fafafa', borderRadius: '0' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span>{metric.icon}</span>
                         <span style={{ fontSize: '13px', fontWeight: '500' }}>{metric.label}</span>
@@ -1407,14 +1407,14 @@ export default function PatientTracker() {
         {/* Injection Progress */}
         {!activeForm && (
           <div style={{ margin: '0 20px 20px' }}>
-            <div style={{ background: 'white', borderRadius: '16px', padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+            <div style={{ background: 'white', borderRadius: '0', padding: '20px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <span style={{ fontSize: '15px', fontWeight: '600' }}>Injections</span>
                 <span style={{ fontSize: '20px', fontWeight: '700', color: isWeightLoss ? '#ff9800' : '#000' }}>
                   {completedCount}<span style={{ fontSize: '14px', fontWeight: '400', color: '#888' }}>/{totalInjections}</span>
                 </span>
               </div>
-              <div style={{ height: '10px', background: '#f0f0f0', borderRadius: '5px', overflow: 'hidden' }}>
+              <div style={{ height: '10px', background: '#f0f0f0', borderRadius: '0', overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: `${injectionProgress}%`, background: isWeightLoss ? '#ff9800' : '#000', transition: 'width 0.5s' }} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', fontSize: '12px', color: '#888' }}>
@@ -1435,7 +1435,7 @@ export default function PatientTracker() {
                       disabled={isSaving}
                       style={{ 
                         aspectRatio: '1', 
-                        borderRadius: '10px', 
+                        borderRadius: '0', 
                         border: isCompleted ? `2px solid ${accent}` : '1px solid #e8e8e8', 
                         background: isCompleted ? accent : '#fafafa', 
                         color: isCompleted ? 'white' : '#333', 
@@ -1463,7 +1463,7 @@ export default function PatientTracker() {
         {/* Completion Summary Button */}
         {isComplete && !activeForm && (
           <div style={{ margin: '0 20px 20px' }}>
-            <button onClick={() => setShowCompletionSummary(true)} style={{ width: '100%', padding: '20px', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', border: 'none', borderRadius: '16px', cursor: 'pointer', color: 'white' }}>
+            <button onClick={() => setShowCompletionSummary(true)} style={{ width: '100%', padding: '20px', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', border: 'none', borderRadius: '0', cursor: 'pointer', color: 'white' }}>
               <div style={{ fontSize: '24px', marginBottom: '8px' }}>🏆</div>
               <div style={{ fontSize: '16px', fontWeight: '600' }}>View Your Results</div>
               <div style={{ fontSize: '13px', opacity: 0.9 }}>See how far you've come!</div>
@@ -1473,7 +1473,7 @@ export default function PatientTracker() {
 
         {/* Call Button */}
         <div style={{ textAlign: 'center', margin: '32px 20px' }}>
-          <a href="tel:9499973988" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '14px 28px', background: '#f5f5f5', borderRadius: '25px', color: '#333', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>
+          <a href="tel:9499973988" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '14px 28px', background: '#f5f5f5', borderRadius: '0', color: '#333', textDecoration: 'none', fontSize: '14px', fontWeight: '600' }}>
             📞 (949) 997-3988
           </a>
         </div>

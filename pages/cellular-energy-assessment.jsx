@@ -60,7 +60,7 @@ const CellularEnergyAssessment = () => {
       background: #0284c7;
       color: #ffffff;
       padding: 0.625rem 1.25rem;
-      border-radius: 6px;
+      border-radius: 0;
       text-decoration: none;
       font-weight: 600;
       font-size: 0.875rem;
@@ -89,7 +89,7 @@ const CellularEnergyAssessment = () => {
       background: #0284c7;
       color: #ffffff;
       padding: 0.5rem 1rem;
-      border-radius: 100px;
+      border-radius: 0;
       font-size: 0.75rem;
       font-weight: 700;
       text-transform: uppercase;
@@ -118,7 +118,7 @@ const CellularEnergyAssessment = () => {
     .cea-hero-price-box {
       background: #ffffff;
       border: 2px solid #0284c7;
-      border-radius: 12px;
+      border-radius: 0;
       padding: 1.5rem 2rem;
       display: inline-block;
       margin-bottom: 1.5rem;
@@ -142,7 +142,7 @@ const CellularEnergyAssessment = () => {
       background: #0284c7;
       color: #ffffff;
       padding: 1rem 2.5rem;
-      border-radius: 8px;
+      border-radius: 0;
       text-decoration: none;
       font-weight: 600;
       font-size: 1.0625rem;
@@ -235,7 +235,7 @@ const CellularEnergyAssessment = () => {
     .cea-included-card {
       background: #ffffff;
       border: 2px solid #e5e5e5;
-      border-radius: 12px;
+      border-radius: 0;
       padding: 1.75rem;
       transition: border-color 0.2s;
     }
@@ -274,7 +274,7 @@ const CellularEnergyAssessment = () => {
     .cea-lab-section {
       background: #ffffff;
       border: 2px solid #0284c7;
-      border-radius: 16px;
+      border-radius: 0;
       padding: 2.5rem;
       max-width: 700px;
       margin: 0 auto;
@@ -310,7 +310,7 @@ const CellularEnergyAssessment = () => {
     
     .cea-lab-category {
       background: #f0f9ff;
-      border-radius: 8px;
+      border-radius: 0;
       padding: 1rem;
     }
     
@@ -382,7 +382,7 @@ const CellularEnergyAssessment = () => {
     .cea-credit-box {
       background: #f0fdf4;
       border: 2px solid #22c55e;
-      border-radius: 16px;
+      border-radius: 0;
       padding: 2.5rem;
       max-width: 600px;
       margin: 0 auto;
@@ -415,7 +415,7 @@ const CellularEnergyAssessment = () => {
     .cea-pricing-box {
       background: #ffffff;
       border: 3px solid #0284c7;
-      border-radius: 16px;
+      border-radius: 0;
       padding: 2.5rem;
       max-width: 500px;
       margin: 0 auto;
@@ -524,7 +524,7 @@ const CellularEnergyAssessment = () => {
       background: #000000;
       color: #ffffff;
       padding: 2.5rem;
-      border-radius: 16px;
+      border-radius: 0;
       max-width: 700px;
       margin: 0 auto;
       text-align: center;
@@ -547,7 +547,7 @@ const CellularEnergyAssessment = () => {
       background: #ffffff;
       color: #000000;
       padding: 0.875rem 2rem;
-      border-radius: 8px;
+      border-radius: 0;
       text-decoration: none;
       font-weight: 600;
       font-size: 1rem;

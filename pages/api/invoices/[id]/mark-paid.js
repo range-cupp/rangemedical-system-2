@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   }
 
   const { id } = req.query;
-  const { payment_method, notes } = req.body;
+  const { payment_method, notes, skip_notification } = req.body;
   // payment_method: 'comp', 'cash', 'card', 'other'
 
   try {
@@ -101,6 +101,7 @@ export default async function handler(req, res) {
               service_category: item.category || null,
               service_name: item.name,
               payment_method: payment_method === 'comp' ? 'comp' : payment_method === 'cash' ? 'cash' : 'admin_manual',
+              skip_receipt: !!skip_notification,
               ...(hasDiscount && itemOriginalAmount ? {
                 discount_type: discountType,
                 discount_amount: discountAmount,

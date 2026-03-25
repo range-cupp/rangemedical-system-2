@@ -30,13 +30,13 @@ export default function RangeBar({ value, refLow, refHigh, flag }) {
       {/* Track */}
       <div style={{
         position: 'absolute', top: '2px', left: 0, right: 0, height: '4px',
-        background: colors.track, borderRadius: '2px'
+        background: colors.track, borderRadius: '0'
       }} />
       {/* Optimal/ref zone */}
       <div style={{
         position: 'absolute', top: '0px', height: '8px',
         left: `${refLeftPct}%`, width: `${refWidthPct}%`,
-        background: 'rgba(40, 167, 69, 0.15)', borderRadius: '4px',
+        background: 'rgba(40, 167, 69, 0.15)', borderRadius: '0',
         border: '1px solid rgba(40, 167, 69, 0.3)'
       }} />
       {/* Value dot */}

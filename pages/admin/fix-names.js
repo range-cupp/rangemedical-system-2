@@ -178,7 +178,7 @@ const styles = {
   },
   card: {
     background: 'white',
-    borderRadius: '16px',
+    borderRadius: 0,
     padding: '32px',
     maxWidth: '900px',
     width: '100%',
@@ -190,7 +190,7 @@ const styles = {
   checkBtn: {
     padding: '12px 20px',
     border: '2px solid #e5e7eb',
-    borderRadius: '8px',
+    borderRadius: 0,
     background: 'white',
     cursor: 'pointer',
     fontWeight: '600'
@@ -198,7 +198,7 @@ const styles = {
   previewBtn: {
     padding: '12px 20px',
     border: '2px solid #3b82f6',
-    borderRadius: '8px',
+    borderRadius: 0,
     background: '#eff6ff',
     color: '#1d4ed8',
     cursor: 'pointer',
@@ -207,7 +207,7 @@ const styles = {
   fixBtn: {
     padding: '12px 20px',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: 0,
     background: '#111',
     color: 'white',
     cursor: 'pointer',
@@ -218,7 +218,7 @@ const styles = {
     border: '1px solid #fecaca',
     color: '#dc2626',
     padding: '16px',
-    borderRadius: '8px',
+    borderRadius: 0,
     marginBottom: '16px'
   },
   results: { marginTop: '24px' },
@@ -231,7 +231,7 @@ const styles = {
   stat: {
     background: '#f9fafb',
     padding: '16px',
-    borderRadius: '8px',
+    borderRadius: 0,
     textAlign: 'center'
   },
   statValue: { fontSize: '28px', fontWeight: '700' },
@@ -239,7 +239,7 @@ const styles = {
   fixResults: {
     background: '#f0fdf4',
     padding: '16px',
-    borderRadius: '8px',
+    borderRadius: 0,
     marginBottom: '16px'
   },
   table: { marginTop: '16px' },

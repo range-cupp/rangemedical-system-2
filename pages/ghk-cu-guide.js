@@ -363,7 +363,7 @@ export default function GHKCuGuide() {
         .card {
           background: #fff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 2rem;
           transition: all 0.2s;
         }
@@ -379,7 +379,7 @@ export default function GHKCuGuide() {
           height: 2.5rem;
           background: #000;
           color: #fff;
-          border-radius: 100px;
+          border-radius: 0;
           font-size: 1rem;
           font-weight: 700;
           margin-bottom: 1.25rem;
@@ -416,7 +416,7 @@ export default function GHKCuGuide() {
           height: 2.5rem;
           background: #000;
           color: #fff;
-          border-radius: 100px;
+          border-radius: 0;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -451,7 +451,7 @@ export default function GHKCuGuide() {
         .col-card {
           background: #fff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 2rem;
         }
         .section-dark .col-card {
@@ -498,7 +498,7 @@ export default function GHKCuGuide() {
         .alert-box {
           background: #fafafa;
           border-left: 4px solid #000;
-          border-radius: 8px;
+          border-radius: 0;
           padding: 1.5rem 2rem;
           max-width: 800px;
           margin: 2.5rem auto 0;

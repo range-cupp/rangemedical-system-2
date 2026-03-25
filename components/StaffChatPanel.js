@@ -39,7 +39,7 @@ function Bubble({ msg }) {
         maxWidth: '85%',
         background: isUser ? '#000' : '#f3f4f6',
         color: isUser ? '#fff' : '#111',
-        borderRadius: isUser ? '16px 16px 3px 16px' : '16px 16px 16px 3px',
+        borderRadius: '0',
         padding: '9px 13px',
         fontSize: 14,
         lineHeight: 1.5,
@@ -196,7 +196,7 @@ export default function StaffChatPanel() {
           height: 520,
           maxHeight: 'calc(100vh - 120px)',
           background: '#fff',
-          borderRadius: 16,
+          borderRadius: 0,
           boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
           display: 'flex',
           flexDirection: 'column',
@@ -239,7 +239,7 @@ export default function StaffChatPanel() {
             {messages.map((m) => <Bubble key={m.id} msg={m} />)}
             {sending && (
               <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: 8 }}>
-                <div style={{ background: '#f3f4f6', borderRadius: '16px 16px 16px 3px' }}>
+                <div style={{ background: '#f3f4f6', borderRadius: '0' }}>
                   <TypingDots />
                 </div>
               </div>
@@ -264,7 +264,7 @@ export default function StaffChatPanel() {
                   whiteSpace: 'nowrap',
                   background: '#f9fafb',
                   border: '1px solid #e5e7eb',
-                  borderRadius: 20,
+                  borderRadius: 0,
                   padding: '5px 11px',
                   fontSize: 12,
                   color: '#374151',
@@ -296,7 +296,7 @@ export default function StaffChatPanel() {
               style={{
                 flex: 1,
                 border: '1.5px solid #e5e7eb',
-                borderRadius: 20,
+                borderRadius: 0,
                 padding: '8px 13px',
                 fontSize: 14,
                 lineHeight: 1.4,

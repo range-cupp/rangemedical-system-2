@@ -1121,7 +1121,7 @@ export default function ProtocolDetail() {
             <h1 style={styles.title}>{protocol?.patient_name || 'Patient'}</h1>
             <p style={styles.subtitle}>
               {protocol?.program_name || PROTOCOL_TYPES[form.protocolType]?.name}
-              {isExchanged && <span style={{ marginLeft: 8, padding: '2px 8px', background: '#fbbf24', color: '#78350f', borderRadius: 4, fontSize: 11, fontWeight: 700 }}>EXCHANGED</span>}
+              {isExchanged && <span style={{ marginLeft: 8, padding: '2px 8px', background: '#fbbf24', color: '#78350f', borderRadius: 0, fontSize: 11, fontWeight: 700 }}>EXCHANGED</span>}
             </p>
           </div>
           <div style={styles.headerActions}>
@@ -1199,7 +1199,7 @@ export default function ProtocolDetail() {
                 <div style={{ marginTop: '16px' }}>
                   <span style={{
                     padding: '6px 16px',
-                    borderRadius: '20px',
+                    borderRadius: 0,
                     fontSize: '13px',
                     fontWeight: '600',
                     textTransform: 'uppercase',
@@ -1250,7 +1250,7 @@ export default function ProtocolDetail() {
                     marginTop: '16px',
                     padding: '12px 16px',
                     background: '#f0f9ff',
-                    borderRadius: '10px',
+                    borderRadius: 0,
                     border: '1px solid #bae6fd',
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -1269,7 +1269,7 @@ export default function ProtocolDetail() {
                 <div style={{ marginTop: '16px' }}>
                   <span style={{
                     padding: '6px 16px',
-                    borderRadius: '20px',
+                    borderRadius: 0,
                     fontSize: '13px',
                     fontWeight: '600',
                     textTransform: 'uppercase',
@@ -1312,7 +1312,7 @@ export default function ProtocolDetail() {
                             padding: '12px 14px', marginBottom: '8px',
                             background: isOverdue ? '#fef2f2' : '#faf5ff',
                             border: `1px solid ${isOverdue ? '#fecaca' : '#e9d5ff'}`,
-                            borderRadius: '10px',
+                            borderRadius: 0,
                           }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: detail ? '6px' : 0 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1337,7 +1337,7 @@ export default function ProtocolDetail() {
                                 style={{
                                   padding: '4px 10px', fontSize: '11px', fontWeight: 600,
                                   background: '#7c3aed', color: '#fff', border: 'none',
-                                  borderRadius: '6px', cursor: 'pointer',
+                                  borderRadius: 0, cursor: 'pointer',
                                 }}
                               >
                                 Log Pickup
@@ -1427,7 +1427,7 @@ export default function ProtocolDetail() {
                 background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
               }} onClick={() => setSessionModal(null)}>
                 <div style={{
-                  background: '#fff', borderRadius: '14px', padding: '28px', width: '360px',
+                  background: '#fff', borderRadius: 0, padding: '28px', width: '360px',
                   boxShadow: '0 20px 60px rgba(0,0,0,0.2)'
                 }} onClick={e => e.stopPropagation()}>
                   <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '4px' }}>Log Session #{sessionModal.sessionNum}</h3>
@@ -1439,7 +1439,7 @@ export default function ProtocolDetail() {
                     value={sessionDate}
                     onChange={e => setSessionDate(e.target.value)}
                     style={{
-                      width: '100%', padding: '10px 12px', borderRadius: '8px',
+                      width: '100%', padding: '10px 12px', borderRadius: 0,
                       border: '1px solid #d1d5db', fontSize: '14px', marginBottom: '20px',
                       boxSizing: 'border-box'
                     }}
@@ -1449,7 +1449,7 @@ export default function ProtocolDetail() {
                     <button
                       onClick={() => setSessionModal(null)}
                       style={{
-                        flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db',
+                        flex: 1, padding: '10px', borderRadius: 0, border: '1px solid #d1d5db',
                         background: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: 500
                       }}
                     >Cancel</button>
@@ -1457,7 +1457,7 @@ export default function ProtocolDetail() {
                       onClick={handleLogSession}
                       disabled={sessionSaving}
                       style={{
-                        flex: 1, padding: '10px', borderRadius: '8px', border: 'none',
+                        flex: 1, padding: '10px', borderRadius: 0, border: 'none',
                         background: '#16a34a', color: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: 600
                       }}
                     >{sessionSaving ? 'Logging...' : '✓ Log Session'}</button>
@@ -1607,7 +1607,7 @@ export default function ProtocolDetail() {
                       disabled={logSaving}
                       style={{
                         flex: 1, padding: '10px 16px', background: '#22c55e', color: '#fff',
-                        border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600',
+                        border: 'none', borderRadius: 0, fontSize: '14px', fontWeight: '600',
                         cursor: logSaving ? 'not-allowed' : 'pointer', opacity: logSaving ? 0.6 : 1,
                       }}
                     >
@@ -1618,7 +1618,7 @@ export default function ProtocolDetail() {
                       disabled={logSaving}
                       style={{
                         padding: '10px 16px', background: '#fff', color: '#f59e0b',
-                        border: '1px solid #f59e0b', borderRadius: '8px', fontSize: '14px', fontWeight: '600',
+                        border: '1px solid #f59e0b', borderRadius: 0, fontSize: '14px', fontWeight: '600',
                         cursor: logSaving ? 'not-allowed' : 'pointer', opacity: logSaving ? 0.6 : 1,
                         whiteSpace: 'nowrap',
                       }}
@@ -1629,7 +1629,7 @@ export default function ProtocolDetail() {
                       onClick={() => handleCalendarDayClick(wlSessionsUsed + 1, nextInjDate)}
                       style={{
                         padding: '10px 16px', background: '#fff', color: '#374151',
-                        border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', fontWeight: '600',
+                        border: '1px solid #d1d5db', borderRadius: 0, fontSize: '14px', fontWeight: '600',
                         cursor: 'pointer', whiteSpace: 'nowrap',
                       }}
                     >
@@ -1722,7 +1722,7 @@ export default function ProtocolDetail() {
                             {isMissedLog && (
                               <span style={{
                                 fontSize: '10px', fontWeight: '600', padding: '2px 6px',
-                                borderRadius: '10px', background: '#fef3c7', color: '#92400e',
+                                borderRadius: 0, background: '#fef3c7', color: '#92400e',
                                 textTransform: 'uppercase',
                               }}>
                                 No Check-in
@@ -1734,7 +1734,7 @@ export default function ProtocolDetail() {
                                 title="Click to change to Take Home"
                                 style={{
                                   fontSize: '10px', fontWeight: '600', padding: '2px 6px',
-                                  borderRadius: '10px', background: '#e0e7ff', color: '#3730a3',
+                                  borderRadius: 0, background: '#e0e7ff', color: '#3730a3',
                                   textTransform: 'uppercase', cursor: 'pointer',
                                 }}
                               >
@@ -1747,7 +1747,7 @@ export default function ProtocolDetail() {
                                 title="Click to change to In Clinic"
                                 style={{
                                   fontSize: '10px', fontWeight: '600', padding: '2px 6px',
-                                  borderRadius: '10px', background: '#f3f4f6', color: '#6b7280',
+                                  borderRadius: 0, background: '#f3f4f6', color: '#6b7280',
                                   textTransform: 'uppercase', cursor: 'pointer',
                                 }}
                               >
@@ -1762,7 +1762,7 @@ export default function ProtocolDetail() {
                                   onClick={(e) => { e.stopPropagation(); setEncounterSlideNote(matchedNote); }}
                                   style={{
                                     fontSize: '10px', fontWeight: '600', padding: '2px 6px',
-                                    borderRadius: '10px', background: '#f0fdf4', color: '#16a34a',
+                                    borderRadius: 0, background: '#f0fdf4', color: '#16a34a',
                                     cursor: 'pointer', marginLeft: 'auto',
                                   }}
                                 >
@@ -1899,7 +1899,7 @@ export default function ProtocolDetail() {
                             )}
                             <span style={{
                               fontSize: '11px', fontWeight: '600', padding: '2px 8px',
-                              borderRadius: '10px', background: statusBg, color: statusColor,
+                              borderRadius: 0, background: statusBg, color: statusColor,
                               textTransform: 'uppercase'
                             }}>
                               {statusLabel}
@@ -1912,7 +1912,7 @@ export default function ProtocolDetail() {
                           {checkin.checkinData && (
                             <div style={{
                               marginTop: '8px', padding: '10px 12px',
-                              background: '#f9fafb', borderRadius: '8px',
+                              background: '#f9fafb', borderRadius: 0,
                               fontSize: '13px', color: '#374151'
                             }}>
                               {checkin.checkinData.feeling && (
@@ -2050,7 +2050,7 @@ export default function ProtocolDetail() {
                                     const updated = selected ? current.filter(x => x !== m) : [...current, m];
                                     setForm({ ...form, secondaryMedications: updated });
                                   }}
-                                  style={{ padding: '6px 14px', borderRadius: '20px', border: selected ? '2px solid #7C3AED' : '1px solid #D1D5DB', background: selected ? '#F3E8FF' : '#fff', color: selected ? '#7C3AED' : '#374151', fontSize: '13px', fontWeight: selected ? '600' : '400', cursor: 'pointer' }}
+                                  style={{ padding: '6px 14px', borderRadius: 0, border: selected ? '2px solid #7C3AED' : '1px solid #D1D5DB', background: selected ? '#F3E8FF' : '#fff', color: selected ? '#7C3AED' : '#374151', fontSize: '13px', fontWeight: selected ? '600' : '400', cursor: 'pointer' }}
                                 >
                                   {selected ? '✓ ' : ''}{m}
                                 </button>
@@ -2213,7 +2213,7 @@ export default function ProtocolDetail() {
                   </div>
                   <div style={styles.detailItem}>
                     <div style={styles.detailLabel}>Delivery</div>
-                    <div style={{ display: 'flex', gap: '0', borderRadius: '6px', overflow: 'hidden', border: '1px solid #d1d5db' }}>
+                    <div style={{ display: 'flex', gap: '0', borderRadius: 0, overflow: 'hidden', border: '1px solid #d1d5db' }}>
                       {[
                         { value: 'in_clinic', label: '🏥 In Clinic' },
                         { value: 'take_home', label: '🏠 Take Home' },
@@ -2282,7 +2282,7 @@ export default function ProtocolDetail() {
                     onClick={() => setShowAddClinicalNote(true)}
                     style={{
                       padding: '6px 14px', background: '#000', color: '#fff',
-                      border: 'none', borderRadius: '6px', fontSize: '13px',
+                      border: 'none', borderRadius: 0, fontSize: '13px',
                       fontWeight: '500', cursor: 'pointer'
                     }}
                   >
@@ -2292,13 +2292,13 @@ export default function ProtocolDetail() {
 
                 {/* Inline Add Note Form */}
                 {showAddClinicalNote && (
-                  <div style={{ margin: '8px 20px 16px', padding: 14, background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+                  <div style={{ margin: '8px 20px 16px', padding: 14, background: '#f9fafb', borderRadius: 0, border: '1px solid #e5e7eb' }}>
                     <textarea
                       value={clinicalNoteInput}
                       onChange={e => setClinicalNoteInput(e.target.value)}
                       rows={4}
                       placeholder="Type note..."
-                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, lineHeight: 1.6, fontFamily: 'inherit', resize: 'vertical', minHeight: 80, boxSizing: 'border-box' }}
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, lineHeight: 1.6, fontFamily: 'inherit', resize: 'vertical', minHeight: 80, boxSizing: 'border-box' }}
                     />
                     <div style={{ display: 'flex', gap: 8, marginTop: 8, justifyContent: 'space-between' }}>
                       <button
@@ -2306,7 +2306,7 @@ export default function ProtocolDetail() {
                         disabled={!clinicalNoteInput.trim() || clinicalNoteFormatting}
                         style={{
                           padding: '6px 12px', background: '#f3f4f6', border: '1px solid #d1d5db',
-                          borderRadius: '6px', fontSize: '13px', cursor: 'pointer',
+                          borderRadius: 0, fontSize: '13px', cursor: 'pointer',
                           opacity: (!clinicalNoteInput.trim() || clinicalNoteFormatting) ? 0.5 : 1
                         }}
                       >
@@ -2315,7 +2315,7 @@ export default function ProtocolDetail() {
                       <div style={{ display: 'flex', gap: 8 }}>
                         <button
                           onClick={() => { setShowAddClinicalNote(false); setClinicalNoteInput(''); }}
-                          style={{ padding: '6px 14px', background: '#fff', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}
+                          style={{ padding: '6px 14px', background: '#fff', border: '1px solid #d1d5db', borderRadius: 0, fontSize: '13px', cursor: 'pointer' }}
                         >
                           Cancel
                         </button>
@@ -2324,7 +2324,7 @@ export default function ProtocolDetail() {
                           disabled={!clinicalNoteInput.trim() || clinicalNoteSaving}
                           style={{
                             padding: '6px 14px', background: '#000', color: '#fff',
-                            border: 'none', borderRadius: '6px', fontSize: '13px',
+                            border: 'none', borderRadius: 0, fontSize: '13px',
                             fontWeight: '500', cursor: 'pointer',
                             opacity: (!clinicalNoteInput.trim() || clinicalNoteSaving) ? 0.5 : 1
                           }}
@@ -2345,7 +2345,7 @@ export default function ProtocolDetail() {
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                       {clinicalNotes.map(note => (
-                        <div key={note.id} style={{ padding: '10px 14px', background: '#f9fafb', borderRadius: 8, border: '1px solid #f3f4f6' }}>
+                        <div key={note.id} style={{ padding: '10px 14px', background: '#f9fafb', borderRadius: 0, border: '1px solid #f3f4f6' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                             <div style={{ fontSize: 12, color: '#6b7280' }}>
                               {formatDate(note.note_date || note.created_at)}
@@ -2381,7 +2381,7 @@ export default function ProtocolDetail() {
                       onClick={handleToggleFollowupWeeks}
                       style={{
                         fontSize: '12px', fontWeight: 600, padding: '3px 10px',
-                        borderRadius: '12px', cursor: 'pointer', transition: 'all 0.15s',
+                        borderRadius: 0, cursor: 'pointer', transition: 'all 0.15s',
                         border: '1px solid #d1d5db', background: '#fff', color: '#374151'
                       }}
                     >
@@ -2398,7 +2398,7 @@ export default function ProtocolDetail() {
                       <div
                         key={draw.label}
                         onClick={() => handleBloodDrawClick(draw)}
-                        style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', cursor: 'pointer', padding: '4px 6px', borderRadius: '8px', transition: 'background 0.15s' }}
+                        style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', cursor: 'pointer', padding: '4px 6px', borderRadius: 0, transition: 'background 0.15s' }}
                         onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                       >
@@ -2423,7 +2423,7 @@ export default function ProtocolDetail() {
                             <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{draw.label}</span>
                             <span style={{
                               fontSize: '11px', fontWeight: '600', padding: '2px 8px',
-                              borderRadius: '10px', background: statusBg, color: statusColor,
+                              borderRadius: 0, background: statusBg, color: statusColor,
                               textTransform: 'uppercase'
                             }}>
                               {draw.status === 'completed' ? '✓ Done' : draw.status === 'overdue' ? 'Overdue' : 'Upcoming'}
@@ -2468,7 +2468,7 @@ export default function ProtocolDetail() {
                   </>
                 )}
                 {protocol?.program_type === 'peptide' && protocol?.peptide_reminders_enabled === true && (
-                  <div style={{ padding: '10px 14px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '8px', fontSize: '14px', color: '#16A34A', fontWeight: '600', textAlign: 'center' }}>
+                  <div style={{ padding: '10px 14px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 0, fontSize: '14px', color: '#16A34A', fontWeight: '600', textAlign: 'center' }}>
                     ✅ Weekly Check-ins Active
                   </div>
                 )}
@@ -2507,7 +2507,7 @@ export default function ProtocolDetail() {
 
                   if (remindersEnabled) {
                     return (
-                      <div style={{ padding: '10px 14px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '8px', fontSize: '14px', color: '#16A34A', fontWeight: '600', textAlign: 'center' }}>
+                      <div style={{ padding: '10px 14px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 0, fontSize: '14px', color: '#16A34A', fontWeight: '600', textAlign: 'center' }}>
                         ✅ Injection Reminders On
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '6px' }}>
                           <select
@@ -2529,7 +2529,7 @@ export default function ProtocolDetail() {
                                 setError('Failed to update schedule');
                               }
                             }}
-                            style={{ padding: '4px 6px', border: '1px solid #BBF7D0', borderRadius: '4px', fontSize: '12px', color: '#15803D', background: '#F0FDF4', cursor: 'pointer' }}
+                            style={{ padding: '4px 6px', border: '1px solid #BBF7D0', borderRadius: 0, fontSize: '12px', color: '#15803D', background: '#F0FDF4', cursor: 'pointer' }}
                           >
                             <option value="mon_thu">Mon & Thu</option>
                             <option value="tue_fri">Tue & Fri</option>
@@ -2567,7 +2567,7 @@ export default function ProtocolDetail() {
                         <select
                           value={hrtReminderSchedule}
                           onChange={e => setHrtReminderSchedule(e.target.value)}
-                          style={{ flex: 1, padding: '6px 8px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '13px' }}
+                          style={{ flex: 1, padding: '6px 8px', border: '1px solid #e5e5e5', borderRadius: 0, fontSize: '13px' }}
                         >
                           <option value="mon_thu">Mon & Thu</option>
                           <option value="tue_fri">Tue & Fri</option>
@@ -2613,7 +2613,7 @@ export default function ProtocolDetail() {
                   ];
                   const hasStarted = dripLogs.length > 0;
                   return (
-                    <div style={{ padding: '12px 14px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                    <div style={{ padding: '12px 14px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                         <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>📧 Email Sequence</span>
                         {!hasStarted && (
@@ -2645,7 +2645,7 @@ export default function ProtocolDetail() {
                             disabled={startingDrip}
                             style={{
                               fontSize: '11px', fontWeight: 600, padding: '4px 10px',
-                              background: '#000', color: '#fff', border: 'none', borderRadius: '4px',
+                              background: '#000', color: '#fff', border: 'none', borderRadius: 0,
                               cursor: startingDrip ? 'wait' : 'pointer', opacity: startingDrip ? 0.6 : 1
                             }}
                           >
@@ -2685,7 +2685,7 @@ export default function ProtocolDetail() {
                   ];
                   const hasStarted = protocol?.onboarding_start_date || onboardingLogs.length > 0;
                   return (
-                    <div style={{ padding: '12px 14px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                    <div style={{ padding: '12px 14px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                         <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>📧 HRT Onboarding</span>
                         {!hasStarted && (
@@ -2721,7 +2721,7 @@ export default function ProtocolDetail() {
                             disabled={startingOnboarding}
                             style={{
                               fontSize: '11px', fontWeight: 600, padding: '4px 10px',
-                              background: '#000', color: '#fff', border: 'none', borderRadius: '4px',
+                              background: '#000', color: '#fff', border: 'none', borderRadius: 0,
                               cursor: startingOnboarding ? 'wait' : 'pointer', opacity: startingOnboarding ? 0.6 : 1
                             }}
                           >
@@ -2818,7 +2818,7 @@ export default function ProtocolDetail() {
                                 setError(err.message);
                               }
                             }}
-                            style={{ fontSize: '11px', fontWeight: 600, padding: '3px 8px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                            style={{ fontSize: '11px', fontWeight: 600, padding: '3px 8px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer' }}
                           >
                             Generate + Send Link
                           </button>
@@ -2841,7 +2841,7 @@ export default function ProtocolDetail() {
                       padding: '14px 16px',
                       background: used ? '#f9fafb' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
                       border: used ? '1px solid #e5e7eb' : '1.5px solid #86efac',
-                      borderRadius: '10px',
+                      borderRadius: 0,
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -2851,11 +2851,11 @@ export default function ProtocolDetail() {
                           </span>
                         </div>
                         {used ? (
-                          <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', background: '#f3f4f6', padding: '2px 8px', borderRadius: '4px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', background: '#f3f4f6', padding: '2px 8px', borderRadius: 0 }}>
                             USED {usedDateDisplay}
                           </span>
                         ) : (
-                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#166534', background: '#dcfce7', border: '1px solid #86efac', padding: '2px 8px', borderRadius: '4px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#166534', background: '#dcfce7', border: '1px solid #86efac', padding: '2px 8px', borderRadius: 0 }}>
                             AVAILABLE
                           </span>
                         )}
@@ -2890,7 +2890,7 @@ export default function ProtocolDetail() {
                           disabled={redeemingRangeIV}
                           style={{
                             width: '100%', padding: '10px', background: '#16a34a', color: '#fff',
-                            border: 'none', borderRadius: '8px', fontWeight: 700, fontSize: '14px',
+                            border: 'none', borderRadius: 0, fontWeight: 700, fontSize: '14px',
                             cursor: redeemingRangeIV ? 'not-allowed' : 'pointer',
                             opacity: redeemingRangeIV ? 0.6 : 1,
                           }}
@@ -2909,7 +2909,7 @@ export default function ProtocolDetail() {
 
                   if (checkinEnabled) {
                     return (
-                      <div style={{ padding: '10px 14px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '8px', fontSize: '14px', color: '#16A34A', fontWeight: '600', textAlign: 'center' }}>
+                      <div style={{ padding: '10px 14px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 0, fontSize: '14px', color: '#16A34A', fontWeight: '600', textAlign: 'center' }}>
                         ✅ Weekly Check-ins Enabled
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '6px' }}>
                           <select
@@ -2930,7 +2930,7 @@ export default function ProtocolDetail() {
                                 setError('Failed to update injection day');
                               }
                             }}
-                            style={{ padding: '4px 6px', border: '1px solid #BBF7D0', borderRadius: '4px', fontSize: '12px', color: '#15803D', background: '#F0FDF4', cursor: 'pointer' }}
+                            style={{ padding: '4px 6px', border: '1px solid #BBF7D0', borderRadius: 0, fontSize: '12px', color: '#15803D', background: '#F0FDF4', cursor: 'pointer' }}
                           >
                             {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
                               <option key={day} value={day}>{day}</option>
@@ -2969,7 +2969,7 @@ export default function ProtocolDetail() {
                         <select
                           value={wlCheckinDay}
                           onChange={e => setWlCheckinDay(e.target.value)}
-                          style={{ flex: 1, padding: '6px 8px', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '13px' }}
+                          style={{ flex: 1, padding: '6px 8px', border: '1px solid #e5e5e5', borderRadius: 0, fontSize: '13px' }}
                         >
                           {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
                             <option key={day} value={day}>{day}</option>
@@ -3025,7 +3025,7 @@ export default function ProtocolDetail() {
 
                 {/* Exchanged status indicator */}
                 {protocol?.status === 'exchanged' && (
-                  <div style={{ padding: '10px 14px', background: '#fffbeb', border: '1px solid #fbbf24', borderRadius: '8px', fontSize: '13px', color: '#92400e', textAlign: 'center' }}>
+                  <div style={{ padding: '10px 14px', background: '#fffbeb', border: '1px solid #fbbf24', borderRadius: 0, fontSize: '13px', color: '#92400e', textAlign: 'center' }}>
                     🔄 Exchanged{protocol.exchange_reason ? ` — ${protocol.exchange_reason.replace(/_/g, ' ')}` : ''}
                     {protocol.exchanged_to && (
                       <div style={{ marginTop: '6px' }}>
@@ -3039,7 +3039,7 @@ export default function ProtocolDetail() {
 
                 {/* Exchanged-from indicator */}
                 {protocol?.exchanged_from && (
-                  <div style={{ padding: '10px 14px', background: '#f0f9ff', border: '1px solid #93c5fd', borderRadius: '8px', fontSize: '13px', color: '#1e40af', textAlign: 'center' }}>
+                  <div style={{ padding: '10px 14px', background: '#f0f9ff', border: '1px solid #93c5fd', borderRadius: 0, fontSize: '13px', color: '#1e40af', textAlign: 'center' }}>
                     ↩️ Created via exchange
                     <div style={{ marginTop: '6px' }}>
                       <Link href={`/admin/protocols/${protocol.exchanged_from}`} style={{ color: '#2563eb', textDecoration: 'underline', fontSize: '12px' }}>
@@ -3077,7 +3077,7 @@ export default function ProtocolDetail() {
           }} />
           <div style={{
             position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-            background: '#fff', borderRadius: 12, padding: 24, zIndex: 10001,
+            background: '#fff', borderRadius: 0, padding: 24, zIndex: 10001,
             width: '90%', maxWidth: 420, boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
             maxHeight: '90vh', overflowY: 'auto'
           }}>
@@ -3091,7 +3091,7 @@ export default function ProtocolDetail() {
             {/* Completed / Missed Toggle */}
             <div style={{ marginBottom: 12 }}>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Status</label>
-              <div style={{ display: 'flex', gap: 0, borderRadius: 6, overflow: 'hidden', border: '1px solid #d1d5db' }}>
+              <div style={{ display: 'flex', gap: 0, borderRadius: 0, overflow: 'hidden', border: '1px solid #d1d5db' }}>
                 <button
                   type="button"
                   onClick={() => setLogForm({ ...logForm, missed: false })}
@@ -3116,7 +3116,7 @@ export default function ProtocolDetail() {
             {/* Delivery Method Toggle — hidden when missed */}
             {!logForm.missed && <div style={{ marginBottom: 12 }}>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Delivery Method</label>
-              <div style={{ display: 'flex', gap: 0, borderRadius: 6, overflow: 'hidden', border: '1px solid #d1d5db' }}>
+              <div style={{ display: 'flex', gap: 0, borderRadius: 0, overflow: 'hidden', border: '1px solid #d1d5db' }}>
                 <button
                   type="button"
                   onClick={() => setLogForm({ ...logForm, deliveryMethod: 'in_clinic' })}
@@ -3147,7 +3147,7 @@ export default function ProtocolDetail() {
                 value={logForm.weight}
                 onChange={e => setLogForm({ ...logForm, weight: e.target.value })}
                 placeholder="e.g. 185.5"
-                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, boxSizing: 'border-box' }}
               />
             </div>
 
@@ -3162,7 +3162,7 @@ export default function ProtocolDetail() {
                     value={logForm.bloodPressure}
                     onChange={e => setLogForm({ ...logForm, bloodPressure: e.target.value })}
                     placeholder="e.g. 120/80"
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, boxSizing: 'border-box' }}
                   />
                 </div>
               )}
@@ -3175,7 +3175,7 @@ export default function ProtocolDetail() {
                   value={logForm.dose}
                   onChange={e => setLogForm({ ...logForm, dose: e.target.value })}
                   placeholder="e.g. 2.5mg"
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, boxSizing: 'border-box' }}
                 />
               </div>
 
@@ -3198,7 +3198,7 @@ export default function ProtocolDetail() {
                           }));
                         }}
                         style={{
-                          padding: '5px 10px', borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                          padding: '5px 10px', borderRadius: 0, fontSize: 12, fontWeight: 500, cursor: 'pointer',
                           border: isSelected ? '1.5px solid #dc2626' : '1px solid #d1d5db',
                           background: isSelected ? '#fef2f2' : '#fff',
                           color: isSelected ? '#dc2626' : '#374151',
@@ -3218,17 +3218,17 @@ export default function ProtocolDetail() {
                 value={logForm.notes}
                 onChange={e => setLogForm({ ...logForm, notes: e.target.value })}
                 placeholder="Optional"
-                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, boxSizing: 'border-box' }}
               />
             </div>
 
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button onClick={() => setLogModal(null)} style={{
-                padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: 6,
+                padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: 0,
                 background: '#fff', cursor: 'pointer', fontSize: 14
               }}>Cancel</button>
               <button onClick={handleLogInjection} disabled={logSaving} style={{
-                padding: '8px 20px', border: 'none', borderRadius: 6,
+                padding: '8px 20px', border: 'none', borderRadius: 0,
                 background: '#000', color: '#fff', cursor: logSaving ? 'wait' : 'pointer',
                 fontSize: 14, fontWeight: 600, opacity: logSaving ? 0.6 : 1
               }}>{logSaving ? 'Saving...' : (logForm.missed ? 'Log Missed Check-in' : 'Log Injection')}</button>
@@ -3245,7 +3245,7 @@ export default function ProtocolDetail() {
           }} />
           <div style={{
             position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-            background: '#fff', borderRadius: 12, padding: 24, zIndex: 10001,
+            background: '#fff', borderRadius: 0, padding: 24, zIndex: 10001,
             width: '90%', maxWidth: 380, boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
           }}>
             <h3 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 700, color: '#7c3aed' }}>
@@ -3261,7 +3261,7 @@ export default function ProtocolDetail() {
                 type="date"
                 value={secMedPickupForm.date}
                 onChange={e => setSecMedPickupForm({ ...secMedPickupForm, date: e.target.value })}
-                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, boxSizing: 'border-box' }}
               />
             </div>
 
@@ -3273,7 +3273,7 @@ export default function ProtocolDetail() {
                 max="10"
                 value={secMedPickupForm.num_vials}
                 onChange={e => setSecMedPickupForm({ ...secMedPickupForm, num_vials: parseInt(e.target.value) || 1 })}
-                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, boxSizing: 'border-box' }}
               />
             </div>
 
@@ -3284,7 +3284,7 @@ export default function ProtocolDetail() {
                 value={secMedPickupForm.dosage}
                 onChange={e => setSecMedPickupForm({ ...secMedPickupForm, dosage: e.target.value })}
                 placeholder="e.g. 500iu"
-                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, boxSizing: 'border-box' }}
               />
             </div>
 
@@ -3295,13 +3295,13 @@ export default function ProtocolDetail() {
                 value={secMedPickupForm.frequency}
                 onChange={e => setSecMedPickupForm({ ...secMedPickupForm, frequency: e.target.value })}
                 placeholder="e.g. 2x/week"
-                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, boxSizing: 'border-box' }}
               />
             </div>
 
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button onClick={() => setSecMedPickupModal(null)} style={{
-                padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: 6,
+                padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: 0,
                 background: '#fff', cursor: 'pointer', fontSize: 14
               }}>Cancel</button>
               <button
@@ -3341,7 +3341,7 @@ export default function ProtocolDetail() {
                   }
                 }}
                 style={{
-                  padding: '8px 20px', border: 'none', borderRadius: 6,
+                  padding: '8px 20px', border: 'none', borderRadius: 0,
                   background: '#7c3aed', color: '#fff', cursor: secMedPickupSaving ? 'wait' : 'pointer',
                   fontSize: 14, fontWeight: 600, opacity: secMedPickupSaving ? 0.6 : 1
                 }}
@@ -3359,7 +3359,7 @@ export default function ProtocolDetail() {
           }} />
           <div style={{
             position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-            background: '#fff', borderRadius: 12, padding: 24, zIndex: 10001,
+            background: '#fff', borderRadius: 0, padding: 24, zIndex: 10001,
             width: '90%', maxWidth: 380, boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
           }}>
             <h3 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 700 }}>
@@ -3375,7 +3375,7 @@ export default function ProtocolDetail() {
                 type="date"
                 value={editDateValue}
                 onChange={e => setEditDateValue(e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, boxSizing: 'border-box' }}
               />
             </div>
 
@@ -3387,7 +3387,7 @@ export default function ProtocolDetail() {
                 value={editWeightValue}
                 onChange={e => setEditWeightValue(e.target.value)}
                 placeholder="Leave empty to clear"
-                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, boxSizing: 'border-box' }}
               />
               {editWeightValue && (
                 <button
@@ -3404,7 +3404,7 @@ export default function ProtocolDetail() {
                 value={editDoseValue}
                 onChange={e => setEditDoseValue(e.target.value)}
                 placeholder="e.g. 2mg, 4mg"
-                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, boxSizing: 'border-box' }}
               />
               {editDoseValue && (
                 <button
@@ -3416,16 +3416,16 @@ export default function ProtocolDetail() {
 
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button onClick={handleClearInjection} disabled={editDateSaving} style={{
-                padding: '8px 16px', border: '1px solid #dc2626', borderRadius: 6,
+                padding: '8px 16px', border: '1px solid #dc2626', borderRadius: 0,
                 background: '#fff', color: '#dc2626', cursor: editDateSaving ? 'wait' : 'pointer',
                 fontSize: 13, fontWeight: 600, marginRight: 'auto'
               }}>Clear Injection</button>
               <button onClick={() => setEditDateModal(null)} style={{
-                padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: 6,
+                padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: 0,
                 background: '#fff', cursor: 'pointer', fontSize: 14
               }}>Cancel</button>
               <button onClick={handleEditLogEntry} disabled={editDateSaving} style={{
-                padding: '8px 20px', border: 'none', borderRadius: 6,
+                padding: '8px 20px', border: 'none', borderRadius: 0,
                 background: '#22c55e', color: '#fff', cursor: editDateSaving ? 'wait' : 'pointer',
                 fontSize: 14, fontWeight: 600, opacity: editDateSaving ? 0.6 : 1
               }}>{editDateSaving ? 'Saving...' : 'Save Changes'}</button>
@@ -3442,7 +3442,7 @@ export default function ProtocolDetail() {
           }} />
           <div style={{
             position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-            background: '#fff', borderRadius: 12, padding: 24, zIndex: 10001,
+            background: '#fff', borderRadius: 0, padding: 24, zIndex: 10001,
             width: '90%', maxWidth: 400, boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
           }}>
             <h3 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 700 }}>
@@ -3463,24 +3463,24 @@ export default function ProtocolDetail() {
                 type="date"
                 value={bloodDrawDate}
                 onChange={e => setBloodDrawDate(e.target.value)}
-                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, boxSizing: 'border-box' }}
               />
             </div>
 
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               {bloodDrawModal.status === 'completed' && (
                 <button onClick={() => handleBloodDrawSave('undo')} disabled={bloodDrawSaving} style={{
-                  padding: '8px 16px', border: '1px solid #dc2626', borderRadius: 6,
+                  padding: '8px 16px', border: '1px solid #dc2626', borderRadius: 0,
                   background: '#fff', color: '#dc2626', cursor: bloodDrawSaving ? 'wait' : 'pointer',
                   fontSize: 13, fontWeight: 600, marginRight: 'auto'
                 }}>Undo</button>
               )}
               <button onClick={() => setBloodDrawModal(null)} style={{
-                padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: 6,
+                padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: 0,
                 background: '#fff', cursor: 'pointer', fontSize: 14
               }}>Cancel</button>
               <button onClick={() => handleBloodDrawSave('complete')} disabled={bloodDrawSaving} style={{
-                padding: '8px 20px', border: 'none', borderRadius: 6,
+                padding: '8px 20px', border: 'none', borderRadius: 0,
                 background: '#000', color: '#fff', cursor: bloodDrawSaving ? 'wait' : 'pointer',
                 fontSize: 14, fontWeight: 600, opacity: bloodDrawSaving ? 0.6 : 1
               }}>{bloodDrawSaving ? 'Saving...' : bloodDrawModal.status === 'completed' ? 'Update Date' : 'Mark Complete'}</button>
@@ -3529,17 +3529,17 @@ export default function ProtocolDetail() {
               {/* Meta info */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
                 {encounterSlideNote.created_by && (
-                  <span style={{ fontSize: '12px', padding: '3px 8px', borderRadius: '6px', background: '#f3f4f6', color: '#4b5563' }}>
+                  <span style={{ fontSize: '12px', padding: '3px 8px', borderRadius: 0, background: '#f3f4f6', color: '#4b5563' }}>
                     By: {encounterSlideNote.created_by}
                   </span>
                 )}
                 {encounterSlideNote.encounter_service && (
-                  <span style={{ fontSize: '12px', padding: '3px 8px', borderRadius: '6px', background: '#ecfdf5', color: '#059669' }}>
+                  <span style={{ fontSize: '12px', padding: '3px 8px', borderRadius: 0, background: '#ecfdf5', color: '#059669' }}>
                     {encounterSlideNote.encounter_service}
                   </span>
                 )}
                 {encounterSlideNote.status === 'signed' && (
-                  <span style={{ fontSize: '12px', padding: '3px 8px', borderRadius: '6px', background: '#eff6ff', color: '#2563eb' }}>
+                  <span style={{ fontSize: '12px', padding: '3px 8px', borderRadius: 0, background: '#eff6ff', color: '#2563eb' }}>
                     Signed{encounterSlideNote.signed_by ? ` by ${encounterSlideNote.signed_by}` : ''}
                   </span>
                 )}
@@ -3581,7 +3581,7 @@ export default function ProtocolDetail() {
           background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
         }} onClick={() => setAddSessionsModal(false)}>
           <div style={{
-            background: '#fff', borderRadius: '14px', padding: '28px', width: '400px',
+            background: '#fff', borderRadius: 0, padding: '28px', width: '400px',
             boxShadow: '0 20px 60px rgba(0,0,0,0.2)'
           }} onClick={e => e.stopPropagation()}>
             <h3 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '4px' }}>Add Sessions</h3>
@@ -3597,7 +3597,7 @@ export default function ProtocolDetail() {
               onChange={e => setAddSessionsCount(e.target.value)}
               placeholder="e.g. 4"
               style={{
-                width: '100%', padding: '10px 12px', borderRadius: '8px',
+                width: '100%', padding: '10px 12px', borderRadius: 0,
                 border: '1px solid #d1d5db', fontSize: '14px', marginBottom: '6px',
                 boxSizing: 'border-box'
               }}
@@ -3615,7 +3615,7 @@ export default function ProtocolDetail() {
               onChange={e => setAddSessionsNotes(e.target.value)}
               placeholder="e.g. Catch-up for Dec/Jan billing"
               style={{
-                width: '100%', padding: '10px 12px', borderRadius: '8px',
+                width: '100%', padding: '10px 12px', borderRadius: 0,
                 border: '1px solid #d1d5db', fontSize: '14px', marginBottom: '20px',
                 boxSizing: 'border-box'
               }}
@@ -3625,7 +3625,7 @@ export default function ProtocolDetail() {
               <button
                 onClick={() => setAddSessionsModal(false)}
                 style={{
-                  flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db',
+                  flex: 1, padding: '10px', borderRadius: 0, border: '1px solid #d1d5db',
                   background: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: 500
                 }}
               >Cancel</button>
@@ -3633,7 +3633,7 @@ export default function ProtocolDetail() {
                 onClick={handleAddSessions}
                 disabled={addSessionsSaving || !addSessionsCount || parseInt(addSessionsCount) < 1}
                 style={{
-                  flex: 1, padding: '10px', borderRadius: '8px', border: 'none',
+                  flex: 1, padding: '10px', borderRadius: 0, border: 'none',
                   background: '#2563eb', color: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: 600,
                   opacity: (!addSessionsCount || parseInt(addSessionsCount) < 1) ? 0.5 : 1
                 }}
@@ -3651,7 +3651,7 @@ export default function ProtocolDetail() {
           }} />
           <div style={{
             position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-            background: '#fff', borderRadius: 12, padding: 24, zIndex: 10001,
+            background: '#fff', borderRadius: 0, padding: 24, zIndex: 10001,
             width: '90%', maxWidth: 500, boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
             maxHeight: '90vh', overflowY: 'auto'
           }}>
@@ -3677,7 +3677,7 @@ export default function ProtocolDetail() {
                     type="button"
                     onClick={() => setExchangeForm(f => ({ ...f, reason: opt.value }))}
                     style={{
-                      padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13,
+                      padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13,
                       fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
                       background: exchangeForm.reason === opt.value ? '#000' : '#fff',
                       color: exchangeForm.reason === opt.value ? '#fff' : '#374151'
@@ -3695,7 +3695,7 @@ export default function ProtocolDetail() {
                 value={exchangeForm.reasonNote}
                 onChange={e => setExchangeForm(f => ({ ...f, reasonNote: e.target.value }))}
                 placeholder="e.g., nausea after first dose"
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 6, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 0, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
               />
             </div>
 
@@ -3705,7 +3705,7 @@ export default function ProtocolDetail() {
               <select
                 value={exchangeForm.protocolType}
                 onChange={e => setExchangeForm(f => ({ ...f, protocolType: e.target.value, medication: '' }))}
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 6, fontSize: 14, background: '#fff', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 0, fontSize: 14, background: '#fff', boxSizing: 'border-box' }}
               >
                 <option value="peptide">Peptide</option>
                 <option value="weight_loss">Weight Loss</option>
@@ -3719,7 +3719,7 @@ export default function ProtocolDetail() {
                 <select
                   value={exchangeForm.medication}
                   onChange={e => setExchangeForm(f => ({ ...f, medication: e.target.value }))}
-                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 6, fontSize: 14, background: '#fff', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 0, fontSize: 14, background: '#fff', boxSizing: 'border-box' }}
                 >
                   <option value="">Select medication...</option>
                   {WEIGHT_LOSS_MEDICATIONS.map(m => (
@@ -3739,7 +3739,7 @@ export default function ProtocolDetail() {
                     }
                     setExchangeForm(f => ({ ...f, medication: selected, dosage: dose }));
                   }}
-                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 6, fontSize: 14, background: '#fff', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 0, fontSize: 14, background: '#fff', boxSizing: 'border-box' }}
                 >
                   <option value="">Select medication...</option>
                   {PEPTIDE_OPTIONS.map(group => (
@@ -3762,7 +3762,7 @@ export default function ProtocolDetail() {
                   value={exchangeForm.dosage}
                   onChange={e => setExchangeForm(f => ({ ...f, dosage: e.target.value }))}
                   placeholder="e.g., 500mcg/500mcg"
-                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 6, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 0, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
                 />
               </div>
               <div>
@@ -3772,7 +3772,7 @@ export default function ProtocolDetail() {
                   value={exchangeForm.duration}
                   onChange={e => setExchangeForm(f => ({ ...f, duration: e.target.value }))}
                   placeholder="30"
-                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 6, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 0, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
                 />
               </div>
             </div>
@@ -3783,7 +3783,7 @@ export default function ProtocolDetail() {
               <select
                 value={exchangeForm.frequency}
                 onChange={e => setExchangeForm(f => ({ ...f, frequency: e.target.value }))}
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 6, fontSize: 14, background: '#fff', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 0, fontSize: 14, background: '#fff', boxSizing: 'border-box' }}
               >
                 <option value="daily">Daily</option>
                 <option value="2x_daily">2x Daily</option>
@@ -3795,7 +3795,7 @@ export default function ProtocolDetail() {
             {/* Actions */}
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button onClick={() => setExchangeModal(false)} style={{
-                padding: '10px 20px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14,
+                padding: '10px 20px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14,
                 cursor: 'pointer', background: '#fff', fontFamily: 'inherit'
               }}>Cancel</button>
               <button
@@ -3824,7 +3824,7 @@ export default function ProtocolDetail() {
                 }}
                 disabled={exchangeSaving}
                 style={{
-                  padding: '10px 24px', border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 600,
+                  padding: '10px 24px', border: 'none', borderRadius: 0, fontSize: 14, fontWeight: 600,
                   cursor: exchangeSaving ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
                   background: '#f59e0b', color: '#fff', opacity: exchangeSaving ? 0.6 : 1
                 }}
@@ -3937,18 +3937,18 @@ function CycleProgressCard({ protocol }) {
 
 const cycleStyles = {
   card: {
-    background: '#fff', borderRadius: '12px', padding: '24px',
+    background: '#fff', borderRadius: 0, padding: '24px',
     marginBottom: '20px', border: '1px solid #e5e7eb'
   },
   title: {
     fontSize: '16px', fontWeight: '600', color: '#1f2937', margin: '0 0 4px'
   },
   barBg: {
-    height: '12px', background: '#e5e7eb', borderRadius: '6px',
+    height: '12px', background: '#e5e7eb', borderRadius: 0,
     overflow: 'hidden', margin: '12px 0'
   },
   barFill: {
-    height: '100%', borderRadius: '6px', transition: 'width 0.3s ease'
+    height: '100%', borderRadius: 0, transition: 'width 0.3s ease'
   },
   dateRow: {
     display: 'flex', justifyContent: 'space-between',
@@ -3956,7 +3956,7 @@ const cycleStyles = {
   },
   offWarning: {
     marginTop: '8px', padding: '10px 14px', background: '#fef3c7',
-    borderRadius: '8px', fontSize: '13px', color: '#92400e', textAlign: 'center'
+    borderRadius: 0, fontSize: '13px', color: '#92400e', textAlign: 'center'
   }
 };
 
@@ -3969,17 +3969,17 @@ const styles = {
   title: { margin: '4px 0 0', fontSize: '20px', fontWeight: '600', color: '#fff' },
   subtitle: { margin: '2px 0 0', fontSize: '13px', color: 'rgba(255,255,255,0.7)' },
   headerActions: { display: 'flex', gap: '8px' },
-  headerBtn: { padding: '8px 16px', background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', textDecoration: 'none', fontSize: '13px', cursor: 'pointer' },
-  editBtn: { padding: '8px 20px', background: '#fff', color: '#000', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' },
-  saveBtn: { padding: '8px 20px', background: '#22c55e', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' },
-  errorAlert: { margin: '16px 24px 0', padding: '12px', background: '#fee2e2', color: '#dc2626', borderRadius: '8px', fontSize: '14px' },
-  successAlert: { margin: '16px 24px 0', padding: '12px', background: '#dcfce7', color: '#166534', borderRadius: '8px', fontSize: '14px' },
+  headerBtn: { padding: '8px 16px', background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 0, textDecoration: 'none', fontSize: '13px', cursor: 'pointer' },
+  editBtn: { padding: '8px 20px', background: '#fff', color: '#000', border: 'none', borderRadius: 0, fontSize: '13px', fontWeight: '600', cursor: 'pointer' },
+  saveBtn: { padding: '8px 20px', background: '#22c55e', color: '#fff', border: 'none', borderRadius: 0, fontSize: '13px', fontWeight: '600', cursor: 'pointer' },
+  errorAlert: { margin: '16px 24px 0', padding: '12px', background: '#fee2e2', color: '#dc2626', borderRadius: 0, fontSize: '14px' },
+  successAlert: { margin: '16px 24px 0', padding: '12px', background: '#dcfce7', color: '#166534', borderRadius: 0, fontSize: '14px' },
   content: { padding: '24px', display: 'grid', gridTemplateColumns: '1fr 280px', gap: '24px', maxWidth: '1200px' },
   mainCol: { display: 'flex', flexDirection: 'column', gap: '20px' },
   sideCol: { display: 'flex', flexDirection: 'column', gap: '20px' },
   
   // Day Display
-  dayCard: { background: '#fff', borderRadius: '12px', padding: '32px', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
+  dayCard: { background: '#fff', borderRadius: 0, padding: '32px', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
   dayLabel: { fontSize: '12px', fontWeight: '600', color: '#666', letterSpacing: '1px', marginBottom: '8px' },
   dayDisplay: { display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: '8px' },
   currentDay: { fontSize: '72px', fontWeight: '700', lineHeight: 1 },
@@ -3991,15 +3991,15 @@ const styles = {
   notStartedText: { fontSize: '16px', color: '#f59e0b' },
   
   // Calendar
-  card: { background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
+  card: { background: '#fff', borderRadius: 0, padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
   cardTitle: { margin: '0 0 16px', fontSize: '15px', fontWeight: '600' },
   calendarGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: '8px' },
-  calendarDay: { minHeight: '90px', border: '2px solid', borderRadius: '8px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: '14px', padding: '6px 4px' },
+  calendarDay: { minHeight: '90px', border: '2px solid', borderRadius: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: '14px', padding: '6px 4px' },
   dayNumber: { fontWeight: '700', fontSize: '22px' },
   checkmark: { fontSize: '14px', marginTop: '2px' },
   todayLabel: { fontSize: '11px', fontWeight: '700', marginTop: '2px', letterSpacing: '0.5px' },
   legend: { display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '16px', fontSize: '12px', color: '#666' },
-  legendDot: { display: 'inline-block', width: '12px', height: '12px', borderRadius: '3px', background: '#22c55e', marginRight: '4px', verticalAlign: 'middle' },
+  legendDot: { display: 'inline-block', width: '12px', height: '12px', borderRadius: 0, background: '#22c55e', marginRight: '4px', verticalAlign: 'middle' },
   
   // Form
   section: { marginBottom: '20px' },
@@ -4007,10 +4007,10 @@ const styles = {
   grid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' },
   field: { display: 'flex', flexDirection: 'column' },
   label: { fontSize: '12px', fontWeight: '500', color: '#666', marginBottom: '4px' },
-  input: { padding: '10px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', fontFamily: 'inherit' },
-  select: { padding: '10px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', background: '#fff' },
+  input: { padding: '10px 12px', border: '1px solid #ddd', borderRadius: 0, fontSize: '14px', fontFamily: 'inherit' },
+  select: { padding: '10px 12px', border: '1px solid #ddd', borderRadius: 0, fontSize: '14px', background: '#fff' },
   typeGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' },
-  typeBtn: { padding: '10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit' },
+  typeBtn: { padding: '10px', border: '1px solid #ddd', borderRadius: 0, fontSize: '12px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit' },
   
   // Details
   detailsGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' },
@@ -4020,7 +4020,7 @@ const styles = {
   
   // Actions
   actionStack: { display: 'flex', flexDirection: 'column', gap: '8px' },
-  actionBtn: { padding: '12px', background: '#000', color: '#fff', borderRadius: '8px', textDecoration: 'none', textAlign: 'center', fontSize: '14px', fontWeight: '500' },
-  actionBtnSecondary: { padding: '12px', background: '#f5f5f5', borderRadius: '8px', textDecoration: 'none', textAlign: 'center', fontSize: '14px' },
-  copyBtn: { width: '100%', padding: '12px', background: '#f5f5f5', border: '1px solid #e5e5e5', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }
+  actionBtn: { padding: '12px', background: '#000', color: '#fff', borderRadius: 0, textDecoration: 'none', textAlign: 'center', fontSize: '14px', fontWeight: '500' },
+  actionBtnSecondary: { padding: '12px', background: '#f5f5f5', borderRadius: 0, textDecoration: 'none', textAlign: 'center', fontSize: '14px' },
+  copyBtn: { width: '100%', padding: '12px', background: '#f5f5f5', border: '1px solid #e5e5e5', borderRadius: 0, fontSize: '14px', cursor: 'pointer' }
 };

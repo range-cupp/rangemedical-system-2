@@ -781,7 +781,7 @@ export default function ProtocolsPage() {
               <td style={styles.td}>
                 <div style={styles.progressContainer}>
                   {isOngoing ? (
-                    <span style={{ fontSize: 12, fontWeight: 600, color: isActive ? '#166534' : '#666', background: isActive ? '#dcfce7' : '#f3f4f6', padding: '3px 10px', borderRadius: 10 }}>Ongoing</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: isActive ? '#166534' : '#666', background: isActive ? '#dcfce7' : '#f3f4f6', padding: '3px 10px', borderRadius: 0 }}>Ongoing</span>
                   ) : (
                     <>
                       <div style={styles.progressBar}>
@@ -979,7 +979,7 @@ function HRTRow({ patient: p, expanded, onToggle, onNavigate }) {
             <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>Week {p.program_week}</div>
           )}
           {p.range_iv && (
-            <div style={{ fontSize: 10, marginTop: 3, padding: '1px 6px', borderRadius: 4, display: 'inline-block',
+            <div style={{ fontSize: 10, marginTop: 3, padding: '1px 6px', borderRadius: 0, display: 'inline-block',
               background: p.range_iv === 'available' ? '#dcfce7' : p.range_iv === 'used' ? '#f3f4f6' : '#fef3c7',
               color: p.range_iv === 'available' ? '#166534' : p.range_iv === 'used' ? '#6b7280' : '#92400e' }}>
               IV {p.range_iv === 'available' ? 'available' : p.range_iv === 'used' ? 'used' : 'expired'}
@@ -1153,18 +1153,18 @@ function WLRow({ patient: p, expanded, onToggle, onNavigate }) {
 // =====================================================
 const styles = {
   categoryBar: { display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' },
-  categoryTab: { padding: '7px 16px', borderRadius: '20px', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap' },
+  categoryTab: { padding: '7px 16px', borderRadius: 0, fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s', whiteSpace: 'nowrap' },
   summaryGrid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' },
-  statCard: { padding: '20px', background: '#fff', borderRadius: '12px', border: '1px solid #e5e5e5' },
+  statCard: { padding: '20px', background: '#fff', borderRadius: 0, border: '1px solid #e5e5e5' },
   statValue: { fontSize: '32px', fontWeight: '700', lineHeight: 1 },
   statLabel: { fontSize: '12px', color: '#666', marginTop: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' },
   toolbar: { display: 'flex', gap: '12px', marginBottom: '12px', alignItems: 'center' },
-  searchInput: { flex: 1, maxWidth: '400px', padding: '10px 14px', border: '1px solid #e5e5e5', borderRadius: '8px', fontSize: '14px', background: '#fff' },
-  refreshBtn: { padding: '10px 16px', border: '1px solid #e5e5e5', borderRadius: '8px', background: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer' },
+  searchInput: { flex: 1, maxWidth: '400px', padding: '10px 14px', border: '1px solid #e5e5e5', borderRadius: 0, fontSize: '14px', background: '#fff' },
+  refreshBtn: { padding: '10px 16px', border: '1px solid #e5e5e5', borderRadius: 0, background: '#fff', fontSize: '13px', fontWeight: 500, cursor: 'pointer' },
   subTabs: { display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' },
-  subTabBtn: { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', transition: 'all 0.15s' },
-  subTabCount: { padding: '2px 7px', borderRadius: '10px', fontSize: '11px', fontWeight: '600' },
-  tableCard: { background: '#fff', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
+  subTabBtn: { display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 14px', borderRadius: 0, fontSize: '13px', fontWeight: '500', cursor: 'pointer', transition: 'all 0.15s' },
+  subTabCount: { padding: '2px 7px', borderRadius: 0, fontSize: '11px', fontWeight: '600' },
+  tableCard: { background: '#fff', borderRadius: 0, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
   loading: { padding: '40px', textAlign: 'center', color: '#666' },
   table: { width: '100%', borderCollapse: 'collapse' },
   th: { textAlign: 'left', padding: '12px 16px', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', color: '#666', borderBottom: '1px solid #e5e5e5', background: '#fafafa' },
@@ -1174,28 +1174,28 @@ const styles = {
   td: { padding: '12px 16px', fontSize: '14px', verticalAlign: 'middle' },
   tdAction: { padding: '12px 16px', fontSize: '14px', textAlign: 'right', verticalAlign: 'middle', width: '120px' },
   patientLink: { fontWeight: '600', color: '#111', textDecoration: 'none', fontSize: '14px' },
-  categoryBadge: { display: 'inline-block', padding: '3px 10px', borderRadius: '10px', fontSize: '11px', fontWeight: '600', whiteSpace: 'nowrap' },
+  categoryBadge: { display: 'inline-block', padding: '3px 10px', borderRadius: 0, fontSize: '11px', fontWeight: '600', whiteSpace: 'nowrap' },
   progressContainer: { display: 'flex', alignItems: 'center', gap: '10px' },
-  progressBar: { width: '80px', height: '6px', background: '#e5e5e5', borderRadius: '3px', overflow: 'hidden' },
-  progressFill: { height: '100%', borderRadius: '3px', transition: 'width 0.3s' },
-  progressBarWL: { width: '80px', height: '6px', background: '#f0f0f0', borderRadius: '3px', overflow: 'hidden' },
-  progressFillWL: { height: '100%', background: '#8b5cf6', borderRadius: '3px', transition: 'width 0.3s ease' },
+  progressBar: { width: '80px', height: '6px', background: '#e5e5e5', borderRadius: 0, overflow: 'hidden' },
+  progressFill: { height: '100%', borderRadius: 0, transition: 'width 0.3s' },
+  progressBarWL: { width: '80px', height: '6px', background: '#f0f0f0', borderRadius: 0, overflow: 'hidden' },
+  progressFillWL: { height: '100%', background: '#8b5cf6', borderRadius: 0, transition: 'width 0.3s ease' },
   progressText: { fontSize: '12px', color: '#666', whiteSpace: 'nowrap' },
-  statusBadge: { display: 'inline-block', padding: '4px 10px', borderRadius: '10px', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase' },
+  statusBadge: { display: 'inline-block', padding: '4px 10px', borderRadius: 0, fontSize: '11px', fontWeight: '600', textTransform: 'uppercase' },
   actionGroup: { display: 'flex', gap: '6px', justifyContent: 'flex-end', alignItems: 'center' },
-  viewBtn: { display: 'inline-block', padding: '6px 14px', background: '#000', color: '#fff', borderRadius: '6px', fontSize: '12px', fontWeight: '500', textDecoration: 'none', whiteSpace: 'nowrap', lineHeight: '1.4' },
-  deleteBtn: { padding: '4px 8px', background: 'transparent', border: '1px solid #e5e5e5', borderRadius: '6px', fontSize: '14px', cursor: 'pointer', lineHeight: 1 },
+  viewBtn: { display: 'inline-block', padding: '6px 14px', background: '#000', color: '#fff', borderRadius: 0, fontSize: '12px', fontWeight: '500', textDecoration: 'none', whiteSpace: 'nowrap', lineHeight: '1.4' },
+  deleteBtn: { padding: '4px 8px', background: 'transparent', border: '1px solid #e5e5e5', borderRadius: 0, fontSize: '14px', cursor: 'pointer', lineHeight: 1 },
   expandedPanel: { padding: '20px 24px', background: '#fafafa', borderTop: '1px solid #e5e5e5' },
   expandedGrid: { display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px' },
   expandedLabel: { fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#666', marginBottom: '8px' },
   expandedDetail: { fontSize: '13px', color: '#333', marginBottom: '4px' },
   overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 10000 },
-  modal: { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: '#fff', borderRadius: '12px', padding: '24px', zIndex: 10001, width: '90%', maxWidth: '420px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' },
+  modal: { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: '#fff', borderRadius: 0, padding: '24px', zIndex: 10001, width: '90%', maxWidth: '420px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' },
   modalTitle: { margin: '0 0 12px', fontSize: '18px', fontWeight: '700' },
   modalText: { margin: '0 0 8px', fontSize: '14px', color: '#374151' },
   modalDetail: { margin: '0 0 12px', fontSize: '13px', color: '#6b7280' },
-  modalWarning: { margin: '0 0 20px', fontSize: '13px', color: '#dc2626', background: '#fee2e2', padding: '10px 12px', borderRadius: '8px' },
+  modalWarning: { margin: '0 0 20px', fontSize: '13px', color: '#dc2626', background: '#fee2e2', padding: '10px 12px', borderRadius: 0 },
   modalActions: { display: 'flex', gap: '8px', justifyContent: 'flex-end' },
-  cancelBtn: { padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: '6px', background: '#fff', cursor: 'pointer', fontSize: '14px' },
-  confirmDeleteBtn: { padding: '8px 20px', border: 'none', borderRadius: '6px', background: '#dc2626', color: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: '600' },
+  cancelBtn: { padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', cursor: 'pointer', fontSize: '14px' },
+  confirmDeleteBtn: { padding: '8px 20px', border: 'none', borderRadius: 0, background: '#dc2626', color: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: '600' },
 };

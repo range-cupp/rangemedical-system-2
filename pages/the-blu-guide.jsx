@@ -225,7 +225,7 @@ export default function TheBluGuide() {
         .blu-hero-dose span { font-weight: 600; color: #171717; }
         .blu-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 2rem; }
         .blu-info-card { background: #ffffff; border: 1px solid #e0e0e0; padding: 1.75rem; }
-        .blu-info-card h3 { font-size: 1.125rem; font-weight: 700; margin-bottom: 0.75rem; }
+        .blu-info-card h3 { font-size: 1rem; font-weight: 900; text-transform: uppercase; letter-spacing: -0.01em; margin-bottom: 0.75rem; }
         .blu-info-card p { font-size: 0.9rem; color: #737373; line-height: 1.7; }
         .blu-steps-list { margin-top: 2rem; }
         .blu-step-item { display: flex; gap: 1rem; padding: 1.25rem 0; border-bottom: 1px solid #e0e0e0; }

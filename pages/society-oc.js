@@ -463,7 +463,7 @@ const styles = {
     gap: 12,
     background: '#f8f8f8',
     padding: '12px 24px',
-    borderRadius: 100,
+    borderRadius: 0,
     marginBottom: 32,
     fontSize: 14,
     fontWeight: 500,
@@ -488,7 +488,7 @@ const styles = {
     background: '#111',
     color: '#fff',
     padding: '16px 32px',
-    borderRadius: 12,
+    borderRadius: 0,
     display: 'inline-block',
     fontSize: 20,
     fontWeight: 600,
@@ -507,7 +507,7 @@ const styles = {
     padding: '16px 32px',
     background: '#111',
     color: '#fff',
-    borderRadius: 10,
+    borderRadius: 0,
     fontSize: 16,
     fontWeight: 600,
     textDecoration: 'none',
@@ -520,7 +520,7 @@ const styles = {
     background: '#fff',
     color: '#111',
     border: '2px solid #111',
-    borderRadius: 10,
+    borderRadius: 0,
     fontSize: 16,
     fontWeight: 600,
     textDecoration: 'none',
@@ -543,7 +543,7 @@ const styles = {
   },
   labPanel: {
     background: '#fff',
-    borderRadius: 16,
+    borderRadius: 0,
     border: '1px solid #e0e0e0',
     overflow: 'hidden'
   },
@@ -643,7 +643,7 @@ const styles = {
   serviceCard: {
     background: '#fff',
     padding: 28,
-    borderRadius: 16,
+    borderRadius: 0,
     border: '1px solid #eee'
   },
   serviceIcon: {
@@ -669,7 +669,7 @@ const styles = {
   formContainer: {
     background: '#fff',
     padding: 40,
-    borderRadius: 20,
+    borderRadius: 0,
     border: '1px solid #eee',
     boxShadow: '0 4px 24px rgba(0,0,0,0.04)'
   },
@@ -693,7 +693,7 @@ const styles = {
     padding: '14px 16px',
     fontSize: 16,
     border: '1px solid #e0e0e0',
-    borderRadius: 10,
+    borderRadius: 0,
     fontFamily: 'inherit',
     boxSizing: 'border-box'
   },
@@ -702,7 +702,7 @@ const styles = {
     padding: '14px 16px',
     fontSize: 16,
     border: '1px solid #e0e0e0',
-    borderRadius: 10,
+    borderRadius: 0,
     fontFamily: 'inherit',
     minHeight: 100,
     resize: 'vertical',
@@ -713,7 +713,7 @@ const styles = {
     padding: '14px 16px',
     fontSize: 16,
     border: '1px solid #e0e0e0',
-    borderRadius: 10,
+    borderRadius: 0,
     fontFamily: 'inherit',
     background: '#fff',
     boxSizing: 'border-box'
@@ -730,7 +730,7 @@ const styles = {
     cursor: 'pointer',
     padding: '12px 16px',
     border: '1px solid #e0e0e0',
-    borderRadius: 10,
+    borderRadius: 0,
     transition: 'all 0.2s'
   },
   checkboxItemChecked: {
@@ -749,7 +749,7 @@ const styles = {
     background: '#111',
     color: '#fff',
     border: 'none',
-    borderRadius: 10,
+    borderRadius: 0,
     fontSize: 16,
     fontWeight: 600,
     cursor: 'pointer',
@@ -798,7 +798,7 @@ const styles = {
     padding: '16px 32px',
     background: '#111',
     color: '#fff',
-    borderRadius: 10,
+    borderRadius: 0,
     fontSize: 16,
     fontWeight: 600,
     textDecoration: 'none',

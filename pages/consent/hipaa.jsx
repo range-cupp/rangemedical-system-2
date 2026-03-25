@@ -49,41 +49,41 @@ export default function HIPAANotice() {
         .form-group { flex: 1; display: flex; flex-direction: column; }
         .consent-container label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: #333; text-transform: none; letter-spacing: normal; }
         .consent-container label .required { color: #dc2626; margin-left: 2px; }
-        .consent-container input[type="text"],.consent-container input[type="email"],.consent-container input[type="tel"] { width: 100%; padding: 10px 12px; font-size: 14px; font-family: inherit; border: 1px solid #ccc; background: #fff; color: #111; border-radius: 4px; transition: border-color 0.2s ease; }
+        .consent-container input[type="text"],.consent-container input[type="email"],.consent-container input[type="tel"] { width: 100%; padding: 10px 12px; font-size: 14px; font-family: inherit; border: 1px solid #ccc; background: #fff; color: #111; border-radius: 0; transition: border-color 0.2s ease; }
         .consent-container input:focus { outline: none; border-color: #000; box-shadow: 0 0 0 2px rgba(0,0,0,0.1); }
         .consent-container input.error { border-color: #dc2626; }
-        .consent-text { background: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px; padding: 20px; margin-bottom: 16px; line-height: 1.6; max-height: 50vh; overflow-y: auto; }
+        .consent-text { background: #fafafa; border: 1px solid #e5e5e5; border-radius: 0; padding: 20px; margin-bottom: 16px; line-height: 1.6; max-height: 50vh; overflow-y: auto; }
         .consent-text h4 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin: 16px 0 8px; color: #262626; }
         .consent-text h4:first-child { margin-top: 0; }
         .consent-text p { margin-bottom: 8px; color: #404040; font-size: 14px; line-height: 1.6; }
         .consent-text ul { margin-left: 1.25rem; margin-bottom: 8px; }
         .consent-text li { margin-bottom: 6px; color: #404040; font-size: 14px; line-height: 1.6; }
         .consent-text strong { font-weight: 600; }
-        .checkbox-consent { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; padding: 14px 16px; background: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px; }
+        .checkbox-consent { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; padding: 14px 16px; background: #fafafa; border: 1px solid #e5e5e5; border-radius: 0; }
         .checkbox-consent input[type="checkbox"] { width: 18px; height: 18px; margin-top: 3px; cursor: pointer; accent-color: #000; flex-shrink: 0; }
         .checkbox-consent label { font-size: 13px; font-weight: 500; text-transform: none; letter-spacing: normal; margin-bottom: 0; cursor: pointer; color: #333; line-height: 1.55; }
         .checkbox-consent.error { border-color: #dc2626; background: #fef2f2; }
         .signature-wrapper { margin-bottom: 16px; }
         .signature-label { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: #333; display: block; text-transform: none; letter-spacing: normal; }
-        .signature-pad-container { border: 2px solid #000; border-radius: 6px; background: #fff; position: relative; margin-bottom: 8px; overflow: hidden; }
+        .signature-pad-container { border: 2px solid #000; border-radius: 0; background: #fff; position: relative; margin-bottom: 8px; overflow: hidden; }
         .signature-pad-container.error { border-color: #dc2626; }
         #signaturePad { display: block; width: 100%; height: 150px; cursor: crosshair; touch-action: none; }
         .signature-placeholder { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); color: #a3a3a3; font-size: 14px; pointer-events: none; text-align: center; }
         .signature-controls { text-align: right; }
-        .btn-clear { background: none; border: 1px solid #ccc; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; font-family: inherit; }
+        .btn-clear { background: none; border: 1px solid #ccc; padding: 6px 14px; border-radius: 0; cursor: pointer; font-size: 13px; font-family: inherit; }
         .btn-clear:hover { background: #f5f5f5; }
         .field-error { font-size: 12px; color: #dc2626; margin-top: 4px; display: none; }
         .field-error.visible { display: block; }
         .submit-section { padding-top: 20px; text-align: center; }
-        .btn-submit { background: #000; color: #fff; border: none; padding: 14px 48px; font-size: 16px; font-weight: 600; border-radius: 6px; cursor: pointer; letter-spacing: 0.5px; font-family: inherit; min-width: 250px; }
+        .btn-submit { background: #000; color: #fff; border: none; padding: 14px 48px; font-size: 16px; font-weight: 600; border-radius: 0; cursor: pointer; letter-spacing: 0.5px; font-family: inherit; min-width: 250px; }
         .btn-submit:hover:not(:disabled) { background: #222; }
         .btn-submit:disabled { background: #999; cursor: not-allowed; }
-        .validation-summary { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 1rem 1.5rem; margin-bottom: 1rem; display: none; }
+        .validation-summary { background: #fef2f2; border: 1px solid #fecaca; border-radius: 0; padding: 1rem 1.5rem; margin-bottom: 1rem; display: none; }
         .validation-summary.visible { display: block; }
         .validation-summary h3 { color: #991b1b; font-size: 0.9375rem; margin-bottom: 0.5rem; }
         .validation-summary ul { margin: 0; padding-left: 1.25rem; color: #dc2626; font-size: 0.875rem; }
         .validation-summary ul li { margin-bottom: 0.25rem; }
-        .status-message { margin-top: 16px; padding: 12px; border-radius: 6px; font-size: 14px; text-align: center; display: none; }
+        .status-message { margin-top: 16px; padding: 12px; border-radius: 0; font-size: 14px; text-align: center; display: none; }
         .status-message.visible { display: block; }
         .status-message.error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
         .status-message.loading { background: #f5f5f5; color: #404040; border: 1px solid #d4d4d4; }
@@ -95,7 +95,7 @@ export default function HIPAANotice() {
         .thank-you-subtitle { font-size: 1.125rem; color: #525252; margin-bottom: 2rem; }
         .thank-you-footer { padding-top: 2rem; border-top: 2px solid #e5e5e5; }
         .thank-you-footer p { font-size: 1.5rem; font-weight: 700; letter-spacing: 0.15em; color: #000; }
-        .contact-info { background: #f5f5f5; padding: 12px; font-size: 13px; color: #525252; border-radius: 4px; }
+        .contact-info { background: #f5f5f5; padding: 12px; font-size: 13px; color: #525252; border-radius: 0; }
         .contact-info p { margin-bottom: 2px; }
         @media (max-width: 640px) { .consent-header { padding: 20px 16px; } .form-container { padding: 0 16px 30px; } .form-row { flex-direction: column; gap: 12px; } }
       `}</style>

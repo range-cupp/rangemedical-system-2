@@ -61,7 +61,7 @@ export default function AppSchedule() {
         .date-tab {
           flex-shrink: 0;
           padding: 8px 14px;
-          border-radius: 20px;
+          border-radius: 0;
           border: 1.5px solid #e2e8f0;
           background: #fff;
           cursor: pointer;
@@ -80,7 +80,7 @@ export default function AppSchedule() {
         .date-tab.active .date-tab-num { color: #fff; }
         .appt-card {
           background: #fff;
-          border-radius: 14px;
+          border-radius: 0;
           margin: 0 12px 10px;
           padding: 16px;
           box-shadow: 0 1px 3px rgba(0,0,0,0.06);
@@ -182,7 +182,7 @@ export default function AppSchedule() {
                       </div>
                     )}
                     {appt.notes && (
-                      <div style={{ marginTop: 8, fontSize: 12, color: '#94a3b8', background: '#f8fafc', borderRadius: 6, padding: '6px 8px' }}>
+                      <div style={{ marginTop: 8, fontSize: 12, color: '#94a3b8', background: '#f8fafc', borderRadius: 0, padding: '6px 8px' }}>
                         {appt.notes}
                       </div>
                     )}
@@ -191,7 +191,7 @@ export default function AppSchedule() {
                     <span style={{
                       fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
                       color: statusColor, background: `${statusColor}18`,
-                      padding: '3px 7px', borderRadius: 6,
+                      padding: '3px 7px', borderRadius: 0,
                     }}>
                       {appt.status}
                     </span>

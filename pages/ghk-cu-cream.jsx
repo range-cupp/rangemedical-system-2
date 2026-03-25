@@ -403,7 +403,7 @@ export default function GHKCuCream() {
           background: #000000;
           color: #ffffff;
           padding: 0.875rem 2rem;
-          border-radius: 8px;
+          border-radius: 0;
           text-decoration: none;
           font-weight: 600;
           font-size: 0.9375rem;
@@ -418,7 +418,7 @@ export default function GHKCuCream() {
           background: transparent;
           color: #000000;
           padding: 0.875rem 2rem;
-          border-radius: 8px;
+          border-radius: 0;
           border: 2px solid #000000;
           text-decoration: none;
           font-weight: 600;
@@ -434,7 +434,7 @@ export default function GHKCuCream() {
           background: #ffffff;
           color: #000000;
           padding: 0.875rem 2rem;
-          border-radius: 8px;
+          border-radius: 0;
           text-decoration: none;
           font-weight: 600;
           font-size: 0.9375rem;
@@ -449,7 +449,7 @@ export default function GHKCuCream() {
           background: transparent;
           color: #ffffff;
           padding: 0.875rem 2rem;
-          border-radius: 8px;
+          border-radius: 0;
           border: 2px solid #ffffff;
           text-decoration: none;
           font-weight: 600;
@@ -528,7 +528,7 @@ export default function GHKCuCream() {
         }
         .intro-visual {
           background: linear-gradient(135deg, #f5f5f5 0%, #e5e5e5 100%);
-          border-radius: 12px;
+          border-radius: 0;
           padding: 3rem;
           display: flex;
           align-items: center;
@@ -569,7 +569,7 @@ export default function GHKCuCream() {
         .tool-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 2rem;
           transition: all 0.2s;
         }
@@ -603,7 +603,7 @@ export default function GHKCuCream() {
         .step-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 2rem 1.5rem;
           position: relative;
           text-align: center;
@@ -689,7 +689,7 @@ export default function GHKCuCream() {
         .consideration-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 2rem;
         }
         .consideration-card.positive {

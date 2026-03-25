@@ -44,7 +44,7 @@ export default function AppMore() {
       <AppLayout title="More">
         {/* Staff profile card */}
         {staff && (
-          <div style={{ margin: '16px 12px 10px', background: '#0f172a', borderRadius: 14, padding: '20px 18px', color: '#fff' }}>
+          <div style={{ margin: '16px 12px 10px', background: '#0f172a', borderRadius: 0, padding: '20px 18px', color: '#fff' }}>
             <div style={{ width: 52, height: 52, borderRadius: '50%', background: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 700, marginBottom: 10 }}>
               {staff.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
             </div>
@@ -55,7 +55,7 @@ export default function AppMore() {
         )}
 
         {/* Quick links */}
-        <div style={{ margin: '0 12px 10px', background: '#fff', borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+        <div style={{ margin: '0 12px 10px', background: '#fff', borderRadius: 0, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           {LINKS.map((link, i) => (
             <div
               key={link.href}
@@ -89,7 +89,7 @@ export default function AppMore() {
             style={{
               width: '100%',
               padding: '14px',
-              borderRadius: 12,
+              borderRadius: 0,
               border: '1.5px solid #fecaca',
               background: '#fff5f5',
               color: '#dc2626',

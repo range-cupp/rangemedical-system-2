@@ -366,7 +366,7 @@ function PurchasesInner({ embedded } = {}) {
                             onBlur={() => saveShipping(purchase.id)}
                             onKeyDown={e => { if (e.key === 'Enter') saveShipping(purchase.id); if (e.key === 'Escape') setEditingShipping(null); }}
                             autoFocus
-                            style={{ width: '70px', padding: '4px 6px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '13px', textAlign: 'right' }}
+                            style={{ width: '70px', padding: '4px 6px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: '13px', textAlign: 'right' }}
                           />
                         ) : (
                           <span
@@ -951,7 +951,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
           {cycleWarning && (form.protocolType === 'peptide' || form.protocolType === 'gh_peptide' || form.protocolType === 'peptide_vial') && (
             <div style={{
               padding: '10px 14px',
-              borderRadius: '8px',
+              borderRadius: 0,
               fontSize: '13px',
               lineHeight: '1.4',
               background: cycleWarning.level === 'error' ? '#fef2f2' :
@@ -1030,7 +1030,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
             <div style={{
               padding: '20px',
               background: '#f0fdf4',
-              borderRadius: '10px',
+              borderRadius: 0,
               border: '1px solid #bbf7d0'
             }}>
               <div style={{ fontSize: '14px', fontWeight: 600, color: '#15803d', marginBottom: '16px' }}>
@@ -1077,7 +1077,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
             <div style={{
               padding: '20px',
               background: isComboMode ? '#f5f3ff' : isCellularReset ? '#ecfeff' : isHbotMembership ? '#eff6ff' : '#fef2f2',
-              borderRadius: '10px',
+              borderRadius: 0,
               border: `1px solid ${isComboMode ? '#ddd6fe' : isCellularReset ? '#a5f3fc' : isHbotMembership ? '#bfdbfe' : '#fecaca'}`
             }}>
               <div style={{ fontSize: '14px', fontWeight: 600, color: isComboMode ? '#6d28d9' : isCellularReset ? '#0e7490' : isHbotMembership ? '#1d4ed8' : '#dc2626', marginBottom: '16px' }}>
@@ -1099,7 +1099,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
                         style={{
                           flex: 1,
                           padding: '10px 12px',
-                          borderRadius: '8px',
+                          borderRadius: 0,
                           border: membershipFrequency === opt.value ? '2px solid #000' : '1px solid #e5e7eb',
                           background: membershipFrequency === opt.value ? '#000' : '#fff',
                           color: membershipFrequency === opt.value ? '#fff' : '#374151',
@@ -1120,7 +1120,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
               <div style={{
                 padding: '12px 16px',
                 background: '#fff',
-                borderRadius: '8px',
+                borderRadius: 0,
                 border: '1px solid #e5e7eb',
                 marginBottom: '16px'
               }}>
@@ -1159,7 +1159,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
                 <div style={{
                   padding: '8px 12px',
                   background: '#fff7ed',
-                  borderRadius: '6px',
+                  borderRadius: 0,
                   fontSize: '12px',
                   color: '#92400e',
                   marginBottom: '16px'
@@ -1316,7 +1316,7 @@ function CreateProtocolModal({ purchase, onClose, onSuccess }) {
                     marginTop: '12px',
                     padding: '12px 16px',
                     background: '#f0f9ff',
-                    borderRadius: '8px',
+                    borderRadius: 0,
                     border: '1px solid #bae6fd',
                     display: 'flex',
                     gap: '24px'
@@ -1628,7 +1628,7 @@ function AddToExistingModal({ purchase, onClose, onSuccess }) {
                       style={{
                         padding: '12px 16px',
                         border: selectedProtocol?.id === protocol.id ? '2px solid #000' : '1px solid #e5e5e5',
-                        borderRadius: '8px',
+                        borderRadius: 0,
                         background: selectedProtocol?.id === protocol.id ? '#f5f5f5' : '#fff',
                         textAlign: 'left',
                         cursor: 'pointer'
@@ -1664,7 +1664,7 @@ function AddToExistingModal({ purchase, onClose, onSuccess }) {
                     style={{
                       padding: '8px 16px',
                       border: 'none',
-                      borderRadius: '6px',
+                      borderRadius: 0,
                       cursor: 'pointer',
                       background: sessionsToAdd === n ? '#000' : '#f5f5f5',
                       color: sessionsToAdd === n ? '#fff' : '#000',
@@ -1685,7 +1685,7 @@ function AddToExistingModal({ purchase, onClose, onSuccess }) {
             <div style={modalStyles.section}>
               <div style={{
                 padding: '12px 16px',
-                borderRadius: '8px',
+                borderRadius: 0,
                 background: '#f0fdf4',
                 border: '1px solid #bbf7d0',
                 fontSize: '13px',
@@ -1703,7 +1703,7 @@ function AddToExistingModal({ purchase, onClose, onSuccess }) {
             <div style={modalStyles.section}>
               <div style={{
                 padding: '12px 16px',
-                borderRadius: '8px',
+                borderRadius: 0,
                 background: '#f0fdf4',
                 border: '1px solid #bbf7d0',
                 fontSize: '13px',
@@ -1860,7 +1860,7 @@ function LogSessionModal({ purchase, onClose, onSuccess }) {
             {patientLoading ? (
               <div style={{ padding: '8px', color: '#9ca3af', fontSize: '14px' }}>Looking up patient...</div>
             ) : (
-              <div style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: '8px', fontSize: '14px', fontWeight: '500' }}>
+              <div style={{ padding: '10px 12px', background: '#f9fafb', borderRadius: 0, fontSize: '14px', fontWeight: '500' }}>
                 {patientName}
                 {!patient?.id && <span style={{ color: '#dc2626', fontSize: '12px', marginLeft: '8px' }}>⚠ Not found in system</span>}
               </div>
@@ -1874,7 +1874,7 @@ function LogSessionModal({ purchase, onClose, onSuccess }) {
               type="date"
               value={form.date}
               onChange={e => setForm({ ...form, date: e.target.value })}
-              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }}
+              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: '14px' }}
             />
           </div>
 
@@ -1885,7 +1885,7 @@ function LogSessionModal({ purchase, onClose, onSuccess }) {
               type="text"
               value={form.medication}
               onChange={e => setForm({ ...form, medication: e.target.value })}
-              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px' }}
+              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: '14px' }}
             />
           </div>
 
@@ -1896,7 +1896,7 @@ function LogSessionModal({ purchase, onClose, onSuccess }) {
               value={form.notes}
               onChange={e => setForm({ ...form, notes: e.target.value })}
               rows={2}
-              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '14px', resize: 'vertical' }}
+              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: '14px', resize: 'vertical' }}
             />
           </div>
         </div>
@@ -1932,7 +1932,7 @@ const styles = {
     maxWidth: '400px',
     padding: '10px 14px',
     border: '1px solid #e5e5e5',
-    borderRadius: '8px',
+    borderRadius: 0,
     fontSize: '14px',
     background: '#fff'
   },
@@ -1941,20 +1941,20 @@ const styles = {
     gap: '4px',
     background: '#fff',
     padding: '4px',
-    borderRadius: '8px',
+    borderRadius: 0,
     border: '1px solid #e5e5e5'
   },
   filterBtn: {
     padding: '6px 14px',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: 0,
     fontSize: '13px',
     fontWeight: '500',
     cursor: 'pointer'
   },
   tableCard: {
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: 0,
     overflow: 'hidden',
     boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
   },
@@ -1996,7 +1996,7 @@ const styles = {
     display: 'inline-block',
     padding: '2px 8px',
     background: '#f5f5f5',
-    borderRadius: '4px',
+    borderRadius: 0,
     fontSize: '12px'
   },
   amount: {
@@ -2012,7 +2012,7 @@ const styles = {
     background: '#000',
     color: '#fff',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: 0,
     fontSize: '12px',
     fontWeight: '500',
     cursor: 'pointer'
@@ -2022,7 +2022,7 @@ const styles = {
     background: '#fff',
     color: '#000',
     border: '1px solid #e5e5e5',
-    borderRadius: '6px',
+    borderRadius: 0,
     fontSize: '12px',
     fontWeight: '500',
     cursor: 'pointer'
@@ -2032,7 +2032,7 @@ const styles = {
     background: '#22c55e',
     color: '#fff',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: 0,
     fontSize: '12px',
     fontWeight: '500',
     cursor: 'pointer'
@@ -2040,7 +2040,7 @@ const styles = {
   receiptBtn: {
     background: 'none',
     border: '1px solid #e5e5e5',
-    borderRadius: '6px',
+    borderRadius: 0,
     padding: '4px 8px',
     cursor: 'pointer',
     fontSize: '14px',
@@ -2051,7 +2051,7 @@ const styles = {
     padding: '4px 10px',
     background: '#f3f4f6',
     color: '#6b7280',
-    borderRadius: '12px',
+    borderRadius: 0,
     fontSize: '12px',
     fontWeight: '500'
   },
@@ -2060,7 +2060,7 @@ const styles = {
     padding: '4px 10px',
     background: '#dcfce7',
     color: '#166534',
-    borderRadius: '12px',
+    borderRadius: 0,
     fontSize: '12px',
     fontWeight: '500'
   }
@@ -2082,7 +2082,7 @@ const modalStyles = {
   },
   modal: {
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: 0,
     width: '100%',
     maxWidth: '600px',
     maxHeight: '90vh',
@@ -2123,7 +2123,7 @@ const modalStyles = {
     padding: '12px',
     background: '#fee2e2',
     color: '#dc2626',
-    borderRadius: '8px',
+    borderRadius: 0,
     marginBottom: '16px',
     fontSize: '14px'
   },
@@ -2134,7 +2134,7 @@ const modalStyles = {
     padding: '12px 16px',
     background: '#f9fafb',
     border: '1px solid #e5e7eb',
-    borderRadius: '8px'
+    borderRadius: 0
   },
   patientCardName: {
     fontSize: '16px',
@@ -2171,13 +2171,13 @@ const modalStyles = {
   input: {
     padding: '10px 12px',
     border: '1px solid #ddd',
-    borderRadius: '6px',
+    borderRadius: 0,
     fontSize: '14px'
   },
   select: {
     padding: '10px 12px',
     border: '1px solid #ddd',
-    borderRadius: '6px',
+    borderRadius: 0,
     fontSize: '14px',
     background: '#fff'
   },
@@ -2189,7 +2189,7 @@ const modalStyles = {
   typeBtn: {
     padding: '10px 8px',
     border: '1px solid #ddd',
-    borderRadius: '6px',
+    borderRadius: 0,
     fontSize: '11px',
     fontWeight: '500',
     cursor: 'pointer',
@@ -2206,7 +2206,7 @@ const modalStyles = {
     padding: '10px 20px',
     background: '#f5f5f5',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: 0,
     fontSize: '14px',
     cursor: 'pointer'
   },
@@ -2215,7 +2215,7 @@ const modalStyles = {
     background: '#000',
     color: '#fff',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: 0,
     fontSize: '14px',
     fontWeight: '500',
     cursor: 'pointer'

@@ -312,7 +312,7 @@ const styles = {
   },
   card: {
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: 0,
     padding: '24px',
     marginBottom: '24px',
     boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
@@ -337,7 +337,7 @@ const styles = {
     display: 'block',
     padding: '40px',
     border: '2px dashed #ddd',
-    borderRadius: '8px',
+    borderRadius: 0,
     textAlign: 'center',
     cursor: 'pointer',
     fontSize: '14px',
@@ -353,7 +353,7 @@ const styles = {
     background: '#000',
     color: '#fff',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: 0,
     fontSize: '14px',
     fontWeight: '500',
     cursor: 'pointer'
@@ -363,7 +363,7 @@ const styles = {
     background: '#f5f5f5',
     color: '#000',
     border: '1px solid #ddd',
-    borderRadius: '8px',
+    borderRadius: 0,
     fontSize: '14px',
     fontWeight: '500',
     cursor: 'pointer'
@@ -373,7 +373,7 @@ const styles = {
     background: '#dc2626',
     color: '#fff',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: 0,
     fontSize: '14px',
     fontWeight: '500',
     cursor: 'pointer'
@@ -381,14 +381,14 @@ const styles = {
   status: {
     marginTop: '16px',
     padding: '12px 16px',
-    borderRadius: '8px',
+    borderRadius: 0,
     fontSize: '14px'
   },
   resultBox: {
     marginTop: '20px',
     padding: '20px',
     background: '#fafafa',
-    borderRadius: '8px'
+    borderRadius: 0
   },
   resultTitle: {
     margin: '0 0 16px',

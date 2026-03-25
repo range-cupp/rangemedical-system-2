@@ -83,7 +83,7 @@ const inputStyle = {
   padding: '0.875rem 1rem',
   fontSize: '1rem',
   border: '1px solid #e5e5e5',
-  borderRadius: '8px',
+  borderRadius: '0',
   fontFamily: 'inherit',
   boxSizing: 'border-box'
 };
@@ -92,7 +92,7 @@ const smallInputStyle = {
   ...inputStyle,
   padding: '0.625rem 0.875rem',
   fontSize: '0.875rem',
-  borderRadius: '6px'
+  borderRadius: '0'
 };
 
 const selectStyle = {
@@ -143,7 +143,7 @@ const conditionDetailsStyle = {
   marginTop: '0.75rem',
   padding: '0.75rem',
   background: 'rgba(255,255,255,0.5)',
-  borderRadius: '4px'
+  borderRadius: '0'
 };
 
 export default function MedicalIntakeForm({ intakeData, onIntakeChange, onSubmit, onBack, isSubmitting, error, patientName }) {
@@ -615,7 +615,7 @@ export default function MedicalIntakeForm({ intakeData, onIntakeChange, onSubmit
               )}
 
               {/* Minor Section */}
-              <div style={{ background: '#fef3c7', border: '2px solid #f59e0b', padding: '1.25rem', borderRadius: '8px', marginBottom: '1rem' }}>
+              <div style={{ background: '#fef3c7', border: '2px solid #f59e0b', padding: '1.25rem', borderRadius: '0', marginBottom: '1rem' }}>
                 <h4 style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#92400e', margin: '0 0 0.5rem' }}>
                   Is this patient under 18 years old?
                 </h4>
@@ -625,7 +625,7 @@ export default function MedicalIntakeForm({ intakeData, onIntakeChange, onSubmit
                 {renderRadioGroup('isMinor', intakeData.isMinor || 'No', (val) => updateField('isMinor', val))}
 
                 {intakeData.isMinor === 'Yes' && (
-                  <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(255,255,255,0.5)', borderRadius: '4px' }}>
+                  <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(255,255,255,0.5)', borderRadius: '0' }}>
                     <div style={{ marginBottom: '0.75rem' }}>
                       <label style={fieldLabelStyle}>Parent/Guardian Name <span style={requiredStar}>*</span></label>
                       <input
@@ -730,7 +730,7 @@ export default function MedicalIntakeForm({ intakeData, onIntakeChange, onSubmit
                     background: category.bg,
                     borderLeft: `4px solid ${category.border}`,
                     padding: '1rem',
-                    borderRadius: '0 4px 4px 0',
+                    borderRadius: '0',
                     marginBottom: '1.5rem'
                   }}
                 >
@@ -851,7 +851,7 @@ export default function MedicalIntakeForm({ intakeData, onIntakeChange, onSubmit
                 background: '#dbeafe',
                 border: '2px solid #3b82f6',
                 padding: '1.25rem',
-                borderRadius: '8px',
+                borderRadius: '0',
                 marginBottom: '1.5rem'
               }}>
                 <h4 style={{ fontSize: '0.9375rem', fontWeight: 600, color: '#1e40af', margin: '0 0 0.75rem' }}>
@@ -971,7 +971,7 @@ export default function MedicalIntakeForm({ intakeData, onIntakeChange, onSubmit
                 padding: '1.25rem',
                 background: '#f9fafb',
                 border: '2px solid #e5e5e5',
-                borderRadius: '8px'
+                borderRadius: '0'
               }}>
                 <h4 style={{ ...sectionTitleStyle, margin: '0 0 0.25rem' }}>
                   Photo ID <span style={requiredStar}>*</span>
@@ -984,7 +984,7 @@ export default function MedicalIntakeForm({ intakeData, onIntakeChange, onSubmit
                   <div>
                     <div style={{
                       border: '1px solid #e5e5e5',
-                      borderRadius: '8px',
+                      borderRadius: '0',
                       overflow: 'hidden',
                       marginBottom: '0.75rem',
                       background: '#fff'
@@ -1028,7 +1028,7 @@ export default function MedicalIntakeForm({ intakeData, onIntakeChange, onSubmit
                         width: '100%',
                         padding: '1.25rem',
                         border: '2px dashed #d4d4d4',
-                        borderRadius: '8px',
+                        borderRadius: '0',
                         background: '#fff',
                         cursor: 'pointer',
                         display: 'flex',
@@ -1067,7 +1067,7 @@ export default function MedicalIntakeForm({ intakeData, onIntakeChange, onSubmit
               <div style={{
                 background: '#fafafa',
                 padding: '1rem',
-                borderRadius: '8px',
+                borderRadius: '0',
                 marginTop: '1.5rem',
                 fontSize: '0.875rem',
                 color: '#525252'
@@ -1104,7 +1104,7 @@ export default function MedicalIntakeForm({ intakeData, onIntakeChange, onSubmit
                 </div>
                 <div style={{
                   border: '1px solid #e5e5e5',
-                  borderRadius: '8px',
+                  borderRadius: '0',
                   overflow: 'hidden',
                   background: '#fff',
                   touchAction: 'none'

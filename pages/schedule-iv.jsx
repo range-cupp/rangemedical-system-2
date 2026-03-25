@@ -122,7 +122,7 @@ const styles = {
   infoCard: {
     background: '#ffffff',
     border: '1px solid #e5e7eb',
-    borderRadius: '12px',
+    borderRadius: '0',
     padding: '28px 24px',
     textAlign: 'center',
   },

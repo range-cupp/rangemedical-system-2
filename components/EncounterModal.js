@@ -949,7 +949,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                 <button
                   onClick={() => setConfirmDelete(true)}
                   title="Delete appointment"
-                  style={{ padding: '4px 10px', fontSize: '12px', fontWeight: 600, border: '1px solid #fca5a5', borderRadius: '6px', background: '#fff', color: '#dc2626', cursor: 'pointer' }}
+                  style={{ padding: '4px 10px', fontSize: '12px', fontWeight: 600, border: '1px solid #fca5a5', borderRadius: '0', background: '#fff', color: '#dc2626', cursor: 'pointer' }}
                 >
                   Delete
                 </button>
@@ -959,13 +959,13 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                   <button
                     onClick={handleDeleteAppointment}
                     disabled={deleting}
-                    style={{ padding: '4px 10px', fontSize: '12px', fontWeight: 600, border: 'none', borderRadius: '6px', background: '#dc2626', color: '#fff', cursor: 'pointer' }}
+                    style={{ padding: '4px 10px', fontSize: '12px', fontWeight: 600, border: 'none', borderRadius: '0', background: '#dc2626', color: '#fff', cursor: 'pointer' }}
                   >
                     {deleting ? '...' : 'Yes'}
                   </button>
                   <button
                     onClick={() => setConfirmDelete(false)}
-                    style={{ padding: '4px 10px', fontSize: '12px', fontWeight: 600, border: '1px solid #d1d5db', borderRadius: '6px', background: '#fff', color: '#374151', cursor: 'pointer' }}
+                    style={{ padding: '4px 10px', fontSize: '12px', fontWeight: 600, border: '1px solid #d1d5db', borderRadius: '0', background: '#fff', color: '#374151', cursor: 'pointer' }}
                   >
                     No
                   </button>
@@ -1120,7 +1120,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                             {note.source === 'addendum' && <span className="badge-addendum">Addendum</span>}
                             {note.encounter_service && (
                               <span style={{
-                                fontSize: 11, padding: '2px 8px', borderRadius: 4, fontWeight: 500,
+                                fontSize: 11, padding: '2px 8px', borderRadius: 0, fontWeight: 500,
                                 background: '#ede9fe', color: '#5b21b6',
                               }}>
                                 {note.encounter_service.replace(/\b\w/g, l => l.toUpperCase())} Note
@@ -1143,7 +1143,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                                 type="date"
                                 value={editNoteDate}
                                 onChange={e => setEditNoteDate(e.target.value)}
-                                style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 13 }}
+                                style={{ padding: '4px 8px', borderRadius: 0, border: '1px solid #d1d5db', fontSize: 13 }}
                               />
                             </div>
                             <textarea
@@ -1234,7 +1234,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                             key={formKey}
                             onClick={() => { setNoteMode('interactive'); setInteractiveFormType(formKey); }}
                             style={{
-                              flex: 1, maxWidth: 260, padding: '24px 20px', borderRadius: 14,
+                              flex: 1, maxWidth: 260, padding: '24px 20px', borderRadius: 0,
                               border: '2px solid #e9d5ff', background: '#faf8ff', cursor: 'pointer',
                               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
                               transition: 'all 0.15s',
@@ -1252,7 +1252,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                       <button
                         onClick={() => setNoteMode('freetext')}
                         style={{
-                          flex: 1, maxWidth: 260, padding: '24px 20px', borderRadius: 14,
+                          flex: 1, maxWidth: 260, padding: '24px 20px', borderRadius: 0,
                           border: '2px solid #e5e7eb', background: '#fafafa', cursor: 'pointer',
                           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
                           transition: 'all 0.15s',
@@ -1315,7 +1315,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                         {availableInteractiveForms.length > 0 && (
                           <button
                             onClick={() => setNoteMode('choose')}
-                            style={{ fontSize: 12, color: '#6d28d9', background: '#f3e8ff', border: 'none', borderRadius: 20, padding: '3px 12px', cursor: 'pointer', fontWeight: 600 }}
+                            style={{ fontSize: 12, color: '#6d28d9', background: '#f3e8ff', border: 'none', borderRadius: 0, padding: '3px 12px', cursor: 'pointer', fontWeight: 600 }}
                           >
                             ← Switch to Interactive Form
                           </button>
@@ -1430,7 +1430,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                         title="Bold selected text (select text first)"
                         style={{
                           padding: '4px 10px', fontSize: 13, fontWeight: 800, border: '1px solid #d1d5db',
-                          borderRadius: 6, background: '#f9fafb', color: '#374151', cursor: 'pointer',
+                          borderRadius: 0, background: '#f9fafb', color: '#374151', cursor: 'pointer',
                           fontFamily: 'serif', lineHeight: 1,
                         }}
                       >
@@ -1461,7 +1461,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                         onKeyDown={handleNoteKeyDown}
                         style={{
                           width: '100%', minHeight: 180, resize: 'vertical', fontFamily: 'inherit', fontSize: 14,
-                          lineHeight: 1.7, padding: '14px 50px 14px 16px', borderRadius: 10,
+                          lineHeight: 1.7, padding: '14px 50px 14px 16px', borderRadius: 0,
                           border: '1.5px solid #e5e7eb', background: '#fff', color: '#111',
                           transition: 'border-color 0.15s, box-shadow 0.15s',
                           overflowY: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
@@ -1595,7 +1595,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                         {rxForm.is_controlled && (
                           <div className="enc-controlled-alert">
                             <span>⚠️ CURES check required before prescribing controlled substances</span>
-                            <select value={rxForm.schedule} onChange={e => setRxForm(p => ({ ...p, schedule: e.target.value }))} style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid #fecaca', fontSize: 12 }}>
+                            <select value={rxForm.schedule} onChange={e => setRxForm(p => ({ ...p, schedule: e.target.value }))} style={{ padding: '4px 8px', borderRadius: 0, border: '1px solid #fecaca', fontSize: 12 }}>
                               <option value="">Schedule...</option>
                               <option value="II">Schedule II</option>
                               <option value="III">Schedule III</option>

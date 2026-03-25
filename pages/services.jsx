@@ -527,7 +527,7 @@ export default function Services() {
           background: #ffffff;
           color: #000000;
           border: none;
-          border-radius: 8px;
+          border-radius: 0;
           cursor: pointer;
           text-decoration: none;
           transition: background 0.2s ease, transform 0.2s ease;
@@ -613,7 +613,7 @@ export default function Services() {
 
         .svc-door-card {
           padding: 2rem;
-          border-radius: 12px;
+          border-radius: 0;
           border: 1px solid #e5e5e5;
           background: #ffffff;
           transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -680,7 +680,7 @@ export default function Services() {
           font-size: 0.8125rem;
           font-weight: 600;
           padding: 0.5rem 1.25rem;
-          border-radius: 100px;
+          border-radius: 0;
           border: 1.5px solid #e5e5e5;
           background: #ffffff;
           color: #525252;
@@ -716,7 +716,7 @@ export default function Services() {
         .svc-card {
           position: relative;
           padding: 2rem;
-          border-radius: 12px;
+          border-radius: 0;
           border: 1px solid #e5e5e5;
           background: #ffffff;
           display: flex;
@@ -748,7 +748,7 @@ export default function Services() {
           padding: 0.25rem 0.75rem;
           background: #000000;
           color: #ffffff;
-          border-radius: 100px;
+          border-radius: 0;
         }
 
         .svc-card-categories {
@@ -765,7 +765,7 @@ export default function Services() {
           color: #737373;
           padding: 0.25rem 0.625rem;
           background: #f5f5f5;
-          border-radius: 4px;
+          border-radius: 0;
         }
 
         .svc-card-name {
@@ -803,7 +803,7 @@ export default function Services() {
           margin: 0 0 1rem;
           padding: 0.625rem 0.875rem;
           background: #fafafa;
-          border-radius: 6px;
+          border-radius: 0;
           border-left: 3px solid #e5e5e5;
         }
 

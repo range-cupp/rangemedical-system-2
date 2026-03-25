@@ -582,6 +582,25 @@ p {
   color: #ffffff;
 }
 
+.btn-outline-white {
+  display: inline-block;
+  background: transparent;
+  color: #ffffff;
+  padding: 0.875rem 2rem;
+  border: 1px solid #ffffff;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: all 0.2s;
+}
+
+.btn-outline-white:hover {
+  background: #ffffff;
+  color: #1a1a1a;
+}
+
 /* V2 Link-style CTA */
 .v2-link-cta {
   display: inline-flex;
@@ -986,6 +1005,24 @@ p {
 
 .final-cta a:hover {
   color: #ffffff;
+}
+
+.final-cta .btn-white {
+  color: #1a1a1a !important;
+}
+
+.final-cta .btn-white:hover {
+  color: #1a1a1a !important;
+}
+
+.final-cta .btn-outline {
+  color: #ffffff !important;
+  border-color: #ffffff;
+}
+
+.final-cta .btn-outline:hover {
+  background: #ffffff;
+  color: #1a1a1a !important;
 }
 
 .final-cta .hero-rule,

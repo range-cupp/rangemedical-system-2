@@ -179,7 +179,7 @@ export default function SMSComposeModal({
                           background: showSnippets ? '#dbeafe' : '#f3f4f6',
                           border: '1px solid',
                           borderColor: showSnippets ? '#93c5fd' : '#d1d5db',
-                          borderRadius: '6px',
+                          borderRadius: '0',
                           cursor: 'pointer',
                           marginBottom: '6px',
                         }}
@@ -202,7 +202,7 @@ export default function SMSComposeModal({
                           background: formatting ? '#f3f4f6' : '#f5f3ff',
                           border: '1px solid',
                           borderColor: formatting ? '#e5e7eb' : '#ddd6fe',
-                          borderRadius: '6px',
+                          borderRadius: '0',
                           cursor: formatting || !body.trim() ? 'not-allowed' : 'pointer',
                           opacity: !body.trim() ? 0.5 : 1,
                           marginBottom: '6px',
@@ -214,7 +214,7 @@ export default function SMSComposeModal({
                     </div>
                   </div>
                   {showSnippets && (
-                    <div style={{ marginBottom: '8px', border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden' }}>
+                    <div style={{ marginBottom: '8px', border: '1px solid #e5e7eb', borderRadius: '0', overflow: 'hidden' }}>
                       <TemplateMessages
                         onSelect={handleSnippetSelect}
                         onClose={() => setShowSnippets(false)}
@@ -266,7 +266,7 @@ const modalStyles = {
     padding: '10px 12px',
     fontSize: '14px',
     border: '1px solid #d1d5db',
-    borderRadius: '8px',
+    borderRadius: '0',
     outline: 'none',
     resize: 'vertical',
     fontFamily: 'inherit',
@@ -278,7 +278,7 @@ const modalStyles = {
     background: '#fef2f2',
     color: '#dc2626',
     padding: '10px 12px',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '13px',
     marginBottom: '12px',
   },

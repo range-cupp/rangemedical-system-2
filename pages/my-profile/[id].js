@@ -310,7 +310,7 @@ const styles = {
   },
   emptyState: {
     background: '#f9fafb',
-    borderRadius: '12px',
+    borderRadius: '0',
     padding: '24px',
     textAlign: 'center',
     color: '#666'
@@ -323,7 +323,7 @@ const styles = {
   protocolCard: {
     background: '#fff',
     border: '1px solid #e5e7eb',
-    borderRadius: '12px',
+    borderRadius: '0',
     padding: '16px',
     boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
   },
@@ -345,7 +345,7 @@ const styles = {
     background: '#000',
     color: '#fff',
     padding: '4px 10px',
-    borderRadius: '20px',
+    borderRadius: '0',
     fontSize: '12px',
     fontWeight: '500',
     whiteSpace: 'nowrap'
@@ -354,7 +354,7 @@ const styles = {
     background: '#e5e7eb',
     color: '#666',
     padding: '4px 10px',
-    borderRadius: '20px',
+    borderRadius: '0',
     fontSize: '12px',
     fontWeight: '500',
     whiteSpace: 'nowrap'
@@ -370,7 +370,7 @@ const styles = {
   frequency: {
     background: '#f3f4f6',
     padding: '2px 8px',
-    borderRadius: '4px'
+    borderRadius: '0'
   },
   startDate: {},
   progressSection: {
@@ -379,14 +379,14 @@ const styles = {
   progressBar: {
     height: '8px',
     background: '#e5e7eb',
-    borderRadius: '4px',
+    borderRadius: '0',
     overflow: 'hidden',
     marginBottom: '6px'
   },
   progressFill: {
     height: '100%',
     background: 'linear-gradient(90deg, #10b981, #059669)',
-    borderRadius: '4px',
+    borderRadius: '0',
     transition: 'width 0.3s ease'
   },
   progressLabel: {
@@ -395,7 +395,7 @@ const styles = {
   },
   completedCard: {
     background: '#f9fafb',
-    borderRadius: '12px',
+    borderRadius: '0',
     padding: '16px'
   },
   completedName: {
@@ -412,7 +412,7 @@ const styles = {
   },
   contactSection: {
     background: '#f9fafb',
-    borderRadius: '12px',
+    borderRadius: '0',
     padding: '24px',
     textAlign: 'center',
     marginTop: '32px'
@@ -426,7 +426,7 @@ const styles = {
     background: '#000',
     color: '#fff',
     padding: '12px 24px',
-    borderRadius: '8px',
+    borderRadius: '0',
     textDecoration: 'none',
     fontWeight: '500',
     fontSize: '14px'

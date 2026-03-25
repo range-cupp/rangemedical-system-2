@@ -473,7 +473,7 @@ function AddLabModal({ patientSearch, onPatientSearch, patientResults, onAdd, on
         <div style={styles.formGroup}>
           <label style={styles.formLabel}>Patient</label>
           {selectedPatient ? (
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '0' }}>
               <span style={{ fontWeight: 500 }}>{selectedPatient.name}</span>
               <button style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#9ca3af' }} onClick={() => { setSelectedPatient(null); onPatientSearch(''); }}>×</button>
             </div>
@@ -550,7 +550,7 @@ const styles = {
   statCard: {
     background: '#fff',
     border: '1px solid #e5e5e5',
-    borderRadius: '12px',
+    borderRadius: '0',
     padding: '20px',
     textAlign: 'center'
   },
@@ -577,7 +577,7 @@ const styles = {
   },
   pipelineColumn: {
     background: '#fafafa',
-    borderRadius: '12px',
+    borderRadius: '0',
     border: '1px solid #e5e5e5',
     display: 'flex',
     flexDirection: 'column',
@@ -613,7 +613,7 @@ const styles = {
     color: '#9ca3af',
     background: '#f5f5f5',
     padding: '2px 8px',
-    borderRadius: '10px'
+    borderRadius: '0'
   },
   columnBody: {
     padding: '8px',
@@ -633,7 +633,7 @@ const styles = {
   // Pipeline Cards
   pipelineCard: {
     background: '#fff',
-    borderRadius: '10px',
+    borderRadius: '0',
     padding: '14px',
     border: '1px solid #e5e5e5'
   },
@@ -661,7 +661,7 @@ const styles = {
     fontSize: '11px',
     fontWeight: '600',
     padding: '2px 8px',
-    borderRadius: '6px',
+    borderRadius: '0',
     border: '1px solid transparent',
     letterSpacing: '0.2px'
   },
@@ -669,7 +669,7 @@ const styles = {
     fontSize: '11px',
     fontWeight: '500',
     padding: '2px 8px',
-    borderRadius: '6px',
+    borderRadius: '0',
     background: '#f5f5f5',
     color: '#666',
     border: '1px solid #ebebeb'
@@ -679,7 +679,7 @@ const styles = {
     padding: '5px 8px',
     background: '#fffbeb',
     border: '1px solid #fef3c7',
-    borderRadius: '6px',
+    borderRadius: '0',
     fontSize: '11px',
     color: '#92400e',
     fontStyle: 'italic',
@@ -694,7 +694,7 @@ const styles = {
     flex: 1,
     padding: '5px 10px',
     border: '1px solid #e5e5e5',
-    borderRadius: '6px',
+    borderRadius: '0',
     background: '#fff',
     cursor: 'pointer',
     fontSize: '11px',
@@ -708,7 +708,7 @@ const styles = {
     right: 0,
     background: '#fff',
     border: '1px solid #e5e5e5',
-    borderRadius: '10px',
+    borderRadius: '0',
     boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
     zIndex: 100,
     marginTop: '4px',
@@ -719,7 +719,7 @@ const styles = {
     width: '100%',
     padding: '8px 10px',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: '0',
     background: 'transparent',
     cursor: 'pointer',
     fontSize: '12px',
@@ -756,7 +756,7 @@ const styles = {
     color: '#92400e',
     background: '#fef3c7',
     padding: '2px 8px',
-    borderRadius: '10px'
+    borderRadius: '0'
   },
   scheduledBadge: {
     fontSize: '11px',
@@ -764,7 +764,7 @@ const styles = {
     color: '#166534',
     background: '#dcfce7',
     padding: '2px 8px',
-    borderRadius: '10px'
+    borderRadius: '0'
   },
   dueToggle: {
     fontSize: '14px',
@@ -782,7 +782,7 @@ const styles = {
     color: '#1e40af',
     background: '#eff6ff',
     border: '1px solid #bfdbfe',
-    borderRadius: '6px',
+    borderRadius: '0',
     cursor: 'pointer'
   },
 
@@ -790,7 +790,7 @@ const styles = {
   smsComposer: {
     background: '#f9fafb',
     border: '1px solid #e5e7eb',
-    borderRadius: '8px',
+    borderRadius: '0',
     padding: '14px 20px',
     margin: '0 16px 16px'
   },
@@ -811,7 +811,7 @@ const styles = {
     width: '100%',
     padding: '10px 12px',
     border: '1px solid #d1d5db',
-    borderRadius: '6px',
+    borderRadius: '0',
     fontSize: '13px',
     fontFamily: 'inherit',
     lineHeight: 1.5,
@@ -835,7 +835,7 @@ const styles = {
     fontWeight: '600',
     color: '#fff',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: '0',
     cursor: 'pointer'
   },
   smsError: {
@@ -849,7 +849,7 @@ const styles = {
     width: '100%',
     padding: '7px 10px',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '0',
     color: '#fff',
     cursor: 'pointer',
     fontWeight: '600',
@@ -860,7 +860,7 @@ const styles = {
   removeBtn: {
     padding: '5px 8px',
     border: '1px solid #fecaca',
-    borderRadius: '6px',
+    borderRadius: '0',
     background: '#fff',
     cursor: 'pointer',
     fontSize: '14px',
@@ -890,7 +890,7 @@ const styles = {
   },
   modal: {
     background: '#fff',
-    borderRadius: '16px',
+    borderRadius: '0',
     padding: '28px',
     width: '90%',
     maxWidth: '440px',
@@ -925,7 +925,7 @@ const styles = {
     width: '100%',
     padding: '10px 14px',
     border: '1px solid #ddd',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontFamily: 'inherit',
     fontSize: '14px',
     boxSizing: 'border-box',
@@ -935,7 +935,7 @@ const styles = {
     width: '100%',
     padding: '10px 14px',
     border: '1px solid #ddd',
-    borderRadius: '8px',
+    borderRadius: '0',
     minHeight: '60px',
     resize: 'vertical',
     fontFamily: 'inherit',
@@ -946,7 +946,7 @@ const styles = {
   segmentedControl: {
     display: 'flex',
     background: '#f5f5f5',
-    borderRadius: '8px',
+    borderRadius: '0',
     padding: '3px',
     gap: '3px'
   },
@@ -955,7 +955,7 @@ const styles = {
     padding: '8px 12px',
     background: 'transparent',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: '0',
     fontSize: '13px',
     fontWeight: '500',
     cursor: 'pointer',
@@ -970,7 +970,7 @@ const styles = {
   searchDropdown: {
     marginTop: '4px',
     border: '1px solid #e5e5e5',
-    borderRadius: '10px',
+    borderRadius: '0',
     overflow: 'hidden',
     background: '#fff',
     boxShadow: '0 4px 12px rgba(0,0,0,0.08)'

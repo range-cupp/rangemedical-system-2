@@ -195,16 +195,16 @@ export default function NewProtocol() {
 
             {/* Duplicate protocol alert — returned by API when active protocol already exists */}
             {duplicateInfo && (
-              <div style={{ background: '#fef3c7', border: '2px solid #f59e0b', borderRadius: 8, padding: '14px 16px', marginBottom: 16 }}>
+              <div style={{ background: '#fef3c7', border: '2px solid #f59e0b', borderRadius: 0, padding: '14px 16px', marginBottom: 16 }}>
                 <div style={{ fontWeight: 700, color: '#92400e', marginBottom: 6 }}>⚠️ Protocol Already Exists</div>
                 <div style={{ fontSize: 14, color: '#78350f', marginBottom: 10 }}>{duplicateInfo.message}</div>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   {patient_id && (
-                    <Link href={`/patients/${patient_id}`} style={{ padding: '8px 14px', background: '#92400e', color: '#fff', borderRadius: 6, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+                    <Link href={`/patients/${patient_id}`} style={{ padding: '8px 14px', background: '#92400e', color: '#fff', borderRadius: 0, fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
                       View Patient Profile →
                     </Link>
                   )}
-                  <button type="button" onClick={handleForceCreate} disabled={saving} style={{ padding: '8px 14px', background: '#fff', color: '#92400e', border: '1px solid #f59e0b', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}>
+                  <button type="button" onClick={handleForceCreate} disabled={saving} style={{ padding: '8px 14px', background: '#fff', color: '#92400e', border: '1px solid #f59e0b', borderRadius: 0, fontSize: 13, cursor: 'pointer' }}>
                     {saving ? 'Creating...' : 'Create Anyway'}
                   </button>
                 </div>
@@ -213,7 +213,7 @@ export default function NewProtocol() {
 
             {/* Existing active protocols warning — shown when patient already has active protocols */}
             {existingProtocols.length > 0 && (
-              <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 8, padding: '12px 14px', marginBottom: 16 }}>
+              <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 0, padding: '12px 14px', marginBottom: 16 }}>
                 <div style={{ fontWeight: 600, color: '#92400e', marginBottom: 6, fontSize: 13 }}>
                   ⚠️ This patient already has {existingProtocols.length} active protocol{existingProtocols.length !== 1 ? 's' : ''}:
                 </div>
@@ -554,10 +554,10 @@ const styles = {
   container: { minHeight: '100vh', background: '#f5f5f5', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' },
   header: { background: '#000', color: '#fff', padding: '20px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   title: { fontSize: '20px', fontWeight: '600', margin: 0 },
-  backBtn: { background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer' },
+  backBtn: { background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', padding: '8px 16px', borderRadius: 0, cursor: 'pointer' },
   
   main: { maxWidth: '800px', margin: '0 auto', padding: '32px 24px' },
-  form: { background: '#fff', borderRadius: '12px', overflow: 'hidden' },
+  form: { background: '#fff', borderRadius: 0, overflow: 'hidden' },
   
   section: { padding: '24px', borderBottom: '1px solid #f0f0f0' },
   sectionTitle: { fontSize: '16px', fontWeight: '600', margin: '0 0 16px', color: '#333' },
@@ -565,20 +565,20 @@ const styles = {
   grid: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' },
   field: { display: 'flex', flexDirection: 'column' },
   label: { fontSize: '13px', fontWeight: '500', marginBottom: '6px', color: '#666' },
-  input: { padding: '10px 12px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '14px' },
-  select: { padding: '10px 12px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '14px', background: '#fff' },
-  textarea: { padding: '10px 12px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '14px', resize: 'vertical', fontFamily: 'inherit' },
+  input: { padding: '10px 12px', border: '1px solid #ddd', borderRadius: 0, fontSize: '14px' },
+  select: { padding: '10px 12px', border: '1px solid #ddd', borderRadius: 0, fontSize: '14px', background: '#fff' },
+  textarea: { padding: '10px 12px', border: '1px solid #ddd', borderRadius: 0, fontSize: '14px', resize: 'vertical', fontFamily: 'inherit' },
   hint: { fontSize: '11px', color: '#999', marginTop: '4px' },
   
   typeGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' },
-  typeCard: { padding: '16px', border: '2px solid', borderRadius: '10px', fontSize: '14px', fontWeight: '500', cursor: 'pointer', transition: 'all 0.2s' },
+  typeCard: { padding: '16px', border: '2px solid', borderRadius: 0, fontSize: '14px', fontWeight: '500', cursor: 'pointer', transition: 'all 0.2s' },
   
-  warning: { margin: '0 24px 24px', padding: '12px 16px', background: '#fef3c7', borderRadius: '8px', fontSize: '13px', color: '#92400e' },
+  warning: { margin: '0 24px 24px', padding: '12px 16px', background: '#fef3c7', borderRadius: 0, fontSize: '13px', color: '#92400e' },
   labNote: { fontSize: '13px', color: '#666', marginTop: '12px' },
   
-  error: { margin: '24px', padding: '12px 16px', background: '#fee2e2', borderRadius: '8px', color: '#dc2626', fontSize: '14px' },
+  error: { margin: '24px', padding: '12px 16px', background: '#fee2e2', borderRadius: 0, color: '#dc2626', fontSize: '14px' },
   
   actions: { padding: '24px', display: 'flex', gap: '12px', justifyContent: 'flex-end' },
-  cancelBtn: { padding: '12px 24px', background: '#f5f5f5', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer' },
-  submitBtn: { padding: '12px 32px', background: '#000', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }
+  cancelBtn: { padding: '12px 24px', background: '#f5f5f5', border: 'none', borderRadius: 0, fontSize: '14px', fontWeight: '500', cursor: 'pointer' },
+  submitBtn: { padding: '12px 32px', background: '#000', color: '#fff', border: 'none', borderRadius: 0, fontSize: '14px', fontWeight: '600', cursor: 'pointer' }
 };

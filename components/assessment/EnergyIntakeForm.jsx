@@ -30,7 +30,7 @@ export default function EnergyIntakeForm({ intakeData, onIntakeChange, onSubmit,
                 onChange={(e) => updateField('currentMedicationsText', e.target.value)}
                 placeholder="List any medications, supplements, or vitamins you take regularly..."
                 rows={3}
-                style={{ width: '100%', padding: '0.875rem 1rem', fontSize: '0.9375rem', border: '1px solid #e5e5e5', borderRadius: '8px', fontFamily: 'inherit', resize: 'vertical' }}
+                style={{ width: '100%', padding: '0.875rem 1rem', fontSize: '0.9375rem', border: '1px solid #e5e5e5', borderRadius: '0', fontFamily: 'inherit', resize: 'vertical' }}
               />
               <label
                 className={`ra-multiselect-option ${intakeData.noCurrentMedications ? 'ra-selected' : ''}`}
@@ -85,7 +85,7 @@ export default function EnergyIntakeForm({ intakeData, onIntakeChange, onSubmit,
                   value={intakeData.knownAllergiesText || ''}
                   onChange={(e) => updateField('knownAllergiesText', e.target.value)}
                   placeholder="List any allergies..."
-                  style={{ width: '100%', padding: '0.875rem 1rem', fontSize: '0.9375rem', border: '1px solid #e5e5e5', borderRadius: '8px', fontFamily: 'inherit' }}
+                  style={{ width: '100%', padding: '0.875rem 1rem', fontSize: '0.9375rem', border: '1px solid #e5e5e5', borderRadius: '0', fontFamily: 'inherit' }}
                 />
               )}
             </div>
@@ -100,7 +100,7 @@ export default function EnergyIntakeForm({ intakeData, onIntakeChange, onSubmit,
                 onChange={(e) => updateField('diagnosedConditionsText', e.target.value)}
                 placeholder="e.g., hypothyroidism, high blood pressure, diabetes..."
                 rows={2}
-                style={{ width: '100%', padding: '0.875rem 1rem', fontSize: '0.9375rem', border: '1px solid #e5e5e5', borderRadius: '8px', fontFamily: 'inherit', resize: 'vertical' }}
+                style={{ width: '100%', padding: '0.875rem 1rem', fontSize: '0.9375rem', border: '1px solid #e5e5e5', borderRadius: '0', fontFamily: 'inherit', resize: 'vertical' }}
               />
             </div>
 
@@ -117,7 +117,7 @@ export default function EnergyIntakeForm({ intakeData, onIntakeChange, onSubmit,
                   value={intakeData.emergencyContactName || ''}
                   onChange={(e) => updateField('emergencyContactName', e.target.value)}
                   placeholder="Jane Smith"
-                  style={{ width: '100%', padding: '0.875rem 1rem', fontSize: '1rem', border: '1px solid #e5e5e5', borderRadius: '8px', fontFamily: 'inherit' }}
+                  style={{ width: '100%', padding: '0.875rem 1rem', fontSize: '1rem', border: '1px solid #e5e5e5', borderRadius: '0', fontFamily: 'inherit' }}
                 />
               </div>
               <div className="ra-form-grid">
@@ -129,7 +129,7 @@ export default function EnergyIntakeForm({ intakeData, onIntakeChange, onSubmit,
                     value={intakeData.emergencyContactPhone || ''}
                     onChange={(e) => updateField('emergencyContactPhone', e.target.value)}
                     placeholder="(949) 555-1234"
-                    style={{ width: '100%', padding: '0.875rem 1rem', fontSize: '1rem', border: '1px solid #e5e5e5', borderRadius: '8px', fontFamily: 'inherit' }}
+                    style={{ width: '100%', padding: '0.875rem 1rem', fontSize: '1rem', border: '1px solid #e5e5e5', borderRadius: '0', fontFamily: 'inherit' }}
                   />
                 </div>
                 <div className="ra-field">
@@ -140,7 +140,7 @@ export default function EnergyIntakeForm({ intakeData, onIntakeChange, onSubmit,
                     value={intakeData.emergencyContactRelationship || ''}
                     onChange={(e) => updateField('emergencyContactRelationship', e.target.value)}
                     placeholder="Spouse, parent..."
-                    style={{ width: '100%', padding: '0.875rem 1rem', fontSize: '1rem', border: '1px solid #e5e5e5', borderRadius: '8px', fontFamily: 'inherit' }}
+                    style={{ width: '100%', padding: '0.875rem 1rem', fontSize: '1rem', border: '1px solid #e5e5e5', borderRadius: '0', fontFamily: 'inherit' }}
                   />
                 </div>
               </div>

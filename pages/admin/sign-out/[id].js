@@ -251,7 +251,7 @@ const styles = {
     background: '#000',
     color: '#fff',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: 0,
     fontSize: '14px',
     fontWeight: '500',
     cursor: 'pointer'
@@ -261,7 +261,7 @@ const styles = {
     background: '#fff',
     color: '#374151',
     border: '1px solid #d1d5db',
-    borderRadius: '8px',
+    borderRadius: 0,
     fontSize: '14px',
     cursor: 'pointer'
   },
@@ -315,7 +315,7 @@ const styles = {
     fontSize: '14px',
     background: '#f9fafb',
     padding: '12px',
-    borderRadius: '6px',
+    borderRadius: 0,
     margin: 0,
     whiteSpace: 'pre-wrap'
   },
@@ -340,7 +340,7 @@ const styles = {
     height: '80px',
     objectFit: 'contain',
     border: '1px solid #e5e7eb',
-    borderRadius: '4px',
+    borderRadius: 0,
     marginBottom: '8px'
   },
   signatureLine: {

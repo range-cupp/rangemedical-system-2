@@ -29,7 +29,7 @@ function ProgressBar({ currentStageIndex, totalStages, stages, isUnassigned }) {
                 width: segmentWidth,
                 height: '100%',
                 background: isCompleted ? '#000' : isCurrent ? '#555' : '#e5e7eb',
-                borderRadius: i === 0 ? '4px 0 0 4px' : i === stages.length - 1 ? '0 4px 4px 0' : '0',
+                borderRadius: '0',
                 borderRight: i < stages.length - 1 ? '1px solid #fff' : 'none',
                 transition: 'background 0.3s'
               }}
@@ -251,7 +251,7 @@ const listStyles = {
   },
   tableCard: {
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: '0',
     border: '1px solid #e5e7eb',
     overflow: 'hidden'
   },
@@ -290,7 +290,7 @@ const listStyles = {
   stageBadge: {
     padding: '4px 10px',
     background: '#f3f4f6',
-    borderRadius: '6px',
+    borderRadius: '0',
     fontSize: '12px',
     fontWeight: '500',
     color: '#374151',
@@ -304,7 +304,7 @@ const listStyles = {
   progressTrack: {
     flex: 1,
     height: '8px',
-    borderRadius: '4px',
+    borderRadius: '0',
     display: 'flex',
     overflow: 'hidden',
     background: '#e5e7eb'
@@ -337,7 +337,7 @@ const listStyles = {
   },
   statusBadge: {
     padding: '3px 8px',
-    borderRadius: '10px',
+    borderRadius: '0',
     fontSize: '11px',
     fontWeight: '500',
     whiteSpace: 'nowrap'
@@ -345,7 +345,7 @@ const listStyles = {
   stageSelect: {
     padding: '6px 10px',
     border: '1px solid #d1d5db',
-    borderRadius: '6px',
+    borderRadius: '0',
     fontSize: '12px',
     fontWeight: '500',
     cursor: 'pointer',

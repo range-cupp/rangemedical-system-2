@@ -169,7 +169,7 @@ export default function CellularEnergyTracker() {
         .form-section {
           background: #fff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1.5rem;
           margin-bottom: 1.5rem;
         }
@@ -184,7 +184,7 @@ export default function CellularEnergyTracker() {
           width: 100%;
           padding: 0.75rem;
           border: 1px solid #d4d4d4;
-          border-radius: 8px;
+          border-radius: 0;
           font-size: 1rem;
           margin-bottom: 1rem;
         }
@@ -197,7 +197,7 @@ export default function CellularEnergyTracker() {
         .week-tab {
           padding: 0.5rem 1rem;
           border: 1px solid #d4d4d4;
-          border-radius: 6px;
+          border-radius: 0;
           background: #fff;
           cursor: pointer;
           font-size: 0.875rem;
@@ -237,7 +237,7 @@ export default function CellularEnergyTracker() {
           height: 8px;
           -webkit-appearance: none;
           background: #e5e5e5;
-          border-radius: 4px;
+          border-radius: 0;
           outline: none;
         }
         .rating-slider::-webkit-slider-thumb {
@@ -275,7 +275,7 @@ export default function CellularEnergyTracker() {
           width: 40px;
           height: 40px;
           border: 2px solid #d4d4d4;
-          border-radius: 8px;
+          border-radius: 0;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -298,7 +298,7 @@ export default function CellularEnergyTracker() {
           width: 100%;
           padding: 0.75rem;
           border: 1px solid #d4d4d4;
-          border-radius: 8px;
+          border-radius: 0;
           font-size: 1rem;
           min-height: 100px;
           resize: vertical;
@@ -308,7 +308,7 @@ export default function CellularEnergyTracker() {
           width: 100%;
           padding: 0.75rem;
           border: 1px solid #d4d4d4;
-          border-radius: 8px;
+          border-radius: 0;
           font-size: 1rem;
         }
         .submit-btn {
@@ -317,7 +317,7 @@ export default function CellularEnergyTracker() {
           background: #1a2f4a;
           color: #fff;
           border: none;
-          border-radius: 8px;
+          border-radius: 0;
           font-size: 1rem;
           font-weight: 600;
           cursor: pointer;
@@ -332,7 +332,7 @@ export default function CellularEnergyTracker() {
         }
         .message {
           padding: 1rem;
-          border-radius: 8px;
+          border-radius: 0;
           margin-bottom: 1rem;
         }
         .message.success {
@@ -346,7 +346,7 @@ export default function CellularEnergyTracker() {
         .patient-info-card {
           background: #f9fafb;
           padding: 1rem;
-          border-radius: 8px;
+          border-radius: 0;
           margin-bottom: 1rem;
         }
         .patient-info-card h4 {
@@ -360,7 +360,7 @@ export default function CellularEnergyTracker() {
         .progress-bar {
           height: 8px;
           background: #e5e5e5;
-          border-radius: 4px;
+          border-radius: 0;
           margin-top: 0.5rem;
           overflow: hidden;
         }

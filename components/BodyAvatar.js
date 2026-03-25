@@ -298,7 +298,7 @@ const avatarStyles = {
   container: {
     background: '#f8fafc',
     border: '1.5px solid #e2e8f0',
-    borderRadius: 14,
+    borderRadius: 0,
     padding: 16,
     display: 'flex',
     flexDirection: 'column',
@@ -308,7 +308,7 @@ const avatarStyles = {
   viewToggle: {
     display: 'flex',
     gap: 0,
-    borderRadius: 10,
+    borderRadius: 0,
     overflow: 'hidden',
     border: '1.5px solid #e2e8f0',
   },
@@ -345,7 +345,7 @@ const avatarStyles = {
     gap: 6,
     background: '#fff',
     border: '1.5px solid #059669',
-    borderRadius: 20,
+    borderRadius: 0,
     padding: '4px 14px',
     fontSize: 12,
     fontWeight: 600,

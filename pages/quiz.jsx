@@ -607,7 +607,7 @@ export default function Quiz() {
           background: #ffffff;
           color: #171717;
           border: 2px solid #e5e5e5;
-          border-radius: 8px;
+          border-radius: 0;
           cursor: pointer;
           transition: all 0.2s ease;
         }
@@ -634,14 +634,14 @@ export default function Quiz() {
         .quiz-progress-bar {
           height: 6px;
           background: #e5e5e5;
-          border-radius: 100px;
+          border-radius: 0;
           overflow: hidden;
         }
 
         .quiz-progress-fill {
           height: 100%;
           background: #000000;
-          border-radius: 100px;
+          border-radius: 0;
           transition: width 0.3s ease;
         }
 
@@ -684,7 +684,7 @@ export default function Quiz() {
           width: 44px;
           height: 44px;
           border: 2px solid #e5e5e5;
-          border-radius: 8px;
+          border-radius: 0;
           background: #ffffff;
           font-family: inherit;
           font-size: 0.9375rem;
@@ -720,7 +720,7 @@ export default function Quiz() {
           background: #ffffff;
           color: #525252;
           border: 1px solid #e5e5e5;
-          border-radius: 8px;
+          border-radius: 0;
           cursor: pointer;
           transition: all 0.2s ease;
         }
@@ -743,7 +743,7 @@ export default function Quiz() {
           background: #000000;
           color: #ffffff;
           border: none;
-          border-radius: 8px;
+          border-radius: 0;
           cursor: pointer;
           transition: all 0.2s ease;
         }
@@ -765,7 +765,7 @@ export default function Quiz() {
         .quiz-good-results {
           padding: 2rem;
           background: #fafafa;
-          border-radius: 12px;
+          border-radius: 0;
           margin-bottom: 2rem;
         }
 
@@ -796,7 +796,7 @@ export default function Quiz() {
         .quiz-concern-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1.5rem;
           margin-bottom: 1rem;
           text-align: left;
@@ -821,7 +821,7 @@ export default function Quiz() {
           color: #dc2626;
           background: #fef2f2;
           padding: 0.25rem 0.75rem;
-          border-radius: 100px;
+          border-radius: 0;
         }
 
         .quiz-concern-insight {
@@ -870,7 +870,7 @@ export default function Quiz() {
         /* Next Steps Box */
         .quiz-next-steps-box {
           background: #fafafa;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1.5rem;
           margin: 2rem 0;
           text-align: left;
@@ -914,7 +914,7 @@ export default function Quiz() {
         .quiz-discount-box {
           background: #000000;
           color: #ffffff;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 2rem;
           margin: 2rem 0;
           text-align: center;
@@ -940,7 +940,7 @@ export default function Quiz() {
           text-transform: uppercase;
           letter-spacing: 0.05em;
           padding: 0.375rem 0.75rem;
-          border-radius: 4px;
+          border-radius: 0;
           margin-bottom: 1rem;
         }
 
@@ -957,7 +957,7 @@ export default function Quiz() {
           font-size: 0.9375rem;
           padding: 0.875rem 1rem;
           border: 1px solid rgba(255, 255, 255, 0.2);
-          border-radius: 8px;
+          border-radius: 0;
           background: rgba(255, 255, 255, 0.1);
           color: #ffffff;
         }
@@ -980,7 +980,7 @@ export default function Quiz() {
           background: #ffffff;
           color: #000000;
           border: none;
-          border-radius: 8px;
+          border-radius: 0;
           cursor: pointer;
           transition: all 0.2s ease;
         }
@@ -1024,7 +1024,7 @@ export default function Quiz() {
         .quiz-panel-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1.5rem;
           text-align: left;
           position: relative;
@@ -1046,7 +1046,7 @@ export default function Quiz() {
           text-transform: uppercase;
           letter-spacing: 0.05em;
           padding: 0.375rem 0.75rem;
-          border-radius: 4px;
+          border-radius: 0;
         }
 
         .quiz-panel-name {
@@ -1075,7 +1075,7 @@ export default function Quiz() {
           color: #16a34a;
           background: #f0fdf4;
           padding: 0.5rem 0.75rem;
-          border-radius: 6px;
+          border-radius: 0;
           margin-bottom: 0.75rem;
         }
 
@@ -1095,7 +1095,7 @@ export default function Quiz() {
           background: #ffffff;
           color: #171717;
           border: 2px solid #e5e5e5;
-          border-radius: 8px;
+          border-radius: 0;
           text-align: center;
           text-decoration: none;
           transition: all 0.2s ease;

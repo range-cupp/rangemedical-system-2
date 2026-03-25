@@ -188,7 +188,7 @@ export default function ClinicTV() {
         .big-statement { font-size: clamp(1.5rem, 3vw, 2.5rem); font-weight: 700; line-height: 1.3; letter-spacing: -0.02em; text-align: center; color: var(--color-text); max-width: 800px; }
         .small-note { font-size: 0.875rem; font-weight: 400; color: var(--color-text-muted); margin-top: 10px; }
 
-        .step-badge { display: inline-flex; align-items: center; justify-content: center; background: var(--color-primary); color: #ffffff; font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.05em; padding: 6px 20px; border-radius: var(--radius-sm); margin-bottom: 18px; }
+        .step-badge { display: inline-flex; align-items: center; justify-content: center; background: var(--color-primary); color: #ffffff; font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.05em; padding: 6px 20px; border-radius: 0; margin-bottom: 18px; }
         .step-text { font-size: clamp(1.375rem, 2.5vw, 2.25rem); font-weight: 600; line-height: 1.35; letter-spacing: -0.01em; text-align: center; color: var(--color-text); max-width: 700px; }
         .divider { width: 48px; height: 2px; background: var(--color-border); margin: 20px auto; }
 
@@ -196,14 +196,14 @@ export default function ClinicTV() {
         .benefit-list li { font-size: clamp(1rem, 1.6vw, 1.25rem); font-weight: 400; color: var(--color-text-body); padding: 8px 0 8px 28px; position: relative; line-height: 1.6; }
         .benefit-list li::before { content: '✓'; position: absolute; left: 0; font-weight: 700; color: var(--color-primary); }
 
-        .pricing-card { border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 32px 48px; margin-top: 24px; text-align: center; box-shadow: var(--shadow-sm); background: var(--color-bg); }
+        .pricing-card { border: 1px solid var(--color-border); border-radius: 0; padding: 32px 48px; margin-top: 24px; text-align: center; box-shadow: var(--shadow-sm); background: var(--color-bg); }
         .pricing-row { display: flex; align-items: baseline; justify-content: center; gap: 16px; margin: 8px 0; }
         .pricing-label { font-size: clamp(0.9375rem, 1.4vw, 1.125rem); font-weight: 500; color: var(--color-text-body); }
         .pricing-amount { font-size: clamp(1.5rem, 2.5vw, 2.25rem); font-weight: 700; color: var(--color-text); letter-spacing: -0.02em; }
         .pricing-divider { width: 100%; height: 1px; background: var(--color-border); margin: 10px 0; }
         .pricing-kicker { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--color-text-muted); margin-bottom: 16px; }
 
-        .proof-card { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 36px 44px; max-width: 680px; text-align: left; box-shadow: var(--shadow-sm); }
+        .proof-card { background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 0; padding: 36px 44px; max-width: 680px; text-align: left; box-shadow: var(--shadow-sm); }
         .proof-quote { font-size: clamp(1.0625rem, 1.6vw, 1.3125rem); font-weight: 400; font-style: italic; line-height: 1.7; color: var(--color-text-body); }
         .proof-attribution { font-size: 0.8125rem; font-weight: 600; color: var(--color-text); margin-top: 16px; text-transform: uppercase; letter-spacing: 0.05em; }
         .stars { color: var(--color-text); font-size: clamp(1.25rem, 2vw, 1.75rem); letter-spacing: 4px; margin-bottom: 12px; }

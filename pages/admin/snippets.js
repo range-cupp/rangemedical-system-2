@@ -346,7 +346,7 @@ const pageStyles = {
   },
   tab: {
     padding: '6px 14px',
-    borderRadius: 100,
+    borderRadius: 0,
     border: '1px solid #e5e5e5',
     background: '#fff',
     cursor: 'pointer',
@@ -373,7 +373,7 @@ const pageStyles = {
     gap: 8,
     padding: '10px 14px',
     border: '1px solid #e5e5e5',
-    borderRadius: 8,
+    borderRadius: 0,
     background: '#fff',
   },
   searchInput: {
@@ -388,7 +388,7 @@ const pageStyles = {
     fontSize: 12,
     fontWeight: 500,
     padding: '3px 10px',
-    borderRadius: 100,
+    borderRadius: 0,
     background: '#f3f4f6',
     color: '#555',
   },
@@ -398,7 +398,7 @@ const pageStyles = {
     cursor: 'pointer',
     color: '#666',
     padding: '4px 6px',
-    borderRadius: 4,
+    borderRadius: 0,
     transition: 'background 0.15s',
   },
   toast: {
@@ -408,7 +408,7 @@ const pageStyles = {
     background: '#111',
     color: '#fff',
     padding: '10px 20px',
-    borderRadius: 8,
+    borderRadius: 0,
     fontSize: 14,
     fontWeight: 500,
     zIndex: 9999,
@@ -428,7 +428,7 @@ const pageStyles = {
   code: {
     background: '#f3f4f6',
     padding: '2px 6px',
-    borderRadius: 4,
+    borderRadius: 0,
     fontSize: 12,
     fontFamily: 'monospace',
     color: '#333',

@@ -371,41 +371,41 @@ export default function BloodDrawConsentPage() {
         .form-row { display: flex; gap: 16px; margin-bottom: 16px; }
         .form-group { flex: 1; }
         .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 4px; color: #333; }
-        .form-group input, .form-group textarea { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        .form-group input, .form-group textarea { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 0; font-size: 14px; }
         .form-group input:focus, .form-group textarea:focus { border-color: #000; outline: none; box-shadow: 0 0 0 2px rgba(0,0,0,0.1); }
         .req { color: #dc2626; }
-        .info-block { background: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px; padding: 20px; }
+        .info-block { background: #fafafa; border: 1px solid #e5e5e5; border-radius: 0; padding: 20px; }
         .info-block p { font-size: 14px; line-height: 1.6; color: #333; margin-bottom: 12px; }
         .info-block p:last-child { margin-bottom: 0; }
         .risk-list { padding-left: 20px; margin-top: 8px; }
         .risk-list li { font-size: 13px; line-height: 1.5; color: #444; margin-bottom: 6px; }
-        .screening-item { background: #fafafa; border: 1px solid #e5e5e5; border-radius: 6px; padding: 16px; margin-bottom: 12px; }
+        .screening-item { background: #fafafa; border: 1px solid #e5e5e5; border-radius: 0; padding: 16px; margin-bottom: 12px; }
         .screening-label { font-size: 14px; font-weight: 600; display: block; margin-bottom: 6px; }
         .radio-row { display: flex; gap: 20px; margin-top: 4px; }
         .radio-row label { font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
         .details-field { margin-top: 10px; }
         .details-field label { font-size: 13px; font-weight: 500; display: block; margin-bottom: 4px; }
-        .details-field textarea { width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; resize: vertical; }
-        .ack-item { border: 1px solid #e5e7eb; border-radius: 6px; padding: 14px 16px; margin-bottom: 10px; transition: border-color 0.2s; }
+        .details-field textarea { width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 0; font-size: 13px; resize: vertical; }
+        .ack-item { border: 1px solid #e5e7eb; border-radius: 0; padding: 14px 16px; margin-bottom: 10px; transition: border-color 0.2s; }
         .ack-item label { display: flex; gap: 12px; cursor: pointer; align-items: flex-start; }
         .ack-checkbox { position: absolute; opacity: 0; width: 0; height: 0; }
-        .ack-initials { width: 28px; height: 28px; min-width: 28px; border: 2px solid #d4d4d4; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: transparent; background: #fff; cursor: pointer; transition: all 0.15s; margin-top: 1px; user-select: none; }
+        .ack-initials { width: 28px; height: 28px; min-width: 28px; border: 2px solid #d4d4d4; border-radius: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: transparent; background: #fff; cursor: pointer; transition: all 0.15s; margin-top: 1px; user-select: none; }
         .ack-checkbox:checked + .ack-initials { background: #000; border-color: #000; color: #fff; }
         .ack-text { font-size: 13px; line-height: 1.55; color: #333; }
-        .signature-container { border: 2px solid #000; border-radius: 6px; margin-bottom: 8px; overflow: hidden; }
+        .signature-container { border: 2px solid #000; border-radius: 0; margin-bottom: 8px; overflow: hidden; }
         .signature-pad { width: 100%; height: 150px; cursor: crosshair; }
         .signature-actions { text-align: right; }
-        .btn-clear { background: none; border: 1px solid #ccc; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .btn-clear { background: none; border: 1px solid #ccc; padding: 6px 14px; border-radius: 0; cursor: pointer; font-size: 13px; }
         .field-error { color: #dc2626; font-size: 12px; display: block; margin-top: 4px; }
         .submit-section { padding-top: 20px; text-align: center; }
-        .btn-submit { background: #000; color: #fff; border: none; padding: 14px 48px; font-size: 16px; font-weight: 600; border-radius: 6px; cursor: pointer; }
+        .btn-submit { background: #000; color: #fff; border: none; padding: 14px 48px; font-size: 16px; font-weight: 600; border-radius: 0; cursor: pointer; }
         .btn-submit:disabled { background: #999; cursor: not-allowed; }
-        .validation-summary{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:1rem 1.5rem;margin-bottom:1rem;display:none}
+        .validation-summary{background:#fef2f2;border:1px solid #fecaca;border-radius: 0;padding:1rem 1.5rem;margin-bottom:1rem;display:none}
         .validation-summary.visible{display:block}
         .validation-summary h3{color:#991b1b;font-size:.9375rem;margin-bottom:.5rem}
         .validation-summary ul{margin:0;padding-left:1.25rem;color:#dc2626;font-size:.875rem}
         .validation-summary ul li{margin-bottom:.25rem}
-        .status-message { margin-top: 16px; padding: 12px; border-radius: 6px; font-size: 14px; text-align: center; }
+        .status-message { margin-top: 16px; padding: 12px; border-radius: 0; font-size: 14px; text-align: center; }
         .status-message.success { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
         .status-message.error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
         .consent-footer { text-align: center; padding: 20px; border-top: 1px solid #e5e5e5; font-size: 12px; color: #999; }

@@ -245,7 +245,7 @@ const styles = {
   statCard: {
     background: '#fff',
     padding: '16px 24px',
-    borderRadius: '8px',
+    borderRadius: '0',
     boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
   },
   statNumber: {
@@ -269,7 +269,7 @@ const styles = {
   },
   table: {
     background: '#fff',
-    borderRadius: '8px',
+    borderRadius: '0',
     boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
     overflow: 'hidden'
   },
@@ -326,13 +326,13 @@ const styles = {
   },
   supplyBadge: {
     padding: '4px 8px',
-    borderRadius: '4px',
+    borderRadius: '0',
     fontSize: '12px',
     textTransform: 'capitalize'
   },
   refillBadge: {
     padding: '4px 8px',
-    borderRadius: '4px',
+    borderRadius: '0',
     fontSize: '12px',
     fontWeight: '500'
   },

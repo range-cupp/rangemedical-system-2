@@ -62,7 +62,7 @@ function renderMd(text) {
       if (m.index > last) parts.push(line.slice(last, m.index));
       if (m[0].startsWith('**'))     parts.push(<strong key={m.index}>{m[2]}</strong>);
       else if (m[0].startsWith('*')) parts.push(<em key={m.index}>{m[3]}</em>);
-      else parts.push(<code key={m.index} style={{ background:'rgba(0,0,0,.07)', borderRadius:3, padding:'1px 5px', fontSize:12 }}>{m[4]}</code>);
+      else parts.push(<code key={m.index} style={{ background:'rgba(0,0,0,.07)', borderRadius: 0, padding:'1px 5px', fontSize:12 }}>{m[4]}</code>);
       last = m.index + m[0].length;
     }
     if (last < line.length) parts.push(line.slice(last));
@@ -107,7 +107,7 @@ function WalkinSearch({ onSelect }) {
 
   return (
     <div ref={ref} style={{ position: 'relative', flex: 1, maxWidth: 360 }}>
-      <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.1)', borderRadius: 8, padding: '0 12px', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.1)', borderRadius: 0, padding: '0 12px', gap: 8 }}>
         <span style={{ color: '#888', fontSize: 14 }}>🔍</span>
         <input
           value={q}
@@ -124,7 +124,7 @@ function WalkinSearch({ onSelect }) {
       {open && results.length > 0 && (
         <div style={{
           position: 'absolute', top: 'calc(100% + 8px)', left: 0, right: 0,
-          background: '#fff', borderRadius: 10, boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+          background: '#fff', borderRadius: 0, boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
           zIndex: 200, overflow: 'hidden',
         }}>
           {results.map(p => {
@@ -163,7 +163,7 @@ function SidebarSection({ title, icon, count, badge, expanded, onToggle, childre
         <span style={{ fontSize: 11, color: '#999', transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}>▶</span>
         <span style={{ fontSize: 13, fontWeight: 700, color: '#555', letterSpacing: 0.3 }}>{icon} {title}</span>
         {count > 0 && (
-          <span style={{ fontSize: 11, fontWeight: 700, color: badge === 'red' ? '#fff' : '#666', background: badge === 'red' ? '#ef4444' : '#e8eaed', borderRadius: 10, padding: '1px 6px', marginLeft: 'auto' }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: badge === 'red' ? '#fff' : '#666', background: badge === 'red' ? '#ef4444' : '#e8eaed', borderRadius: 0, padding: '1px 6px', marginLeft: 'auto' }}>
             {count}
           </span>
         )}
@@ -280,7 +280,7 @@ function TodaySchedule({ onSelectPatient }) {
               <span style={{ color: '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                 {patientName}
                 {checkInTime && <span style={{ color: '#8b5cf6', fontSize: 11, fontWeight: 600, marginLeft: 4 }}>IN {checkInTime}</span>}
-                {locationLabel && <span style={{ color: '#b45309', fontSize: 10, fontWeight: 700, marginLeft: 4, background: '#fef3c7', padding: '1px 4px', borderRadius: 3, letterSpacing: 0.3 }}>{locationLabel.toUpperCase()}</span>}
+                {locationLabel && <span style={{ color: '#b45309', fontSize: 10, fontWeight: 700, marginLeft: 4, background: '#fef3c7', padding: '1px 4px', borderRadius: 0, letterSpacing: 0.3 }}>{locationLabel.toUpperCase()}</span>}
               </span>
               <span style={{ color: '#aaa', fontSize: 12, flexShrink: 0, maxWidth: 70, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {a.service_name || a.event_type_title || a.title || ''}
@@ -291,7 +291,7 @@ function TodaySchedule({ onSelectPatient }) {
                   value={a.status}
                   onChange={(e) => { e.stopPropagation(); updateStatus(a.id, e.target.value); }}
                   style={{
-                    padding: '2px 4px', borderRadius: 4, border: 'none', fontSize: 11, fontWeight: 700,
+                    padding: '2px 4px', borderRadius: 0, border: 'none', fontSize: 11, fontWeight: 700,
                     cursor: 'pointer', flexShrink: 0, appearance: 'auto',
                     background: statusInfo.bg, color: statusInfo.color,
                   }}
@@ -324,7 +324,7 @@ function TaskRow({ task, today, onComplete, onSelectPatient, expanded }) {
         onMouseEnter={e => e.currentTarget.style.background = '#f8f9fb'}
         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
         <button onClick={(e) => { e.stopPropagation(); onComplete(task.id); }}
-          style={{ width: 18, height: 18, borderRadius: 4, border: '2px solid #ccc', background: 'transparent', cursor: 'pointer', flexShrink: 0, marginTop: 2, padding: 0 }}
+          style={{ width: 18, height: 18, borderRadius: 0, border: '2px solid #ccc', background: 'transparent', cursor: 'pointer', flexShrink: 0, marginTop: 2, padding: 0 }}
           title="Complete task" />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: '#222', marginBottom: 3 }}>{task.title}</div>
@@ -352,7 +352,7 @@ function TaskRow({ task, today, onComplete, onSelectPatient, expanded }) {
       onMouseEnter={e => e.currentTarget.style.background = '#eff1f3'}
       onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
       <button onClick={(e) => { e.stopPropagation(); onComplete(task.id); }}
-        style={{ width: 14, height: 14, borderRadius: 3, border: '1.5px solid #ccc', background: 'transparent', cursor: 'pointer', flexShrink: 0, marginTop: 1, padding: 0 }}
+        style={{ width: 14, height: 14, borderRadius: 0, border: '1.5px solid #ccc', background: 'transparent', cursor: 'pointer', flexShrink: 0, marginTop: 1, padding: 0 }}
         title="Complete task" />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -427,7 +427,7 @@ function MyTasks({ employeeId, session, onSelectPatient }) {
           onClick={() => setExpanded(false)}>
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }} />
           <div onClick={e => e.stopPropagation()}
-            style={{ position: 'relative', background: '#fff', borderRadius: 14, width: 520, maxHeight: '70vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            style={{ position: 'relative', background: '#fff', borderRadius: 0, width: 520, maxHeight: '70vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #eee' }}>
               <span style={{ fontSize: 16, fontWeight: 700, color: '#111' }}>My Tasks ({tasks.length})</span>
               <button onClick={() => setExpanded(false)}
@@ -566,7 +566,7 @@ function InboxSidebar({ selected, onSelect, employeeId, session, width, contactU
           <span style={{ fontSize: 11, color: '#999', transform: showConversations ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}>▶</span>
           <span style={{ fontSize: 13, fontWeight: 700, color: '#555', letterSpacing: 0.3 }}>💬 MESSAGES</span>
           {unreadCount > 0 && (
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: '#ef4444', borderRadius: 10, padding: '1px 6px', marginLeft: 'auto' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: '#ef4444', borderRadius: 0, padding: '1px 6px', marginLeft: 'auto' }}>
               {unreadCount}
             </span>
           )}
@@ -579,11 +579,11 @@ function InboxSidebar({ selected, onSelect, employeeId, session, width, contactU
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Filter conversations..."
-                style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e0e0e0', borderRadius: 8, padding: '5px 8px', fontSize: 13, outline: 'none', background: '#fff', color: '#333' }}
+                style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e0e0e0', borderRadius: 0, padding: '5px 8px', fontSize: 13, outline: 'none', background: '#fff', color: '#333' }}
               />
               <button
                 onClick={() => { setShowNew(!showNew); setNewSearch(''); setNewResults([]); }}
-                style={{ width: '100%', marginTop: 4, padding: '5px 0', background: showNew ? '#333' : '#111', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>
+                style={{ width: '100%', marginTop: 4, padding: '5px 0', background: showNew ? '#333' : '#111', color: '#fff', border: 'none', borderRadius: 0, fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>
                 {showNew ? '↑ Cancel' : '+ New Conversation'}
               </button>
             </div>
@@ -593,10 +593,10 @@ function InboxSidebar({ selected, onSelect, employeeId, session, width, contactU
               <div style={{ padding: '0 10px 6px', borderBottom: '1px solid #e8eaed', flexShrink: 0 }}>
                 <input autoFocus value={newSearch} onChange={e => setNewSearch(e.target.value)}
                   placeholder="Search patient name..."
-                  style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #6366f1', borderRadius: 8, padding: '5px 8px', fontSize: 13, outline: 'none', background: '#fff' }} />
+                  style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #6366f1', borderRadius: 0, padding: '5px 8px', fontSize: 13, outline: 'none', background: '#fff' }} />
                 {newResults.map(p => (
                   <div key={p.id || p.phone} onClick={() => { onSelect(p); setShowNew(false); setNewSearch(''); }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 4px', cursor: 'pointer', borderRadius: 6 }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 4px', cursor: 'pointer', borderRadius: 0 }}
                     onMouseEnter={e => e.currentTarget.style.background = '#f0f0f0'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                     <div style={{ width: 22, height: 22, borderRadius: '50%', background: avatarColor(p.name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flexShrink: 0 }}>
@@ -796,7 +796,7 @@ function BotPanel({ session, employee, selectedPatient }) {
         </div>
         {selectedPatient && (
           <a href={selectedPatient.id ? `/admin/patient/${selectedPatient.id}` : '#'} target="_blank" rel="noopener noreferrer"
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', background: color + '15', borderRadius: 20, width: 'fit-content', textDecoration: 'none', cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', background: color + '15', borderRadius: 0, width: 'fit-content', textDecoration: 'none', cursor: 'pointer' }}
             onMouseEnter={e => e.currentTarget.querySelector('.pt-name').style.textDecoration = 'underline'}
             onMouseLeave={e => e.currentTarget.querySelector('.pt-name').style.textDecoration = 'none'}>
             <div style={{ width: 16, height: 16, borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700, color: '#fff' }}>
@@ -812,17 +812,17 @@ function BotPanel({ session, employee, selectedPatient }) {
         {messages.map(m => {
           if (m.isContext) return (
             <div key={m.id} style={{ textAlign: 'center' }}>
-              <span style={{ fontSize: 11, color: '#aaa', background: '#f0f0f0', borderRadius: 10, padding: '2px 10px' }}>{renderMd(m.content)}</span>
+              <span style={{ fontSize: 11, color: '#aaa', background: '#f0f0f0', borderRadius: 0, padding: '2px 10px' }}>{renderMd(m.content)}</span>
             </div>
           );
           return (
             <div key={m.id} style={m.role === 'user' ? {
               alignSelf: 'flex-end', background: '#111', color: '#fff',
-              borderRadius: '14px 14px 3px 14px', padding: '8px 12px',
+              borderRadius: '0', padding: '8px 12px',
               maxWidth: '82%', fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-wrap',
             } : {
               alignSelf: 'flex-start', background: '#fff', color: '#111',
-              borderRadius: '14px 14px 14px 3px', padding: '8px 12px',
+              borderRadius: '0', padding: '8px 12px',
               maxWidth: '90%', fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-wrap',
               border: '1px solid #e8eaed', boxShadow: '0 1px 3px rgba(0,0,0,.04)',
             }}>
@@ -831,7 +831,7 @@ function BotPanel({ session, employee, selectedPatient }) {
           );
         })}
         {sending && (
-          <div style={{ alignSelf: 'flex-start', background: '#fff', border: '1px solid #e8eaed', borderRadius: '14px 14px 14px 3px', padding: '8px 14px' }}>
+          <div style={{ alignSelf: 'flex-start', background: '#fff', border: '1px solid #e8eaed', borderRadius: '0', padding: '8px 14px' }}>
             <span style={{ display: 'flex', gap: 4 }}>
               {[0,1,2].map(i => <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: '#ccc', display: 'inline-block', animation: `bounce 1.2s ease-in-out ${i*0.2}s infinite` }} />)}
             </span>
@@ -845,7 +845,7 @@ function BotPanel({ session, employee, selectedPatient }) {
         <div style={{ padding: '6px 12px 2px', display: 'flex', flexWrap: 'wrap', gap: 5, borderTop: '1px solid #f0f0f0' }}>
           {SUGGESTIONS.map(sugg => (
             <button key={sugg} onClick={() => { if (sugg.includes('[')) { setInput(sugg); inputRef.current?.focus(); } else sendMessage(sugg); }}
-              style={{ fontSize: 11, padding: '4px 10px', borderRadius: 12, border: '1px solid #e0e0e0', background: '#fff', color: '#555', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              style={{ fontSize: 11, padding: '4px 10px', borderRadius: 0, border: '1px solid #e0e0e0', background: '#fff', color: '#555', cursor: 'pointer', whiteSpace: 'nowrap' }}>
               {sugg}
             </button>
           ))}
@@ -862,7 +862,7 @@ function BotPanel({ session, employee, selectedPatient }) {
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
           onInput={e => { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 96) + 'px'; }}
           placeholder={listening ? 'Listening...' : 'Ask the assistant…'}
-          style={{ flex: 1, border: listening ? '1px solid #ef4444' : '1px solid #e0e0e0', borderRadius: 10, padding: '8px 10px', fontSize: 13, resize: 'none', outline: 'none', fontFamily: 'inherit', lineHeight: 1.5, background: listening ? '#fef2f2' : '#f7f8fa', transition: 'border 0.2s, background 0.2s' }}
+          style={{ flex: 1, border: listening ? '1px solid #ef4444' : '1px solid #e0e0e0', borderRadius: 0, padding: '8px 10px', fontSize: 13, resize: 'none', outline: 'none', fontFamily: 'inherit', lineHeight: 1.5, background: listening ? '#fef2f2' : '#f7f8fa', transition: 'border 0.2s, background 0.2s' }}
         />
         <button onClick={toggleVoice} title={listening ? 'Stop listening' : 'Voice input'}
           style={{ width: 34, height: 34, borderRadius: '50%', border: 'none', background: listening ? '#ef4444' : '#f0f0f0', color: listening ? '#fff' : '#666', cursor: 'pointer', fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 0.15s', animation: listening ? 'pulse 1.5s ease-in-out infinite' : 'none' }}>
@@ -882,7 +882,7 @@ function PatientBanner({ patient, onCharge, onLog, onBook, onDismiss }) {
   const color = avatarColor(patient.name);
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#fafafa', padding: 40, gap: 20 }}>
-      <div style={{ background: '#fff', borderRadius: 16, padding: '28px 32px', maxWidth: 400, width: '100%', boxShadow: '0 4px 24px rgba(0,0,0,.08)', textAlign: 'center' }}>
+      <div style={{ background: '#fff', borderRadius: 0, padding: '28px 32px', maxWidth: 400, width: '100%', boxShadow: '0 4px 24px rgba(0,0,0,.08)', textAlign: 'center' }}>
         <div style={{ width: 64, height: 64, borderRadius: '50%', background: color, color: '#fff', fontSize: 22, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
           {initials(patient.name).toUpperCase()}
         </div>
@@ -893,10 +893,10 @@ function PatientBanner({ patient, onCharge, onLog, onBook, onDismiss }) {
         >{patient.name}</a>
         {patient.phone && <div style={{ fontSize: 13, color: '#888', marginBottom: 16 }}>{patient.phone}</div>}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button onClick={onCharge} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: '#059669', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>$ Charge</button>
-          <button onClick={onLog} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: '#6366f1', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>✎ Log Service</button>
-          <button onClick={onBook} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: '#3b82f6', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Book</button>
-          <button onClick={onDismiss} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid #e0e0e0', background: '#fff', color: '#555', fontSize: 13, cursor: 'pointer' }}>Dismiss</button>
+          <button onClick={onCharge} style={{ padding: '8px 18px', borderRadius: 0, border: 'none', background: '#059669', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>$ Charge</button>
+          <button onClick={onLog} style={{ padding: '8px 18px', borderRadius: 0, border: 'none', background: '#6366f1', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>✎ Log Service</button>
+          <button onClick={onBook} style={{ padding: '8px 18px', borderRadius: 0, border: 'none', background: '#3b82f6', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Book</button>
+          <button onClick={onDismiss} style={{ padding: '8px 18px', borderRadius: 0, border: '1px solid #e0e0e0', background: '#fff', color: '#555', fontSize: 13, cursor: 'pointer' }}>Dismiss</button>
         </div>
         <div style={{ marginTop: 14, fontSize: 11, color: '#aaa' }}>
           Ask the assistant about this patient →
@@ -977,7 +977,7 @@ function SendFormsModal({ onClose, patient }) {
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 14, width: 420, maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,.3)' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 0, width: 420, maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,.3)' }}>
         {/* Header */}
         <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #eee', flexShrink: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -998,7 +998,7 @@ function SendFormsModal({ onClose, patient }) {
                 onChange={e => setPhone(e.target.value)}
                 placeholder="(949) 555-0123"
                 autoFocus
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 15, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 0, border: '1.5px solid #ddd', fontSize: 15, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
                 onFocus={e => e.target.style.borderColor = '#3b82f6'}
                 onBlur={e => e.target.style.borderColor = '#ddd'}
               />
@@ -1009,7 +1009,7 @@ function SendFormsModal({ onClose, patient }) {
                 value={firstName}
                 onChange={e => setFirstName(e.target.value)}
                 placeholder="Optional"
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #ddd', fontSize: 15, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 0, border: '1.5px solid #ddd', fontSize: 15, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
                 onFocus={e => e.target.style.borderColor = '#3b82f6'}
                 onBlur={e => e.target.style.borderColor = '#ddd'}
               />
@@ -1022,7 +1022,7 @@ function SendFormsModal({ onClose, patient }) {
             {FORM_OPTIONS.map(form => (
               <label key={form.id} style={{
                 display: 'flex', alignItems: 'center', gap: 10,
-                padding: '10px 12px', borderRadius: 8, cursor: 'pointer',
+                padding: '10px 12px', borderRadius: 0, cursor: 'pointer',
                 background: selectedForms.includes(form.id) ? '#f0f9ff' : '#fff',
                 border: selectedForms.includes(form.id) ? '1.5px solid #93c5fd' : '1.5px solid #e5e7eb',
                 marginBottom: 6, transition: 'all 0.15s',
@@ -1041,7 +1041,7 @@ function SendFormsModal({ onClose, patient }) {
           {/* Result message */}
           {result && (
             <div style={{
-              padding: '10px 14px', borderRadius: 8, marginBottom: 14, fontSize: 13, fontWeight: 500,
+              padding: '10px 14px', borderRadius: 0, marginBottom: 14, fontSize: 13, fontWeight: 500,
               background: result.success ? '#ecfdf5' : '#fef2f2',
               color: result.success ? '#065f46' : '#991b1b',
               border: `1px solid ${result.success ? '#a7f3d0' : '#fecaca'}`,
@@ -1055,7 +1055,7 @@ function SendFormsModal({ onClose, patient }) {
             onClick={handleSend}
             disabled={sending || !canSend}
             style={{
-              width: '100%', padding: '12px 0', borderRadius: 10, border: 'none',
+              width: '100%', padding: '12px 0', borderRadius: 0, border: 'none',
               background: !canSend ? '#94a3b8' : '#3b82f6',
               color: '#fff', fontSize: 15, fontWeight: 700, cursor: sending ? 'wait' : canSend ? 'pointer' : 'default',
               transition: 'background .15s',
@@ -1149,23 +1149,23 @@ export default function FrontDesk() {
 
         {/* ── Top bar ── */}
         <div style={{ height: 52, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 12, padding: '0 16px', background: '#111', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
-          <span onClick={() => router.push('/admin')} style={{ fontSize: 12, fontWeight: 800, color: '#fff', letterSpacing: 1, whiteSpace: 'nowrap', marginRight: 4, cursor: 'pointer', padding: '4px 8px', borderRadius: 5, background: 'rgba(255,255,255,.08)' }} title="Back to System">RM</span>
+          <span onClick={() => router.push('/admin')} style={{ fontSize: 12, fontWeight: 800, color: '#fff', letterSpacing: 1, whiteSpace: 'nowrap', marginRight: 4, cursor: 'pointer', padding: '4px 8px', borderRadius: 0, background: 'rgba(255,255,255,.08)' }} title="Back to System">RM</span>
           <WalkinSearch onSelect={handleWalkin} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 4 }}>
             <button onClick={() => setShowCalendar(true)}
-              style={{ padding: '6px 14px', borderRadius: 7, border: 'none', background: '#f59e0b', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              style={{ padding: '6px 14px', borderRadius: 0, border: 'none', background: '#f59e0b', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
               📅 Calendar
             </button>
             <button onClick={() => setShowForms(true)}
-              style={{ padding: '6px 14px', borderRadius: 7, border: 'none', background: '#3b82f6', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              style={{ padding: '6px 14px', borderRadius: 0, border: 'none', background: '#3b82f6', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
               📋 Send Forms
             </button>
             <button onClick={() => setShowCharge(true)}
-              style={{ padding: '6px 14px', borderRadius: 7, border: 'none', background: '#059669', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              style={{ padding: '6px 14px', borderRadius: 0, border: 'none', background: '#059669', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
               $ Charge
             </button>
             <button onClick={() => setShowLog(true)}
-              style={{ padding: '6px 14px', borderRadius: 7, border: 'none', background: '#6366f1', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              style={{ padding: '6px 14px', borderRadius: 0, border: 'none', background: '#6366f1', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
               ✎ Log Service
             </button>
             <span style={{ fontSize: 12, color: '#aaa', whiteSpace: 'nowrap', marginLeft: 4 }}>{employee.name.split(' ')[0]}</span>
@@ -1259,7 +1259,7 @@ export default function FrontDesk() {
       {showBooking && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.45)' }} onClick={() => setShowBooking(false)} />
-          <div style={{ position: 'relative', background: '#fff', borderRadius: 16, width: '90%', maxWidth: 520, maxHeight: '85vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
+          <div style={{ position: 'relative', background: '#fff', borderRadius: 0, width: '90%', maxWidth: 520, maxHeight: '85vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #eee' }}>
               <div style={{ fontSize: 16, fontWeight: 700 }}>Book Appointment</div>
               <button onClick={() => setShowBooking(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#999', padding: '0 4px' }}>×</button>
@@ -1278,7 +1278,7 @@ export default function FrontDesk() {
       {showCalendar && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.45)' }} onClick={() => setShowCalendar(false)} />
-          <div style={{ position: 'relative', background: '#fff', borderRadius: 16, width: '95%', maxWidth: 1200, height: '90vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
+          <div style={{ position: 'relative', background: '#fff', borderRadius: 0, width: '95%', maxWidth: 1200, height: '90vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #eee' }}>
               <div style={{ fontSize: 16, fontWeight: 700 }}>Schedule</div>
               <button onClick={() => setShowCalendar(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#999', padding: '0 4px' }}>×</button>

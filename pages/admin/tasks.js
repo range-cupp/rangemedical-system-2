@@ -328,39 +328,39 @@ function InlineEncounterEditor({ task, session, currentUser, onTaskComplete }) {
   const s = {
     container: { marginTop: '14px', borderTop: '1px solid #e5e7eb', paddingTop: '14px' },
     sectionLabel: { fontSize: '11px', fontWeight: 700, color: '#6d28d9', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' },
-    noteCard: { marginBottom: '10px', padding: '14px 16px', border: '1px solid #eee', borderRadius: '10px', background: '#fff' },
+    noteCard: { marginBottom: '10px', padding: '14px 16px', border: '1px solid #eee', borderRadius: 0, background: '#fff' },
     noteCardAddendum: { background: '#fffef5', borderColor: '#fde68a' },
     noteHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' },
     noteMeta: { fontSize: '12px', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: '8px' },
     noteBody: { whiteSpace: 'pre-wrap', fontSize: '13px', lineHeight: 1.7, color: '#1f2937' },
     noteActions: { display: 'flex', gap: '8px', marginTop: '12px', paddingTop: '10px', borderTop: '1px solid #f5f5f5' },
-    badgeSigned: { padding: '2px 8px', borderRadius: '20px', fontSize: '10px', fontWeight: 600, background: '#ecfdf5', color: '#059669' },
-    badgeDraft: { padding: '2px 8px', borderRadius: '20px', fontSize: '10px', fontWeight: 600, background: '#f3f4f6', color: '#6b7280' },
-    badgeAddendum: { padding: '2px 8px', borderRadius: '20px', fontSize: '10px', fontWeight: 600, background: '#fef3c7', color: '#b45309' },
-    btn: { padding: '6px 12px', fontSize: '12px', fontWeight: 600, borderRadius: '7px', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' },
+    badgeSigned: { padding: '2px 8px', borderRadius: 0, fontSize: '10px', fontWeight: 600, background: '#ecfdf5', color: '#059669' },
+    badgeDraft: { padding: '2px 8px', borderRadius: 0, fontSize: '10px', fontWeight: 600, background: '#f3f4f6', color: '#6b7280' },
+    badgeAddendum: { padding: '2px 8px', borderRadius: 0, fontSize: '10px', fontWeight: 600, background: '#fef3c7', color: '#b45309' },
+    btn: { padding: '6px 12px', fontSize: '12px', fontWeight: 600, borderRadius: 0, border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' },
     btnPrimary: { background: '#111', color: '#fff' },
     btnSecondary: { background: '#fff', color: '#374151', border: '1px solid #d1d5db' },
     btnSign: { background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' },
     btnGhost: { background: 'none', color: '#6b7280', border: '1px solid #e5e7eb' },
     btnAi: { background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: '#fff', border: 'none' },
-    formCard: { marginTop: '12px', padding: '16px', border: '1px solid #e5e7eb', borderRadius: '12px', background: '#fafbfc' },
+    formCard: { marginTop: '12px', padding: '16px', border: '1px solid #e5e7eb', borderRadius: 0, background: '#fafbfc' },
     formLabel: { fontSize: '11px', fontWeight: 600, color: '#6b7280', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.05em' },
     typePills: { display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '4px' },
     typePill: (active) => ({
-      padding: '5px 12px', fontSize: '11px', fontWeight: 600, borderRadius: '20px',
+      padding: '5px 12px', fontSize: '11px', fontWeight: 600, borderRadius: 0,
       border: `1.5px solid ${active ? '#111' : '#e5e7eb'}`,
       background: active ? '#111' : '#fff', color: active ? '#fff' : '#6b7280',
       cursor: 'pointer',
     }),
     templateBtn: {
       display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 12px',
-      fontSize: '12px', fontWeight: 600, borderRadius: '8px',
+      fontSize: '12px', fontWeight: 600, borderRadius: 0,
       border: '1.5px dashed #d1d5db', background: '#fafbfc', color: '#374151',
       cursor: 'pointer', width: '100%', textAlign: 'left',
     },
     templateDropdown: {
       position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 50,
-      background: '#fff', border: '1px solid #e5e7eb', borderRadius: '10px',
+      background: '#fff', border: '1px solid #e5e7eb', borderRadius: 0,
       boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxHeight: '280px', overflowY: 'auto',
     },
     templateGroupLabel: { padding: '8px 14px 4px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#9ca3af' },
@@ -369,13 +369,13 @@ function InlineEncounterEditor({ task, session, currentUser, onTaskComplete }) {
       border: 'none', background: 'none', color: '#374151', cursor: 'pointer', textAlign: 'left',
     },
     quickNote: {
-      padding: '3px 10px', fontSize: '11px', borderRadius: '16px',
+      padding: '3px 10px', fontSize: '11px', borderRadius: 0,
       border: '1px solid #e5e7eb', background: '#fff', color: '#374151', cursor: 'pointer',
     },
     editorWrap: { position: 'relative', marginBottom: '12px' },
     editor: {
       width: '100%', minHeight: '150px', fontFamily: 'inherit', fontSize: '13px',
-      lineHeight: 1.7, padding: '12px 44px 12px 14px', borderRadius: '10px',
+      lineHeight: 1.7, padding: '12px 44px 12px 14px', borderRadius: 0,
       border: '1.5px solid #e5e7eb', background: '#fff', color: '#111',
       overflowY: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-word', boxSizing: 'border-box',
     },
@@ -389,14 +389,14 @@ function InlineEncounterEditor({ task, session, currentUser, onTaskComplete }) {
     actions: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' },
     actionsRight: { display: 'flex', gap: '8px' },
     // Addendum
-    addendumForm: { marginTop: '12px', padding: '12px', background: '#fffef5', borderRadius: '8px', border: '1px solid #fde68a' },
+    addendumForm: { marginTop: '12px', padding: '12px', background: '#fffef5', borderRadius: 0, border: '1px solid #fde68a' },
     addendumTextarea: {
       width: '100%', resize: 'vertical', fontFamily: 'inherit', fontSize: '13px', lineHeight: 1.6,
-      padding: '8px 12px', borderRadius: '8px', border: '1.5px solid #fde68a', background: '#fff', minHeight: '70px', boxSizing: 'border-box',
+      padding: '8px 12px', borderRadius: 0, border: '1.5px solid #fde68a', background: '#fff', minHeight: '70px', boxSizing: 'border-box',
     },
     // Mode chooser
     modeBtn: (highlight) => ({
-      flex: 1, maxWidth: '220px', padding: '20px 16px', borderRadius: '12px',
+      flex: 1, maxWidth: '220px', padding: '20px 16px', borderRadius: 0,
       border: `2px solid ${highlight ? '#e9d5ff' : '#e5e7eb'}`,
       background: highlight ? '#faf8ff' : '#fafafa', cursor: 'pointer',
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
@@ -498,7 +498,7 @@ function InlineEncounterEditor({ task, session, currentUser, onTaskComplete }) {
             <div style={{ ...s.formCard, textAlign: 'center', padding: '24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <span style={{ fontSize: '14px', fontWeight: 700, color: '#111' }}>How would you like to create this note?</span>
-                <button onClick={() => { setShowForm(false); setNoteMode('choose'); }} style={{ ...s.btn, background: '#f3f4f6', color: '#6b7280', border: 'none', width: '26px', height: '26px', padding: 0, justifyContent: 'center', borderRadius: '6px', fontSize: '14px' }}>×</button>
+                <button onClick={() => { setShowForm(false); setNoteMode('choose'); }} style={{ ...s.btn, background: '#f3f4f6', color: '#6b7280', border: 'none', width: '26px', height: '26px', padding: 0, justifyContent: 'center', borderRadius: 0, fontSize: '14px' }}>×</button>
               </div>
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
                 {availableForms.map(formKey => {
@@ -569,12 +569,12 @@ function InlineEncounterEditor({ task, session, currentUser, onTaskComplete }) {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '14px', fontWeight: 700, color: '#111' }}>New Encounter Note</span>
                   {availableForms.length > 0 && (
-                    <button onClick={() => setNoteMode('choose')} style={{ fontSize: '11px', color: '#6d28d9', background: '#f3e8ff', border: 'none', borderRadius: '20px', padding: '3px 10px', cursor: 'pointer', fontWeight: 600 }}>
+                    <button onClick={() => setNoteMode('choose')} style={{ fontSize: '11px', color: '#6d28d9', background: '#f3e8ff', border: 'none', borderRadius: 0, padding: '3px 10px', cursor: 'pointer', fontWeight: 600 }}>
                       ← Interactive Form
                     </button>
                   )}
                 </div>
-                <button onClick={() => { setShowForm(false); setNoteMode('choose'); if (noteRef.current) noteRef.current.innerHTML = ''; setNoteIsEmpty(true); stopDictation(); }} style={{ ...s.btn, background: '#f3f4f6', color: '#6b7280', border: 'none', width: '26px', height: '26px', padding: 0, justifyContent: 'center', borderRadius: '6px', fontSize: '14px' }}>×</button>
+                <button onClick={() => { setShowForm(false); setNoteMode('choose'); if (noteRef.current) noteRef.current.innerHTML = ''; setNoteIsEmpty(true); stopDictation(); }} style={{ ...s.btn, background: '#f3f4f6', color: '#6b7280', border: 'none', width: '26px', height: '26px', padding: 0, justifyContent: 'center', borderRadius: 0, fontSize: '14px' }}>×</button>
               </div>
 
               {/* Note type pills */}
@@ -651,7 +651,7 @@ function InlineEncounterEditor({ task, session, currentUser, onTaskComplete }) {
               {/* Bold button */}
               <div style={{ display: 'flex', gap: '4px', marginBottom: '6px', alignItems: 'center' }}>
                 <button type="button" onClick={() => { noteRef.current?.focus(); document.execCommand('bold', false, null); }}
-                  title="Bold selected text" style={{ padding: '3px 9px', fontSize: '12px', fontWeight: 800, border: '1px solid #d1d5db', borderRadius: '6px', background: '#f9fafb', color: '#374151', cursor: 'pointer', fontFamily: 'serif' }}
+                  title="Bold selected text" style={{ padding: '3px 9px', fontSize: '12px', fontWeight: 800, border: '1px solid #d1d5db', borderRadius: 0, background: '#f9fafb', color: '#374151', cursor: 'pointer', fontFamily: 'serif' }}
                 >B</button>
                 <span style={{ fontSize: '10px', color: '#9ca3af', marginLeft: '4px' }}>Select text → B to bold</span>
               </div>
@@ -672,7 +672,7 @@ function InlineEncounterEditor({ task, session, currentUser, onTaskComplete }) {
                 </button>
               </div>
               {isRecording && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', margin: '-8px 0 12px', background: '#fef2f2', borderRadius: '8px', fontSize: '12px', color: '#dc2626', fontWeight: 500 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', margin: '-8px 0 12px', background: '#fef2f2', borderRadius: 0, fontSize: '12px', color: '#dc2626', fontWeight: 500 }}>
                   <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#dc2626', animation: 'pulse 1s infinite' }} />
                   Recording — Click microphone to stop
                 </div>
@@ -1239,7 +1239,7 @@ export default function TasksPage() {
 
         {/* Error */}
         {error && (
-          <div style={{ background: '#fef2f2', color: '#dc2626', padding: '10px 12px', borderRadius: '8px', fontSize: '13px', marginBottom: '12px' }}>
+          <div style={{ background: '#fef2f2', color: '#dc2626', padding: '10px 12px', borderRadius: 0, fontSize: '13px', marginBottom: '12px' }}>
             {error}
           </div>
         )}
@@ -1249,7 +1249,7 @@ export default function TasksPage() {
           <div style={{
             display: 'flex', alignItems: 'center', gap: '10px',
             background: '#1a1a1a', color: '#fff',
-            padding: '10px 16px', borderRadius: '10px',
+            padding: '10px 16px', borderRadius: 0,
             marginBottom: '10px', flexWrap: 'wrap',
           }}>
             <span style={{ fontSize: '13px', fontWeight: 600 }}>
@@ -1260,7 +1260,7 @@ export default function TasksPage() {
               disabled={bulkCompleting}
               style={{
                 background: '#16a34a', color: '#fff', border: 'none',
-                padding: '6px 16px', borderRadius: '6px', fontSize: '13px',
+                padding: '6px 16px', borderRadius: 0, fontSize: '13px',
                 fontWeight: 600, cursor: 'pointer', opacity: bulkCompleting ? 0.6 : 1,
               }}
             >
@@ -1270,7 +1270,7 @@ export default function TasksPage() {
               onClick={() => setSelectedTasks(new Set())}
               style={{
                 background: 'transparent', color: '#9ca3af', border: '1px solid #374151',
-                padding: '6px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer',
+                padding: '6px 12px', borderRadius: 0, fontSize: '13px', cursor: 'pointer',
               }}
             >
               Cancel
@@ -1311,7 +1311,7 @@ export default function TasksPage() {
                   style={{
                     background: task.status === 'completed' ? '#fafafa' : '#fff',
                     border: `1px solid ${overdue ? '#fecaca' : isExpanded ? '#3b82f6' : '#e5e7eb'}`,
-                    borderRadius: '10px',
+                    borderRadius: 0,
                     opacity: task.status === 'completed' ? 0.7 : 1,
                     transition: 'border-color 0.15s',
                   }}
@@ -1345,7 +1345,7 @@ export default function TasksPage() {
                       style={{
                         width: '22px',
                         height: '22px',
-                        borderRadius: '6px',
+                        borderRadius: 0,
                         border: `2px solid ${task.status === 'completed' ? '#16a34a' : '#d1d5db'}`,
                         background: task.status === 'completed' ? '#16a34a' : '#fff',
                         color: '#fff',
@@ -1381,7 +1381,7 @@ export default function TasksPage() {
                         </span>
                         <span style={{
                           padding: '1px 8px',
-                          borderRadius: '10px',
+                          borderRadius: 0,
                           fontSize: '10px',
                           fontWeight: 600,
                           background: pri.bg,
@@ -1470,7 +1470,7 @@ export default function TasksPage() {
                             whiteSpace: 'pre-wrap',
                             background: task.title?.includes('Review labs') ? '#f8f7ff' : '#f9fafb',
                             padding: '10px 14px',
-                            borderRadius: '8px',
+                            borderRadius: 0,
                             border: `1px solid ${task.title?.includes('Review labs') ? '#e0d9ff' : '#f0f0f0'}`,
                           }}>
                             {task.title?.includes('Review labs') ? getDisplayDescription(task.description) : task.description}
@@ -1489,7 +1489,7 @@ export default function TasksPage() {
                                 display: 'inline-flex', alignItems: 'center', gap: '6px',
                                 padding: '7px 14px', fontSize: '12px', fontWeight: 600,
                                 color: '#4c1d95', background: '#f5f3ff',
-                                border: '1px solid #c4b5fd', borderRadius: '8px', cursor: 'pointer',
+                                border: '1px solid #c4b5fd', borderRadius: 0, cursor: 'pointer',
                               }}
                             >
                               🔬 View Lab Results
@@ -1500,7 +1500,7 @@ export default function TasksPage() {
                                 display: 'inline-flex', alignItems: 'center', gap: '6px',
                                 padding: '7px 14px', fontSize: '12px', fontWeight: 600,
                                 color: '#1e3a5f', background: '#eff6ff',
-                                border: '1px solid #bfdbfe', borderRadius: '8px', cursor: 'pointer',
+                                border: '1px solid #bfdbfe', borderRadius: 0, cursor: 'pointer',
                               }}
                             >
                               📄 View PDF
@@ -1516,7 +1516,7 @@ export default function TasksPage() {
                                   display: 'inline-flex', alignItems: 'center', gap: '6px',
                                   padding: '8px 18px', fontSize: '13px', fontWeight: 600,
                                   color: '#fff', background: '#111',
-                                  border: 'none', borderRadius: '8px', cursor: 'pointer',
+                                  border: 'none', borderRadius: 0, cursor: 'pointer',
                                   marginBottom: labReviewOpen === task.id ? '10px' : '0',
                                 }}
                               >
@@ -1530,7 +1530,7 @@ export default function TasksPage() {
                                     padding: '14px 16px',
                                     background: '#fff',
                                     border: '1px solid #e5e7eb',
-                                    borderRadius: '10px',
+                                    borderRadius: 0,
                                     boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
                                   }}
                                 >
@@ -1547,7 +1547,7 @@ export default function TasksPage() {
                                           padding: '8px 10px', marginBottom: '6px',
                                           background: checked ? '#f0fdf4' : '#f9fafb',
                                           border: `1px solid ${checked ? '#86efac' : '#e5e7eb'}`,
-                                          borderRadius: '8px', cursor: 'pointer',
+                                          borderRadius: 0, cursor: 'pointer',
                                           fontSize: '13px', fontWeight: checked ? 600 : 400,
                                         }}
                                       >
@@ -1575,7 +1575,7 @@ export default function TasksPage() {
                                     placeholder="e.g. Patient prefers mornings, needs 60-min slot, follow up on medication question..."
                                     style={{
                                       width: '100%', padding: '10px 12px', fontSize: '13px',
-                                      border: '1px solid #d1d5db', borderRadius: '8px', outline: 'none',
+                                      border: '1px solid #d1d5db', borderRadius: 0, outline: 'none',
                                       resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5,
                                       minHeight: '70px', boxSizing: 'border-box', background: '#fff',
                                     }}
@@ -1590,7 +1590,7 @@ export default function TasksPage() {
                                         padding: '9px 20px', fontSize: '13px', fontWeight: 700,
                                         color: '#fff',
                                         background: labReviewForms[task.id]?.submitting ? '#9ca3af' : '#16a34a',
-                                        border: 'none', borderRadius: '8px',
+                                        border: 'none', borderRadius: 0,
                                         cursor: labReviewForms[task.id]?.submitting ? 'not-allowed' : 'pointer',
                                       }}
                                     >
@@ -1609,7 +1609,7 @@ export default function TasksPage() {
                             <div style={{
                               display: 'flex', alignItems: 'center', gap: '8px',
                               padding: '10px 14px', background: '#f0fdf4',
-                              border: '1px solid #86efac', borderRadius: '8px',
+                              border: '1px solid #86efac', borderRadius: 0,
                               fontSize: '13px', fontWeight: 600, color: '#16a34a',
                             }}>
                               ✓ Review complete — Tara & Chris have been notified
@@ -1624,7 +1624,7 @@ export default function TasksPage() {
                           <div style={{
                             display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
                             padding: '10px 14px',
-                            background: '#f0fdf4', borderRadius: smsState[task.id]?.open ? '8px 8px 0 0' : '8px',
+                            background: '#f0fdf4', borderRadius: 0,
                             border: '1px solid #bbf7d0',
                             borderBottom: smsState[task.id]?.open ? 'none' : '1px solid #bbf7d0',
                           }}>
@@ -1641,7 +1641,7 @@ export default function TasksPage() {
                                 display: 'inline-flex', alignItems: 'center', gap: '5px',
                                 padding: '4px 10px', fontSize: '12px', fontWeight: 600,
                                 color: '#1e40af', background: '#eff6ff',
-                                border: '1px solid #bfdbfe', borderRadius: '6px',
+                                border: '1px solid #bfdbfe', borderRadius: 0,
                                 cursor: 'pointer',
                               }}
                             >
@@ -1655,7 +1655,7 @@ export default function TasksPage() {
                                   display: 'inline-flex', alignItems: 'center', gap: '5px',
                                   padding: '4px 10px', fontSize: '12px', fontWeight: 600,
                                   color: '#7c3aed', background: '#f5f3ff',
-                                  border: '1px solid #ddd6fe', borderRadius: '6px',
+                                  border: '1px solid #ddd6fe', borderRadius: 0,
                                   cursor: smsState[task.id]?.loading ? 'not-allowed' : 'pointer',
                                   opacity: smsState[task.id]?.loading ? 0.6 : 1,
                                 }}
@@ -1673,14 +1673,14 @@ export default function TasksPage() {
                           {smsState[task.id]?.open && (
                             <div style={{
                               padding: '12px 14px',
-                              background: '#f9fafb', borderRadius: '0 0 8px 8px',
+                              background: '#f9fafb', borderRadius: 0,
                               border: '1px solid #bbf7d0', borderTop: '1px solid #e5e7eb',
                             }}>
                               {smsState[task.id]?.sent && (
                                 <div style={{
                                   display: 'flex', alignItems: 'center', gap: '6px',
                                   padding: '6px 10px', marginBottom: '8px',
-                                  background: '#f0fdf4', borderRadius: '6px',
+                                  background: '#f0fdf4', borderRadius: 0,
                                   fontSize: '13px', fontWeight: 600, color: '#16a34a',
                                 }}>
                                   &#10003; Message sent to {task.patient_name?.split(' ')[0]}
@@ -1696,7 +1696,7 @@ export default function TasksPage() {
                                 placeholder={`Type a message to ${task.patient_name?.split(' ')[0] || 'patient'}...`}
                                 style={{
                                   width: '100%', padding: '10px 12px', fontSize: '13px',
-                                  border: '1px solid #d1d5db', borderRadius: '6px', outline: 'none',
+                                  border: '1px solid #d1d5db', borderRadius: 0, outline: 'none',
                                   resize: 'vertical', fontFamily: 'inherit', lineHeight: '1.5',
                                   minHeight: '60px', boxSizing: 'border-box', background: '#fff',
                                 }}
@@ -1709,7 +1709,7 @@ export default function TasksPage() {
                                     display: 'inline-flex', alignItems: 'center', gap: '6px',
                                     padding: '6px 14px', fontSize: '13px', fontWeight: 600,
                                     color: '#fff', background: (!smsState[task.id]?.message?.trim() || smsState[task.id]?.sending) ? '#9ca3af' : '#1e40af',
-                                    border: 'none', borderRadius: '6px',
+                                    border: 'none', borderRadius: 0,
                                     cursor: (!smsState[task.id]?.message?.trim() || smsState[task.id]?.sending) ? 'not-allowed' : 'pointer',
                                   }}
                                 >
@@ -1742,7 +1742,7 @@ export default function TasksPage() {
                         <div style={{
                           display: 'flex', alignItems: 'center', gap: '8px',
                           marginBottom: '12px', padding: '8px 14px',
-                          background: '#fef3c7', borderRadius: '8px', border: '1px solid #fde68a',
+                          background: '#fef3c7', borderRadius: 0, border: '1px solid #fde68a',
                           fontSize: '12px', color: '#92400e',
                         }}>
                           <Phone size={12} /> No phone number on file for {task.patient_name}
@@ -1838,7 +1838,7 @@ export default function TasksPage() {
                             color: listening && dictationTarget === 'title' ? '#fff' : '#dc2626',
                             background: listening && dictationTarget === 'title' ? '#dc2626' : '#fef2f2',
                             border: '1px solid', borderColor: listening && dictationTarget === 'title' ? '#dc2626' : '#fecaca',
-                            borderRadius: '6px',
+                            borderRadius: 0,
                             cursor: 'pointer',
                             animation: listening && dictationTarget === 'title' ? 'pulse 1.5s infinite' : 'none',
                           }}
@@ -1856,7 +1856,7 @@ export default function TasksPage() {
                             color: formatting ? '#9ca3af' : '#7c3aed',
                             background: formatting ? '#f3f4f6' : '#f5f3ff',
                             border: '1px solid', borderColor: formatting ? '#e5e7eb' : '#ddd6fe',
-                            borderRadius: '6px',
+                            borderRadius: 0,
                             cursor: formatting || (!form.title.trim() && !form.description.trim()) ? 'not-allowed' : 'pointer',
                             opacity: (!form.title.trim() && !form.description.trim()) ? 0.5 : 1,
                           }}
@@ -1870,7 +1870,7 @@ export default function TasksPage() {
                       <div style={{
                         display: 'flex', alignItems: 'center', gap: '8px',
                         padding: '6px 10px', marginBottom: '6px',
-                        background: '#fef2f2', borderRadius: '6px',
+                        background: '#fef2f2', borderRadius: 0,
                         fontSize: '12px', color: '#dc2626', fontWeight: 500,
                       }}>
                         <span style={{
@@ -1907,7 +1907,7 @@ export default function TasksPage() {
                           color: listening && dictationTarget === 'description' ? '#fff' : '#dc2626',
                           background: listening && dictationTarget === 'description' ? '#dc2626' : '#fef2f2',
                           border: '1px solid', borderColor: listening && dictationTarget === 'description' ? '#dc2626' : '#fecaca',
-                          borderRadius: '5px',
+                          borderRadius: 0,
                           cursor: 'pointer',
                           marginBottom: '6px',
                         }}
@@ -1920,7 +1920,7 @@ export default function TasksPage() {
                       <div style={{
                         display: 'flex', alignItems: 'center', gap: '8px',
                         padding: '6px 10px', marginBottom: '6px',
-                        background: '#fef2f2', borderRadius: '6px',
+                        background: '#fef2f2', borderRadius: 0,
                         fontSize: '12px', color: '#dc2626', fontWeight: 500,
                       }}>
                         <span style={{
@@ -1936,7 +1936,7 @@ export default function TasksPage() {
                       placeholder="Additional details..."
                       style={{
                         width: '100%', padding: '10px 12px', fontSize: '14px',
-                        border: '1px solid #d1d5db', borderRadius: '8px', outline: 'none',
+                        border: '1px solid #d1d5db', borderRadius: 0, outline: 'none',
                         resize: 'vertical', fontFamily: 'inherit', lineHeight: '1.5',
                         minHeight: '80px', boxSizing: 'border-box',
                         ...(listening && dictationTarget === 'description' ? { borderColor: '#dc2626', boxShadow: '0 0 0 2px rgba(220,38,38,0.1)' } : {}),
@@ -1996,7 +1996,7 @@ export default function TasksPage() {
                     {selectedPatient ? (
                       <div style={{
                         display: 'flex', alignItems: 'center', gap: '8px',
-                        padding: '8px 12px', background: '#f0f9ff', borderRadius: '8px',
+                        padding: '8px 12px', background: '#f0f9ff', borderRadius: 0,
                         border: '1px solid #bae6fd',
                       }}>
                         <span style={{ flex: 1, fontSize: '13px', fontWeight: 600 }}>{selectedPatient.name}</span>
@@ -2020,7 +2020,7 @@ export default function TasksPage() {
                         {patientResults.length > 0 && (
                           <div style={{
                             position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
-                            background: '#fff', border: '1px solid #e5e7eb', borderRadius: '8px',
+                            background: '#fff', border: '1px solid #e5e7eb', borderRadius: 0,
                             boxShadow: '0 4px 12px rgba(0,0,0,0.1)', maxHeight: '200px', overflowY: 'auto',
                           }}>
                             {patientResults.map(p => (
@@ -2104,7 +2104,7 @@ export default function TasksPage() {
               <button
                 onClick={() => setLabPanel(null)}
                 style={{
-                  background: '#f3f4f6', border: 'none', borderRadius: '8px',
+                  background: '#f3f4f6', border: 'none', borderRadius: 0,
                   width: '32px', height: '32px', cursor: 'pointer',
                   fontSize: '16px', color: '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}

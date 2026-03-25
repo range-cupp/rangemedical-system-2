@@ -210,7 +210,7 @@ function AddCardForm({ patientId, onCardSaved }) {
           style={{
             padding: '10px 20px', fontSize: 13, fontWeight: 600,
             background: '#1e40af', color: '#fff', border: 'none',
-            borderRadius: 8, cursor: 'pointer',
+            borderRadius: 0, cursor: 'pointer',
           }}
         >
           + Add Card
@@ -223,14 +223,14 @@ function AddCardForm({ patientId, onCardSaved }) {
   return (
     <div style={{
       marginTop: 8, padding: 16, background: '#f9fafb',
-      borderRadius: 8, border: '1px solid #e5e7eb',
+      borderRadius: 0, border: '1px solid #e5e7eb',
     }}>
       <div style={{ marginBottom: 12, fontSize: 14, fontWeight: 600, color: '#374151' }}>
         Add New Card
       </div>
       <div style={{
         padding: '12px', background: '#fff', border: '1px solid #d1d5db',
-        borderRadius: 8, marginBottom: 12,
+        borderRadius: 0, marginBottom: 12,
       }}>
         <CardElement options={CARD_ELEMENT_STYLE} />
       </div>
@@ -244,7 +244,7 @@ function AddCardForm({ patientId, onCardSaved }) {
           style={{
             padding: '10px 20px', fontSize: 13, fontWeight: 600,
             background: saving ? '#9ca3af' : '#16a34a', color: '#fff',
-            border: 'none', borderRadius: 8,
+            border: 'none', borderRadius: 0,
             cursor: saving ? 'default' : 'pointer',
           }}
         >
@@ -255,7 +255,7 @@ function AddCardForm({ patientId, onCardSaved }) {
           style={{
             padding: '10px 20px', fontSize: 13, fontWeight: 500,
             background: '#fff', color: '#374151', border: '1px solid #d1d5db',
-            borderRadius: 8, cursor: 'pointer',
+            borderRadius: 0, cursor: 'pointer',
           }}
         >
           Cancel
@@ -3037,7 +3037,7 @@ export default function PatientProfile() {
 
             const chipStyle = {
               display: 'inline-flex', alignItems: 'center', gap: '5px',
-              padding: '3px 10px', borderRadius: '20px', fontSize: '12px',
+              padding: '3px 10px', borderRadius: 0, fontSize: '12px',
               fontWeight: 500, whiteSpace: 'nowrap', maxWidth: '100%',
               overflow: 'hidden', textOverflow: 'ellipsis',
             };
@@ -3097,7 +3097,7 @@ export default function PatientProfile() {
               justifyContent: 'center', zIndex: 1000,
             }}>
               <div style={{
-                background: '#fff', borderRadius: '12px', width: '400px', maxWidth: '95vw',
+                background: '#fff', borderRadius: 0, width: '400px', maxWidth: '95vw',
                 padding: '20px', maxHeight: '80vh', overflow: 'auto',
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -3117,7 +3117,7 @@ export default function PatientProfile() {
                         disabled={savingConditions}
                         style={{
                           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                          padding: '10px 14px', borderRadius: '8px', fontSize: '14px',
+                          padding: '10px 14px', borderRadius: 0, fontSize: '14px',
                           border: isActive ? '2px solid #991b1b' : '1px solid #e5e7eb',
                           background: isActive ? '#fef2f2' : '#fff',
                           color: isActive ? '#991b1b' : '#374151',
@@ -3136,7 +3136,7 @@ export default function PatientProfile() {
                   style={{
                     marginTop: '16px', width: '100%', padding: '10px',
                     background: '#111', color: '#fff', border: 'none',
-                    borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: 'pointer',
+                    borderRadius: 0, fontSize: '14px', fontWeight: '500', cursor: 'pointer',
                   }}
                 >
                   Done
@@ -3283,7 +3283,7 @@ export default function PatientProfile() {
           <section style={{
             background: '#fffbeb',
             border: '1px solid #fde68a',
-            borderRadius: 8,
+            borderRadius: 0,
             padding: '12px 16px',
             marginBottom: 16,
           }}>
@@ -3405,11 +3405,11 @@ export default function PatientProfile() {
                           <div key={protocol.id} style={{
                             display: 'flex', alignItems: 'center', gap: '10px',
                             padding: '8px 10px', marginBottom: '4px',
-                            background: '#f8fafc', borderRadius: '8px',
+                            background: '#f8fafc', borderRadius: 0,
                             border: '1px solid #f1f5f9',
                           }}>
                             <span style={{
-                              display: 'inline-block', padding: '2px 8px', borderRadius: '4px',
+                              display: 'inline-block', padding: '2px 8px', borderRadius: 0,
                               fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px',
                               background: cat.bg, color: cat.text, flexShrink: 0,
                             }}>
@@ -3428,7 +3428,7 @@ export default function PatientProfile() {
                             {deliveryLabel && (
                               <span style={{
                                 fontSize: '10px', fontWeight: 600, color: '#64748b',
-                                background: '#e2e8f0', padding: '2px 6px', borderRadius: '4px',
+                                background: '#e2e8f0', padding: '2px 6px', borderRadius: 0,
                                 flexShrink: 0,
                               }}>
                                 {deliveryLabel}
@@ -3452,12 +3452,12 @@ export default function PatientProfile() {
                       <div key={sub.id} style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         padding: '12px 14px', marginBottom: '8px',
-                        background: '#f8fafc', borderRadius: '8px',
+                        background: '#f8fafc', borderRadius: 0,
                         border: sub.status === 'past_due' ? '1px solid #fca5a5' : '1px solid #e2e8f0'
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                           <span style={{
-                            display: 'inline-block', padding: '3px 10px', borderRadius: '4px',
+                            display: 'inline-block', padding: '3px 10px', borderRadius: 0,
                             fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px',
                             background: sub.service_category === 'hrt' ? '#dbeafe' :
                               sub.service_category === 'weight_loss' ? '#fef3c7' :
@@ -3523,7 +3523,7 @@ export default function PatientProfile() {
                           display: 'flex', alignItems: 'flex-start', gap: '10px',
                           padding: '10px 12px', marginBottom: '6px',
                           background: msg.direction === 'inbound' ? '#f0f9ff' : '#f8fafc',
-                          borderRadius: '8px', border: '1px solid #e2e8f0',
+                          borderRadius: 0, border: '1px solid #e2e8f0',
                           cursor: 'pointer', transition: 'background 0.15s',
                         }}
                         onMouseOver={e => e.currentTarget.style.background = '#eef2ff'}
@@ -3599,7 +3599,7 @@ export default function PatientProfile() {
                         onChange={(e) => setVitalsDisplayCount(parseInt(e.target.value))}
                         style={{
                           fontSize: '12px', color: '#64748b', background: '#f8fafc',
-                          border: '1px solid #e2e8f0', borderRadius: '6px', padding: '4px 24px 4px 10px',
+                          border: '1px solid #e2e8f0', borderRadius: 0, padding: '4px 24px 4px 10px',
                           fontWeight: 500, cursor: 'pointer', appearance: 'none',
                           backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E")`,
                           backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center',
@@ -3676,7 +3676,7 @@ export default function PatientProfile() {
                             <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
                             <YAxis domain={['auto', 'auto']} tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} unit=" lb" width={55} />
                             <Tooltip
-                              contentStyle={{ fontSize: '13px', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
+                              contentStyle={{ fontSize: '13px', borderRadius: 0, border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
                               formatter={(value) => [`${value} lb`, 'Weight']}
                               labelFormatter={(label, payload) => payload?.[0]?.payload?.fullDate || label}
                             />
@@ -3708,7 +3708,7 @@ export default function PatientProfile() {
                   <div style={{
                     margin: '0 16px 12px',
                     padding: '12px 16px',
-                    borderRadius: '8px',
+                    borderRadius: 0,
                     background: isComplete ? '#fef2f2' : isWarning ? '#fffbeb' : '#f0fdf4',
                     border: `1px solid ${isComplete ? '#fecaca' : isWarning ? '#fde68a' : '#bbf7d0'}`
                   }}>
@@ -3724,10 +3724,10 @@ export default function PatientProfile() {
                         {used} / {planned} days
                       </span>
                     </div>
-                    <div style={{ background: '#e5e7eb', borderRadius: '4px', height: '8px', overflow: 'hidden' }}>
+                    <div style={{ background: '#e5e7eb', borderRadius: 0, height: '8px', overflow: 'hidden' }}>
                       <div style={{
                         height: '100%',
-                        borderRadius: '4px',
+                        borderRadius: 0,
                         width: `${Math.min(100, planned > 0 ? Math.round((used / planned) * 100) : 0)}%`,
                         background: isComplete ? '#dc2626' : isWarning ? '#f59e0b' : '#22c55e',
                         transition: 'width 0.3s ease'
@@ -3783,7 +3783,7 @@ export default function PatientProfile() {
                             {protocol.status === 'active' && (
                               <button
                                 onClick={(e) => openLogEntryModal(protocol, e)}
-                                style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: '6px', padding: '3px 10px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                                style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: 0, padding: '3px 10px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
                               >+ Log</button>
                             )}
                             <button onClick={(e) => { e.stopPropagation(); openEditModal(protocol); }} className="btn-text">Edit</button>
@@ -3809,7 +3809,7 @@ export default function PatientProfile() {
                   <div
                     onClick={() => setActiveTab('labs')}
                     style={{
-                      margin: '0 0 12px', padding: '12px 16px', borderRadius: '10px', cursor: 'pointer',
+                      margin: '0 0 12px', padding: '12px 16px', borderRadius: 0, cursor: 'pointer',
                       background: `${stage.color}15`, border: `1px solid ${stage.color}40`,
                       display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap'
                     }}
@@ -3818,7 +3818,7 @@ export default function PatientProfile() {
                     <span style={{ fontSize: '12px', fontWeight: '600', color: '#374151' }}>Labs:</span>
                     <span style={{
                       display: 'inline-flex', alignItems: 'center', gap: '4px',
-                      padding: '2px 8px', borderRadius: '4px',
+                      padding: '2px 8px', borderRadius: 0,
                       backgroundColor: stage.color, color: '#fff',
                       fontSize: '11px', fontWeight: '600'
                     }}>
@@ -3860,7 +3860,7 @@ export default function PatientProfile() {
                           onClick={() => handleToggleFollowupWeeks(protocol.id)}
                           style={{
                             fontSize: '12px', fontWeight: 600, padding: '3px 10px',
-                            borderRadius: '12px', cursor: 'pointer',
+                            borderRadius: 0, cursor: 'pointer',
                             border: '1px solid #d1d5db', background: '#fff', color: '#374151'
                           }}
                         >
@@ -3883,7 +3883,7 @@ export default function PatientProfile() {
                             onClick={() => handleBloodDrawClick(draw, protocol.id)}
                             style={{
                               display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px',
-                              cursor: 'pointer', padding: '6px 8px', borderRadius: '6px', transition: 'background 0.15s',
+                              cursor: 'pointer', padding: '6px 8px', borderRadius: 0, transition: 'background 0.15s',
                               opacity: draw.status === 'skipped' ? 0.5 : 1
                             }}
                             onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
@@ -3970,7 +3970,7 @@ export default function PatientProfile() {
                       <div key={med.id} style={{
                         display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
                         padding: '12px 14px', marginBottom: '8px',
-                        background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0',
+                        background: '#f8fafc', borderRadius: 0, border: '1px solid #e2e8f0',
                       }}>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 600, fontSize: '14px', color: '#0f172a' }}>
@@ -3994,7 +3994,7 @@ export default function PatientProfile() {
                           </div>
                         </div>
                         <span style={{
-                          padding: '3px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 600,
+                          padding: '3px 10px', borderRadius: 0, fontSize: '11px', fontWeight: 600,
                           background: '#dcfce7', color: '#166534', whiteSpace: 'nowrap',
                         }}>Active</span>
                       </div>
@@ -4016,7 +4016,7 @@ export default function PatientProfile() {
                       <div key={rx.id} style={{
                         display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
                         padding: '12px 14px', marginBottom: '8px',
-                        background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0',
+                        background: '#f8fafc', borderRadius: 0, border: '1px solid #e2e8f0',
                       }}>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 600, fontSize: '14px', color: '#0f172a' }}>
@@ -4036,13 +4036,13 @@ export default function PatientProfile() {
                             </span>
                           </div>
                           {rx.is_controlled && (
-                            <div style={{ marginTop: '6px', padding: '3px 8px', display: 'inline-block', borderRadius: '4px', background: '#fef2f2', border: '1px solid #fecaca', fontSize: '11px', fontWeight: 600, color: '#dc2626' }}>
+                            <div style={{ marginTop: '6px', padding: '3px 8px', display: 'inline-block', borderRadius: 0, background: '#fef2f2', border: '1px solid #fecaca', fontSize: '11px', fontWeight: 600, color: '#dc2626' }}>
                               ⚠ Controlled{rx.schedule ? ` (${rx.schedule})` : ''}
                             </div>
                           )}
                         </div>
                         <span style={{
-                          padding: '3px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap',
+                          padding: '3px 10px', borderRadius: 0, fontSize: '11px', fontWeight: 600, whiteSpace: 'nowrap',
                           background: rx.status === 'signed' ? '#dcfce7' : rx.status === 'sent' ? '#dbeafe' : '#f3f4f6',
                           color: rx.status === 'signed' ? '#166534' : rx.status === 'sent' ? '#1e40af' : '#6b7280',
                         }}>{rx.status || 'draft'}</span>
@@ -4063,7 +4063,7 @@ export default function PatientProfile() {
                       <div key={med.id} style={{
                         display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
                         padding: '10px 14px', marginBottom: '6px',
-                        background: '#fafafa', borderRadius: '8px', border: '1px solid #f1f5f9', opacity: 0.7,
+                        background: '#fafafa', borderRadius: 0, border: '1px solid #f1f5f9', opacity: 0.7,
                       }}>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 500, fontSize: '13px', color: '#64748b', textDecoration: 'line-through' }}>
@@ -4075,7 +4075,7 @@ export default function PatientProfile() {
                             {med.discontinued_reason && <span style={{ fontSize: '11px', color: '#94a3b8' }}>{med.discontinued_reason}</span>}
                           </div>
                         </div>
-                        <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 600, background: '#f3f4f6', color: '#94a3b8', whiteSpace: 'nowrap' }}>Discontinued</span>
+                        <span style={{ padding: '3px 10px', borderRadius: 0, fontSize: '11px', fontWeight: 600, background: '#f3f4f6', color: '#94a3b8', whiteSpace: 'nowrap' }}>Discontinued</span>
                       </div>
                     ))}
                   </div>
@@ -4095,7 +4095,7 @@ export default function PatientProfile() {
                       <button onClick={openProtocolPdfModal} style={{
                         padding: '6px 14px', fontSize: 12, fontWeight: 600,
                         background: '#f8fafc', color: '#334155', border: '1px solid #e2e8f0',
-                        borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+                        borderRadius: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
                       }}>
                         📄 Generate PDF
                       </button>
@@ -4105,7 +4105,7 @@ export default function PatientProfile() {
                 </div>
                 {/* Free Range IV perk banner — shown when HRT patient has an unused IV this billing cycle */}
                 {hrtRangeIVStatus && !hrtRangeIVStatus.used && (
-                  <div style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', border: '1.5px solid #86efac', borderRadius: 10, padding: '14px 18px', margin: '0 0 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <div style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', border: '1.5px solid #86efac', borderRadius: 0, padding: '14px 18px', margin: '0 0 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <span style={{ fontSize: 22 }}>💧</span>
                       <div>
@@ -4116,7 +4116,7 @@ export default function PatientProfile() {
                     <button
                       onClick={() => handleRedeemRangeIV(hrtRangeIVStatus.protocolId)}
                       disabled={redeemingPerkId === hrtRangeIVStatus.protocolId}
-                      style={{ padding: '10px 20px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap', opacity: redeemingPerkId === hrtRangeIVStatus.protocolId ? 0.6 : 1 }}
+                      style={{ padding: '10px 20px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 0, fontWeight: 700, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap', opacity: redeemingPerkId === hrtRangeIVStatus.protocolId ? 0.6 : 1 }}
                     >
                       {redeemingPerkId === hrtRangeIVStatus.protocolId ? 'Redeeming...' : '✓ Use Today'}
                     </button>
@@ -4167,7 +4167,7 @@ export default function PatientProfile() {
                                 <span style={{ fontSize: 12, color: '#7C3AED', marginLeft: 6 }}>({protocol.hrt_type === 'female' ? 'Female' : 'Male'})</span>
                               )}
                             </span>
-                            {protocol.status === 'completed' && <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', background: '#f3f4f6', padding: '2px 8px', borderRadius: '4px' }}>✓ Completed</span>}
+                            {protocol.status === 'completed' && <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', background: '#f3f4f6', padding: '2px 8px', borderRadius: 0 }}>✓ Completed</span>}
                             {protocol.delivery_method === 'in_clinic' && <span className="clinic-badge">In-Clinic</span>}
                           </div>
                           <div className="protocol-details">
@@ -4223,7 +4223,7 @@ export default function PatientProfile() {
                           <div className="protocol-dates">Started {formatShortDate(protocol.start_date)}{protocol.end_date && ` → ${formatShortDate(protocol.end_date)}`}</div>
                           {/* Range IV perk status on HRT protocol cards */}
                           {isHRTProtocol(protocol.program_type) && hrtRangeIVStatus && hrtRangeIVStatus.protocolId === protocol.id && (
-                            <div style={{ marginTop: 8, padding: '8px 12px', background: hrtRangeIVStatus.used ? '#f9fafb' : '#f0fdf4', border: `1px solid ${hrtRangeIVStatus.used ? '#e5e7eb' : '#86efac'}`, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ marginTop: 8, padding: '8px 12px', background: hrtRangeIVStatus.used ? '#f9fafb' : '#f0fdf4', border: `1px solid ${hrtRangeIVStatus.used ? '#e5e7eb' : '#86efac'}`, borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                 <span style={{ fontSize: 14 }}>💧</span>
                                 <span style={{ fontSize: 12, fontWeight: 600, color: hrtRangeIVStatus.used ? '#6b7280' : '#166534' }}>
@@ -4234,7 +4234,7 @@ export default function PatientProfile() {
                                 <button
                                   onClick={() => handleRedeemRangeIV(hrtRangeIVStatus.protocolId)}
                                   disabled={redeemingPerkId === hrtRangeIVStatus.protocolId}
-                                  style={{ padding: '5px 12px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 600, fontSize: 11, cursor: 'pointer', opacity: redeemingPerkId === hrtRangeIVStatus.protocolId ? 0.6 : 1 }}
+                                  style={{ padding: '5px 12px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 0, fontWeight: 600, fontSize: 11, cursor: 'pointer', opacity: redeemingPerkId === hrtRangeIVStatus.protocolId ? 0.6 : 1 }}
                                 >
                                   {redeemingPerkId === hrtRangeIVStatus.protocolId ? 'Redeeming...' : 'Use Today'}
                                 </button>
@@ -4273,7 +4273,7 @@ export default function PatientProfile() {
                             const pickupLog = logs.find(l => l.fulfillment_method === 'in_clinic');
                             if (shippedLog) {
                               return (
-                                <div style={{ margin: '6px 0 2px', padding: '6px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, fontSize: 12, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                <div style={{ margin: '6px 0 2px', padding: '6px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 0, fontSize: 12, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                                   <span style={{ fontWeight: 600, color: '#1e40af' }}>📦 Overnighted to patient</span>
                                   {shippedLog.tracking_number && (
                                     <span style={{ color: '#3b82f6' }}>Tracking: <strong>{shippedLog.tracking_number}</strong></span>
@@ -4285,7 +4285,7 @@ export default function PatientProfile() {
                             }
                             if (pickupLog) {
                               return (
-                                <div style={{ margin: '6px 0 2px', padding: '6px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, fontSize: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <div style={{ margin: '6px 0 2px', padding: '6px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 0, fontSize: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
                                   <span style={{ fontWeight: 600, color: '#166534' }}>🏥 Picked up in clinic</span>
                                   <span style={{ color: '#6b7280' }}>{formatShortDate(pickupLog.entry_date)}</span>
                                   {pickupLog.quantity && <span style={{ color: '#6b7280' }}>· {pickupLog.quantity} injections</span>}
@@ -4300,7 +4300,7 @@ export default function PatientProfile() {
                               {protocol.status === 'active' && (
                                 <button
                                   onClick={(e) => openLogEntryModal(protocol, e)}
-                                  style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                                  style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: 0, padding: '4px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
                                 >+ Log Entry</button>
                               )}
                               {protocol.status === 'active' && (
@@ -4328,7 +4328,7 @@ export default function PatientProfile() {
                                       setMergeError('');
                                       setShowMergeModal(true);
                                     }}
-                                    style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                                    style={{ background: '#f59e0b', color: '#fff', border: 'none', borderRadius: 0, padding: '4px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
                                     title="Merge this protocol into another"
                                   >Merge</button>
                                 );
@@ -4368,7 +4368,7 @@ export default function PatientProfile() {
                                       alert('Error: ' + err.message);
                                     }
                                   }}
-                                  style={{ padding: '4px 12px', fontSize: '12px', fontWeight: 600, background: '#000', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                                  style={{ padding: '4px 12px', fontSize: '12px', fontWeight: 600, background: '#000', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer' }}
                                 >
                                   Start Onboarding
                                 </button>
@@ -4397,7 +4397,7 @@ export default function PatientProfile() {
                                     alert('Error: ' + err.message);
                                   }
                                 }}
-                                style={{ padding: '4px 12px', fontSize: '12px', fontWeight: 600, background: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+                                style={{ padding: '4px 12px', fontSize: '12px', fontWeight: 600, background: '#2563eb', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer' }}
                               >
                                 Send Portal Link
                               </button>
@@ -4407,7 +4407,7 @@ export default function PatientProfile() {
                                     const url = `https://www.range-medical.com/hrt/${protocol.access_token}`;
                                     navigator.clipboard.writeText(url).then(() => alert('Portal link copied!')).catch(() => prompt('Copy this link:', url));
                                   }}
-                                  style={{ padding: '4px 8px', fontSize: '12px', color: '#6b7280', background: 'none', border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer' }}
+                                  style={{ padding: '4px 8px', fontSize: '12px', color: '#6b7280', background: 'none', border: '1px solid #d1d5db', borderRadius: 0, cursor: 'pointer' }}
                                   title="Copy portal link"
                                 >
                                   📋
@@ -4424,7 +4424,7 @@ export default function PatientProfile() {
                             const nextDraw = schedule.find(d => d.status === 'upcoming' || d.status === 'overdue');
                             const isLabExpanded = expandedProtocols['lab_' + protocol.id];
                             return (
-                              <div style={{ marginTop: '12px', padding: '12px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                              <div style={{ marginTop: '12px', padding: '12px', background: '#f8fafc', borderRadius: 0, border: '1px solid #e2e8f0' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                   <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>
                                     🩸 Lab Schedule: {completed} of {total} draws completed
@@ -4451,7 +4451,7 @@ export default function PatientProfile() {
                                           onClick={() => handleBloodDrawClick(draw, protocol.id)}
                                           style={{
                                             display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px',
-                                            cursor: 'pointer', padding: '4px 6px', borderRadius: '6px', transition: 'background 0.15s',
+                                            cursor: 'pointer', padding: '4px 6px', borderRadius: 0, transition: 'background 0.15s',
                                             opacity: draw.status === 'skipped' ? 0.5 : 1
                                           }}
                                           onMouseEnter={e => e.currentTarget.style.background = '#eef2ff'}
@@ -4489,7 +4489,7 @@ export default function PatientProfile() {
                             const pDripLogs = dripLogs[protocol.id] || [];
                             const hasStarted = pDripLogs.length > 0;
                             return (
-                              <div style={{ marginTop: 10, padding: '10px 14px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8 }}>
+                              <div style={{ marginTop: 10, padding: '10px 14px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 0 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                                   <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Email Sequence</span>
                                   {!hasStarted && (
@@ -4506,7 +4506,7 @@ export default function PatientProfile() {
                                         setStartingDrip(null);
                                       }}
                                       disabled={startingDrip === protocol.id}
-                                      style={{ padding: '3px 10px', fontSize: 11, fontWeight: 600, background: '#000', color: '#fff', border: 'none', borderRadius: 5, cursor: 'pointer' }}
+                                      style={{ padding: '3px 10px', fontSize: 11, fontWeight: 600, background: '#000', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer' }}
                                     >{startingDrip === protocol.id ? 'Starting...' : 'Start Sequence'}</button>
                                   )}
                                 </div>
@@ -4531,10 +4531,10 @@ export default function PatientProfile() {
                             const injDay = protocol.injection_day;
                             if (enabled) {
                               return (
-                                <div style={{ marginTop: 6, padding: '8px 14px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 8, fontSize: 12, color: '#16A34A', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <div style={{ marginTop: 6, padding: '8px 14px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 0, fontSize: 12, color: '#16A34A', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                   <span>✅ Weekly check-ins ({injDay || 'Monday'})</span>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <select value={injDay || 'Monday'} onChange={async e => { try { await fetch(`/api/admin/protocols/${protocol.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ injection_day: e.target.value }) }); fetchPatient(); } catch {} }} style={{ padding: '2px 4px', border: '1px solid #BBF7D0', borderRadius: 4, fontSize: 11, color: '#15803D', background: '#F0FDF4' }}>
+                                    <select value={injDay || 'Monday'} onChange={async e => { try { await fetch(`/api/admin/protocols/${protocol.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ injection_day: e.target.value }) }); fetchPatient(); } catch {} }} style={{ padding: '2px 4px', border: '1px solid #BBF7D0', borderRadius: 0, fontSize: 11, color: '#15803D', background: '#F0FDF4' }}>
                                       {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(d => <option key={d} value={d}>{d}</option>)}
                                     </select>
                                     <button onClick={async () => { try { await fetch(`/api/admin/protocols/${protocol.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ checkin_reminder_enabled: false }) }); fetchPatient(); } catch {} }} style={{ fontSize: 10, color: '#666', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Disable</button>
@@ -4543,15 +4543,15 @@ export default function PatientProfile() {
                               );
                             }
                             return (
-                              <div style={{ marginTop: 6, padding: '8px 14px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <div style={{ marginTop: 6, padding: '8px 14px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <span style={{ fontSize: 11, color: '#666' }}>Check-in day:</span>
-                                <select value={wlCheckinDay} onChange={e => setWlCheckinDay(e.target.value)} style={{ padding: '3px 6px', border: '1px solid #e5e5e5', borderRadius: 4, fontSize: 11 }}>
+                                <select value={wlCheckinDay} onChange={e => setWlCheckinDay(e.target.value)} style={{ padding: '3px 6px', border: '1px solid #e5e5e5', borderRadius: 0, fontSize: 11 }}>
                                   {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(d => <option key={d} value={d}>{d}</option>)}
                                 </select>
                                 <button
                                   onClick={async () => { setEnablingCheckin(protocol.id); try { await fetch(`/api/admin/protocols/${protocol.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ checkin_reminder_enabled: true, injection_day: wlCheckinDay }) }); fetchPatient(); } catch { alert('Failed'); } setEnablingCheckin(null); }}
                                   disabled={enablingCheckin === protocol.id}
-                                  style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', background: '#000', color: '#fff', border: 'none', borderRadius: 5, cursor: 'pointer', marginLeft: 'auto' }}
+                                  style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', background: '#000', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer', marginLeft: 'auto' }}
                                 >{enablingCheckin === protocol.id ? 'Enabling...' : 'Enable Check-ins'}</button>
                               </div>
                             );
@@ -4590,7 +4590,7 @@ export default function PatientProfile() {
                                   <div style={{ marginLeft: 'auto', display: 'flex', gap: '6px' }}>
                                     <button
                                       onClick={() => window.open(`/portal/${protocol.access_token || protocol.id}`, '_blank')}
-                                      style={{ padding: '5px 12px', fontSize: '12px', fontWeight: 600, background: '#f5f5f5', color: '#333', border: '1px solid #ddd', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
+                                      style={{ padding: '5px 12px', fontSize: '12px', fontWeight: 600, background: '#f5f5f5', color: '#333', border: '1px solid #ddd', borderRadius: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
                                     >
                                       👁 View Portal
                                     </button>
@@ -4601,7 +4601,7 @@ export default function PatientProfile() {
                                         setSendProgressResult(null);
                                         setShowSendProgressModal(true);
                                       }}
-                                      style={{ padding: '5px 12px', fontSize: '12px', fontWeight: 600, background: '#1e40af', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
+                                      style={{ padding: '5px 12px', fontSize: '12px', fontWeight: 600, background: '#1e40af', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
                                     >
                                       📤 Send Progress
                                     </button>
@@ -4620,7 +4620,7 @@ export default function PatientProfile() {
                                       <Tooltip
                                         formatter={(value) => [`${value} lbs`, 'Weight']}
                                         labelFormatter={(label) => label}
-                                        contentStyle={{ fontSize: 13, borderRadius: 8 }}
+                                        contentStyle={{ fontSize: 13, borderRadius: 0 }}
                                       />
                                       <Line type="monotone" dataKey="weight" stroke="#1e40af" strokeWidth={2} dot={{ r: 4, fill: '#1e40af' }} activeDot={{ r: 6 }} />
                                     </LineChart>
@@ -5037,7 +5037,7 @@ export default function PatientProfile() {
                                 </div>
                                 {/* Injection reminders status */}
                                 {protocol.delivery_method === 'take_home' && (
-                                  <div style={{ padding: '8px 12px', background: protocol.hrt_reminders_enabled ? '#F0FDF4' : '#f9fafb', border: `1px solid ${protocol.hrt_reminders_enabled ? '#BBF7D0' : '#e5e7eb'}`, borderRadius: 8, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                  <div style={{ padding: '8px 12px', background: protocol.hrt_reminders_enabled ? '#F0FDF4' : '#f9fafb', border: `1px solid ${protocol.hrt_reminders_enabled ? '#BBF7D0' : '#e5e7eb'}`, borderRadius: 0, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                     {protocol.hrt_reminders_enabled ? (
                                       <span style={{ color: '#16a34a', fontWeight: 600 }}>✅ Injection Reminders ON ({protocol.hrt_reminder_schedule === 'tue_fri' ? 'Tue & Fri' : protocol.hrt_reminder_schedule === 'daily' ? 'Daily' : 'Mon & Thu'})</span>
                                     ) : (
@@ -5050,7 +5050,7 @@ export default function PatientProfile() {
                                               fetchPatient();
                                             } catch {}
                                           }}
-                                          style={{ padding: '3px 10px', fontSize: 11, fontWeight: 600, background: '#000', color: '#fff', border: 'none', borderRadius: 5, cursor: 'pointer' }}
+                                          style={{ padding: '3px 10px', fontSize: 11, fontWeight: 600, background: '#000', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer' }}
                                         >Enable Reminders</button>
                                       </>
                                     )}
@@ -5084,7 +5084,7 @@ export default function PatientProfile() {
 
                 return (
                   <div key={lp.id} style={{
-                    background: '#fff', borderRadius: 12, border: '1px solid #e5e5e5',
+                    background: '#fff', borderRadius: 0, border: '1px solid #e5e5e5',
                     padding: '20px 24px', marginBottom: 16,
                   }}>
                     {/* Header row */}
@@ -5092,12 +5092,12 @@ export default function PatientProfile() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <span style={{ fontSize: 15, fontWeight: 700, color: '#000' }}>Lab Order</span>
                         <span style={{
-                          padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
+                          padding: '2px 8px', borderRadius: 0, fontSize: 11, fontWeight: 600,
                           background: isElite ? '#f0fdf4' : '#f5f5f5',
                           color: isElite ? '#15803d' : '#525252',
                         }}>{panelType}</span>
                         <span style={{
-                          padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 500,
+                          padding: '2px 8px', borderRadius: 0, fontSize: 11, fontWeight: 500,
                           background: '#f5f5f5', color: '#525252',
                         }}>{labType}</span>
                       </div>
@@ -5168,7 +5168,7 @@ export default function PatientProfile() {
                     {/* Current stage info + actions */}
                     <div style={{
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      background: '#fafafa', borderRadius: 8, padding: '10px 14px',
+                      background: '#fafafa', borderRadius: 0, padding: '10px 14px',
                     }}>
                       <div>
                         <span style={{ fontSize: 13, fontWeight: 600, color: '#000' }}>
@@ -5192,7 +5192,7 @@ export default function PatientProfile() {
                             onClick={() => handleSendLabResults(lp)}
                             disabled={sendingLabId === lp.id}
                             style={{
-                              padding: '7px 14px', border: '1px solid #8b5cf6', borderRadius: 6,
+                              padding: '7px 14px', border: '1px solid #8b5cf6', borderRadius: 0,
                               background: sentLabIds[lp.id] ? '#f0fdf4' : '#faf5ff',
                               color: sentLabIds[lp.id] ? '#15803d' : '#7c3aed',
                               cursor: 'pointer', fontWeight: 600, fontSize: 12,
@@ -5206,7 +5206,7 @@ export default function PatientProfile() {
                           <button
                             onClick={() => handleLabStageAdvance(lp.id, nextStage.id)}
                             style={{
-                              padding: '7px 16px', border: 'none', borderRadius: 6,
+                              padding: '7px 16px', border: 'none', borderRadius: 0,
                               background: '#000', color: '#fff', cursor: 'pointer',
                               fontWeight: 600, fontSize: 12,
                             }}
@@ -5218,7 +5218,7 @@ export default function PatientProfile() {
                           onChange={(e) => { if (e.target.value) { handleLabStageAdvance(lp.id, e.target.value); e.target.value = ''; } }}
                           defaultValue=""
                           style={{
-                            padding: '7px 10px', border: '1px solid #e5e5e5', borderRadius: 6,
+                            padding: '7px 10px', border: '1px solid #e5e5e5', borderRadius: 0,
                             background: '#fff', cursor: 'pointer', fontSize: 12, color: '#737373',
                           }}
                         >
@@ -5236,7 +5236,7 @@ export default function PatientProfile() {
               {/* Completed lab orders — collapsed */}
               {labProtocols.filter(lp => lp.status === 'consult_complete').length > 0 && (
                 <div style={{
-                  background: '#fff', borderRadius: 12, border: '1px solid #e5e5e5',
+                  background: '#fff', borderRadius: 0, border: '1px solid #e5e5e5',
                   padding: '14px 20px', marginBottom: 16,
                 }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: '#a3a3a3', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 8 }}>
@@ -5283,7 +5283,7 @@ export default function PatientProfile() {
               {/* No active labs message */}
               {labProtocols.length === 0 && (
                 <div style={{
-                  background: '#fff', borderRadius: 12, border: '1px solid #e5e5e5',
+                  background: '#fff', borderRadius: 0, border: '1px solid #e5e5e5',
                   padding: '32px 24px', textAlign: 'center', marginBottom: 16,
                 }}>
                   <div style={{ fontSize: 14, color: '#a3a3a3' }}>No lab orders yet</div>
@@ -5292,14 +5292,14 @@ export default function PatientProfile() {
 
               {/* Lab Documents — Card Grid */}
               <div style={{
-                background: '#fff', borderRadius: 12, border: '1px solid #e5e5e5',
+                background: '#fff', borderRadius: 0, border: '1px solid #e5e5e5',
                 padding: '20px 24px', marginBottom: 16,
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                   <span style={{ fontSize: 15, fontWeight: 700, color: '#000' }}>Lab Documents</span>
                   <button onClick={() => setShowUploadModal(true)} style={{
                     padding: '6px 14px', background: '#000', color: '#fff', border: 'none',
-                    borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    borderRadius: 0, fontSize: 12, fontWeight: 600, cursor: 'pointer',
                   }}>Upload PDF</button>
                 </div>
                 {loadingDocs ? (
@@ -5310,7 +5310,7 @@ export default function PatientProfile() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
                     {labDocuments.map(doc => (
                       <div key={doc.id} style={{
-                        border: '1px solid #e5e5e5', borderRadius: 8, padding: '12px 14px',
+                        border: '1px solid #e5e5e5', borderRadius: 0, padding: '12px 14px',
                         background: '#fafafa', display: 'flex', flexDirection: 'column', gap: 6,
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -5329,13 +5329,13 @@ export default function PatientProfile() {
                           {doc.url && (
                             <button onClick={() => openPdfViewer(doc.url, doc.file_name || 'Lab Document')} style={{
                               flex: 1, padding: '5px 0', background: '#fff', border: '1px solid #e5e5e5',
-                              borderRadius: 4, fontSize: 11, fontWeight: 500, cursor: 'pointer', color: '#000',
+                              borderRadius: 0, fontSize: 11, fontWeight: 500, cursor: 'pointer', color: '#000',
                             }}>View</button>
                           )}
                           {doc.source !== 'labs' && (
                             <button onClick={() => handleDeleteDocument(doc.id)} style={{
                               padding: '5px 10px', background: '#fff', border: '1px solid #e5e5e5',
-                              borderRadius: 4, fontSize: 11, color: '#dc2626', cursor: 'pointer',
+                              borderRadius: 0, fontSize: 11, color: '#dc2626', cursor: 'pointer',
                             }}>×</button>
                           )}
                         </div>
@@ -5719,7 +5719,7 @@ export default function PatientProfile() {
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             {apt.encounter_note_count > 0 && (
-                              <span style={{ padding: '2px 6px', borderRadius: 4, fontSize: 11, fontWeight: 600, background: '#ede9fe', color: '#5b21b6' }}>
+                              <span style={{ padding: '2px 6px', borderRadius: 0, fontSize: 11, fontWeight: 600, background: '#ede9fe', color: '#5b21b6' }}>
                                 📝 {apt.encounter_note_count}
                               </span>
                             )}
@@ -5746,7 +5746,7 @@ export default function PatientProfile() {
                               {statusDropdownAptId === apt.id && (
                                 <div style={{
                                   position: 'absolute', top: '100%', right: 0, marginTop: 4,
-                                  background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8,
+                                  background: '#fff', border: '1px solid #e5e7eb', borderRadius: 0,
                                   boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 50,
                                   minWidth: 150, overflow: 'hidden',
                                 }}>
@@ -5867,7 +5867,7 @@ export default function PatientProfile() {
                 <button
                   onClick={() => setNoteFilter('clinical')}
                   style={{
-                    padding: '8px 18px', fontSize: 13, fontWeight: 600, borderRadius: 20,
+                    padding: '8px 18px', fontSize: 13, fontWeight: 600, borderRadius: 0,
                     border: noteFilter === 'clinical' ? '2px solid #059669' : '1.5px solid #d1d5db',
                     background: noteFilter === 'clinical' ? '#ecfdf5' : '#fff',
                     color: noteFilter === 'clinical' ? '#059669' : '#6b7280',
@@ -5879,7 +5879,7 @@ export default function PatientProfile() {
                 <button
                   onClick={() => setNoteFilter('internal')}
                   style={{
-                    padding: '8px 18px', fontSize: 13, fontWeight: 600, borderRadius: 20,
+                    padding: '8px 18px', fontSize: 13, fontWeight: 600, borderRadius: 0,
                     border: noteFilter === 'internal' ? '2px solid #2563eb' : '1.5px solid #d1d5db',
                     background: noteFilter === 'internal' ? '#eff6ff' : '#fff',
                     color: noteFilter === 'internal' ? '#2563eb' : '#6b7280',
@@ -5892,7 +5892,7 @@ export default function PatientProfile() {
 
               {/* Description banner */}
               <div style={{
-                padding: '10px 14px', marginBottom: 16, borderRadius: 8, fontSize: 12, lineHeight: 1.5,
+                padding: '10px 14px', marginBottom: 16, borderRadius: 0, fontSize: 12, lineHeight: 1.5,
                 background: noteFilter === 'clinical' ? '#f0fdf4' : '#eff6ff',
                 color: noteFilter === 'clinical' ? '#166534' : '#1e40af',
                 border: `1px solid ${noteFilter === 'clinical' ? '#bbf7d0' : '#bfdbfe'}`,
@@ -5932,7 +5932,7 @@ export default function PatientProfile() {
                             {formatDate(note.note_date || note.created_at)}
                             {note.created_by && <span style={{ fontWeight: 400, marginLeft: 8 }}>by {note.created_by}</span>}
                             <span style={{
-                              marginLeft: 8, fontSize: 11, padding: '2px 8px', borderRadius: 4, fontWeight: 500,
+                              marginLeft: 8, fontSize: 11, padding: '2px 8px', borderRadius: 0, fontWeight: 500,
                               background: note.source === 'encounter' ? '#fef3c7' : note.source === 'addendum' ? '#fef3c7' : note.source === 'protocol' ? '#f3e8ff' : note.source === 'manual' ? '#dbeafe' : '#f3f4f6',
                               color: note.source === 'encounter' ? '#92400e' : note.source === 'addendum' ? '#92400e' : note.source === 'protocol' ? '#7c3aed' : note.source === 'manual' ? '#1e40af' : '#6b7280',
                             }}>
@@ -5940,7 +5940,7 @@ export default function PatientProfile() {
                             </span>
                             {note.encounter_service && (
                               <span style={{
-                                marginLeft: 6, fontSize: 11, padding: '2px 8px', borderRadius: 4, fontWeight: 500,
+                                marginLeft: 6, fontSize: 11, padding: '2px 8px', borderRadius: 0, fontWeight: 500,
                                 background: '#ede9fe', color: '#5b21b6',
                               }}>
                                 {note.encounter_service.replace(/\b\w/g, l => l.toUpperCase())} Note
@@ -5948,7 +5948,7 @@ export default function PatientProfile() {
                             )}
                             {note.status && (
                               <span style={{
-                                marginLeft: 6, fontSize: 11, padding: '2px 8px', borderRadius: 4, fontWeight: 500,
+                                marginLeft: 6, fontSize: 11, padding: '2px 8px', borderRadius: 0, fontWeight: 500,
                                 background: note.status === 'signed' ? '#d1fae5' : '#f3f4f6',
                                 color: note.status === 'signed' ? '#065f46' : '#6b7280',
                               }}>
@@ -5958,7 +5958,7 @@ export default function PatientProfile() {
                             {note.protocol_name && (
                               <span
                                 style={{
-                                  marginLeft: 6, fontSize: 11, padding: '2px 8px', borderRadius: 4, fontWeight: 500,
+                                  marginLeft: 6, fontSize: 11, padding: '2px 8px', borderRadius: 0, fontWeight: 500,
                                   background: '#f0f9ff', color: '#0369a1',
                                 }}
                               >
@@ -5967,7 +5967,7 @@ export default function PatientProfile() {
                             )}
                             {note.pinned && (
                               <span style={{
-                                marginLeft: 6, fontSize: 11, padding: '2px 8px', borderRadius: 4, fontWeight: 500,
+                                marginLeft: 6, fontSize: 11, padding: '2px 8px', borderRadius: 0, fontWeight: 500,
                                 background: '#fef3c7', color: '#92400e',
                               }}>
                                 📌 Pinned
@@ -6045,7 +6045,7 @@ export default function PatientProfile() {
                     style={{
                       display: 'inline-flex', alignItems: 'center', gap: '6px',
                       padding: '6px 14px', fontSize: '13px', fontWeight: 600,
-                      color: '#fff', background: '#111', border: 'none', borderRadius: '8px',
+                      color: '#fff', background: '#111', border: 'none', borderRadius: 0,
                       cursor: 'pointer',
                     }}
                   >
@@ -6115,7 +6115,7 @@ export default function PatientProfile() {
                               fontSize: 11,
                               fontWeight: 600,
                               padding: '2px 8px',
-                              borderRadius: 4,
+                              borderRadius: 0,
                               background: pri.bg,
                               color: pri.color,
                               flexShrink: 0,
@@ -6131,7 +6131,7 @@ export default function PatientProfile() {
                               {task.description && (
                                 <div style={{
                                   background: '#f3f4f6',
-                                  borderRadius: 6,
+                                  borderRadius: 0,
                                   padding: '10px 14px',
                                   fontSize: 13,
                                   color: '#374151',
@@ -6167,7 +6167,7 @@ export default function PatientProfile() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }} onClick={() => { setShowCreateTask(false); stopTaskListening(); }}>
                   <div style={{
-                    background: '#fff', borderRadius: '12px', width: '100%', maxWidth: '520px',
+                    background: '#fff', borderRadius: 0, width: '100%', maxWidth: '520px',
                     maxHeight: '90vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
                   }} onClick={e => e.stopPropagation()}>
                     <div style={{
@@ -6195,7 +6195,7 @@ export default function PatientProfile() {
                                   color: taskListening && taskDictationTarget === 'title' ? '#fff' : '#dc2626',
                                   background: taskListening && taskDictationTarget === 'title' ? '#dc2626' : '#fef2f2',
                                   border: '1px solid', borderColor: taskListening && taskDictationTarget === 'title' ? '#dc2626' : '#fecaca',
-                                  borderRadius: '6px', cursor: 'pointer',
+                                  borderRadius: 0, cursor: 'pointer',
                                   animation: taskListening && taskDictationTarget === 'title' ? 'pulse 1.5s infinite' : 'none',
                                 }}
                               >
@@ -6211,7 +6211,7 @@ export default function PatientProfile() {
                                   color: taskFormatting ? '#9ca3af' : '#7c3aed',
                                   background: taskFormatting ? '#f3f4f6' : '#f5f3ff',
                                   border: '1px solid', borderColor: taskFormatting ? '#e5e7eb' : '#ddd6fe',
-                                  borderRadius: '6px',
+                                  borderRadius: 0,
                                   cursor: taskFormatting || (!taskForm.title.trim() && !taskForm.description.trim()) ? 'not-allowed' : 'pointer',
                                   opacity: (!taskForm.title.trim() && !taskForm.description.trim()) ? 0.5 : 1,
                                 }}
@@ -6224,7 +6224,7 @@ export default function PatientProfile() {
                             <div style={{
                               display: 'flex', alignItems: 'center', gap: '8px',
                               padding: '6px 10px', marginBottom: '6px',
-                              background: '#fef2f2', borderRadius: '6px',
+                              background: '#fef2f2', borderRadius: 0,
                               fontSize: '12px', color: '#dc2626', fontWeight: 500,
                             }}>
                               <span style={{
@@ -6241,7 +6241,7 @@ export default function PatientProfile() {
                             placeholder="Type or tap Dictate to speak your task..."
                             style={{
                               width: '100%', padding: '10px 12px', fontSize: '14px',
-                              border: '1px solid #d1d5db', borderRadius: '8px', outline: 'none',
+                              border: '1px solid #d1d5db', borderRadius: 0, outline: 'none',
                               boxSizing: 'border-box',
                               ...(taskListening && taskDictationTarget === 'title' ? { borderColor: '#dc2626', boxShadow: '0 0 0 2px rgba(220,38,38,0.1)' } : {}),
                             }}
@@ -6263,7 +6263,7 @@ export default function PatientProfile() {
                                 color: taskListening && taskDictationTarget === 'description' ? '#fff' : '#dc2626',
                                 background: taskListening && taskDictationTarget === 'description' ? '#dc2626' : '#fef2f2',
                                 border: '1px solid', borderColor: taskListening && taskDictationTarget === 'description' ? '#dc2626' : '#fecaca',
-                                borderRadius: '5px', cursor: 'pointer', marginBottom: '6px',
+                                borderRadius: 0, cursor: 'pointer', marginBottom: '6px',
                               }}
                             >
                               {taskListening && taskDictationTarget === 'description' ? '⏹ Stop' : '🎙 Dictate'}
@@ -6273,7 +6273,7 @@ export default function PatientProfile() {
                             <div style={{
                               display: 'flex', alignItems: 'center', gap: '8px',
                               padding: '6px 10px', marginBottom: '6px',
-                              background: '#fef2f2', borderRadius: '6px',
+                              background: '#fef2f2', borderRadius: 0,
                               fontSize: '12px', color: '#dc2626', fontWeight: 500,
                             }}>
                               <span style={{
@@ -6289,7 +6289,7 @@ export default function PatientProfile() {
                             placeholder="Additional details..."
                             style={{
                               width: '100%', padding: '10px 12px', fontSize: '14px',
-                              border: '1px solid #d1d5db', borderRadius: '8px', outline: 'none',
+                              border: '1px solid #d1d5db', borderRadius: 0, outline: 'none',
                               resize: 'vertical', fontFamily: 'inherit', lineHeight: '1.5',
                               minHeight: '80px', boxSizing: 'border-box',
                               ...(taskListening && taskDictationTarget === 'description' ? { borderColor: '#dc2626', boxShadow: '0 0 0 2px rgba(220,38,38,0.1)' } : {}),
@@ -6305,7 +6305,7 @@ export default function PatientProfile() {
                             onChange={e => setTaskForm(prev => ({ ...prev, assigned_to: e.target.value }))}
                             style={{
                               width: '100%', padding: '10px 12px', fontSize: '14px',
-                              border: '1px solid #d1d5db', borderRadius: '8px', outline: 'none',
+                              border: '1px solid #d1d5db', borderRadius: 0, outline: 'none',
                               boxSizing: 'border-box', background: '#fff',
                             }}
                             required
@@ -6330,7 +6330,7 @@ export default function PatientProfile() {
                               onChange={e => setTaskForm(prev => ({ ...prev, priority: e.target.value }))}
                               style={{
                                 width: '100%', padding: '10px 12px', fontSize: '14px',
-                                border: '1px solid #d1d5db', borderRadius: '8px', outline: 'none',
+                                border: '1px solid #d1d5db', borderRadius: 0, outline: 'none',
                                 boxSizing: 'border-box', background: '#fff',
                               }}
                             >
@@ -6348,7 +6348,7 @@ export default function PatientProfile() {
                               onChange={e => setTaskForm(prev => ({ ...prev, due_date: e.target.value }))}
                               style={{
                                 width: '100%', padding: '10px 12px', fontSize: '14px',
-                                border: '1px solid #d1d5db', borderRadius: '8px', outline: 'none',
+                                border: '1px solid #d1d5db', borderRadius: 0, outline: 'none',
                                 boxSizing: 'border-box',
                               }}
                             />
@@ -6360,7 +6360,7 @@ export default function PatientProfile() {
                           <label style={{ fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px', display: 'block' }}>Linked Patient</label>
                           <div style={{
                             display: 'flex', alignItems: 'center', gap: '8px',
-                            padding: '8px 12px', background: '#f0f9ff', borderRadius: '8px',
+                            padding: '8px 12px', background: '#f0f9ff', borderRadius: 0,
                             border: '1px solid #bae6fd',
                           }}>
                             <span style={{ flex: 1, fontSize: '13px', fontWeight: 600 }}>
@@ -6377,13 +6377,13 @@ export default function PatientProfile() {
                         <button type="button" onClick={() => { setShowCreateTask(false); stopTaskListening(); }} style={{
                           padding: '8px 16px', fontSize: '13px', fontWeight: 600,
                           color: '#374151', background: '#fff', border: '1px solid #d1d5db',
-                          borderRadius: '8px', cursor: 'pointer',
+                          borderRadius: 0, cursor: 'pointer',
                         }}>
                           Cancel
                         </button>
                         <button type="submit" disabled={creatingTask} style={{
                           padding: '8px 16px', fontSize: '13px', fontWeight: 600,
-                          color: '#fff', background: '#111', border: 'none', borderRadius: '8px',
+                          color: '#fff', background: '#111', border: 'none', borderRadius: 0,
                           cursor: creatingTask ? 'not-allowed' : 'pointer',
                           opacity: creatingTask ? 0.6 : 1,
                         }}>
@@ -6482,7 +6482,7 @@ export default function PatientProfile() {
                               key={bq.id || idx}
                               onClick={() => setSelectedBaselineIdx(idx)}
                               style={{
-                                padding: '6px 14px', borderRadius: '20px', border: '1px solid',
+                                padding: '6px 14px', borderRadius: 0, border: '1px solid',
                                 borderColor: idx === selectedBaselineIdx ? '#000' : '#ddd',
                                 background: idx === selectedBaselineIdx ? '#000' : '#fff',
                                 color: idx === selectedBaselineIdx ? '#fff' : '#666',
@@ -6505,7 +6505,7 @@ export default function PatientProfile() {
                           {selected?.status === 'completed' ? '✅ Completed' : '⏳ In Progress'} · Sections: {(selected?.sections_completed || []).length}
                         </div>
                         {responses.primary_goal && (
-                          <div style={{ marginTop: '12px', padding: '10px 14px', background: '#f9fafb', borderRadius: '8px', border: '1px solid #f0f0f0' }}>
+                          <div style={{ marginTop: '12px', padding: '10px 14px', background: '#f9fafb', borderRadius: 0, border: '1px solid #f0f0f0' }}>
                             <div style={{ fontSize: '11px', color: '#888', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Patient Goal</div>
                             <div style={{ fontSize: '14px', color: '#333', lineHeight: '1.5' }}>{responses.primary_goal}</div>
                           </div>
@@ -6533,8 +6533,8 @@ export default function PatientProfile() {
                                   <span style={{ fontSize: '13px', fontWeight: '500', color: '#333' }}>{item.label}</span>
                                   <span style={{ fontSize: '14px', fontWeight: '700', color: barColor }}>{item.value}/{item.max}</span>
                                 </div>
-                                <div style={{ height: '6px', background: '#f0f0f0', borderRadius: '3px', overflow: 'hidden' }}>
-                                  <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: '3px' }} />
+                                <div style={{ height: '6px', background: '#f0f0f0', borderRadius: 0, overflow: 'hidden' }}>
+                                  <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: 0 }} />
                                 </div>
                               </div>
                             );
@@ -6577,11 +6577,11 @@ export default function PatientProfile() {
                                       <div style={{ fontSize: '10px', color: '#aaa' }}>/{inst.maxScore}</div>
                                     </div>
                                   </div>
-                                  <div style={{ height: '6px', background: '#f0f0f0', borderRadius: '3px', overflow: 'hidden', marginBottom: '8px' }}>
-                                    <div style={{ height: '100%', width: `${Math.min(pct, 100)}%`, background: severity.color, borderRadius: '3px' }} />
+                                  <div style={{ height: '6px', background: '#f0f0f0', borderRadius: 0, overflow: 'hidden', marginBottom: '8px' }}>
+                                    <div style={{ height: '100%', width: `${Math.min(pct, 100)}%`, background: severity.color, borderRadius: 0 }} />
                                   </div>
                                   <div style={{
-                                    display: 'inline-block', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600',
+                                    display: 'inline-block', padding: '2px 8px', borderRadius: 0, fontSize: '11px', fontWeight: '600',
                                     background: severity.color + '18', color: severity.color,
                                   }}>{severity.label}</div>
                                 </div>
@@ -6601,8 +6601,8 @@ export default function PatientProfile() {
                                 </div>
                                 <span style={{ fontSize: '18px', fontWeight: '700', color: responses.fatigue_vas >= 7 ? '#22c55e' : responses.fatigue_vas >= 4 ? '#eab308' : '#ef4444' }}>{responses.fatigue_vas}/10</span>
                               </div>
-                              <div style={{ height: '6px', background: '#f0f0f0', borderRadius: '3px', overflow: 'hidden' }}>
-                                <div style={{ height: '100%', width: `${responses.fatigue_vas * 10}%`, background: responses.fatigue_vas >= 7 ? '#22c55e' : responses.fatigue_vas >= 4 ? '#eab308' : '#ef4444', borderRadius: '3px' }} />
+                              <div style={{ height: '6px', background: '#f0f0f0', borderRadius: 0, overflow: 'hidden' }}>
+                                <div style={{ height: '100%', width: `${responses.fatigue_vas * 10}%`, background: responses.fatigue_vas >= 7 ? '#22c55e' : responses.fatigue_vas >= 4 ? '#eab308' : '#ef4444', borderRadius: 0 }} />
                               </div>
                             </div>
                           </section>
@@ -6697,7 +6697,7 @@ export default function PatientProfile() {
                               });
                             }
                           }}
-                          style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}
+                          style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }}
                         >
                           <option value="">{loadingSubPlans ? 'Loading plans...' : '-- Select a plan --'}</option>
                           {subPlans.map(plan => (
@@ -6717,7 +6717,7 @@ export default function PatientProfile() {
                               type="number" step="0.01" min="0" placeholder="250"
                               value={newSubForm.amount}
                               onChange={e => setNewSubForm(f => ({ ...f, amount: e.target.value }))}
-                              style={{ width: 100, padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14 }}
+                              style={{ width: 100, padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14 }}
                             />
                           </div>
                           <div>
@@ -6725,7 +6725,7 @@ export default function PatientProfile() {
                             <select
                               value={newSubForm.interval}
                               onChange={e => setNewSubForm(f => ({ ...f, interval: e.target.value }))}
-                              style={{ padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}
+                              style={{ padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }}
                             >
                               <option value="month">Monthly</option>
                               <option value="year">Yearly</option>
@@ -6738,7 +6738,7 @@ export default function PatientProfile() {
                               type="text" placeholder="e.g. Male HRT Membership"
                               value={newSubForm.description}
                               onChange={e => setNewSubForm(f => ({ ...f, description: e.target.value }))}
-                              style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }}
+                              style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }}
                             />
                           </div>
                         </div>
@@ -7086,16 +7086,16 @@ export default function PatientProfile() {
               <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
                 <div>
                   {!confirmDeletePurchase ? (
-                    <button onClick={() => setConfirmDeletePurchase(true)} style={{ padding: '8px 14px', fontSize: '13px', fontWeight: 600, border: '1px solid #fca5a5', borderRadius: '6px', background: '#fff', color: '#dc2626', cursor: 'pointer' }}>
+                    <button onClick={() => setConfirmDeletePurchase(true)} style={{ padding: '8px 14px', fontSize: '13px', fontWeight: 600, border: '1px solid #fca5a5', borderRadius: 0, background: '#fff', color: '#dc2626', cursor: 'pointer' }}>
                       Delete
                     </button>
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ fontSize: '13px', color: '#dc2626', fontWeight: 500 }}>Delete this purchase?</span>
-                      <button onClick={handleDeletePurchase} disabled={deletingPurchase} style={{ padding: '6px 12px', fontSize: '13px', fontWeight: 600, border: 'none', borderRadius: '6px', background: '#dc2626', color: '#fff', cursor: 'pointer' }}>
+                      <button onClick={handleDeletePurchase} disabled={deletingPurchase} style={{ padding: '6px 12px', fontSize: '13px', fontWeight: 600, border: 'none', borderRadius: 0, background: '#dc2626', color: '#fff', cursor: 'pointer' }}>
                         {deletingPurchase ? '...' : 'Yes'}
                       </button>
-                      <button onClick={() => setConfirmDeletePurchase(false)} style={{ padding: '6px 12px', fontSize: '13px', fontWeight: 600, border: '1px solid #d1d5db', borderRadius: '6px', background: '#fff', color: '#374151', cursor: 'pointer' }}>
+                      <button onClick={() => setConfirmDeletePurchase(false)} style={{ padding: '6px 12px', fontSize: '13px', fontWeight: 600, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer' }}>
                         No
                       </button>
                     </div>
@@ -7144,7 +7144,7 @@ export default function PatientProfile() {
                         type="button"
                         onClick={() => setEditInjectionForm({ ...editInjectionForm, fulfillment_method: 'in_clinic' })}
                         style={{
-                          flex: 1, padding: '8px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, cursor: 'pointer',
+                          flex: 1, padding: '8px 12px', borderRadius: 0, fontSize: '13px', fontWeight: 500, cursor: 'pointer',
                           border: editInjectionForm.fulfillment_method === 'in_clinic' ? '2px solid #2E75B6' : '1px solid #ddd',
                           background: editInjectionForm.fulfillment_method === 'in_clinic' ? '#EBF3FB' : '#fff',
                           color: editInjectionForm.fulfillment_method === 'in_clinic' ? '#2E75B6' : '#666',
@@ -7156,7 +7156,7 @@ export default function PatientProfile() {
                         type="button"
                         onClick={() => setEditInjectionForm({ ...editInjectionForm, fulfillment_method: 'overnight' })}
                         style={{
-                          flex: 1, padding: '8px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 500, cursor: 'pointer',
+                          flex: 1, padding: '8px 12px', borderRadius: 0, fontSize: '13px', fontWeight: 500, cursor: 'pointer',
                           border: editInjectionForm.fulfillment_method === 'overnight' ? '2px solid #e67e22' : '1px solid #ddd',
                           background: editInjectionForm.fulfillment_method === 'overnight' ? '#FFF5EB' : '#fff',
                           color: editInjectionForm.fulfillment_method === 'overnight' ? '#e67e22' : '#666',
@@ -7171,7 +7171,7 @@ export default function PatientProfile() {
                         placeholder="Tracking number (optional)"
                         value={editInjectionForm.tracking_number}
                         onChange={e => setEditInjectionForm({ ...editInjectionForm, tracking_number: e.target.value })}
-                        style={{ marginTop: '8px', width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '13px', boxSizing: 'border-box' }}
+                        style={{ marginTop: '8px', width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: 0, fontSize: '13px', boxSizing: 'border-box' }}
                       />
                     )}
                   </div>
@@ -7180,16 +7180,16 @@ export default function PatientProfile() {
               <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
                 <div>
                   {!confirmDeleteInjection ? (
-                    <button onClick={() => setConfirmDeleteInjection(true)} style={{ padding: '8px 14px', fontSize: '13px', fontWeight: 600, border: '1px solid #fca5a5', borderRadius: '6px', background: '#fff', color: '#dc2626', cursor: 'pointer' }}>
+                    <button onClick={() => setConfirmDeleteInjection(true)} style={{ padding: '8px 14px', fontSize: '13px', fontWeight: 600, border: '1px solid #fca5a5', borderRadius: 0, background: '#fff', color: '#dc2626', cursor: 'pointer' }}>
                       Delete
                     </button>
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ fontSize: '13px', color: '#dc2626', fontWeight: 500 }}>Delete?</span>
-                      <button onClick={handleDeleteInjection} disabled={editInjectionSaving} style={{ padding: '6px 12px', fontSize: '13px', fontWeight: 600, border: 'none', borderRadius: '6px', background: '#dc2626', color: '#fff', cursor: 'pointer' }}>
+                      <button onClick={handleDeleteInjection} disabled={editInjectionSaving} style={{ padding: '6px 12px', fontSize: '13px', fontWeight: 600, border: 'none', borderRadius: 0, background: '#dc2626', color: '#fff', cursor: 'pointer' }}>
                         {editInjectionSaving ? '...' : 'Yes'}
                       </button>
-                      <button onClick={() => setConfirmDeleteInjection(false)} style={{ padding: '6px 12px', fontSize: '13px', fontWeight: 600, border: '1px solid #d1d5db', borderRadius: '6px', background: '#fff', color: '#374151', cursor: 'pointer' }}>
+                      <button onClick={() => setConfirmDeleteInjection(false)} style={{ padding: '6px 12px', fontSize: '13px', fontWeight: 600, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer' }}>
                         No
                       </button>
                     </div>
@@ -7215,7 +7215,7 @@ export default function PatientProfile() {
               <div className="modal-body">
                 {/* Category indicator (locked to whichever section the user clicked from) */}
                 <div style={{
-                  padding: '10px 14px', marginBottom: 16, borderRadius: 8, fontSize: 13, fontWeight: 600, textAlign: 'center',
+                  padding: '10px 14px', marginBottom: 16, borderRadius: 0, fontSize: 13, fontWeight: 600, textAlign: 'center',
                   border: addNoteCategory === 'clinical' ? '2px solid #059669' : '2px solid #2563eb',
                   background: addNoteCategory === 'clinical' ? '#ecfdf5' : '#eff6ff',
                   color: addNoteCategory === 'clinical' ? '#059669' : '#2563eb',
@@ -7338,7 +7338,7 @@ export default function PatientProfile() {
 
                 {/* Active protocol warning — shown when patient already has protocols and no purchase was selected */}
                 {activeProtocols.length > 0 && (
-                  <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 8, padding: '12px 14px', marginBottom: 14 }}>
+                  <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 0, padding: '12px 14px', marginBottom: 14 }}>
                     <div style={{ fontWeight: 600, color: '#92400e', marginBottom: 6, fontSize: 13 }}>
                       ⚠️ This patient already has {activeProtocols.length} active protocol{activeProtocols.length !== 1 ? 's' : ''}
                     </div>
@@ -7384,7 +7384,7 @@ export default function PatientProfile() {
                       const linked = activeProtocols.find(p => p.id === selectedLinkProtocolId);
                       if (!linked) return null;
                       return (
-                        <div style={{ marginTop: 8, padding: '10px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 6, fontSize: 13 }}>
+                        <div style={{ marginTop: 8, padding: '10px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 0, fontSize: 13 }}>
                           <div style={{ fontWeight: 600, marginBottom: 4 }}>{linked.program_name}</div>
                           {linked.medication && <div>Medication: {linked.medication}</div>}
                           {linked.selected_dose && <div>Dose: {linked.selected_dose}</div>}
@@ -7541,7 +7541,7 @@ export default function PatientProfile() {
                                   </select>
                                 )}
                               </div>
-                              <div style={{ padding: '8px 10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12, color: '#475569', marginBottom: 12 }}>
+                              <div style={{ padding: '8px 10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 0, fontSize: 12, color: '#475569', marginBottom: 12 }}>
                                 <strong>Dosing:</strong> {peptideInfo.startingDose} → {peptideInfo.maxDose} &nbsp;|&nbsp;
                                 <strong>Frequency:</strong> {peptideInfo.frequency}
                                 {peptideInfo.notes && <> &nbsp;|&nbsp; {peptideInfo.notes}</>}
@@ -7554,7 +7554,7 @@ export default function PatientProfile() {
                                   <div className="form-group">
                                     <label>Vial Duration ({vialSupply.vialSize})</label>
                                     {vialSupply.options.length === 1 ? (
-                                      <div style={{ padding: '8px 10px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 6, fontSize: 13, color: '#166534', fontWeight: 600 }}>
+                                      <div style={{ padding: '8px 10px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 0, fontSize: 13, color: '#166534', fontWeight: 600 }}>
                                         {vialSupply.options[0].label}
                                       </div>
                                     ) : (
@@ -7609,7 +7609,7 @@ export default function PatientProfile() {
                         const diffDays = Math.round((today - start) / (1000 * 60 * 60 * 24));
                         if (diffDays > 0) {
                           return (
-                            <div style={{ marginTop: 4, padding: '6px 10px', background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 6, fontSize: 12, color: '#92400e' }}>
+                            <div style={{ marginTop: 4, padding: '6px 10px', background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 0, fontSize: 12, color: '#92400e' }}>
                               Backdated: {diffDays} day{diffDays !== 1 ? 's' : ''} ago
                               {getSelectedTemplate()?.duration_days > 0 && (
                                 <span> — {Math.max(0, getSelectedTemplate().duration_days - diffDays)} day{Math.max(0, getSelectedTemplate().duration_days - diffDays) !== 1 ? 's' : ''} remaining</span>
@@ -7787,7 +7787,7 @@ export default function PatientProfile() {
                       return (
                         <div key={med} style={{
                           padding: '12px', marginBottom: '8px',
-                          background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '10px',
+                          background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 0,
                         }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                             <span style={{ fontSize: '14px', fontWeight: 700, color: '#7c3aed' }}>{med}</span>
@@ -7811,7 +7811,7 @@ export default function PatientProfile() {
                                   ...editForm,
                                   secondaryMedDetails: { ...editForm.secondaryMedDetails, [med]: { ...details, dosage: e.target.value } }
                                 })}
-                                style={{ width: '100%', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px' }}
+                                style={{ width: '100%', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: '13px' }}
                               >
                                 <option value="">Select dose...</option>
                                 {(config.doses || []).map(d => <option key={d} value={d}>{d}</option>)}
@@ -7825,7 +7825,7 @@ export default function PatientProfile() {
                                   ...editForm,
                                   secondaryMedDetails: { ...editForm.secondaryMedDetails, [med]: { ...details, frequency: e.target.value } }
                                 })}
-                                style={{ width: '100%', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '13px' }}
+                                style={{ width: '100%', padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: '13px' }}
                               >
                                 <option value="">Select frequency...</option>
                                 {(config.frequencies || []).map(f => <option key={f} value={f}>{f}</option>)}
@@ -8101,7 +8101,7 @@ export default function PatientProfile() {
               </div>
               <div className="modal-body">
                 {/* Balance banner */}
-                <div style={{ background: creditBalanceCents > 0 ? '#f0fdf4' : '#f9fafb', border: `1px solid ${creditBalanceCents > 0 ? '#bbf7d0' : '#e5e7eb'}`, borderRadius: 8, padding: '10px 14px', marginBottom: 20, fontSize: 14, color: creditBalanceCents > 0 ? '#166534' : '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ background: creditBalanceCents > 0 ? '#f0fdf4' : '#f9fafb', border: `1px solid ${creditBalanceCents > 0 ? '#bbf7d0' : '#e5e7eb'}`, borderRadius: 0, padding: '10px 14px', marginBottom: 20, fontSize: 14, color: creditBalanceCents > 0 ? '#166534' : '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span>Current balance</span>
                   <strong style={{ fontSize: 16 }}>${(creditBalanceCents / 100).toFixed(2)}</strong>
                 </div>
@@ -8119,7 +8119,7 @@ export default function PatientProfile() {
                         placeholder="0.00"
                         value={addCreditAmount}
                         onChange={e => setAddCreditAmount(e.target.value)}
-                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 15, boxSizing: 'border-box' }}
+                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 15, boxSizing: 'border-box' }}
                         autoFocus
                       />
                     </div>
@@ -8128,7 +8128,7 @@ export default function PatientProfile() {
                       <select
                         value={addCreditReason}
                         onChange={e => setAddCreditReason(e.target.value)}
-                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+                        style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, boxSizing: 'border-box' }}
                       >
                         <option value="manual">Manual adjustment</option>
                         <option value="gift">Gift</option>
@@ -8146,13 +8146,13 @@ export default function PatientProfile() {
                       placeholder="e.g. Gift from JP Perarie"
                       value={addCreditNote}
                       onChange={e => setAddCreditNote(e.target.value)}
-                      style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+                      style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, boxSizing: 'border-box' }}
                     />
                   </div>
                   <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                     <button
                       onClick={() => { setShowAddCreditModal(false); setAddCreditAmount(''); setAddCreditNote(''); setAddCreditReason('manual'); }}
-                      style={{ padding: '8px 18px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer', fontWeight: 500 }}
+                      style={{ padding: '8px 18px', borderRadius: 0, border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer', fontWeight: 500 }}
                     >
                       Cancel
                     </button>
@@ -8188,7 +8188,7 @@ export default function PatientProfile() {
                           setAddCreditSaving(false);
                         }
                       }}
-                      style={{ padding: '8px 20px', borderRadius: 6, border: 'none', background: addCreditSaving ? '#9ca3af' : '#166534', color: '#fff', cursor: addCreditSaving ? 'not-allowed' : 'pointer', fontWeight: 600 }}
+                      style={{ padding: '8px 20px', borderRadius: 0, border: 'none', background: addCreditSaving ? '#9ca3af' : '#166534', color: '#fff', cursor: addCreditSaving ? 'not-allowed' : 'pointer', fontWeight: 600 }}
                     >
                       {addCreditSaving ? 'Adding…' : 'Add Credit'}
                     </button>
@@ -8249,7 +8249,7 @@ export default function PatientProfile() {
                     <p style={{ fontSize: '15px', fontWeight: 600, color: sendProgressResult.success ? '#16a34a' : '#dc2626', lineHeight: 1.5 }}>
                       {sendProgressResult.message}
                     </p>
-                    <button onClick={() => setShowSendProgressModal(false)} style={{ marginTop: '16px', padding: '8px 20px', background: '#000', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}>Done</button>
+                    <button onClick={() => setShowSendProgressModal(false)} style={{ marginTop: '16px', padding: '8px 20px', background: '#000', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer', fontSize: '14px' }}>Done</button>
                   </div>
                 ) : (
                   <>
@@ -8261,7 +8261,7 @@ export default function PatientProfile() {
                       <div style={{ display: 'flex', gap: '8px' }}>
                         {['email', 'sms', 'both'].map(m => (
                           <button key={m} onClick={() => setSendProgressMethod(m)} style={{
-                            flex: 1, padding: '10px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                            flex: 1, padding: '10px', borderRadius: 0, fontSize: '13px', fontWeight: 600, cursor: 'pointer',
                             border: sendProgressMethod === m ? '2px solid #1e40af' : '1px solid #ddd',
                             background: sendProgressMethod === m ? '#eff6ff' : '#fff',
                             color: sendProgressMethod === m ? '#1e40af' : '#666'
@@ -8272,12 +8272,12 @@ export default function PatientProfile() {
                       </div>
                     </div>
                     {(sendProgressMethod === 'email' || sendProgressMethod === 'both') && !patient?.email && (
-                      <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '10px', marginBottom: '8px', fontSize: '13px', color: '#dc2626' }}>⚠️ No email on file for this patient</div>
+                      <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 0, padding: '10px', marginBottom: '8px', fontSize: '13px', color: '#dc2626' }}>⚠️ No email on file for this patient</div>
                     )}
                     {(sendProgressMethod === 'sms' || sendProgressMethod === 'both') && !patient?.phone && (
-                      <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '10px', marginBottom: '8px', fontSize: '13px', color: '#dc2626' }}>⚠️ No phone number on file for this patient</div>
+                      <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 0, padding: '10px', marginBottom: '8px', fontSize: '13px', color: '#dc2626' }}>⚠️ No phone number on file for this patient</div>
                     )}
-                    <div style={{ background: '#f9fafb', borderRadius: '8px', padding: '14px', marginTop: '12px', fontSize: '13px', color: '#555' }}>
+                    <div style={{ background: '#f9fafb', borderRadius: 0, padding: '14px', marginTop: '12px', fontSize: '13px', color: '#555' }}>
                       <strong style={{ color: '#333' }}>Will send:</strong>
                       <ul style={{ margin: '8px 0 0', paddingLeft: '18px' }}>
                         {(sendProgressMethod === 'email' || sendProgressMethod === 'both') && patient?.email && (
@@ -8293,11 +8293,11 @@ export default function PatientProfile() {
               </div>
               {!sendProgressResult && (
                 <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', padding: '16px 20px', borderTop: '1px solid #eee' }}>
-                  <button onClick={() => setShowSendProgressModal(false)} style={{ padding: '8px 16px', background: '#f5f5f5', border: '1px solid #ddd', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>Cancel</button>
+                  <button onClick={() => setShowSendProgressModal(false)} style={{ padding: '8px 16px', background: '#f5f5f5', border: '1px solid #ddd', borderRadius: 0, cursor: 'pointer', fontSize: '13px' }}>Cancel</button>
                   <button
                     onClick={handleSendProgress}
                     disabled={sendingProgress || ((sendProgressMethod === 'email' || sendProgressMethod === 'both') && !patient?.email && sendProgressMethod !== 'sms') || ((sendProgressMethod === 'sms' || sendProgressMethod === 'both') && !patient?.phone && sendProgressMethod !== 'email')}
-                    style={{ padding: '8px 20px', background: sendingProgress ? '#93c5fd' : '#1e40af', color: '#fff', border: 'none', borderRadius: '8px', cursor: sendingProgress ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 600 }}
+                    style={{ padding: '8px 20px', background: sendingProgress ? '#93c5fd' : '#1e40af', color: '#fff', border: 'none', borderRadius: 0, cursor: sendingProgress ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 600 }}
                   >
                     {sendingProgress ? 'Sending...' : 'Send Progress'}
                   </button>
@@ -8322,7 +8322,7 @@ export default function PatientProfile() {
                 </p>
 
                 {/* Source protocol summary */}
-                <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 8, padding: '10px 14px', marginBottom: 16 }}>
+                <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 0, padding: '10px 14px', marginBottom: 16 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#92400e', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Will be closed (merged away)</div>
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{mergeSource.program_name || mergeSource.medication}</div>
                   <div style={{ fontSize: 13, color: '#666', marginTop: 2 }}>
@@ -8343,7 +8343,7 @@ export default function PatientProfile() {
                     const chosen = all.find(p => p.id === e.target.value);
                     setMergeTarget(chosen || null);
                   }}
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, marginBottom: 16, background: '#fff' }}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, marginBottom: 16, background: '#fff' }}
                   disabled={merging}
                 >
                   {[...activeProtocols, ...completedProtocols]
@@ -8360,7 +8360,7 @@ export default function PatientProfile() {
 
                 {/* Preview */}
                 {mergeTarget && (
-                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 14px', marginBottom: 16 }}>
+                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 0, padding: '10px 14px', marginBottom: 16 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: '#166534', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Surviving protocol (after merge)</div>
                     <div style={{ fontWeight: 600, fontSize: 14 }}>{mergeTarget.program_name || mergeTarget.medication}</div>
                     <div style={{ fontSize: 13, color: '#444', marginTop: 2 }}>
@@ -8378,7 +8378,7 @@ export default function PatientProfile() {
                 )}
 
                 {mergeError && (
-                  <div style={{ background: '#fee2e2', color: '#dc2626', borderRadius: 6, padding: '8px 12px', fontSize: 13, marginBottom: 12 }}>
+                  <div style={{ background: '#fee2e2', color: '#dc2626', borderRadius: 0, padding: '8px 12px', fontSize: 13, marginBottom: 12 }}>
                     {mergeError}
                   </div>
                 )}
@@ -8387,12 +8387,12 @@ export default function PatientProfile() {
                   <button
                     onClick={() => { setShowMergeModal(false); setMergeError(''); }}
                     disabled={merging}
-                    style={{ padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: 6, background: '#fff', cursor: 'pointer', fontSize: 14 }}
+                    style={{ padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', cursor: 'pointer', fontSize: 14 }}
                   >Cancel</button>
                   <button
                     onClick={handleMergeProtocol}
                     disabled={merging || !mergeTarget}
-                    style={{ padding: '8px 20px', background: merging ? '#9ca3af' : '#f59e0b', color: '#fff', border: 'none', borderRadius: 6, cursor: merging ? 'not-allowed' : 'pointer', fontSize: 14, fontWeight: 600 }}
+                    style={{ padding: '8px 20px', background: merging ? '#9ca3af' : '#f59e0b', color: '#fff', border: 'none', borderRadius: 0, cursor: merging ? 'not-allowed' : 'pointer', fontSize: 14, fontWeight: 600 }}
                   >{merging ? 'Merging...' : 'Merge Protocol'}</button>
                 </div>
               </div>
@@ -8454,7 +8454,7 @@ export default function PatientProfile() {
                     setQuickWeightModal(null);
                     openLogEntryModal(quickWeightModal.protocol, null);
                   }}
-                  style={{ padding: '8px 14px', fontSize: '13px', fontWeight: 500, border: '1px solid #d1d5db', borderRadius: '6px', background: '#fff', color: '#374151', cursor: 'pointer' }}
+                  style={{ padding: '8px 14px', fontSize: '13px', fontWeight: 500, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer' }}
                 >
                   Full Service Log
                 </button>
@@ -8483,7 +8483,7 @@ export default function PatientProfile() {
                 Are you sure you want to permanently delete <strong>{deletePreview.patient?.name}</strong>?
               </p>
               {deletePreview.totalRecords > 0 && (
-                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '12px 16px', margin: '12px 0' }}>
+                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 0, padding: '12px 16px', margin: '12px 0' }}>
                   <p style={{ margin: '0 0 8px', fontWeight: 600, fontSize: 14 }}>
                     This will also delete {deletePreview.totalRecords} related record{deletePreview.totalRecords !== 1 ? 's' : ''}:
                   </p>
@@ -8508,7 +8508,7 @@ export default function PatientProfile() {
                   disabled={deleting}
                   style={{
                     padding: '8px 20px', background: '#dc2626', color: '#fff',
-                    border: 'none', borderRadius: 6, cursor: deleting ? 'wait' : 'pointer',
+                    border: 'none', borderRadius: 0, cursor: deleting ? 'wait' : 'pointer',
                     fontWeight: 600, opacity: deleting ? 0.6 : 1,
                   }}
                 >
@@ -8570,7 +8570,7 @@ export default function PatientProfile() {
                     }} style={{
                       padding: '5px 14px', fontSize: 12, fontWeight: 600,
                       background: '#2563eb', color: '#fff', border: 'none',
-                      borderRadius: 6, cursor: 'pointer', marginRight: 6,
+                      borderRadius: 0, cursor: 'pointer', marginRight: 6,
                       display: 'flex', alignItems: 'center', gap: 4,
                     }}>
                       Send to Patient
@@ -8580,7 +8580,7 @@ export default function PatientProfile() {
                     {[30, 50, 70].map(w => (
                       <button key={w} onClick={() => setSlideoutWidth(w)} style={{
                         padding: '4px 8px', fontSize: 11, fontWeight: 600, border: '1px solid #d1d5db',
-                        borderRadius: 4, cursor: 'pointer',
+                        borderRadius: 0, cursor: 'pointer',
                         background: slideoutWidth === w ? '#111827' : '#fff',
                         color: slideoutWidth === w ? '#fff' : '#374151',
                       }}>{w === 30 ? 'S' : w === 50 ? 'M' : 'L'}</button>
@@ -8595,7 +8595,7 @@ export default function PatientProfile() {
                     <img
                       src={pdfSlideOut.url}
                       alt={pdfSlideOut.title}
-                      style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8, boxShadow: '0 2px 12px rgba(0,0,0,0.1)' }}
+                      style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 0, boxShadow: '0 2px 12px rgba(0,0,0,0.1)' }}
                     />
                   </div>
                 ) : (
@@ -8618,7 +8618,7 @@ export default function PatientProfile() {
             }} />
             <div style={{
               position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-              background: '#fff', borderRadius: 12, padding: 24, zIndex: 10001,
+              background: '#fff', borderRadius: 0, padding: 24, zIndex: 10001,
               width: '90%', maxWidth: 400, boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
             }}>
               <h3 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 700 }}>
@@ -8636,17 +8636,17 @@ export default function PatientProfile() {
                   type="date"
                   value={sessionLogDate}
                   onChange={e => setSessionLogDate(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, boxSizing: 'border-box' }}
                 />
               </div>
 
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 <button onClick={() => setSessionLogModal(null)} style={{
-                  padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: 6,
+                  padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: 0,
                   background: '#fff', cursor: 'pointer', fontSize: 14
                 }}>Cancel</button>
                 <button onClick={handleSessionLog} disabled={sessionLogSaving} style={{
-                  padding: '8px 20px', border: 'none', borderRadius: 6,
+                  padding: '8px 20px', border: 'none', borderRadius: 0,
                   background: '#000', color: '#fff', cursor: sessionLogSaving ? 'wait' : 'pointer',
                   fontSize: 14, fontWeight: 600, opacity: sessionLogSaving ? 0.6 : 1
                 }}>{sessionLogSaving ? 'Saving...' : 'Log Session'}</button>
@@ -8663,7 +8663,7 @@ export default function PatientProfile() {
             }} />
             <div style={{
               position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-              background: '#fff', borderRadius: 12, padding: 24, zIndex: 10001,
+              background: '#fff', borderRadius: 0, padding: 24, zIndex: 10001,
               width: '90%', maxWidth: 400, boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
             }}>
               <h3 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 700 }}>
@@ -8684,24 +8684,24 @@ export default function PatientProfile() {
                   type="date"
                   value={bloodDrawDate}
                   onChange={e => setBloodDrawDate(e.target.value)}
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 14, boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, boxSizing: 'border-box' }}
                 />
               </div>
 
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 {bloodDrawModal.status === 'completed' && (
                   <button onClick={() => handleBloodDrawSave('undo')} disabled={bloodDrawSaving} style={{
-                    padding: '8px 16px', border: '1px solid #dc2626', borderRadius: 6,
+                    padding: '8px 16px', border: '1px solid #dc2626', borderRadius: 0,
                     background: '#fff', color: '#dc2626', cursor: bloodDrawSaving ? 'wait' : 'pointer',
                     fontSize: 13, fontWeight: 600, marginRight: 'auto'
                   }}>Undo</button>
                 )}
                 <button onClick={() => setBloodDrawModal(null)} style={{
-                  padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: 6,
+                  padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: 0,
                   background: '#fff', cursor: 'pointer', fontSize: 14
                 }}>Cancel</button>
                 <button onClick={() => handleBloodDrawSave('complete')} disabled={bloodDrawSaving} style={{
-                  padding: '8px 20px', border: 'none', borderRadius: 6,
+                  padding: '8px 20px', border: 'none', borderRadius: 0,
                   background: '#000', color: '#fff', cursor: bloodDrawSaving ? 'wait' : 'pointer',
                   fontSize: 14, fontWeight: 600, opacity: bloodDrawSaving ? 0.6 : 1
                 }}>{bloodDrawSaving ? 'Saving...' : bloodDrawModal.status === 'completed' ? 'Update Date' : 'Mark Complete'}</button>
@@ -10473,7 +10473,7 @@ export default function PatientProfile() {
       {showProtocolPdfModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           onClick={() => setShowProtocolPdfModal(false)}>
-          <div style={{ background: '#fff', borderRadius: 12, width: '90%', maxWidth: 600, maxHeight: '85vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
+          <div style={{ background: '#fff', borderRadius: 0, width: '90%', maxWidth: 600, maxHeight: '85vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
             onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -10488,7 +10488,7 @@ export default function PatientProfile() {
               {Object.entries(protocolPdfSelections).map(([protId, sel]) => (
                 <div key={protId} style={{
                   border: `1px solid ${sel.selected ? '#3b82f6' : '#e5e7eb'}`,
-                  borderRadius: 10, padding: '14px 16px', marginBottom: 12,
+                  borderRadius: 0, padding: '14px 16px', marginBottom: 12,
                   background: sel.selected ? '#f0f7ff' : '#fafafa',
                   transition: 'all 0.15s',
                 }}>
@@ -10510,19 +10510,19 @@ export default function PatientProfile() {
                         <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 3 }}>Dose</label>
                         <input value={sel.dose} onChange={e => setProtocolPdfSelections(prev => ({
                           ...prev, [protId]: { ...prev[protId], dose: e.target.value }
-                        }))} style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }} />
+                        }))} style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }} />
                       </div>
                       <div>
                         <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 3 }}>Frequency</label>
                         <input value={sel.frequency} onChange={e => setProtocolPdfSelections(prev => ({
                           ...prev, [protId]: { ...prev[protId], frequency: e.target.value }
-                        }))} style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }} />
+                        }))} style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }} />
                       </div>
                       <div>
                         <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 3 }}>Duration</label>
                         <select value={sel.duration} onChange={e => setProtocolPdfSelections(prev => ({
                           ...prev, [protId]: { ...prev[protId], duration: e.target.value }
-                        }))} style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, background: '#fff' }}>
+                        }))} style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13, background: '#fff' }}>
                           <option value="1 month">1 month</option>
                           <option value="2 months">2 months</option>
                           <option value="3 months">3 months</option>
@@ -10535,7 +10535,7 @@ export default function PatientProfile() {
                         <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 3 }}>Price/Mo ($)</label>
                         <input type="number" value={sel.pricePerMonth} placeholder="e.g. 200" onChange={e => setProtocolPdfSelections(prev => ({
                           ...prev, [protId]: { ...prev[protId], pricePerMonth: e.target.value }
-                        }))} style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 }} />
+                        }))} style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }} />
                       </div>
                     </div>
                   )}
@@ -10544,15 +10544,15 @@ export default function PatientProfile() {
 
               {/* Plan Issued Date */}
               {Object.values(protocolPdfSelections).some(s => s.selected) && (
-                <div style={{ marginBottom: 16, padding: '12px 16px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8 }}>
+                <div style={{ marginBottom: 16, padding: '12px 16px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 0 }}>
                   <label style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', display: 'block', marginBottom: 4 }}>Plan Issued Date</label>
                   <input type="date" value={protocolPdfPlanDate} onChange={e => setProtocolPdfPlanDate(e.target.value)}
-                    style={{ padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, width: 180 }} />
+                    style={{ padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13, width: 180 }} />
                   {(() => {
                     const today = new Date(); today.setHours(0,0,0,0);
                     const picked = new Date(protocolPdfPlanDate + 'T00:00:00');
                     const diff = Math.round((today - picked) / (1000*60*60*24));
-                    if (diff > 0) return <span style={{ marginLeft: 10, fontSize: 12, color: '#92400e', background: '#fef3c7', padding: '2px 8px', borderRadius: 4 }}>Backdated {diff} day{diff !== 1 ? 's' : ''}</span>;
+                    if (diff > 0) return <span style={{ marginLeft: 10, fontSize: 12, color: '#92400e', background: '#fef3c7', padding: '2px 8px', borderRadius: 0 }}>Backdated {diff} day{diff !== 1 ? 's' : ''}</span>;
                     return null;
                   })()}
                 </div>
@@ -10579,7 +10579,7 @@ export default function PatientProfile() {
             {/* Actions */}
             <div style={{ padding: '16px 24px 20px', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
               <button onClick={() => setShowProtocolPdfModal(false)}
-                style={{ padding: '8px 20px', fontSize: 13, fontWeight: 500, background: '#f3f4f6', color: '#4b5563', border: '1px solid #d1d5db', borderRadius: 8, cursor: 'pointer' }}>
+                style={{ padding: '8px 20px', fontSize: 13, fontWeight: 500, background: '#f3f4f6', color: '#4b5563', border: '1px solid #d1d5db', borderRadius: 0, cursor: 'pointer' }}>
                 Cancel
               </button>
               <div style={{ display: 'flex', gap: 8 }}>
@@ -10587,7 +10587,7 @@ export default function PatientProfile() {
                   style={{
                     padding: '8px 16px', fontSize: 13, fontWeight: 600,
                     background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0',
-                    borderRadius: 8, cursor: 'pointer', opacity: protocolPdfSaving ? 0.6 : 1,
+                    borderRadius: 0, cursor: 'pointer', opacity: protocolPdfSaving ? 0.6 : 1,
                   }}>
                   {protocolPdfSaving ? 'Saving...' : '💾 Save to Chart'}
                 </button>
@@ -10595,7 +10595,7 @@ export default function PatientProfile() {
                   style={{
                     padding: '8px 16px', fontSize: 13, fontWeight: 600,
                     background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe',
-                    borderRadius: 8, cursor: 'pointer', opacity: protocolPdfSaving ? 0.6 : 1,
+                    borderRadius: 0, cursor: 'pointer', opacity: protocolPdfSaving ? 0.6 : 1,
                   }}>
                   {protocolPdfSaving ? 'Saving...' : '📤 Save & Send'}
                 </button>
@@ -10603,7 +10603,7 @@ export default function PatientProfile() {
                   style={{
                     padding: '8px 20px', fontSize: 13, fontWeight: 600,
                     background: '#0a0a0a', color: '#fff', border: 'none',
-                    borderRadius: 8, cursor: 'pointer', opacity: protocolPdfGenerating ? 0.6 : 1,
+                    borderRadius: 0, cursor: 'pointer', opacity: protocolPdfGenerating ? 0.6 : 1,
                   }}>
                   {protocolPdfGenerating ? 'Generating...' : '📄 Preview PDF'}
                 </button>
@@ -10753,7 +10753,7 @@ export default function PatientProfile() {
           zIndex: 10000
         }} onClick={() => setSendDocModal({ open: false, url: '', name: '', type: '' })}>
           <div style={{
-            background: '#fff', borderRadius: 12, width: 440, maxWidth: '90vw',
+            background: '#fff', borderRadius: 0, width: 440, maxWidth: '90vw',
             boxShadow: '0 20px 60px rgba(0,0,0,0.3)', overflow: 'hidden',
           }} onClick={e => e.stopPropagation()}>
             {/* Header */}
@@ -10765,7 +10765,7 @@ export default function PatientProfile() {
             {/* Body */}
             <div style={{ padding: '20px 24px' }}>
               {/* Patient contact info */}
-              <div style={{ marginBottom: 16, padding: '12px 16px', background: '#f9fafb', borderRadius: 8, fontSize: 13 }}>
+              <div style={{ marginBottom: 16, padding: '12px 16px', background: '#f9fafb', borderRadius: 0, fontSize: 13 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <span style={{ color: '#6b7280' }}>Email:</span>
                   <span style={{ color: patient?.email ? '#111827' : '#ef4444', fontWeight: 500 }}>
@@ -10797,7 +10797,7 @@ export default function PatientProfile() {
                         background: sendDocMethod === opt.key ? '#eff6ff' : '#fff',
                         color: sendDocMethod === opt.key ? '#2563eb' : '#6b7280',
                         border: sendDocMethod === opt.key ? '2px solid #3b82f6' : '1px solid #d1d5db',
-                        borderRadius: 8, cursor: 'pointer', textAlign: 'center',
+                        borderRadius: 0, cursor: 'pointer', textAlign: 'center',
                         transition: 'all 0.15s ease',
                       }}>
                       <span style={{ display: 'block', fontSize: 18, marginBottom: 4 }}>{opt.icon}</span>
@@ -10809,12 +10809,12 @@ export default function PatientProfile() {
 
               {/* Warnings for missing contact info */}
               {sendDocMethod !== 'sms' && !patient?.email && (
-                <div style={{ padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, fontSize: 12, color: '#991b1b', marginBottom: 8 }}>
+                <div style={{ padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 0, fontSize: 12, color: '#991b1b', marginBottom: 8 }}>
                   No email address on file for this patient.
                 </div>
               )}
               {sendDocMethod !== 'email' && !patient?.phone && (
-                <div style={{ padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, fontSize: 12, color: '#991b1b', marginBottom: 8 }}>
+                <div style={{ padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 0, fontSize: 12, color: '#991b1b', marginBottom: 8 }}>
                   No phone number on file for this patient.
                 </div>
               )}
@@ -10824,7 +10824,7 @@ export default function PatientProfile() {
                 <div style={{ marginTop: 8 }}>
                   {sendDocResult.map((r, i) => (
                     <div key={i} style={{
-                      padding: '8px 12px', borderRadius: 6, fontSize: 13, marginBottom: 4,
+                      padding: '8px 12px', borderRadius: 0, fontSize: 13, marginBottom: 4,
                       background: r.success ? '#f0fdf4' : '#fef2f2',
                       border: r.success ? '1px solid #bbf7d0' : '1px solid #fecaca',
                       color: r.success ? '#166534' : '#991b1b',
@@ -10839,7 +10839,7 @@ export default function PatientProfile() {
             {/* Footer */}
             <div style={{ padding: '16px 24px', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between' }}>
               <button onClick={() => setSendDocModal({ open: false, url: '', name: '', type: '' })}
-                style={{ padding: '8px 20px', fontSize: 13, fontWeight: 500, background: '#f3f4f6', color: '#4b5563', border: '1px solid #d1d5db', borderRadius: 8, cursor: 'pointer' }}>
+                style={{ padding: '8px 20px', fontSize: 13, fontWeight: 500, background: '#f3f4f6', color: '#4b5563', border: '1px solid #d1d5db', borderRadius: 0, cursor: 'pointer' }}>
                 {sendDocResult ? 'Done' : 'Cancel'}
               </button>
               {!sendDocResult && (
@@ -10847,7 +10847,7 @@ export default function PatientProfile() {
                   style={{
                     padding: '8px 24px', fontSize: 13, fontWeight: 600,
                     background: '#2563eb', color: '#fff', border: 'none',
-                    borderRadius: 8, cursor: 'pointer', opacity: sendDocLoading ? 0.6 : 1,
+                    borderRadius: 0, cursor: 'pointer', opacity: sendDocLoading ? 0.6 : 1,
                   }}>
                   {sendDocLoading ? 'Sending...' : 'Send Now'}
                 </button>

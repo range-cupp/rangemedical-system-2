@@ -94,7 +94,7 @@ export default function CellularEnergyDashboard() {
           background: #1a2f4a;
           color: #fff;
           border: none;
-          border-radius: 8px;
+          border-radius: 0;
           font-weight: 600;
           cursor: pointer;
           text-decoration: none;
@@ -108,7 +108,7 @@ export default function CellularEnergyDashboard() {
         .stat-card {
           background: #fff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1.5rem;
           text-align: center;
         }
@@ -124,7 +124,7 @@ export default function CellularEnergyDashboard() {
         .patient-table {
           background: #fff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           overflow: hidden;
         }
         .patient-row {
@@ -194,7 +194,7 @@ export default function CellularEnergyDashboard() {
         .checkin-card {
           background: #fff;
           border: 1px solid #e5e5e5;
-          border-radius: 8px;
+          border-radius: 0;
           padding: 1rem;
           text-align: center;
         }
@@ -215,7 +215,7 @@ export default function CellularEnergyDashboard() {
         .improvement {
           display: inline-block;
           padding: 0.25rem 0.5rem;
-          border-radius: 4px;
+          border-radius: 0;
           font-size: 0.75rem;
           font-weight: 600;
         }
@@ -240,7 +240,7 @@ export default function CellularEnergyDashboard() {
           padding: 0.5rem 1rem;
           background: #fff;
           border: 1px solid #d4d4d4;
-          border-radius: 6px;
+          border-radius: 0;
           cursor: pointer;
           font-size: 0.875rem;
         }

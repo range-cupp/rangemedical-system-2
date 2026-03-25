@@ -9,7 +9,7 @@ const cardStyles = {
   card: {
     background: '#fff',
     border: '1px solid #e5e7eb',
-    borderRadius: '8px',
+    borderRadius: '0',
     padding: '12px',
     cursor: 'grab',
     transition: 'box-shadow 0.15s, border-color 0.15s',
@@ -36,7 +36,7 @@ const cardStyles = {
   },
   statusBadge: {
     padding: '2px 8px',
-    borderRadius: '10px',
+    borderRadius: '0',
     fontSize: '11px',
     fontWeight: '500',
     whiteSpace: 'nowrap',

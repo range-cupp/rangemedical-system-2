@@ -252,7 +252,7 @@ export default function GiftEssentialPanel() {
           border: 1px solid rgba(255,255,255,0.2);
           color: #ffffff;
           padding: 0.5rem 1.25rem;
-          border-radius: 100px;
+          border-radius: 0;
           font-size: 0.875rem;
           font-weight: 600;
           letter-spacing: 0.02em;
@@ -340,7 +340,7 @@ export default function GiftEssentialPanel() {
         .biomarker-group {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 16px;
+          border-radius: 0;
           padding: 1.75rem;
         }
 
@@ -373,7 +373,7 @@ export default function GiftEssentialPanel() {
           color: #a3a3a3;
           background: #f5f5f5;
           padding: 0.2rem 0.6rem;
-          border-radius: 100px;
+          border-radius: 0;
         }
 
         .biomarker-list {
@@ -432,7 +432,7 @@ export default function GiftEssentialPanel() {
           gap: 1rem;
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1rem 1.25rem;
         }
 

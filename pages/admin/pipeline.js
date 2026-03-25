@@ -1100,7 +1100,7 @@ export default function UnifiedPipeline() {
       <div style={styles.container}>
         <div style={styles.mainViewTabs}>
           <button style={{ ...styles.mainViewTab, ...(mainView === 'protocols' ? styles.mainViewTabActive : {}) }} onClick={() => setMainView('protocols')}>💊 Protocols</button>
-          <button style={{ ...styles.mainViewTab, ...(mainView === 'in_clinic' ? styles.mainViewTabActive : {}) }} onClick={() => setMainView('in_clinic')}>🏥 In-Clinic {data?.counts?.overdue_visits > 0 && <span style={{ background: '#dc2626', color: '#fff', borderRadius: '10px', padding: '2px 6px', fontSize: '11px', marginLeft: '4px' }}>{data.counts.overdue_visits}</span>}</button>
+          <button style={{ ...styles.mainViewTab, ...(mainView === 'in_clinic' ? styles.mainViewTabActive : {}) }} onClick={() => setMainView('in_clinic')}>🏥 In-Clinic {data?.counts?.overdue_visits > 0 && <span style={{ background: '#dc2626', color: '#fff', borderRadius: 0, padding: '2px 6px', fontSize: '11px', marginLeft: '4px' }}>{data.counts.overdue_visits}</span>}</button>
           <button style={{ ...styles.mainViewTab, ...(mainView === 'labs' ? styles.mainViewTabActive : {}) }} onClick={() => setMainView('labs')}>🩸 Labs</button>
         </div>
 
@@ -1440,7 +1440,7 @@ export default function UnifiedPipeline() {
           <div style={styles.modalOverlay} {...overlayClickProps(closeEditModal)}>
             <div style={styles.modal} onClick={e => e.stopPropagation()}>
               <h2 style={styles.modalTitle}>Edit Protocol</h2>
-              <div style={{ marginBottom: '12px', padding: '8px', background: '#f3f4f6', borderRadius: '6px' }}><strong>{editModal.patient_name}</strong> - {editModal.category?.toUpperCase()}</div>
+              <div style={{ marginBottom: '12px', padding: '8px', background: '#f3f4f6', borderRadius: 0 }}><strong>{editModal.patient_name}</strong> - {editModal.category?.toUpperCase()}</div>
               <div style={styles.formGroup}>
                 <label style={styles.formLabel}>Medication/Program</label>
                 {editModal.category === 'weight_loss' ? (
@@ -1542,8 +1542,8 @@ export default function UnifiedPipeline() {
 
 const styles = {
   container: { fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", padding: '20px' },
-  mainViewTabs: { maxWidth: '1400px', margin: '0 auto 20px', display: 'flex', gap: '0', background: '#e5e7eb', borderRadius: '12px', padding: '4px', width: 'fit-content' },
-  mainViewTab: { padding: '12px 32px', border: 'none', background: 'transparent', borderRadius: '10px', cursor: 'pointer', fontSize: '15px', fontWeight: '600', color: '#6b7280', transition: 'all 0.2s' },
+  mainViewTabs: { maxWidth: '1400px', margin: '0 auto 20px', display: 'flex', gap: '0', background: '#e5e7eb', borderRadius: 0, padding: '4px', width: 'fit-content' },
+  mainViewTab: { padding: '12px 32px', border: 'none', background: 'transparent', borderRadius: 0, cursor: 'pointer', fontSize: '15px', fontWeight: '600', color: '#6b7280', transition: 'all 0.2s' },
   mainViewTabActive: { background: 'white', color: '#111', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
   labsContainer: { maxWidth: '1400px', margin: '0 auto' },
   loading: { textAlign: 'center', padding: '60px', color: '#6b7280' },
@@ -1551,27 +1551,27 @@ const styles = {
   header: { maxWidth: '1400px', margin: '0 auto 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' },
   title: { fontSize: '24px', fontWeight: '700', color: '#111', margin: 0 },
   headerActions: { display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' },
-  searchInput: { padding: '8px 16px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', width: '200px', outline: 'none' },
+  searchInput: { padding: '8px 16px', border: '2px solid #e5e7eb', borderRadius: 0, fontSize: '14px', width: '200px', outline: 'none' },
   tabs: { display: 'flex', gap: '4px' },
-  tab: { padding: '8px 16px', border: '2px solid #e5e7eb', background: 'white', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '500', color: '#374151' },
+  tab: { padding: '8px 16px', border: '2px solid #e5e7eb', background: 'white', borderRadius: 0, cursor: 'pointer', fontSize: '14px', fontWeight: '500', color: '#374151' },
   tabActive: { background: '#111', color: 'white', borderColor: '#111' },
-  refreshBtn: { padding: '8px 16px', border: '2px solid #e5e7eb', background: 'white', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '500' },
-  startProtocolBtn: { padding: '8px 20px', border: 'none', background: '#111', color: 'white', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' },
-  activityLogBtn: { padding: '8px 16px', border: '2px solid #e5e7eb', background: 'white', color: '#374151', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '500', textDecoration: 'none', display: 'inline-block' },
-  purchasesSection: { maxWidth: '1400px', margin: '0 auto 20px', background: '#fffbeb', borderRadius: '12px', border: '2px solid #f59e0b', overflow: 'hidden' },
+  refreshBtn: { padding: '8px 16px', border: '2px solid #e5e7eb', background: 'white', borderRadius: 0, cursor: 'pointer', fontSize: '14px', fontWeight: '500' },
+  startProtocolBtn: { padding: '8px 20px', border: 'none', background: '#111', color: 'white', borderRadius: 0, cursor: 'pointer', fontSize: '14px', fontWeight: '600' },
+  activityLogBtn: { padding: '8px 16px', border: '2px solid #e5e7eb', background: 'white', color: '#374151', borderRadius: 0, cursor: 'pointer', fontSize: '14px', fontWeight: '500', textDecoration: 'none', display: 'inline-block' },
+  purchasesSection: { maxWidth: '1400px', margin: '0 auto 20px', background: '#fffbeb', borderRadius: 0, border: '2px solid #f59e0b', overflow: 'hidden' },
   purchasesHeader: { padding: '16px 20px', background: '#fef3c7', borderBottom: '1px solid #fcd34d', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   purchasesTitle: { margin: 0, fontSize: '16px', fontWeight: '600', color: '#92400e' },
   purchasesSubtitle: { fontSize: '13px', color: '#b45309' },
   purchasesTable: { background: 'white' },
   startBtn: { background: '#f0fdf4', borderColor: '#22c55e', color: '#166534' },
   statsBar: { maxWidth: '1400px', margin: '0 auto 20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' },
-  statCard: { background: 'white', borderRadius: '12px', padding: '16px', borderLeft: '4px solid #e5e7eb' },
+  statCard: { background: 'white', borderRadius: 0, padding: '16px', borderLeft: '4px solid #e5e7eb' },
   statLabel: { fontSize: '11px', fontWeight: '600', color: '#6b7280', letterSpacing: '0.5px' },
   statValue: { fontSize: '28px', fontWeight: '700', color: '#111' },
   categoryFilters: { maxWidth: '1400px', margin: '0 auto 20px', display: 'flex', gap: '8px', flexWrap: 'wrap' },
-  categoryTab: { padding: '8px 14px', border: '2px solid #e5e7eb', background: 'white', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: '500', color: '#374151' },
+  categoryTab: { padding: '8px 14px', border: '2px solid #e5e7eb', background: 'white', borderRadius: 0, cursor: 'pointer', fontSize: '13px', fontWeight: '500', color: '#374151' },
   categoryTabActive: { background: '#111', color: 'white', borderColor: '#111' },
-  tableContainer: { maxWidth: '1400px', margin: '0 auto', background: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
+  tableContainer: { maxWidth: '1400px', margin: '0 auto', background: 'white', borderRadius: 0, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' },
   table: { width: '100%', borderCollapse: 'collapse' },
   headerRow: { background: '#f9fafb', borderBottom: '1px solid #e5e7eb' },
   headerCell: { padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: '600', color: '#6b7280', letterSpacing: '0.5px' },
@@ -1579,30 +1579,30 @@ const styles = {
   cell: { padding: '12px 16px', fontSize: '14px', color: '#111' },
   cellActions: { padding: '12px 16px', display: 'flex', gap: '6px', flexWrap: 'wrap' },
   patientLink: { color: '#111', textDecoration: 'none', fontWeight: '500' },
-  categoryBadge: { display: 'inline-block', padding: '2px 6px', borderRadius: '4px', fontSize: '12px', marginRight: '8px' },
-  daysLeft: { display: 'inline-block', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: '600' },
-  deliveryBadge: { display: 'inline-block', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '600' },
-  actionBtn: { padding: '6px 10px', border: '1px solid #e5e7eb', background: 'white', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '500' },
+  categoryBadge: { display: 'inline-block', padding: '2px 6px', borderRadius: 0, fontSize: '12px', marginRight: '8px' },
+  daysLeft: { display: 'inline-block', padding: '4px 8px', borderRadius: 0, fontSize: '12px', fontWeight: '600' },
+  deliveryBadge: { display: 'inline-block', padding: '4px 8px', borderRadius: 0, fontSize: '11px', fontWeight: '600' },
+  actionBtn: { padding: '6px 10px', border: '1px solid #e5e7eb', background: 'white', borderRadius: 0, cursor: 'pointer', fontSize: '12px', fontWeight: '500' },
   logBtn: { background: '#f0fdf4', borderColor: '#22c55e', color: '#166534' },
   editBtn: { background: '#fef3c7', borderColor: '#f59e0b', color: '#92400e' },
   renewBtn: { background: '#fffbeb', borderColor: '#f59e0b', color: '#92400e' },
   deleteBtn: { background: '#fef2f2', borderColor: '#dc2626', color: '#dc2626' },
-  emptyState: { textAlign: 'center', padding: '60px', color: '#6b7280', maxWidth: '1400px', margin: '0 auto', background: 'white', borderRadius: '12px' },
+  emptyState: { textAlign: 'center', padding: '60px', color: '#6b7280', maxWidth: '1400px', margin: '0 auto', background: 'white', borderRadius: 0 },
   modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-  modal: { background: 'white', borderRadius: '16px', padding: '24px', width: '90%', maxWidth: '500px', maxHeight: '90vh', overflow: 'auto' },
+  modal: { background: 'white', borderRadius: 0, padding: '24px', width: '90%', maxWidth: '500px', maxHeight: '90vh', overflow: 'auto' },
   modalTitle: { fontSize: '18px', fontWeight: '600', marginBottom: '20px', color: '#111' },
   modalActions: { display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '20px' },
-  modalCancelBtn: { padding: '10px 20px', border: '1px solid #e5e7eb', background: 'white', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '500' },
-  modalConfirmBtn: { padding: '10px 20px', border: 'none', background: '#111', color: 'white', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' },
+  modalCancelBtn: { padding: '10px 20px', border: '1px solid #e5e7eb', background: 'white', borderRadius: 0, cursor: 'pointer', fontSize: '14px', fontWeight: '500' },
+  modalConfirmBtn: { padding: '10px 20px', border: 'none', background: '#111', color: 'white', borderRadius: 0, cursor: 'pointer', fontSize: '14px', fontWeight: '600' },
   formGroup: { marginBottom: '16px' },
   formLabel: { display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px' },
-  formInput: { width: '100%', padding: '10px 12px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' },
-  formSelect: { width: '100%', padding: '10px 12px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', background: 'white' },
-  formTextarea: { width: '100%', padding: '10px 12px', border: '2px solid #e5e7eb', borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', minHeight: '80px', resize: 'vertical', fontFamily: 'inherit' },
-  infoBox: { background: '#f3f4f6', padding: '12px 16px', borderRadius: '8px', fontSize: '13px', color: '#374151' },
-  searchDropdown: { background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', marginTop: '4px', maxHeight: '200px', overflow: 'auto', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' },
+  formInput: { width: '100%', padding: '10px 12px', border: '2px solid #e5e7eb', borderRadius: 0, fontSize: '14px', outline: 'none', boxSizing: 'border-box' },
+  formSelect: { width: '100%', padding: '10px 12px', border: '2px solid #e5e7eb', borderRadius: 0, fontSize: '14px', outline: 'none', boxSizing: 'border-box', background: 'white' },
+  formTextarea: { width: '100%', padding: '10px 12px', border: '2px solid #e5e7eb', borderRadius: 0, fontSize: '14px', outline: 'none', boxSizing: 'border-box', minHeight: '80px', resize: 'vertical', fontFamily: 'inherit' },
+  infoBox: { background: '#f3f4f6', padding: '12px 16px', borderRadius: 0, fontSize: '13px', color: '#374151' },
+  searchDropdown: { background: 'white', border: '1px solid #e5e7eb', borderRadius: 0, marginTop: '4px', maxHeight: '200px', overflow: 'auto', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' },
   searchResult: { padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid #f3f4f6' },
-  selectedPatientBadge: { background: '#f3f4f6', padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  changeBtn: { padding: '4px 12px', border: '1px solid #d1d5db', background: 'white', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', color: '#6b7280' },
-  toast: { position: 'fixed', bottom: '20px', right: '20px', padding: '12px 20px', borderRadius: '8px', color: 'white', fontSize: '14px', fontWeight: '500', zIndex: 1001, boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }
+  selectedPatientBadge: { background: '#f3f4f6', padding: '12px 16px', borderRadius: 0, marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  changeBtn: { padding: '4px 12px', border: '1px solid #d1d5db', background: 'white', borderRadius: 0, cursor: 'pointer', fontSize: '12px', color: '#6b7280' },
+  toast: { position: 'fixed', bottom: '20px', right: '20px', padding: '12px 20px', borderRadius: 0, color: 'white', fontSize: '14px', fontWeight: '500', zIndex: 1001, boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }
 };

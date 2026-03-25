@@ -455,7 +455,7 @@ export default function CJCIpamorelin() {
         .cjc-fact-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1.75rem;
           text-align: center;
           transition: all 0.2s;
@@ -512,7 +512,7 @@ export default function CJCIpamorelin() {
           background: #fafafa;
           border-left: 3px solid #000000;
           padding: 1.25rem 1.5rem;
-          border-radius: 0 8px 8px 0;
+          border-radius: 0;
           margin: 1.5rem 0;
         }
 
@@ -537,7 +537,7 @@ export default function CJCIpamorelin() {
         .cjc-mechanism-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 2rem;
           transition: all 0.2s;
         }
@@ -577,7 +577,7 @@ export default function CJCIpamorelin() {
           padding: 1.5rem;
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           transition: all 0.2s;
         }
 
@@ -595,7 +595,7 @@ export default function CJCIpamorelin() {
           align-items: center;
           justify-content: center;
           background: #fafafa;
-          border-radius: 8px;
+          border-radius: 0;
         }
 
         .cjc-benefit-content h3 {
@@ -614,7 +614,7 @@ export default function CJCIpamorelin() {
         .cjc-protocol-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 2.5rem;
           max-width: 800px;
           margin: 0 auto;
@@ -651,7 +651,7 @@ export default function CJCIpamorelin() {
           padding: 1.25rem 1.5rem;
           background: #f0f0f0;
           border-left: 3px solid #000000;
-          border-radius: 0 8px 8px 0;
+          border-radius: 0;
           font-size: 0.875rem;
           color: #525252;
           line-height: 1.6;
@@ -665,7 +665,7 @@ export default function CJCIpamorelin() {
           margin-top: 1rem;
           padding: 1rem 1.25rem;
           background: #fafafa;
-          border-radius: 8px;
+          border-radius: 0;
           font-size: 0.8125rem;
           color: #737373;
           line-height: 1.6;
@@ -681,7 +681,7 @@ export default function CJCIpamorelin() {
         .cjc-who-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 2rem;
         }
 
@@ -731,7 +731,7 @@ export default function CJCIpamorelin() {
         .cjc-stack-card {
           background: rgba(255,255,255,0.05);
           border: 1px solid rgba(255,255,255,0.12);
-          border-radius: 12px;
+          border-radius: 0;
           padding: 2rem;
         }
 
@@ -767,7 +767,7 @@ export default function CJCIpamorelin() {
         .cjc-safety-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1.75rem;
           text-align: center;
         }

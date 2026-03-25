@@ -161,7 +161,7 @@ export default function SuperBowlAdmin() {
           input {
             padding: 0.875rem 1rem;
             border: 1px solid #e5e5e5;
-            border-radius: 8px;
+            border-radius: 0;
             font-size: 1rem;
           }
           input:focus {
@@ -173,7 +173,7 @@ export default function SuperBowlAdmin() {
             background: #171717;
             color: #fff;
             border: none;
-            border-radius: 8px;
+            border-radius: 0;
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
@@ -348,7 +348,7 @@ export default function SuperBowlAdmin() {
           background: #171717;
           color: #fff;
           border: none;
-          border-radius: 6px;
+          border-radius: 0;
           font-size: 0.875rem;
           font-weight: 600;
           cursor: pointer;
@@ -364,7 +364,7 @@ export default function SuperBowlAdmin() {
         }
         .contest-status {
           padding: 1rem;
-          border-radius: 8px;
+          border-radius: 0;
           text-align: center;
           font-weight: 600;
           margin-bottom: 1.5rem;
@@ -388,7 +388,7 @@ export default function SuperBowlAdmin() {
         .stat-card {
           background: #fff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1.5rem;
           text-align: center;
         }
@@ -425,7 +425,7 @@ export default function SuperBowlAdmin() {
         .entries-table {
           background: #fff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           overflow: hidden;
         }
         table {
@@ -464,7 +464,7 @@ export default function SuperBowlAdmin() {
         .winner-section {
           background: #fff;
           border: 2px solid #171717;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1.5rem;
           margin-bottom: 2rem;
         }
@@ -492,7 +492,7 @@ export default function SuperBowlAdmin() {
           padding: 0.875rem 1rem;
           background: #fff;
           border: 2px solid #e5e5e5;
-          border-radius: 8px;
+          border-radius: 0;
           font-size: 1rem;
           font-weight: 600;
           cursor: pointer;
@@ -517,7 +517,7 @@ export default function SuperBowlAdmin() {
           background: #171717;
           color: #fff;
           border: none;
-          border-radius: 8px;
+          border-radius: 0;
           font-size: 1rem;
           font-weight: 600;
           cursor: pointer;
@@ -531,7 +531,7 @@ export default function SuperBowlAdmin() {
           padding: 1.5rem;
           background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
           border: 2px solid #f59e0b;
-          border-radius: 12px;
+          border-radius: 0;
           text-align: center;
         }
         .winner-banner {
@@ -543,7 +543,7 @@ export default function SuperBowlAdmin() {
           text-transform: uppercase;
           letter-spacing: 0.1em;
           padding: 0.375rem 1rem;
-          border-radius: 100px;
+          border-radius: 0;
           margin-bottom: 1rem;
         }
         .winner-name {
@@ -593,7 +593,7 @@ export default function SuperBowlAdmin() {
           padding: 1rem;
           background: #fef2f2;
           border: 1px solid #fecaca;
-          border-radius: 8px;
+          border-radius: 0;
           color: #dc2626;
           text-align: center;
         }

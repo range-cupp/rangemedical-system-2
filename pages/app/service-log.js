@@ -126,13 +126,13 @@ export default function AppServiceLog() {
             {category?.label} for {selectedPatient?.first_name} {selectedPatient?.last_name}
           </div>
           {todayCount !== null && (
-            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '10px 20px', color: '#166534', fontSize: 14, fontWeight: 600, marginBottom: 32 }}>
+            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 0, padding: '10px 20px', color: '#166534', fontSize: 14, fontWeight: 600, marginBottom: 32 }}>
               {todayCount} session{todayCount !== 1 ? 's' : ''} logged today
             </div>
           )}
           <button
             onClick={reset}
-            style={{ background: '#0f172a', color: '#fff', border: 'none', borderRadius: 12, padding: '14px 32px', fontSize: 15, fontWeight: 600, cursor: 'pointer', marginBottom: 12, width: '100%', maxWidth: 280 }}
+            style={{ background: '#0f172a', color: '#fff', border: 'none', borderRadius: 0, padding: '14px 32px', fontSize: 15, fontWeight: 600, cursor: 'pointer', marginBottom: 12, width: '100%', maxWidth: 280 }}
           >
             Log Another
           </button>
@@ -160,7 +160,7 @@ export default function AppServiceLog() {
         {/* Step indicator */}
         <div style={{ display: 'flex', gap: 6, padding: '14px 16px 4px' }}>
           {['category', 'patient', 'confirm'].map((s, i) => (
-            <div key={s} style={{ flex: 1, height: 3, borderRadius: 2, background: ['category', 'patient', 'confirm'].indexOf(step) >= i ? '#0f172a' : '#e2e8f0', transition: 'background 0.2s' }} />
+            <div key={s} style={{ flex: 1, height: 3, borderRadius: 0, background: ['category', 'patient', 'confirm'].indexOf(step) >= i ? '#0f172a' : '#e2e8f0', transition: 'background 0.2s' }} />
           ))}
         </div>
 
@@ -176,7 +176,7 @@ export default function AppServiceLog() {
                   style={{
                     background: '#fff',
                     border: '1.5px solid #e2e8f0',
-                    borderRadius: 12,
+                    borderRadius: 0,
                     padding: '16px 12px',
                     cursor: 'pointer',
                     textAlign: 'left',
@@ -212,7 +212,7 @@ export default function AppServiceLog() {
               <div
                 key={p.id}
                 onClick={() => { setSelectedPatient(p); setStep('confirm'); }}
-                style={{ background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '12px 14px', marginBottom: 8, cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
+                style={{ background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: 0, padding: '12px 14px', marginBottom: 8, cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
               >
                 <div style={{ fontWeight: 600, fontSize: 14, color: '#0f172a' }}>{p.first_name} {p.last_name}</div>
                 <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>{p.phone || p.email || '—'}</div>
@@ -232,7 +232,7 @@ export default function AppServiceLog() {
             </button>
 
             {/* Summary card */}
-            <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 12, padding: '14px', marginBottom: 20 }}>
+            <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 0, padding: '14px', marginBottom: 20 }}>
               <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#94a3b8', marginBottom: 6 }}>Logging</div>
               <div style={{ fontSize: 20, fontWeight: 700, color: '#0f172a', marginBottom: 2 }}>
                 {category?.icon} {category?.label}
@@ -273,7 +273,7 @@ export default function AppServiceLog() {
               style={{
                 width: '100%',
                 padding: '15px',
-                borderRadius: 12,
+                borderRadius: 0,
                 border: 'none',
                 background: saving ? '#94a3b8' : '#0f172a',
                 color: '#fff',

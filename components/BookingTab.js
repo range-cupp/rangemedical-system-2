@@ -693,7 +693,7 @@ export default function BookingTab({ preselectedPatient = null }) {
                         <div style={{
                           display: 'inline-block',
                           padding: '4px 12px',
-                          borderRadius: '12px',
+                          borderRadius: '0',
                           fontSize: '12px',
                           fontWeight: '600',
                           backgroundColor: color.bg,
@@ -1362,7 +1362,7 @@ const styles = {
   leftPanel: {
     flex: '1',
     backgroundColor: 'white',
-    borderRadius: '12px',
+    borderRadius: '0',
     padding: '24px',
     border: '1px solid #e5e7eb',
     minHeight: '500px'
@@ -1371,7 +1371,7 @@ const styles = {
     width: '420px',
     flexShrink: 0,
     backgroundColor: 'white',
-    borderRadius: '12px',
+    borderRadius: '0',
     padding: '24px',
     border: '1px solid #e5e7eb',
     minHeight: '500px'
@@ -1396,7 +1396,7 @@ const styles = {
     marginBottom: '24px',
     padding: '4px',
     backgroundColor: '#f3f4f6',
-    borderRadius: '8px'
+    borderRadius: '0'
   },
   stepItem: {
     flex: 1,
@@ -1405,7 +1405,7 @@ const styles = {
     justifyContent: 'center',
     gap: '6px',
     padding: '8px 12px',
-    borderRadius: '6px',
+    borderRadius: '0',
     fontSize: '13px',
     color: '#9ca3af',
     transition: 'all 0.15s'
@@ -1452,7 +1452,7 @@ const styles = {
     width: '100%',
     padding: '10px 12px',
     border: '1px solid #d1d5db',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '14px',
     outline: 'none',
     boxSizing: 'border-box'
@@ -1464,7 +1464,7 @@ const styles = {
     right: 0,
     backgroundColor: 'white',
     border: '1px solid #e5e7eb',
-    borderRadius: '8px',
+    borderRadius: '0',
     boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
     zIndex: 10,
     maxHeight: '280px',
@@ -1495,7 +1495,7 @@ const styles = {
     padding: '12px 16px',
     backgroundColor: '#f0fdf4',
     border: '1px solid #86efac',
-    borderRadius: '8px'
+    borderRadius: '0'
   },
   selectedName: {
     fontWeight: '600',
@@ -1522,7 +1522,7 @@ const styles = {
     backgroundColor: '#2563eb',
     color: 'white',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '14px',
     fontWeight: '500',
     cursor: 'pointer'
@@ -1537,7 +1537,7 @@ const styles = {
   serviceCard: {
     padding: '14px 16px',
     border: '1px solid #e5e7eb',
-    borderRadius: '8px',
+    borderRadius: '0',
     cursor: 'pointer',
     transition: 'all 0.15s'
   },
@@ -1562,7 +1562,7 @@ const styles = {
     marginTop: '16px',
     padding: '16px',
     backgroundColor: '#f9fafb',
-    borderRadius: '8px',
+    borderRadius: '0',
     border: '1px solid #e5e7eb'
   },
 
@@ -1579,7 +1579,7 @@ const styles = {
     gap: '8px',
     padding: '16px 12px',
     border: '1px solid #e5e7eb',
-    borderRadius: '10px',
+    borderRadius: '0',
     cursor: 'pointer',
     backgroundColor: 'white',
     transition: 'all 0.15s'
@@ -1614,7 +1614,7 @@ const styles = {
     padding: '10px 14px',
     backgroundColor: '#eff6ff',
     border: '1px solid #bfdbfe',
-    borderRadius: '8px',
+    borderRadius: '0',
     marginBottom: '16px',
     fontSize: '13px',
     color: '#1e40af'
@@ -1636,7 +1636,7 @@ const styles = {
     width: '100%',
     padding: '10px 12px',
     border: '1px solid #d1d5db',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '14px',
     outline: 'none',
     boxSizing: 'border-box',
@@ -1654,7 +1654,7 @@ const styles = {
   dateNavBtn: {
     padding: '8px 12px',
     border: '1px solid #d1d5db',
-    borderRadius: '6px',
+    borderRadius: '0',
     backgroundColor: 'white',
     cursor: 'pointer',
     fontSize: '16px',
@@ -1664,7 +1664,7 @@ const styles = {
     flex: 1,
     padding: '8px 12px',
     border: '1px solid #d1d5db',
-    borderRadius: '6px',
+    borderRadius: '0',
     fontSize: '14px'
   },
   dateLabel: {
@@ -1682,7 +1682,7 @@ const styles = {
   slotBtn: {
     padding: '10px',
     border: '1px solid #d1d5db',
-    borderRadius: '6px',
+    borderRadius: '0',
     backgroundColor: 'white',
     cursor: 'pointer',
     fontSize: '14px',
@@ -1708,7 +1708,7 @@ const styles = {
   summaryCard: {
     backgroundColor: '#f9fafb',
     border: '1px solid #e5e7eb',
-    borderRadius: '8px',
+    borderRadius: '0',
     padding: '16px',
     marginBottom: '8px'
   },
@@ -1731,7 +1731,7 @@ const styles = {
     width: '100%',
     padding: '10px 12px',
     border: '1px solid #d1d5db',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '14px',
     resize: 'vertical',
     outline: 'none',
@@ -1744,7 +1744,7 @@ const styles = {
     backgroundColor: '#16a34a',
     color: 'white',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '0',
     fontSize: '15px',
     fontWeight: '600',
     cursor: 'pointer'
@@ -1756,12 +1756,12 @@ const styles = {
     gap: '4px',
     padding: '3px',
     backgroundColor: '#f3f4f6',
-    borderRadius: '6px'
+    borderRadius: '0'
   },
   toggleBtn: {
     padding: '6px 14px',
     border: 'none',
-    borderRadius: '4px',
+    borderRadius: '0',
     fontSize: '13px',
     cursor: 'pointer',
     backgroundColor: 'transparent',
@@ -1784,7 +1784,7 @@ const styles = {
   bookingCard: {
     padding: '12px',
     border: '1px solid #e5e7eb',
-    borderRadius: '8px',
+    borderRadius: '0',
     display: 'flex',
     flexDirection: 'column',
     gap: '8px'
@@ -1820,7 +1820,7 @@ const styles = {
   },
   statusBadge: {
     padding: '2px 8px',
-    borderRadius: '12px',
+    borderRadius: '0',
     fontSize: '12px',
     fontWeight: '500',
     textTransform: 'capitalize'
@@ -1838,7 +1838,7 @@ const styles = {
   actionBtn: {
     padding: '6px 12px',
     border: '1px solid #d1d5db',
-    borderRadius: '6px',
+    borderRadius: '0',
     backgroundColor: 'white',
     cursor: 'pointer',
     fontSize: '12px',
@@ -1900,7 +1900,7 @@ const styles = {
     position: 'absolute',
     left: '0',
     right: '8px',
-    borderRadius: '6px',
+    borderRadius: '0',
     borderLeft: '3px solid',
     padding: '4px 8px',
     cursor: 'pointer',
@@ -1950,7 +1950,7 @@ const styles = {
     right: '8px',
     backgroundColor: 'white',
     border: '1px solid #e5e7eb',
-    borderRadius: '8px',
+    borderRadius: '0',
     padding: '12px',
     boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
     zIndex: 10
@@ -1975,7 +1975,7 @@ const styles = {
   },
   modal: {
     backgroundColor: 'white',
-    borderRadius: '12px',
+    borderRadius: '0',
     padding: '24px',
     width: '90%',
     maxWidth: '420px',
@@ -2002,7 +2002,7 @@ const styles = {
   modalCancelBtn: {
     padding: '10px 20px',
     border: '1px solid #d1d5db',
-    borderRadius: '8px',
+    borderRadius: '0',
     backgroundColor: 'white',
     cursor: 'pointer',
     fontSize: '14px',
@@ -2011,7 +2011,7 @@ const styles = {
   modalConfirmBtn: {
     padding: '10px 20px',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '0',
     backgroundColor: '#dc2626',
     color: 'white',
     cursor: 'pointer',

@@ -43,7 +43,7 @@ export default function LabsPage() {
           {selectedPatient ? (
             <div style={{
               display: 'flex', alignItems: 'center', gap: '12px',
-              padding: '12px 16px', background: '#F3F4F6', borderRadius: '8px'
+              padding: '12px 16px', background: '#F3F4F6', borderRadius: '0'
             }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600 }}>
@@ -56,7 +56,7 @@ export default function LabsPage() {
               <button
                 onClick={() => setSelectedPatient(null)}
                 style={{
-                  padding: '6px 12px', border: '1px solid #D1D5DB', borderRadius: '6px',
+                  padding: '6px 12px', border: '1px solid #D1D5DB', borderRadius: '0',
                   background: '#FFF', cursor: 'pointer', fontSize: '0.8125rem'
                 }}
               >
@@ -72,14 +72,14 @@ export default function LabsPage() {
                 onChange={(e) => handlePatientSearch(e.target.value)}
                 style={{
                   width: '100%', padding: '12px 16px', border: '1px solid #D1D5DB',
-                  borderRadius: '8px', fontSize: '0.9375rem', outline: 'none',
+                  borderRadius: '0', fontSize: '0.9375rem', outline: 'none',
                   boxSizing: 'border-box'
                 }}
               />
               {patientResults.length > 0 && (
                 <div style={{
                   position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
-                  background: '#FFF', border: '1px solid #D1D5DB', borderRadius: '0 0 8px 8px',
+                  background: '#FFF', border: '1px solid #D1D5DB', borderRadius: '0',
                   boxShadow: '0 4px 12px rgba(0,0,0,0.1)', maxHeight: '300px', overflowY: 'auto'
                 }}>
                   {patientResults.map(p => (

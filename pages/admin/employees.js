@@ -482,7 +482,7 @@ export default function EmployeesPage() {
 const pageStyles = {
   alert: {
     padding: '12px 16px',
-    borderRadius: '10px',
+    borderRadius: 0,
     marginBottom: '16px',
     fontSize: '14px',
     display: 'flex',
@@ -496,7 +496,7 @@ const pageStyles = {
   card: {
     background: '#fff',
     border: '1px solid #e5e7eb',
-    borderRadius: '12px',
+    borderRadius: 0,
     padding: '20px',
   },
   cardHeader: {
@@ -530,7 +530,7 @@ const pageStyles = {
   editBtn: {
     background: 'none',
     border: '1px solid #d1d5db',
-    borderRadius: '8px',
+    borderRadius: 0,
     padding: '6px 12px',
     fontSize: '13px',
     cursor: 'pointer',
@@ -547,7 +547,7 @@ const pageStyles = {
   toggle: {
     width: '44px',
     height: '24px',
-    borderRadius: '12px',
+    borderRadius: 0,
     border: 'none',
     cursor: 'pointer',
     position: 'relative',

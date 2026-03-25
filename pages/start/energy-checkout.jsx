@@ -60,7 +60,7 @@ function CheckoutForm({ onSuccess }) {
         disabled={!stripe || processing}
         style={{
           width: '100%', marginTop: 20, padding: 16, background: '#171717', color: '#fff',
-          border: 'none', borderRadius: 10, fontSize: 16, fontWeight: 600,
+          border: 'none', borderRadius: 0, fontSize: 16, fontWeight: 600,
           cursor: processing ? 'not-allowed' : 'pointer', opacity: processing ? 0.6 : 1,
           fontFamily: 'inherit',
         }}
@@ -295,7 +295,7 @@ export default function EnergyCheckout() {
         {step === 'contact' && (
           <>
             <div style={{ textAlign: 'center', marginBottom: 32 }}>
-              <span style={{ display: 'inline-block', background: '#f0fdf4', color: '#16a34a', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '6px 14px', borderRadius: 6, marginBottom: 12 }}>
+              <span style={{ display: 'inline-block', background: '#f0fdf4', color: '#16a34a', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '6px 14px', borderRadius: 0, marginBottom: 12 }}>
                 {panelInfo.name}
               </span>
               <h1 style={{ fontSize: 30, fontWeight: 700, margin: '0 0 8px' }}>Enter your info to get started</h1>
@@ -304,29 +304,29 @@ export default function EnergyCheckout() {
               </p>
             </div>
 
-            {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: '12px 16px', borderRadius: 8, fontSize: 14, marginBottom: 16 }}>{error}</div>}
+            {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: '12px 16px', borderRadius: 0, fontSize: 14, marginBottom: 16 }}>{error}</div>}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#525252', marginBottom: 4 }}>First name *</label>
-                <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First name" style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First name" style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 0, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box' }} />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#525252', marginBottom: 4 }}>Last name *</label>
-                <input type="text" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last name" style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                <input type="text" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last name" style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 0, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box' }} />
               </div>
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#525252', marginBottom: 4 }}>Email *</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 0, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box' }} />
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#525252', marginBottom: 4 }}>Phone *</label>
-              <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(949) 555-1234" style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+              <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(949) 555-1234" style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 0, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box' }} />
             </div>
             <div style={{ marginBottom: 24 }}>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#525252', marginBottom: 4 }}>Who referred you? <span style={{ fontWeight: 400, color: '#a3a3a3' }}>(optional)</span></label>
-              <input type="text" value={referredBy} onChange={e => setReferredBy(e.target.value)} placeholder="Name of person or provider" style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+              <input type="text" value={referredBy} onChange={e => setReferredBy(e.target.value)} placeholder="Name of person or provider" style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 0, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box' }} />
             </div>
 
             <button
@@ -334,7 +334,7 @@ export default function EnergyCheckout() {
               disabled={submitting}
               style={{
                 width: '100%', padding: 16, background: '#171717', color: '#fff',
-                border: 'none', borderRadius: 10, fontSize: 16, fontWeight: 600,
+                border: 'none', borderRadius: 0, fontSize: 16, fontWeight: 600,
                 cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.6 : 1,
                 fontFamily: 'inherit',
               }}
@@ -352,7 +352,7 @@ export default function EnergyCheckout() {
         {step === 'payment' && clientSecret && stripePromise && (
           <>
             <div style={{ textAlign: 'center', marginBottom: 28 }}>
-              <span style={{ display: 'inline-block', background: '#f0fdf4', color: '#16a34a', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '6px 14px', borderRadius: 6, marginBottom: 12 }}>
+              <span style={{ display: 'inline-block', background: '#f0fdf4', color: '#16a34a', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '6px 14px', borderRadius: 0, marginBottom: 12 }}>
                 {panelInfo.name} — ${panelInfo.basePrice}
               </span>
               <h1 style={{ fontSize: 28, fontWeight: 700, margin: '0 0 8px' }}>Payment</h1>
@@ -361,7 +361,7 @@ export default function EnergyCheckout() {
               </p>
             </div>
 
-            <div style={{ background: '#fafafa', border: '1px solid #e5e5e5', borderRadius: 12, padding: '24px' }}>
+            <div style={{ background: '#fafafa', border: '1px solid #e5e5e5', borderRadius: 0, padding: '24px' }}>
               <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe' } }}>
                 <CheckoutForm onSuccess={handlePaymentSuccess} />
               </Elements>
@@ -386,7 +386,7 @@ export default function EnergyCheckout() {
               </p>
             </div>
 
-            {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: '12px 16px', borderRadius: 8, fontSize: 14, marginBottom: 16 }}>{error}</div>}
+            {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: '12px 16px', borderRadius: 0, fontSize: 14, marginBottom: 16 }}>{error}</div>}
 
             <p style={{ fontSize: 13, fontWeight: 600, color: '#525252', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Select a date</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
@@ -396,7 +396,7 @@ export default function EnergyCheckout() {
                 return (
                   <button key={dateStr} onClick={() => handleDateClick(date)} style={{
                     padding: '10px 14px', border: isActive ? '2px solid #171717' : '1px solid #d4d4d4',
-                    borderRadius: 8, background: isActive ? '#171717' : '#fff', color: isActive ? '#fff' : '#171717',
+                    borderRadius: 0, background: isActive ? '#171717' : '#fff', color: isActive ? '#fff' : '#171717',
                     fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
                   }}>
                     {formatDate(date)}
@@ -415,7 +415,7 @@ export default function EnergyCheckout() {
                     return (
                       <button key={i} onClick={() => setSelectedSlot(slot)} style={{
                         padding: 10, border: isActive ? '2px solid #171717' : '1px solid #d4d4d4',
-                        borderRadius: 8, background: isActive ? '#171717' : '#fff', color: isActive ? '#fff' : '#171717',
+                        borderRadius: 0, background: isActive ? '#171717' : '#fff', color: isActive ? '#fff' : '#171717',
                         fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center',
                       }}>
                         {formatTime(slot.start)}
@@ -431,7 +431,7 @@ export default function EnergyCheckout() {
             {selectedSlot && (
               <button onClick={handleBookSlot} disabled={isBooking} style={{
                 width: '100%', padding: 16, background: '#171717', color: '#fff',
-                border: 'none', borderRadius: 10, fontSize: 16, fontWeight: 600,
+                border: 'none', borderRadius: 0, fontSize: 16, fontWeight: 600,
                 cursor: isBooking ? 'not-allowed' : 'pointer', opacity: isBooking ? 0.6 : 1,
                 fontFamily: 'inherit',
               }}>
@@ -458,7 +458,7 @@ export default function EnergyCheckout() {
               </p>
             </div>
 
-            <div style={{ background: '#fafafa', border: '1px solid #e5e5e5', borderRadius: 12, padding: 28, marginBottom: 24 }}>
+            <div style={{ background: '#fafafa', border: '1px solid #e5e5e5', borderRadius: 0, padding: 28, marginBottom: 24 }}>
               <h3 style={{ fontSize: 17, fontWeight: 700, margin: '0 0 16px' }}>What to expect:</h3>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 <li style={{ fontSize: 14, color: '#525252', padding: '6px 0', lineHeight: 1.5 }}>✓ We'll text you lab prep instructions and what to expect</li>

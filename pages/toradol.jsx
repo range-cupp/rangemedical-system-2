@@ -92,7 +92,7 @@ export default function ToradolPostInjection() {
           background: var(--color-primary);
           color: var(--color-bg);
           padding: 0.5rem 1rem;
-          border-radius: var(--radius-full);
+          border-radius: 0;
           font-size: 0.8125rem;
           font-weight: 600;
           margin-bottom: 1.5rem;
@@ -159,7 +159,7 @@ export default function ToradolPostInjection() {
         .toradol-info-card {
           background: var(--color-bg);
           border: 1px solid var(--color-border);
-          border-radius: var(--radius-lg);
+          border-radius: 0;
           padding: 1.75rem;
         }
 
@@ -199,7 +199,7 @@ export default function ToradolPostInjection() {
           background: var(--color-bg-alt);
           border-left: 4px solid var(--color-primary);
           padding: 1.25rem 1.5rem;
-          border-radius: 0 var(--radius-md) var(--radius-md) 0;
+          border-radius: 0;
           margin-top: 2rem;
         }
 
@@ -219,7 +219,7 @@ export default function ToradolPostInjection() {
         .toradol-explainer {
           background: var(--color-bg);
           border: 1px solid var(--color-border);
-          border-radius: var(--radius-lg);
+          border-radius: 0;
           padding: 2rem;
           max-width: 700px;
           margin: 0 auto;
@@ -250,7 +250,7 @@ export default function ToradolPostInjection() {
           padding: 1.25rem;
           background: var(--color-bg);
           border: 1px solid var(--color-border);
-          border-radius: var(--radius-md);
+          border-radius: 0;
         }
 
         .toradol-timeline-time {

@@ -54,12 +54,12 @@ export default async function handler(req, res) {
       errors.push(fetchError.message);
     }
 
-    // Pre-fetch Damon & Tara employee IDs for peptide follow-up tasks
+    // Pre-fetch Tara's employee ID for peptide follow-up tasks
     let peptideTaskStaff = [];
     const { data: staffEmployees } = await supabase
       .from('employees')
       .select('id, email')
-      .in('email', ['damon@range-medical.com', 'tara@range-medical.com']);
+      .eq('email', 'tara@range-medical.com');
     if (staffEmployees) {
       peptideTaskStaff = staffEmployees.map(e => e.id);
     }

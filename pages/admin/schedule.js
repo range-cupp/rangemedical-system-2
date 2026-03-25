@@ -176,7 +176,7 @@ export default function SchedulePage() {
                   </td>
                   <td style={styles.td}>
                     {apt.location && apt.location !== 'Range Medical — Newport Beach' ? (
-                      <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '10px', background: '#ede9fe', color: '#6d28d9', fontWeight: '500' }}>
+                      <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: 0, background: '#ede9fe', color: '#6d28d9', fontWeight: '500' }}>
                         📍 Placentia
                       </span>
                     ) : (
@@ -229,7 +229,7 @@ export default function SchedulePage() {
                         style={{
                           background: '#f0f9ff',
                           border: '1px solid #bae6fd',
-                          borderRadius: '6px',
+                          borderRadius: 0,
                           cursor: 'pointer',
                           color: '#0369a1',
                           fontSize: '12px',
@@ -312,7 +312,7 @@ const styles = {
   tab: {
     padding: '8px 16px',
     border: '1px solid #ddd',
-    borderRadius: '8px',
+    borderRadius: 0,
     background: '#fff',
     fontSize: '14px',
     cursor: 'pointer',
@@ -327,7 +327,7 @@ const styles = {
   },
   calendarWrap: {
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: 0,
     border: '1px solid #e5e5e5',
     overflow: 'hidden',
     minHeight: '600px',
@@ -339,7 +339,7 @@ const styles = {
   },
   card: {
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: 0,
     overflow: 'hidden',
     border: '1px solid #e5e5e5'
   },
@@ -371,7 +371,7 @@ const styles = {
   },
   badge: {
     padding: '4px 10px',
-    borderRadius: '12px',
+    borderRadius: 0,
     fontSize: '11px',
     fontWeight: '600',
     textTransform: 'uppercase'

@@ -125,7 +125,7 @@ export default function AppLogin() {
           gap: 14px;
           background: #1e293b;
           border: none;
-          border-radius: 14px;
+          border-radius: 0;
           padding: 14px 16px;
           cursor: pointer;
           color: #e2e8f0;

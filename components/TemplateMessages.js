@@ -120,7 +120,7 @@ const styles = {
     textAlign: 'left',
     padding: '8px 10px',
     border: '1px solid #f0f0f0',
-    borderRadius: '8px',
+    borderRadius: '0',
     background: '#fafafa',
     cursor: 'pointer',
     marginBottom: '4px',

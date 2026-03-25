@@ -104,7 +104,7 @@ export default function PatientPortal() {
         <style>{`
           * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
           body { margin: 0; background: #fafafa; }
-          input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; border-radius: 4px; background: #e5e5e5; }
+          input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; border-radius: 0; background: #e5e5e5; }
           input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%; background: #000; cursor: pointer; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
         `}</style>
       </Head>
@@ -659,7 +659,7 @@ function AppointmentsSection({ token }) {
     };
     const c = colors[status] || colors.scheduled;
     return (
-      <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: '600', background: c.bg, color: c.text }}>
+      <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '0', fontSize: '11px', fontWeight: '600', background: c.bg, color: c.text }}>
         {status.replace('_', ' ')}
       </span>
     );
@@ -672,12 +672,12 @@ function AppointmentsSection({ token }) {
       {/* Upcoming */}
       <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '12px', color: '#1a1a1a' }}>Upcoming Appointments</h3>
       {appointments.upcoming.length === 0 ? (
-        <div style={{ background: '#fff', borderRadius: '12px', padding: '20px', marginBottom: '20px', textAlign: 'center', color: '#888' }}>
+        <div style={{ background: '#fff', borderRadius: '0', padding: '20px', marginBottom: '20px', textAlign: 'center', color: '#888' }}>
           No upcoming appointments
         </div>
       ) : (
         appointments.upcoming.map(appt => (
-          <div key={appt.id} style={{ background: '#fff', borderRadius: '12px', padding: '16px', marginBottom: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+          <div key={appt.id} style={{ background: '#fff', borderRadius: '0', padding: '16px', marginBottom: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <span style={{ fontWeight: '600', fontSize: '15px' }}>{appt.service_name}</span>
               {statusBadge(appt.status)}
@@ -700,7 +700,7 @@ function AppointmentsSection({ token }) {
         <>
           <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '12px', marginTop: '24px', color: '#1a1a1a' }}>Past Appointments</h3>
           {appointments.past.map(appt => (
-            <div key={appt.id} style={{ background: '#fff', borderRadius: '10px', padding: '12px 16px', marginBottom: '8px', opacity: 0.7 }}>
+            <div key={appt.id} style={{ background: '#fff', borderRadius: '0', padding: '12px 16px', marginBottom: '8px', opacity: 0.7 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '14px', fontWeight: '500' }}>{appt.service_name}</span>
                 {statusBadge(appt.status)}
@@ -721,7 +721,7 @@ function AppointmentsSection({ token }) {
 // ============================================
 
 const styles = {
-  container: { minHeight: '100vh', background: '#fafafa', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', paddingBottom: '80px' },
+  container: { minHeight: '100vh', background: '#fafafa', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif", paddingBottom: '80px' },
   
   loadingContainer: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   loadingDot: { width: '12px', height: '12px', background: '#000', borderRadius: '50%' },
@@ -741,7 +741,7 @@ const styles = {
   
   main: { padding: '16px', maxWidth: '600px', margin: '0 auto' },
   
-  card: { background: '#fff', borderRadius: '16px', padding: '24px', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' },
+  card: { background: '#fff', borderRadius: '0', padding: '24px', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' },
   cardLabel: { fontSize: '11px', fontWeight: '700', letterSpacing: '1.5px', color: '#999', marginBottom: '16px' },
   
   // Onboarding prompt
@@ -749,16 +749,16 @@ const styles = {
   onboardIcon: { fontSize: '40px', marginBottom: '12px' },
   onboardTitle: { fontSize: '20px', fontWeight: '700', margin: '0 0 8px' },
   onboardText: { fontSize: '15px', color: '#666', margin: '0 0 20px', lineHeight: 1.5 },
-  onboardButton: { display: 'inline-block', padding: '14px 32px', background: '#000', color: '#fff', textDecoration: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '600' },
+  onboardButton: { display: 'inline-block', padding: '14px 32px', background: '#000', color: '#fff', textDecoration: 'none', borderRadius: '0', fontSize: '15px', fontWeight: '600' },
   
   // Goals
   goalTags: { display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' },
-  goalTag: { background: '#f0f0f0', padding: '6px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: '500' },
+  goalTag: { background: '#f0f0f0', padding: '6px 12px', borderRadius: '0', fontSize: '13px', fontWeight: '500' },
   whyText: { fontSize: '17px', fontWeight: '500', fontStyle: 'italic', color: '#333', margin: '0 0 16px', lineHeight: 1.5 },
   importanceRow: { display: 'flex', alignItems: 'center', gap: '12px' },
   importanceLabel: { fontSize: '13px', color: '#666' },
-  importanceBar: { flex: 1, height: '6px', background: '#f0f0f0', borderRadius: '3px', overflow: 'hidden' },
-  importanceFill: { height: '100%', background: '#000', borderRadius: '3px' },
+  importanceBar: { flex: 1, height: '6px', background: '#f0f0f0', borderRadius: '0', overflow: 'hidden' },
+  importanceFill: { height: '100%', background: '#000', borderRadius: '0' },
   importanceValue: { fontSize: '13px', fontWeight: '600' },
   
   // Accountability
@@ -769,21 +769,21 @@ const styles = {
   scoreInfo: { flex: 1 },
   scoreTitle: { fontSize: '18px', fontWeight: '600', marginBottom: '4px' },
   scoreSubtitle: { fontSize: '13px', color: '#666' },
-  streakBadge: { display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#fef3c7', padding: '8px 14px', borderRadius: '20px', marginBottom: '16px' },
+  streakBadge: { display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#fef3c7', padding: '8px 14px', borderRadius: '0', marginBottom: '16px' },
   streakText: { fontSize: '13px', fontWeight: '600', color: '#b45309' },
-  accountabilityBar: { height: '8px', background: '#f0f0f0', borderRadius: '4px', overflow: 'hidden' },
-  accountabilityFill: { height: '100%', background: '#000', borderRadius: '4px' },
+  accountabilityBar: { height: '8px', background: '#f0f0f0', borderRadius: '0', overflow: 'hidden' },
+  accountabilityFill: { height: '100%', background: '#000', borderRadius: '0' },
   
   // Actions
   actionsList: { display: 'flex', flexDirection: 'column', gap: '10px' },
-  actionItem: { display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#fafafa', borderRadius: '10px' },
+  actionItem: { display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: '#fafafa', borderRadius: '0' },
   actionDot: { width: '8px', height: '8px', borderRadius: '50%', background: '#000' },
   actionContent: { flex: 1 },
   actionTitle: { fontSize: '14px', fontWeight: '500' },
   actionWhen: { fontSize: '12px', color: '#666' },
-  actionButton: { padding: '8px 14px', background: '#000', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' },
+  actionButton: { padding: '8px 14px', background: '#000', color: '#fff', border: 'none', borderRadius: '0', fontSize: '12px', fontWeight: '600', cursor: 'pointer' },
   
-  checkInCta: { width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '16px', background: '#000', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '600', cursor: 'pointer' },
+  checkInCta: { width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '16px', background: '#000', color: '#fff', border: 'none', borderRadius: '0', fontSize: '15px', fontWeight: '600', cursor: 'pointer' },
   checkInCtaTime: { fontSize: '12px', opacity: 0.7 },
   
   emptyText: { fontSize: '14px', color: '#999', fontStyle: 'italic', margin: 0 },
@@ -791,8 +791,8 @@ const styles = {
   
   // Track tab
   blockSelector: { display: 'flex', gap: '8px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '4px' },
-  blockTab: { padding: '10px 16px', background: '#fff', border: '1px solid #e5e5e5', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer', whiteSpace: 'nowrap' },
-  blockTabActive: { padding: '10px 16px', background: '#000', color: '#fff', border: '1px solid #000', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap' },
+  blockTab: { padding: '10px 16px', background: '#fff', border: '1px solid #e5e5e5', borderRadius: '0', fontSize: '13px', fontWeight: '500', cursor: 'pointer', whiteSpace: 'nowrap' },
+  blockTabActive: { padding: '10px 16px', background: '#000', color: '#fff', border: '1px solid #000', borderRadius: '0', fontSize: '13px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap' },
   
   blockInfo: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   blockName: { fontSize: '18px', fontWeight: '700', marginBottom: '4px' },
@@ -803,7 +803,7 @@ const styles = {
   blockStatLabel: { fontSize: '12px', color: '#666' },
   
   calendar: { display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px' },
-  calendarDay: { aspectRatio: '1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: '10px', border: '1px solid', fontSize: '12px', fontWeight: '600' },
+  calendarDay: { aspectRatio: '1', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: '0', border: '1px solid', fontSize: '12px', fontWeight: '600' },
   calendarDayLabel: { fontSize: '11px' },
   calendarCheck: { fontSize: '14px', marginTop: '2px' },
   calendarHint: { fontSize: '12px', color: '#999', textAlign: 'center', marginTop: '12px' },
@@ -832,7 +832,7 @@ const styles = {
   
   // Modal
   modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', zIndex: 1000 },
-  modal: { background: '#fff', borderRadius: '24px 24px 0 0', width: '100%', maxWidth: '500px', maxHeight: '90vh', overflow: 'auto' },
+  modal: { background: '#fff', borderRadius: '0', width: '100%', maxWidth: '500px', maxHeight: '90vh', overflow: 'auto' },
   modalHeader: { padding: '24px 24px 16px', borderBottom: '1px solid #f0f0f0' },
   modalTitle: { fontSize: '20px', fontWeight: '700', margin: '0 0 4px' },
   modalSubtitle: { fontSize: '14px', color: '#666', margin: 0 },
@@ -841,6 +841,6 @@ const styles = {
   sliderHeader: { display: 'flex', justifyContent: 'space-between', fontSize: '15px' },
   sliderLabels: { display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#999' },
   modalFooter: { padding: '16px 24px 32px', display: 'flex', gap: '12px', borderTop: '1px solid #f0f0f0' },
-  modalCancel: { flex: 1, padding: '14px', background: '#f5f5f5', color: '#333', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '600', cursor: 'pointer' },
-  modalSave: { flex: 2, padding: '14px', background: '#000', color: '#fff', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: '600', cursor: 'pointer' }
+  modalCancel: { flex: 1, padding: '14px', background: '#f5f5f5', color: '#333', border: 'none', borderRadius: '0', fontSize: '15px', fontWeight: '600', cursor: 'pointer' },
+  modalSave: { flex: 2, padding: '14px', background: '#000', color: '#fff', border: 'none', borderRadius: '0', fontSize: '15px', fontWeight: '600', cursor: 'pointer' }
 };

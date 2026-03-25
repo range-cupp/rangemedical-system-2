@@ -839,7 +839,7 @@ const styles = {
   tab: {
     padding: '8px 16px',
     border: '1px solid #ddd',
-    borderRadius: '8px',
+    borderRadius: 0,
     background: '#fff',
     fontSize: '14px',
     cursor: 'pointer',
@@ -856,7 +856,7 @@ const styles = {
   // Full-width container for patient list
   fullContainer: {
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: 0,
     border: '1px solid #e5e5e5',
     overflow: 'hidden',
   },
@@ -868,7 +868,7 @@ const styles = {
     width: '100%',
     padding: '10px 14px',
     border: '1px solid #ddd',
-    borderRadius: '8px',
+    borderRadius: 0,
     fontSize: '14px',
     outline: 'none',
     fontFamily: 'inherit',
@@ -947,7 +947,7 @@ const styles = {
     fontWeight: '700',
     minWidth: '20px',
     height: '20px',
-    borderRadius: '10px',
+    borderRadius: 0,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -959,7 +959,7 @@ const styles = {
     color: '#fff',
     fontSize: '10px',
     fontWeight: '700',
-    borderRadius: '10px',
+    borderRadius: 0,
     padding: '3px 8px',
     lineHeight: 1,
     whiteSpace: 'nowrap',
@@ -969,7 +969,7 @@ const styles = {
   responseFilterBtn: {
     padding: '6px 14px',
     border: '1px solid #e5e5e5',
-    borderRadius: '16px',
+    borderRadius: 0,
     background: '#fff',
     fontSize: '13px',
     cursor: 'pointer',
@@ -999,7 +999,7 @@ const styles = {
     fontWeight: '700',
     minWidth: '18px',
     height: '18px',
-    borderRadius: '9px',
+    borderRadius: 0,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1009,7 +1009,7 @@ const styles = {
   markAllReadBtn: {
     padding: '8px 14px',
     border: '1px solid #ddd',
-    borderRadius: '6px',
+    borderRadius: 0,
     background: '#fff',
     fontSize: '12px',
     cursor: 'pointer',
@@ -1033,7 +1033,7 @@ const styles = {
     width: '28px',
     height: '28px',
     border: '1px solid #e5e5e5',
-    borderRadius: '6px',
+    borderRadius: 0,
     background: '#fff',
     fontSize: '12px',
     cursor: 'pointer',
@@ -1052,7 +1052,7 @@ const styles = {
   // Conversation container — full width
   conversationContainer: {
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: 0,
     border: '1px solid #e5e5e5',
     overflow: 'hidden',
     height: 'calc(100vh - 160px)',
@@ -1068,7 +1068,7 @@ const styles = {
   filterPill: {
     padding: '6px 14px',
     border: '1px solid #e5e5e5',
-    borderRadius: '16px',
+    borderRadius: 0,
     background: '#fff',
     fontSize: '12px',
     cursor: 'pointer',
@@ -1084,7 +1084,7 @@ const styles = {
   },
   card: {
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: 0,
     overflow: 'hidden',
     border: '1px solid #e5e5e5',
   },
@@ -1126,7 +1126,7 @@ const styles = {
   },
   badge: {
     padding: '4px 10px',
-    borderRadius: '12px',
+    borderRadius: 0,
     fontSize: '11px',
     fontWeight: '600',
     textTransform: 'uppercase',
@@ -1134,7 +1134,7 @@ const styles = {
   },
   directionBadge: {
     padding: '4px 10px',
-    borderRadius: '12px',
+    borderRadius: 0,
     fontSize: '11px',
     fontWeight: '600',
     display: 'inline-block',
@@ -1156,7 +1156,7 @@ const styles = {
   paginationBtn: {
     padding: '6px 14px',
     border: '1px solid #ddd',
-    borderRadius: '6px',
+    borderRadius: 0,
     background: '#fff',
     fontSize: '13px',
     cursor: 'pointer',
@@ -1183,7 +1183,7 @@ const styles = {
   },
   modal: {
     background: '#fff',
-    borderRadius: '14px',
+    borderRadius: 0,
     width: '100%',
     maxWidth: '640px',
     maxHeight: '80vh',
@@ -1220,7 +1220,7 @@ const styles = {
     color: '#999',
     cursor: 'pointer',
     padding: '4px 8px',
-    borderRadius: '6px',
+    borderRadius: 0,
     flexShrink: 0,
   },
   modalMeta: {

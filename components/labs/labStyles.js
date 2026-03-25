@@ -60,7 +60,7 @@ export const styles = {
   },
   filterPill: {
     padding: '6px 14px',
-    borderRadius: '20px',
+    borderRadius: '0',
     border: `1px solid ${colors.border}`,
     background: colors.white,
     cursor: 'pointer',
@@ -79,7 +79,7 @@ export const styles = {
     alignItems: 'center',
     gap: '6px',
     padding: '6px 12px',
-    borderRadius: '6px',
+    borderRadius: '0',
     fontSize: '0.8125rem',
     fontWeight: 600
   },
@@ -91,7 +91,7 @@ export const styles = {
     cursor: 'pointer',
     fontSize: '0.8125rem',
     fontWeight: 500,
-    borderRadius: '6px 6px 0 0',
+    borderRadius: '0',
     color: colors.textSecondary
   },
   labTabActive: {
@@ -101,7 +101,7 @@ export const styles = {
   },
   viewToggle: {
     display: 'inline-flex',
-    borderRadius: '6px',
+    borderRadius: '0',
     overflow: 'hidden',
     border: `1px solid ${colors.border}`
   },

@@ -440,7 +440,7 @@ export default function PatientsList() {
             </div>
             <div style={styles.modalBody}>
               {addError && (
-                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '12px', marginBottom: '16px', color: '#dc2626', fontSize: '14px' }}>
+                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 0, padding: '12px', marginBottom: '16px', color: '#dc2626', fontSize: '14px' }}>
                   {addError}
                 </div>
               )}
@@ -764,14 +764,14 @@ const styles = {
     fontWeight: '500',
     padding: '8px 16px',
     border: '1px solid #e5e7eb',
-    borderRadius: '6px'
+    borderRadius: 0
   },
   addBtn: {
     padding: '8px 16px',
     background: '#000',
     color: '#fff',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: 0,
     fontSize: '14px',
     fontWeight: '500',
     cursor: 'pointer'
@@ -788,7 +788,7 @@ const styles = {
     padding: '10px 12px',
     fontSize: '14px',
     border: '1px solid #e5e7eb',
-    borderRadius: '6px',
+    borderRadius: 0,
     outline: 'none',
     boxSizing: 'border-box'
   },
@@ -796,7 +796,7 @@ const styles = {
     padding: '8px 16px',
     background: '#fff',
     border: '1px solid #e5e7eb',
-    borderRadius: '6px',
+    borderRadius: 0,
     fontSize: '14px',
     fontWeight: '500',
     cursor: 'pointer'
@@ -810,7 +810,7 @@ const styles = {
     padding: '12px 16px',
     fontSize: '14px',
     border: '1px solid #e5e7eb',
-    borderRadius: '8px',
+    borderRadius: 0,
     outline: 'none',
     boxSizing: 'border-box'
   },
@@ -825,7 +825,7 @@ const styles = {
     fontSize: '12px',
     fontWeight: '500',
     border: '1px solid #e5e7eb',
-    borderRadius: '16px',
+    borderRadius: 0,
     background: '#fff',
     color: '#666',
     cursor: 'pointer',
@@ -846,7 +846,7 @@ const styles = {
     fontSize: '11px',
     fontWeight: '500',
     padding: '2px 8px',
-    borderRadius: '10px',
+    borderRadius: 0,
     lineHeight: '16px',
   },
   emptyState: {
@@ -854,7 +854,7 @@ const styles = {
     padding: '48px',
     color: '#9ca3af',
     background: '#f9fafb',
-    borderRadius: '8px',
+    borderRadius: 0,
     border: '1px solid #e5e7eb'
   },
   list: {
@@ -869,7 +869,7 @@ const styles = {
     padding: '16px 20px',
     background: '#fff',
     border: '1px solid #e5e7eb',
-    borderRadius: '8px',
+    borderRadius: 0,
     cursor: 'pointer',
     transition: 'border-color 0.2s'
   },
@@ -912,7 +912,7 @@ const styles = {
   },
   modal: {
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: 0,
     width: '500px',
     maxWidth: '95vw',
     maxHeight: '90vh',
@@ -954,14 +954,14 @@ const styles = {
     width: '100%',
     padding: '12px 14px',
     border: '2px solid #e5e7eb',
-    borderRadius: '8px',
+    borderRadius: 0,
     fontSize: '14px',
     boxSizing: 'border-box'
   },
   searchResults: {
     marginTop: '8px',
     border: '1px solid #e5e7eb',
-    borderRadius: '8px',
+    borderRadius: 0,
     maxHeight: '250px',
     overflowY: 'auto'
   },
@@ -986,7 +986,7 @@ const styles = {
   selectedPatient: {
     background: '#f0fdf4',
     border: '2px solid #86efac',
-    borderRadius: '8px',
+    borderRadius: 0,
     padding: '12px 16px',
     marginBottom: '16px'
   },
@@ -1009,7 +1009,7 @@ const styles = {
     padding: '8px 16px',
     background: '#f3f4f6',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: 0,
     fontSize: '14px',
     cursor: 'pointer',
     marginTop: '16px'
@@ -1027,7 +1027,7 @@ const styles = {
     padding: '14px',
     background: '#f0fdf4',
     border: '2px solid #86efac',
-    borderRadius: '8px'
+    borderRadius: 0
   },
   previewBoxDelete: {
     background: '#fef2f2',
@@ -1062,7 +1062,7 @@ const styles = {
   },
   recordsPreview: {
     background: '#f9fafb',
-    borderRadius: '8px',
+    borderRadius: 0,
     padding: '14px',
     marginBottom: '16px'
   },
@@ -1089,7 +1089,7 @@ const styles = {
   warningBox: {
     background: '#fef3c7',
     border: '1px solid #fbbf24',
-    borderRadius: '8px',
+    borderRadius: 0,
     padding: '12px 14px',
     fontSize: '13px',
     color: '#92400e',
@@ -1105,7 +1105,7 @@ const styles = {
     background: '#dc2626',
     color: '#fff',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: 0,
     fontSize: '14px',
     fontWeight: '600',
     cursor: 'pointer'
@@ -1171,7 +1171,7 @@ const styles = {
     background: '#000',
     color: '#fff',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: 0,
     fontSize: '14px',
     fontWeight: '600',
     cursor: 'pointer'

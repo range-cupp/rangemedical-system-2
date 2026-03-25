@@ -306,7 +306,7 @@ export default function RangeIVGuide() {
         .container { max-width: 800px; margin: 0 auto; }
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
         .info-card { background: #ffffff; border: 1px solid #e0e0e0; padding: 1.75rem; }
-        .info-card h3 { font-size: 1.125rem; font-weight: 700; margin-bottom: 0.75rem; }
+        .info-card h3 { font-size: 1rem; font-weight: 900; text-transform: uppercase; letter-spacing: -0.01em; margin-bottom: 0.75rem; }
         .info-card p { font-size: 0.9rem; color: #737373; line-height: 1.7; }
         .protocol-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
         .protocol-grid.single { grid-template-columns: 1fr; max-width: 400px; margin: 0 auto; }

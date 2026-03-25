@@ -162,7 +162,7 @@ export default function AppMessages() {
           .msg-bubble {
             max-width: 78%;
             padding: 10px 14px;
-            border-radius: 18px;
+            border-radius: 0;
             font-size: 14px;
             line-height: 1.4;
             word-break: break-word;
@@ -184,7 +184,7 @@ export default function AppMessages() {
           .compose-input {
             flex: 1;
             border: 1.5px solid #e2e8f0;
-            border-radius: 20px;
+            border-radius: 0;
             padding: 10px 14px;
             font-size: 15px;
             outline: none;
@@ -351,7 +351,7 @@ export default function AppMessages() {
                     <div className={`convo-preview${isUnread ? ' unread' : ''}`}>{preview}</div>
                   </div>
                   {isUnread && (
-                    <span style={{ background: '#0f172a', color: '#fff', borderRadius: 10, minWidth: 20, height: 20, lineHeight: '20px', fontSize: 11, fontWeight: 700, textAlign: 'center', padding: '0 6px', flexShrink: 0 }}>
+                    <span style={{ background: '#0f172a', color: '#fff', borderRadius: 0, minWidth: 20, height: 20, lineHeight: '20px', fontSize: 11, fontWeight: 700, textAlign: 'center', padding: '0 6px', flexShrink: 0 }}>
                       {conv.unread_count > 9 ? '9+' : conv.unread_count}
                     </span>
                   )}

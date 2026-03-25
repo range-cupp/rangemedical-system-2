@@ -438,7 +438,7 @@ export default function ProviderSchedulePage() {
                                   <span style={{
                                     fontSize: 11, fontWeight: 600,
                                     background: '#f3f4f6', color: '#374151',
-                                    padding: '2px 8px', borderRadius: 10,
+                                    padding: '2px 8px', borderRadius: 0,
                                   }}>
                                     {item.reason}{item.reason_note ? `: ${item.reason_note}` : ''}
                                   </span>
@@ -494,7 +494,7 @@ export default function ProviderSchedulePage() {
                     color: editLocation.color,
                     background: editLocation.bg,
                     padding: '2px 10px',
-                    borderRadius: '12px',
+                    borderRadius: 0,
                     display: 'inline-block',
                     marginTop: '4px',
                   }}>
@@ -575,7 +575,7 @@ export default function ProviderSchedulePage() {
                     color: overrideLocation.color,
                     background: overrideLocation.bg,
                     padding: '2px 10px',
-                    borderRadius: '12px',
+                    borderRadius: 0,
                     display: 'inline-block',
                     marginTop: '4px',
                   }}>
@@ -619,7 +619,7 @@ export default function ProviderSchedulePage() {
                       style={{
                         flex: 1, padding: '10px 0', border: '1px solid',
                         borderColor: overrideType === 'unavailable' ? '#dc2626' : '#d1d5db',
-                        borderRadius: 8,
+                        borderRadius: 0,
                         background: overrideType === 'unavailable' ? '#fef2f2' : '#fff',
                         color: overrideType === 'unavailable' ? '#dc2626' : '#374151',
                         fontSize: 13, fontWeight: 600, cursor: 'pointer',
@@ -632,7 +632,7 @@ export default function ProviderSchedulePage() {
                       style={{
                         flex: 1, padding: '10px 0', border: '1px solid',
                         borderColor: overrideType === 'custom' ? '#1e40af' : '#d1d5db',
-                        borderRadius: 8,
+                        borderRadius: 0,
                         background: overrideType === 'custom' ? '#eff6ff' : '#fff',
                         color: overrideType === 'custom' ? '#1e40af' : '#374151',
                         fontSize: 13, fontWeight: 600, cursor: 'pointer',
@@ -677,7 +677,7 @@ export default function ProviderSchedulePage() {
                 {/* Bulk summary */}
                 {overrideDate && overrideEndDate && overrideEndDate > overrideDate && (
                   <div style={{
-                    padding: '10px 14px', background: '#f0f9ff', borderRadius: 8,
+                    padding: '10px 14px', background: '#f0f9ff', borderRadius: 0,
                     border: '1px solid #bae6fd', fontSize: 13, color: '#0369a1',
                   }}>
                     This will block <strong>{getDateRange(overrideDate, overrideEndDate).length} days</strong> from {formatDate(overrideDate)} to {formatDate(overrideEndDate)}
@@ -703,7 +703,7 @@ export default function ProviderSchedulePage() {
 const pageStyles = {
   alert: {
     padding: '12px 16px',
-    borderRadius: '10px',
+    borderRadius: 0,
     marginBottom: '16px',
     fontSize: '14px',
     display: 'flex',
@@ -712,7 +712,7 @@ const pageStyles = {
   card: {
     background: '#fff',
     border: '1px solid #e5e7eb',
-    borderRadius: '12px',
+    borderRadius: 0,
     padding: '24px',
   },
   providerHeader: {
@@ -739,7 +739,7 @@ const pageStyles = {
     color: '#6b7280',
     background: '#f3f4f6',
     padding: '4px 10px',
-    borderRadius: '12px',
+    borderRadius: 0,
   },
   scheduleSection: {
     // Container for each schedule within a provider card
@@ -756,7 +756,7 @@ const pageStyles = {
     fontSize: '12px',
     fontWeight: 600,
     padding: '4px 12px',
-    borderRadius: '16px',
+    borderRadius: 0,
     display: 'inline-flex',
     alignItems: 'center',
     gap: '4px',
@@ -770,7 +770,7 @@ const pageStyles = {
     background: '#111',
     color: '#fff',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: 0,
     padding: '8px 16px',
     fontSize: '13px',
     fontWeight: 600,
@@ -780,7 +780,7 @@ const pageStyles = {
     background: '#fff',
     color: '#111',
     border: '1px solid #d1d5db',
-    borderRadius: '8px',
+    borderRadius: 0,
     padding: '8px 16px',
     fontSize: '13px',
     fontWeight: 600,
@@ -796,7 +796,7 @@ const pageStyles = {
     textAlign: 'center',
     padding: '10px 4px',
     background: '#f9fafb',
-    borderRadius: '8px',
+    borderRadius: 0,
     minWidth: 0,
   },
   dayLabel: {
@@ -832,7 +832,7 @@ const pageStyles = {
     gap: '12px',
     padding: '8px 12px',
     background: '#fef9c3',
-    borderRadius: '8px',
+    borderRadius: 0,
     marginBottom: '6px',
   },
   overrideDate: {
@@ -853,7 +853,7 @@ const pageStyles = {
     cursor: 'pointer',
     fontSize: '14px',
     padding: '2px 6px',
-    borderRadius: '4px',
+    borderRadius: 0,
   },
   editRow: {
     display: 'flex',
@@ -879,7 +879,7 @@ const pageStyles = {
   timeInput: {
     padding: '6px 8px',
     border: '1px solid #d1d5db',
-    borderRadius: '8px',
+    borderRadius: 0,
     fontSize: '14px',
   },
   radioLabel: {

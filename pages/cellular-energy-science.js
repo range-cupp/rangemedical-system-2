@@ -289,7 +289,7 @@ export default function CellularEnergyScience() {
           text-transform: uppercase;
           letter-spacing: 0.1em;
           padding: 0.5rem 1rem;
-          border-radius: 100px;
+          border-radius: 0;
           margin-bottom: 1.5rem;
         }
         .hero h1 {
@@ -356,7 +356,7 @@ export default function CellularEnergyScience() {
         .disclaimer-box {
           background: #fffbeb;
           border: 1px solid #fde68a;
-          border-radius: 8px;
+          border-radius: 0;
           padding: 1.25rem 1.5rem;
         }
         .disclaimer-box p {
@@ -384,7 +384,7 @@ export default function CellularEnergyScience() {
         .science-card {
           background: #fff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 2rem;
           margin-bottom: 1.5rem;
         }
@@ -414,7 +414,7 @@ export default function CellularEnergyScience() {
           font-size: 1.125rem !important;
           background: #fafafa;
           padding: 1rem 1.25rem;
-          border-radius: 8px;
+          border-radius: 0;
           margin-top: 1rem !important;
         }
         .stat-highlight strong {
@@ -425,7 +425,7 @@ export default function CellularEnergyScience() {
         .mechanism-table {
           background: #fff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           overflow: hidden;
           margin: 2rem 0;
         }
@@ -480,7 +480,7 @@ export default function CellularEnergyScience() {
         .synergy-box {
           background: rgba(255,255,255,0.05);
           border: 1px solid rgba(255,255,255,0.15);
-          border-radius: 12px;
+          border-radius: 0;
           padding: 2rem;
           margin-bottom: 2.5rem;
         }
@@ -548,7 +548,7 @@ export default function CellularEnergyScience() {
         .synergy-card {
           background: rgba(255,255,255,0.05);
           border: 1px solid rgba(255,255,255,0.15);
-          border-radius: 10px;
+          border-radius: 0;
           padding: 1.5rem;
         }
         .synergy-card h4 {
@@ -635,7 +635,7 @@ export default function CellularEnergyScience() {
           color: #000;
           font-weight: 600;
           padding: 1rem 2rem;
-          border-radius: 8px;
+          border-radius: 0;
           text-decoration: none;
           font-size: 1rem;
           transition: transform 0.2s, box-shadow 0.2s;

@@ -162,7 +162,7 @@ export default function ProtocolDetail() {
     },
     btn: {
       padding: '10px 20px',
-      borderRadius: '8px',
+      borderRadius: 0,
       fontSize: '14px',
       fontWeight: '500',
       cursor: 'pointer',
@@ -177,7 +177,7 @@ export default function ProtocolDetail() {
       const colors = getStatusColor(status);
       return {
         padding: '6px 16px',
-        borderRadius: '20px',
+        borderRadius: 0,
         fontSize: '13px',
         fontWeight: '600',
         background: colors.bg,
@@ -187,7 +187,7 @@ export default function ProtocolDetail() {
     },
     card: {
       background: '#fff',
-      borderRadius: '12px',
+      borderRadius: 0,
       padding: '24px',
       marginBottom: '24px',
       boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
@@ -246,7 +246,7 @@ export default function ProtocolDetail() {
     },
     modal: {
       background: '#fff',
-      borderRadius: '16px',
+      borderRadius: 0,
       maxWidth: '500px',
       width: '100%',
       maxHeight: '90vh',
@@ -293,14 +293,14 @@ export default function ProtocolDetail() {
       width: '100%',
       padding: '10px 12px',
       border: '1px solid #e2e8f0',
-      borderRadius: '8px',
+      borderRadius: 0,
       fontSize: '14px'
     },
     select: {
       width: '100%',
       padding: '10px 12px',
       border: '1px solid #e2e8f0',
-      borderRadius: '8px',
+      borderRadius: 0,
       fontSize: '14px',
       background: '#fff'
     }

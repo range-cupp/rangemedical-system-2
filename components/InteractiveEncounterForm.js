@@ -336,7 +336,7 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
                   setCustomDose(false);
                   updateField(sectionKey, field.key, selectedMedInfo.startingDose);
                 }}
-                style={{ padding: '8px 12px', fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 8, background: '#fff', color: '#6b7280', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                style={{ padding: '8px 12px', fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 0, background: '#fff', color: '#6b7280', cursor: 'pointer', whiteSpace: 'nowrap' }}
               >
                 ← Presets
               </button>
@@ -375,7 +375,7 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
             </div>
             {selectedMedInfo.startingDose !== selectedMedInfo.maxDose && (
               <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ background: '#ecfdf5', color: '#059669', padding: '2px 8px', borderRadius: 10, fontWeight: 600, fontSize: 10 }}>RANGE</span>
+                <span style={{ background: '#ecfdf5', color: '#059669', padding: '2px 8px', borderRadius: 0, fontWeight: 600, fontSize: 10 }}>RANGE</span>
                 {selectedMedInfo.startingDose} → {selectedMedInfo.maxDose}
               </div>
             )}
@@ -414,7 +414,7 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
               <button
                 type="button"
                 onClick={() => setCustomDose(false)}
-                style={{ padding: '8px 12px', fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 8, background: '#fff', color: '#6b7280', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                style={{ padding: '8px 12px', fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 0, background: '#fff', color: '#6b7280', cursor: 'pointer', whiteSpace: 'nowrap' }}
               >
                 ← Presets
               </button>
@@ -487,7 +487,7 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
               <button
                 type="button"
                 onClick={() => setCustomDose(false)}
-                style={{ padding: '8px 12px', fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 8, background: '#fff', color: '#6b7280', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                style={{ padding: '8px 12px', fontSize: 12, border: '1px solid #e5e7eb', borderRadius: 0, background: '#fff', color: '#6b7280', cursor: 'pointer', whiteSpace: 'nowrap' }}
               >
                 ← Presets
               </button>
@@ -525,7 +525,7 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
               </button>
             </div>
             <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ background: '#eff6ff', color: '#2563eb', padding: '2px 8px', borderRadius: 10, fontWeight: 600, fontSize: 10 }}>{patientSex.toUpperCase()}</span>
+              <span style={{ background: '#eff6ff', color: '#2563eb', padding: '2px 8px', borderRadius: 0, fontWeight: 600, fontSize: 10 }}>{patientSex.toUpperCase()}</span>
               {trtDoses.length > 0 && `${trtDoses[0].label} → ${trtDoses[trtDoses.length - 1].label}`}
             </div>
           </div>
@@ -816,7 +816,7 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
 const styles = {
   formWrapper: {
     background: '#fff',
-    borderRadius: 14,
+    borderRadius: 0,
     border: '1.5px solid #e5e7eb',
     overflow: 'hidden',
   },
@@ -844,13 +844,13 @@ const styles = {
     color: '#6d28d9',
     background: '#f3e8ff',
     padding: '3px 10px',
-    borderRadius: 20,
+    borderRadius: 0,
     letterSpacing: 0.3,
   },
   closeBtn: {
     width: 30,
     height: 30,
-    borderRadius: 8,
+    borderRadius: 0,
     border: 'none',
     background: 'transparent',
     fontSize: 20,
@@ -907,7 +907,7 @@ const styles = {
     padding: '10px 14px',
     fontSize: 14,
     border: '1.5px solid #e5e7eb',
-    borderRadius: 10,
+    borderRadius: 0,
     background: '#fff',
     color: '#111',
     outline: 'none',
@@ -919,7 +919,7 @@ const styles = {
     padding: '10px 14px',
     fontSize: 14,
     border: '1.5px solid #e5e7eb',
-    borderRadius: 10,
+    borderRadius: 0,
     background: '#fff',
     color: '#111',
     outline: 'none',
@@ -933,7 +933,7 @@ const styles = {
     padding: '10px 14px',
     fontSize: 14,
     border: '1.5px solid #e5e7eb',
-    borderRadius: 10,
+    borderRadius: 0,
     background: '#fff',
     color: '#111',
     outline: 'none',
@@ -955,7 +955,7 @@ const styles = {
     fontSize: 13,
     fontWeight: 500,
     border: '1.5px solid #e5e7eb',
-    borderRadius: 10,
+    borderRadius: 0,
     background: '#fff',
     color: '#6b7280',
     cursor: 'pointer',
@@ -969,7 +969,7 @@ const styles = {
   toggleRow: {
     display: 'flex',
     gap: 0,
-    borderRadius: 10,
+    borderRadius: 0,
     overflow: 'hidden',
     border: '1.5px solid #e5e7eb',
     width: 'fit-content',
@@ -1044,7 +1044,7 @@ const styles = {
     fontSize: 14,
     fontWeight: 600,
     border: '1.5px solid #e5e7eb',
-    borderRadius: 10,
+    borderRadius: 0,
     background: '#fff',
     color: '#374151',
     cursor: 'pointer',
@@ -1054,7 +1054,7 @@ const styles = {
     fontSize: 14,
     fontWeight: 700,
     border: 'none',
-    borderRadius: 10,
+    borderRadius: 0,
     background: '#111',
     color: '#fff',
     cursor: 'pointer',
@@ -1074,7 +1074,7 @@ const styles = {
     overflowY: 'auto',
     background: '#fff',
     border: '1.5px solid #e5e7eb',
-    borderRadius: 12,
+    borderRadius: 0,
     boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
     zIndex: 100,
     marginTop: 4,
@@ -1130,7 +1130,7 @@ const styles = {
     color: '#059669',
     background: '#ecfdf5',
     padding: '4px 10px',
-    borderRadius: 20,
+    borderRadius: 0,
   },
   // Dose selector styles
   doseGrid: {
@@ -1143,7 +1143,7 @@ const styles = {
     fontSize: 14,
     fontWeight: 600,
     border: '1.5px solid #e5e7eb',
-    borderRadius: 10,
+    borderRadius: 0,
     background: '#fff',
     color: '#374151',
     cursor: 'pointer',

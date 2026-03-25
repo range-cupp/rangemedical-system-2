@@ -7,7 +7,7 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 const styles = {
   container: {
     border: '1px solid #d1d5db',
-    borderRadius: '8px',
+    borderRadius: '0',
     overflow: 'hidden',
     background: '#fff'
   },
@@ -26,7 +26,7 @@ const styles = {
     padding: '4px 10px',
     background: 'none',
     border: '1px solid #d1d5db',
-    borderRadius: '4px',
+    borderRadius: '0',
     fontSize: '12px',
     color: '#6b7280',
     cursor: 'pointer'

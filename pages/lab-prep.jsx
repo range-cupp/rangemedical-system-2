@@ -380,7 +380,7 @@ export default function LabPrepPage() {
         .info-card {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1.75rem;
           transition: all 0.2s;
         }
@@ -431,7 +431,7 @@ export default function LabPrepPage() {
         .warning-box {
           background: #fffbeb;
           border-left: 4px solid #f59e0b;
-          border-radius: 0 12px 12px 0;
+          border-radius: 0;
           padding: 1.25rem 1.5rem;
           margin: 2rem auto 0;
           max-width: 900px;
@@ -451,7 +451,7 @@ export default function LabPrepPage() {
         .highlight-box {
           background: #f0fdf4;
           border-left: 4px solid #22c55e;
-          border-radius: 0 12px 12px 0;
+          border-radius: 0;
           padding: 1.25rem 1.5rem;
           margin: 2rem auto 0;
           max-width: 1000px;
@@ -479,7 +479,7 @@ export default function LabPrepPage() {
         .med-card {
           background: #ffffff;
           border: 2px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 1.25rem;
         }
 
@@ -526,7 +526,7 @@ export default function LabPrepPage() {
         .checklist {
           background: #000000;
           color: #ffffff;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 2rem;
           max-width: 900px;
           margin: 0 auto;
@@ -551,7 +551,7 @@ export default function LabPrepPage() {
           gap: 0.75rem;
           padding: 0.75rem;
           background: rgba(255,255,255,0.1);
-          border-radius: 8px;
+          border-radius: 0;
           font-size: 0.9375rem;
         }
 
@@ -564,7 +564,7 @@ export default function LabPrepPage() {
         .contact-box {
           background: #ffffff;
           border: 1px solid #e5e5e5;
-          border-radius: 12px;
+          border-radius: 0;
           padding: 2rem;
           text-align: center;
           max-width: 700px;
@@ -591,7 +591,7 @@ export default function LabPrepPage() {
           padding: 0.875rem 2rem;
           background: #000000;
           color: #ffffff;
-          border-radius: 8px;
+          border-radius: 0;
           transition: all 0.2s;
         }
 
@@ -640,7 +640,7 @@ export default function LabPrepPage() {
           background: #000;
           color: #fff;
           padding: 1rem 2rem;
-          border-radius: 8px;
+          border-radius: 0;
           font-size: 1rem;
           font-weight: 600;
           text-decoration: none;

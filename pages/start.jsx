@@ -17,7 +17,7 @@ const DOORS = [
   {
     id: 'injury',
     title: 'Injury Recovery',
-    subtitle: 'Sports injuries, post-surgical recovery, chronic pain, or just not healing like you should. We usually start with a focused recovery visit — no labs up front.',
+    subtitle: 'Not healing like you should, recovering from surgery, or dealing with ongoing pain. We usually start with a focused recovery visit — no labs up front.',
     color: '#DC2626',
     bgColor: '#FEF2F2',
   },

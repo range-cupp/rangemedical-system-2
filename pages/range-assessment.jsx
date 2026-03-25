@@ -77,7 +77,7 @@ function AssessmentPaymentForm({ onSuccess, leadId }) {
         </div>
       </div>
 
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '0.875rem 1rem', marginBottom: 24 }}>
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 0, padding: '0.875rem 1rem', marginBottom: 24 }}>
         <p style={{ margin: 0, fontSize: '0.875rem', color: '#166534' }}>
           This $250 goes directly toward your treatment protocol.
         </p>
@@ -88,7 +88,7 @@ function AssessmentPaymentForm({ onSuccess, leadId }) {
       </div>
 
       {payError && (
-        <p style={{ color: '#dc2626', fontSize: '0.8125rem', marginBottom: 12, padding: '8px 12px', background: '#fef2f2', borderRadius: 6 }}>
+        <p style={{ color: '#dc2626', fontSize: '0.8125rem', marginBottom: 12, padding: '8px 12px', background: '#fef2f2', borderRadius: 0 }}>
           {payError}
         </p>
       )}
@@ -102,7 +102,7 @@ function AssessmentPaymentForm({ onSuccess, leadId }) {
           background: '#000',
           color: '#fff',
           border: 'none',
-          borderRadius: 10,
+          borderRadius: 0,
           fontSize: '1rem',
           fontWeight: 600,
           cursor: processing ? 'default' : 'pointer',
@@ -175,7 +175,7 @@ function EnergyPaymentForm({ onSuccess, leadId, panelLabel, panelPrice, panelPri
         </div>
       </div>
 
-      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '0.875rem 1rem', marginBottom: 24 }}>
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 0, padding: '0.875rem 1rem', marginBottom: 24 }}>
         <p style={{ margin: 0, fontSize: '0.875rem', color: '#166534' }}>
           Includes your blood draw and a provider review of your results.
         </p>
@@ -186,7 +186,7 @@ function EnergyPaymentForm({ onSuccess, leadId, panelLabel, panelPrice, panelPri
       </div>
 
       {payError && (
-        <p style={{ color: '#dc2626', fontSize: '0.8125rem', marginBottom: 12, padding: '8px 12px', background: '#fef2f2', borderRadius: 6 }}>
+        <p style={{ color: '#dc2626', fontSize: '0.8125rem', marginBottom: 12, padding: '8px 12px', background: '#fef2f2', borderRadius: 0 }}>
           {payError}
         </p>
       )}
@@ -200,7 +200,7 @@ function EnergyPaymentForm({ onSuccess, leadId, panelLabel, panelPrice, panelPri
           background: '#000',
           color: '#fff',
           border: 'none',
-          borderRadius: 10,
+          borderRadius: 0,
           fontSize: '1rem',
           fontWeight: 600,
           cursor: processing ? 'default' : 'pointer',
@@ -1027,7 +1027,7 @@ export default function RangeAssessment() {
               </p>
 
               {bookingResult && (
-                <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
+                <div style={{ background: '#fafafa', borderRadius: 0, padding: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
                   <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717', margin: '0 0 0.75rem' }}>Your Blood Draw Appointment</h3>
                   <p style={{ fontSize: '1rem', color: '#171717', fontWeight: 600, margin: '0 0 0.5rem' }}>
                     {formatBookingTime(bookingResult.start)}
@@ -1038,7 +1038,7 @@ export default function RangeAssessment() {
                   <p style={{ fontSize: '0.9375rem', color: '#525252', lineHeight: 1.6, margin: '0 0 1rem' }}>
                     We've texted a short medical intake form to your phone — please complete it before your visit so we're ready to go.
                   </p>
-                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '0.875rem 1rem' }}>
+                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 0, padding: '0.875rem 1rem' }}>
                     <p style={{ margin: 0, fontSize: '0.875rem', color: '#166534' }}>
                       Didn't get the text? Check your messages at {formData.phone} or call us at (949) 997-3988.
                     </p>
@@ -1047,7 +1047,7 @@ export default function RangeAssessment() {
               )}
 
               {/* Pre-Instructions Reminder */}
-              <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
+              <div style={{ background: '#fafafa', borderRadius: 0, padding: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
                 <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717', margin: '0 0 1rem' }}>Before Your Appointment</h3>
                 <div style={{ display: 'grid', gap: '0.625rem' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.625rem', fontSize: '0.9375rem', color: '#525252' }}>
@@ -1076,14 +1076,14 @@ export default function RangeAssessment() {
                   </div>
                 </div>
                 {formData.gender === 'female' && (
-                  <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '0.875rem 1rem', marginTop: '1rem' }}>
+                  <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 0, padding: '0.875rem 1rem', marginTop: '1rem' }}>
                     <p style={{ margin: 0, fontSize: '0.875rem', color: '#92400e' }}>
                       <strong>Cycle timing:</strong> If cycling, Day 3 of your period gives the most accurate hormone results. If your cycle doesn't line up, call us at (949) 997-3988 and we'll help. Continue estrogen & progesterone as normal. Hold testosterone injections for 3 days.
                     </p>
                   </div>
                 )}
                 {formData.gender === 'male' && (
-                  <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: '0.875rem 1rem', marginTop: '1rem' }}>
+                  <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 0, padding: '0.875rem 1rem', marginTop: '1rem' }}>
                     <p style={{ margin: 0, fontSize: '0.875rem', color: '#0369a1' }}>
                       <strong>Reminder:</strong> Hold testosterone injections for 3 days before labs. Avoid heavy workouts and sexual activity for 24 hours before (PSA accuracy).
                     </p>
@@ -1131,7 +1131,7 @@ export default function RangeAssessment() {
               </p>
 
               {bookingResult && (
-                <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
+                <div style={{ background: '#fafafa', borderRadius: 0, padding: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
                   <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717', margin: '0 0 0.75rem' }}>Your In-Clinic Visit</h3>
                   <p style={{ fontSize: '1rem', color: '#171717', fontWeight: 600, margin: '0 0 0.5rem' }}>
                     {formatBookingTime(bookingResult.start)}
@@ -1142,7 +1142,7 @@ export default function RangeAssessment() {
                   <p style={{ fontSize: '0.9375rem', color: '#525252', lineHeight: 1.6, margin: '0 0 1rem' }}>
                     We've texted a short medical intake form to your phone — please complete it before your visit so we're ready to go.
                   </p>
-                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '0.875rem 1rem' }}>
+                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 0, padding: '0.875rem 1rem' }}>
                     <p style={{ margin: 0, fontSize: '0.875rem', color: '#166534' }}>
                       Didn't get the text? Check your messages at {formData.phone} or call us at (949) 997-3988.
                     </p>
@@ -1150,7 +1150,7 @@ export default function RangeAssessment() {
                 </div>
               )}
               {!bookingResult && (
-                <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
+                <div style={{ background: '#fafafa', borderRadius: 0, padding: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
                   <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717', margin: '0 0 0.75rem' }}>What Happens Next</h3>
                   <p style={{ fontSize: '0.9375rem', color: '#525252', lineHeight: 1.6, margin: 0 }}>
                     Our team will review your information and reach out to schedule your consultation. We'll create a personalized peptide protocol based on your assessment and medical history.
@@ -1233,7 +1233,7 @@ export default function RangeAssessment() {
                       variables: {
                         colorPrimary: '#000000',
                         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                        borderRadius: '8px',
+                        borderRadius: 0,
                       },
                     },
                   }}
@@ -1268,7 +1268,7 @@ export default function RangeAssessment() {
               <div style={{ marginTop: '1.5rem', borderTop: '1px solid #e5e5e5', paddingTop: '1.25rem' }}>
                 <p style={{ textAlign: 'center', fontSize: '0.8125rem', color: '#a3a3a3', marginBottom: '0.75rem' }}>Have a promo code?</p>
                 {promoApplied ? (
-                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '0.875rem 1rem', textAlign: 'center' }}>
+                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 0, padding: '0.875rem 1rem', textAlign: 'center' }}>
                     <p style={{ margin: 0, fontSize: '0.875rem', color: '#166534', fontWeight: 600 }}>
                       ✓ Promo code applied — redirecting...
                     </p>
@@ -1284,7 +1284,7 @@ export default function RangeAssessment() {
                         flex: 1,
                         padding: '0.625rem 0.875rem',
                         border: `1px solid ${promoError ? '#fecaca' : '#e5e5e5'}`,
-                        borderRadius: 8,
+                        borderRadius: 0,
                         fontSize: '0.875rem',
                         fontFamily: 'inherit',
                         textTransform: 'uppercase',
@@ -1301,7 +1301,7 @@ export default function RangeAssessment() {
                         background: promoCode.trim() ? '#171717' : '#d4d4d4',
                         color: '#fff',
                         border: 'none',
-                        borderRadius: 8,
+                        borderRadius: 0,
                         fontSize: '0.875rem',
                         fontWeight: 600,
                         cursor: promoCode.trim() ? 'pointer' : 'default',
@@ -1353,10 +1353,10 @@ export default function RangeAssessment() {
               </div>
 
               {/* General Prep — All Patients */}
-              <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.5rem', marginBottom: '1rem' }}>
+              <div style={{ background: '#fafafa', borderRadius: 0, padding: '1.5rem', marginBottom: '1rem' }}>
                 <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#171717', margin: '0 0 1rem' }}>General Preparation</h3>
 
-                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.875rem 1rem', background: prepChecks.fasting ? '#f0fdf4' : '#fff', border: `1px solid ${prepChecks.fasting ? '#bbf7d0' : '#e5e5e5'}`, borderRadius: 8, cursor: 'pointer', marginBottom: '0.625rem', transition: 'all 0.2s' }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.875rem 1rem', background: prepChecks.fasting ? '#f0fdf4' : '#fff', border: `1px solid ${prepChecks.fasting ? '#bbf7d0' : '#e5e5e5'}`, borderRadius: 0, cursor: 'pointer', marginBottom: '0.625rem', transition: 'all 0.2s' }}>
                   <input type="checkbox" checked={prepChecks.fasting} onChange={(e) => setPrepChecks(prev => ({ ...prev, fasting: e.target.checked }))} style={{ width: 20, height: 20, marginTop: 2, accentColor: '#22c55e', flexShrink: 0 }} />
                   <div>
                     <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9375rem', color: '#171717' }}>I will fast for 10–12 hours before my blood draw</p>
@@ -1364,7 +1364,7 @@ export default function RangeAssessment() {
                   </div>
                 </label>
 
-                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.875rem 1rem', background: prepChecks.hydration ? '#f0fdf4' : '#fff', border: `1px solid ${prepChecks.hydration ? '#bbf7d0' : '#e5e5e5'}`, borderRadius: 8, cursor: 'pointer', marginBottom: '0.625rem', transition: 'all 0.2s' }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.875rem 1rem', background: prepChecks.hydration ? '#f0fdf4' : '#fff', border: `1px solid ${prepChecks.hydration ? '#bbf7d0' : '#e5e5e5'}`, borderRadius: 0, cursor: 'pointer', marginBottom: '0.625rem', transition: 'all 0.2s' }}>
                   <input type="checkbox" checked={prepChecks.hydration} onChange={(e) => setPrepChecks(prev => ({ ...prev, hydration: e.target.checked }))} style={{ width: 20, height: 20, marginTop: 2, accentColor: '#22c55e', flexShrink: 0 }} />
                   <div>
                     <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9375rem', color: '#171717' }}>I will drink plenty of water 1–2 hours before</p>
@@ -1372,7 +1372,7 @@ export default function RangeAssessment() {
                   </div>
                 </label>
 
-                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.875rem 1rem', background: prepChecks.noNSAIDs ? '#f0fdf4' : '#fff', border: `1px solid ${prepChecks.noNSAIDs ? '#bbf7d0' : '#e5e5e5'}`, borderRadius: 8, cursor: 'pointer', marginBottom: '0.625rem', transition: 'all 0.2s' }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.875rem 1rem', background: prepChecks.noNSAIDs ? '#f0fdf4' : '#fff', border: `1px solid ${prepChecks.noNSAIDs ? '#bbf7d0' : '#e5e5e5'}`, borderRadius: 0, cursor: 'pointer', marginBottom: '0.625rem', transition: 'all 0.2s' }}>
                   <input type="checkbox" checked={prepChecks.noNSAIDs} onChange={(e) => setPrepChecks(prev => ({ ...prev, noNSAIDs: e.target.checked }))} style={{ width: 20, height: 20, marginTop: 2, accentColor: '#22c55e', flexShrink: 0 }} />
                   <div>
                     <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9375rem', color: '#171717' }}>I will avoid NSAIDs (Advil, ibuprofen) for 48 hours before</p>
@@ -1380,14 +1380,14 @@ export default function RangeAssessment() {
                   </div>
                 </label>
 
-                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.875rem 1rem', background: prepChecks.noAlcohol ? '#f0fdf4' : '#fff', border: `1px solid ${prepChecks.noAlcohol ? '#bbf7d0' : '#e5e5e5'}`, borderRadius: 8, cursor: 'pointer', marginBottom: '0.625rem', transition: 'all 0.2s' }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.875rem 1rem', background: prepChecks.noAlcohol ? '#f0fdf4' : '#fff', border: `1px solid ${prepChecks.noAlcohol ? '#bbf7d0' : '#e5e5e5'}`, borderRadius: 0, cursor: 'pointer', marginBottom: '0.625rem', transition: 'all 0.2s' }}>
                   <input type="checkbox" checked={prepChecks.noAlcohol} onChange={(e) => setPrepChecks(prev => ({ ...prev, noAlcohol: e.target.checked }))} style={{ width: 20, height: 20, marginTop: 2, accentColor: '#22c55e', flexShrink: 0 }} />
                   <div>
                     <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9375rem', color: '#171717' }}>I will avoid alcohol the night before</p>
                   </div>
                 </label>
 
-                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.875rem 1rem', background: prepChecks.timing ? '#f0fdf4' : '#fff', border: `1px solid ${prepChecks.timing ? '#bbf7d0' : '#e5e5e5'}`, borderRadius: 8, cursor: 'pointer', transition: 'all 0.2s' }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.875rem 1rem', background: prepChecks.timing ? '#f0fdf4' : '#fff', border: `1px solid ${prepChecks.timing ? '#bbf7d0' : '#e5e5e5'}`, borderRadius: 0, cursor: 'pointer', transition: 'all 0.2s' }}>
                   <input type="checkbox" checked={prepChecks.timing} onChange={(e) => setPrepChecks(prev => ({ ...prev, timing: e.target.checked }))} style={{ width: 20, height: 20, marginTop: 2, accentColor: '#22c55e', flexShrink: 0 }} />
                   <div>
                     <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9375rem', color: '#171717' }}>I understand that morning appointments (9:00–10:30 AM) are best for hormone accuracy</p>
@@ -1398,7 +1398,7 @@ export default function RangeAssessment() {
 
               {/* Men's Guidelines */}
               {isMale && (
-                <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 12, padding: '1.25rem', marginBottom: '1rem' }}>
+                <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 0, padding: '1.25rem', marginBottom: '1rem' }}>
                   <h4 style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#0c4a6e', margin: '0 0 0.75rem' }}>For Men</h4>
                   <div style={{ display: 'grid', gap: '0.625rem' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.875rem', color: '#0369a1', lineHeight: 1.5 }}>
@@ -1415,7 +1415,7 @@ export default function RangeAssessment() {
 
               {/* Women's Guidelines */}
               {isFemale && (
-                <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '1.25rem', marginBottom: '1rem' }}>
+                <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 0, padding: '1.25rem', marginBottom: '1rem' }}>
                   <h4 style={{ fontSize: '0.9375rem', fontWeight: 700, color: '#92400e', margin: '0 0 0.75rem' }}>For Women</h4>
                   <div style={{ display: 'grid', gap: '0.625rem', marginBottom: '1rem' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.875rem', color: '#92400e', lineHeight: 1.5 }}>
@@ -1435,29 +1435,29 @@ export default function RangeAssessment() {
               )}
 
               {/* Medication Quick Reference */}
-              <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.25rem', marginBottom: '1.5rem' }}>
+              <div style={{ background: '#fafafa', borderRadius: 0, padding: '1.25rem', marginBottom: '1.5rem' }}>
                 <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#171717', margin: '0 0 0.75rem' }}>Medication Quick Reference</h4>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                  <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, padding: '0.5rem 0.75rem' }}>
+                  <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 0, padding: '0.5rem 0.75rem' }}>
                     <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 600, color: '#991b1b' }}>NSAIDs</p>
                     <p style={{ margin: 0, fontSize: '0.75rem', color: '#b91c1c' }}>Stop 48hrs before</p>
                   </div>
-                  <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, padding: '0.5rem 0.75rem' }}>
+                  <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 0, padding: '0.5rem 0.75rem' }}>
                     <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 600, color: '#92400e' }}>Thyroid Meds</p>
                     <p style={{ margin: 0, fontSize: '0.75rem', color: '#a16207' }}>Skip morning of draw</p>
                   </div>
-                  <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, padding: '0.5rem 0.75rem' }}>
+                  <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 0, padding: '0.5rem 0.75rem' }}>
                     <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 600, color: '#991b1b' }}>Testosterone Inj.</p>
                     <p style={{ margin: 0, fontSize: '0.75rem', color: '#b91c1c' }}>Hold 3 days before</p>
                   </div>
                   {isFemale && (
-                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 6, padding: '0.5rem 0.75rem' }}>
+                    <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 0, padding: '0.5rem 0.75rem' }}>
                       <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 600, color: '#166534' }}>Estrogen & Prog.</p>
                       <p style={{ margin: 0, fontSize: '0.75rem', color: '#15803d' }}>Continue as normal</p>
                     </div>
                   )}
                   {isMale && (
-                    <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, padding: '0.5rem 0.75rem' }}>
+                    <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 0, padding: '0.5rem 0.75rem' }}>
                       <p style={{ margin: 0, fontSize: '0.8125rem', fontWeight: 600, color: '#92400e' }}>PSA Testing</p>
                       <p style={{ margin: 0, fontSize: '0.75rem', color: '#a16207' }}>No heavy workouts 24hrs</p>
                     </div>
@@ -1479,7 +1479,7 @@ export default function RangeAssessment() {
                   background: prepReady ? '#000' : '#d4d4d4',
                   color: '#fff',
                   border: 'none',
-                  borderRadius: 10,
+                  borderRadius: 0,
                   fontSize: '1rem',
                   fontWeight: 600,
                   cursor: prepReady ? 'pointer' : 'default',
@@ -1530,7 +1530,7 @@ export default function RangeAssessment() {
                 </p>
               </div>
 
-              <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: '0.875rem 1rem', marginBottom: '1.5rem' }}>
+              <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 0, padding: '0.875rem 1rem', marginBottom: '1.5rem' }}>
                 <p style={{ margin: 0, fontSize: '0.875rem', color: '#0369a1' }}>
                   <strong>Tip:</strong> Morning appointments (9:00–10:30 AM) give the most accurate hormone results.
                 </p>
@@ -1555,7 +1555,7 @@ export default function RangeAssessment() {
                         }}
                         style={{
                           padding: '0.625rem 1rem',
-                          borderRadius: 8,
+                          borderRadius: 0,
                           border: isSelected ? '2px solid #000' : '1px solid #e5e5e5',
                           background: isSelected ? '#000' : '#fff',
                           color: isSelected ? '#fff' : '#171717',
@@ -1592,7 +1592,7 @@ export default function RangeAssessment() {
                             onClick={() => setSelectedSlot(slot)}
                             style={{
                               padding: '0.75rem 0.5rem',
-                              borderRadius: 8,
+                              borderRadius: 0,
                               border: isSelected ? '2px solid #000' : '1px solid #e5e5e5',
                               background: isSelected ? '#000' : '#fff',
                               color: isSelected ? '#fff' : '#171717',
@@ -1608,7 +1608,7 @@ export default function RangeAssessment() {
                       })}
                     </div>
                   ) : (
-                    <div style={{ background: '#fafafa', borderRadius: 8, padding: '1.25rem', textAlign: 'center' }}>
+                    <div style={{ background: '#fafafa', borderRadius: 0, padding: '1.25rem', textAlign: 'center' }}>
                       <p style={{ color: '#737373', fontSize: '0.875rem', margin: 0 }}>
                         No available times on this date. Please try another day.
                       </p>
@@ -1619,7 +1619,7 @@ export default function RangeAssessment() {
 
               {/* Booking confirmation */}
               {selectedSlot && (
-                <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.5rem', marginBottom: '1.5rem' }}>
+                <div style={{ background: '#fafafa', borderRadius: 0, padding: '1.5rem', marginBottom: '1.5rem' }}>
                   <p style={{ fontSize: '0.875rem', color: '#525252', margin: '0 0 0.25rem' }}>Your blood draw:</p>
                   <p style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717', margin: '0 0 1rem' }}>
                     {formatDateShort(selectedDate)} at {formatSlotTime(selectedSlot.time)} PT
@@ -1633,7 +1633,7 @@ export default function RangeAssessment() {
                       background: '#000',
                       color: '#fff',
                       border: 'none',
-                      borderRadius: 10,
+                      borderRadius: 0,
                       fontSize: '1rem',
                       fontWeight: 600,
                       cursor: isBooking ? 'default' : 'pointer',
@@ -1647,7 +1647,7 @@ export default function RangeAssessment() {
               )}
 
               {error && (
-                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '0.875rem 1rem', marginBottom: '1rem' }}>
+                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 0, padding: '0.875rem 1rem', marginBottom: '1rem' }}>
                   <p style={{ margin: 0, fontSize: '0.875rem', color: '#dc2626' }}>{error}</p>
                 </div>
               )}
@@ -1692,7 +1692,7 @@ export default function RangeAssessment() {
                       variables: {
                         colorPrimary: '#000000',
                         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                        borderRadius: '8px',
+                        borderRadius: 0,
                       },
                     },
                   }}
@@ -1774,7 +1774,7 @@ export default function RangeAssessment() {
                         }}
                         style={{
                           padding: '0.625rem 1rem',
-                          borderRadius: 8,
+                          borderRadius: 0,
                           border: isSelected ? '2px solid #000' : '1px solid #e5e5e5',
                           background: isSelected ? '#000' : '#fff',
                           color: isSelected ? '#fff' : '#171717',
@@ -1811,7 +1811,7 @@ export default function RangeAssessment() {
                             onClick={() => setSelectedSlot(slot)}
                             style={{
                               padding: '0.75rem 0.5rem',
-                              borderRadius: 8,
+                              borderRadius: 0,
                               border: isSelected ? '2px solid #000' : '1px solid #e5e5e5',
                               background: isSelected ? '#000' : '#fff',
                               color: isSelected ? '#fff' : '#171717',
@@ -1827,7 +1827,7 @@ export default function RangeAssessment() {
                       })}
                     </div>
                   ) : (
-                    <div style={{ background: '#fafafa', borderRadius: 8, padding: '1.25rem', textAlign: 'center' }}>
+                    <div style={{ background: '#fafafa', borderRadius: 0, padding: '1.25rem', textAlign: 'center' }}>
                       <p style={{ color: '#737373', fontSize: '0.875rem', margin: 0 }}>
                         No available times on this date. Please try another day.
                       </p>
@@ -1838,7 +1838,7 @@ export default function RangeAssessment() {
 
               {/* Booking confirmation */}
               {selectedSlot && (
-                <div style={{ background: '#fafafa', borderRadius: 12, padding: '1.5rem', marginBottom: '1.5rem' }}>
+                <div style={{ background: '#fafafa', borderRadius: 0, padding: '1.5rem', marginBottom: '1.5rem' }}>
                   <p style={{ fontSize: '0.875rem', color: '#525252', margin: '0 0 0.25rem' }}>Your appointment:</p>
                   <p style={{ fontSize: '1.125rem', fontWeight: 700, color: '#171717', margin: '0 0 1rem' }}>
                     {formatDateShort(selectedDate)} at {formatSlotTime(selectedSlot.time)} PT
@@ -1852,7 +1852,7 @@ export default function RangeAssessment() {
                       background: '#000',
                       color: '#fff',
                       border: 'none',
-                      borderRadius: 10,
+                      borderRadius: 0,
                       fontSize: '1rem',
                       fontWeight: 600,
                       cursor: isBooking ? 'default' : 'pointer',
@@ -1866,7 +1866,7 @@ export default function RangeAssessment() {
               )}
 
               {error && (
-                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '0.875rem 1rem', marginBottom: '1rem' }}>
+                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 0, padding: '0.875rem 1rem', marginBottom: '1rem' }}>
                   <p style={{ margin: 0, fontSize: '0.875rem', color: '#dc2626' }}>{error}</p>
                 </div>
               )}
@@ -1884,34 +1884,31 @@ export default function RangeAssessment() {
 
   // Injury Results screen
   if (showInjuryResults) {
-    const peptideBenefits = getPeptideBenefits();
-
     // Label mappings for display
     const injuryTypeLabels = {
-      'joint_ligament': 'Joint or ligament injury',
-      'muscle_tendon': 'Muscle or tendon injury',
-      'post_surgical': 'Post-surgical recovery',
-      'concussion': 'Concussion or head injury',
-      'chronic_pain': 'Chronic pain condition',
-      'fracture': 'Bone fracture',
+      'joint_ligament': 'Joint or ligament issue',
+      'muscle_tendon': 'Muscle or soft tissue issue',
+      'post_surgical': 'Recovering from surgery',
+      'chronic_pain': 'Ongoing pain or discomfort',
+      'general_recovery': 'General recovery support',
       'other': 'Other'
     };
     const locationLabels = {
-      'shoulder': 'Shoulder', 'knee': 'Knee', 'back': 'Back', 'hip': 'Hip',
-      'neck': 'Neck', 'ankle': 'Ankle', 'elbow': 'Elbow', 'wrist_hand': 'Wrist or hand',
-      'head': 'Head', 'multiple': 'Multiple areas', 'other': 'Other'
+      'upper_body': 'Upper body', 'lower_body': 'Lower body',
+      'back_spine': 'Back or spine', 'neck': 'Neck',
+      'multiple': 'Multiple areas', 'other': 'Other'
     };
     const durationLabels = {
       'less_2_weeks': 'Less than 2 weeks', '2_4_weeks': '2–4 weeks',
       '1_3_months': '1–3 months', '3_6_months': '3–6 months', '6_plus_months': '6+ months'
     };
     const goalLabels = {
-      'return_sport': 'Return to sport or athletic activity',
-      'daily_activities': 'Get back to daily activities pain-free',
-      'avoid_surgery': 'Avoid surgery if possible',
-      'speed_healing': 'Speed up the healing process',
+      'return_sport': 'Get back to sport or physical activity',
+      'daily_activities': 'Move through daily life without pain',
+      'avoid_surgery': 'Explore non-surgical options',
+      'speed_healing': 'Support and speed up healing',
       'reduce_pain': 'Reduce pain and inflammation',
-      'post_surgery': 'Recover faster after surgery'
+      'post_surgery': 'Recover better after surgery'
     };
 
     const injuryLabel = injuryTypeLabels[formData.injuryType] || 'your injury';
@@ -1935,7 +1932,7 @@ export default function RangeAssessment() {
             </div>
             <h1>Thank You, {formData.firstName}</h1>
             <p className="inj-res-intro">
-              Based on what you've shared about your {locationLabel.toLowerCase()} injury, there are treatment options that may be worth exploring. Book an in-clinic visit below so our provider can go over the best approach for you in person.
+              Based on what you've shared, there are treatment options that may be worth exploring. Book an in-clinic visit below so our provider can evaluate your situation and go over the best approach for you in person.
             </p>
           </div>
         </section>
@@ -1944,11 +1941,16 @@ export default function RangeAssessment() {
         <section className="inj-res-main">
           <div className="inj-res-container">
 
+            {/* Disclaimer */}
+            <div className="inj-res-disclaimer">
+              <p>The information below is for educational purposes only and is not medical advice for your specific situation. Treatment options vary by individual. A provider will evaluate your needs in person before recommending any course of treatment.</p>
+            </div>
+
             {/* Treatment Card */}
             <div className="inj-res-treatment-card">
-              <h2>Recovery Options: BPC-157 + TB-4</h2>
+              <h2>Recovery Options We May Explore</h2>
               <p className="inj-res-treatment-desc">
-                Peptide therapy is one of the treatment options our providers may discuss with you. BPC-157 and TB-4 are naturally occurring compounds that have been studied for their potential role in supporting the body's healing process.
+                Depending on your situation, our providers may discuss options like peptide therapy, IV support, or other regenerative approaches. Below is a general overview of two compounds that are commonly considered for recovery support.
               </p>
 
               <div className="inj-res-peptide-grid">
@@ -1956,25 +1958,23 @@ export default function RangeAssessment() {
                   <h3>BPC-157</h3>
                   <p className="inj-res-peptide-subtitle">Body Protection Compound</p>
                   <ul>
-                    {peptideBenefits.bpcBenefits.map((benefit, i) => (
-                      <li key={i}>{benefit}</li>
-                    ))}
+                    <li>May support the body's natural tissue repair process</li>
+                    <li>Has been studied for its potential to promote blood flow to affected areas</li>
                   </ul>
                 </div>
                 <div className="inj-res-peptide-card">
                   <h3>TB-4</h3>
                   <p className="inj-res-peptide-subtitle">Thymosin Beta-4</p>
                   <ul>
-                    {peptideBenefits.tb4Benefits.map((benefit, i) => (
-                      <li key={i}>{benefit}</li>
-                    ))}
+                    <li>Has been researched for its possible role in reducing inflammation</li>
+                    <li>May help support the body's healing and recovery response</li>
                   </ul>
                 </div>
               </div>
 
               <div className="inj-res-why">
                 <h4>Why These Are Often Considered Together</h4>
-                <p>BPC-157 has been studied for its potential to support tissue repair. TB-4 has been researched for its possible role in reducing inflammation and promoting blood flow. Our provider will review your medical history and determine if these options are appropriate for you.</p>
+                <p>BPC-157 and TB-4 are naturally occurring compounds that have been studied for different aspects of recovery support. Whether these are appropriate for you depends on your medical history and the specifics of your situation — your provider will determine the best approach during your visit.</p>
               </div>
             </div>
 
@@ -2042,7 +2042,7 @@ export default function RangeAssessment() {
                   <h3 style={{ fontSize: '1.25rem', margin: '0 0 0.5rem' }}>Enter your info to book your visit</h3>
                   <p style={{ color: '#737373', fontSize: '0.9375rem', margin: '0 0 1.5rem' }}>We'll text you what to do next — no spam, no runaround.</p>
 
-                  {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: '12px 16px', borderRadius: 8, fontSize: 14, marginBottom: 16 }}>{error}</div>}
+                  {error && <div style={{ background: '#fef2f2', color: '#dc2626', padding: '12px 16px', borderRadius: 0, fontSize: 14, marginBottom: 16 }}>{error}</div>}
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
                     <div>
@@ -2052,7 +2052,7 @@ export default function RangeAssessment() {
                         value={formData.firstName}
                         onChange={(e) => handleInputChange('firstName', e.target.value)}
                         placeholder="First name"
-                        style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                        style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 0, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
                       />
                     </div>
                     <div>
@@ -2062,7 +2062,7 @@ export default function RangeAssessment() {
                         value={formData.lastName}
                         onChange={(e) => handleInputChange('lastName', e.target.value)}
                         placeholder="Last name"
-                        style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                        style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 0, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
                       />
                     </div>
                   </div>
@@ -2073,7 +2073,7 @@ export default function RangeAssessment() {
                       value={formData.email}
                       onChange={(e) => handleInputChange('email', e.target.value)}
                       placeholder="you@email.com"
-                      style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                      style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 0, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
                     />
                   </div>
                   <div style={{ marginBottom: 16 }}>
@@ -2083,7 +2083,7 @@ export default function RangeAssessment() {
                       value={formData.phone}
                       onChange={(e) => handleInputChange('phone', e.target.value)}
                       placeholder="(949) 555-1234"
-                      style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                      style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 0, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
                     />
                   </div>
                   <div style={{ marginBottom: 24 }}>
@@ -2093,7 +2093,7 @@ export default function RangeAssessment() {
                       value={formData.referredBy || ''}
                       onChange={(e) => handleInputChange('referredBy', e.target.value)}
                       placeholder="Name of person or provider"
-                      style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                      style={{ width: '100%', padding: '12px 14px', border: '1px solid #d4d4d4', borderRadius: 0, fontSize: 15, fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 0.2s' }}
                     />
                   </div>
 
@@ -2172,7 +2172,7 @@ export default function RangeAssessment() {
                   {/* Standard flow (direct visitors or contact already collected) */}
                   <h3>Next Step: Book Your In-Clinic Visit</h3>
                   <p>
-                    Based on your answers, we'll go over your treatment options in person — including peptide protocols like the BPC-157 / TB-4 10-day program. Your <strong>$250</strong> visit fee goes directly toward whichever protocol you choose.
+                    Our provider will evaluate your situation in person and walk you through the treatment options that make sense for you. Your <strong>$250</strong> visit fee goes directly toward whichever protocol you choose.
                   </p>
                   <button
                     className="inj-res-cta"
@@ -2211,6 +2211,21 @@ export default function RangeAssessment() {
             margin: 0 auto;
           }
 
+          .inj-res-disclaimer {
+            background: #fafafa;
+            border: 1px solid #e5e5e5;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.5rem;
+          }
+
+          .inj-res-disclaimer p {
+            margin: 0;
+            font-size: 0.85rem;
+            color: #737373;
+            line-height: 1.6;
+            font-style: italic;
+          }
+
           .inj-res-check {
             display: inline-flex;
             align-items: center;
@@ -2218,7 +2233,6 @@ export default function RangeAssessment() {
             width: 80px;
             height: 80px;
             background: #22c55e;
-            border-radius: 50%;
             margin-bottom: 1.5rem;
           }
 
@@ -2249,7 +2263,7 @@ export default function RangeAssessment() {
 
           .inj-res-treatment-card {
             background: #fafafa;
-            border-radius: 16px;
+            border: 1px solid #e5e5e5;
             padding: 2rem;
             margin-bottom: 1.5rem;
           }
@@ -2277,7 +2291,6 @@ export default function RangeAssessment() {
 
           .inj-res-peptide-card {
             background: #ffffff;
-            border-radius: 12px;
             padding: 1.5rem;
             border: 1px solid #e5e5e5;
           }
@@ -2313,7 +2326,6 @@ export default function RangeAssessment() {
 
           .inj-res-why {
             background: #000000;
-            border-radius: 12px;
             padding: 1.5rem;
             color: #ffffff;
           }
@@ -2333,7 +2345,7 @@ export default function RangeAssessment() {
 
           .inj-res-summary-card {
             background: #fafafa;
-            border-radius: 12px;
+            border: 1px solid #e5e5e5;
             padding: 1.5rem;
             margin-bottom: 1.5rem;
           }
@@ -2369,7 +2381,6 @@ export default function RangeAssessment() {
 
           .inj-res-next-card {
             background: #000000;
-            border-radius: 16px;
             padding: 2rem;
             text-align: center;
             color: #ffffff;
@@ -2394,7 +2405,6 @@ export default function RangeAssessment() {
             background: #ffffff;
             color: #000000;
             padding: 1rem 2rem;
-            border-radius: 8px;
             font-weight: 600;
             font-size: 1rem;
             text-decoration: none;
@@ -2420,7 +2430,6 @@ export default function RangeAssessment() {
           .inj-res-pt-card {
             background: #f0f9ff;
             border: 1px solid #bae6fd;
-            border-radius: 12px;
             padding: 1.5rem;
             margin-bottom: 1.5rem;
           }
@@ -2453,7 +2462,6 @@ export default function RangeAssessment() {
 
           .inj-res-pt-btn {
             padding: 0.75rem 1.25rem;
-            border-radius: 8px;
             font-weight: 600;
             font-size: 0.9375rem;
             cursor: pointer;
@@ -2497,7 +2505,6 @@ export default function RangeAssessment() {
             margin-top: 1rem;
             padding: 0.75rem 1rem;
             background: #dcfce7;
-            border-radius: 8px;
             font-size: 0.9rem;
             color: #166534;
           }
@@ -2848,34 +2855,28 @@ export default function RangeAssessment() {
   const injuryQuestions = [
     {
       id: 'injuryType',
-      question: 'What type of injury are you recovering from?',
+      question: "What best describes what you're dealing with?",
       type: 'select',
       options: [
         { value: '', label: 'Select one...' },
-        { value: 'joint_ligament', label: 'Joint or ligament injury (ACL, meniscus, rotator cuff)' },
-        { value: 'muscle_tendon', label: 'Muscle or tendon injury (strain, tear, tendinitis)' },
-        { value: 'post_surgical', label: 'Post-surgical recovery' },
-        { value: 'concussion', label: 'Concussion or head injury' },
-        { value: 'chronic_pain', label: 'Chronic pain condition' },
-        { value: 'fracture', label: 'Bone fracture' },
-        { value: 'other', label: 'Other' }
+        { value: 'joint_ligament', label: 'Joint or ligament issue' },
+        { value: 'muscle_tendon', label: 'Muscle or soft tissue issue' },
+        { value: 'post_surgical', label: 'Recovering from surgery' },
+        { value: 'chronic_pain', label: 'Ongoing pain or discomfort' },
+        { value: 'general_recovery', label: 'General recovery or healing support' },
+        { value: 'other', label: 'Other or not sure' }
       ]
     },
     {
       id: 'injuryLocation',
-      question: 'Where is the injury located?',
+      question: 'What area of the body is affected?',
       type: 'select',
       options: [
         { value: '', label: 'Select one...' },
-        { value: 'shoulder', label: 'Shoulder' },
-        { value: 'knee', label: 'Knee' },
-        { value: 'back', label: 'Back' },
-        { value: 'hip', label: 'Hip' },
+        { value: 'upper_body', label: 'Upper body (shoulder, arm, hand)' },
+        { value: 'lower_body', label: 'Lower body (hip, knee, ankle, foot)' },
+        { value: 'back_spine', label: 'Back or spine' },
         { value: 'neck', label: 'Neck' },
-        { value: 'ankle', label: 'Ankle' },
-        { value: 'elbow', label: 'Elbow' },
-        { value: 'wrist_hand', label: 'Wrist or hand' },
-        { value: 'head', label: 'Head' },
         { value: 'multiple', label: 'Multiple areas' },
         { value: 'other', label: 'Other' }
       ]
@@ -2895,26 +2896,26 @@ export default function RangeAssessment() {
     },
     {
       id: 'inPhysicalTherapy',
-      question: 'Are you currently in physical therapy or rehab?',
+      question: 'Are you currently working with a physical therapist or other rehab provider?',
       type: 'radio',
       options: [
         { value: 'yes', label: 'Yes' },
         { value: 'no', label: 'No' },
-        { value: 'completed', label: 'Completed PT but still not 100%' }
+        { value: 'completed', label: 'I did, but I still don\u2019t feel 100%' }
       ]
     },
     {
       id: 'recoveryGoal',
-      question: "What are your recovery goals?",
+      question: "What are you hoping to accomplish?",
       subtitle: "Select all that apply",
       type: 'multiselect',
       options: [
-        { value: 'return_sport', label: 'Return to sport or athletic activity' },
-        { value: 'daily_activities', label: 'Get back to daily activities pain-free' },
-        { value: 'avoid_surgery', label: 'Avoid surgery if possible' },
-        { value: 'speed_healing', label: 'Speed up the healing process' },
+        { value: 'return_sport', label: 'Get back to sport or physical activity' },
+        { value: 'daily_activities', label: 'Move through daily life without pain' },
+        { value: 'avoid_surgery', label: 'Explore non-surgical options' },
+        { value: 'speed_healing', label: 'Support and speed up the healing process' },
         { value: 'reduce_pain', label: 'Reduce pain and inflammation' },
-        { value: 'post_surgery', label: 'Recover faster after surgery' }
+        { value: 'post_surgery', label: 'Recover better after surgery' }
       ]
     }
   ];
@@ -3338,7 +3339,6 @@ const styles = `
   .ra-path-card {
     background: #ffffff;
     border: 1px solid #e5e5e5;
-    border-radius: 12px;
     padding: 2rem;
     text-align: left;
     cursor: pointer;
@@ -3355,7 +3355,6 @@ const styles = `
     width: 56px;
     height: 56px;
     background: #f5f5f5;
-    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3516,7 +3515,7 @@ const styles = `
     padding: 0.875rem 1rem;
     font-size: 1rem;
     border: 1px solid #e5e5e5;
-    border-radius: 8px;
+    border-radius: 0;
     background: #ffffff;
     color: #171717;
     transition: border-color 0.2s;
@@ -3571,7 +3570,7 @@ const styles = `
     padding: 1rem 1.25rem;
     font-size: 1rem;
     border: 1px solid #d4d4d4;
-    border-radius: 8px;
+    border-radius: 0;
     width: 100%;
   }
 
@@ -3585,7 +3584,7 @@ const styles = `
     gap: 1rem;
     background: #f0f9ff;
     border: 1px solid #bae6fd;
-    border-radius: 10px;
+    border-radius: 0;
     padding: 1rem 1.25rem;
     margin-top: 1rem;
   }
@@ -3625,7 +3624,7 @@ const styles = `
     gap: 0.75rem;
     padding: 1rem 1.25rem;
     border: 1px solid #e5e5e5;
-    border-radius: 8px;
+    border-radius: 0;
     cursor: pointer;
     transition: all 0.2s;
   }
@@ -3662,7 +3661,7 @@ const styles = `
     gap: 0.75rem;
     padding: 1rem 1.25rem;
     border: 1px solid #e5e5e5;
-    border-radius: 8px;
+    border-radius: 0;
     cursor: pointer;
     transition: all 0.2s;
   }
@@ -3711,7 +3710,7 @@ const styles = `
     gap: 0.75rem;
     padding: 1rem 1.25rem;
     border: 1px solid #e5e5e5;
-    border-radius: 8px;
+    border-radius: 0;
     cursor: pointer;
     transition: all 0.2s;
     position: relative;
@@ -3746,7 +3745,7 @@ const styles = `
     border: 1px solid #fecaca;
     color: #dc2626;
     padding: 0.75rem 1rem;
-    border-radius: 8px;
+    border-radius: 0;
     font-size: 0.875rem;
     margin-bottom: 1rem;
   }
@@ -3767,7 +3766,7 @@ const styles = `
     align-items: center;
     gap: 0.5rem;
     padding: 0.875rem 1.5rem;
-    border-radius: 8px;
+    border-radius: 0;
     font-weight: 600;
     font-size: 0.9375rem;
     cursor: pointer;
@@ -3964,7 +3963,7 @@ const resultsStyles = `
     color: #171717;
     background: #f5f5f5;
     padding: 0.375rem 0.75rem;
-    border-radius: 6px;
+    border-radius: 0;
     border: 1px solid #e5e5e5;
   }
 
@@ -3978,7 +3977,7 @@ const resultsStyles = `
   .res-labs-notice {
     background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%);
     border: 1px solid #fde047;
-    border-radius: 12px;
+    border-radius: 0;
     padding: 1.25rem;
     margin-top: 1.25rem;
   }
@@ -4007,7 +4006,7 @@ const resultsStyles = `
     background: #854d0e;
     color: #ffffff;
     padding: 0.625rem 1rem;
-    border-radius: 8px;
+    border-radius: 0;
     font-size: 0.8125rem;
     font-weight: 600;
     text-decoration: none;
@@ -4020,7 +4019,7 @@ const resultsStyles = `
   /* Section 2: What We Recommend */
   .res-recommend-why {
     background: #f5f5f5;
-    border-radius: 10px;
+    border-radius: 0;
     padding: 1.25rem;
     margin-bottom: 1.25rem;
   }
@@ -4086,7 +4085,7 @@ const resultsStyles = `
   /* Biomarkers */
   .res-markers-box {
     background: #fafafa;
-    border-radius: 10px;
+    border-radius: 0;
     padding: 1.25rem;
   }
 
@@ -4113,7 +4112,7 @@ const resultsStyles = `
     color: #171717;
     background: #ffffff;
     padding: 0.375rem 0.625rem;
-    border-radius: 5px;
+    border-radius: 0;
     border: 1px solid #e5e5e5;
   }
 
@@ -4141,7 +4140,7 @@ const resultsStyles = `
     flex: 1;
     background: #ffffff;
     border: 2px solid #e5e5e5;
-    border-radius: 12px;
+    border-radius: 0;
     padding: 1.5rem 1.25rem;
     text-align: center;
     position: relative;
@@ -4161,7 +4160,7 @@ const resultsStyles = `
     background: #000000;
     color: #ffffff;
     padding: 0.375rem 0.75rem;
-    border-radius: 100px;
+    border-radius: 0;
     position: absolute;
     top: -0.625rem;
     left: 50%;
@@ -4203,7 +4202,7 @@ const resultsStyles = `
     background: #000000;
     color: #ffffff;
     padding: 0.875rem 1rem;
-    border-radius: 8px;
+    border-radius: 0;
     font-weight: 600;
     font-size: 0.9375rem;
     text-align: center;
@@ -4255,7 +4254,7 @@ const resultsStyles = `
     width: 36px;
     height: 36px;
     background: #f5f5f5;
-    border-radius: 8px;
+    border-radius: 0;
     display: flex;
     align-items: center;
     justify-content: center;

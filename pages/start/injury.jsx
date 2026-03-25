@@ -186,7 +186,7 @@ export default function StartInjury() {
             text-transform: uppercase;
             letter-spacing: 0.06em;
             padding: 6px 14px;
-            border-radius: 6px;
+            border-radius: 0;
             margin-bottom: 16px;
             background: #FEF2F2;
             color: #DC2626;
@@ -258,7 +258,7 @@ export default function StartInjury() {
           }
           .inj-callout-inner {
             background: #171717;
-            border-radius: 12px;
+            border-radius: 0;
             padding: 28px 28px;
             color: #fff;
           }
@@ -310,7 +310,7 @@ export default function StartInjury() {
           .inj-note-inner {
             background: #fafafa;
             border: 1px solid #e5e5e5;
-            border-radius: 10px;
+            border-radius: 0;
             padding: 20px 24px;
           }
           .inj-note-inner strong {
@@ -342,7 +342,7 @@ export default function StartInjury() {
           .inj-upload-zone {
             display: block;
             border: 2px dashed #d4d4d4;
-            border-radius: 10px;
+            border-radius: 0;
             padding: 32px 24px;
             text-align: center;
             cursor: pointer;
@@ -371,7 +371,7 @@ export default function StartInjury() {
             justify-content: space-between;
             padding: 8px 12px;
             background: #f5f5f5;
-            border-radius: 6px;
+            border-radius: 0;
             margin-bottom: 6px;
             font-size: 14px;
           }
@@ -389,7 +389,7 @@ export default function StartInjury() {
             background: #171717;
             color: #fff;
             border: none;
-            border-radius: 8px;
+            border-radius: 0;
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
@@ -428,7 +428,7 @@ export default function StartInjury() {
           .inj-date-btn {
             padding: 10px 14px;
             border: 1px solid #d4d4d4;
-            border-radius: 8px;
+            border-radius: 0;
             background: #fff;
             cursor: pointer;
             font-size: 13px;
@@ -451,7 +451,7 @@ export default function StartInjury() {
           .inj-slot-btn {
             padding: 10px;
             border: 1px solid #d4d4d4;
-            border-radius: 8px;
+            border-radius: 0;
             background: #fff;
             cursor: pointer;
             font-size: 14px;
@@ -471,7 +471,7 @@ export default function StartInjury() {
             background: #171717;
             color: #fff;
             border: none;
-            border-radius: 10px;
+            border-radius: 0;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
@@ -488,7 +488,7 @@ export default function StartInjury() {
             background: #FEF2F2;
             color: #DC2626;
             padding: 12px 16px;
-            border-radius: 8px;
+            border-radius: 0;
             font-size: 14px;
             margin-bottom: 16px;
           }
@@ -525,7 +525,7 @@ export default function StartInjury() {
           .inj-confirmed-card {
             background: #fafafa;
             border: 1px solid #e5e5e5;
-            border-radius: 12px;
+            border-radius: 0;
             padding: 28px;
             text-align: left;
           }
@@ -617,9 +617,9 @@ export default function StartInjury() {
         <section className="inj-section">
           <h2>Sound like you?</h2>
           <ul className="inj-list">
-            <li><span className="inj-icon">→</span> You rolled an ankle, tweaked a knee, or hurt your shoulder</li>
+            <li><span className="inj-icon">→</span> You're dealing with an injury that's not getting better on its own</li>
             <li><span className="inj-icon">→</span> You had surgery and recovery has stalled</li>
-            <li><span className="inj-icon">→</span> You've been dealing with the same nagging pain for months</li>
+            <li><span className="inj-icon">→</span> You've been dealing with ongoing pain or discomfort for weeks or months</li>
             <li><span className="inj-icon">→</span> You're doing the right things, but it still feels slow or keeps flaring up</li>
           </ul>
         </section>
@@ -807,6 +807,13 @@ export default function StartInjury() {
 
           <p className="inj-phone-fallback">
             Or call/text <a href="tel:9499973988">(949) 997-3988</a> to book
+          </p>
+        </section>
+
+        {/* Disclaimer */}
+        <section className="inj-section" style={{ paddingTop: 0 }}>
+          <p style={{ fontSize: 13, color: '#a3a3a3', lineHeight: 1.6, fontStyle: 'italic', maxWidth: 600 }}>
+            The information on this page is for educational purposes only and does not constitute medical advice for your specific situation. All treatment recommendations are made by a licensed provider after an in-person evaluation.
           </p>
         </section>
 

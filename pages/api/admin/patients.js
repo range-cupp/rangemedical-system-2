@@ -51,21 +51,135 @@ async function attachActivePrograms(patients) {
     }
   }
 
-  // Group by patient_id -> Set of categories
+  // Group by patient_id -> Set of categories + count
   const programMap = {};
+  const protocolCountMap = {};
   for (const p of allProtocols) {
     const cat = getCategory(p.program_type);
     if (cat) {
       if (!programMap[p.patient_id]) programMap[p.patient_id] = new Set();
       programMap[p.patient_id].add(cat);
     }
+    protocolCountMap[p.patient_id] = (protocolCountMap[p.patient_id] || 0) + 1;
   }
 
   // Attach to patients
   return patients.map(patient => ({
     ...patient,
     activePrograms: programMap[patient.id] ? [...programMap[patient.id]] : [],
+    activeProtocolCount: protocolCountMap[patient.id] || 0,
   }));
+}
+
+// Batch fetch last visit dates from service_logs
+async function attachLastVisits(patients) {
+  if (!patients.length) return patients;
+
+  // Use a raw SQL query to get max entry_date per patient efficiently
+  const { data, error } = await supabase.rpc('get_patient_last_visits');
+
+  if (error || !data) {
+    // Fallback: fetch recent service logs and compute in JS
+    let allLogs = [];
+    let from = 0;
+    let hasMore = true;
+    while (hasMore) {
+      const { data: batch, error: batchErr } = await supabase
+        .from('service_logs')
+        .select('patient_id, entry_date')
+        .order('entry_date', { ascending: false })
+        .range(from, from + PAGE_SIZE - 1);
+      if (batchErr || !batch || batch.length === 0) {
+        hasMore = false;
+      } else {
+        allLogs = allLogs.concat(batch);
+        from += PAGE_SIZE;
+        hasMore = batch.length === PAGE_SIZE;
+      }
+    }
+
+    const lastVisitMap = {};
+    for (const log of allLogs) {
+      if (!lastVisitMap[log.patient_id] || log.entry_date > lastVisitMap[log.patient_id]) {
+        lastVisitMap[log.patient_id] = log.entry_date;
+      }
+    }
+
+    return patients.map(p => ({
+      ...p,
+      lastVisit: lastVisitMap[p.id] || null,
+    }));
+  }
+
+  const visitMap = {};
+  for (const row of data) {
+    visitMap[row.patient_id] = row.last_visit;
+  }
+  return patients.map(p => ({
+    ...p,
+    lastVisit: visitMap[p.id] || null,
+  }));
+}
+
+// Batch fetch lab status per patient (most recent lab)
+async function attachLabStatus(patients) {
+  if (!patients.length) return patients;
+
+  let allLabs = [];
+  let from = 0;
+  let hasMore = true;
+  while (hasMore) {
+    const { data: batch, error } = await supabase
+      .from('labs')
+      .select('patient_id, lab_date, results, pdf_url')
+      .order('lab_date', { ascending: false })
+      .range(from, from + PAGE_SIZE - 1);
+    if (error || !batch || batch.length === 0) {
+      hasMore = false;
+    } else {
+      allLabs = allLabs.concat(batch);
+      from += PAGE_SIZE;
+      hasMore = batch.length === PAGE_SIZE;
+    }
+  }
+
+  // Keep only most recent lab per patient
+  const labMap = {};
+  for (const lab of allLabs) {
+    if (!labMap[lab.patient_id] || lab.lab_date > labMap[lab.patient_id].lab_date) {
+      labMap[lab.patient_id] = lab;
+    }
+  }
+
+  return patients.map(p => {
+    const lab = labMap[p.id];
+    let labStatus = null;
+    if (lab) {
+      const hasResults = lab.results && Object.keys(lab.results).length > 0;
+      const hasPdf = !!lab.pdf_url;
+      if (hasResults || hasPdf) {
+        labStatus = 'results_ready';
+      } else {
+        labStatus = 'pending';
+      }
+    }
+    return { ...p, labStatus, lastLabDate: lab?.lab_date || null };
+  });
+}
+
+// Derive patient status from visit history
+function derivePatientStatus(patients) {
+  const now = new Date();
+  const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+  const ninetyDaysStr = ninetyDaysAgo.toISOString().split('T')[0];
+
+  return patients.map(p => {
+    let patientStatus = 'new'; // no visits
+    if (p.lastVisit) {
+      patientStatus = p.lastVisit >= ninetyDaysStr ? 'active' : 'inactive';
+    }
+    return { ...p, patientStatus };
+  });
 }
 
 export default async function handler(req, res) {
@@ -160,7 +274,10 @@ export default async function handler(req, res) {
         console.error('Error fetching patients:', error);
         return res.status(500).json({ error: 'Failed to fetch patients' });
       }
-      const enriched = await attachActivePrograms(patients || []);
+      let enriched = await attachActivePrograms(patients || []);
+      enriched = await attachLastVisits(enriched);
+      enriched = await attachLabStatus(enriched);
+      enriched = derivePatientStatus(enriched);
       return res.status(200).json(enriched);
     }
 
@@ -190,7 +307,10 @@ export default async function handler(req, res) {
       }
     }
 
-    const enriched = await attachActivePrograms(allPatients);
+    let enriched = await attachActivePrograms(allPatients);
+    enriched = await attachLastVisits(enriched);
+    enriched = await attachLabStatus(enriched);
+    enriched = derivePatientStatus(enriched);
     return res.status(200).json(enriched);
 
   } catch (error) {

@@ -1,8 +1,7 @@
 // /pages/admin/patients.js
-// Patients List with Merge feature - Range Medical
-// Clean aesthetic matching Pipeline
+// Patients List with enrichment data, sort, status, and quick actions - Range Medical
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { formatPhone } from '../../lib/format-utils';
 import Link from 'next/link';
 import AdminLayout from '../../components/AdminLayout';
@@ -12,7 +11,8 @@ export default function PatientsList() {
   const [patients, setPatients] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
-  const [filteredPatients, setFilteredPatients] = useState([]);
+  const [sortBy, setSortBy] = useState('created_at');
+  const [sortDir, setSortDir] = useState('desc');
 
   // Add Patient modal state
   const [showAddModal, setShowAddModal] = useState(false);
@@ -22,7 +22,7 @@ export default function PatientsList() {
 
   // Merge modal state
   const [showMergeModal, setShowMergeModal] = useState(false);
-  const [mergeStep, setMergeStep] = useState(1); // 1: select primary, 2: select duplicate, 3: preview/confirm
+  const [mergeStep, setMergeStep] = useState(1);
   const [primaryPatient, setPrimaryPatient] = useState(null);
   const [duplicatePatient, setDuplicatePatient] = useState(null);
   const [mergeSearch, setMergeSearch] = useState('');
@@ -34,23 +34,20 @@ export default function PatientsList() {
     fetchPatients();
   }, []);
 
-  useEffect(() => {
+  const filteredPatients = useMemo(() => {
     let result = patients;
 
-    // Tag/program/condition filter
+    // Tag/program/condition/status filter
     if (activeFilter !== 'all') {
       result = result.filter(p => {
-        if (activeFilter === 'online') {
-          return getSourceTag(p) === 'Online Assessment';
-        }
-        if (activeFilter === 'walk-in') {
-          return getSourceTag(p) === 'Walk-in';
-        }
-        // Condition filter
-        if (activeFilter.startsWith('condition:')) {
-          return (p.tags || []).includes(activeFilter);
-        }
-        // Program filter
+        if (activeFilter === 'online') return getSourceTag(p) === 'Online Assessment';
+        if (activeFilter === 'walk-in') return getSourceTag(p) === 'Walk-in';
+        if (activeFilter === 'status:active') return p.patientStatus === 'active';
+        if (activeFilter === 'status:inactive') return p.patientStatus === 'inactive';
+        if (activeFilter === 'status:new') return p.patientStatus === 'new';
+        if (activeFilter === 'lab:pending') return p.labStatus === 'pending';
+        if (activeFilter === 'lab:ready') return p.labStatus === 'results_ready';
+        if (activeFilter.startsWith('condition:')) return (p.tags || []).includes(activeFilter);
         return (p.activePrograms || []).includes(activeFilter);
       });
     }
@@ -67,8 +64,35 @@ export default function PatientsList() {
       );
     }
 
-    setFilteredPatients(result);
-  }, [searchTerm, activeFilter, patients]);
+    // Sort
+    result = [...result].sort((a, b) => {
+      let aVal, bVal;
+      switch (sortBy) {
+        case 'name':
+          aVal = getDisplayName(a).toLowerCase();
+          bVal = getDisplayName(b).toLowerCase();
+          return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        case 'lastVisit':
+          aVal = a.lastVisit || '';
+          bVal = b.lastVisit || '';
+          if (!aVal && !bVal) return 0;
+          if (!aVal) return 1;
+          if (!bVal) return -1;
+          return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        case 'activeProtocols':
+          aVal = a.activeProtocolCount || 0;
+          bVal = b.activeProtocolCount || 0;
+          return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+        case 'created_at':
+        default:
+          aVal = a.created_at || '';
+          bVal = b.created_at || '';
+          return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+    });
+
+    return result;
+  }, [searchTerm, activeFilter, patients, sortBy, sortDir]);
 
   const fetchPatients = async () => {
     try {
@@ -77,7 +101,6 @@ export default function PatientsList() {
         const data = await res.json();
         const patientList = Array.isArray(data) ? data : (data.patients || []);
         setPatients(patientList);
-        setFilteredPatients(patientList);
       }
     } catch (error) {
       console.error('Error fetching patients:', error);
@@ -100,6 +123,20 @@ export default function PatientsList() {
       day: 'numeric',
       year: 'numeric'
     });
+  };
+
+  const getRelativeDate = (dateStr) => {
+    if (!dateStr) return null;
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+    if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`;
+    return `${Math.floor(diffDays / 365)}y ago`;
   };
 
   // Tag helpers
@@ -128,6 +165,17 @@ export default function PatientsList() {
   };
 
   const CONDITION_STYLE = { bg: '#fef2f2', text: '#991b1b' };
+
+  const STATUS_STYLES = {
+    active: { bg: '#dcfce7', text: '#166534', dot: '#22c55e', label: 'Active' },
+    inactive: { bg: '#fef3c7', text: '#92400e', dot: '#f59e0b', label: 'Inactive' },
+    new: { bg: '#dbeafe', text: '#1e40af', dot: '#3b82f6', label: 'New' },
+  };
+
+  const LAB_STYLES = {
+    pending: { bg: '#fef3c7', text: '#92400e', label: 'Labs Pending' },
+    results_ready: { bg: '#dcfce7', text: '#166534', label: 'Results Ready' },
+  };
 
   const getConditionTags = (patient) => {
     const tags = patient.tags || [];
@@ -165,8 +213,23 @@ export default function PatientsList() {
     { key: 'walk-in', label: 'Walk-in' },
   ];
 
+  const STATUS_FILTERS = [
+    { key: 'status:active', label: 'Active' },
+    { key: 'status:inactive', label: 'Inactive' },
+    { key: 'status:new', label: 'New' },
+    { key: 'lab:pending', label: 'Labs Pending' },
+    { key: 'lab:ready', label: 'Results Ready' },
+  ];
+
+  const SORT_OPTIONS = [
+    { key: 'created_at', label: 'Date Added' },
+    { key: 'name', label: 'Name' },
+    { key: 'lastVisit', label: 'Last Visit' },
+    { key: 'activeProtocols', label: 'Active Protocols' },
+  ];
+
   // Build dynamic condition filters from actual patient data
-  const conditionFilters = (() => {
+  const conditionFilters = useMemo(() => {
     const condSet = new Set();
     patients.forEach(p => {
       getConditionTags(p).forEach(c => condSet.add(c));
@@ -175,7 +238,29 @@ export default function PatientsList() {
       key: `condition:${c}`,
       label: CONDITION_LABELS[c] || c,
     }));
-  })();
+  }, [patients]);
+
+  // Status counts for filter badges
+  const statusCounts = useMemo(() => {
+    const counts = { active: 0, inactive: 0, new: 0, labPending: 0, labReady: 0 };
+    patients.forEach(p => {
+      if (p.patientStatus === 'active') counts.active++;
+      else if (p.patientStatus === 'inactive') counts.inactive++;
+      else if (p.patientStatus === 'new') counts.new++;
+      if (p.labStatus === 'pending') counts.labPending++;
+      if (p.labStatus === 'results_ready') counts.labReady++;
+    });
+    return counts;
+  }, [patients]);
+
+  const handleSort = (key) => {
+    if (sortBy === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(key);
+      setSortDir(key === 'name' ? 'asc' : 'desc');
+    }
+  };
 
   // Merge functions
   const openMergeModal = () => {
@@ -203,7 +288,6 @@ export default function PatientsList() {
     const term = mergeSearch.toLowerCase();
     return patients
       .filter(p => {
-        // Exclude already selected patient
         if (mergeStep === 2 && primaryPatient && p.id === primaryPatient.id) return false;
         return (
           (p.first_name?.toLowerCase() || '').includes(term) ||
@@ -226,22 +310,14 @@ export default function PatientsList() {
     setDuplicatePatient(patient);
     setMergeSearch('');
     setMergeStep(3);
-
-    // Fetch preview
     try {
       const res = await fetch('/api/admin/merge-patients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          primaryId: primaryPatient.id,
-          duplicateId: patient.id,
-          preview: true
-        })
+        body: JSON.stringify({ primaryId: primaryPatient.id, duplicateId: patient.id, preview: true })
       });
       const data = await res.json();
-      if (data.success) {
-        setMergePreview(data);
-      }
+      if (data.success) setMergePreview(data);
     } catch (err) {
       console.error('Error fetching merge preview:', err);
     }
@@ -249,25 +325,16 @@ export default function PatientsList() {
 
   const executeMerge = async () => {
     if (!primaryPatient || !duplicatePatient) return;
-
     setMerging(true);
     try {
       const res = await fetch('/api/admin/merge-patients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          primaryId: primaryPatient.id,
-          duplicateId: duplicatePatient.id,
-          preview: false
-        })
+        body: JSON.stringify({ primaryId: primaryPatient.id, duplicateId: duplicatePatient.id, preview: false })
       });
       const data = await res.json();
       setMergeResult(data);
-
-      if (data.success) {
-        // Refresh patient list
-        await fetchPatients();
-      }
+      if (data.success) await fetchPatients();
     } catch (err) {
       setMergeResult({ success: false, error: err.message });
     } finally {
@@ -295,7 +362,6 @@ export default function PatientsList() {
         setAddError(data.error || 'Failed to create patient');
         return;
       }
-      // Success — close modal and navigate to new patient
       setShowAddModal(false);
       setAddForm({ firstName: '', lastName: '', email: '', phone: '', dateOfBirth: '' });
       window.location.href = `/patients/${data.id}`;
@@ -325,15 +391,39 @@ export default function PatientsList() {
       }
     >
 
-        {/* Search + Filters */}
+        {/* Search + Filters + Sort */}
         <div style={styles.searchContainer}>
-          <input
-            type="text"
-            placeholder="Search by name, email, or phone..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={styles.searchInput}
-          />
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <input
+              type="text"
+              placeholder="Search by name, email, or phone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={styles.searchInput}
+            />
+            <div style={styles.sortContainer}>
+              <span style={{ fontSize: '12px', color: '#9ca3af', fontWeight: '500' }}>Sort:</span>
+              {SORT_OPTIONS.map(s => (
+                <button
+                  key={s.key}
+                  onClick={() => handleSort(s.key)}
+                  style={{
+                    ...styles.sortBtn,
+                    ...(sortBy === s.key ? styles.sortBtnActive : {}),
+                  }}
+                >
+                  {s.label}
+                  {sortBy === s.key && (
+                    <span style={{ marginLeft: '3px', fontSize: '10px' }}>
+                      {sortDir === 'asc' ? '↑' : '↓'}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Program filters */}
           <div style={styles.filterBar}>
             {FILTER_OPTIONS.map(f => (
               <button
@@ -348,6 +438,35 @@ export default function PatientsList() {
               </button>
             ))}
           </div>
+
+          {/* Status + Lab filters */}
+          <div style={{ ...styles.filterBar, marginTop: '6px' }}>
+            <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '500', padding: '5px 4px' }}>Status:</span>
+            {STATUS_FILTERS.map(f => {
+              const count = f.key === 'status:active' ? statusCounts.active
+                : f.key === 'status:inactive' ? statusCounts.inactive
+                : f.key === 'status:new' ? statusCounts.new
+                : f.key === 'lab:pending' ? statusCounts.labPending
+                : statusCounts.labReady;
+              const isLab = f.key.startsWith('lab:');
+              return (
+                <button
+                  key={f.key}
+                  onClick={() => setActiveFilter(activeFilter === f.key ? 'all' : f.key)}
+                  style={{
+                    ...styles.filterBtn,
+                    ...(activeFilter === f.key
+                      ? { background: isLab ? '#92400e' : '#166534', color: '#fff', borderColor: isLab ? '#92400e' : '#166534' }
+                      : { borderColor: isLab ? '#fde68a' : '#bbf7d0', color: isLab ? '#92400e' : '#166534' }),
+                  }}
+                >
+                  {f.label} ({count})
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Condition filters */}
           {conditionFilters.length > 0 && (
             <div style={{ ...styles.filterBar, marginTop: '6px' }}>
               <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: '500', padding: '5px 4px' }}>Conditions:</span>
@@ -378,21 +497,44 @@ export default function PatientsList() {
               const source = getSourceTag(patient);
               const sourceColor = SOURCE_COLORS[source] || SOURCE_COLORS['Walk-in'];
               const programs = patient.activePrograms || [];
-
               const conditions = getConditionTags(patient);
+              const status = STATUS_STYLES[patient.patientStatus] || STATUS_STYLES.new;
+              const labStyle = patient.labStatus ? LAB_STYLES[patient.labStatus] : null;
 
               return (
-                <Link
-                  key={patient.id}
-                  href={`/patients/${patient.id}`}
-                  style={{ textDecoration: 'none' }}
-                >
-                  <div style={styles.card}>
+                <div key={patient.id} style={styles.card}>
+                  <Link
+                    href={`/patients/${patient.id}`}
+                    style={{ textDecoration: 'none', flex: 1, display: 'flex', alignItems: 'center' }}
+                  >
                     <div style={styles.cardMain}>
-                      <div style={styles.patientName}>{getDisplayName(patient)}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {/* Status dot */}
+                        <span style={{
+                          width: '8px', height: '8px', borderRadius: '50%',
+                          background: status.dot, display: 'inline-block', flexShrink: 0
+                        }} />
+                        <span style={styles.patientName}>{getDisplayName(patient)}</span>
+                        {/* Status badge */}
+                        <span style={{
+                          ...styles.statusBadge,
+                          background: status.bg, color: status.text
+                        }}>
+                          {status.label}
+                        </span>
+                        {/* Lab badge */}
+                        {labStyle && (
+                          <span style={{
+                            ...styles.statusBadge,
+                            background: labStyle.bg, color: labStyle.text
+                          }}>
+                            {labStyle.label}
+                          </span>
+                        )}
+                      </div>
                       <div style={styles.patientMeta}>
                         {patient.email && <span>{patient.email}</span>}
-                        {patient.phone && <span> • {formatPhone(patient.phone)}</span>}
+                        {patient.phone && <span>{patient.email ? ' • ' : ''}{formatPhone(patient.phone)}</span>}
                       </div>
                       <div style={styles.tagRow}>
                         <span style={{ ...styles.tag, background: sourceColor.bg, color: sourceColor.text }}>
@@ -416,15 +558,60 @@ export default function PatientsList() {
                           </span>
                         ))}
                       </div>
-                      {patient.created_at && (
-                        <div style={styles.patientDate}>
-                          Added {formatDate(patient.created_at)}
-                        </div>
-                      )}
                     </div>
-                    <div style={styles.cardArrow}>→</div>
+
+                    {/* Right side: enrichment data */}
+                    <div style={styles.cardRight}>
+                      <div style={styles.enrichRow}>
+                        <div style={styles.enrichItem}>
+                          <span style={styles.enrichLabel}>Last Visit</span>
+                          <span style={{
+                            ...styles.enrichValue,
+                            color: patient.lastVisit ? '#111' : '#d1d5db',
+                          }}>
+                            {patient.lastVisit ? getRelativeDate(patient.lastVisit) : 'Never'}
+                          </span>
+                        </div>
+                        <div style={styles.enrichItem}>
+                          <span style={styles.enrichLabel}>Protocols</span>
+                          <span style={{
+                            ...styles.enrichValue,
+                            color: patient.activeProtocolCount > 0 ? '#166534' : '#d1d5db',
+                          }}>
+                            {patient.activeProtocolCount > 0 ? `${patient.activeProtocolCount} active` : 'None'}
+                          </span>
+                        </div>
+                        <div style={styles.enrichItem}>
+                          <span style={styles.enrichLabel}>Added</span>
+                          <span style={styles.enrichValue}>
+                            {formatDate(patient.created_at)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+
+                  {/* Quick actions */}
+                  <div style={styles.quickActions}>
+                    {patient.phone && (
+                      <a
+                        href={`sms:${patient.phone}`}
+                        style={styles.quickBtn}
+                        title="Send text"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        SMS
+                      </a>
+                    )}
+                    <Link
+                      href={`/patients/${patient.id}`}
+                      style={styles.quickBtnArrow}
+                      title="View profile"
+                    >
+                      →
+                    </Link>
                   </div>
-                </Link>
+                </div>
               );
             })}
           </div>
@@ -528,7 +715,6 @@ export default function PatientsList() {
             </div>
 
             <div style={styles.modalBody}>
-              {/* Step 1: Select Primary */}
               {mergeStep === 1 && (
                 <>
                   <p style={styles.stepDesc}>
@@ -546,15 +732,9 @@ export default function PatientsList() {
                   {mergeSearch && (
                     <div style={styles.searchResults}>
                       {getMergeFilteredPatients().map(p => (
-                        <div
-                          key={p.id}
-                          style={styles.searchResultItem}
-                          onClick={() => selectPrimary(p)}
-                        >
+                        <div key={p.id} style={styles.searchResultItem} onClick={() => selectPrimary(p)}>
                           <div style={styles.resultName}>{getDisplayName(p)}</div>
-                          <div style={styles.resultMeta}>
-                            {p.email || formatPhone(p.phone) || 'No contact'}
-                          </div>
+                          <div style={styles.resultMeta}>{p.email || formatPhone(p.phone) || 'No contact'}</div>
                         </div>
                       ))}
                       {getMergeFilteredPatients().length === 0 && (
@@ -565,17 +745,13 @@ export default function PatientsList() {
                 </>
               )}
 
-              {/* Step 2: Select Duplicate */}
               {mergeStep === 2 && (
                 <>
                   <div style={styles.selectedPatient}>
                     <div style={styles.selectedLabel}>Keep:</div>
                     <div style={styles.selectedName}>{getDisplayName(primaryPatient)}</div>
-                    <div style={styles.selectedMeta}>
-                      {primaryPatient.email || formatPhone(primaryPatient.phone) || 'No contact'}
-                    </div>
+                    <div style={styles.selectedMeta}>{primaryPatient.email || formatPhone(primaryPatient.phone) || 'No contact'}</div>
                   </div>
-
                   <p style={styles.stepDesc}>
                     Now search for the <strong>duplicate</strong> record to merge into the patient above.
                     This record will be deleted after merging.
@@ -591,15 +767,9 @@ export default function PatientsList() {
                   {mergeSearch && (
                     <div style={styles.searchResults}>
                       {getMergeFilteredPatients().map(p => (
-                        <div
-                          key={p.id}
-                          style={styles.searchResultItem}
-                          onClick={() => selectDuplicate(p)}
-                        >
+                        <div key={p.id} style={styles.searchResultItem} onClick={() => selectDuplicate(p)}>
                           <div style={styles.resultName}>{getDisplayName(p)}</div>
-                          <div style={styles.resultMeta}>
-                            {p.email || formatPhone(p.phone) || 'No contact'}
-                          </div>
+                          <div style={styles.resultMeta}>{p.email || formatPhone(p.phone) || 'No contact'}</div>
                         </div>
                       ))}
                       {getMergeFilteredPatients().length === 0 && (
@@ -607,7 +777,6 @@ export default function PatientsList() {
                       )}
                     </div>
                   )}
-
                   <button
                     style={styles.backStepBtn}
                     onClick={() => { setMergeStep(1); setPrimaryPatient(null); setMergeSearch(''); }}
@@ -617,7 +786,6 @@ export default function PatientsList() {
                 </>
               )}
 
-              {/* Step 3: Preview & Confirm */}
               {mergeStep === 3 && !mergeResult && (
                 <>
                   <div style={styles.mergePreview}>
@@ -630,9 +798,7 @@ export default function PatientsList() {
                         {primaryPatient.ghl_contact_id && <div>GHL ID: {primaryPatient.ghl_contact_id}</div>}
                       </div>
                     </div>
-
                     <div style={styles.mergeArrow}>←</div>
-
                     <div style={{ ...styles.previewBox, ...styles.previewBoxDelete }}>
                       <div style={styles.previewLabelDelete}>DELETE (Duplicate)</div>
                       <div style={styles.previewName}>{getDisplayName(duplicatePatient)}</div>
@@ -646,9 +812,7 @@ export default function PatientsList() {
 
                   {mergePreview && (
                     <div style={styles.recordsPreview}>
-                      <div style={styles.recordsTitle}>
-                        Records to Transfer: {mergePreview.totalRecords}
-                      </div>
+                      <div style={styles.recordsTitle}>Records to Transfer: {mergePreview.totalRecords}</div>
                       {Object.entries(mergePreview.recordsToMove || {}).map(([table, count]) => (
                         <div key={table} style={styles.recordRow}>
                           <span>{table.replace(/_/g, ' ')}</span>
@@ -684,7 +848,6 @@ export default function PatientsList() {
                 </>
               )}
 
-              {/* Merge Result */}
               {mergeResult && (
                 <div style={styles.resultContainer}>
                   {mergeResult.success ? (
@@ -700,18 +863,14 @@ export default function PatientsList() {
                           Transferred: {Object.entries(mergeResult.recordsMoved).map(([t, c]) => `${c} ${t}`).join(', ')}
                         </div>
                       )}
-                      <button style={styles.doneBtn} onClick={closeMergeModal}>
-                        Done
-                      </button>
+                      <button style={styles.doneBtn} onClick={closeMergeModal}>Done</button>
                     </>
                   ) : (
                     <>
                       <div style={styles.errorIcon}>×</div>
                       <div style={styles.errorTitle}>Merge Failed</div>
                       <div style={styles.errorDetail}>{mergeResult.error}</div>
-                      <button style={styles.doneBtn} onClick={closeMergeModal}>
-                        Close
-                      </button>
+                      <button style={styles.doneBtn} onClick={closeMergeModal}>Close</button>
                     </>
                   )}
                 </div>
@@ -725,46 +884,10 @@ export default function PatientsList() {
 }
 
 const styles = {
-  container: {
-    maxWidth: '900px',
-    margin: '0 auto',
-    padding: '24px',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-  },
   loading: {
     textAlign: 'center',
     padding: '48px',
     color: '#666'
-  },
-  header: {
-    marginBottom: '24px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start'
-  },
-  title: {
-    fontSize: '28px',
-    fontWeight: '600',
-    margin: 0
-  },
-  subtitle: {
-    fontSize: '14px',
-    color: '#666',
-    marginTop: '4px'
-  },
-  navLinks: {
-    display: 'flex',
-    gap: '12px',
-    alignItems: 'center'
-  },
-  navLink: {
-    color: '#000',
-    textDecoration: 'none',
-    fontSize: '14px',
-    fontWeight: '500',
-    padding: '8px 16px',
-    border: '1px solid #e5e7eb',
-    borderRadius: 0
   },
   addBtn: {
     padding: '8px 16px',
@@ -814,6 +937,26 @@ const styles = {
     outline: 'none',
     boxSizing: 'border-box'
   },
+  sortContainer: {
+    display: 'flex',
+    gap: '4px',
+    alignItems: 'center',
+  },
+  sortBtn: {
+    padding: '4px 10px',
+    fontSize: '11px',
+    fontWeight: '500',
+    border: '1px solid #e5e7eb',
+    borderRadius: 0,
+    background: '#fff',
+    color: '#9ca3af',
+    cursor: 'pointer',
+  },
+  sortBtnActive: {
+    background: '#f3f4f6',
+    color: '#111',
+    borderColor: '#d1d5db',
+  },
   filterBar: {
     display: 'flex',
     flexWrap: 'wrap',
@@ -835,20 +978,6 @@ const styles = {
     color: '#fff',
     borderColor: '#111',
   },
-  tagRow: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '4px',
-    marginTop: '6px',
-  },
-  tag: {
-    display: 'inline-block',
-    fontSize: '11px',
-    fontWeight: '500',
-    padding: '2px 8px',
-    borderRadius: 0,
-    lineHeight: '16px',
-  },
   emptyState: {
     textAlign: 'center',
     padding: '48px',
@@ -864,37 +993,103 @@ const styles = {
   },
   card: {
     display: 'flex',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '16px 20px',
+    padding: '14px 20px',
     background: '#fff',
     border: '1px solid #e5e7eb',
     borderRadius: 0,
-    cursor: 'pointer',
-    transition: 'border-color 0.2s'
+    transition: 'border-color 0.2s',
   },
   cardMain: {
-    flex: 1
+    flex: 1,
+    minWidth: 0,
   },
   patientName: {
-    fontSize: '16px',
+    fontSize: '15px',
     fontWeight: '600',
     color: '#000',
-    marginBottom: '4px'
+  },
+  statusBadge: {
+    fontSize: '10px',
+    fontWeight: '600',
+    padding: '1px 7px',
+    borderRadius: 0,
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    whiteSpace: 'nowrap',
   },
   patientMeta: {
-    fontSize: '14px',
-    color: '#666'
-  },
-  patientDate: {
     fontSize: '13px',
-    color: '#9ca3af',
-    marginTop: '4px'
+    color: '#666',
+    marginTop: '2px',
   },
-  cardArrow: {
-    fontSize: '18px',
+  tagRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '4px',
+    marginTop: '5px',
+  },
+  tag: {
+    display: 'inline-block',
+    fontSize: '11px',
+    fontWeight: '500',
+    padding: '2px 8px',
+    borderRadius: 0,
+    lineHeight: '16px',
+  },
+  cardRight: {
+    marginLeft: '24px',
+    flexShrink: 0,
+  },
+  enrichRow: {
+    display: 'flex',
+    gap: '20px',
+    alignItems: 'flex-start',
+  },
+  enrichItem: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    minWidth: '80px',
+  },
+  enrichLabel: {
+    fontSize: '10px',
     color: '#9ca3af',
-    marginLeft: '16px'
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    fontWeight: '500',
+    marginBottom: '2px',
+  },
+  enrichValue: {
+    fontSize: '13px',
+    fontWeight: '500',
+    color: '#374151',
+  },
+  quickActions: {
+    display: 'flex',
+    gap: '6px',
+    marginLeft: '16px',
+    flexShrink: 0,
+  },
+  quickBtn: {
+    padding: '4px 10px',
+    fontSize: '11px',
+    fontWeight: '600',
+    background: '#f3f4f6',
+    color: '#374151',
+    border: '1px solid #e5e7eb',
+    borderRadius: 0,
+    cursor: 'pointer',
+    textDecoration: 'none',
+    whiteSpace: 'nowrap',
+  },
+  quickBtnArrow: {
+    padding: '4px 10px',
+    fontSize: '16px',
+    color: '#9ca3af',
+    textDecoration: 'none',
+    display: 'flex',
+    alignItems: 'center',
   },
 
   // Modal styles
@@ -1014,8 +1209,6 @@ const styles = {
     cursor: 'pointer',
     marginTop: '16px'
   },
-
-  // Preview styles
   mergePreview: {
     display: 'flex',
     alignItems: 'center',
@@ -1110,8 +1303,6 @@ const styles = {
     fontWeight: '600',
     cursor: 'pointer'
   },
-
-  // Result styles
   resultContainer: {
     textAlign: 'center',
     padding: '20px 0'

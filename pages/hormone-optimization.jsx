@@ -70,6 +70,10 @@ export default function HormoneOptimization() {
       answer: "No. Our HRT membership is month-to-month. You can pause or cancel anytime with no penalties or fees."
     },
     {
+      question: "Do you treat women too, or just men?",
+      answer: "Absolutely. We treat both men and women. Women's hormone decline — especially during perimenopause and menopause — is one of the most under-addressed issues in medicine. We optimize testosterone, estrogen, progesterone, and thyroid for women with the same personalized, lab-driven approach."
+    },
+    {
       question: "What if I'm already on HRT somewhere else?",
       answer: "We can review your current protocol and labs. Many patients transfer to us for better monitoring, more comprehensive care, or simply better value. Book an assessment and bring your recent labs."
     }
@@ -108,6 +112,54 @@ export default function HormoneOptimization() {
     { step: "02", title: "Run comprehensive labs", desc: "We check testosterone, estrogen, thyroid, metabolic markers, and more — not just the basics your regular doctor runs." },
     { step: "03", title: "Review & start protocol", desc: "Your provider explains your results and designs a personalized protocol. You start your $250/month membership." },
     { step: "04", title: "Ongoing optimization", desc: "Follow-up labs at 8 weeks, then quarterly. We adjust your protocol as needed. Direct access to your provider anytime." }
+  ];
+
+  const womenSymptoms = [
+    "Hot Flashes",
+    "Night Sweats",
+    "Mood Changes",
+    "Weight Gain",
+    "Low Libido",
+    "Vaginal Dryness",
+    "Thinning Hair",
+    "Sleep Disruption",
+    "Anxiety",
+    "Brain Fog"
+  ];
+
+  const womenMedications = [
+    {
+      name: "Testosterone",
+      forms: "Cream or Injection",
+      desc: "Not just for men. Testosterone plays a key role in women's energy, muscle tone, bone density, mood, and libido. Levels decline steadily after age 30 — most women are never tested for it."
+    },
+    {
+      name: "Estrogen (Systemic)",
+      forms: "Capsule, Cream, or Patch",
+      desc: "Supports heart, brain, and bone health. Helps regulate body temperature, mood, and stress response. Often the foundation of hormone therapy during perimenopause and menopause."
+    },
+    {
+      name: "Estrogen (Vaginal)",
+      forms: "Cream or Suppository",
+      desc: "Targeted local therapy for vaginal dryness, discomfort, and urinary symptoms. Works directly where it's needed without significantly raising systemic hormone levels."
+    },
+    {
+      name: "Progesterone",
+      forms: "Capsule or Cream",
+      desc: "Balances estrogen, supports deep sleep, calms anxiety, and protects the uterine lining. Many women notice the biggest improvement in sleep and mood from progesterone alone."
+    },
+    {
+      name: "Thyroid Optimization",
+      forms: "Oral Medication",
+      desc: "Sluggish thyroid is one of the most under-diagnosed issues in women. We test beyond basic TSH — checking Free T3, Free T4, and antibodies to get the full picture."
+    }
+  ];
+
+  const womenLifeStages = [
+    { stage: "30s", title: "Early Decline", desc: "Testosterone and progesterone begin dropping. You may notice subtle shifts in energy, sleep, and recovery that weren't there before." },
+    { stage: "40s", title: "Perimenopause", desc: "Estrogen starts fluctuating. Hot flashes, irregular cycles, mood swings, and sleep disruption become more common. This can last 4-10 years." },
+    { stage: "50s", title: "Menopause", desc: "Periods stop. Estrogen, progesterone, and testosterone are all significantly lower. Bone density, cardiovascular health, and cognitive function are affected." },
+    { stage: "60s+", title: "Post-Menopause", desc: "Ongoing optimization supports bone health, heart health, brain function, and quality of life. It's never too late to feel better." }
   ];
 
   const membershipIncludes = [
@@ -300,6 +352,70 @@ export default function HormoneOptimization() {
               {tags.map((tag, i) => (
                 <div key={i} className="hrt-tag-pill">{tag}</div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Women's Hormone Health */}
+        <section className="hrt-section">
+          <div className="hrt-container">
+            <div className="hrt-animate">
+              <div className="v2-label"><span className="v2-dot" /> Women&apos;s Hormone Health</div>
+              <h2>HORMONE THERAPY<br />ISN&apos;T JUST<br />FOR MEN.</h2>
+              <p className="hrt-body-text">
+                Women experience hormone decline too &mdash; often earlier and more dramatically than they expect. Perimenopause can start in your late 30s, and by menopause, estrogen, progesterone, and testosterone have all dropped significantly. The symptoms are real, and they&apos;re treatable.
+              </p>
+            </div>
+
+            <div className="hrt-women-symptoms hrt-animate">
+              <div className="hrt-women-symptoms-label">Common symptoms in women</div>
+              <div className="hrt-tags-grid-light">
+                {womenSymptoms.map((symptom, i) => (
+                  <div key={i} className="hrt-tag-pill-light">{symptom}</div>
+                ))}
+              </div>
+            </div>
+
+            <div className="hrt-life-stages hrt-animate">
+              <div className="hrt-women-symptoms-label" style={{ marginTop: '3rem' }}>When it starts</div>
+              {womenLifeStages.map((item, i) => (
+                <div key={i} className="hrt-life-stage-item">
+                  <div className="hrt-life-stage-age">{item.stage}</div>
+                  <div className="hrt-life-stage-content">
+                    <h3>{item.title}</h3>
+                    <p>{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Women's Medications */}
+        <section className="hrt-section hrt-section-inverted">
+          <div className="hrt-container">
+            <div className="hrt-animate">
+              <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> What We Prescribe</div>
+              <h2>MEDICATIONS<br />TAILORED FOR<br />WOMEN.</h2>
+              <p className="hrt-body-text">
+                Every protocol is personalized based on your labs, symptoms, and goals. Here are the hormones we commonly optimize for women.
+              </p>
+            </div>
+
+            <div className="hrt-women-meds-list">
+              {womenMedications.map((med, i) => (
+                <div key={i} className="hrt-women-med-item hrt-animate">
+                  <div className="hrt-women-med-header">
+                    <div className="hrt-women-med-name">{med.name}</div>
+                    <div className="hrt-women-med-forms">{med.forms}</div>
+                  </div>
+                  <div className="hrt-women-med-desc">{med.desc}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="hrt-women-note hrt-animate">
+              <p>All medications are included in the $250/month membership. Your provider will recommend the right combination based on your labs and how you feel &mdash; and adjust as needed over time.</p>
             </div>
           </div>
         </section>
@@ -1032,6 +1148,134 @@ export default function HormoneOptimization() {
           border-color: rgba(255, 255, 255, 0.6);
         }
 
+        /* Women's Symptoms */
+        .hrt-women-symptoms {
+          margin-top: 2.5rem;
+        }
+
+        .hrt-women-symptoms-label {
+          font-size: 0.6875rem;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #808080;
+          margin-bottom: 1rem;
+        }
+
+        .hrt-tags-grid-light {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.625rem;
+        }
+
+        .hrt-tag-pill-light {
+          font-size: 0.8125rem;
+          font-weight: 600;
+          padding: 0.75rem 1.5rem;
+          border: 1px solid #e0e0e0;
+          background: #fafafa;
+          color: #171717;
+          transition: all 0.2s ease;
+        }
+
+        .hrt-tag-pill-light:hover {
+          border-color: #171717;
+        }
+
+        /* Life Stages */
+        .hrt-life-stages {
+          margin-top: 1rem;
+        }
+
+        .hrt-life-stage-item {
+          display: flex;
+          gap: 1.5rem;
+          padding: 1.75rem 0;
+          border-bottom: 1px solid #e0e0e0;
+          align-items: flex-start;
+        }
+
+        .hrt-life-stage-item:last-child {
+          border-bottom: none;
+        }
+
+        .hrt-life-stage-age {
+          font-size: 1.25rem;
+          font-weight: 900;
+          color: #808080;
+          min-width: 50px;
+          letter-spacing: -0.02em;
+        }
+
+        .hrt-life-stage-content h3 {
+          font-size: 1.0625rem;
+          font-weight: 700;
+          color: #171717;
+          margin-bottom: 0.375rem;
+        }
+
+        .hrt-life-stage-content p {
+          font-size: 0.875rem;
+          color: #737373;
+          line-height: 1.7;
+        }
+
+        /* Women's Medications */
+        .hrt-women-meds-list {
+          margin-top: 2.5rem;
+        }
+
+        .hrt-women-med-item {
+          padding: 1.75rem 0;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .hrt-women-med-item:last-child {
+          border-bottom: none;
+        }
+
+        .hrt-women-med-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: baseline;
+          margin-bottom: 0.5rem;
+        }
+
+        .hrt-women-med-name {
+          font-size: 1.125rem;
+          font-weight: 700;
+          color: #ffffff;
+        }
+
+        .hrt-women-med-forms {
+          font-size: 0.75rem;
+          font-weight: 600;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          color: rgba(255, 255, 255, 0.35);
+        }
+
+        .hrt-women-med-desc {
+          font-size: 0.875rem;
+          color: rgba(255, 255, 255, 0.55);
+          line-height: 1.7;
+          max-width: 600px;
+        }
+
+        .hrt-women-note {
+          margin-top: 2.5rem;
+          padding: 1.5rem 2rem;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: rgba(255, 255, 255, 0.03);
+        }
+
+        .hrt-women-note p {
+          font-size: 0.9375rem;
+          color: rgba(255, 255, 255, 0.7);
+          line-height: 1.7;
+          margin: 0;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
           .hrt-section,
@@ -1085,6 +1329,16 @@ export default function HormoneOptimization() {
 
           .hrt-cta-buttons {
             flex-direction: column;
+          }
+
+          .hrt-life-stage-item {
+            flex-direction: column;
+            gap: 0.5rem;
+          }
+
+          .hrt-women-med-header {
+            flex-direction: column;
+            gap: 0.25rem;
           }
         }
       `}</style>

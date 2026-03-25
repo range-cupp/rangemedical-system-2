@@ -68,6 +68,9 @@ function daysUntilEnd(endDate) {
 }
 
 export default async function handler(req, res) {
+  // DISABLED — All peptide check-in automations stopped per Chris (2026-03-25)
+  return res.status(200).json({ disabled: true, reason: 'Peptide check-in automations disabled' });
+
   // Verify cron authorization
   const cronSecret = req.headers['x-cron-secret'] || req.query.secret;
   const authHeader = req.headers['authorization'];

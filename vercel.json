@@ -26,10 +26,6 @@
       "schedule": "0 16 * * *"
     },
     {
-      "path": "/api/cron/peptide-reminders",
-      "schedule": "0 16 * * *"
-    },
-    {
       "path": "/api/cron/hrt-lab-reminders",
       "schedule": "0 16 * * *"
     },

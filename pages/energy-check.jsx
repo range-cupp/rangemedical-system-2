@@ -4,8 +4,11 @@
 
 import Layout from '../components/Layout';
 import Head from 'next/head';
+import Script from 'next/script';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
+
+const META_PIXEL_ID = '4295373617400545';
 
 const QUESTIONS = [
   {
@@ -210,6 +213,7 @@ export default function EnergyCheckPage() {
     }
     setError('');
     setStep('quiz');
+    if (typeof fbq === 'function') fbq('track', 'Lead', { content_name: 'energy-check-start' });
     setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
   };
 
@@ -288,6 +292,7 @@ export default function EnergyCheckPage() {
       setScore(computedScore);
       setSeverity(computedSeverity);
       setStep('results');
+      if (typeof fbq === 'function') fbq('track', 'CompleteRegistration', { content_name: 'energy-check-complete', value: computedScore, status: computedSeverity });
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
     } catch (err) {
       console.error('Submit error:', err);
@@ -310,6 +315,24 @@ export default function EnergyCheckPage() {
 
   return (
     <Layout title="Energy & Recovery Check | Range Medical" description="Take the free 3-minute Energy & Recovery Check. Find out why you feel tired, foggy, or slow to recover.">
+      <Script
+        id="meta-pixel"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{
+          __html: `
+            !function(f,b,e,v,n,t,s)
+            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+            n.queue=[];t=b.createElement(e);t.async=!0;
+            t.src=v;s=b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t,s)}(window, document,'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+            fbq('init', '${META_PIXEL_ID}');
+            fbq('track', 'PageView');
+          `,
+        }}
+      />
       <Head>
         <style>{`
           .ec-page { color: #171717; }
@@ -407,9 +430,11 @@ export default function EnergyCheckPage() {
             margin: 20px 0 24px;
           }
           .ec-consent input[type="checkbox"] {
-            margin-top: 3px;
-            width: 18px;
-            height: 18px;
+            margin-top: 0;
+            width: 24px;
+            height: 24px;
+            min-width: 24px;
+            min-height: 24px;
             accent-color: #171717;
             flex-shrink: 0;
           }
@@ -544,11 +569,19 @@ export default function EnergyCheckPage() {
           }
           .ec-slider-input::-webkit-slider-thumb {
             -webkit-appearance: none;
-            width: 28px;
-            height: 28px;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
             background: #1a1a1a;
             cursor: pointer;
+          }
+          .ec-slider-input::-moz-range-thumb {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #1a1a1a;
+            cursor: pointer;
+            border: none;
           }
           .ec-slider-value {
             text-align: center;
@@ -686,6 +719,77 @@ export default function EnergyCheckPage() {
             line-height: 1.5;
           }
 
+          /* Trust bar (landing) */
+          .ec-trust-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            padding: 0 2rem 8px;
+            max-width: 680px;
+            margin: 0 auto;
+          }
+          .ec-trust-item {
+            font-size: 13px;
+            color: #737373;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+          }
+          .ec-trust-item strong {
+            color: #171717;
+          }
+          .ec-stars {
+            color: #F59E0B;
+            font-size: 14px;
+            letter-spacing: 1px;
+          }
+
+          /* Testimonial */
+          .ec-testimonial {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 0 2rem;
+          }
+          .ec-testimonial-card {
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
+            padding: 20px 24px;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #525252;
+            font-style: italic;
+          }
+          .ec-testimonial-attr {
+            font-style: normal;
+            font-size: 13px;
+            color: #a3a3a3;
+            margin-top: 10px;
+          }
+
+          /* Sticky mobile CTA */
+          .ec-sticky-cta {
+            display: none;
+          }
+          @media (max-width: 640px) {
+            .ec-sticky-cta {
+              display: block;
+              position: fixed;
+              bottom: 0;
+              left: 0;
+              right: 0;
+              background: #fff;
+              border-top: 1px solid #e0e0e0;
+              padding: 12px 20px;
+              padding-bottom: max(12px, env(safe-area-inset-bottom));
+              z-index: 50;
+            }
+            .ec-results-section {
+              padding-bottom: 100px;
+            }
+          }
+
           /* Responsive */
           @media (max-width: 640px) {
             .ec-hero { padding: 4rem 2rem 2rem; }
@@ -713,6 +817,16 @@ export default function EnergyCheckPage() {
               <h1>Energy & Recovery Check</h1>
               <div className="ec-hero-rule" />
               <p>Find out why you feel tired, foggy, or slow to recover — and what to do about it in the next 30 days.</p>
+            </div>
+
+            <div className="ec-trust-bar">
+              <div className="ec-trust-item">
+                <span className="ec-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+                <strong>4.9 stars</strong> on Google
+              </div>
+              <div className="ec-trust-item">
+                Newport Beach &middot; Board-certified providers
+              </div>
             </div>
 
             <div className="ec-form-section">
@@ -777,6 +891,13 @@ export default function EnergyCheckPage() {
 
               <div style={{ textAlign: 'center', marginTop: 24, fontSize: 13, color: '#a3a3a3' }}>
                 No cost. No obligation. Results in 3 minutes.
+              </div>
+            </div>
+
+            <div className="ec-testimonial">
+              <div className="ec-testimonial-card">
+                &ldquo;I had no idea my levels were that off. Range found things my regular doctor never tested for — and I started feeling different within weeks.&rdquo;
+                <div className="ec-testimonial-attr">&mdash; Range Medical patient, Newport Beach</div>
               </div>
             </div>
           </div>
@@ -873,6 +994,17 @@ export default function EnergyCheckPage() {
                 <p>{severityInfo.description}</p>
               </div>
 
+              {/* Trust strip on results */}
+              <div className="ec-trust-bar" style={{ paddingBottom: 24 }}>
+                <div className="ec-trust-item">
+                  <span className="ec-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+                  <strong>4.9 stars</strong> on Google
+                </div>
+                <div className="ec-trust-item">
+                  Physician-led &middot; 500+ patients
+                </div>
+              </div>
+
               {/* Tips */}
               {tips.length > 0 && (
                 <div className="ec-tips">
@@ -924,7 +1056,18 @@ export default function EnergyCheckPage() {
 
               <div className="ec-trust">
                 <p>Range Medical &middot; Newport Beach, CA<br/>No cost for the check. No obligation to book.</p>
+                <p style={{ marginTop: 8 }}>
+                  Questions? Call or text{' '}
+                  <a href="tel:+19499973988" style={{ color: '#737373' }}>(949) 997-3988</a>
+                </p>
               </div>
+            </div>
+
+            {/* Sticky mobile CTA */}
+            <div className="ec-sticky-cta">
+              <a href={ctaUrl} style={{ textDecoration: 'none' }}>
+                <button className="ec-btn">{ctaLabel}</button>
+              </a>
             </div>
           </div>
         )}

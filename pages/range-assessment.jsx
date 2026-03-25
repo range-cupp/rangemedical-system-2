@@ -3042,7 +3042,7 @@ export default function RangeAssessment() {
                 <p className="ra-step-desc">
                   {selectedPath === 'energy'
                     ? "Answer a few questions and we'll show you exactly which lab markers matter for your situation."
-                    : "This short assessment helps us understand your situation so we can recommend the best treatment options for you."
+                    : "This short assessment helps us understand your situation so your provider can evaluate the best options during your visit."
                   }
                 </p>
 
@@ -3222,6 +3222,8 @@ export default function RangeAssessment() {
                     </svg>
                   </button>
                 </div>
+
+                <p className="ra-survey-disclaimer">This assessment is for informational purposes only and is not a medical diagnosis. A provider will evaluate your needs in person.</p>
               </div>
             )}
 
@@ -3846,6 +3848,15 @@ const styles = `
       width: 100%;
       justify-content: center;
     }
+  }
+
+  .ra-survey-disclaimer {
+    font-size: 0.8125rem;
+    color: #a3a3a3;
+    font-style: italic;
+    line-height: 1.6;
+    margin-top: 1.25rem;
+    text-align: center;
   }
 `;
 

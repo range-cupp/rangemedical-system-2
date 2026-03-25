@@ -1207,6 +1207,17 @@ export default function PaymentsPage() {
                                       </Link>
                                     </div>
                                   )}
+                                  {inv.status === 'paid' && (
+                                    <div style={{ marginTop: '10px' }}>
+                                      <button
+                                        onClick={() => window.open(`/api/receipt/invoice/${inv.id}`, '_blank')}
+                                        style={styles.printReceiptBtn}
+                                        title="Print receipt"
+                                      >
+                                        🖨️ Print Receipt
+                                      </button>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </td>
@@ -2421,6 +2432,16 @@ const styles = {
     color: '#2563eb',
     fontWeight: '600',
     textDecoration: 'none',
+  },
+  printReceiptBtn: {
+    padding: '6px 14px',
+    fontSize: '13px',
+    fontWeight: '500',
+    color: '#374151',
+    background: '#f3f4f6',
+    border: '1px solid #d1d5db',
+    borderRadius: '4px',
+    cursor: 'pointer',
   },
   link: {
     display: 'inline-block',

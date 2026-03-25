@@ -346,14 +346,23 @@ function PurchasesInner({ embedded } = {}) {
                         <span style={styles.amount}>${displayAmt(purchase).toFixed(2)}</span>
                       </td>
                       <td style={styles.td}>
-                        <button
-                          onClick={() => resendReceipt(purchase.id)}
-                          disabled={resendingReceipt === purchase.id}
-                          style={styles.receiptBtn}
-                          title="Resend receipt email"
-                        >
-                          {resendingReceipt === purchase.id ? '...' : '📧'}
-                        </button>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <button
+                            onClick={() => resendReceipt(purchase.id)}
+                            disabled={resendingReceipt === purchase.id}
+                            style={styles.receiptBtn}
+                            title="Resend receipt email"
+                          >
+                            {resendingReceipt === purchase.id ? '...' : '📧'}
+                          </button>
+                          <button
+                            onClick={() => window.open(`/api/receipt/${purchase.id}`, '_blank')}
+                            style={styles.receiptBtn}
+                            title="Print receipt"
+                          >
+                            🖨️
+                          </button>
+                        </div>
                       </td>
                       <td style={styles.td}>
                         {editingShipping === purchase.id ? (

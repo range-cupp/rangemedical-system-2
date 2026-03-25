@@ -779,7 +779,7 @@ export default function MethyleneBlue() {
         }
 
         .mb-option-details li::before {
-          content: '\\2713';
+          content: '✓';
           position: absolute;
           left: 0;
           color: #808080;

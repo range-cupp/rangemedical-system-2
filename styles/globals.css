@@ -960,19 +960,32 @@ p {
   background: #1a1a1a;
   padding: 6rem 2rem;
   text-align: center;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .final-cta h2 {
-  color: #ffffff;
+  color: #ffffff !important;
   margin-bottom: 1.5rem;
 }
 
-.final-cta .container > p {
-  color: #737373;
+.final-cta h3 {
+  color: #ffffff !important;
+}
+
+.final-cta p {
+  color: rgba(255, 255, 255, 0.7) !important;
   margin-bottom: 2.5rem;
   max-width: 480px;
   margin-left: auto;
   margin-right: auto;
+}
+
+.final-cta a {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.final-cta a:hover {
+  color: #ffffff;
 }
 
 .final-cta .hero-rule,
@@ -985,7 +998,7 @@ p {
 
 .cta-location {
   margin-top: 2rem;
-  color: #525252 !important;
+  color: rgba(255, 255, 255, 0.6) !important;
   font-size: 13px;
   letter-spacing: 0.03em;
 }
@@ -1004,7 +1017,7 @@ p {
 
 .cta-secondary {
   margin-top: 1.5rem;
-  color: #525252 !important;
+  color: rgba(255, 255, 255, 0.5) !important;
   font-size: 13px;
 }
 
@@ -1477,6 +1490,15 @@ p {
 
 .home-section-inverted h2 {
   color: #ffffff;
+}
+
+.home-section-inverted p,
+.home-section-inverted .home-section-intro {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.home-section-inverted .home-section-label {
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .home-container {

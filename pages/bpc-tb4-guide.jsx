@@ -378,7 +378,7 @@ export default function BPCTB4Guide() {
         }
 
         .info-card li::before {
-          content: "\\2713";
+          content: "✓";
           position: absolute;
           left: 0;
           color: #808080;
@@ -590,7 +590,7 @@ export default function BPCTB4Guide() {
         }
 
         .safety-card.warning li::before {
-          content: "\\2715";
+          content: "✕";
           position: absolute;
           left: 0;
           color: #171717;
@@ -598,7 +598,7 @@ export default function BPCTB4Guide() {
         }
 
         .safety-card.effects li::before {
-          content: "\\2022";
+          content: "•";
           position: absolute;
           left: 0;
           color: #808080;

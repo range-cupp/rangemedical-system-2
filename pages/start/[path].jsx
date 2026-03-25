@@ -335,7 +335,7 @@ export default function StartThankYou() {
             list-style: none;
           }
           .ty-panel-includes li::before {
-            content: "\\2013  ";
+            content: "–  ";
             color: #808080;
             font-weight: 700;
           }
@@ -472,7 +472,7 @@ export default function StartThankYou() {
             padding: 2px 0;
           }
           .ty-panel-who li::before {
-            content: "\\2013  ";
+            content: "–  ";
             color: #808080;
           }
 

@@ -1018,6 +1018,15 @@ export default function PeptideTherapy() {
           transform: translateX(4px);
         }
 
+        /* Final CTA text visibility on dark background */
+        :global(.final-cta) h2 {
+          color: #ffffff;
+        }
+
+        :global(.final-cta) p {
+          color: rgba(255, 255, 255, 0.5);
+        }
+
         /* CTA buttons in final-cta */
         .pep-cta-buttons {
           display: flex;

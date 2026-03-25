@@ -546,6 +546,19 @@ export default function InjectionTherapy() {
           background: rgba(255, 255, 255, 0.12);
         }
 
+        .inj-section-inverted :global(.v2-label) {
+          color: rgba(255, 255, 255, 0.45);
+        }
+
+        .inj-section-inverted :global(.v2-dot) {
+          background: rgba(255, 255, 255, 0.45);
+        }
+
+        .inj-section-inverted p,
+        .inj-section-inverted .inj-cta-section p {
+          color: rgba(255, 255, 255, 0.55);
+        }
+
         /* Hero */
         .inj-hero {
           padding: 6rem 2rem 7rem;
@@ -810,7 +823,7 @@ export default function InjectionTherapy() {
         }
 
         .inj-package-list li::before {
-          content: '\u2013';
+          content: '–';
           position: absolute;
           left: 0;
           color: #808080;

@@ -829,7 +829,7 @@ export default function CellularEnergyReset() {
           }
 
           .cer-pricing-features li::before {
-            content: "\\2713";
+            content: "✓";
             position: absolute;
             left: 0;
             color: #808080;
@@ -932,7 +932,7 @@ export default function CellularEnergyReset() {
           }
 
           .cer-bestfor-list li::before {
-            content: "\\2192";
+            content: "→";
             position: absolute;
             left: 0;
             color: #808080;

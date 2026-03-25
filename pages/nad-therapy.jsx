@@ -565,6 +565,19 @@ export default function NADTherapy() {
           background: rgba(255, 255, 255, 0.12);
         }
 
+        .nad-section-inverted :global(.v2-label) {
+          color: rgba(255, 255, 255, 0.45);
+        }
+
+        .nad-section-inverted :global(.v2-dot) {
+          background: rgba(255, 255, 255, 0.45);
+        }
+
+        .nad-section-inverted p,
+        .nad-section-inverted li {
+          color: rgba(255, 255, 255, 0.55);
+        }
+
         /* Hero */
         .nad-hero {
           padding: 6rem 2rem 7rem;
@@ -791,7 +804,7 @@ export default function NADTherapy() {
         }
 
         .nad-protocol-details li::before {
-          content: "\u2013";
+          content: "–";
           position: absolute;
           left: 0;
           color: #808080;

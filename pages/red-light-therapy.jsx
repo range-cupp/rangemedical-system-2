@@ -1199,7 +1199,7 @@ export default function RedLightTherapy() {
         }
 
         .rlt-pricing-membership-features li::before {
-          content: "\u2013";
+          content: "–";
           position: absolute;
           left: 0;
           color: #808080;

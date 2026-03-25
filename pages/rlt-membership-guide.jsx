@@ -362,14 +362,14 @@ export default function RLTMembershipGuide() {
           line-height: 1.5;
         }
         .safety-card.warning li::before {
-          content: "\\2715";
+          content: "✕";
           position: absolute;
           left: 0;
           color: #171717;
           font-weight: 600;
         }
         .safety-card.effects li::before {
-          content: "\\2022";
+          content: "•";
           position: absolute;
           left: 0;
           color: #808080;

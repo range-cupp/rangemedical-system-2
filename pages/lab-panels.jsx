@@ -564,6 +564,104 @@ export default function LabPanels() {
           </div>
         </section>
 
+        {/* Decision Guide Section */}
+        <section id="lab-decide" className={`lp-section lab-animate ${isVisible['lab-decide'] ? 'lab-visible' : ''}`}>
+          <div className="lp-container">
+            <div className="v2-label"><span className="v2-dot" /> NOT SURE?</div>
+            <h2>FIND YOUR PANEL<br />IN 10 SECONDS</h2>
+            <p className="lp-section-intro">
+              Tell us why you&apos;re here and we&apos;ll point you to the right panel.
+            </p>
+
+            <div className="lp-decide-grid">
+              {[
+                { scenario: "\u201cI want testosterone\u201d or \u201cI need HRT\u201d", panel: "essential", reason: "Covers total & free T, SHBG, estradiol, thyroid, and metabolic markers." },
+                { scenario: "\u201cI want to lose weight\u201d or GLP-1", panel: "essential", reason: "Covers insulin, A1c, lipids, thyroid \u2014 everything needed to prescribe." },
+                { scenario: "\u201cI just want to see where I\u2019m at\u201d", panel: "essential", reason: "Great starting point. You can always upgrade to Elite next time." },
+                { scenario: "Family history of heart disease", panel: "elite", reason: "Apo B, Lp(a), and homocysteine are must-haves for hereditary risk." },
+                { scenario: "\u201cI want the full longevity workup\u201d", panel: "elite", reason: "This IS the longevity workup \u2014 Apo B, Lp(a), CRP-HS, IGF-1, and minerals." },
+                { scenario: "\u201cI\u2019m always tired and don\u2019t know why\u201d", panel: "elite", reason: "Could be hormones, thyroid, iron, B12, cortisol, or inflammation." },
+                { scenario: "Interested in Apo B, Lp(a), or specific markers", panel: "elite", reason: "You\u2019ve done the research. Get the panel that includes what you came for." },
+                { scenario: "Biohacker / optimization / longevity-focused", panel: "elite", reason: "Same workup that longevity specialists order." },
+                { scenario: "\u201cWhat do you recommend?\u201d / Not sure yet", panel: "essential", reason: "Start with Essential. You can run Elite on follow-up if you want to go deeper." },
+              ].map((item, i) => (
+                <div key={i} className="lp-decide-row">
+                  <div className="lp-decide-scenario">{item.scenario}</div>
+                  <div className={`lp-decide-tag ${item.panel === 'elite' ? 'lp-decide-tag-elite' : ''}`}>
+                    {item.panel === 'elite' ? 'ELITE' : 'ESSENTIAL'}
+                  </div>
+                  <div className="lp-decide-reason">{item.reason}</div>
+                </div>
+              ))}
+            </div>
+
+            <p className="lp-decide-note">
+              Both panels qualify you for every treatment at Range Medical. The Essential gives you what you need; the Elite gives you the full picture.
+            </p>
+          </div>
+        </section>
+
+        {/* Key Markers Section */}
+        <section id="lab-markers" className={`lp-section-alt lab-animate ${isVisible['lab-markers'] ? 'lab-visible' : ''}`}>
+          <div className="lp-container">
+            <div className="v2-label"><span className="v2-dot" /> ELITE MARKERS</div>
+            <h2>THE THREE MARKERS<br />MOST DOCTORS MISS</h2>
+            <p className="lp-section-intro">
+              These are the markers longevity specialists consider essential &mdash; and they&apos;re only in the Elite panel.
+            </p>
+
+            <div className="lp-markers-grid">
+              <div className="lp-marker-card">
+                <div className="lp-marker-card-label">ELITE ONLY</div>
+                <h4>Apolipoprotein B (Apo B)</h4>
+                <p className="lp-marker-card-desc">
+                  Counts the number of particles carrying cholesterol into your artery walls. A better predictor of heart disease than standard LDL cholesterol.
+                </p>
+                <div className="lp-marker-card-plain">
+                  <span className="lp-marker-card-plain-label">In plain English</span>
+                  &ldquo;How many trucks are delivering cholesterol to your arteries?&rdquo;
+                </div>
+              </div>
+
+              <div className="lp-marker-card">
+                <div className="lp-marker-card-label">ELITE ONLY</div>
+                <h4>Lipoprotein(a) &mdash; Lp(a)</h4>
+                <p className="lp-marker-card-desc">
+                  A genetic cardiovascular risk factor you can&apos;t change with diet or exercise. The strongest independent predictor of heart attack and stroke.
+                </p>
+                <div className="lp-marker-card-plain">
+                  <span className="lp-marker-card-plain-label">In plain English</span>
+                  &ldquo;A genetic risk factor that can only be found with a blood test.&rdquo;
+                </div>
+              </div>
+
+              <div className="lp-marker-card">
+                <div className="lp-marker-card-label">ELITE ONLY</div>
+                <h4>Apolipoprotein A-1 (Apo A)</h4>
+                <p className="lp-marker-card-desc">
+                  Measures your HDL function &mdash; your body&apos;s ability to remove cholesterol from artery walls. Higher levels are protective.
+                </p>
+                <div className="lp-marker-card-plain">
+                  <span className="lp-marker-card-plain-label">In plain English</span>
+                  &ldquo;How good is your body at cleaning up cholesterol?&rdquo;
+                </div>
+              </div>
+            </div>
+
+            <div className="lp-markers-cta">
+              <a
+                href={stripeLinks.elite[activeTab]}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="lp-btn"
+              >
+                BOOK ELITE &mdash; $750
+              </a>
+              <p>Includes all Essential markers + 20 advanced biomarkers</p>
+            </div>
+          </div>
+        </section>
+
         {/* Process Section */}
         <section id="lab-process" className={`lp-section lab-animate ${isVisible['lab-process'] ? 'lab-visible' : ''}`}>
           <div className="lp-container">
@@ -1438,6 +1536,148 @@ export default function LabPanels() {
             letter-spacing: 0.05em;
           }
 
+          /* Decision Guide */
+          .lp-decide-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            max-width: 800px;
+            margin: 0 auto;
+            border: 1px solid #e0e0e0;
+            background: #ffffff;
+          }
+
+          .lp-decide-row {
+            display: grid;
+            grid-template-columns: 1fr 80px 1fr;
+            align-items: center;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.15s;
+          }
+
+          .lp-decide-row:last-child {
+            border-bottom: none;
+          }
+
+          .lp-decide-row:hover {
+            background: #fafafa;
+          }
+
+          .lp-decide-scenario {
+            padding: 0.875rem 1.25rem;
+            font-size: 0.9375rem;
+            color: #1a1a1a;
+            font-weight: 500;
+          }
+
+          .lp-decide-tag {
+            text-align: center;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            color: #737373;
+            padding: 0.25rem 0.5rem;
+          }
+
+          .lp-decide-tag-elite {
+            color: #2E6B35;
+          }
+
+          .lp-decide-reason {
+            padding: 0.875rem 1.25rem;
+            font-size: 0.875rem;
+            color: #737373;
+            line-height: 1.5;
+            border-left: 1px solid #f0f0f0;
+          }
+
+          .lp-decide-note {
+            max-width: 800px;
+            margin: 1.5rem auto 0;
+            text-align: center;
+            font-size: 0.9375rem;
+            color: #737373;
+            line-height: 1.6;
+            padding: 1.25rem;
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
+          }
+
+          /* Key Markers */
+          .lp-markers-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            max-width: 900px;
+            margin: 0 auto;
+          }
+
+          .lp-marker-card {
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
+            padding: 2rem 1.5rem;
+            position: relative;
+            transition: border-color 0.2s;
+          }
+
+          .lp-marker-card:hover {
+            border-color: #2E6B35;
+          }
+
+          .lp-marker-card-label {
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            color: #2E6B35;
+            margin-bottom: 1rem;
+          }
+
+          .lp-marker-card h4 {
+            font-size: 1.0625rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin: 0 0 0.75rem;
+            line-height: 1.3;
+          }
+
+          .lp-marker-card-desc {
+            font-size: 0.875rem;
+            color: #737373;
+            line-height: 1.6;
+            margin: 0 0 1.25rem;
+          }
+
+          .lp-marker-card-plain {
+            padding-top: 1rem;
+            border-top: 1px solid #f0f0f0;
+            font-size: 0.875rem;
+            color: #1a1a1a;
+            font-style: italic;
+            line-height: 1.5;
+          }
+
+          .lp-marker-card-plain-label {
+            display: block;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #737373;
+            font-style: normal;
+            margin-bottom: 0.375rem;
+          }
+
+          .lp-markers-cta {
+            text-align: center;
+            margin-top: 2.5rem;
+          }
+
+          .lp-markers-cta p {
+            margin-top: 0.75rem;
+            font-size: 0.875rem;
+            color: #737373;
+          }
+
           /* Responsive */
           @media (max-width: 900px) {
             .lp-signs-grid {
@@ -1450,6 +1690,32 @@ export default function LabPanels() {
 
             .lp-process-grid {
               grid-template-columns: repeat(2, 1fr);
+            }
+
+            .lp-markers-grid {
+              grid-template-columns: 1fr;
+              max-width: 500px;
+              margin: 0 auto;
+            }
+
+            .lp-decide-row {
+              grid-template-columns: 1fr;
+              gap: 0;
+            }
+
+            .lp-decide-scenario {
+              padding: 0.875rem 1.25rem 0.25rem;
+            }
+
+            .lp-decide-tag {
+              text-align: left;
+              padding: 0.25rem 1.25rem;
+            }
+
+            .lp-decide-reason {
+              border-left: none;
+              border-top: none;
+              padding: 0.25rem 1.25rem 0.875rem;
             }
           }
 

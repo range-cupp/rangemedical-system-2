@@ -2,9 +2,12 @@
 // Patients List with enrichment data, sort, status, and quick actions - Range Medical
 
 import { useState, useEffect, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { formatPhone } from '../../lib/format-utils';
 import Link from 'next/link';
-import AdminLayout from '../../components/AdminLayout';
+import AdminLayout, { overlayClickProps } from '../../components/AdminLayout';
+
+const ConversationView = dynamic(() => import('../../components/ConversationView'), { ssr: false });
 
 export default function PatientsList() {
   const [loading, setLoading] = useState(true);
@@ -19,6 +22,9 @@ export default function PatientsList() {
   const [addForm, setAddForm] = useState({ firstName: '', lastName: '', email: '', phone: '', dateOfBirth: '' });
   const [addSaving, setAddSaving] = useState(false);
   const [addError, setAddError] = useState('');
+
+  // SMS panel state
+  const [smsPatient, setSmsPatient] = useState(null);
 
   // Merge modal state
   const [showMergeModal, setShowMergeModal] = useState(false);
@@ -594,14 +600,17 @@ export default function PatientsList() {
                   {/* Quick actions */}
                   <div style={styles.quickActions}>
                     {patient.phone && (
-                      <a
-                        href={`sms:${patient.phone}`}
+                      <button
                         style={styles.quickBtn}
                         title="Send text"
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          setSmsPatient(patient);
+                        }}
                       >
                         SMS
-                      </a>
+                      </button>
                     )}
                     <Link
                       href={`/patients/${patient.id}`}
@@ -876,6 +885,20 @@ export default function PatientsList() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+      {/* SMS Slide-out Panel */}
+      {smsPatient && (
+        <div style={styles.smsOverlay} {...overlayClickProps(() => setSmsPatient(null))}>
+          <div style={styles.smsPanel} onClick={(e) => e.stopPropagation()}>
+            <ConversationView
+              patientId={smsPatient.id}
+              patientName={getDisplayName(smsPatient)}
+              patientPhone={smsPatient.phone}
+              ghlContactId={smsPatient.ghl_contact_id}
+              onBack={() => setSmsPatient(null)}
+            />
           </div>
         </div>
       )}
@@ -1366,5 +1389,28 @@ const styles = {
     fontSize: '14px',
     fontWeight: '600',
     cursor: 'pointer'
-  }
+  },
+
+  // SMS panel
+  smsOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0,0,0,0.4)',
+    zIndex: 1000,
+    display: 'flex',
+    justifyContent: 'flex-end',
+  },
+  smsPanel: {
+    width: '480px',
+    maxWidth: '100vw',
+    height: '100vh',
+    background: '#fff',
+    boxShadow: '-4px 0 24px rgba(0,0,0,0.15)',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+  },
 };

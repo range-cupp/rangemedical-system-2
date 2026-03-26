@@ -549,7 +549,6 @@ async function handlePut(req, res) {
 
   try {
     const updateData = {
-      entry_type: entry_type || 'injection',
       entry_date: entry_date || null,
       medication: medication || null,
       dosage: dosage || null,
@@ -559,6 +558,11 @@ async function handlePut(req, res) {
       duration: duration ? parseInt(duration) : null,
       notes: notes || null,
     };
+
+    // Only update entry_type if explicitly provided — don't default to 'injection'
+    if (entry_type) {
+      updateData.entry_type = entry_type;
+    }
 
     // Add fulfillment fields if provided
     if (fulfillment_method !== undefined) {

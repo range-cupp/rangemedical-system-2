@@ -479,7 +479,7 @@ export default function RedLightTherapy() {
                 <li>Before &amp; after comparison at the end</li>
                 <li>No commitment — just show up and see</li>
               </ul>
-              <Link href="/rlt-trial" className="rlt-trial-btn">Start Your Trial</Link>
+              <a href="/rlt-trial" style={{ display: 'inline-block', background: '#c53030', color: '#ffffff', fontSize: '0.9375rem', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', textDecoration: 'none', padding: '1rem 2.5rem', borderRadius: 8, transition: 'background 0.2s ease' }}>Start Your Trial</a>
               <div className="rlt-trial-note">Pay online, walk in any time during business hours.</div>
             </div>
           </div>

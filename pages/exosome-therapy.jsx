@@ -221,7 +221,7 @@ export default function ExosomeTherapy() {
             <span className="trust-rating">★★★★★</span> 5.0 on Google
           </span>
           <span className="trust-item">Newport Beach, CA</span>
-          <span className="trust-item">Licensed Providers</span>
+          <span className="trust-item">Board-Certified Providers</span>
         </div>
       </div>
 

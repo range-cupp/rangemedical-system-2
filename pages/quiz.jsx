@@ -220,7 +220,7 @@ export default function Quiz() {
             <span className="quiz-trust-rating">★★★★★</span> 5.0 on Google
           </span>
           <span className="quiz-trust-item">📍 Newport Beach, CA</span>
-          <span className="quiz-trust-item">✓ Licensed Providers</span>
+          <span className="quiz-trust-item">✓ Board-Certified Providers</span>
         </div>
       </div>
 

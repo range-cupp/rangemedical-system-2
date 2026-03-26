@@ -24,7 +24,7 @@ export default function HormoneOptimization() {
       {/* Trust Bar */}
       <div className="trust-bar">
         <div className="trust-inner">
-          <span className="trust-item">✓ Licensed Providers</span>
+          <span className="trust-item">✓ Board-Certified Providers</span>
           <span className="trust-item">✓ Labs Before Treatment</span>
           <span className="trust-item">✓ Male & Female Protocols</span>
           <span className="trust-item">✓ Ongoing Monitoring</span>

@@ -252,7 +252,7 @@ export default function HyperbaricOxygenTherapy() {
             <span className="trust-rating">5.0</span> on Google
           </span>
           <span className="trust-item">Newport Beach, CA</span>
-          <span className="trust-item">Licensed Providers</span>
+          <span className="trust-item">Board-Certified Providers</span>
         </div>
       </div>
 

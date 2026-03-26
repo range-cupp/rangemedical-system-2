@@ -125,7 +125,7 @@ export default function LocationPage({ pageData, schemas, serviceSlug, citySlug 
             <span className="trust-rating">&#9733;&#9733;&#9733;&#9733;&#9733;</span> 5.0 on Google
           </span>
           <span className="trust-item">&#128205; Newport Beach, CA</span>
-          <span className="trust-item">&#10003; Licensed Providers</span>
+          <span className="trust-item">&#10003; Board-Certified Providers</span>
         </div>
       </div>
 

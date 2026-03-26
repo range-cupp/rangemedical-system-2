@@ -301,7 +301,7 @@ export default function LabPanels() {
               <span className="trust-rating">{'\u2605\u2605\u2605\u2605\u2605'}</span> 5.0 on Google
             </span>
             <span className="trust-item">Newport Beach, CA</span>
-            <span className="trust-item">Licensed Providers</span>
+            <span className="trust-item">Board-Certified Providers</span>
           </div>
         </div>
 

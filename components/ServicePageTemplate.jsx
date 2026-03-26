@@ -11,7 +11,7 @@ import { useState } from 'react';
  * - badge: string (e.g., "Hormone Therapy", "Weight Loss")
  * - title: string
  * - subtitle: string
- * - trustBadge: string (optional, defaults to "Licensed Providers")
+ * - trustBadge: string (optional, defaults to "Board-Certified Providers")
  * - ctaText: string (default: "Start Now")
  * - ctaLink: string (default: "/book")
  * - ctaSecondary: string (optional secondary text below CTA)
@@ -28,7 +28,7 @@ export default function ServicePageTemplate({
   badge,
   title,
   subtitle,
-  trustBadge = "Licensed Providers",
+  trustBadge = "Board-Certified Providers",
   ctaText = "Start Now",
   ctaLink = "/book",
   ctaSecondary,

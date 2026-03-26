@@ -121,6 +121,7 @@ export default function RLTTrial() {
 
       if (payData.clientSecret) {
         setClientSecret(payData.clientSecret);
+        if (typeof fbq === 'function') fbq('track', 'Lead', { content_name: 'rlt-trial', value: 49.00, currency: 'USD' });
         setStep('payment');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
@@ -149,6 +150,7 @@ export default function RLTTrial() {
     } catch (e) {
       console.error('Checkout complete error:', e);
     }
+    if (typeof fbq === 'function') fbq('track', 'Purchase', { content_name: 'rlt-trial', value: 49.00, currency: 'USD' });
     setStep('done');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };

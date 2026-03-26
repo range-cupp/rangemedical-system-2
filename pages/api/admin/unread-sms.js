@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Count unread inbound SMS
+    // Count unread inbound SMS (raw message count)
     const { count, error: countError } = await supabase
       .from('comms_log')
       .select('*', { count: 'exact', head: true })
@@ -27,6 +27,18 @@ export default async function handler(req, res) {
     if (countError) {
       console.error('Unread count error:', countError);
       return res.status(500).json({ error: countError.message });
+    }
+
+    // Count unique conversations needing response (what the badge should show)
+    const { data: needsResponseRows, error: nrError } = await supabase
+      .from('comms_log')
+      .select('patient_id')
+      .eq('needs_response', true);
+
+    let needsResponseCount = 0;
+    if (!nrError && needsResponseRows) {
+      const uniquePatients = new Set(needsResponseRows.map(r => r.patient_id).filter(Boolean));
+      needsResponseCount = uniquePatients.size;
     }
 
     // Get the most recent unread message for notification preview
@@ -58,6 +70,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       count: count || 0,
+      needsResponseCount,
       latest,
     });
 

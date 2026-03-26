@@ -121,7 +121,8 @@ function useUnreadNotifications(router) {
         const newCount = data.count || 0;
         const prevCount = prevCountRef.current;
 
-        setUnreadCount(newCount);
+        // Badge shows conversations needing response (matches what the page displays)
+        setUnreadCount(data.needsResponseCount || 0);
 
         // New message arrived — play sound + show notifications
         if (newCount > prevCount && prevCount >= 0 && hasInteractedRef.current) {

@@ -4155,6 +4155,19 @@ export default function PatientProfile() {
                       const currentDose = protocol.dose || protocol.selected_dose || (wlLogs.length > 0 ? parseDose(wlLogs[wlLogs.length - 1].dosage) : null);
                       const pLogs = getProtocolLogsForId(protocol.id);
 
+                      // Activity summary: get ALL service logs for this protocol (any category)
+                      const protoServiceLogs = serviceLogs
+                        .filter(l => l.protocol_id === protocol.id)
+                        .sort((a, b) => b.entry_date.localeCompare(a.entry_date)); // newest first
+                      const lastInjection = protoServiceLogs.find(l => l.entry_type === 'injection');
+                      const lastSession = protoServiceLogs.find(l => l.entry_type === 'session');
+                      const lastPickup = protoServiceLogs.find(l => l.entry_type === 'pickup');
+                      const lastActivity = protoServiceLogs[0]; // most recent of any type
+                      const lastInClinic = protoServiceLogs.find(l => l.fulfillment_method === 'in_clinic' || l.entry_type === 'session' || (l.entry_type === 'injection' && l.fulfillment_method !== 'overnight'));
+                      const lastTakeHome = protoServiceLogs.find(l => l.entry_type === 'pickup' || l.fulfillment_method === 'overnight');
+                      const sessionsCompleted = protocol.sessions_used || protocol.sessions_completed || protoServiceLogs.filter(l => ['injection', 'session'].includes(l.entry_type)).length;
+                      const sessionsTotal = protocol.total_sessions || protocol.sessions_total;
+
                       return (
                         <div key={protocol.id} className="protocol-card" style={{
                           ...(protocol.status === 'completed' ? { opacity: 0.7 } : {}),
@@ -4221,6 +4234,81 @@ export default function PatientProfile() {
                             </div>
                           )}
                           <div className="protocol-dates">Started {formatShortDate(protocol.start_date)}{protocol.end_date && ` → ${formatShortDate(protocol.end_date)}`}</div>
+
+                          {/* Activity Summary — at-a-glance protocol status for staff */}
+                          {protocol.status === 'active' && protoServiceLogs.length > 0 && (
+                            <div style={{ margin: '8px 0 4px', padding: '10px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 0 }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: sessionsTotal ? '1fr 1fr 1fr' : '1fr 1fr', gap: '8px 16px', fontSize: '12px' }}>
+                                {/* Last injection/session */}
+                                {(lastInjection || lastSession) && (() => {
+                                  const last = lastInjection || lastSession;
+                                  const daysSince = Math.floor((new Date() - new Date(last.entry_date + 'T00:00:00')) / (1000 * 60 * 60 * 24));
+                                  return (
+                                    <div>
+                                      <div style={{ color: '#6b7280', fontWeight: 500, marginBottom: 2 }}>
+                                        Last {lastInjection ? 'Injection' : 'Session'}
+                                      </div>
+                                      <div style={{ fontWeight: 600, color: daysSince > 14 ? '#dc2626' : '#111' }}>
+                                        {formatShortDate(last.entry_date)}
+                                        <span style={{ fontWeight: 400, color: daysSince > 14 ? '#dc2626' : '#9ca3af', marginLeft: 4 }}>
+                                          ({daysSince === 0 ? 'today' : daysSince === 1 ? '1d ago' : `${daysSince}d ago`})
+                                        </span>
+                                      </div>
+                                      {last.dosage && <div style={{ color: '#6b7280', marginTop: 1 }}>{last.dosage}</div>}
+                                    </div>
+                                  );
+                                })()}
+                                {/* Last in-clinic vs take-home */}
+                                {lastInClinic && (
+                                  <div>
+                                    <div style={{ color: '#6b7280', fontWeight: 500, marginBottom: 2 }}>Last In-Clinic</div>
+                                    <div style={{ fontWeight: 600, color: '#111' }}>
+                                      {formatShortDate(lastInClinic.entry_date)}
+                                    </div>
+                                    {lastInClinic.administered_by && <div style={{ color: '#6b7280', marginTop: 1 }}>by {lastInClinic.administered_by}</div>}
+                                  </div>
+                                )}
+                                {lastTakeHome && (
+                                  <div>
+                                    <div style={{ color: '#6b7280', fontWeight: 500, marginBottom: 2 }}>
+                                      Last Take-Home
+                                    </div>
+                                    <div style={{ fontWeight: 600, color: '#111' }}>
+                                      {formatShortDate(lastTakeHome.entry_date)}
+                                      {lastTakeHome.fulfillment_method === 'overnight' && (
+                                        <span style={{ color: '#1e40af', fontWeight: 500, marginLeft: 4 }}>shipped</span>
+                                      )}
+                                      {lastTakeHome.entry_type === 'pickup' && (
+                                        <span style={{ color: '#166534', fontWeight: 500, marginLeft: 4 }}>picked up</span>
+                                      )}
+                                    </div>
+                                    {lastTakeHome.quantity && (
+                                      <div style={{ color: '#6b7280', marginTop: 1 }}>
+                                        {lastTakeHome.quantity} {lastTakeHome.quantity === 1 ? 'injection' : 'injections'}
+                                        {lastTakeHome.medication && ` — ${lastTakeHome.medication}`}
+                                      </div>
+                                    )}
+                                    {lastTakeHome.tracking_number && (
+                                      <div style={{ color: '#3b82f6', marginTop: 1 }}>Tracking: {lastTakeHome.tracking_number}</div>
+                                    )}
+                                  </div>
+                                )}
+                                {/* Sessions progress */}
+                                {sessionsTotal > 0 && (
+                                  <div>
+                                    <div style={{ color: '#6b7280', fontWeight: 500, marginBottom: 2 }}>Sessions</div>
+                                    <div style={{ fontWeight: 600, color: '#111' }}>
+                                      {sessionsCompleted} of {sessionsTotal}
+                                    </div>
+                                    <div style={{ marginTop: 3, height: 4, background: '#e5e7eb', borderRadius: 2, overflow: 'hidden' }}>
+                                      <div style={{ height: '100%', width: `${Math.min((sessionsCompleted / sessionsTotal) * 100, 100)}%`, background: sessionsCompleted >= sessionsTotal ? '#16a34a' : '#3b82f6', borderRadius: 2 }} />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
                           {/* Range IV perk status on HRT protocol cards */}
                           {isHRTProtocol(protocol.program_type) && hrtRangeIVStatus && hrtRangeIVStatus.protocolId === protocol.id && (
                             <div style={{ marginTop: 8, padding: '8px 12px', background: hrtRangeIVStatus.used ? '#f9fafb' : '#f0fdf4', border: `1px solid ${hrtRangeIVStatus.used ? '#e5e7eb' : '#86efac'}`, borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -4266,9 +4354,12 @@ export default function PatientProfile() {
                               })()}
                             </div>
                           )}
-                          {/* Fulfillment / Shipping Info */}
+                          {/* Fulfillment / Shipping Info — all protocol categories */}
                           {(() => {
-                            const logs = isWeightLoss ? wlLogs : [];
+                            // Use protocol-specific service logs for any category, fall back to wlLogs for weight loss
+                            const logs = protoServiceLogs.length > 0
+                              ? [...protoServiceLogs].sort((a, b) => new Date(a.entry_date) - new Date(b.entry_date))
+                              : (isWeightLoss ? wlLogs : []);
                             const shippedLog = logs.find(l => l.fulfillment_method === 'overnight');
                             const pickupLog = logs.find(l => l.fulfillment_method === 'in_clinic');
                             if (shippedLog) {

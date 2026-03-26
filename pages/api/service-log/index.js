@@ -766,6 +766,12 @@ async function checkAndDecrementPackage(patient_id, category, entry_type, protoc
     return { no_package: true, reason: 'Category not trackable' };
   }
 
+  // For weight loss pickups, don't increment sessions_used — pickups are fulfillment events,
+  // not actual injections. sessions_used should only track injections taken.
+  if (category === 'weight_loss' && (entry_type === 'pickup' || entry_type === 'med_pickup')) {
+    return { no_package: true, reason: 'Weight loss pickups do not decrement sessions' };
+  }
+
   try {
     let protocols, error;
 

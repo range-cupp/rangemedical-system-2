@@ -165,11 +165,14 @@ export default async function handler(req, res) {
     nextDate.setDate(nextDate.getDate() + intervalDays);
     const nextExpectedDate = nextDate.toISOString().split('T')[0];
 
-    // Update protocol: advance next_expected_date, set last_refill_date, increment sessions_used
+    // Update protocol: advance next_expected_date, set last_refill_date
+    // For weight loss: sessions_used tracks actual injections taken, NOT pickups dispensed
+    // Pickups are tracked separately via service_logs with entry_type='pickup'
+    const isWeightLoss = ['weight_loss'].includes(protocol.program_type);
     const updateData = {
       next_expected_date: nextExpectedDate,
       last_refill_date: entryDate,
-      sessions_used: (protocol.sessions_used || 0) + (quantity || 1),
+      ...(isWeightLoss ? {} : { sessions_used: (protocol.sessions_used || 0) + (quantity || 1) }),
     };
 
     // If dosage was changed at dispense time, update the protocol's selected_dose

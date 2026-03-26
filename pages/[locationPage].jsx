@@ -347,7 +347,7 @@ export default function LocationPage({ pageData, schemas, serviceSlug, citySlug 
         }
 
         .loc-page h1 {
-          font-size: 2.75rem;
+          font-size: clamp(2.5rem, 6vw, 4rem);
           font-weight: 700;
           line-height: 1.15;
           letter-spacing: -0.02em;

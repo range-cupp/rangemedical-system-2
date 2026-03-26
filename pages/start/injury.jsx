@@ -197,7 +197,7 @@ export default function StartInjury() {
             margin: 0 0 24px;
           }
           .inj-hero h1 {
-            font-size: 34px;
+            font-size: clamp(2.5rem, 6vw, 4rem);
             font-weight: 700;
             line-height: 1.2;
             margin: 0 0 16px;

@@ -591,7 +591,7 @@ export default function IVTherapy() {
 
         /* Headlines */
         .iv-page h1 {
-          font-size: 3rem;
+          font-size: clamp(2.5rem, 6vw, 4rem);
           font-weight: 900;
           line-height: 0.95;
           letter-spacing: -0.03em;

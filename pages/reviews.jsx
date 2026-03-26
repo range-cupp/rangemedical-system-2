@@ -228,7 +228,7 @@ export default function ReviewsPage() {
         }
 
         .rv-hero h1 {
-          font-size: 3.5rem;
+          font-size: clamp(2.5rem, 6vw, 4rem);
           font-weight: 900;
           color: #1a1a1a;
           line-height: 0.95;

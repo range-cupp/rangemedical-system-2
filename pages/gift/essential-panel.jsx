@@ -242,7 +242,7 @@ export default function GiftEssentialPanel() {
 
         .gift-hero h1 {
           color: #ffffff;
-          font-size: clamp(2.5rem, 6vw, 3.75rem);
+          font-size: clamp(2.5rem, 6vw, 4rem);
           margin: 1rem 0 1.25rem;
         }
 

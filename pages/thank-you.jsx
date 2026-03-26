@@ -114,7 +114,7 @@ export default function ThankYou() {
         }
 
         .ty-hero h1 {
-          font-size: 2.5rem;
+          font-size: clamp(2.5rem, 6vw, 4rem);
           font-weight: 700;
           margin: 0 0 1rem;
           color: #171717;

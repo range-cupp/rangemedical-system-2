@@ -228,7 +228,7 @@ export default function PrivacyPolicyPage() {
         }
 
         .legal-container h1 {
-          font-size: 2.75rem;
+          font-size: clamp(2.5rem, 6vw, 4rem);
           font-weight: 900;
           color: #171717;
           margin: 0 0 1.5rem;

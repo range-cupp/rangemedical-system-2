@@ -139,7 +139,7 @@ export default function StartThankYou() {
             margin-bottom: 20px;
           }
           .ty-hero h1 {
-            font-size: 42px;
+            font-size: clamp(2.5rem, 6vw, 4rem);
             font-weight: 900;
             line-height: 0.95;
             margin: 0 0 0;

@@ -293,7 +293,7 @@ export default function CellularEnergyScience() {
           margin-bottom: 1.5rem;
         }
         .hero h1 {
-          font-size: clamp(2rem, 5vw, 3rem);
+          font-size: clamp(2.5rem, 6vw, 4rem);
           font-weight: 700;
           color: #171717;
           line-height: 1.15;

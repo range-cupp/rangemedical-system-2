@@ -649,7 +649,7 @@ export default function HormoneOptimization() {
 
         /* Headlines — V2: uppercase, weight 900, tight line-height */
         .hrt-page h1 {
-          font-size: 2.75rem;
+          font-size: clamp(2.5rem, 6vw, 4rem);
           font-weight: 900;
           line-height: 0.95;
           letter-spacing: -0.03em;

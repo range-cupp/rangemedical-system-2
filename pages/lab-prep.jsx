@@ -270,7 +270,7 @@ export default function LabPrepPage() {
         }
 
         .hero h1 {
-          font-size: 2.75rem;
+          font-size: clamp(2.5rem, 6vw, 4rem);
           font-weight: 700;
           color: #171717;
           line-height: 1.15;

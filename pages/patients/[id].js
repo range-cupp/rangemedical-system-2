@@ -1664,6 +1664,7 @@ export default function PatientProfile() {
       entry_date: log.entry_date || '',
       dosage: log.dosage || '',
       weight: log.weight || '',
+      quantity: log.quantity || 1,
       notes: log.notes || '',
       fulfillment_method: log.fulfillment_method || 'in_clinic',
       tracking_number: log.tracking_number || '',
@@ -1682,6 +1683,7 @@ export default function PatientProfile() {
           entry_date: editInjectionForm.entry_date,
           dosage: editInjectionForm.dosage,
           weight: editInjectionForm.weight || null,
+          quantity: editInjectionForm.quantity ? parseInt(editInjectionForm.quantity) : null,
           medication: editInjectionModal.medication,
           notes: editInjectionForm.notes || null,
           fulfillment_method: editInjectionForm.fulfillment_method || null,
@@ -5056,7 +5058,14 @@ export default function PatientProfile() {
                                   </div>
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                                     {wlDeliveryLogs.slice().reverse().map(log => (
-                                      <div key={log.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: '#f0f9ff', border: '1px solid #bfdbfe', fontSize: 12 }}>
+                                      <div
+                                        key={log.id}
+                                        onClick={() => openEditInjection(log)}
+                                        title="Click to edit delivery"
+                                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: '#f0f9ff', border: '1px solid #bfdbfe', fontSize: 12, cursor: 'pointer', transition: 'background 0.15s' }}
+                                        onMouseEnter={e => e.currentTarget.style.background = '#dbeafe'}
+                                        onMouseLeave={e => e.currentTarget.style.background = '#f0f9ff'}
+                                      >
                                         <span style={{ fontSize: 14 }}>{log.fulfillment_method === 'overnight' ? '📦' : '🏥'}</span>
                                         <span style={{ fontWeight: 600 }}>{formatShortDate(log.entry_date)}</span>
                                         <span style={{ color: '#1e40af' }}>
@@ -5068,6 +5077,7 @@ export default function PatientProfile() {
                                         {log.tracking_number && (
                                           <span style={{ color: '#3b82f6', marginLeft: 'auto' }}>Tracking: {log.tracking_number}</span>
                                         )}
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 'auto', flexShrink: 0 }}><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
                                       </div>
                                     ))}
                                   </div>
@@ -7396,7 +7406,7 @@ export default function PatientProfile() {
           <div className="modal-overlay" {...overlayClickProps(() => setEditInjectionModal(null))}>
             <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
               <div className="modal-header">
-                <h3>Edit Injection</h3>
+                <h3>{editInjectionModal?.entry_type === 'pickup' ? 'Edit Delivery' : 'Edit Injection'}</h3>
                 <button onClick={() => setEditInjectionModal(null)} className="close-btn">&times;</button>
               </div>
               <div className="modal-body">
@@ -7404,14 +7414,22 @@ export default function PatientProfile() {
                   <label>Date</label>
                   <input type="date" value={editInjectionForm.entry_date} onChange={e => setEditInjectionForm({ ...editInjectionForm, entry_date: e.target.value })} />
                 </div>
+                {editInjectionModal?.entry_type === 'pickup' && (
+                  <div className="form-group">
+                    <label>Quantity</label>
+                    <input type="number" min="1" value={editInjectionForm.quantity} onChange={e => setEditInjectionForm({ ...editInjectionForm, quantity: e.target.value })} />
+                  </div>
+                )}
                 <div className="form-group">
                   <label>Dose</label>
                   <input type="text" value={editInjectionForm.dosage} onChange={e => setEditInjectionForm({ ...editInjectionForm, dosage: e.target.value })} placeholder="e.g. 4mg" />
                 </div>
-                <div className="form-group">
-                  <label>Weight (lbs)</label>
-                  <input type="number" step="0.1" value={editInjectionForm.weight} onChange={e => setEditInjectionForm({ ...editInjectionForm, weight: e.target.value })} placeholder="Optional" />
-                </div>
+                {editInjectionModal?.entry_type !== 'pickup' && (
+                  <div className="form-group">
+                    <label>Weight (lbs)</label>
+                    <input type="number" step="0.1" value={editInjectionForm.weight} onChange={e => setEditInjectionForm({ ...editInjectionForm, weight: e.target.value })} placeholder="Optional" />
+                  </div>
+                )}
                 <div className="form-group">
                   <label>Notes</label>
                   <textarea value={editInjectionForm.notes} onChange={e => setEditInjectionForm({ ...editInjectionForm, notes: e.target.value })} rows={2} placeholder="Optional notes..." />

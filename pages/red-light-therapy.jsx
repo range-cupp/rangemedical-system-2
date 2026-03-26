@@ -7,12 +7,29 @@ import Head from 'next/head';
 import { useEffect, useState } from 'react';
 import ResearchModal from '../components/ResearchModal';
 import { getStudiesByService } from '../data/researchStudies';
+import CheckoutModal from '../components/CheckoutModal';
 
 export default function RedLightTherapy() {
   const [openFaq, setOpenFaq] = useState(null);
   const [selectedStudy, setSelectedStudy] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const studies = getStudiesByService('red-light-therapy');
+
+  // Checkout modal state
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutProduct, setCheckoutProduct] = useState(null);
+
+  const rltProducts = {
+    membership: { name: 'RLT Reset Membership', amountCents: 39900, amountLabel: '$399/mo', serviceCategory: 'rlt', serviceName: 'Red Light Reset Membership' },
+    single: { name: 'RLT Single Session', amountCents: 8500, amountLabel: '$85', serviceCategory: 'rlt', serviceName: 'Red Light Therapy — Single Session' },
+    pack5: { name: 'RLT 5-Session Pack', amountCents: 37500, amountLabel: '$375', serviceCategory: 'rlt', serviceName: 'Red Light Therapy — 5-Session Pack' },
+    pack10: { name: 'RLT 10-Session Pack', amountCents: 60000, amountLabel: '$600', serviceCategory: 'rlt', serviceName: 'Red Light Therapy — 10-Session Pack' },
+  };
+
+  const openCheckout = (key) => {
+    setCheckoutProduct(rltProducts[key]);
+    setCheckoutOpen(true);
+  };
 
   // Scroll-based animations with IntersectionObserver
   useEffect(() => {
@@ -114,6 +131,7 @@ export default function RedLightTherapy() {
   ];
 
   return (
+    <>
     <Layout
       title="Red Light Therapy | Newport Beach | Range Medical"
       description="Discover how red light therapy may support skin health, muscle recovery, energy, and more. Full-body LED bed with 14,400 LEDs. Available at Range Medical in Newport Beach."
@@ -465,7 +483,7 @@ export default function RedLightTherapy() {
                 <div className="rlt-pricing-membership-note">
                   Best value if you plan to use Red Light regularly and want ongoing support instead of a one-time program.
                 </div>
-                <a href="https://buy.stripe.com/6oU28qcd683SfVT1oZ08g09" target="_blank" rel="noopener noreferrer" className="rlt-pricing-btn-dark">Get Started</a>
+                <button onClick={() => openCheckout('membership')} className="rlt-pricing-btn-dark">Get Started</button>
               </div>
 
               {/* Right: Session Packs */}
@@ -479,7 +497,7 @@ export default function RedLightTherapy() {
                   </div>
                   <div className="rlt-pricing-pack-right">
                     <div className="rlt-pricing-pack-price">$85</div>
-                    <a href="https://buy.stripe.com/8x214m3GAdoc5hfffP08g0a" target="_blank" rel="noopener noreferrer" className="rlt-pricing-btn-outline-sm">Book Now</a>
+                    <button onClick={() => openCheckout('single')} className="rlt-pricing-btn-outline-sm">Book Now</button>
                   </div>
                 </div>
 
@@ -493,7 +511,7 @@ export default function RedLightTherapy() {
                   <div className="rlt-pricing-pack-right">
                     <div className="rlt-pricing-pack-price">$375</div>
                     <div className="rlt-pricing-pack-per">$75 / session</div>
-                    <a href="https://buy.stripe.com/4gMcN46SM0BqcJHebL08g0b" target="_blank" rel="noopener noreferrer" className="rlt-pricing-btn-outline-sm">Buy Pack</a>
+                    <button onClick={() => openCheckout('pack5')} className="rlt-pricing-btn-outline-sm">Buy Pack</button>
                   </div>
                 </div>
 
@@ -507,7 +525,7 @@ export default function RedLightTherapy() {
                   <div className="rlt-pricing-pack-right">
                     <div className="rlt-pricing-pack-price">$600</div>
                     <div className="rlt-pricing-pack-per">$60 / session</div>
-                    <a href="https://buy.stripe.com/6oU7sK2Cw3NCcJH0kV08g0c" target="_blank" rel="noopener noreferrer" className="rlt-pricing-btn-outline-sm">Buy Pack</a>
+                    <button onClick={() => openCheckout('pack10')} className="rlt-pricing-btn-outline-sm">Buy Pack</button>
                   </div>
                 </div>
 
@@ -1538,5 +1556,19 @@ export default function RedLightTherapy() {
         }
       `}</style>
     </Layout>
+
+    {checkoutProduct && (
+      <CheckoutModal
+        isOpen={checkoutOpen}
+        onClose={() => setCheckoutOpen(false)}
+        productName={checkoutProduct.name}
+        amountCents={checkoutProduct.amountCents}
+        amountLabel={checkoutProduct.amountLabel}
+        description={checkoutProduct.serviceName}
+        serviceCategory={checkoutProduct.serviceCategory}
+        serviceName={checkoutProduct.serviceName}
+      />
+    )}
+    </>
   );
 }

@@ -7,12 +7,32 @@ import Head from 'next/head';
 import { useEffect, useState } from 'react';
 import ResearchModal from '../components/ResearchModal';
 import { getStudiesByService } from '../data/researchStudies';
+import CheckoutModal from '../components/CheckoutModal';
 
 export default function HyperbaricOxygenTherapy() {
   const [openFaq, setOpenFaq] = useState(null);
   const [selectedStudy, setSelectedStudy] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const studies = getStudiesByService('hyperbaric-oxygen-therapy');
+
+  // Checkout modal state
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutProduct, setCheckoutProduct] = useState(null);
+
+  const hbotProducts = {
+    cer: { name: '6-Week Cellular Energy Reset', amountCents: 399900, amountLabel: '$3,999', serviceCategory: 'hbot', serviceName: 'Six-Week Cellular Energy Reset' },
+    mem1x: { name: 'HBOT Membership — 1x/Week', amountCents: 54900, amountLabel: '$549/mo', serviceCategory: 'hbot', serviceName: 'HBOT Membership — 1x/Week' },
+    mem2x: { name: 'HBOT Membership — 2x/Week', amountCents: 99900, amountLabel: '$999/mo', serviceCategory: 'hbot', serviceName: 'HBOT Membership — 2x/Week' },
+    mem3x: { name: 'HBOT Membership — 3x/Week', amountCents: 139900, amountLabel: '$1,399/mo', serviceCategory: 'hbot', serviceName: 'HBOT Membership — 3x/Week' },
+    single: { name: 'HBOT Single Session', amountCents: 18500, amountLabel: '$185', serviceCategory: 'hbot', serviceName: 'HBOT — Single Session' },
+    pack5: { name: 'HBOT 5-Session Pack', amountCents: 85000, amountLabel: '$850', serviceCategory: 'hbot', serviceName: 'HBOT — 5-Session Pack' },
+    pack10: { name: 'HBOT 10-Session Pack', amountCents: 160000, amountLabel: '$1,600', serviceCategory: 'hbot', serviceName: 'HBOT — 10-Session Pack' },
+  };
+
+  const openCheckout = (key) => {
+    setCheckoutProduct(hbotProducts[key]);
+    setCheckoutOpen(true);
+  };
 
   // Scroll-based animations with IntersectionObserver
   useEffect(() => {
@@ -113,6 +133,7 @@ export default function HyperbaricOxygenTherapy() {
 
 
   return (
+    <>
     <Layout
       title="Hyperbaric Oxygen Therapy (HBOT) | Newport Beach | Range Medical"
       description="Learn how hyperbaric oxygen therapy may support injury recovery, energy, and healing. Used by pro athletes and top medical centers. Available at Range Medical in Newport Beach."
@@ -454,7 +475,7 @@ export default function HyperbaricOxygenTherapy() {
                   <li><span className="hbot-li-dash">&ndash;</span> Full money-back guarantee if no improvement</li>
                 </ul>
                 <div className="hbot-pricing-featured-note">Includes Red Light Therapy &middot; Structured protocol with weekly check-ins</div>
-                <a href="https://buy.stripe.com/8x2cN47WQ5VKgZXebL08g02" target="_blank" rel="noopener noreferrer" className="hbot-pricing-btn-dark">Get Started</a>
+                <button onClick={() => openCheckout('cer')} className="hbot-pricing-btn-dark">Get Started</button>
               </div>
             </div>
 
@@ -471,7 +492,7 @@ export default function HyperbaricOxygenTherapy() {
                     <li><span className="hbot-li-dash">&ndash;</span> 3-month minimum commitment</li>
                   </ul>
                   <div className="hbot-pricing-per-session">$137/session &middot; Save 26% vs singles</div>
-                  <a href="https://buy.stripe.com/aFa3cudha3NC9xv0kV08g03" target="_blank" rel="noopener noreferrer" className="hbot-pricing-btn-outline">Choose Plan</a>
+                  <button onClick={() => openCheckout('mem1x')} className="hbot-pricing-btn-outline">Choose Plan</button>
                 </div>
                 <div className="hbot-pricing-membership-card hbot-pricing-popular">
                   <div className="hbot-pricing-popular-badge">Most Popular</div>
@@ -483,7 +504,7 @@ export default function HyperbaricOxygenTherapy() {
                     <li><span className="hbot-li-dash">&ndash;</span> 3-month minimum commitment</li>
                   </ul>
                   <div className="hbot-pricing-per-session">$125/session &middot; Save 32% vs singles</div>
-                  <a href="https://buy.stripe.com/4gM7sK7WQ1FudNL8Rr08g04" target="_blank" rel="noopener noreferrer" className="hbot-pricing-btn-dark">Choose Plan</a>
+                  <button onClick={() => openCheckout('mem2x')} className="hbot-pricing-btn-dark">Choose Plan</button>
                 </div>
                 <div className="hbot-pricing-membership-card">
                   <h3>HBOT Membership — 3x/Week</h3>
@@ -494,7 +515,7 @@ export default function HyperbaricOxygenTherapy() {
                     <li><span className="hbot-li-dash">&ndash;</span> 3-month minimum commitment</li>
                   </ul>
                   <div className="hbot-pricing-per-session">$117/session &middot; Save 37% vs singles</div>
-                  <a href="https://buy.stripe.com/14A00ia4Y0BqgZX0kV08g05" target="_blank" rel="noopener noreferrer" className="hbot-pricing-btn-outline">Choose Plan</a>
+                  <button onClick={() => openCheckout('mem3x')} className="hbot-pricing-btn-outline">Choose Plan</button>
                 </div>
               </div>
             </div>
@@ -507,19 +528,19 @@ export default function HyperbaricOxygenTherapy() {
                   <div className="hbot-pricing-pack-name">Single Session</div>
                   <div className="hbot-pricing-pack-price">$185</div>
                   <div className="hbot-pricing-pack-detail">Drop in anytime</div>
-                  <a href="https://buy.stripe.com/aFabJ02Cw6ZO6ljgjT08g06" target="_blank" rel="noopener noreferrer" className="hbot-pricing-btn-outline-sm">Book Now</a>
+                  <button onClick={() => openCheckout('single')} className="hbot-pricing-btn-outline-sm">Book Now</button>
                 </div>
                 <div className="hbot-pricing-pack-card">
                   <div className="hbot-pricing-pack-name">5-Session Pack</div>
                   <div className="hbot-pricing-pack-price">$850</div>
                   <div className="hbot-pricing-pack-detail">$170/session &middot; Save $75</div>
-                  <a href="https://buy.stripe.com/00w8wO1ys83SfVT2t308g07" target="_blank" rel="noopener noreferrer" className="hbot-pricing-btn-outline-sm">Buy Pack</a>
+                  <button onClick={() => openCheckout('pack5')} className="hbot-pricing-btn-outline-sm">Buy Pack</button>
                 </div>
                 <div className="hbot-pricing-pack-card">
                   <div className="hbot-pricing-pack-name">10-Session Pack</div>
                   <div className="hbot-pricing-pack-price">$1,600</div>
                   <div className="hbot-pricing-pack-detail">$160/session &middot; Save $250</div>
-                  <a href="https://buy.stripe.com/9B6aEW4KE4RG7pn1oZ08g08" target="_blank" rel="noopener noreferrer" className="hbot-pricing-btn-outline-sm">Buy Pack</a>
+                  <button onClick={() => openCheckout('pack10')} className="hbot-pricing-btn-outline-sm">Buy Pack</button>
                 </div>
               </div>
             </div>
@@ -1634,5 +1655,19 @@ export default function HyperbaricOxygenTherapy() {
         }
       `}</style>
     </Layout>
+
+    {checkoutProduct && (
+      <CheckoutModal
+        isOpen={checkoutOpen}
+        onClose={() => setCheckoutOpen(false)}
+        productName={checkoutProduct.name}
+        amountCents={checkoutProduct.amountCents}
+        amountLabel={checkoutProduct.amountLabel}
+        description={checkoutProduct.serviceName}
+        serviceCategory={checkoutProduct.serviceCategory}
+        serviceName={checkoutProduct.serviceName}
+      />
+    )}
+    </>
   );
 }

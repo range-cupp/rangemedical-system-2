@@ -2,6 +2,7 @@ import Layout from '../components/Layout';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import CheckoutModal from '../components/CheckoutModal';
 
 export default function LabPanels() {
   const [openFaq, setOpenFaq] = useState(null);
@@ -63,16 +64,18 @@ export default function LabPanels() {
     setExpandedMarker(expandedMarker === markerId ? null : markerId);
   };
 
-  // Stripe Payment Links (gender-specific)
-  const stripeLinks = {
-    essential: {
-      men: 'https://buy.stripe.com/aFa14mgtm83SdNLd7H08g0d',
-      women: 'https://buy.stripe.com/eVqaEWa4YdoceRPebL08g0e',
-    },
-    elite: {
-      men: 'https://buy.stripe.com/28E14m1ys97WeRPebL08g0f',
-      women: 'https://buy.stripe.com/dRmbJ00uo83SgZX5Ff08g0g',
-    },
+  // Checkout modal state
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutProduct, setCheckoutProduct] = useState(null);
+
+  const openCheckout = (panel) => {
+    const gender = activeTab === 'men' ? 'Male' : 'Female';
+    const configs = {
+      essential: { name: `Essential Panel — ${gender}`, amountCents: 35000, amountLabel: '$350', serviceCategory: 'lab_panel', serviceName: `Lab Panel — Essential (${gender})` },
+      elite: { name: `Elite Panel — ${gender}`, amountCents: 75000, amountLabel: '$750', serviceCategory: 'lab_panel', serviceName: `Lab Panel — Elite (${gender})` },
+    };
+    setCheckoutProduct(configs[panel]);
+    setCheckoutOpen(true);
   };
 
   // Biomarker descriptions - what we're looking for and why
@@ -475,24 +478,14 @@ export default function LabPanels() {
                 <div className="lp-chart-footer">
                   <div className="lp-chart-marker-col"></div>
                   <div className="lp-chart-panel-col">
-                    <a
-                      href={stripeLinks.essential[activeTab]}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="lp-btn-sm"
-                    >
+                    <button onClick={() => openCheckout('essential')} className="lp-btn-sm">
                       BOOK ESSENTIAL
-                    </a>
+                    </button>
                   </div>
                   <div className="lp-chart-panel-col lp-chart-panel-featured">
-                    <a
-                      href={stripeLinks.elite[activeTab]}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="lp-btn-sm-white"
-                    >
+                    <button onClick={() => openCheckout('elite')} className="lp-btn-sm-white">
                       BOOK ELITE
-                    </a>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -521,14 +514,9 @@ export default function LabPanels() {
                   <li><span className="lp-list-dash">&ndash;</span> You want to track hormones and metabolic health</li>
                   <li><span className="lp-list-dash">&ndash;</span> You&apos;re monitoring HRT</li>
                 </ul>
-                <a
-                  href={stripeLinks.essential[activeTab]}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="lp-btn-outline"
-                >
+                <button onClick={() => openCheckout('essential')} className="lp-btn-outline">
                   BOOK ESSENTIAL &mdash; $350
-                </a>
+                </button>
               </div>
               <div className="lp-compare-card lp-compare-featured">
                 <div className="lp-compare-badge">MOST COMPLETE</div>
@@ -545,14 +533,9 @@ export default function LabPanels() {
                   <li><span className="lp-list-dash">&ndash;</span> You want advanced cardiovascular markers</li>
                   <li><span className="lp-list-dash">&ndash;</span> You&apos;re serious about prevention</li>
                 </ul>
-                <a
-                  href={stripeLinks.elite[activeTab]}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="lp-btn"
-                >
+                <button onClick={() => openCheckout('elite')} className="lp-btn">
                   BOOK ELITE &mdash; $750
-                </a>
+                </button>
               </div>
             </div>
             <p className="lp-compare-note">
@@ -649,14 +632,9 @@ export default function LabPanels() {
             </div>
 
             <div className="lp-markers-cta">
-              <a
-                href={stripeLinks.elite[activeTab]}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="lp-btn"
-              >
+              <button onClick={() => openCheckout('elite')} className="lp-btn">
                 BOOK ELITE &mdash; $750
-              </a>
+              </button>
               <p>Includes all Essential markers + 20 advanced biomarkers</p>
             </div>
           </div>
@@ -727,22 +705,12 @@ export default function LabPanels() {
               Book your panel below and we&apos;ll get you scheduled for your blood draw. Results in 3&ndash;5 business days.
             </p>
             <div className="lp-cta-buttons">
-              <a
-                href={stripeLinks.essential[activeTab]}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="lp-btn-white"
-              >
+              <button onClick={() => openCheckout('essential')} className="lp-btn-white">
                 ESSENTIAL &mdash; $350
-              </a>
-              <a
-                href={stripeLinks.elite[activeTab]}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="lp-btn-white-outline"
-              >
+              </button>
+              <button onClick={() => openCheckout('elite')} className="lp-btn-white-outline">
                 ELITE &mdash; $750
-              </a>
+              </button>
             </div>
             <p className="lp-cta-phone">
               Or call <a href="tel:9499973988">(949) 997-3988</a> to schedule labs directly
@@ -1804,6 +1772,19 @@ export default function LabPanels() {
           }
         `}</style>
       </Layout>
+
+      {checkoutProduct && (
+        <CheckoutModal
+          isOpen={checkoutOpen}
+          onClose={() => setCheckoutOpen(false)}
+          productName={checkoutProduct.name}
+          amountCents={checkoutProduct.amountCents}
+          amountLabel={checkoutProduct.amountLabel}
+          description={checkoutProduct.serviceName}
+          serviceCategory={checkoutProduct.serviceCategory}
+          serviceName={checkoutProduct.serviceName}
+        />
+      )}
     </>
   );
 }

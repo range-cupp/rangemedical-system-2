@@ -1,10 +1,15 @@
 import Layout from '../components/Layout';
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
+import CheckoutModal from '../components/CheckoutModal';
 
 export default function CellularEnergyReset() {
   const [openFaq, setOpenFaq] = useState(null);
   const [isVisible, setIsVisible] = useState({});
+
+  // Checkout modal state
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const openCheckout = () => setCheckoutOpen(true);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -407,7 +412,7 @@ export default function CellularEnergyReset() {
                   <li>Structured 6-week schedule — 3 sessions per week</li>
                   <li>Weekly automated check-ins to track progress</li>
                 </ul>
-                <a href="https://buy.stripe.com/8x2cN47WQ5VKgZXebL08g02" target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ display: 'block', textAlign: 'center' }}>Get Started — $3,999</a>
+                <button onClick={openCheckout} className="btn-primary" style={{ display: 'block', textAlign: 'center', width: '100%', cursor: 'pointer' }}>Get Started — $3,999</button>
                 <p className="cer-pricing-note">Financing available through Affirm and Afterpay</p>
                 <div className="cer-guarantee">
                   <div className="cer-guarantee-icon">&#10003;</div>
@@ -532,7 +537,7 @@ export default function CellularEnergyReset() {
             <h2>Stop Guessing.<br />Start Fixing.</h2>
             <div className="cta-rule" />
             <p>Book the 6-Week Cellular Energy Reset and we'll build your schedule.</p>
-            <a href="https://buy.stripe.com/8x2cN47WQ5VKgZXebL08g02" target="_blank" rel="noopener noreferrer" className="btn-white">Get Started — $3,999</a>
+            <button onClick={openCheckout} className="btn-white" style={{ cursor: 'pointer' }}>Get Started — $3,999</button>
             <p className="cta-location">
               Range Medical &bull; 1901 Westcliff Dr, Newport Beach &bull; <a href="tel:9499973988">(949) 997-3988</a>
             </p>
@@ -1182,6 +1187,17 @@ export default function CellularEnergyReset() {
           }
         `}</style>
       </Layout>
+
+      <CheckoutModal
+        isOpen={checkoutOpen}
+        onClose={() => setCheckoutOpen(false)}
+        productName="6-Week Cellular Energy Reset"
+        amountCents={399900}
+        amountLabel="$3,999"
+        description="Six-Week Cellular Energy Reset"
+        serviceCategory="hbot"
+        serviceName="Six-Week Cellular Energy Reset"
+      />
     </>
   );
 }

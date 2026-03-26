@@ -4151,6 +4151,15 @@ export default function PatientProfile() {
                         if (atMatch) return atMatch[1].trim();
                         return dosageStr;
                       };
+                      // Parse side effects from service log notes field
+                      const parseSideEffects = (notes) => {
+                        if (!notes) return null;
+                        const match = notes.match(/Side effects:\s*([^|]+)/);
+                        if (!match) return null;
+                        const effects = match[1].trim();
+                        if (!effects || effects.toLowerCase() === 'none') return null;
+                        return effects;
+                      };
                       const startingDose = protocol.starting_dose || protocol.selected_dose || (wlLogs.length > 0 ? parseDose(wlLogs[0].dosage) : null);
                       const currentDose = protocol.dose || protocol.selected_dose || (wlLogs.length > 0 ? parseDose(wlLogs[wlLogs.length - 1].dosage) : null);
                       const pLogs = getProtocolLogsForId(protocol.id);
@@ -4167,6 +4176,11 @@ export default function PatientProfile() {
                       const lastTakeHome = protoServiceLogs.find(l => l.entry_type === 'pickup' || l.fulfillment_method === 'overnight');
                       const sessionsCompleted = protocol.sessions_used || protocol.sessions_completed || protoServiceLogs.filter(l => ['injection', 'session'].includes(l.entry_type)).length;
                       const sessionsTotal = protocol.total_sessions || protocol.sessions_total;
+                      // Aggregate side effects from all service logs
+                      const logsWithSideEffects = protoServiceLogs
+                        .filter(l => parseSideEffects(l.notes))
+                        .map(l => ({ date: l.entry_date, effects: parseSideEffects(l.notes) }));
+                      const recentSideEffects = logsWithSideEffects.length > 0 ? logsWithSideEffects[0] : null;
 
                       return (
                         <div key={protocol.id} className="protocol-card" style={{
@@ -4328,6 +4342,24 @@ export default function PatientProfile() {
                               </div>
                             );
                           })()}
+
+                          {/* Side Effects Alert — shows if any side effects reported */}
+                          {recentSideEffects && (
+                            <div style={{ margin: '6px 0 2px', padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 0, fontSize: '12px' }}>
+                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                                <span style={{ color: '#dc2626', fontWeight: 600, whiteSpace: 'nowrap' }}>⚠️ Side Effects</span>
+                                <div style={{ color: '#991b1b' }}>
+                                  <span style={{ fontWeight: 600 }}>{recentSideEffects.effects}</span>
+                                  <span style={{ color: '#dc2626', marginLeft: 6 }}>({formatShortDate(recentSideEffects.date)})</span>
+                                  {logsWithSideEffects.length > 1 && (
+                                    <span style={{ color: '#9ca3af', marginLeft: 6 }}>
+                                      + {logsWithSideEffects.length - 1} prior {logsWithSideEffects.length - 1 === 1 ? 'report' : 'reports'}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
 
                           {/* Range IV perk status on HRT protocol cards */}
                           {isHRTProtocol(protocol.program_type) && hrtRangeIVStatus && hrtRangeIVStatus.protocolId === protocol.id && (
@@ -4761,20 +4793,35 @@ export default function PatientProfile() {
 
                                       // If no schedule defined, fall back to simple list of actual logs
                                       if (!totalSlots || !startStr) {
-                                        return wlLogs.map((log, i) => {
+                                        return wlLogs.flatMap((log, i) => {
                                           const prevWeight = i > 0 && wlLogs[i - 1].weight ? parseFloat(wlLogs[i - 1].weight) : null;
                                           const curWeight = log.weight ? parseFloat(log.weight) : null;
                                           const delta = prevWeight && curWeight ? (curWeight - prevWeight).toFixed(1) : null;
-                                          return (
+                                          const logSideEffects = parseSideEffects(log.notes);
+                                          const elements = [
                                             <tr key={log.id} className="wl-editable-row" onClick={() => openEditInjection(log)} title="Click to edit">
                                               <td style={{ color: '#9ca3af', fontSize: 12 }}>{i + 1}</td>
                                               <td>{formatShortDate(log.entry_date)}</td>
                                               <td>{log.dosage || '—'}</td>
                                               <td>{log.weight ? `${log.weight} lbs` : '—'}</td>
-                                              <td style={{ color: delta && parseFloat(delta) < 0 ? '#16a34a' : delta && parseFloat(delta) > 0 ? '#dc2626' : '#666' }}>{delta ? (parseFloat(delta) > 0 ? `+${delta}` : delta) + ' lbs' : '—'}</td>
+                                              <td style={{ color: delta && parseFloat(delta) < 0 ? '#16a34a' : delta && parseFloat(delta) > 0 ? '#dc2626' : '#666' }}>
+                                                {delta ? (parseFloat(delta) > 0 ? `+${delta}` : delta) + ' lbs' : '—'}
+                                                {logSideEffects && <span style={{ marginLeft: 6, color: '#dc2626', fontSize: 11 }}>⚠️</span>}
+                                              </td>
                                               <td style={{ textAlign: 'center' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></td>
                                             </tr>
-                                          );
+                                          ];
+                                          if (logSideEffects) {
+                                            elements.push(
+                                              <tr key={log.id + '-se'} style={{ background: '#fef2f2' }}>
+                                                <td></td>
+                                                <td colSpan={5} style={{ color: '#dc2626', fontSize: 11, padding: '2px 8px 6px', fontStyle: 'italic' }}>
+                                                  Side effects: {logSideEffects}
+                                                </td>
+                                              </tr>
+                                            );
+                                          }
+                                          return elements;
                                         });
                                       }
 
@@ -4822,7 +4869,7 @@ export default function PatientProfile() {
                                       });
                                       const slots = slotsRaw;
 
-                                      const rows = slots.map(slot => {
+                                      const rows = slots.flatMap(slot => {
                                         // If all dispensed at once (bulk shipment), show each slot as dispensed
                                         if (allDispensed && !slot.log) {
                                           const shipLog = bulkPickup || wlLogs[0];
@@ -4847,16 +4894,31 @@ export default function PatientProfile() {
                                           const curWeight = slot.log.weight ? parseFloat(slot.log.weight) : null;
                                           const delta = prevWeight && curWeight ? (curWeight - prevWeight).toFixed(1) : null;
                                           const fulfillment = slot.log.fulfillment_method;
-                                          return (
+                                          const slotSideEffects = parseSideEffects(slot.log.notes);
+                                          const rowElements = [
                                             <tr key={slot.log.id} className="wl-editable-row" onClick={() => openEditInjection(slot.log)} title="Click to edit or delete">
                                               <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
                                               <td>{formatShortDate(slot.log.entry_date)}{fulfillment === 'overnight' ? <span style={{ marginLeft: 4, fontSize: 11 }}>📦</span> : fulfillment === 'in_clinic' ? <span style={{ marginLeft: 4, fontSize: 11 }}>🏥</span> : ''}</td>
                                               <td>{parseDose(slot.log.dosage) || slot.log.dosage || '—'}</td>
                                               <td>{slot.log.weight ? `${slot.log.weight} lbs` : '—'}</td>
-                                              <td style={{ color: delta && parseFloat(delta) < 0 ? '#16a34a' : delta && parseFloat(delta) > 0 ? '#dc2626' : '#666' }}>{delta ? (parseFloat(delta) > 0 ? `+${delta}` : delta) + ' lbs' : '—'}</td>
+                                              <td style={{ color: delta && parseFloat(delta) < 0 ? '#16a34a' : delta && parseFloat(delta) > 0 ? '#dc2626' : '#666' }}>
+                                                {delta ? (parseFloat(delta) > 0 ? `+${delta}` : delta) + ' lbs' : '—'}
+                                                {slotSideEffects && <span style={{ marginLeft: 6, color: '#dc2626', fontSize: 11 }}>⚠️</span>}
+                                              </td>
                                               <td style={{ textAlign: 'center' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></td>
                                             </tr>
-                                          );
+                                          ];
+                                          if (slotSideEffects) {
+                                            rowElements.push(
+                                              <tr key={slot.log.id + '-se'} style={{ background: '#fef2f2' }}>
+                                                <td></td>
+                                                <td colSpan={5} style={{ color: '#dc2626', fontSize: 11, padding: '2px 8px 6px', fontStyle: 'italic' }}>
+                                                  Side effects: {slotSideEffects}
+                                                </td>
+                                              </tr>
+                                            );
+                                          }
+                                          return rowElements;
                                         } else if (!slot.isFuture) {
                                           return (
                                             <tr key={'missed-' + slot.num} style={{ background: '#fef2f2', cursor: 'pointer' }}

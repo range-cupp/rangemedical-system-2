@@ -184,6 +184,11 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
   const [selectedProtocolId, setSelectedProtocolId] = useState(null);
   const [availableProtocols, setAvailableProtocols] = useState([]);
 
+  // Trial pass state (for RLT trial patients)
+  const [patientTrial, setPatientTrial] = useState(null); // { hasTrial, trial, hasPreSurvey }
+  const [trialSurveySent, setTrialSurveySent] = useState(false);
+  const [sendingSurvey, setSendingSurvey] = useState(false);
+
   // Auto-open new entry modal when used from front desk
   useEffect(() => {
     if (autoOpen) {
@@ -358,6 +363,8 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
     setAvailableProtocols([]);
     setDispensingData({ administered_by: '', lot_number: '', expiration_date: '' });
     setSignatureDataUrl(null);
+    setPatientTrial(null);
+    setTrialSurveySent(false);
     if (onClose) onClose();
   };
 
@@ -397,6 +404,44 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
     setPatientSearch(name);
     setShowPatientDropdown(false);
     fetchPatientProtocols(patient.id);
+    checkPatientTrial(patient.id);
+  };
+
+  // Check if the selected patient has an active RLT trial
+  const checkPatientTrial = async (patientId) => {
+    setPatientTrial(null);
+    setTrialSurveySent(false);
+    try {
+      const res = await fetch(`/api/trial/check-patient-trial?patient_id=${patientId}`);
+      const data = await res.json();
+      if (data.hasTrial) {
+        setPatientTrial(data);
+      }
+    } catch (err) {
+      console.error('Trial check error:', err);
+    }
+  };
+
+  // Send pre-survey SMS to trial patient
+  const sendTrialPreSurvey = async () => {
+    if (!patientTrial?.trial?.id) return;
+    setSendingSurvey(true);
+    try {
+      const res = await fetch('/api/trial/send-pre-survey', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trialId: patientTrial.trial.id }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTrialSurveySent(true);
+      } else {
+        alert('Failed to send survey: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Error sending survey: ' + err.message);
+    }
+    setSendingSurvey(false);
   };
 
   const goToVisitBuilder = () => {
@@ -709,6 +754,19 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
       // Still refresh the view for any items that did get logged
       if (results.length > 0) fetchLogs();
       return;
+    }
+
+    // If any RLT sessions were logged and patient has an active trial, update trial pass
+    if (patientTrial?.hasTrial && results.some(r => r.item.serviceType.id === 'red_light')) {
+      try {
+        await fetch('/api/trial/log-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ trialPassId: patientTrial.trial.id }),
+        });
+      } catch (trialErr) {
+        console.error('Trial session log error:', trialErr);
+      }
     }
 
     if (errors.length === 0) {
@@ -2037,6 +2095,74 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
                     {/* === RED LIGHT === */}
                     {currentServiceType.id === 'red_light' && (
                       <>
+                        {/* Trial pass banner */}
+                        {patientTrial?.hasTrial && (
+                          <div style={{
+                            background: '#FFF8E1',
+                            border: '1px solid #FFD54F',
+                            borderRadius: 8,
+                            padding: '12px 16px',
+                            marginBottom: 16,
+                          }}>
+                            <div style={{ fontWeight: 600, fontSize: 14, color: '#E65100', marginBottom: 4 }}>
+                              🔴 Active RLT Trial — Session {(patientTrial.trial.sessions_used || 0) + 1} of 3
+                            </div>
+                            {!patientTrial.hasPreSurvey && !trialSurveySent && (
+                              <div style={{ marginTop: 8 }}>
+                                <div style={{ fontSize: 13, color: '#333', marginBottom: 8 }}>
+                                  Pre-survey not completed. Send it to their phone or open it on the tablet:
+                                </div>
+                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                  <button
+                                    type="button"
+                                    onClick={sendTrialPreSurvey}
+                                    disabled={sendingSurvey}
+                                    style={{
+                                      padding: '8px 16px',
+                                      background: '#1976D2',
+                                      color: '#fff',
+                                      border: 'none',
+                                      borderRadius: 6,
+                                      fontSize: 13,
+                                      fontWeight: 600,
+                                      cursor: sendingSurvey ? 'not-allowed' : 'pointer',
+                                      opacity: sendingSurvey ? 0.6 : 1,
+                                    }}
+                                  >
+                                    {sendingSurvey ? 'Sending...' : '📱 Text Survey to Patient'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => window.open(`/rlt-trial/survey?trial_id=${patientTrial.trial.id}&type=pre`, '_blank')}
+                                    style={{
+                                      padding: '8px 16px',
+                                      background: '#fff',
+                                      color: '#1976D2',
+                                      border: '1px solid #1976D2',
+                                      borderRadius: 6,
+                                      fontSize: 13,
+                                      fontWeight: 600,
+                                      cursor: 'pointer',
+                                    }}
+                                  >
+                                    📋 Open on Tablet
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                            {trialSurveySent && (
+                              <div style={{ fontSize: 13, color: '#2E7D32', marginTop: 6, fontWeight: 600 }}>
+                                ✓ Survey link sent to {patientTrial.trial.phone}
+                              </div>
+                            )}
+                            {patientTrial.hasPreSurvey && (
+                              <div style={{ fontSize: 13, color: '#2E7D32', marginTop: 4, fontWeight: 600 }}>
+                                ✓ Pre-survey completed
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         <div style={slcStyles.formGroup}>
                           <label style={slcStyles.label}>Duration</label>
                           <select

@@ -452,6 +452,11 @@ export default function PatientProfile() {
   const [quickWeightForm, setQuickWeightForm] = useState({ weight: '', notes: '' });
   const [quickWeightSaving, setQuickWeightSaving] = useState(false);
 
+  // Shipment reminder modal state (auto-prompt after partial fulfillment)
+  const [shipmentReminderModal, setShipmentReminderModal] = useState(null); // { patientName, medication, pending, protocolId }
+  const [shipmentReminderForm, setShipmentReminderForm] = useState({ dueDate: '', notes: '', assignedTo: '' });
+  const [shipmentReminderSaving, setShipmentReminderSaving] = useState(false);
+
   // WL drip email + check-in state
   const [dripLogs, setDripLogs] = useState({});
   const [startingDrip, setStartingDrip] = useState(null);
@@ -1720,6 +1725,77 @@ export default function PatientProfile() {
       setServiceLogKey(prev => prev + 1);
       setShowServiceLog(true);
     }, 0);
+  };
+
+  // After a log entry is saved, check if there are pending sessions to ship
+  const handleLogComplete = (loggedItems) => {
+    if (!loggedItems || loggedItems.length === 0) return;
+    // Check if any logged item was a pickup (partial fulfillment)
+    const pickupItems = loggedItems.filter(i => i.entryType === 'pickup' || i.entryType === 'med_pickup');
+    if (pickupItems.length === 0) return;
+
+    // Wait for data refresh, then check for remaining sessions
+    setTimeout(() => {
+      // Find the protocol for the pickup
+      const allProtos = [...(activeProtocols || []), ...(completedProtocols || [])];
+      for (const item of pickupItems) {
+        const proto = item.protocolId
+          ? allProtos.find(p => p.id === item.protocolId)
+          : allProtos.find(p => p.category === item.serviceType && p.status === 'active');
+        if (!proto || !proto.total_sessions) continue;
+
+        // Count total dispensed from service logs
+        const protoLogs = serviceLogs.filter(l => l.protocol_id === proto.id);
+        const pickupLogs = protoLogs.filter(l => l.entry_type === 'pickup' || l.fulfillment_method === 'overnight');
+        const inClinicLogs = protoLogs.filter(l => l.entry_type === 'injection' || (l.entry_type === 'session' && l.fulfillment_method !== 'overnight'));
+        const totalDispensed = inClinicLogs.length + pickupLogs.reduce((sum, l) => sum + (l.quantity || 1), 0);
+        const pending = Math.max(proto.total_sessions - totalDispensed, 0);
+
+        if (pending > 0) {
+          const patientName = patient?.first_name || patient?.name || 'Patient';
+          const medication = item.medication || proto.medication || proto.program_name || '';
+          // Default due date: 1 week from today
+          const nextWeek = new Date();
+          nextWeek.setDate(nextWeek.getDate() + 7);
+          const defaultDate = nextWeek.toISOString().split('T')[0];
+
+          setShipmentReminderModal({ patientName, medication, pending, protocolId: proto.id });
+          setShipmentReminderForm({ dueDate: defaultDate, notes: '', assignedTo: employee?.id || '' });
+          break; // only show one prompt
+        }
+      }
+    }, 1500); // wait for fetchPatient to complete
+  };
+
+  const handleCreateShipmentReminder = async () => {
+    if (!shipmentReminderModal) return;
+    setShipmentReminderSaving(true);
+    try {
+      const { patientName, medication, pending } = shipmentReminderModal;
+      const title = `Ship ${pending} ${medication || 'injection'}${pending > 1 ? 's' : ''} to ${patientName}`;
+      const res = await fetch('/api/admin/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          description: shipmentReminderForm.notes || `${pending} injection${pending > 1 ? 's' : ''} still need to be shipped. Patient: ${patientName}.`,
+          assigned_to: shipmentReminderForm.assignedTo || employee?.id,
+          patient_id: patient?.id,
+          patient_name: patientName,
+          priority: 'high',
+          due_date: shipmentReminderForm.dueDate || null,
+        }),
+      });
+      if (res.ok) {
+        setShipmentReminderModal(null);
+      } else {
+        const err = await res.json();
+        alert('Failed to create reminder: ' + (err.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Failed to create reminder: ' + err.message);
+    }
+    setShipmentReminderSaving(false);
   };
 
   // Quick weight log for missed WL sessions (patient called/texted weight)
@@ -8609,6 +8685,7 @@ export default function PatientProfile() {
             key={serviceLogKey}
             autoOpen
             onClose={() => { setShowServiceLog(false); fetchPatient(); }}
+            onLogComplete={handleLogComplete}
             preselectedPatient={{
               id: patient.id,
               name: `${patient.first_name || ''} ${patient.last_name || ''}`.trim() || patient.name,
@@ -8671,6 +8748,67 @@ export default function PatientProfile() {
                     {quickWeightSaving ? 'Saving...' : 'Save Weight'}
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Shipment Reminder Modal — auto-prompt after partial fulfillment */}
+        {shipmentReminderModal && (
+          <div className="modal-overlay" {...overlayClickProps(() => setShipmentReminderModal(null))}>
+            <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
+              <div className="modal-header">
+                <h3>📦 Schedule Shipment Reminder</h3>
+                <button onClick={() => setShipmentReminderModal(null)} className="close-btn">&times;</button>
+              </div>
+              <div className="modal-body">
+                <div style={{ padding: '10px 14px', background: '#fffbeb', border: '1px solid #fde68a', marginBottom: 16, fontSize: 13 }}>
+                  <strong style={{ color: '#92400e' }}>{shipmentReminderModal.pending} {shipmentReminderModal.medication || 'injection'}{shipmentReminderModal.pending > 1 ? 's' : ''}</strong>
+                  <span style={{ color: '#78716c' }}> still need to be shipped to </span>
+                  <strong style={{ color: '#92400e' }}>{shipmentReminderModal.patientName}</strong>
+                </div>
+                <div className="form-group">
+                  <label>Ship by date *</label>
+                  <input
+                    type="date"
+                    value={shipmentReminderForm.dueDate}
+                    onChange={e => setShipmentReminderForm({ ...shipmentReminderForm, dueDate: e.target.value })}
+                    style={{ fontSize: 14 }}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Assign to</label>
+                  <select
+                    value={shipmentReminderForm.assignedTo}
+                    onChange={e => setShipmentReminderForm({ ...shipmentReminderForm, assignedTo: e.target.value })}
+                    style={{ fontSize: 14 }}
+                  >
+                    <option value="">Select...</option>
+                    {(taskEmployees || []).map(e => (
+                      <option key={e.id} value={e.id}>{e.name}{e.id === employee?.id ? ' (Me)' : ''}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Notes (optional)</label>
+                  <textarea
+                    value={shipmentReminderForm.notes}
+                    onChange={e => setShipmentReminderForm({ ...shipmentReminderForm, notes: e.target.value })}
+                    rows={2}
+                    placeholder="e.g. Ship to New Jersey address, FedEx overnight"
+                    style={{ fontSize: 13 }}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button onClick={() => setShipmentReminderModal(null)} className="btn-secondary">Skip</button>
+                <button
+                  onClick={handleCreateShipmentReminder}
+                  disabled={shipmentReminderSaving || !shipmentReminderForm.dueDate || !shipmentReminderForm.assignedTo}
+                  className="btn-primary"
+                >
+                  {shipmentReminderSaving ? 'Creating...' : 'Create Reminder'}
+                </button>
               </div>
             </div>
           </div>

@@ -112,7 +112,7 @@ const PROTOCOL_CONFIG = {
 // MAIN COMPONENT
 // ============================================
 
-export default function ServiceLogContent({ preselectedPatient = null, autoOpen = false, onClose = null }) {
+export default function ServiceLogContent({ preselectedPatient = null, autoOpen = false, onClose = null, onLogComplete = null }) {
   // View state
   const [viewCategory, setViewCategory] = useState('all');
   const [logs, setLogs] = useState([]);
@@ -783,6 +783,20 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
     }
 
     if (errors.length === 0) {
+      // Pass logged items back to parent before closing
+      if (onLogComplete) {
+        const loggedItems = visitItems.map(item => ({
+          serviceType: item.serviceType.id,
+          entryType: item.entryType,
+          quantity: item.formData.quantity || 1,
+          medication: item.formData.medication || null,
+          fulfillmentMethod: item.formData.fulfillment_method || null,
+          protocolId: item.protocolId || null,
+          patientId: selectedPatient?.id,
+          patientName: selectedPatient?.name,
+        }));
+        onLogComplete(loggedItems);
+      }
       closeModal();
       fetchLogs();
       // Re-fetch protocols so UI reflects updated next_expected_date

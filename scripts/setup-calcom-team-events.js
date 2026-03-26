@@ -57,6 +57,9 @@ const EVENT_TYPES = [
   { slug: 'vitamin-c-iv', title: 'Vitamin C IV', length: 90, desc: 'High-dose Vitamin C IV infusion.', loc: LOC_IN_PERSON, hosts: hosts([LILY, DAMIEN]) },
   { slug: 'specialty-iv', title: 'Specialty IV', length: 60, desc: 'Specialty IV therapy session.', loc: LOC_IN_PERSON, hosts: hosts([LILY, DAMIEN]) },
 
+  // DIAGNOSTICS
+  { slug: 'dexa-scan', title: 'DEXA Scan', length: 45, desc: 'DEXA body composition scan at Range Medical. Approximately 45 minutes.', loc: LOC_IN_PERSON, hosts: fixedHost(DAMIEN) },
+
   // CONSULTATIONS (all Dr. Burgess only)
   { slug: 'initial-consultation', title: 'Initial Consultation', length: 45, desc: 'Initial consultation with Dr. Burgess to discuss your health goals.', loc: LOC_IN_PERSON, hosts: fixedHost(DAMIEN) },
   { slug: 'initial-consultation-peptide', title: 'Initial Consultation - Peptide', length: 45, desc: 'Initial peptide therapy consultation with Dr. Burgess.', loc: LOC_IN_PERSON, hosts: fixedHost(DAMIEN) },

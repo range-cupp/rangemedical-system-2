@@ -309,6 +309,29 @@ export default function CommunicationsPage() {
     }
   };
 
+  // Quick dismiss needs_response from list view without opening the conversation
+  const dismissNeedsResponse = async (e, p) => {
+    e.stopPropagation(); // don't open the conversation
+    try {
+      const resp = await fetch('/api/admin/clear-needs-response', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientId: p.id || null,
+          phone: p.recipient || p.phone || null,
+        }),
+      });
+      if (resp.ok) {
+        setPatients(prev => prev.map(pt => {
+          if ((p.id && pt.id === p.id) || (!p.id && (pt.phone || pt.recipient) === (p.phone || p.recipient))) {
+            return { ...pt, needsResponseCount: 0 };
+          }
+          return pt;
+        }));
+      }
+    } catch (_) { /* silent */ }
+  };
+
   // Count patients needing response for the badge
   const needsResponseTotal = patients.filter(p => p.needsResponseCount > 0).length;
 
@@ -451,7 +474,14 @@ export default function CommunicationsPage() {
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           {needsResponse && (
-                            <span style={styles.needsResponseBadge}>Action Needed</span>
+                            <>
+                              <span style={styles.needsResponseBadge}>Action Needed</span>
+                              <button
+                                onClick={(e) => dismissNeedsResponse(e, p)}
+                                style={styles.dismissBtn}
+                                title="Dismiss — no response needed"
+                              >✕</button>
+                            </>
                           )}
                           {hasUnread && !needsResponse && (
                             <span style={styles.unreadCountBadge}>{p.unreadCount}</span>
@@ -977,6 +1007,17 @@ const styles = {
     whiteSpace: 'nowrap',
     letterSpacing: '0.3px',
     textTransform: 'uppercase',
+  },
+  dismissBtn: {
+    background: 'none',
+    border: '1px solid #ddd',
+    borderRadius: 0,
+    color: '#999',
+    fontSize: '12px',
+    cursor: 'pointer',
+    padding: '2px 6px',
+    lineHeight: 1,
+    flexShrink: 0,
   },
   responseFilterBtn: {
     padding: '6px 14px',

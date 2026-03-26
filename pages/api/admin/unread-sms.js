@@ -29,11 +29,16 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: countError.message });
     }
 
-    // Count unique conversations needing response (what the badge should show)
+    // Count unique conversations needing response from the last 7 days
+    // Older flags are stale — they still show in the Needs Response tab but don't inflate the badge
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
     const { data: needsResponseRows, error: nrError } = await supabase
       .from('comms_log')
       .select('patient_id')
-      .eq('needs_response', true);
+      .eq('needs_response', true)
+      .gte('created_at', sevenDaysAgo.toISOString());
 
     let needsResponseCount = 0;
     if (!nrError && needsResponseRows) {

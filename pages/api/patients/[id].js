@@ -323,7 +323,7 @@ export default async function handler(req, res) {
         // Tasks
         supabase.from('tasks').select('*').eq('patient_id', id).order('created_at', { ascending: false }),
         // Weight loss service logs
-        supabase.from('service_logs').select('id, protocol_id, entry_date, medication, dosage, weight, quantity, notes, fulfillment_method, tracking_number').eq('patient_id', id).eq('category', 'weight_loss').order('entry_date', { ascending: true }),
+        supabase.from('service_logs').select('id, protocol_id, entry_type, entry_date, medication, dosage, weight, quantity, notes, fulfillment_method, tracking_number').eq('patient_id', id).eq('category', 'weight_loss').order('entry_date', { ascending: true }),
         // All service logs
         supabase.from('service_logs').select('id, category, entry_type, entry_date, medication, dosage, quantity, administered_by, notes, created_at, protocol_id, fulfillment_method, tracking_number').eq('patient_id', id).order('entry_date', { ascending: false }).limit(200),
         // Communications log

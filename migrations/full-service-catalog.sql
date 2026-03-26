@@ -176,6 +176,12 @@ INSERT INTO pos_services (name, category, price_cents, recurring, description, s
   ('4X Blend — Phase 3',                   'peptide',  55000, false, '4X Blend — phase 3 dose.', 19)
 ON CONFLICT (name) DO UPDATE SET price_cents = EXCLUDED.price_cents, description = EXCLUDED.description;
 
+-- ── NAD+ Protocols ─────────────────────────────────────────────────────────
+
+INSERT INTO pos_services (name, category, price_cents, recurring, description, sort_order) VALUES
+  ('NAD+ 50mg Protocol — 30 Injections', 'longevity', 60000, false, 'NAD+ 50mg daily injection protocol. 30 injections over 30 days.', 1)
+ON CONFLICT (name) DO UPDATE SET price_cents = EXCLUDED.price_cents, description = EXCLUDED.description;
+
 -- Recurring peptide (cream)
 INSERT INTO pos_services (name, category, price_cents, recurring, interval, description, sort_order) VALUES
   ('GHK-Cu Cream', 'peptide', 29900, true, 'month', 'Topical copper peptide cream. Skin rejuvenation, collagen, hair. Monthly supply.', 20)
@@ -238,6 +244,7 @@ UPDATE pos_services SET active = true WHERE name IN (
   '2X Blend — Phase 1','2X Blend — Phase 2','2X Blend — Phase 3',
   '3X Blend — Phase 1','3X Blend — Phase 2','3X Blend — Phase 3',
   '4X Blend — Phase 1','4X Blend — Phase 2','4X Blend — Phase 3',
+  'NAD+ 50mg Protocol — 30 Injections',
   'Range Assessment',
   'Men''s Essential Panel','Men''s Elite Panel','Women''s Essential Panel','Women''s Elite Panel'
 );

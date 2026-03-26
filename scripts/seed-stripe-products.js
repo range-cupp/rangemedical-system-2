@@ -399,6 +399,14 @@ const PRODUCTS = [
     prices: [{ amount: 7500, nickname: null }],
   },
 
+  // ── NAD+ Protocols ──
+  {
+    name: 'NAD+ 50mg Protocol — 30 Injections',
+    description: 'NAD+ 50mg daily injection protocol. 30 injections over 30 days.',
+    category: 'longevity',
+    prices: [{ amount: 60000, nickname: null }],
+  },
+
   // ── DSIP Sleep Protocol ──
   {
     name: 'DSIP Protocol — Phase 1 (250 mcg)',

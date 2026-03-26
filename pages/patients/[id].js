@@ -4235,79 +4235,99 @@ export default function PatientProfile() {
                           )}
                           <div className="protocol-dates">Started {formatShortDate(protocol.start_date)}{protocol.end_date && ` → ${formatShortDate(protocol.end_date)}`}</div>
 
-                          {/* Activity Summary — at-a-glance protocol status for staff */}
-                          {protocol.status === 'active' && protoServiceLogs.length > 0 && (
-                            <div style={{ margin: '8px 0 4px', padding: '10px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 0 }}>
-                              <div style={{ display: 'grid', gridTemplateColumns: sessionsTotal ? '1fr 1fr 1fr' : '1fr 1fr', gap: '8px 16px', fontSize: '12px' }}>
-                                {/* Last injection/session */}
-                                {(lastInjection || lastSession) && (() => {
-                                  const last = lastInjection || lastSession;
-                                  const daysSince = Math.floor((new Date() - new Date(last.entry_date + 'T00:00:00')) / (1000 * 60 * 60 * 24));
-                                  return (
+                          {/* Activity Summary + Fulfillment Tracker — at-a-glance for staff */}
+                          {protocol.status === 'active' && (protoServiceLogs.length > 0 || sessionsTotal > 0) && (() => {
+                            // Aggregate fulfillment from service logs
+                            const inClinicLogs = protoServiceLogs.filter(l => l.entry_type === 'injection' || (l.entry_type === 'session' && l.fulfillment_method !== 'overnight'));
+                            const shippedLogs = protoServiceLogs.filter(l => l.fulfillment_method === 'overnight');
+                            const pickupLogs = protoServiceLogs.filter(l => l.entry_type === 'pickup' && l.fulfillment_method !== 'overnight');
+                            // Count: in-clinic injections count as 1 each; pickups/shipped use quantity field
+                            const inClinicCount = inClinicLogs.length;
+                            const shippedCount = shippedLogs.reduce((sum, l) => sum + (l.quantity || 1), 0);
+                            const pickupCount = pickupLogs.reduce((sum, l) => sum + (l.quantity || 1), 0);
+                            const totalDispensed = inClinicCount + shippedCount + pickupCount;
+                            const pending = sessionsTotal ? Math.max(sessionsTotal - totalDispensed, 0) : 0;
+                            const lastEntry = lastInjection || lastSession;
+                            const daysSinceLast = lastEntry ? Math.floor((new Date() - new Date(lastEntry.entry_date + 'T00:00:00')) / (1000 * 60 * 60 * 24)) : null;
+
+                            return (
+                              <div style={{ margin: '8px 0 4px', padding: '10px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 0, fontSize: '12px' }}>
+                                {/* Row 1: Last activity + sessions progress */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: (inClinicCount > 0 || shippedCount > 0 || pickupCount > 0) ? 8 : 0 }}>
+                                  {lastEntry && (
                                     <div>
-                                      <div style={{ color: '#6b7280', fontWeight: 500, marginBottom: 2 }}>
-                                        Last {lastInjection ? 'Injection' : 'Session'}
+                                      <span style={{ color: '#6b7280' }}>Last {lastInjection ? 'injection' : 'session'}: </span>
+                                      <strong style={{ color: daysSinceLast > 14 ? '#dc2626' : '#111' }}>
+                                        {formatShortDate(lastEntry.entry_date)}
+                                      </strong>
+                                      <span style={{ color: daysSinceLast > 14 ? '#dc2626' : '#9ca3af', marginLeft: 4 }}>
+                                        ({daysSinceLast === 0 ? 'today' : daysSinceLast === 1 ? '1d ago' : `${daysSinceLast}d ago`})
+                                      </span>
+                                      {lastEntry.dosage && <span style={{ color: '#6b7280', marginLeft: 6 }}>{lastEntry.dosage}</span>}
+                                    </div>
+                                  )}
+                                  {sessionsTotal > 0 && (
+                                    <div style={{ textAlign: 'right', minWidth: 90 }}>
+                                      <strong>{totalDispensed}</strong><span style={{ color: '#6b7280' }}> of {sessionsTotal} dispensed</span>
+                                      <div style={{ marginTop: 3, height: 4, background: '#e5e7eb', borderRadius: 2, overflow: 'hidden' }}>
+                                        <div style={{ height: '100%', width: `${Math.min((totalDispensed / sessionsTotal) * 100, 100)}%`, background: totalDispensed >= sessionsTotal ? '#16a34a' : '#3b82f6', borderRadius: 2 }} />
                                       </div>
-                                      <div style={{ fontWeight: 600, color: daysSince > 14 ? '#dc2626' : '#111' }}>
-                                        {formatShortDate(last.entry_date)}
-                                        <span style={{ fontWeight: 400, color: daysSince > 14 ? '#dc2626' : '#9ca3af', marginLeft: 4 }}>
-                                          ({daysSince === 0 ? 'today' : daysSince === 1 ? '1d ago' : `${daysSince}d ago`})
-                                        </span>
-                                      </div>
-                                      {last.dosage && <div style={{ color: '#6b7280', marginTop: 1 }}>{last.dosage}</div>}
                                     </div>
-                                  );
-                                })()}
-                                {/* Last in-clinic vs take-home */}
-                                {lastInClinic && (
-                                  <div>
-                                    <div style={{ color: '#6b7280', fontWeight: 500, marginBottom: 2 }}>Last In-Clinic</div>
-                                    <div style={{ fontWeight: 600, color: '#111' }}>
-                                      {formatShortDate(lastInClinic.entry_date)}
-                                    </div>
-                                    {lastInClinic.administered_by && <div style={{ color: '#6b7280', marginTop: 1 }}>by {lastInClinic.administered_by}</div>}
-                                  </div>
-                                )}
-                                {lastTakeHome && (
-                                  <div>
-                                    <div style={{ color: '#6b7280', fontWeight: 500, marginBottom: 2 }}>
-                                      Last Take-Home
-                                    </div>
-                                    <div style={{ fontWeight: 600, color: '#111' }}>
-                                      {formatShortDate(lastTakeHome.entry_date)}
-                                      {lastTakeHome.fulfillment_method === 'overnight' && (
-                                        <span style={{ color: '#1e40af', fontWeight: 500, marginLeft: 4 }}>shipped</span>
-                                      )}
-                                      {lastTakeHome.entry_type === 'pickup' && (
-                                        <span style={{ color: '#166534', fontWeight: 500, marginLeft: 4 }}>picked up</span>
-                                      )}
-                                    </div>
-                                    {lastTakeHome.quantity && (
-                                      <div style={{ color: '#6b7280', marginTop: 1 }}>
-                                        {lastTakeHome.quantity} {lastTakeHome.quantity === 1 ? 'injection' : 'injections'}
-                                        {lastTakeHome.medication && ` — ${lastTakeHome.medication}`}
+                                  )}
+                                </div>
+                                {/* Row 2: Fulfillment breakdown — only if there are logs */}
+                                {(inClinicCount > 0 || shippedCount > 0 || pickupCount > 0) && (
+                                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', paddingTop: 8, borderTop: '1px solid #e2e8f0' }}>
+                                    {inClinicCount > 0 && (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        <span style={{ color: '#16a34a', fontWeight: 600 }}>{inClinicCount}</span>
+                                        <span style={{ color: '#6b7280' }}>in-clinic</span>
+                                        {lastInClinic && (
+                                          <span style={{ color: '#9ca3af' }}>
+                                            (last {formatShortDate(lastInClinic.entry_date)}
+                                            {lastInClinic.administered_by && `, ${lastInClinic.administered_by}`})
+                                          </span>
+                                        )}
                                       </div>
                                     )}
-                                    {lastTakeHome.tracking_number && (
-                                      <div style={{ color: '#3b82f6', marginTop: 1 }}>Tracking: {lastTakeHome.tracking_number}</div>
+                                    {shippedCount > 0 && (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        <span style={{ color: '#1e40af', fontWeight: 600 }}>{shippedCount}</span>
+                                        <span style={{ color: '#6b7280' }}>shipped</span>
+                                        {(() => {
+                                          const latestShipped = shippedLogs[0]; // already sorted newest first
+                                          return (
+                                            <span style={{ color: '#9ca3af' }}>
+                                              ({formatShortDate(latestShipped.entry_date)}
+                                              {latestShipped.tracking_number && <span style={{ color: '#3b82f6' }}> — {latestShipped.tracking_number}</span>})
+                                            </span>
+                                          );
+                                        })()}
+                                      </div>
                                     )}
-                                  </div>
-                                )}
-                                {/* Sessions progress */}
-                                {sessionsTotal > 0 && (
-                                  <div>
-                                    <div style={{ color: '#6b7280', fontWeight: 500, marginBottom: 2 }}>Sessions</div>
-                                    <div style={{ fontWeight: 600, color: '#111' }}>
-                                      {sessionsCompleted} of {sessionsTotal}
-                                    </div>
-                                    <div style={{ marginTop: 3, height: 4, background: '#e5e7eb', borderRadius: 2, overflow: 'hidden' }}>
-                                      <div style={{ height: '100%', width: `${Math.min((sessionsCompleted / sessionsTotal) * 100, 100)}%`, background: sessionsCompleted >= sessionsTotal ? '#16a34a' : '#3b82f6', borderRadius: 2 }} />
-                                    </div>
+                                    {pickupCount > 0 && (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        <span style={{ color: '#166534', fontWeight: 600 }}>{pickupCount}</span>
+                                        <span style={{ color: '#6b7280' }}>picked up</span>
+                                        {(() => {
+                                          const latestPickup = pickupLogs[0];
+                                          return latestPickup ? (
+                                            <span style={{ color: '#9ca3af' }}>({formatShortDate(latestPickup.entry_date)})</span>
+                                          ) : null;
+                                        })()}
+                                      </div>
+                                    )}
+                                    {pending > 0 && (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        <span style={{ color: '#f59e0b', fontWeight: 600 }}>{pending}</span>
+                                        <span style={{ color: '#6b7280' }}>pending</span>
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                               </div>
-                            </div>
-                          )}
+                            );
+                          })()}
 
                           {/* Range IV perk status on HRT protocol cards */}
                           {isHRTProtocol(protocol.program_type) && hrtRangeIVStatus && hrtRangeIVStatus.protocolId === protocol.id && (

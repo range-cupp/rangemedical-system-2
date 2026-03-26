@@ -78,6 +78,10 @@
       "schedule": "0 3 * * *"
     },
     {
+      "path": "/api/cron/daily-numbers-sms",
+      "schedule": "0 3 * * *"
+    },
+    {
       "path": "/api/cron/birthday-sms",
       "schedule": "0 17 * * *"
     },

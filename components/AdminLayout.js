@@ -279,6 +279,145 @@ function useNewPatientNotifications(router) {
   }, [router]);
 }
 
+// Purchase notification sound — descending two-tone "ka-ching" (distinct from SMS and patient)
+function playPurchaseSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // Two quick descending tones: E6 → C6 (cash register feel)
+    [0, 0.12].forEach((delay, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = i === 0 ? 1319 : 1047; // E6, C6
+      osc.type = 'triangle';
+      gain.gain.setValueAtTime(0.3, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.25);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + 0.25);
+    });
+    setTimeout(() => ctx.close(), 1000);
+  } catch (e) {
+    // Audio not available — silent fail
+  }
+}
+
+// Hook for new purchase notifications (badge + toast)
+function useNewPurchaseNotifications(router) {
+  const [purchaseCount, setPurchaseCount] = useState(0);
+  const [purchaseToast, setPurchaseToast] = useState(null);
+  const latestTimestampRef = useRef(null);
+  const hasInteractedRef = useRef(false);
+  const initializedRef = useRef(false);
+  const toastTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    const handleInteraction = () => { hasInteractedRef.current = true; };
+    window.addEventListener('click', handleInteraction, { once: true });
+    window.addEventListener('keydown', handleInteraction, { once: true });
+    return () => {
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('keydown', handleInteraction);
+    };
+  }, []);
+
+  const dismissPurchaseToast = useCallback(() => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setPurchaseToast(null);
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    let interval = null;
+
+    const checkPurchases = async () => {
+      if (document.visibilityState === 'hidden') return;
+      try {
+        const since = latestTimestampRef.current;
+        const url = since
+          ? `/api/admin/new-purchases-check?since=${encodeURIComponent(since)}`
+          : '/api/admin/new-purchases-check';
+        const res = await fetch(url);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!mounted) return;
+
+        if (data.latestTimestamp) {
+          latestTimestampRef.current = data.latestTimestamp;
+        }
+
+        setPurchaseCount(data.todayCount || 0);
+
+        if (!initializedRef.current) {
+          initializedRef.current = true;
+          return;
+        }
+
+        // New purchase arrived — play sound + show toast + browser notification
+        if (data.newPurchases?.length > 0 && hasInteractedRef.current) {
+          const purchase = data.newPurchases[0];
+          playPurchaseSound();
+
+          // In-app toast
+          if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+          setPurchaseToast({
+            name: purchase.patient_name || 'Unknown',
+            item: purchase.item_name || 'Purchase',
+            amount: `$${(purchase.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+          });
+          toastTimeoutRef.current = setTimeout(() => {
+            if (mounted) setPurchaseToast(null);
+          }, 15000);
+
+          // Browser notification
+          if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            const notif = new Notification('New Purchase — Range Medical', {
+              body: `${purchase.patient_name}: ${purchase.item_name} — $${(purchase.amount || 0).toFixed(2)}`,
+              icon: '/favicon.ico',
+              tag: 'range-purchase',
+            });
+            notif.onclick = () => {
+              window.focus();
+              router.push('/admin/payments');
+              notif.close();
+            };
+            setTimeout(() => notif.close(), 8000);
+          }
+        }
+      } catch (e) {
+        // Silent fail
+      }
+    };
+
+    const startPolling = () => {
+      if (interval) clearInterval(interval);
+      checkPurchases();
+      interval = setInterval(checkPurchases, 30000); // Poll every 30 seconds
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        startPolling();
+      } else {
+        if (interval) { clearInterval(interval); interval = null; }
+      }
+    };
+
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      mounted = false;
+      if (interval) clearInterval(interval);
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [router]);
+
+  return { purchaseCount, purchaseToast, dismissPurchaseToast };
+}
+
 // Hook for unread task count badge
 function useUnreadTasks(employeeId) {
   const [taskCount, setTaskCount] = useState(0);
@@ -474,6 +613,7 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { unreadCount, toast, dismissToast } = useUnreadNotifications(router);
   useNewPatientNotifications(router);
+  const { purchaseCount, purchaseToast, dismissPurchaseToast } = useNewPurchaseNotifications(router);
   const { employee, loading: authLoading, signOut, hasPermission, isAuthenticated } = useAuth();
   const taskCount = useUnreadTasks(employee?.id);
 
@@ -532,7 +672,8 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
                 (item.href !== '/admin' && currentPath.startsWith(item.href)) ||
                 (item.href === '/admin/patients' && currentPath.startsWith('/patients'));
               const showBadge = (item.href === '/admin/communications' && unreadCount > 0)
-                || (item.href === '/admin/tasks' && taskCount > 0);
+                || (item.href === '/admin/tasks' && taskCount > 0)
+                || (item.href === '/admin/payments' && purchaseCount > 0);
               return (
                 <Link
                   key={item.href}
@@ -549,9 +690,14 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
                   <span style={styles.navIcon}>{icons[item.icon]}</span>
                   {item.label}
                   {showBadge && (
-                    <span style={styles.unreadBadge}>
+                    <span style={{
+                      ...styles.unreadBadge,
+                      ...(item.href === '/admin/payments' ? { background: '#16a34a' } : {}),
+                    }}>
                       {item.href === '/admin/tasks'
                         ? (taskCount > 99 ? '99+' : taskCount)
+                        : item.href === '/admin/payments'
+                        ? (purchaseCount > 99 ? '99+' : purchaseCount)
                         : (unreadCount > 99 ? '99+' : unreadCount)}
                     </span>
                   )}
@@ -662,6 +808,40 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
           <button
             style={toastStyles.dismiss}
             onClick={(e) => { e.stopPropagation(); dismissToast(); }}
+            title="Dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* In-app purchase toast notification */}
+      {purchaseToast && (
+        <div
+          style={{ ...toastStyles.container, top: toast ? '100px' : '16px' }}
+          onClick={() => {
+            dismissPurchaseToast();
+            router.push('/admin/payments');
+          }}
+        >
+          <div style={{ ...toastStyles.iconCol, background: '#16a34a' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" />
+            </svg>
+          </div>
+          <div style={toastStyles.body}>
+            <div style={toastStyles.header}>
+              <span style={{ ...toastStyles.label, color: '#16a34a' }}>NEW PURCHASE</span>
+              <span style={toastStyles.time}>{purchaseToast.time}</span>
+            </div>
+            <div style={toastStyles.name}>{purchaseToast.name}</div>
+            <div style={toastStyles.message}>{purchaseToast.item}</div>
+            <div style={{ ...toastStyles.name, color: '#22c55e', fontSize: '16px', marginTop: '4px' }}>{purchaseToast.amount}</div>
+            <div style={toastStyles.hint}>Click to view in Payments</div>
+          </div>
+          <button
+            style={toastStyles.dismiss}
+            onClick={(e) => { e.stopPropagation(); dismissPurchaseToast(); }}
             title="Dismiss"
           >
             ✕

@@ -1760,7 +1760,9 @@ export default function PatientProfile() {
           const defaultDate = nextWeek.toISOString().split('T')[0];
 
           setShipmentReminderModal({ patientName, medication, pending, protocolId: proto.id });
-          setShipmentReminderForm({ dueDate: defaultDate, notes: '', assignedTo: employee?.id || '' });
+          // Default assign to Damon Durante for shipment tasks
+          const DAMON_ID = '8a62c77f-5c18-4b59-9e1e-70113ab4954e';
+          setShipmentReminderForm({ dueDate: defaultDate, notes: '', assignedTo: DAMON_ID });
           break; // only show one prompt
         }
       }

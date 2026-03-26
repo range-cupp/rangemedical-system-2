@@ -106,22 +106,100 @@ export default async function handler(req, res) {
     const totalSessions = protocol.total_sessions || 4;
 
     // Write to service_logs (single source of truth for all activity)
-    const { error: serviceLogError } = await supabase
+    // Check for existing entry on same date for same protocol to prevent duplicates
+    const { data: existingLog } = await supabase
       .from('service_logs')
-      .insert({
-        patient_id: patient.id,
-        protocol_id: protocol.id,
-        category: 'weight_loss',
-        entry_type: 'injection',
-        entry_date: today,
-        medication: protocol.medication || 'Weight Loss',
-        dosage: protocol.selected_dose || null,
-        weight: parsedWeight,
-        notes: logNotes
-      });
+      .select('id')
+      .eq('protocol_id', protocol.id)
+      .eq('entry_date', today)
+      .eq('entry_type', 'injection')
+      .maybeSingle();
 
-    if (serviceLogError) {
-      console.error('Error creating service log:', serviceLogError);
+    if (existingLog) {
+      // Update existing entry instead of creating duplicate
+      const { error: updateError } = await supabase
+        .from('service_logs')
+        .update({
+          weight: parsedWeight,
+          dosage: protocol.selected_dose || null,
+          notes: logNotes,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingLog.id);
+
+      if (updateError) {
+        console.error('Error updating service log:', updateError);
+      }
+    } else {
+      const { error: serviceLogError } = await supabase
+        .from('service_logs')
+        .insert({
+          patient_id: patient.id,
+          protocol_id: protocol.id,
+          category: 'weight_loss',
+          entry_type: 'injection',
+          entry_date: today,
+          medication: protocol.medication || 'Weight Loss',
+          dosage: protocol.selected_dose || null,
+          weight: parsedWeight,
+          notes: logNotes
+        });
+
+      if (serviceLogError) {
+        console.error('Error creating service log:', serviceLogError);
+      }
+    }
+
+    // Sync weight to patient_vitals so it appears on the vitals flowsheet
+    try {
+      const dayStart = `${today}T00:00:00`;
+      const dayEnd = `${today}T23:59:59`;
+      const { data: existingVitals } = await supabase
+        .from('patient_vitals')
+        .select('id, height_inches')
+        .eq('patient_id', patient.id)
+        .gte('recorded_at', dayStart)
+        .lte('recorded_at', dayEnd)
+        .maybeSingle();
+
+      if (existingVitals) {
+        // Update existing vitals entry for today with new weight
+        const bmi = existingVitals.height_inches
+          ? Math.round((parsedWeight / (existingVitals.height_inches * existingVitals.height_inches)) * 703 * 10) / 10
+          : null;
+        await supabase
+          .from('patient_vitals')
+          .update({ weight_lbs: parsedWeight, bmi, recorded_at: new Date().toISOString() })
+          .eq('id', existingVitals.id);
+      } else {
+        // Get last known height for BMI calculation
+        const { data: lastVitals } = await supabase
+          .from('patient_vitals')
+          .select('height_inches')
+          .eq('patient_id', patient.id)
+          .not('height_inches', 'is', null)
+          .order('recorded_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const height = lastVitals?.height_inches || null;
+        const bmi = height
+          ? Math.round((parsedWeight / (height * height)) * 703 * 10) / 10
+          : null;
+
+        await supabase
+          .from('patient_vitals')
+          .insert({
+            patient_id: patient.id,
+            weight_lbs: parsedWeight,
+            height_inches: height,
+            bmi,
+            recorded_by: 'Patient check-in',
+            recorded_at: new Date().toISOString()
+          });
+      }
+    } catch (vitalsErr) {
+      console.error('Weight→patient_vitals sync error (non-fatal):', vitalsErr.message);
     }
 
     // Recalculate sessions_used from actual service_logs linked to this protocol

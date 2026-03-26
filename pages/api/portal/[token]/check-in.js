@@ -94,22 +94,74 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to save check-in' });
     }
 
-    // If weight provided, also save to weight_logs
+    // If weight provided, also save to weight_logs and patient_vitals
     if (weight) {
+      const parsedWeight = parseFloat(weight);
+
       await supabase
         .from('weight_logs')
         .upsert({
           patient_id: patientId,
           log_date: today,
-          weight: parseFloat(weight),
+          weight: parsedWeight,
           source: 'check_in'
         }, {
           onConflict: 'patient_id,log_date'
         });
+
+      // Sync to patient_vitals so it appears on the vitals flowsheet
+      try {
+        const dayStart = `${today}T00:00:00`;
+        const dayEnd = `${today}T23:59:59`;
+        const { data: existingVitals } = await supabase
+          .from('patient_vitals')
+          .select('id, height_inches')
+          .eq('patient_id', patientId)
+          .gte('recorded_at', dayStart)
+          .lte('recorded_at', dayEnd)
+          .maybeSingle();
+
+        if (existingVitals) {
+          const bmi = existingVitals.height_inches
+            ? Math.round((parsedWeight / (existingVitals.height_inches * existingVitals.height_inches)) * 703 * 10) / 10
+            : null;
+          await supabase
+            .from('patient_vitals')
+            .update({ weight_lbs: parsedWeight, bmi, recorded_at: new Date().toISOString() })
+            .eq('id', existingVitals.id);
+        } else {
+          const { data: lastVitals } = await supabase
+            .from('patient_vitals')
+            .select('height_inches')
+            .eq('patient_id', patientId)
+            .not('height_inches', 'is', null)
+            .order('recorded_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          const height = lastVitals?.height_inches || null;
+          const bmi = height
+            ? Math.round((parsedWeight / (height * height)) * 703 * 10) / 10
+            : null;
+
+          await supabase
+            .from('patient_vitals')
+            .insert({
+              patient_id: patientId,
+              weight_lbs: parsedWeight,
+              height_inches: height,
+              bmi,
+              recorded_by: 'Portal check-in',
+              recorded_at: new Date().toISOString()
+            });
+        }
+      } catch (vitalsErr) {
+        console.error('Weight→patient_vitals sync error (non-fatal):', vitalsErr.message);
+      }
     }
 
-    return res.status(200).json({ 
-      success: true, 
+    return res.status(200).json({
+      success: true,
       check_in: checkIn,
       message: 'Check-in saved successfully'
     });

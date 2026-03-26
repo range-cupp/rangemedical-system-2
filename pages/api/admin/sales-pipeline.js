@@ -22,6 +22,17 @@ const STAGES = [
   { key: 'lost', label: 'Lost' },
 ];
 
+const TRIAL_STAGES = [
+  { key: 'new_lead', label: 'New Lead' },
+  { key: 'purchased', label: 'Purchased' },
+  { key: 'day_1', label: 'Day 1' },
+  { key: 'trial_active', label: 'Active' },
+  { key: 'check_in', label: 'Check-In' },
+  { key: 'converted', label: 'Converted' },
+  { key: 'nurture', label: 'Nurture' },
+  { key: 'lost', label: 'Lost' },
+];
+
 export default async function handler(req, res) {
   if (req.method === 'GET') return handleGet(req, res);
   if (req.method === 'PATCH') return handlePatch(req, res);
@@ -31,11 +42,16 @@ export default async function handler(req, res) {
 }
 
 async function handleGet(req, res) {
-  const { action } = req.query;
+  const { action, view } = req.query;
 
   // Import existing leads that aren't already in the pipeline
   if (action === 'import') {
     return importLeads(res);
+  }
+
+  // Trial view — filter to rlt_trial leads with trial-specific stages
+  if (view === 'trial') {
+    return handleTrialView(res);
   }
 
   try {
@@ -65,6 +81,74 @@ async function handleGet(req, res) {
     });
   } catch (err) {
     console.error('Sales pipeline GET error:', err);
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+async function handleTrialView(res) {
+  try {
+    // Fetch trial pipeline leads
+    const { data: leads, error: leadsErr } = await supabase
+      .from('sales_pipeline')
+      .select('*')
+      .eq('lead_type', 'rlt_trial')
+      .order('created_at', { ascending: false });
+
+    if (leadsErr) throw leadsErr;
+
+    // Fetch trial passes to enrich leads
+    const leadIds = (leads || []).map(l => l.id);
+    let trialPasses = [];
+    if (leadIds.length > 0) {
+      const { data } = await supabase
+        .from('trial_passes')
+        .select('id, sales_pipeline_id, status, sessions_used, purchased_at, activated_at, expires_at, pre_survey_completed, post_survey_completed, checkin_recommendation, importance_1_10, main_problem, payment_status')
+        .in('sales_pipeline_id', leadIds);
+      trialPasses = data || [];
+    }
+
+    // Map trial pass data to derive correct stage
+    const enrichedLeads = (leads || []).map(lead => {
+      const trial = trialPasses.find(t => t.sales_pipeline_id === lead.id);
+      let derivedStage = lead.stage;
+
+      if (trial) {
+        if (trial.status === 'converted') derivedStage = 'converted';
+        else if (trial.status === 'expired' || lead.stage === 'lost') derivedStage = 'lost';
+        else if (trial.checkin_recommendation === 'nurture') derivedStage = 'nurture';
+        else if (trial.post_survey_completed) derivedStage = 'check_in';
+        else if (trial.sessions_used >= 3) derivedStage = 'check_in';
+        else if (trial.sessions_used >= 1 && trial.pre_survey_completed) derivedStage = 'trial_active';
+        else if (trial.sessions_used === 1) derivedStage = 'day_1';
+        else if (trial.payment_status === 'paid') derivedStage = 'purchased';
+        else derivedStage = 'new_lead';
+      }
+
+      return {
+        ...lead,
+        stage: derivedStage,
+        trial_data: trial || null,
+      };
+    });
+
+    const columns = TRIAL_STAGES.map(stage => ({
+      key: stage.key,
+      label: stage.label,
+      leads: enrichedLeads.filter(l => l.stage === stage.key),
+    }));
+
+    const total = enrichedLeads.length;
+    const active = enrichedLeads.filter(l => !['lost', 'converted', 'nurture'].includes(l.stage)).length;
+    const converted = enrichedLeads.filter(l => l.stage === 'converted').length;
+    const lost = enrichedLeads.filter(l => l.stage === 'lost').length;
+
+    return res.status(200).json({
+      columns,
+      stages: TRIAL_STAGES,
+      summary: { total, active, converted, lost },
+    });
+  } catch (err) {
+    console.error('Trial pipeline GET error:', err);
     return res.status(500).json({ error: err.message });
   }
 }

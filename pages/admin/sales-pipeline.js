@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
+import LeadDetailPanel from '../../components/LeadDetailPanel';
 import { supabase } from '../../lib/supabase';
 
 const STAGE_CONFIG = {
@@ -23,6 +24,8 @@ const SOURCE_CONFIG = {
   start_funnel:   { label: 'Start Funnel',  color: '#2563eb', bg: '#eff6ff' },
   research:       { label: 'Research',       color: '#0891b2', bg: '#ecfeff' },
   cellular_reset: { label: 'Cellular Reset', color: '#7c3aed', bg: '#faf5ff' },
+  rlt_trial:      { label: 'RLT Trial',     color: '#dc2626', bg: '#fef2f2' },
+  manychat:       { label: 'ManyChat',       color: '#c026d3', bg: '#fdf4ff' },
   manual:         { label: 'Manual',         color: '#6b7280', bg: '#f3f4f6' },
   referral:       { label: 'Referral',       color: '#d97706', bg: '#fffbeb' },
   walk_in:        { label: 'Walk-In',        color: '#ea580c', bg: '#fff7ed' },
@@ -34,6 +37,17 @@ const SOURCE_CONFIG = {
   yelp:           { label: 'Yelp',           color: '#dc2626', bg: '#fef2f2' },
   friend:         { label: 'Friend',         color: '#d97706', bg: '#fffbeb' },
   other:          { label: 'Other',          color: '#6b7280', bg: '#f3f4f6' },
+};
+
+const TRIAL_STAGE_CONFIG = {
+  new_lead:   { label: 'New Lead',    color: '#3b82f6', bg: '#eff6ff' },
+  purchased:  { label: 'Purchased',   color: '#8b5cf6', bg: '#f5f3ff' },
+  day_1:      { label: 'Day 1',       color: '#f59e0b', bg: '#fffbeb' },
+  trial_active: { label: 'Active',    color: '#06b6d4', bg: '#ecfeff' },
+  check_in:   { label: 'Check-In',    color: '#111',    bg: '#f3f4f6' },
+  converted:  { label: 'Converted',   color: '#16a34a', bg: '#f0fdf4' },
+  nurture:    { label: 'Nurture',     color: '#d97706', bg: '#fffbeb' },
+  lost:       { label: 'Lost',        color: '#ef4444', bg: '#fef2f2' },
 };
 
 const PATH_LABELS = {
@@ -64,19 +78,19 @@ export default function SalesPipeline() {
   const [addForm, setAddForm] = useState({ first_name: '', last_name: '', email: '', phone: '', source: 'manual', path: '', notes: '' });
   const [saving, setSaving] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
-  const [editNotes, setEditNotes] = useState('');
-  const [editAssigned, setEditAssigned] = useState('');
-  const [editLostReason, setEditLostReason] = useState('');
   const [employees, setEmployees] = useState([]);
   const [importing, setImporting] = useState(false);
   const [filterSource, setFilterSource] = useState('all');
   const [filterPath, setFilterPath] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [viewMode, setViewMode] = useState('standard'); // standard | trial
 
   const fetchBoard = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/sales-pipeline');
+      const url = viewMode === 'trial'
+        ? '/api/admin/sales-pipeline?view=trial'
+        : '/api/admin/sales-pipeline';
+      const res = await fetch(url);
       const data = await res.json();
       if (data.columns) setColumns(data.columns);
       if (data.summary) setSummary(data.summary);
@@ -85,7 +99,7 @@ export default function SalesPipeline() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [viewMode]);
 
   useEffect(() => { fetchBoard(); }, [fetchBoard]);
 
@@ -121,9 +135,6 @@ export default function SalesPipeline() {
     if (toStage === 'lost') {
       const lead = columns.flatMap(c => c.leads).find(l => l.id === data.id);
       setSelectedLead({ ...lead, stage: toStage });
-      setEditLostReason('');
-      setEditNotes(lead?.notes || '');
-      setEditAssigned(lead?.assigned_to || '');
     }
 
     // Optimistic update
@@ -181,27 +192,18 @@ export default function SalesPipeline() {
     }
   };
 
-  const handleUpdateLead = async () => {
-    if (!selectedLead) return;
-    setSaving(true);
+  const handleUpdateLead = async (updates) => {
+    if (!updates) return;
     try {
       await fetch('/api/admin/sales-pipeline', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: selectedLead.id,
-          stage: selectedLead.stage,
-          notes: editNotes,
-          assigned_to: editAssigned,
-          lost_reason: editLostReason,
-        }),
+        body: JSON.stringify(updates),
       });
       setSelectedLead(null);
       fetchBoard();
     } catch (err) {
       console.error('Update lead error:', err);
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -279,6 +281,29 @@ export default function SalesPipeline() {
         ))}
       </div>
 
+      {/* View Toggle */}
+      <div style={{ display: 'flex', gap: 0, marginBottom: 16 }}>
+        {[
+          { key: 'standard', label: 'All Leads' },
+          { key: 'trial', label: 'RLT Trials' },
+        ].map(v => (
+          <button
+            key={v.key}
+            onClick={() => { setViewMode(v.key); setLoading(true); }}
+            style={{
+              padding: '8px 20px', fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+              border: '1px solid #d1d5db', cursor: 'pointer',
+              background: viewMode === v.key ? '#111' : '#fff',
+              color: viewMode === v.key ? '#fff' : '#374151',
+              borderRadius: v.key === 'standard' ? '6px 0 0 6px' : '0 6px 6px 0',
+              marginLeft: v.key === 'trial' ? '-1px' : 0,
+            }}
+          >
+            {v.label}
+          </button>
+        ))}
+      </div>
+
       {/* Actions Bar */}
       <div style={styles.actionsBar}>
         <div style={styles.actionsLeft}>
@@ -318,7 +343,8 @@ export default function SalesPipeline() {
       ) : (
         <div style={styles.board}>
           {filteredColumns.map(col => {
-            const config = STAGE_CONFIG[col.key];
+            const activeStageConfig = viewMode === 'trial' ? TRIAL_STAGE_CONFIG : STAGE_CONFIG;
+            const config = activeStageConfig[col.key] || { label: col.label || col.key, color: '#6b7280', bg: '#f3f4f6' };
             const isDragOver = dragOverColumn === col.key;
             return (
               <div
@@ -349,12 +375,7 @@ export default function SalesPipeline() {
                         lead={lead}
                         stageKey={col.key}
                         onDragStart={handleDragStart}
-                        onClick={() => {
-                          setSelectedLead(lead);
-                          setEditNotes(lead.notes || '');
-                          setEditAssigned(lead.assigned_to || '');
-                          setEditLostReason(lead.lost_reason || '');
-                        }}
+                        onClick={() => setSelectedLead(lead)}
                       />
                     ))
                   )}
@@ -464,150 +485,19 @@ export default function SalesPipeline() {
         </div>
       )}
 
-      {/* Lead Detail Panel */}
-      {selectedLead && (
-        <div style={sharedStyles.modalOverlay} onClick={() => setSelectedLead(null)}>
-          <div style={styles.modalBox} onClick={e => e.stopPropagation()}>
-            <div style={styles.modalHeader}>
-              <div>
-                <h3 style={styles.modalTitle}>
-                  {selectedLead.first_name} {selectedLead.last_name}
-                </h3>
-                <div style={{ fontSize: '13px', color: '#666', marginTop: '2px' }}>
-                  {selectedLead.phone && <span>{selectedLead.phone}</span>}
-                  {selectedLead.phone && selectedLead.email && <span style={{ margin: '0 6px', color: '#d1d5db' }}>|</span>}
-                  {selectedLead.email && <span>{selectedLead.email}</span>}
-                </div>
-              </div>
-              <button onClick={() => setSelectedLead(null)} style={styles.modalClose}>&times;</button>
-            </div>
-
-            {/* Detail info */}
-            <div style={styles.detailGrid}>
-              <div style={styles.detailItem}>
-                <span style={styles.detailLabel}>Source</span>
-                <SourceBadge source={selectedLead.source || selectedLead.lead_type} />
-              </div>
-              {selectedLead.path && (
-                <div style={styles.detailItem}>
-                  <span style={styles.detailLabel}>Interest</span>
-                  <span style={styles.detailValue}>{PATH_LABELS[selectedLead.path] || selectedLead.path}</span>
-                </div>
-              )}
-              {selectedLead.urgency && (
-                <div style={styles.detailItem}>
-                  <span style={styles.detailLabel}>Urgency</span>
-                  <span style={styles.detailValue}>{selectedLead.urgency}/10</span>
-                </div>
-              )}
-              <div style={styles.detailItem}>
-                <span style={styles.detailLabel}>Created</span>
-                <span style={styles.detailValue}>
-                  {new Date(selectedLead.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                </span>
-              </div>
-            </div>
-
-            <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '16px', marginTop: '16px' }}>
-              <div style={styles.formGrid}>
-                <div>
-                  <label style={styles.formLabel}>Stage</label>
-                  <select
-                    style={styles.formInput}
-                    value={selectedLead.stage}
-                    onChange={e => {
-                      const newStage = e.target.value;
-                      handleMoveStage(selectedLead.id, newStage);
-                      setSelectedLead(prev => ({ ...prev, stage: newStage }));
-                    }}
-                  >
-                    {Object.entries(STAGE_CONFIG).map(([k, v]) => (
-                      <option key={k} value={k}>{v.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label style={styles.formLabel}>Assigned To</label>
-                  <select
-                    style={styles.formInput}
-                    value={editAssigned}
-                    onChange={e => setEditAssigned(e.target.value)}
-                  >
-                    <option value="">Unassigned</option>
-                    {employees.map(emp => (
-                      <option key={emp.id} value={emp.name}>{emp.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div style={{ marginTop: '12px' }}>
-              <label style={styles.formLabel}>Notes</label>
-              <textarea
-                style={{ ...styles.formInput, height: '80px', resize: 'vertical' }}
-                value={editNotes}
-                onChange={e => setEditNotes(e.target.value)}
-                placeholder="Add notes..."
-              />
-            </div>
-
-            {(selectedLead.stage === 'lost' || editLostReason) && (
-              <div style={{ marginTop: '12px' }}>
-                <label style={styles.formLabel}>Lost Reason</label>
-                <select
-                  style={styles.formInput}
-                  value={editLostReason}
-                  onChange={e => setEditLostReason(e.target.value)}
-                >
-                  <option value="">Select reason...</option>
-                  <option value="no_response">No Response</option>
-                  <option value="price">Price</option>
-                  <option value="went_elsewhere">Went Elsewhere</option>
-                  <option value="not_ready">Not Ready</option>
-                  <option value="wrong_fit">Wrong Fit</option>
-                  <option value="other">Other</option>
-                </select>
-              </div>
-            )}
-
-            <div style={styles.modalActions}>
-              <button
-                onClick={() => setDeleteConfirm(selectedLead)}
-                style={styles.deleteBtn}
-              >
-                Delete
-              </button>
-              <div style={{ flex: 1 }} />
-              <button onClick={() => setSelectedLead(null)} style={styles.cancelBtn}>Close</button>
-              <button onClick={handleUpdateLead} disabled={saving} style={styles.saveBtn}>
-                {saving ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation */}
-      {deleteConfirm && (
-        <div style={sharedStyles.modalOverlay} onClick={() => setDeleteConfirm(null)}>
-          <div style={styles.modalBox} onClick={e => e.stopPropagation()}>
-            <h3 style={styles.modalTitle}>Delete Lead?</h3>
-            <p style={{ margin: '12px 0 0', color: '#374151', fontSize: '14px', lineHeight: 1.5 }}>
-              Remove <strong>{deleteConfirm.first_name} {deleteConfirm.last_name}</strong> from the pipeline? This cannot be undone.
-            </p>
-            <div style={styles.modalActions}>
-              <button onClick={() => setDeleteConfirm(null)} style={styles.cancelBtn}>Cancel</button>
-              <button
-                onClick={() => handleDeleteLead(deleteConfirm.id)}
-                style={{ ...styles.saveBtn, background: '#dc2626', borderColor: '#dc2626' }}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Lead Detail Slide Panel */}
+      <LeadDetailPanel
+        isOpen={!!selectedLead}
+        onClose={() => setSelectedLead(null)}
+        lead={selectedLead}
+        employees={employees}
+        onUpdate={handleUpdateLead}
+        onDelete={(id) => { handleDeleteLead(id); setSelectedLead(null); }}
+        onMoveStage={(id, stage) => {
+          handleMoveStage(id, stage);
+          setSelectedLead(prev => prev ? { ...prev, stage } : null);
+        }}
+      />
     </AdminLayout>
   );
 }
@@ -940,17 +830,6 @@ const styles = {
     paddingTop: '16px',
     borderTop: '1px solid #f3f4f6',
   },
-  deleteBtn: {
-    padding: '9px 18px',
-    border: '1px solid #fecaca',
-    borderRadius: '6px',
-    background: '#fff',
-    fontSize: '13px',
-    fontWeight: '500',
-    fontFamily: 'inherit',
-    cursor: 'pointer',
-    color: '#dc2626',
-  },
   cancelBtn: {
     padding: '9px 18px',
     border: '1px solid #d1d5db',
@@ -972,31 +851,5 @@ const styles = {
     fontWeight: '600',
     fontFamily: 'inherit',
     cursor: 'pointer',
-  },
-  // Detail panel
-  detailGrid: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: '12px',
-    padding: '14px',
-    background: '#f9fafb',
-    borderRadius: '6px',
-  },
-  detailItem: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px',
-  },
-  detailLabel: {
-    fontSize: '11px',
-    fontWeight: '600',
-    color: '#9ca3af',
-    textTransform: 'uppercase',
-    letterSpacing: '0.04em',
-  },
-  detailValue: {
-    fontSize: '13px',
-    color: '#111',
-    fontWeight: '500',
   },
 };

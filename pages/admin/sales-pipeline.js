@@ -25,6 +25,7 @@ const SOURCE_CONFIG = {
   research:       { label: 'Research',       color: '#0891b2', bg: '#ecfeff' },
   cellular_reset: { label: 'Cellular Reset', color: '#7c3aed', bg: '#faf5ff' },
   rlt_trial:      { label: 'RLT Trial',     color: '#dc2626', bg: '#fef2f2' },
+  hbot_trial:     { label: 'HBOT Trial',    color: '#0891b2', bg: '#ecfeff' },
   manychat:       { label: 'ManyChat',       color: '#c026d3', bg: '#fdf4ff' },
   manual:         { label: 'Manual',         color: '#6b7280', bg: '#f3f4f6' },
   referral:       { label: 'Referral',       color: '#d97706', bg: '#fffbeb' },

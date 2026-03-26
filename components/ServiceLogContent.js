@@ -756,8 +756,8 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
       return;
     }
 
-    // If any RLT sessions were logged and patient has an active trial, update trial pass
-    if (patientTrial?.hasTrial && results.some(r => r.item.serviceType.id === 'red_light')) {
+    // If any RLT sessions were logged and patient has an active RLT trial, update trial pass
+    if (patientTrial?.hasTrial && patientTrial.trial.trial_type !== 'hbot' && results.some(r => r.item.serviceType.id === 'red_light')) {
       try {
         await fetch('/api/trial/log-session', {
           method: 'POST',
@@ -765,7 +765,20 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
           body: JSON.stringify({ trialPassId: patientTrial.trial.id }),
         });
       } catch (trialErr) {
-        console.error('Trial session log error:', trialErr);
+        console.error('RLT trial session log error:', trialErr);
+      }
+    }
+
+    // If any HBOT sessions were logged and patient has an active HBOT trial, update trial pass
+    if (patientTrial?.hasTrial && patientTrial.trial.trial_type === 'hbot' && results.some(r => r.item.serviceType.id === 'hbot')) {
+      try {
+        await fetch('/api/hbot-trial/log-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ trialPassId: patientTrial.trial.id }),
+        });
+      } catch (trialErr) {
+        console.error('HBOT trial session log error:', trialErr);
       }
     }
 
@@ -2067,6 +2080,74 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
                     {/* === HBOT === */}
                     {currentServiceType.id === 'hbot' && (
                       <>
+                        {/* HBOT Trial pass banner */}
+                        {patientTrial?.hasTrial && patientTrial.trial.trial_type === 'hbot' && (
+                          <div style={{
+                            background: '#ecfeff',
+                            border: '1px solid #67e8f9',
+                            borderRadius: 8,
+                            padding: '12px 16px',
+                            marginBottom: 16,
+                          }}>
+                            <div style={{ fontWeight: 600, fontSize: 14, color: '#0e7490', marginBottom: 4 }}>
+                              🫁 Active HBOT Trial — Session {(patientTrial.trial.sessions_used || 0) + 1} of 3
+                            </div>
+                            {!patientTrial.hasPreSurvey && !trialSurveySent && (
+                              <div style={{ marginTop: 8 }}>
+                                <div style={{ fontSize: 13, color: '#333', marginBottom: 8 }}>
+                                  Pre-survey not completed. Send it to their phone or open it on the tablet:
+                                </div>
+                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                  <button
+                                    type="button"
+                                    onClick={sendTrialPreSurvey}
+                                    disabled={sendingSurvey}
+                                    style={{
+                                      padding: '8px 16px',
+                                      background: '#0891b2',
+                                      color: '#fff',
+                                      border: 'none',
+                                      borderRadius: 6,
+                                      fontSize: 13,
+                                      fontWeight: 600,
+                                      cursor: sendingSurvey ? 'not-allowed' : 'pointer',
+                                      opacity: sendingSurvey ? 0.6 : 1,
+                                    }}
+                                  >
+                                    {sendingSurvey ? 'Sending...' : '📱 Text Survey to Patient'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => window.open(`/hbot-trial/survey?trial_id=${patientTrial.trial.id}&type=pre`, '_blank')}
+                                    style={{
+                                      padding: '8px 16px',
+                                      background: '#fff',
+                                      color: '#0891b2',
+                                      border: '1px solid #0891b2',
+                                      borderRadius: 6,
+                                      fontSize: 13,
+                                      fontWeight: 600,
+                                      cursor: 'pointer',
+                                    }}
+                                  >
+                                    📋 Open on Tablet
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                            {trialSurveySent && (
+                              <div style={{ fontSize: 13, color: '#2E7D32', marginTop: 6, fontWeight: 600 }}>
+                                ✓ Survey link sent to {patientTrial.trial.phone}
+                              </div>
+                            )}
+                            {patientTrial.hasPreSurvey && (
+                              <div style={{ fontSize: 13, color: '#2E7D32', marginTop: 4, fontWeight: 600 }}>
+                                ✓ Pre-survey completed
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         <div style={slcStyles.infoBox}>
                           🫁 60-minute session at 2.0 ATA
                         </div>
@@ -2096,7 +2177,7 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
                     {currentServiceType.id === 'red_light' && (
                       <>
                         {/* Trial pass banner */}
-                        {patientTrial?.hasTrial && (
+                        {patientTrial?.hasTrial && patientTrial.trial.trial_type !== 'hbot' && (
                           <div style={{
                             background: '#FFF8E1',
                             border: '1px solid #FFD54F',

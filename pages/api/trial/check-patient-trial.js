@@ -59,6 +59,7 @@ export default async function handler(req, res) {
         phone: trial.phone,
         activated_at: trial.activated_at,
         expires_at: trial.expires_at,
+        trial_type: trial.trial_type || 'rlt',
       },
       hasPreSurvey: (preSurvey && preSurvey.length > 0) || trial.pre_survey_completed,
     });

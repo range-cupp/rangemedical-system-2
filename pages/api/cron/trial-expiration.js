@@ -5,6 +5,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { sendTrialExpirationWarning, sendTrialEndCheckIn, sendTrialPostSession1, sendTrialNurtureFollowUp } from '../../../lib/trial-sms';
+import { sendHBOTTrialExpirationWarning, sendHBOTTrialEndCheckIn, sendHBOTTrialPostSession1, sendHBOTTrialNurtureFollowUp } from '../../../lib/hbot-trial-sms';
 import { normalizePhone } from '../../../lib/send-sms';
 
 const supabase = createClient(
@@ -56,7 +57,8 @@ export default async function handler(req, res) {
       try {
         const phone = normalizePhone(trial.phone);
         const remaining = Math.max(0, 3 - (trial.sessions_used || 0));
-        await sendTrialExpirationWarning({
+        const expirationFn = trial.trial_type === 'hbot' ? sendHBOTTrialExpirationWarning : sendTrialExpirationWarning;
+        await expirationFn({
           phone,
           firstName: trial.first_name,
           sessionsRemaining: remaining,
@@ -108,7 +110,8 @@ export default async function handler(req, res) {
       if (!trial.phone) continue;
       try {
         const phone = normalizePhone(trial.phone);
-        await sendTrialEndCheckIn({
+        const checkInFn = trial.trial_type === 'hbot' ? sendHBOTTrialEndCheckIn : sendTrialEndCheckIn;
+        await checkInFn({
           phone,
           firstName: trial.first_name,
           trialId: trial.id,
@@ -132,7 +135,8 @@ export default async function handler(req, res) {
       if (!trial.phone) continue;
       try {
         const phone = normalizePhone(trial.phone);
-        await sendTrialPostSession1({ phone, firstName: trial.first_name });
+        const postSession1Fn = trial.trial_type === 'hbot' ? sendHBOTTrialPostSession1 : sendTrialPostSession1;
+        await postSession1Fn({ phone, firstName: trial.first_name });
         followUpsSent++;
       } catch (err) {
         errors.push(`Post-session 1 SMS for ${trial.first_name}: ${err.message}`);
@@ -156,7 +160,8 @@ export default async function handler(req, res) {
       if (!trial.phone) continue;
       try {
         const phone = normalizePhone(trial.phone);
-        await sendTrialNurtureFollowUp({ phone, firstName: trial.first_name });
+        const nurtureFn = trial.trial_type === 'hbot' ? sendHBOTTrialNurtureFollowUp : sendTrialNurtureFollowUp;
+        await nurtureFn({ phone, firstName: trial.first_name });
 
         await supabase
           .from('trial_passes')

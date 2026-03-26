@@ -91,7 +91,7 @@ async function handleTrialView(res) {
     const { data: leads, error: leadsErr } = await supabase
       .from('sales_pipeline')
       .select('*')
-      .eq('lead_type', 'rlt_trial')
+      .in('lead_type', ['rlt_trial', 'hbot_trial'])
       .order('created_at', { ascending: false });
 
     if (leadsErr) throw leadsErr;

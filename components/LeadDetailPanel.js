@@ -38,6 +38,7 @@ const SOURCE_CONFIG = {
   research:       { label: 'Research',       color: '#0891b2', bg: '#ecfeff' },
   cellular_reset: { label: 'Cellular Reset', color: '#7c3aed', bg: '#faf5ff' },
   rlt_trial:      { label: 'RLT Trial',     color: '#dc2626', bg: '#fef2f2' },
+  hbot_trial:     { label: 'HBOT Trial',    color: '#0891b2', bg: '#ecfeff' },
   manychat:       { label: 'ManyChat',       color: '#c026d3', bg: '#fdf4ff' },
   manual:         { label: 'Manual',         color: '#6b7280', bg: '#f3f4f6' },
   referral:       { label: 'Referral',       color: '#d97706', bg: '#fffbeb' },
@@ -111,8 +112,11 @@ export default function LeadDetailPanel({
       .finally(() => { if (!cancelled) setLoading(false); });
 
     // Fetch trial data if this is an RLT trial lead
-    if (lead.lead_type === 'rlt_trial' || lead.trial_data) {
-      fetch(`/api/trial/get-trial-details?pipeline_id=${lead.id}`)
+    if (lead.lead_type === 'rlt_trial' || lead.lead_type === 'hbot_trial' || lead.trial_data) {
+      const trialEndpoint = lead.lead_type === 'hbot_trial'
+        ? `/api/hbot-trial/get-trial-details?pipeline_id=${lead.id}`
+        : `/api/trial/get-trial-details?pipeline_id=${lead.id}`;
+      fetch(trialEndpoint)
         .then(r => r.json())
         .then(data => {
           if (!cancelled) {
@@ -155,7 +159,7 @@ export default function LeadDetailPanel({
     onMoveStage(lead.id, newStage);
   };
 
-  const isTrialLead = lead.lead_type === 'rlt_trial' || !!trialData;
+  const isTrialLead = lead.lead_type === 'rlt_trial' || lead.lead_type === 'hbot_trial' || !!trialData;
   const TABS = isTrialLead ? TRIAL_TABS : BASE_TABS;
   const sourceConfig = SOURCE_CONFIG[lead.source || lead.lead_type] || SOURCE_CONFIG.other;
   const stageConfig = STAGE_CONFIG[lead.stage] || STAGE_CONFIG.new_lead;
@@ -506,7 +510,10 @@ export default function LeadDetailPanel({
                     <div style={s.section}>
                       <div style={s.sectionTitle}>Survey Responses</div>
                       {trialSurveys.map(survey => {
-                        const scales = ['energy', 'brain_fog', 'recovery', 'sleep', 'stress'];
+                        const isHbot = lead.lead_type === 'hbot_trial' || trialData?.trial_type === 'hbot';
+                        const scales = isHbot
+                          ? ['brain_fog', 'headaches', 'recovery', 'sleep', 'mood']
+                          : ['energy', 'brain_fog', 'recovery', 'sleep', 'stress'];
                         return (
                           <div key={survey.id} style={{ padding: 12, background: '#f9fafb', borderRadius: 6, border: '1px solid #f3f4f6', marginBottom: 8 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -536,7 +543,10 @@ export default function LeadDetailPanel({
                       {trialSurveys.filter(s => s.survey_type === 'pre').length > 0 && trialSurveys.filter(s => s.survey_type === 'post').length > 0 && (() => {
                         const pre = trialSurveys.find(s => s.survey_type === 'pre');
                         const post = trialSurveys.find(s => s.survey_type === 'post');
-                        const scales = ['energy', 'recovery', 'sleep', 'brain_fog', 'stress'];
+                        const isHbot = lead.lead_type === 'hbot_trial' || trialData?.trial_type === 'hbot';
+                        const scales = isHbot
+                          ? ['brain_fog', 'headaches', 'recovery', 'sleep', 'mood']
+                          : ['energy', 'recovery', 'sleep', 'brain_fog', 'stress'];
                         return (
                           <div style={{ padding: 12, background: '#fffbeb', borderRadius: 6, border: '1px solid #fef3c7' }}>
                             <div style={{ fontSize: 12, fontWeight: 600, color: '#92400e', marginBottom: 6, textTransform: 'uppercase' }}>Changes</div>
@@ -544,7 +554,7 @@ export default function LeadDetailPanel({
                               {scales.map(scale => {
                                 const preVal = pre[scale] ?? 0;
                                 const postVal = post[scale] ?? 0;
-                                const isReduction = scale === 'brain_fog' || scale === 'stress';
+                                const isReduction = scale === 'brain_fog' || scale === 'stress' || scale === 'headaches';
                                 const delta = isReduction ? preVal - postVal : postVal - preVal;
                                 const color = delta > 0 ? '#16a34a' : delta < 0 ? '#dc2626' : '#6b7280';
                                 return (

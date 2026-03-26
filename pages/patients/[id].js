@@ -4354,7 +4354,7 @@ export default function PatientProfile() {
                             return (
                               <div style={{ margin: '8px 0 4px', padding: '10px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 0, fontSize: '12px' }}>
                                 {/* Row 1: Last activity + sessions progress */}
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: (inClinicCount > 0 || shippedCount > 0 || pickupCount > 0) ? 8 : 0 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: (pickupCount > 0 || shippedCount > 0) ? 8 : 0 }}>
                                   {lastEntry && (
                                     <div>
                                       <span style={{ color: '#6b7280' }}>Last {lastInjection ? 'injection' : 'session'}: </span>

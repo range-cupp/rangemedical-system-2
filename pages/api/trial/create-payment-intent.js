@@ -62,14 +62,14 @@ export default async function handler(req, res) {
       amount: 4900,
       currency: 'usd',
       customer: customerId,
-      description: 'Red Light Trial — 7 Days for $49',
+      description: 'Red Light Trial — 3 Sessions / 7 Days — $49',
       metadata: {
         source: 'rlt_trial',
         trial_id: trialId || '',
         customer_name: fullName,
         customer_email: normalizedEmail,
         customer_phone: phone || '',
-        product_name: 'RLT Trial - 7 Days',
+        product_name: 'RLT Trial - 3 Sessions',
         service_category: 'rlt',
       },
     };

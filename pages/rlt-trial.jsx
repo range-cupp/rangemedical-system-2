@@ -1,6 +1,6 @@
 // pages/rlt-trial.jsx
 // RLT Trial landing page: contact info → Stripe payment → confirmation
-// 7 days of Red Light sessions for $49
+// 3 Red Light sessions over 7 days for $49
 // Range Medical
 
 import Layout from '../components/Layout';
@@ -166,7 +166,7 @@ export default function RLTTrial() {
               <span style={{ display: 'inline-block', background: '#fef2f2', color: '#dc2626', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '6px 14px', borderRadius: 0, marginBottom: 12 }}>
                 Limited Offer
               </span>
-              <h1 style={{ fontSize: 30, fontWeight: 700, margin: '0 0 8px' }}>7 Days of Red Light Therapy</h1>
+              <h1 style={{ fontSize: 30, fontWeight: 700, margin: '0 0 8px' }}>3 Red Light Sessions in 7 Days</h1>
               <p style={{ fontSize: 22, fontWeight: 700, color: '#dc2626', margin: '0 0 16px' }}>$49</p>
               <p style={{ fontSize: 16, color: '#525252', margin: 0, lineHeight: 1.6 }}>
                 Full-body red light sessions for a week, plus a quick Energy and Recovery check-in to see what changed.
@@ -177,7 +177,7 @@ export default function RLTTrial() {
               <p style={{ fontSize: 14, fontWeight: 600, margin: '0 0 12px' }}>What you get:</p>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                 {[
-                  'Unlimited red light sessions for 7 days',
+                  '3 red light sessions over a 7-day period',
                   '20-minute full-body sessions (660nm + 850nm)',
                   'Before & after energy check-in',
                   'Personalized next-step recommendation',
@@ -238,7 +238,7 @@ export default function RLTTrial() {
               </span>
               <h1 style={{ fontSize: 28, fontWeight: 700, margin: '0 0 8px' }}>Payment</h1>
               <p style={{ fontSize: 15, color: '#525252', margin: 0 }}>
-                Secure checkout for your 7-day Red Light Trial.
+                Secure checkout for your Red Light Trial — 3 sessions over 7 days.
               </p>
             </div>
 
@@ -249,7 +249,7 @@ export default function RLTTrial() {
             </div>
 
             <p style={{ textAlign: 'center', fontSize: 13, color: '#a3a3a3', marginTop: 16 }}>
-              Your payment is secure. 7 days of unlimited red light sessions.
+              Your payment is secure. 3 red light sessions over 7 days.
             </p>
           </>
         )}
@@ -280,7 +280,7 @@ export default function RLTTrial() {
                 </li>
                 <li style={{ fontSize: 14, color: '#525252', padding: '6px 0', lineHeight: 1.5 }}>
                   <span style={{ color: '#dc2626', fontWeight: 700, marginRight: 8 }}>3.</span>
-                  Come in anytime during the week — walk-ins welcome
+                  Come in for your 3 sessions — we recommend Mon / Wed / Fri
                 </li>
                 <li style={{ fontSize: 14, color: '#525252', padding: '6px 0', lineHeight: 1.5 }}>
                   <span style={{ color: '#dc2626', fontWeight: 700, marginRight: 8 }}>4.</span>

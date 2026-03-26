@@ -456,6 +456,35 @@ export default function RedLightTherapy() {
           </div>
         </section>
 
+        {/* Trial Offer */}
+        <section className="rlt-section rlt-trial-section" id="rlt-trial">
+          <div className="rlt-container">
+            <div className="rlt-animate">
+              <div className="v2-label"><span className="v2-dot" /> START HERE</div>
+              <h2>TRY IT FOR A WEEK. $49.</h2>
+              <div className="rlt-divider"></div>
+              <p className="rlt-body-text" style={{ textAlign: 'center', maxWidth: '640px', margin: '0 auto' }}>
+                Not sure if Red Light Therapy is for you? Get 3 sessions over 7 days for just $49. No commitment, no pressure — just come in and see how you feel.
+              </p>
+            </div>
+
+            <div className="rlt-trial-card rlt-animate">
+              <div className="rlt-trial-badge">Limited Intro Offer</div>
+              <div className="rlt-trial-price">$49</div>
+              <div className="rlt-trial-period">3 sessions &middot; 7 days</div>
+              <ul className="rlt-trial-features">
+                <li>3 Red Light sessions over a 7-day period</li>
+                <li>Full-body INNER Light LED Bed — same as members</li>
+                <li>Quick pre-trial survey so we can track your results</li>
+                <li>Before &amp; after comparison at the end</li>
+                <li>No commitment — just show up and see</li>
+              </ul>
+              <Link href="/rlt-trial" className="rlt-trial-btn">Start Your Trial</Link>
+              <div className="rlt-trial-note">Pay online, walk in any time during business hours.</div>
+            </div>
+          </div>
+        </section>
+
         {/* Pricing */}
         <section className="rlt-section" id="rlt-pricing">
           <div className="rlt-container">
@@ -1425,6 +1454,118 @@ export default function RedLightTherapy() {
         }
 
         /* CTA Section — V2 */
+        /* Trial Offer */
+        .rlt-trial-section {
+          background: #0a0a0a;
+          padding: 6rem 2rem;
+          text-align: center;
+        }
+
+        .rlt-trial-section .v2-label {
+          color: rgba(255,255,255,0.5);
+        }
+
+        .rlt-trial-section .v2-dot {
+          background: #c53030;
+        }
+
+        .rlt-trial-section h2 {
+          color: #ffffff;
+        }
+
+        .rlt-trial-section .rlt-divider {
+          background: rgba(255,255,255,0.15);
+        }
+
+        .rlt-trial-section .rlt-body-text {
+          color: rgba(255,255,255,0.65);
+        }
+
+        .rlt-trial-card {
+          max-width: 440px;
+          margin: 2.5rem auto 0;
+          background: #141414;
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 16px;
+          padding: 2.5rem 2rem;
+        }
+
+        .rlt-trial-badge {
+          display: inline-block;
+          font-size: 0.6875rem;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: #ffffff;
+          background: #c53030;
+          padding: 0.375rem 1rem;
+          border-radius: 100px;
+          margin-bottom: 1.25rem;
+        }
+
+        .rlt-trial-price {
+          font-size: 3.5rem;
+          font-weight: 900;
+          color: #ffffff;
+          line-height: 1;
+          margin-bottom: 0.25rem;
+        }
+
+        .rlt-trial-period {
+          font-size: 0.9375rem;
+          color: rgba(255,255,255,0.45);
+          margin-bottom: 1.75rem;
+        }
+
+        .rlt-trial-features {
+          list-style: none;
+          padding: 0;
+          margin: 0 0 2rem;
+          text-align: left;
+        }
+
+        .rlt-trial-features li {
+          font-size: 0.9375rem;
+          color: rgba(255,255,255,0.75);
+          padding: 0.5rem 0;
+          padding-left: 1.5rem;
+          position: relative;
+          line-height: 1.5;
+        }
+
+        .rlt-trial-features li::before {
+          content: '\2713';
+          position: absolute;
+          left: 0;
+          color: #c53030;
+          font-weight: 700;
+        }
+
+        .rlt-trial-btn {
+          display: inline-block;
+          background: #c53030;
+          color: #ffffff;
+          font-size: 0.9375rem;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          text-decoration: none;
+          padding: 1rem 2.5rem;
+          border-radius: 8px;
+          transition: background 0.2s ease, transform 0.15s ease;
+        }
+
+        .rlt-trial-btn:hover {
+          background: #a82828;
+          transform: translateY(-1px);
+        }
+
+        .rlt-trial-note {
+          font-size: 0.8125rem;
+          color: rgba(255,255,255,0.35);
+          margin-top: 1rem;
+        }
+
         .rlt-cta-section {
           padding: 6rem 2rem;
           text-align: center;

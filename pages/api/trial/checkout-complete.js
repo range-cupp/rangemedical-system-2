@@ -77,8 +77,8 @@ export default async function handler(req, res) {
         patient_name: customerName,
         patient_email: normalizedEmail || null,
         patient_phone: phone || null,
-        item_name: 'RLT Trial - 7 Days',
-        product_name: 'RLT Trial - 7 Days',
+        item_name: 'RLT Trial - 3 Sessions',
+        product_name: 'RLT Trial - 3 Sessions',
         amount: 49,
         amount_paid: 49,
         category: 'rlt',
@@ -183,7 +183,7 @@ export default async function handler(req, res) {
     }
 
     // Notify owner
-    const ownerSms = `New RLT Trial Purchase!\n\n${customerName}\n$49 — Red Light Trial (7 days)\n${phone || 'No phone'}\n\nvia range-medical.com`;
+    const ownerSms = `New RLT Trial Purchase!\n\n${customerName}\n$49 — Red Light Trial (3 sessions / 7 days)\n${phone || 'No phone'}\n\nvia range-medical.com`;
     await sendSMS({ to: OWNER_PHONE, message: ownerSms });
 
     try {

@@ -55,10 +55,11 @@ export default async function handler(req, res) {
       if (!trial.phone) continue;
       try {
         const phone = normalizePhone(trial.phone);
+        const remaining = Math.max(0, 3 - (trial.sessions_used || 0));
         await sendTrialExpirationWarning({
           phone,
           firstName: trial.first_name,
-          sessionsRemaining: 'unlimited',
+          sessionsRemaining: remaining,
         });
         expirationWarnings++;
 

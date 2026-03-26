@@ -1680,6 +1680,7 @@ export default function PatientProfile() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          entry_type: editInjectionModal.entry_type || 'injection',
           entry_date: editInjectionForm.entry_date,
           dosage: editInjectionForm.dosage,
           weight: editInjectionForm.weight || null,

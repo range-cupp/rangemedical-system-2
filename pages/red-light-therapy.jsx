@@ -1534,7 +1534,7 @@ export default function RedLightTherapy() {
         }
 
         .rlt-trial-features li::before {
-          content: '\2713';
+          content: '✓';
           position: absolute;
           left: 0;
           color: #c53030;

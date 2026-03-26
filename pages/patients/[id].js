@@ -4338,14 +4338,15 @@ export default function PatientProfile() {
                           {/* Activity Summary + Fulfillment Tracker — at-a-glance for staff */}
                           {protocol.status === 'active' && (protoServiceLogs.length > 0 || sessionsTotal > 0) && (() => {
                             // Aggregate fulfillment from service logs
-                            const inClinicLogs = protoServiceLogs.filter(l => l.entry_type === 'injection' || (l.entry_type === 'session' && l.fulfillment_method !== 'overnight'));
-                            const shippedLogs = protoServiceLogs.filter(l => l.fulfillment_method === 'overnight');
+                            // "Dispensed" = medication that left the clinic (pickups + shipped)
+                            // "Administered" = actual injections taken (self-reported check-ins + in-clinic injections)
+                            const injectionLogs = protoServiceLogs.filter(l => l.entry_type === 'injection');
+                            const shippedLogs = protoServiceLogs.filter(l => l.entry_type === 'pickup' && l.fulfillment_method === 'overnight');
                             const pickupLogs = protoServiceLogs.filter(l => l.entry_type === 'pickup' && l.fulfillment_method !== 'overnight');
-                            // Count: in-clinic injections count as 1 each; pickups/shipped use quantity field
-                            const inClinicCount = inClinicLogs.length;
                             const shippedCount = shippedLogs.reduce((sum, l) => sum + (l.quantity || 1), 0);
                             const pickupCount = pickupLogs.reduce((sum, l) => sum + (l.quantity || 1), 0);
-                            const totalDispensed = inClinicCount + shippedCount + pickupCount;
+                            const totalDispensed = shippedCount + pickupCount;
+                            const totalAdministered = injectionLogs.length;
                             const pending = sessionsTotal ? Math.max(sessionsTotal - totalDispensed, 0) : 0;
                             const lastEntry = lastInjection || lastSession;
                             const daysSinceLast = lastEntry ? Math.floor((new Date() - new Date(lastEntry.entry_date + 'T00:00:00')) / (1000 * 60 * 60 * 24)) : null;
@@ -4376,18 +4377,12 @@ export default function PatientProfile() {
                                   )}
                                 </div>
                                 {/* Row 2: Fulfillment breakdown — only if there are logs */}
-                                {(inClinicCount > 0 || shippedCount > 0 || pickupCount > 0) && (
+                                {(totalAdministered > 0 || shippedCount > 0 || pickupCount > 0) && (
                                   <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', paddingTop: 8, borderTop: '1px solid #e2e8f0' }}>
-                                    {inClinicCount > 0 && (
+                                    {totalAdministered > 0 && (
                                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                        <span style={{ color: '#16a34a', fontWeight: 600 }}>{inClinicCount}</span>
-                                        <span style={{ color: '#6b7280' }}>in-clinic</span>
-                                        {lastInClinic && (
-                                          <span style={{ color: '#9ca3af' }}>
-                                            (last {formatShortDate(lastInClinic.entry_date)}
-                                            {lastInClinic.administered_by && `, ${lastInClinic.administered_by}`})
-                                          </span>
-                                        )}
+                                        <span style={{ color: '#16a34a', fontWeight: 600 }}>{totalAdministered}</span>
+                                        <span style={{ color: '#6b7280' }}>injections taken</span>
                                       </div>
                                     )}
                                     {shippedCount > 0 && (

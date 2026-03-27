@@ -1305,7 +1305,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                     onClick={() => { setSelectedAppt(appt); setCurrentDate(day); }}
                     style={{ ...styles.weekApptCard, ...getApptStyle(appt) }}
                   >
-                    <div style={{ fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
                       {appt.patient_name}
                       {noteBadge(appt.id)}
                       {renewalMap[appt.patient_id]?.length > 0 && (
@@ -1315,13 +1315,13 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                         }} />
                       )}
                     </div>
-                    <div style={{ fontSize: '11px', opacity: 0.8 }}>{appt.service_name}</div>
-                    <div style={{ fontSize: '11px', opacity: 0.7 }}>
+                    <div style={{ fontSize: '12px', opacity: 0.8 }}>{appt.service_name}</div>
+                    <div style={{ fontSize: '12px', opacity: 0.7 }}>
                       {formatTime(appt.start_time)}
                       {appt.provider ? ` · ${appt.provider}` : ''}
                     </div>
                     {appt.location && appt.location !== DEFAULT_LOCATION.label && (
-                      <div style={{ fontSize: '10px', opacity: 0.6 }}>📍 {LOCATIONS.find(l => l.label === appt.location)?.short || 'Placentia'}</div>
+                      <div style={{ fontSize: '11px', opacity: 0.6 }}>📍 {LOCATIONS.find(l => l.label === appt.location)?.short || 'Placentia'}</div>
                     )}
                   </div>
                 ))}
@@ -3705,7 +3705,7 @@ const styles = {
     width: '65px',
     textAlign: 'right',
     paddingRight: '8px',
-    fontSize: '12px',
+    fontSize: '13px',
     color: '#888',
     transform: 'translateY(-8px)',
   },
@@ -3716,9 +3716,9 @@ const styles = {
     position: 'absolute',
     left: '75px',
     right: '10px',
-    padding: '6px 10px',
+    padding: '8px 12px',
     borderRadius: '0',
-    fontSize: '12px',
+    fontSize: '13px',
     cursor: 'pointer',
     overflow: 'hidden',
     zIndex: 5,
@@ -3726,18 +3726,18 @@ const styles = {
   },
   apptBlockName: {
     fontWeight: '600',
-    fontSize: '13px',
-    lineHeight: '1.2',
+    fontSize: '14px',
+    lineHeight: '1.3',
   },
   apptBlockService: {
-    fontSize: '11px',
+    fontSize: '12px',
     opacity: 0.8,
-    marginTop: '1px',
+    marginTop: '2px',
   },
   apptBlockTime: {
-    fontSize: '11px',
+    fontSize: '12px',
     opacity: 0.7,
-    marginTop: '1px',
+    marginTop: '2px',
   },
   timeLine: {
     position: 'absolute',
@@ -3761,7 +3761,7 @@ const styles = {
     background: '#fafafa',
   },
   weekDayHeader: {
-    padding: '10px 8px',
+    padding: '12px 10px',
     textAlign: 'center',
     borderBottom: '1px solid #f0f0f0',
     background: '#fff',
@@ -3771,24 +3771,24 @@ const styles = {
     color: '#fff',
   },
   weekDayName: {
-    fontSize: '11px',
+    fontSize: '12px',
     fontWeight: '600',
     textTransform: 'uppercase',
     display: 'block',
   },
   weekDayNum: {
-    fontSize: '18px',
+    fontSize: '20px',
     fontWeight: '600',
     display: 'block',
     marginTop: '2px',
   },
   weekDayBody: {
-    padding: '4px',
+    padding: '6px',
   },
   weekApptCard: {
-    padding: '6px 8px',
+    padding: '8px 10px',
     borderRadius: '0',
-    marginBottom: '4px',
+    marginBottom: '6px',
     cursor: 'pointer',
   },
   // Month view
@@ -3798,9 +3798,9 @@ const styles = {
     borderBottom: '1px solid #e5e5e5',
   },
   monthDayHeader: {
-    padding: '8px',
+    padding: '10px',
     textAlign: 'center',
-    fontSize: '12px',
+    fontSize: '13px',
     fontWeight: '600',
     color: '#888',
   },
@@ -3809,17 +3809,17 @@ const styles = {
     gridTemplateColumns: 'repeat(7, 1fr)',
   },
   monthCell: {
-    minHeight: '100px',
+    minHeight: '110px',
     borderRight: '1px solid #f5f5f5',
     borderBottom: '1px solid #f5f5f5',
-    padding: '4px',
+    padding: '6px',
     textAlign: 'center',
   },
   monthCellToday: {
     background: '#fafafa',
   },
   monthCellNum: {
-    fontSize: '13px',
+    fontSize: '14px',
     fontWeight: '500',
     color: '#333',
     marginBottom: '4px',

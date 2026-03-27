@@ -125,7 +125,7 @@ export default function StaffChatPanel() {
   const firstUserMsg = messages.filter((m) => m.role === 'user').length === 0;
 
   return (
-    <>
+    <div data-staff-chat-panel>
       <style>{`
         @keyframes rmchat-bounce {
           0%, 60%, 100% { transform: translateY(0); }
@@ -134,6 +134,9 @@ export default function StaffChatPanel() {
         @keyframes rmchat-slidein {
           from { opacity: 0; transform: translateY(20px) scale(0.97); }
           to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @media (max-width: 768px) {
+          [data-staff-chat-panel] { display: none !important; }
         }
       `}</style>
 
@@ -335,6 +338,6 @@ export default function StaffChatPanel() {
 
         </div>
       )}
-    </>
+    </div>
   );
 }

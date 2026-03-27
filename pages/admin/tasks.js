@@ -1292,7 +1292,7 @@ export default function TasksPage() {
           {[
             { value: 'my', label: 'My Tasks' },
             { value: 'assigned', label: 'Assigned by Me' },
-            { value: 'all', label: 'All Tasks' },
+            ...(employee?.is_admin ? [{ value: 'all', label: 'All Tasks' }] : []),
           ].map(tab => (
             <button
               key={tab.value}

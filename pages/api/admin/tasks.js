@@ -35,13 +35,14 @@ async function handleGet(req, res, employee) {
     .select('*')
     .order('created_at', { ascending: false });
 
-  // Filter by view
-  if (filter === 'my') {
+  // Filter by view — 'all' is admin-only; non-admins fall back to 'my'
+  if (filter === 'all' && employee.is_admin) {
+    // No assignee filter — admin sees everything
+  } else if (filter === 'my' || (filter === 'all' && !employee.is_admin)) {
     query = query.eq('assigned_to', employee.id);
   } else if (filter === 'assigned') {
     query = query.eq('assigned_by', employee.id).neq('assigned_to', employee.id);
   }
-  // 'all' = no assignee filter
 
   // Filter by status
   if (statusFilter === 'pending') {

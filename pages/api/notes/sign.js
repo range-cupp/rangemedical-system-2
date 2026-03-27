@@ -38,7 +38,7 @@ export default async function handler(req, res) {
     // Fetch the note first to check authorship and status
     const { data: note, error: fetchError } = await supabase
       .from('patient_notes')
-      .select('id, created_by, status')
+      .select('id, created_by, status, appointment_id')
       .eq('id', note_id)
       .single();
 
@@ -69,6 +69,26 @@ export default async function handler(req, res) {
       .single();
 
     if (updateError) throw updateError;
+
+    // Auto-complete any "Document encounter" task linked to the same appointment
+    if (note.appointment_id) {
+      try {
+        await supabase
+          .from('tasks')
+          .update({
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+          })
+          .eq('appointment_id', note.appointment_id)
+          .eq('status', 'pending')
+          .ilike('title', 'Document encounter%');
+
+        console.log(`Auto-completed encounter task for appointment ${note.appointment_id}`);
+      } catch (taskErr) {
+        // Don't fail the sign if task auto-complete fails
+        console.error('Task auto-complete error (non-fatal):', taskErr.message);
+      }
+    }
 
     return res.status(200).json({ success: true, note: updated });
   } catch (error) {

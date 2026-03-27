@@ -11,7 +11,7 @@ import Link from 'next/link';
 import AdminLayout, { overlayClickProps } from '../../components/AdminLayout';
 import { useAuth } from '../../components/AuthProvider';
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
 // Import unified protocol configuration
 import {
@@ -4400,6 +4400,16 @@ export default function PatientProfile() {
                             </span>
                             {protocol.status === 'completed' && <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', background: '#f3f4f6', padding: '2px 8px', borderRadius: 0 }}>✓ Completed</span>}
                             {protocol.delivery_method === 'in_clinic' && <span className="clinic-badge">In-Clinic</span>}
+                            {isWeightLoss && protocol.status === 'active' && sessionsTotal > 0 && sessionsCompleted >= sessionsTotal && (
+                              <span style={{ fontSize: '11px', fontWeight: 700, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', padding: '2px 8px', borderRadius: 0, marginLeft: 4 }}>
+                                ⚠ Renewal Due
+                              </span>
+                            )}
+                            {isWeightLoss && protocol.status === 'active' && sessionsTotal > 0 && sessionsCompleted > sessionsTotal && (
+                              <span style={{ fontSize: '11px', fontWeight: 700, color: '#9333ea', background: '#faf5ff', border: '1px solid #e9d5ff', padding: '2px 8px', borderRadius: 0, marginLeft: 4 }}>
+                                {sessionsCompleted}/{sessionsTotal} sessions
+                              </span>
+                            )}
                           </div>
                           <div className="protocol-details">
                             {protocol.medication && protocol.program_name && protocol.medication !== protocol.program_name && (
@@ -4952,23 +4962,61 @@ export default function PatientProfile() {
                               </div>
 
                               {/* Weight Chart */}
-                              {chartData.length >= 2 && (
-                                <div className="wl-chart" id={`wl-chart-${protocol.id}`}>
-                                  <ResponsiveContainer width="100%" height={200}>
-                                    <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
-                                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                                      <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                                      <YAxis domain={['dataMin - 2', 'dataMax + 2']} tick={{ fontSize: 12 }} unit=" lbs" width={65} />
-                                      <Tooltip
-                                        formatter={(value) => [`${value} lbs`, 'Weight']}
-                                        labelFormatter={(label) => label}
-                                        contentStyle={{ fontSize: 13, borderRadius: 0 }}
-                                      />
-                                      <Line type="monotone" dataKey="weight" stroke="#1e40af" strokeWidth={2} dot={{ r: 4, fill: '#1e40af' }} activeDot={{ r: 6 }} />
-                                    </LineChart>
-                                  </ResponsiveContainer>
-                                </div>
-                              )}
+                              {chartData.length >= 2 && (() => {
+                                // Build payment markers from delivery logs OR purchases
+                                let paymentMarkers = wlDeliveryLogs.map(log => ({
+                                  date: new Date(log.entry_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                                  qty: log.quantity || 1,
+                                  method: log.fulfillment_method === 'overnight' ? 'Shipped' : 'Pickup',
+                                }));
+                                // For in-clinic patients with no delivery logs, use purchases linked to this protocol
+                                if (paymentMarkers.length === 0) {
+                                  const protoPurchases = allPurchases.filter(p => p.protocol_id === protocol.id && p.purchase_date);
+                                  paymentMarkers = protoPurchases.map(p => {
+                                    const qtyMatch = (p.service_name || '').match(/x(\d+)/i);
+                                    const isMonthly = (p.service_name || '').toLowerCase().includes('monthly');
+                                    const qty = qtyMatch ? parseInt(qtyMatch[1]) : (isMonthly ? 4 : 1);
+                                    return {
+                                      date: new Date(p.purchase_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                                      qty,
+                                      method: 'Payment',
+                                    };
+                                  });
+                                }
+                                return (
+                                  <div className="wl-chart" id={`wl-chart-${protocol.id}`}>
+                                    <ResponsiveContainer width="100%" height={200}>
+                                      <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                        <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                                        <YAxis domain={['dataMin - 2', 'dataMax + 2']} tick={{ fontSize: 12 }} unit=" lbs" width={65} />
+                                        <Tooltip
+                                          formatter={(value) => [`${value} lbs`, 'Weight']}
+                                          labelFormatter={(label) => label}
+                                          contentStyle={{ fontSize: 13, borderRadius: 0 }}
+                                        />
+                                        {paymentMarkers.map((pm, idx) => (
+                                          <ReferenceLine
+                                            key={`payment-${idx}`}
+                                            x={pm.date}
+                                            stroke="#16a34a"
+                                            strokeDasharray="4 4"
+                                            strokeWidth={1.5}
+                                            label={{ value: `💰 ${pm.qty}x`, position: 'top', fontSize: 10, fill: '#16a34a', fontWeight: 700 }}
+                                          />
+                                        ))}
+                                        <Line type="monotone" dataKey="weight" stroke="#1e40af" strokeWidth={2} dot={{ r: 4, fill: '#1e40af' }} activeDot={{ r: 6 }} />
+                                      </LineChart>
+                                    </ResponsiveContainer>
+                                    {paymentMarkers.length > 0 && (
+                                      <div style={{ fontSize: 10, color: '#16a34a', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                        <span style={{ borderLeft: '2px dashed #16a34a', height: 10, display: 'inline-block' }} />
+                                        = Payment / delivery
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
 
                               {/* Injection Schedule Table — full slot view */}
                               <div className="wl-history">

@@ -1179,9 +1179,9 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 width: isHovered && totalColumns > 1
                   ? `calc((100% - ${gridLeft + gridRight}px) * ${Math.min(colWidthPercent * 2, 60) / 100})`
                   : `calc((100% - ${gridLeft + gridRight}px) * ${colWidthPercent / 100} - ${gapPx * 2}px)`,
-                zIndex: isHovered ? 20 : 5,
-                boxShadow: isHovered ? '0 4px 16px rgba(0,0,0,0.2)' : 'none',
-                transition: 'box-shadow 0.15s, width 0.15s, z-index 0s',
+                zIndex: isHovered ? 100 : 5,
+                boxShadow: isHovered ? '0 6px 24px rgba(0,0,0,0.25), 0 0 0 2px rgba(0,0,0,0.1)' : 'none',
+                transition: 'box-shadow 0.15s, width 0.15s',
               }}
             >
               <div style={{ ...styles.apptBlockName, display: 'flex', alignItems: 'center', gap: '4px' }}>

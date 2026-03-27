@@ -418,9 +418,53 @@ function useNewPurchaseNotifications(router) {
   return { purchaseCount, purchaseToast, dismissPurchaseToast };
 }
 
-// Hook for unread task count badge
-function useUnreadTasks(employeeId) {
+// Task notification sound — single low "thunk" tone (distinct from SMS ding and patient chime)
+function playTaskSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    // Two-tone descending: D5 → A4 (task/assignment feel)
+    [0, 0.14].forEach((delay, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = i === 0 ? 587 : 440; // D5, A4
+      osc.type = 'triangle';
+      gain.gain.setValueAtTime(0.25, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.3);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + 0.3);
+    });
+    setTimeout(() => ctx.close(), 1000);
+  } catch (e) {
+    // Audio not available — silent fail
+  }
+}
+
+// Hook for task notifications — badge count, overdue count, sound, toast, browser notification
+function useUnreadTasks(employeeId, router) {
   const [taskCount, setTaskCount] = useState(0);
+  const [overdueCount, setOverdueCount] = useState(0);
+  const [taskToast, setTaskToast] = useState(null);
+  const latestTimestampRef = useRef(null);
+  const hasInteractedRef = useRef(false);
+  const initializedRef = useRef(false);
+  const toastTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    const handleInteraction = () => { hasInteractedRef.current = true; };
+    window.addEventListener('click', handleInteraction, { once: true });
+    window.addEventListener('keydown', handleInteraction, { once: true });
+    return () => {
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('keydown', handleInteraction);
+    };
+  }, []);
+
+  const dismissTaskToast = useCallback(() => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setTaskToast(null);
+  }, []);
 
   useEffect(() => {
     if (!employeeId) return;
@@ -430,10 +474,61 @@ function useUnreadTasks(employeeId) {
     const checkTasks = async () => {
       if (document.visibilityState === 'hidden') return;
       try {
-        const res = await fetch(`/api/admin/unread-tasks?employee_id=${employeeId}`);
+        const since = latestTimestampRef.current;
+        const url = since
+          ? `/api/admin/unread-tasks?employee_id=${employeeId}&since=${encodeURIComponent(since)}`
+          : `/api/admin/unread-tasks?employee_id=${employeeId}`;
+        const res = await fetch(url);
         if (!res.ok) return;
         const data = await res.json();
-        if (mounted) setTaskCount(data.count || 0);
+        if (!mounted) return;
+
+        setTaskCount(data.count || 0);
+        setOverdueCount(data.overdueCount || 0);
+
+        if (data.latestTimestamp) {
+          latestTimestampRef.current = data.latestTimestamp;
+        }
+
+        // Skip notifications on first load (just initialize)
+        if (!initializedRef.current) {
+          initializedRef.current = true;
+          return;
+        }
+
+        // New tasks arrived — play sound + show toast + browser notification
+        if (data.newTasks?.length > 0 && hasInteractedRef.current) {
+          const task = data.newTasks[0]; // Most recent new task
+          playTaskSound();
+
+          // In-app toast
+          if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+          setTaskToast({
+            title: task.title?.length > 80 ? task.title.slice(0, 80) + '...' : task.title,
+            from: task.assigned_by_name || 'Unknown',
+            priority: task.priority,
+            time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+          });
+          toastTimeoutRef.current = setTimeout(() => {
+            if (mounted) setTaskToast(null);
+          }, 15000);
+
+          // Browser notification
+          if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+            const priorityLabel = task.priority === 'urgent' ? '🔴 URGENT — ' : task.priority === 'high' ? '🟠 ' : '';
+            const notif = new Notification(`${priorityLabel}New Task — Range Medical`, {
+              body: `From ${task.assigned_by_name}: ${task.title}`,
+              icon: '/favicon.ico',
+              tag: 'range-task',
+            });
+            notif.onclick = () => {
+              window.focus();
+              router.push('/admin/tasks');
+              notif.close();
+            };
+            setTimeout(() => notif.close(), 8000);
+          }
+        }
       } catch (e) {
         // Silent fail
       }
@@ -442,7 +537,7 @@ function useUnreadTasks(employeeId) {
     const startPolling = () => {
       if (interval) clearInterval(interval);
       checkTasks();
-      interval = setInterval(checkTasks, 120000); // Poll every 2 minutes
+      interval = setInterval(checkTasks, 30000); // Poll every 30 seconds
     };
 
     const handleVisibility = () => {
@@ -459,11 +554,12 @@ function useUnreadTasks(employeeId) {
     return () => {
       mounted = false;
       if (interval) clearInterval(interval);
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [employeeId]);
+  }, [employeeId, router]);
 
-  return taskCount;
+  return { taskCount, overdueCount, taskToast, dismissTaskToast };
 }
 
 const NAV_ITEMS = [
@@ -615,7 +711,7 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
   useNewPatientNotifications(router);
   const { purchaseCount, purchaseToast, dismissPurchaseToast } = useNewPurchaseNotifications(router);
   const { employee, loading: authLoading, signOut, hasPermission, isAuthenticated } = useAuth();
-  const taskCount = useUnreadTasks(employee?.id);
+  const { taskCount, overdueCount, taskToast, dismissTaskToast } = useUnreadTasks(employee?.id, router);
 
   // Redirect to login if not authenticated (after loading completes)
   useEffect(() => {
@@ -689,14 +785,31 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
                 >
                   <span style={styles.navIcon}>{icons[item.icon]}</span>
                   {item.label}
-                  {showBadge && (
+                  {showBadge && item.href === '/admin/tasks' ? (
+                    <span style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                      {overdueCount > 0 && (
+                        <span style={{
+                          ...styles.unreadBadge,
+                          background: '#dc2626',
+                          position: 'relative',
+                        }}>
+                          {overdueCount > 99 ? '99+' : overdueCount}
+                        </span>
+                      )}
+                      <span style={{
+                        ...styles.unreadBadge,
+                        position: 'relative',
+                        ...(overdueCount > 0 ? { background: '#3b82f6' } : {}),
+                      }}>
+                        {taskCount > 99 ? '99+' : taskCount}
+                      </span>
+                    </span>
+                  ) : showBadge && (
                     <span style={{
                       ...styles.unreadBadge,
                       ...(item.href === '/admin/payments' ? { background: '#16a34a' } : {}),
                     }}>
-                      {item.href === '/admin/tasks'
-                        ? (taskCount > 99 ? '99+' : taskCount)
-                        : item.href === '/admin/payments'
+                      {item.href === '/admin/payments'
                         ? (purchaseCount > 99 ? '99+' : purchaseCount)
                         : (unreadCount > 99 ? '99+' : unreadCount)}
                     </span>
@@ -842,6 +955,44 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
           <button
             style={toastStyles.dismiss}
             onClick={(e) => { e.stopPropagation(); dismissPurchaseToast(); }}
+            title="Dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* In-app task toast notification */}
+      {taskToast && (
+        <div
+          style={{
+            ...toastStyles.container,
+            top: toast ? (purchaseToast ? '184px' : '100px') : (purchaseToast ? '100px' : '16px'),
+          }}
+          onClick={() => {
+            dismissTaskToast();
+            router.push('/admin/tasks');
+          }}
+        >
+          <div style={{ ...toastStyles.iconCol, background: taskToast.priority === 'urgent' ? '#dc2626' : '#3b82f6' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 11 12 14 22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+            </svg>
+          </div>
+          <div style={toastStyles.body}>
+            <div style={toastStyles.header}>
+              <span style={{ ...toastStyles.label, color: taskToast.priority === 'urgent' ? '#dc2626' : '#3b82f6' }}>
+                {taskToast.priority === 'urgent' ? '🔴 URGENT TASK' : 'NEW TASK'}
+              </span>
+              <span style={toastStyles.time}>{taskToast.time}</span>
+            </div>
+            <div style={toastStyles.name}>From {taskToast.from}</div>
+            <div style={toastStyles.message}>{taskToast.title}</div>
+            <div style={toastStyles.hint}>Click to view in Tasks</div>
+          </div>
+          <button
+            style={toastStyles.dismiss}
+            onClick={(e) => { e.stopPropagation(); dismissTaskToast(); }}
             title="Dismiss"
           >
             ✕

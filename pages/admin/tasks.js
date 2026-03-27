@@ -717,6 +717,7 @@ export default function TasksPage() {
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('my'); // my, assigned, all
   const [statusFilter, setStatusFilter] = useState('pending'); // pending, completed, ''
+  const [employeeFilter, setEmployeeFilter] = useState(''); // employee ID filter (admin view)
   const [employees, setEmployees] = useState([]);
 
   // Create modal state
@@ -757,6 +758,9 @@ export default function TasksPage() {
   const [selectedTasks, setSelectedTasks] = useState(new Set());
   const [bulkCompleting, setBulkCompleting] = useState(false);
 
+  // Date group collapsed state
+  const [collapsedGroups, setCollapsedGroups] = useState({});
+
   const openSmsComposer = (task) => {
     setSmsState(prev => ({ ...prev, [task.id]: { ...prev[task.id], open: true, sent: false, error: null } }));
   };
@@ -771,6 +775,7 @@ export default function TasksPage() {
           patient_name: task.patient_name,
           task_title: task.title,
           task_description: task.description,
+          staff_name: task.assigned_to_name,
         }),
       });
       const data = await res.json();
@@ -1164,6 +1169,79 @@ export default function TasksPage() {
     return `${days}d ago`;
   };
 
+  // Group tasks by due date sections
+  const groupTasksByDate = (taskList) => {
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    const weekEnd = new Date(now);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+    const weekEndStr = weekEnd.toISOString().split('T')[0];
+    const nextWeekEnd = new Date(now);
+    nextWeekEnd.setDate(nextWeekEnd.getDate() + 14);
+    const nextWeekEndStr = nextWeekEnd.toISOString().split('T')[0];
+
+    const groups = {
+      overdue: { label: 'Overdue', tasks: [], color: '#dc2626', bg: '#fef2f2', border: '#fecaca', defaultExpanded: true },
+      today: { label: 'Today', tasks: [], color: '#1e40af', bg: '#eff6ff', border: '#bfdbfe', defaultExpanded: true },
+      tomorrow: { label: 'Tomorrow', tasks: [], color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe', defaultExpanded: true },
+      thisWeek: { label: 'This Week', tasks: [], color: '#0369a1', bg: '#f0f9ff', border: '#bae6fd', defaultExpanded: true },
+      nextWeek: { label: 'Next Week', tasks: [], color: '#4b5563', bg: '#f9fafb', border: '#e5e7eb', defaultExpanded: false },
+      later: { label: 'Later', tasks: [], color: '#6b7280', bg: '#f9fafb', border: '#e5e7eb', defaultExpanded: false },
+      noDueDate: { label: 'No Due Date', tasks: [], color: '#9ca3af', bg: '#fafafa', border: '#e5e7eb', defaultExpanded: true },
+    };
+
+    taskList.forEach(task => {
+      if (!task.due_date) {
+        groups.noDueDate.tasks.push(task);
+      } else if (task.status === 'completed') {
+        // Completed tasks go to their original date group
+        if (task.due_date < todayStr) groups.overdue.tasks.push(task);
+        else if (task.due_date === todayStr) groups.today.tasks.push(task);
+        else if (task.due_date === tomorrowStr) groups.tomorrow.tasks.push(task);
+        else if (task.due_date <= weekEndStr) groups.thisWeek.tasks.push(task);
+        else if (task.due_date <= nextWeekEndStr) groups.nextWeek.tasks.push(task);
+        else groups.later.tasks.push(task);
+      } else if (task.due_date < todayStr) {
+        groups.overdue.tasks.push(task);
+      } else if (task.due_date === todayStr) {
+        groups.today.tasks.push(task);
+      } else if (task.due_date === tomorrowStr) {
+        groups.tomorrow.tasks.push(task);
+      } else if (task.due_date <= weekEndStr) {
+        groups.thisWeek.tasks.push(task);
+      } else if (task.due_date <= nextWeekEndStr) {
+        groups.nextWeek.tasks.push(task);
+      } else {
+        groups.later.tasks.push(task);
+      }
+    });
+
+    // Sort overdue tasks by due date ascending (oldest overdue first)
+    groups.overdue.tasks.sort((a, b) => (a.due_date || '').localeCompare(b.due_date || ''));
+
+    return Object.entries(groups).filter(([, g]) => g.tasks.length > 0);
+  };
+
+  // Apply employee filter
+  const filteredTasks = employeeFilter
+    ? tasks.filter(t => t.assigned_to === employeeFilter)
+    : tasks;
+
+  // Group tasks (only for pending view — completed tasks show flat)
+  const dateGroups = statusFilter === 'pending' ? groupTasksByDate(filteredTasks) : null;
+
+  // Track collapsed groups
+  const toggleGroup = (groupKey) => {
+    setCollapsedGroups(prev => ({ ...prev, [groupKey]: !prev[groupKey] }));
+  };
+  const isGroupCollapsed = (groupKey, defaultExpanded) => {
+    if (collapsedGroups[groupKey] !== undefined) return collapsedGroups[groupKey];
+    return !defaultExpanded;
+  };
+
   return (
     <AdminLayout title="Tasks">
       <style>{`
@@ -1192,7 +1270,8 @@ export default function TasksPage() {
           <div>
             <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 700 }}>Tasks</h1>
             <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#888' }}>
-              {tasks.length} task{tasks.length !== 1 ? 's' : ''}
+              {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''}
+              {employeeFilter && employees.find(e => e.id === employeeFilter) && ` · ${employees.find(e => e.id === employeeFilter).name}`}
             </p>
           </div>
           <button onClick={() => setShowCreate(true)} style={sharedStyles.btnPrimary}>
@@ -1209,7 +1288,7 @@ export default function TasksPage() {
           ].map(tab => (
             <button
               key={tab.value}
-              onClick={() => setFilter(tab.value)}
+              onClick={() => { setFilter(tab.value); setEmployeeFilter(''); }}
               style={{
                 padding: '8px 16px',
                 fontSize: '13px',
@@ -1226,6 +1305,23 @@ export default function TasksPage() {
             </button>
           ))}
           <div style={{ flex: 1 }} />
+          {/* Employee filter — shown on "All Tasks" view */}
+          {filter === 'all' && (
+            <select
+              value={employeeFilter}
+              onChange={e => setEmployeeFilter(e.target.value)}
+              style={{ ...sharedStyles.input, width: 'auto', fontSize: '12px', padding: '4px 8px', marginBottom: '4px', marginRight: '8px' }}
+            >
+              <option value="">All Employees</option>
+              {employees
+                .filter(e => e.is_active !== false)
+                .map(e => (
+                  <option key={e.id} value={e.id}>
+                    {e.name}{e.id === employee?.id ? ' (Me)' : ''}
+                  </option>
+                ))}
+            </select>
+          )}
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
@@ -1291,31 +1387,69 @@ export default function TasksPage() {
         {/* Task list */}
         {loading ? (
           <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>Loading tasks...</div>
-        ) : tasks.length === 0 ? (
+        ) : filteredTasks.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
             <div style={{ fontSize: '40px', marginBottom: '12px' }}>&#9745;</div>
             <p style={{ color: '#888', fontSize: '14px' }}>
               {statusFilter === 'pending' ? 'No pending tasks' : 'No tasks found'}
+              {employeeFilter && ' for this employee'}
             </p>
           </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {tasks.map(task => {
-              const pri = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium;
-              const overdue = isOverdue(task);
-              const isExpanded = expandedTask === task.id;
-              const hasDescription = task.description && task.description.trim();
+        ) : dateGroups ? (
+          /* ── Grouped by date (pending view) ── */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {dateGroups.map(([groupKey, group]) => {
+              const collapsed = isGroupCollapsed(groupKey, group.defaultExpanded);
               return (
-                <div
-                  key={task.id}
-                  style={{
-                    background: task.status === 'completed' ? '#fafafa' : '#fff',
-                    border: `1px solid ${overdue ? '#fecaca' : isExpanded ? '#3b82f6' : '#e5e7eb'}`,
-                    borderRadius: 0,
-                    opacity: task.status === 'completed' ? 0.7 : 1,
-                    transition: 'border-color 0.15s',
-                  }}
-                >
+                <div key={groupKey}>
+                  {/* Group header */}
+                  <button
+                    onClick={() => toggleGroup(groupKey)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '10px',
+                      width: '100%', padding: '8px 12px', marginBottom: collapsed ? 0 : '8px',
+                      background: group.bg, border: `1px solid ${group.border}`,
+                      borderRadius: 0, cursor: 'pointer', textAlign: 'left',
+                    }}
+                  >
+                    <span style={{
+                      fontSize: '11px', color: group.color,
+                      transition: 'transform 0.15s',
+                      transform: collapsed ? 'rotate(0deg)' : 'rotate(90deg)',
+                    }}>▶</span>
+                    <span style={{
+                      fontSize: '13px', fontWeight: 700, color: group.color,
+                      textTransform: 'uppercase', letterSpacing: '0.04em',
+                    }}>
+                      {group.label}
+                    </span>
+                    <span style={{
+                      fontSize: '12px', fontWeight: 600, color: group.color,
+                      background: groupKey === 'overdue' ? '#fecaca' : 'rgba(0,0,0,0.06)',
+                      padding: '1px 8px', borderRadius: '10px',
+                    }}>
+                      {group.tasks.length}
+                    </span>
+                  </button>
+                  {/* Group tasks */}
+                  {!collapsed && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {group.tasks.map(task => {
+                        const pri = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium;
+                        const overdue = isOverdue(task);
+                        const isExpanded = expandedTask === task.id;
+                        const hasDescription = task.description && task.description.trim();
+                        return (
+                          <div
+                            key={task.id}
+                            style={{
+                              background: task.status === 'completed' ? '#fafafa' : '#fff',
+                              border: `1px solid ${overdue ? '#fecaca' : isExpanded ? '#3b82f6' : '#e5e7eb'}`,
+                              borderRadius: 0,
+                              opacity: task.status === 'completed' ? 0.7 : 1,
+                              transition: 'border-color 0.15s',
+                            }}
+                          >
                   {/* Collapsed row — always visible */}
                   <div
                     style={{
@@ -1804,6 +1938,70 @@ export default function TasksPage() {
                           onTaskComplete={() => toggleComplete(task)}
                         />
                       )}
+                    </div>
+                  )}
+                </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          /* ── Flat list (completed / all status view) ── */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {filteredTasks.map(task => {
+              const pri = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.medium;
+              const overdue = isOverdue(task);
+              const isExpanded = expandedTask === task.id;
+              const hasDescription = task.description && task.description.trim();
+              return (
+                <div
+                  key={task.id}
+                  style={{
+                    background: task.status === 'completed' ? '#fafafa' : '#fff',
+                    border: `1px solid ${overdue ? '#fecaca' : isExpanded ? '#3b82f6' : '#e5e7eb'}`,
+                    borderRadius: 0,
+                    opacity: task.status === 'completed' ? 0.7 : 1,
+                    transition: 'border-color 0.15s',
+                  }}
+                >
+                  {/* Collapsed row — always visible */}
+                  <div
+                    style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '12px 16px', cursor: 'pointer' }}
+                    onClick={() => setExpandedTask(isExpanded ? null : task.id)}
+                  >
+                    <input type="checkbox" checked={selectedTasks.has(task.id)} onChange={(e) => toggleSelect(task.id, e)} onClick={(e) => e.stopPropagation()} style={{ width: '16px', height: '16px', flexShrink: 0, marginTop: '4px', cursor: 'pointer', accentColor: '#3b82f6' }} />
+                    <button onClick={(e) => { e.stopPropagation(); toggleComplete(task); }} style={{ width: '22px', height: '22px', borderRadius: 0, border: `2px solid ${task.status === 'completed' ? '#16a34a' : '#d1d5db'}`, background: task.status === 'completed' ? '#16a34a' : '#fff', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px' }}>{task.status === 'completed' ? '✓' : ''}</button>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 600, color: task.status === 'completed' ? '#999' : '#1a1a1a', textDecoration: task.status === 'completed' ? 'line-through' : 'none', ...(!isExpanded && hasDescription ? { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '400px' } : {}) }}>{task.title}</span>
+                        <span style={{ padding: '1px 8px', borderRadius: 0, fontSize: '10px', fontWeight: 600, background: pri.bg, color: pri.text, border: `1px solid ${pri.border}`, textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0 }}>{pri.label}</span>
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '11px', color: '#999', marginTop: '4px' }}>
+                        {filter !== 'my' && <span>To: <strong style={{ color: '#666' }}>{task.assigned_to_name}</strong></span>}
+                        <span>From: {task.assigned_by_name}</span>
+                        {task.due_date && <span style={{ color: overdue ? '#dc2626' : '#999', fontWeight: overdue ? 600 : 400 }}>{overdue ? 'Overdue: ' : 'Due: '}{formatDate(task.due_date)}</span>}
+                        <span>{getTimeAgo(task.created_at)}</span>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                      <span style={{ color: '#ccc', fontSize: '12px', transition: 'transform 0.15s', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
+                      <button onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }} style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: '16px', padding: '2px 4px' }} title="Delete task">&#10005;</button>
+                    </div>
+                  </div>
+                  {isExpanded && (
+                    <div style={{ padding: '0 16px 16px 50px', borderTop: '1px solid #f0f0f0', marginTop: '-4px', paddingTop: '12px' }}>
+                      {hasDescription && <div style={{ marginBottom: '12px' }}><div style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Details</div><div style={{ fontSize: '13px', color: '#374151', lineHeight: 1.7, whiteSpace: 'pre-wrap', background: '#f9fafb', padding: '10px 14px', borderRadius: 0, border: '1px solid #f0f0f0' }}>{task.description}</div></div>}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', fontSize: '13px' }}>
+                        <div><span style={{ color: '#9ca3af' }}>Assigned to: </span><strong style={{ color: '#374151' }}>{task.assigned_to_name}</strong></div>
+                        <div><span style={{ color: '#9ca3af' }}>Created by: </span><strong style={{ color: '#374151' }}>{task.assigned_by_name}</strong></div>
+                        {task.due_date && <div><span style={{ color: '#9ca3af' }}>Due: </span><strong style={{ color: overdue ? '#dc2626' : '#374151' }}>{formatDate(task.due_date)}{overdue ? ' (Overdue)' : ''}</strong></div>}
+                        <div><span style={{ color: '#9ca3af' }}>Created: </span><span style={{ color: '#374151' }}>{getTimeAgo(task.created_at)}</span></div>
+                        {task.completed_at && <div><span style={{ color: '#9ca3af' }}>Completed: </span><span style={{ color: '#16a34a' }}>{getTimeAgo(task.completed_at)}</span></div>}
+                      </div>
                     </div>
                   )}
                 </div>

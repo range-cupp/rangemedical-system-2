@@ -283,11 +283,12 @@ export default function StaffChat() {
   const firstUserMsg = messages.filter((m) => m.role === 'user').length === 0;
 
   // ── Shared chat UI ───────────────────────────────────────────────
+  // Mobile: account for bottom tab bar (60px + safe area) so input isn't hidden
   const chatUI = (
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      height: isMobile ? '100dvh' : 'calc(100vh - 48px)',
+      height: isMobile ? 'calc(100dvh - 60px - env(safe-area-inset-bottom, 0px))' : 'calc(100vh - 48px)',
       width: '100%',
       maxWidth: isMobile ? '100%' : 680,
       margin: isMobile ? 0 : '0 auto',
@@ -301,7 +302,7 @@ export default function StaffChat() {
       {/* ── Header ── */}
       <div style={{
         padding: isMobile ? '14px 16px 12px' : '14px 16px 12px',
-        paddingTop: isMobile ? 'calc(14px + env(safe-area-inset-top))' : 14,
+        paddingTop: 14,
         borderBottom: `1px solid ${dark ? '#2a2a2a' : '#e5e7eb'}`,
         display: 'flex',
         alignItems: 'center',
@@ -389,7 +390,7 @@ export default function StaffChat() {
       <div style={{
         borderTop: `1px solid ${dark ? '#2a2a2a' : '#e5e7eb'}`,
         padding: '10px 12px',
-        paddingBottom: isMobile ? 'calc(10px + env(safe-area-inset-bottom))' : 10,
+        paddingBottom: 10,
         display: 'flex',
         gap: 8,
         alignItems: 'flex-end',
@@ -467,36 +468,26 @@ export default function StaffChat() {
     </div>
   );
 
-  // Mobile: full-screen, no AdminLayout
-  if (isMobile) {
-    return (
-      <>
+  // Both mobile and desktop: inside AdminLayout (mobile gets bottom tab bar for navigation)
+  return (
+    <AdminLayout title="Assistant" hideHeader={true}>
+      {isMobile && (
         <Head>
           <meta name="theme-color" content="#1a1a1a" />
         </Head>
-        <style>{`
-          @keyframes bounce {
-            0%, 60%, 100% { transform: translateY(0); }
-            30% { transform: translateY(-6px); }
-          }
-          textarea:focus { outline: none; box-shadow: none; }
-          body { background: #141414; }
-          ::-webkit-scrollbar { display: none; }
-        `}</style>
-        {chatUI}
-      </>
-    );
-  }
-
-  // Desktop: inside AdminLayout
-  return (
-    <AdminLayout title="Assistant" hideHeader={true}>
+      )}
       <style>{`
         @keyframes bounce {
           0%, 60%, 100% { transform: translateY(0); }
-          30% { transform: translateY(-5px); }
+          30% { transform: translateY(${isMobile ? '-6' : '-5'}px); }
         }
-        textarea:focus { outline: none; }
+        textarea:focus { outline: none; box-shadow: none; }
+        ${isMobile ? `
+          body { background: #141414; }
+          ::-webkit-scrollbar { display: none; }
+          /* Override AdminLayout bottom padding — chat handles its own spacing */
+          [data-admin-main] > main { padding-bottom: 0 !important; }
+        ` : ''}
       `}</style>
       {chatUI}
     </AdminLayout>

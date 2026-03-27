@@ -17,7 +17,7 @@
     "@vercel/analytics": "^2.0.1",
     "dotenv": "^17.3.1",
     "lucide-react": "^0.263.1",
-    "next": "14.0.4",
+    "next": "14.2.35",
     "pdf-lib": "^1.17.1",
     "pdf-parse": "^1.1.4",
     "pdfjs-dist": "^3.11.174",
@@ -32,7 +32,7 @@
   },
   "devDependencies": {
     "eslint": "^8.56.0",
-    "eslint-config-next": "14.0.4",
+    "eslint-config-next": "14.2.35",
     "puppeteer": "^24.39.0"
   }
 }

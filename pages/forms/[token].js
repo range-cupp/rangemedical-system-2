@@ -9,10 +9,21 @@ import Head from 'next/head';
 
 export default function FormBundlePage() {
   const router = useRouter();
-  const { token } = router.query;
+  const { token, kiosk } = router.query;
+  const [isKiosk, setIsKiosk] = useState(false);
   const [bundle, setBundle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Persist kiosk mode in sessionStorage so it survives consent form redirects
+  useEffect(() => {
+    if (kiosk === '1') {
+      sessionStorage.setItem('kiosk_mode', '1');
+      setIsKiosk(true);
+    } else if (typeof window !== 'undefined') {
+      setIsKiosk(sessionStorage.getItem('kiosk_mode') === '1');
+    }
+  }, [kiosk]);
 
   const fetchBundle = useCallback(async () => {
     if (!token) return;
@@ -139,8 +150,18 @@ export default function FormBundlePage() {
                 Thank you{bundle.firstName ? `, ${bundle.firstName}` : ''}! All {bundle.totalCount} forms have been submitted successfully.
               </p>
               <p style={styles.successSubtext}>
-                You&apos;re all set for your visit to Range Medical. We look forward to seeing you!
+                {isKiosk
+                  ? 'Please return this iPad to the front desk. We\u2019ll be with you shortly!'
+                  : 'You\u2019re all set for your visit to Range Medical. We look forward to seeing you!'}
               </p>
+              {isKiosk && (
+                <button
+                  onClick={() => { sessionStorage.removeItem('kiosk_mode'); router.push('/check-in'); }}
+                  style={{ display: 'block', width: '100%', padding: '14px', marginTop: '24px', background: '#000', color: '#fff', border: 'none', fontSize: '15px', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  Staff: Start New Check-In
+                </button>
+              )}
 
               <div style={styles.formsList}>
                 {bundle.forms.map(form => (

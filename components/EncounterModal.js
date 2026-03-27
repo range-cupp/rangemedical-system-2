@@ -214,6 +214,9 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
   const [vitalsExpanded, setVitalsExpanded] = useState(false);
   const vitalsTimerRef = useRef(null);
 
+  // Weight loss protocol context
+  const [wlProtocol, setWlProtocol] = useState(null);
+
   const handleDeleteAppointment = async () => {
     if (!appointment?.id) return;
     setDeleting(true);
@@ -329,6 +332,20 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
       })
       .catch(() => setVitalsLoading(false));
   }, [appointment?.id, appointment?.patient_id]);
+
+  // Fetch active weight loss protocol for this patient
+  useEffect(() => {
+    if (!appointment?.patient_id) return;
+    fetch(`/api/protocols/active-wl?patient_id=${appointment.patient_id}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.protocol) {
+          setWlProtocol(data.protocol);
+          setVitalsExpanded(true); // Auto-expand vitals for WL patients
+        }
+      })
+      .catch(() => {});
+  }, [appointment?.patient_id]);
 
   // Height helpers: parse "5'10" or "70" → inches, inches → display string
   const parseHeight = (input) => {
@@ -999,6 +1016,36 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
             )}
           </div>
 
+          {/* Weight Loss Quick Context — shows for WL patients */}
+          {wlProtocol && (
+            <div style={{ margin: '0 0 8px', padding: '10px 14px', background: '#eff6ff', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#1e40af' }}>⚖️ Weight Loss Patient</span>
+              <span style={{ fontSize: 12, color: '#1e3a5f' }}>
+                {wlProtocol.medication} {wlProtocol.selected_dose || ''}
+              </span>
+              {wlProtocol.last_weight && (
+                <span style={{ fontSize: 12, color: '#374151' }}>
+                  Last: <strong>{wlProtocol.last_weight} lbs</strong>
+                  {wlProtocol.weight_change != null && (
+                    <span style={{ color: wlProtocol.weight_change < 0 ? '#16a34a' : '#dc2626', fontWeight: 600, marginLeft: 4 }}>
+                      ({wlProtocol.weight_change > 0 ? '+' : ''}{wlProtocol.weight_change} lbs)
+                    </span>
+                  )}
+                </span>
+              )}
+              <span style={{ fontSize: 12, color: '#374151' }}>
+                Sessions: <strong>{wlProtocol.sessions_used || 0}</strong>
+                {wlProtocol.total_sessions ? ` / ${wlProtocol.total_sessions}` : ''}
+                {wlProtocol.total_sessions && wlProtocol.sessions_used >= wlProtocol.total_sessions && (
+                  <span style={{ color: '#dc2626', fontWeight: 700, marginLeft: 4 }}>⚠ Renewal Due</span>
+                )}
+              </span>
+              <span style={{ fontSize: 11, color: '#6b7280', marginLeft: 'auto' }}>
+                ↓ Enter weight in Vitals below
+              </span>
+            </div>
+          )}
+
           {/* Vitals Section */}
           <div className="enc-vitals">
             <div className="enc-vitals-header" onClick={() => setVitalsExpanded(!vitalsExpanded)}>
@@ -1037,9 +1084,9 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                     }}
                   />
                 </div>
-                <div className="enc-vitals-field">
-                  <label>Weight (lbs)</label>
-                  <input type="number" step="0.1" placeholder="185" value={vitals.weight_lbs} onChange={e => updateVital('weight_lbs', e.target.value)} />
+                <div className="enc-vitals-field" style={wlProtocol ? { background: '#eff6ff', border: '2px solid #3b82f6', borderRadius: 4, padding: '4px 6px' } : {}}>
+                  <label style={wlProtocol ? { color: '#1e40af', fontWeight: 700 } : {}}>Weight (lbs) {wlProtocol ? '⚖️' : ''}</label>
+                  <input type="number" step="0.1" placeholder="185" value={vitals.weight_lbs} onChange={e => updateVital('weight_lbs', e.target.value)} style={wlProtocol ? { borderColor: '#3b82f6', fontWeight: 600, fontSize: 15 } : {}} autoFocus={!!wlProtocol} />
                   {vitals.height_inches && vitals.weight_lbs && (
                     <div className="enc-vitals-bmi">BMI: {calcBMI(vitals.height_inches, vitals.weight_lbs) || '—'}</div>
                   )}

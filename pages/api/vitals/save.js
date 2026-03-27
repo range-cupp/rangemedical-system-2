@@ -108,7 +108,7 @@ export default async function handler(req, res) {
       try {
         const { data: wlProtocol } = await supabase
           .from('protocols')
-          .select('id, medication, selected_dose, starting_weight')
+          .select('id, medication, selected_dose, starting_weight, delivery_method, sessions_used')
           .eq('patient_id', patient_id)
           .ilike('program_type', 'weight_loss%')
           .in('status', ['active', 'in_progress'])
@@ -118,20 +118,30 @@ export default async function handler(req, res) {
 
         if (wlProtocol) {
           const logDate = todayPacific();
+          // In-clinic WL patients: weight entry via vitals = injection session
+          // Take-home WL patients: weight entry via vitals = weight_check only
+          const isInClinic = wlProtocol.delivery_method === 'in_clinic';
+          const entryType = isInClinic ? 'injection' : 'weight_check';
 
-          // Upsert weight_check in service_logs for today
+          // Check for existing service_log entry today (any non-pickup type)
           const { data: existingLog } = await supabase
             .from('service_logs')
-            .select('id')
+            .select('id, entry_type')
             .eq('patient_id', patient_id)
             .eq('category', 'weight_loss')
             .eq('entry_date', logDate)
+            .neq('entry_type', 'pickup')
             .maybeSingle();
 
           if (existingLog) {
+            // Update existing entry — also upgrade weight_check → injection for in-clinic
+            const updateData = { weight: w, updated_at: new Date().toISOString() };
+            if (isInClinic && existingLog.entry_type === 'weight_check') {
+              updateData.entry_type = 'injection';
+            }
             await supabase
               .from('service_logs')
-              .update({ weight: w, updated_at: new Date().toISOString() })
+              .update(updateData)
               .eq('id', existingLog.id);
           } else {
             await supabase
@@ -140,13 +150,24 @@ export default async function handler(req, res) {
                 patient_id,
                 protocol_id: wlProtocol.id,
                 category: 'weight_loss',
-                entry_type: 'weight_check',
+                entry_type: entryType,
                 entry_date: logDate,
                 medication: wlProtocol.medication || null,
                 dosage: wlProtocol.selected_dose || null,
                 weight: w,
                 notes: `Via vitals by ${recorded_by || 'Staff'}`,
               });
+
+            // Increment sessions_used for in-clinic injection entries
+            if (isInClinic) {
+              await supabase
+                .from('protocols')
+                .update({
+                  sessions_used: (wlProtocol.sessions_used || 0) + 1,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', wlProtocol.id);
+            }
           }
 
           // Auto-set starting_weight if missing

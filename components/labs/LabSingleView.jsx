@@ -1,12 +1,63 @@
 // components/labs/LabSingleView.jsx
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { colors, styles, flagColors } from './labStyles';
 import { categoryOrder } from '../../lib/biomarker-config';
 import MarkerCard from './MarkerCard';
 
-export default function LabSingleView({ results, biomarkerLibrary, previousResults, synopsis, synopsisLoading, onRegenerateSynopsis }) {
+export default function LabSingleView({ results, biomarkerLibrary, previousResults, synopsis, synopsisLoading, onRegenerateSynopsis, labId }) {
   const [filter, setFilter] = useState('all');
   const [synopsisExpanded, setSynopsisExpanded] = useState(true);
+
+  // Q&A state
+  const [qaMessages, setQaMessages] = useState([]);
+  const [qaInput, setQaInput] = useState('');
+  const [qaLoading, setQaLoading] = useState(false);
+  const [qaExpanded, setQaExpanded] = useState(false);
+  const qaEndRef = useRef(null);
+  const qaInputRef = useRef(null);
+
+  // Reset Q&A when lab changes
+  useEffect(() => { setQaMessages([]); setQaExpanded(false); }, [labId]);
+
+  // Scroll to bottom of Q&A when new messages arrive
+  useEffect(() => {
+    if (qaEndRef.current) qaEndRef.current.scrollIntoView({ behavior: 'smooth' });
+  }, [qaMessages]);
+
+  const handleQaSubmit = async (e) => {
+    e.preventDefault();
+    const question = qaInput.trim();
+    if (!question || qaLoading || !labId) return;
+
+    setQaInput('');
+    setQaExpanded(true);
+    const newMessages = [...qaMessages, { role: 'provider', content: question }];
+    setQaMessages(newMessages);
+    setQaLoading(true);
+
+    try {
+      const res = await fetch('/api/labs/synopsis-qa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lab_id: labId,
+          question,
+          history: qaMessages
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setQaMessages([...newMessages, { role: 'assistant', content: data.answer }]);
+      } else {
+        setQaMessages([...newMessages, { role: 'assistant', content: 'Error generating response. Please try again.' }]);
+      }
+    } catch (err) {
+      console.error('QA error:', err);
+      setQaMessages([...newMessages, { role: 'assistant', content: 'Error generating response. Please try again.' }]);
+    }
+    setQaLoading(false);
+    setTimeout(() => qaInputRef.current?.focus(), 100);
+  };
 
   // Build previous values lookup
   const previousMap = useMemo(() => {
@@ -145,6 +196,93 @@ export default function LabSingleView({ results, biomarkerLibrary, previousResul
               fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
             }}>
               {synopsis}
+            </div>
+          )}
+
+          {/* Provider Q&A */}
+          {synopsis && synopsisExpanded && (
+            <div style={{ borderTop: '1px solid #C7D2FE' }}>
+              {/* Q&A Messages */}
+              {qaMessages.length > 0 && (
+                <div style={{
+                  maxHeight: '400px', overflowY: 'auto',
+                  padding: '12px 16px',
+                  display: 'flex', flexDirection: 'column', gap: '10px'
+                }}>
+                  {qaMessages.map((msg, i) => (
+                    <div key={i} style={{
+                      display: 'flex',
+                      justifyContent: msg.role === 'provider' ? 'flex-end' : 'flex-start'
+                    }}>
+                      <div style={{
+                        maxWidth: '85%',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        fontSize: '0.8125rem',
+                        lineHeight: '1.6',
+                        whiteSpace: 'pre-wrap',
+                        ...(msg.role === 'provider' ? {
+                          background: '#4338CA',
+                          color: '#FFFFFF'
+                        } : {
+                          background: '#EEF2FF',
+                          color: '#1F2937',
+                          border: '1px solid #C7D2FE'
+                        })
+                      }}>
+                        {msg.content}
+                      </div>
+                    </div>
+                  ))}
+                  {qaLoading && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                      <div style={{
+                        padding: '8px 12px', borderRadius: '8px',
+                        background: '#EEF2FF', border: '1px solid #C7D2FE',
+                        fontSize: '0.8125rem', color: '#6366F1'
+                      }}>
+                        Analyzing...
+                      </div>
+                    </div>
+                  )}
+                  <div ref={qaEndRef} />
+                </div>
+              )}
+
+              {/* Input */}
+              <form onSubmit={handleQaSubmit} style={{
+                display: 'flex', gap: '8px',
+                padding: '10px 16px',
+                borderTop: qaMessages.length > 0 ? '1px solid #E5E7EB' : 'none'
+              }}>
+                <input
+                  ref={qaInputRef}
+                  type="text"
+                  value={qaInput}
+                  onChange={(e) => setQaInput(e.target.value)}
+                  placeholder="Ask a follow-up question about these labs..."
+                  disabled={qaLoading}
+                  style={{
+                    flex: 1, padding: '8px 12px',
+                    border: '1px solid #C7D2FE', borderRadius: '6px',
+                    fontSize: '0.8125rem', outline: 'none',
+                    background: '#FFFFFF', color: '#1F2937'
+                  }}
+                />
+                <button
+                  type="submit"
+                  disabled={qaLoading || !qaInput.trim()}
+                  style={{
+                    padding: '8px 16px', borderRadius: '6px',
+                    border: 'none', background: '#4338CA',
+                    color: '#FFFFFF', fontSize: '0.8125rem',
+                    fontWeight: 600, cursor: qaLoading || !qaInput.trim() ? 'not-allowed' : 'pointer',
+                    opacity: qaLoading || !qaInput.trim() ? 0.5 : 1
+                  }}
+                >
+                  Ask
+                </button>
+              </form>
             </div>
           )}
         </div>

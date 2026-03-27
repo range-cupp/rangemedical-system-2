@@ -239,6 +239,7 @@ export default function LabDashboard({ patientId, patientGender, embedded }) {
           synopsis={synopsis}
           synopsisLoading={synopsisLoading}
           onRegenerateSynopsis={handleRegenerateSynopsis}
+          labId={selectedLabId}
         />
       )}
 

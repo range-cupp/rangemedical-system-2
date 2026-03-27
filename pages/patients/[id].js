@@ -4131,7 +4131,7 @@ export default function PatientProfile() {
                            consent.consent_type === 'peptide' ? '🧬' : '📝'}
                         </span>
                         <div className="intake-info">
-                          <strong>{consent.consent_type ? consent.consent_type.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Consent'}</strong>
+                          <strong>{consent.consent_type ? consent.consent_type.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()).replace(/Hipaa/g, 'HIPAA') : 'Consent'}</strong>
                           <span>{formatDate(consent.submitted_at)} {consent.consent_given ? '• Signed' : '• Pending'}</span>
                         </div>
                         {consent.pdf_url && <button className="btn-text" onClick={e => { e.stopPropagation(); openPdfViewer(consent.pdf_url, `${consent.consent_type || 'Consent'} Form`); }}>View</button>}
@@ -5837,7 +5837,7 @@ export default function PatientProfile() {
                         ct.includes('prp') ? '💉' :
                         ct.includes('red-light') || ct.includes('red_light') ? '🔴' : '📝';
                       const typeName = consent.consent_type
-                        ? consent.consent_type.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+                        ? consent.consent_type.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()).replace(/Hipaa/g, 'HIPAA')
                         : 'General';
                       return (
                         <div key={consent.id} className="consent-card" onClick={() => consent.pdf_url && openPdfViewer(consent.pdf_url, `${typeName} Consent`)}>

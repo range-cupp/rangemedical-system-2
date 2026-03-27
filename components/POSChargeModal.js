@@ -102,6 +102,10 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   const [creditBalanceCents, setCreditBalanceCents] = useState(0);
   const [loadingCredit, setLoadingCredit] = useState(false);
 
+  // Split payment state
+  const [splitCashAmount, setSplitCashAmount] = useState(''); // dollar string for cash portion
+  const [splitCardSelection, setSplitCardSelection] = useState(null); // card id or 'new' for card portion
+
   // Skip patient notification (receipt email) state
   const [skipNotification, setSkipNotification] = useState(false);
 
@@ -192,8 +196,10 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       setSavedCards(data.cards || []);
       if (data.cards?.length > 0) {
         setSelectedCard(data.cards[0].id);
+        setSplitCardSelection(data.cards[0].id);
       } else {
         setSelectedCard('new');
+        setSplitCardSelection('new');
       }
     } catch (err) {
       console.error('Load cards error:', err);
@@ -616,31 +622,35 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   }
 
   // Like recordPurchases but returns the first purchase record (used for gift card linking)
+  // extraFields can include amount_override (cents) and description_suffix for split payments
   async function recordPurchasesWithReturn(extraFields) {
+    const { amount_override, description_suffix, ...restFields } = extraFields || {};
     const shippingCents = getShippingCents();
 
     if (activeCategory === 'custom') {
-      const amount = getChargeAmount();
+      const amount = amount_override || getChargeAmount();
       const desc = getChargeDescription();
       const discountData = getDiscountData();
       const discountSuffix = discountType === 'percent'
         ? `${discountValue}% off`
         : `$${discountValue} off`;
+      let finalDesc = discountData.discount_type ? `${desc} (${discountSuffix})` : desc;
+      if (description_suffix) finalDesc = `${finalDesc} ${description_suffix}`;
       const res = await fetch('/api/stripe/record-purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           patient_id: patient.id,
           amount,
-          description: discountData.discount_type ? `${desc} (${discountSuffix})` : desc,
+          description: finalDesc,
           payment_method: 'stripe',
           service_category: activeCategory,
           service_name: customDescription,
           quantity: 1,
-          shipping: shippingCents,
+          shipping: amount_override ? 0 : shippingCents,
           skip_receipt: skipNotification,
-          ...discountData,
-          ...extraFields,
+          ...(amount_override ? {} : discountData),
+          ...restFields,
         }),
       });
       return await res.json();
@@ -655,7 +665,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       const itemDiscountAmt = getItemDiscountCents(item);
       const itemFinal = itemBase - itemDiscountAmt;
       const itemName = qty > 1 ? `${item.name} x${qty}` : item.name;
-      const discountSuffix = item.itemDiscountType === 'percent'
+      const discSuffix = item.itemDiscountType === 'percent'
         ? `${item.itemDiscountValue}% off`
         : `$${item.itemDiscountValue} off`;
 
@@ -665,27 +675,37 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       // For peptides, reconstruct full name so auto-protocol parsing works
       const serviceName = item.peptide_identifier ? `${item.name} — ${item.peptide_identifier}` : item.name;
 
+      // For split payments: use overridden amount (proportionally split across items)
+      let recordAmount = itemFinal;
+      if (amount_override !== undefined) {
+        const totalCharge = getChargeAmount();
+        recordAmount = cartItems.length === 1 ? amount_override : Math.round(amount_override * (itemFinal / totalCharge));
+      }
+
+      let desc = itemDiscountAmt > 0 ? `${itemName} (${discSuffix})` : itemName;
+      if (description_suffix) desc = `${desc} ${description_suffix}`;
+
       const res = await fetch('/api/stripe/record-purchase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           patient_id: patient.id,
-          amount: itemFinal,
-          description: itemDiscountAmt > 0 ? `${itemName} (${discountSuffix})` : itemName,
+          amount: recordAmount,
+          description: desc,
           payment_method: 'stripe',
           service_category: item.category,
           service_name: serviceName,
           quantity: qty,
-          shipping: itemShipping,
+          shipping: amount_override ? 0 : itemShipping,
           fulfillment_method: ['peptide', 'weight_loss', 'hrt', 'vials'].includes(item.category) ? fulfillmentMethod : null,
           tracking_number: ['peptide', 'weight_loss', 'hrt', 'vials'].includes(item.category) && fulfillmentMethod === 'overnight' ? trackingNumber : null,
           skip_receipt: skipNotification || cartItems.length > 1,
-          ...(itemDiscountAmt > 0 ? {
+          ...(itemDiscountAmt > 0 && !amount_override ? {
             discount_type: item.itemDiscountType,
             discount_amount: parseFloat(item.itemDiscountValue),
             original_amount: itemBase,
           } : {}),
-          ...extraFields,
+          ...restFields,
         }),
       });
       const data = await res.json();
@@ -838,6 +858,107 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
         console.error('Cash recording error:', error);
         setResultStatus('error');
         setResultMessage(error.message || 'Failed to record cash payment');
+        setStep('result');
+      }
+      return;
+    }
+
+    // Split payment — cash portion + card portion
+    if (selectedCard === 'split') {
+      const cashCents = Math.round((parseFloat(splitCashAmount) || 0) * 100);
+      const cardCents = amount - cashCents;
+      if (cashCents <= 0 || cardCents <= 0 || cashCents >= amount) return;
+
+      try {
+        // For new card with split: must interact with CardElement BEFORE switching to processing step
+        let savedPaymentMethodId = null;
+        if (splitCardSelection === 'new') {
+          const cardElement = elements.getElement(CardElement);
+          if (saveNewCard) {
+            savedPaymentMethodId = await saveCardFirst(cardElement);
+            if (!savedPaymentMethodId) return;
+          } else {
+            // One-time charge with new unsaved card
+            // Create payment intent for card portion only
+            const piRes = await fetch('/api/stripe/payment-intent', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                patient_id: patient.id,
+                amount: cardCents,
+                description: `${description} (card portion)`,
+              }),
+            });
+            const piData = await piRes.json();
+            if (!piRes.ok) throw new Error(piData.error);
+
+            const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(piData.client_secret, {
+              payment_method: { card: cardElement },
+            });
+
+            if (stripeError) {
+              setResultStatus('error');
+              setResultMessage(stripeError.message);
+              setStep('result');
+              return;
+            }
+
+            if (paymentIntent.status === 'succeeded') {
+              setStep('processing');
+              // Record cash portion
+              await recordPurchasesWithReturn({ payment_method: 'cash', amount_override: cashCents, description_suffix: '(cash portion)' });
+              // Record card portion
+              await recordPurchasesWithReturn({ payment_method: 'stripe', stripe_payment_intent_id: paymentIntent.id, amount_override: cardCents, description_suffix: '(card portion)' });
+              setResultStatus('success');
+              setResultMessage(`Split payment recorded:\n${formatPrice(cashCents)} cash + ${formatPrice(cardCents)} card = ${formatPrice(amount)}`);
+              setStep('result');
+            }
+            return;
+          }
+        }
+
+        setStep('processing');
+        const paymentMethodId = savedPaymentMethodId || splitCardSelection;
+
+        // Charge card portion with saved card
+        const piRes = await fetch('/api/stripe/payment-intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            patient_id: patient.id,
+            amount: cardCents,
+            description: `${description} (card portion)`,
+            payment_method_id: paymentMethodId,
+          }),
+        });
+        const piData = await piRes.json();
+        if (!piRes.ok) throw new Error(piData.error);
+
+        let stripePaymentIntentId = null;
+        if (piData.status === 'succeeded') {
+          stripePaymentIntentId = piData.payment_intent_id;
+        } else if (piData.status === 'requires_action' || piData.status === 'requires_confirmation') {
+          const { error: nextError, paymentIntent } = await stripe.handleNextAction({ clientSecret: piData.client_secret });
+          if (nextError) throw new Error(nextError.message);
+          if (paymentIntent.status === 'succeeded') {
+            stripePaymentIntentId = paymentIntent.id;
+          } else {
+            throw new Error(`Payment not completed — status: ${paymentIntent.status}`);
+          }
+        }
+
+        // Record cash portion
+        await recordPurchasesWithReturn({ payment_method: 'cash', amount_override: cashCents, description_suffix: '(cash portion)' });
+        // Record card portion
+        await recordPurchasesWithReturn({ payment_method: 'stripe', stripe_payment_intent_id: stripePaymentIntentId, amount_override: cardCents, description_suffix: '(card portion)' });
+
+        setResultStatus('success');
+        setResultMessage(`Split payment recorded:\n${formatPrice(cashCents)} cash + ${formatPrice(cardCents)} card = ${formatPrice(amount)}`);
+        setStep('result');
+      } catch (error) {
+        console.error('Split payment error:', error);
+        setResultStatus('error');
+        setResultMessage(error.message || 'Split payment failed');
         setStep('result');
       }
       return;
@@ -2009,6 +2130,119 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                   </label>
                 </div>
 
+                {/* Split Payment Option */}
+                <div style={modalStyles.cardList}>
+                  <label style={modalStyles.cardOption}>
+                    <input
+                      type="radio"
+                      name="payment_method"
+                      checked={selectedCard === 'split'}
+                      onChange={() => {
+                        setSelectedCard('split');
+                        if (!splitCardSelection) setSplitCardSelection(savedCards.length > 0 ? savedCards[0].id : 'new');
+                      }}
+                    />
+                    <span>Split Payment (Cash + Card)</span>
+                  </label>
+
+                  {selectedCard === 'split' && (
+                    <div style={{ padding: '12px 16px', borderTop: '1px solid #f0f0f0' }}>
+                      {/* Cash amount input */}
+                      <div style={{ marginBottom: '12px' }}>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
+                          Cash Portion
+                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '16px', fontWeight: 600, color: '#374151' }}>$</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={splitCashAmount}
+                            onChange={e => setSplitCashAmount(e.target.value)}
+                            placeholder="0.00"
+                            style={{ ...modalStyles.input, marginBottom: 0, flex: 1, fontSize: '16px', fontWeight: 600 }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Card portion display */}
+                      {(() => {
+                        const cashCents = Math.round((parseFloat(splitCashAmount) || 0) * 100);
+                        const cardCents = finalAmount - cashCents;
+                        const isValid = cashCents > 0 && cardCents > 0 && cashCents < finalAmount;
+                        return (
+                          <div style={{
+                            padding: '10px 12px', borderRadius: '0', marginBottom: '12px',
+                            background: isValid ? '#f0fdf4' : '#fef3c7',
+                            border: isValid ? '1px solid #bbf7d0' : '1px solid #fde68a',
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                              <span style={{ color: '#374151' }}>Cash:</span>
+                              <span style={{ fontWeight: 600 }}>{formatPrice(cashCents)}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginTop: '4px' }}>
+                              <span style={{ color: '#374151' }}>Card:</span>
+                              <span style={{ fontWeight: 600, color: cardCents > 0 ? '#166534' : '#dc2626' }}>
+                                {cardCents > 0 ? formatPrice(cardCents) : '$0.00'}
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #e5e7eb' }}>
+                              <span style={{ fontWeight: 600, color: '#374151' }}>Total:</span>
+                              <span style={{ fontWeight: 600 }}>{formatPrice(finalAmount)}</span>
+                            </div>
+                            {!isValid && cashCents > 0 && (
+                              <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '6px' }}>
+                                {cashCents >= finalAmount ? 'Cash amount must be less than total' : 'Enter a valid cash amount'}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      {/* Card selector for the card portion */}
+                      <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>
+                        Card for Remaining Balance
+                      </label>
+                      {savedCards.length > 0 && savedCards.map(card => (
+                        <label key={card.id} style={{ ...modalStyles.cardOption, padding: '6px 0' }}>
+                          <input
+                            type="radio"
+                            name="split_card"
+                            checked={splitCardSelection === card.id}
+                            onChange={() => setSplitCardSelection(card.id)}
+                          />
+                          <span style={modalStyles.cardBrand}>{card.brand.toUpperCase()}</span>
+                          <span>•••• {card.last4}</span>
+                          <span style={modalStyles.cardExp}>{card.exp_month}/{card.exp_year}</span>
+                        </label>
+                      ))}
+                      <label style={{ ...modalStyles.cardOption, padding: '6px 0' }}>
+                        <input
+                          type="radio"
+                          name="split_card"
+                          checked={splitCardSelection === 'new'}
+                          onChange={() => setSplitCardSelection('new')}
+                        />
+                        <span>New Card</span>
+                      </label>
+                      {splitCardSelection === 'new' && (
+                        <div style={modalStyles.cardElementWrapper}>
+                          <CardElement options={CARD_ELEMENT_OPTIONS} />
+                          <label style={modalStyles.saveCardLabel}>
+                            <input
+                              type="checkbox"
+                              checked={saveNewCard}
+                              onChange={e => setSaveNewCard(e.target.checked)}
+                            />
+                            Save card for future charges
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 {/* Gift Card Option (not shown when buying a gift card) */}
                 {!isGiftCardPurchase() && creditBalanceCents > 0 && (
                   <div style={modalStyles.cardList}>
@@ -2139,7 +2373,13 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
                 style={modalStyles.primaryBtn}
                 onClick={handlePay}
                 disabled={
-                  selectedCard === 'gift_card'
+                  selectedCard === 'split'
+                    ? (() => {
+                        const cashCents = Math.round((parseFloat(splitCashAmount) || 0) * 100);
+                        const cardCents = finalAmount - cashCents;
+                        return cashCents <= 0 || cardCents <= 0 || cashCents >= finalAmount || (!splitCardSelection);
+                      })()
+                    : selectedCard === 'gift_card'
                     ? (!giftCardLookup || giftCardLookup.error || giftCardLookup.remaining_amount < finalAmount)
                     : selectedCard === 'account_credit'
                     ? (creditBalanceCents < finalAmount)
@@ -2148,6 +2388,14 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
               >
                 {selectedCard === 'cash'
                   ? `Record Cash ${formatPrice(finalAmount)}`
+                  : selectedCard === 'split'
+                  ? (() => {
+                      const cashCents = Math.round((parseFloat(splitCashAmount) || 0) * 100);
+                      const cardCents = finalAmount - cashCents;
+                      return cardCents > 0 && cashCents > 0
+                        ? `Split: ${formatPrice(cashCents)} Cash + ${formatPrice(cardCents)} Card`
+                        : `Split Payment ${formatPrice(finalAmount)}`;
+                    })()
                   : selectedCard === 'gift_card'
                   ? `Redeem Gift Card ${formatPrice(finalAmount)}`
                   : selectedCard === 'account_credit'

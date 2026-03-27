@@ -6,6 +6,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import TemplateMessages from './TemplateMessages';
+import EmojiPicker from './EmojiPicker';
 import { useAuth } from './AuthProvider';
 import { overlayClickProps } from './AdminLayout';
 
@@ -68,6 +69,10 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const [togglingAutomation, setTogglingAutomation] = useState(null);
   const [playingCallSid, setPlayingCallSid] = useState(null);
   const [loadingRecording, setLoadingRecording] = useState(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null); // { file, previewUrl }
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const imageInputRef = useRef(null);
   const audioRef = useRef(null);
   const nameInputRef = useRef(null);
   const messagesContainerRef = useRef(null);
@@ -364,7 +369,9 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !patientPhone) return;
+    const hasText = newMessage.trim();
+    const hasImage = imagePreview;
+    if ((!hasText && !hasImage) || !patientPhone) return;
     const msgText = newMessage.trim();
     const tempId = `temp-${Date.now()}`;
 
@@ -373,15 +380,44 @@ export default function ConversationView({ patientId, patientName, patientPhone,
       id: tempId,
       channel: 'sms',
       message_type: 'direct_sms',
-      message: msgText,
+      message: msgText || (hasImage ? '📷 Image' : ''),
       direction: 'outbound',
       status: 'sending',
       source: `send-sms(${smsProvider})`,
       created_at: new Date().toISOString(),
+      media_url: hasImage ? JSON.stringify([imagePreview.previewUrl]) : null,
     }]);
     setNewMessage('');
     setSending(true);
     setError('');
+    setShowEmojiPicker(false);
+
+    // Upload image first if present
+    let uploadedMediaUrl = null;
+    if (hasImage) {
+      try {
+        setUploadingImage(true);
+        const formData = new FormData();
+        formData.append('image', imagePreview.file);
+        const uploadRes = await fetch('/api/app/upload-image', { method: 'POST', body: formData });
+        const uploadData = await uploadRes.json();
+        if (!uploadRes.ok || !uploadData.url) {
+          throw new Error(uploadData.error || 'Image upload failed');
+        }
+        uploadedMediaUrl = uploadData.url;
+      } catch (err) {
+        setMessages(prev => prev.filter(m => m.id !== tempId));
+        setError('Failed to upload image: ' + err.message);
+        setSending(false);
+        setUploadingImage(false);
+        return;
+      } finally {
+        setUploadingImage(false);
+        setImagePreview(null);
+      }
+    } else {
+      setImagePreview(null);
+    }
 
     try {
       const res = await fetch('/api/twilio/send-sms', {
@@ -391,28 +427,47 @@ export default function ConversationView({ patientId, patientName, patientPhone,
           patient_id: linkedPatientId || patientId,
           patient_name: displayName || patientName,
           to: patientPhone,
-          message: msgText,
+          message: msgText || (uploadedMediaUrl ? '📷 Image' : ''),
           message_type: 'direct_sms',
           provider: smsProvider,
+          media_url: uploadedMediaUrl || undefined,
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        // Mark the optimistic message as failed
         setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'error' } : m));
         const details = data.details ? ` (${data.details})` : '';
         throw new Error((data.error || 'Failed to send') + details);
       }
 
-      // Update optimistic message status to sent
-      setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'sent' } : m));
+      // Update optimistic message with uploaded URL and sent status
+      setMessages(prev => prev.map(m => m.id === tempId ? {
+        ...m,
+        status: 'sent',
+        media_url: uploadedMediaUrl ? JSON.stringify([uploadedMediaUrl]) : m.media_url,
+      } : m));
     } catch (err) {
       setError(err.message);
     } finally {
       setSending(false);
     }
+  };
+
+  const handleImageSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError('Image must be under 10MB');
+      return;
+    }
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreview({ file, previewUrl });
   };
 
   const handleTemplateSelect = (templateText) => {
@@ -1273,10 +1328,29 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                       {msgLabel}
                     </div>
                   )}
-                  <div style={{
-                    ...styles.bubbleText,
-                    color: isAutomated ? '#64748b' : undefined,
-                  }}>{item.message || ''}</div>
+                  {/* Render attached images */}
+                  {item.media_url && (() => {
+                    try {
+                      const urls = JSON.parse(item.media_url);
+                      return (Array.isArray(urls) ? urls : [urls]).map((url, mi) => (
+                        <a key={mi} href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginBottom: 6 }}>
+                          <img
+                            src={url}
+                            alt="Attachment"
+                            style={{ maxWidth: '100%', maxHeight: 240, borderRadius: 6, display: 'block' }}
+                            onError={e => { e.target.style.display = 'none'; }}
+                          />
+                        </a>
+                      ));
+                    } catch { return null; }
+                  })()}
+                  {/* Show text — skip placeholder "📷 Image" if we already rendered images */}
+                  {(item.message && !(item.media_url && item.message === '📷 Image')) && (
+                    <div style={{
+                      ...styles.bubbleText,
+                      color: isAutomated ? '#64748b' : undefined,
+                    }}>{item.message}</div>
+                  )}
                   <div style={{
                     ...styles.bubbleMeta,
                     textAlign: isOutbound ? 'right' : 'left',
@@ -1440,8 +1514,24 @@ export default function ConversationView({ patientId, patientName, patientPhone,
         </button>
       </div>
 
+      {/* Image preview */}
+      {imagePreview && (
+        <div style={styles.imagePreviewBar}>
+          <img src={imagePreview.previewUrl} alt="Preview" style={styles.imagePreviewThumb} />
+          <span style={{ fontSize: 13, color: '#64748b', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {imagePreview.file.name}
+          </span>
+          <button
+            onClick={() => { URL.revokeObjectURL(imagePreview.previewUrl); setImagePreview(null); }}
+            style={{ background: 'none', border: 'none', fontSize: 16, color: '#94a3b8', cursor: 'pointer', padding: '2px 6px' }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Input */}
-      <div style={styles.inputArea}>
+      <div style={{ ...styles.inputArea, position: 'relative' }}>
         <button
           onClick={() => setShowTemplates(!showTemplates)}
           style={{
@@ -1464,6 +1554,37 @@ export default function ConversationView({ patientId, patientName, patientPhone,
         >
           {formatting ? '...' : '✨'}
         </button>
+        <button
+          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          style={{
+            ...styles.templateBtn,
+            background: showEmojiPicker ? '#f3f4f6' : 'transparent',
+          }}
+          title="Emoji"
+        >
+          😊
+        </button>
+        <button
+          onClick={() => imageInputRef.current?.click()}
+          style={styles.templateBtn}
+          title="Send image"
+          disabled={!patientPhone}
+        >
+          📷
+        </button>
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleImageSelect}
+          style={{ display: 'none' }}
+        />
+        {showEmojiPicker && (
+          <EmojiPicker
+            onSelect={(emoji) => setNewMessage(prev => prev + emoji)}
+            onClose={() => setShowEmojiPicker(false)}
+          />
+        )}
         <textarea
           ref={el => {
             if (el) {
@@ -1486,13 +1607,13 @@ export default function ConversationView({ patientId, patientName, patientPhone,
         />
         <button
           onClick={sendMessage}
-          disabled={!newMessage.trim() || sending || !patientPhone}
+          disabled={(!newMessage.trim() && !imagePreview) || sending || uploadingImage || !patientPhone}
           style={{
             ...styles.sendBtn,
-            opacity: !newMessage.trim() || sending || !patientPhone ? 0.4 : 1,
+            opacity: (!newMessage.trim() && !imagePreview) || sending || uploadingImage || !patientPhone ? 0.4 : 1,
           }}
         >
-          {sending ? '...' : 'Send'}
+          {uploadingImage ? '📤' : sending ? '...' : 'Send'}
         </button>
       </div>
     </div>
@@ -1995,6 +2116,21 @@ const styles = {
     background: '#000',
     color: '#fff',
     borderColor: '#000',
+  },
+  imagePreviewBar: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '8px 16px',
+    background: '#f8fafc',
+    borderTop: '1px solid #e5e5e5',
+  },
+  imagePreviewThumb: {
+    width: 48,
+    height: 48,
+    objectFit: 'cover',
+    borderRadius: 4,
+    border: '1px solid #e2e8f0',
   },
   inputArea: {
     display: 'flex',

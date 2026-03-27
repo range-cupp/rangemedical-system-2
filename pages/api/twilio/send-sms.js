@@ -24,6 +24,7 @@ export default async function handler(req, res) {
     message,
     message_type, // optional: label for comms_log
     provider,     // optional: 'blooio' or 'twilio' override
+    media_url,    // optional: public URL of image attachment
   } = req.body;
 
   if (!to || !message) {
@@ -49,7 +50,7 @@ export default async function handler(req, res) {
 
   try {
     // Send via configured provider (or explicit override from UI toggle)
-    const result = await sendSMS({ to: normalizedTo, message, provider });
+    const result = await sendSMS({ to: normalizedTo, message, provider, mediaUrl: media_url });
 
     if (result.success) {
       await logComm({
@@ -64,6 +65,7 @@ export default async function handler(req, res) {
         ghlContactId,
         twilioMessageSid: result.messageSid || null,
         direction: 'outbound',
+        mediaUrl: media_url || null,
       });
 
       // Clear needs_response on all prior inbound messages for this patient

@@ -82,6 +82,13 @@ async function handleInboundMessage(body) {
   const messageText = body.text || body.body || '';
   const messageId = body.message_id || body.id || null;
 
+  // Extract media/attachments (images, files)
+  const attachments = body.attachments || body.media || [];
+  const mediaUrls = Array.isArray(attachments)
+    ? attachments.map(a => a.url || a.media_url || a).filter(Boolean)
+    : [];
+  const mediaUrlJson = mediaUrls.length > 0 ? JSON.stringify(mediaUrls) : null;
+
   console.log(`Inbound iMessage/SMS from ${senderPhone}: ${messageText}`);
 
   // ================================================================
@@ -212,13 +219,18 @@ async function handleInboundMessage(body) {
     ghl_contact_id: patient?.ghl_contact_id || null,
     channel: 'sms',
     message_type: 'inbound_sms',
-    message: messageText,
+    message: messageText || (mediaUrlJson ? '📷 Image' : ''),
     source: 'blooio/webhook',
     status: 'received',
     recipient: senderPhone,
     direction: 'inbound',
     needs_response: true,
   };
+
+  // Attach media URLs if present
+  if (mediaUrlJson) {
+    row.media_url = mediaUrlJson;
+  }
 
   // Add optional columns (may not exist yet)
   if (messageId) row.twilio_message_sid = messageId;
@@ -228,9 +240,10 @@ async function handleInboundMessage(body) {
 
   if (insertError) {
     // Retry without optional columns if they don't exist
-    if (insertError.message && (insertError.message.includes('twilio_message_sid') || insertError.message.includes('provider'))) {
+    if (insertError.message && (insertError.message.includes('twilio_message_sid') || insertError.message.includes('provider') || insertError.message.includes('media_url'))) {
       delete row.twilio_message_sid;
       delete row.provider;
+      delete row.media_url;
       const { error: retryErr } = await supabase.from('comms_log').insert(row);
       if (retryErr) console.error('Error storing inbound message (retry):', retryErr);
     } else {

@@ -718,6 +718,7 @@ export default function TasksPage() {
   const [filter, setFilter] = useState('my'); // my, assigned, all
   const [statusFilter, setStatusFilter] = useState('pending'); // pending, completed, ''
   const [employeeFilter, setEmployeeFilter] = useState(''); // employee ID filter (admin view)
+  const [patientSearchFilter, setPatientSearchFilter] = useState(''); // search tasks by patient name
   const [employees, setEmployees] = useState([]);
 
   // Create modal state
@@ -1225,10 +1226,17 @@ export default function TasksPage() {
     return Object.entries(groups).filter(([, g]) => g.tasks.length > 0);
   };
 
-  // Apply employee filter
-  const filteredTasks = employeeFilter
-    ? tasks.filter(t => t.assigned_to === employeeFilter)
-    : tasks;
+  // Apply employee filter + patient name search
+  const filteredTasks = tasks.filter(t => {
+    if (employeeFilter && t.assigned_to !== employeeFilter) return false;
+    if (patientSearchFilter) {
+      const q = patientSearchFilter.toLowerCase();
+      const nameMatch = t.patient_name?.toLowerCase().includes(q);
+      const titleMatch = t.title?.toLowerCase().includes(q);
+      if (!nameMatch && !titleMatch) return false;
+    }
+    return true;
+  });
 
   // Group tasks (only for pending view — completed tasks show flat)
   const dateGroups = statusFilter === 'pending' ? groupTasksByDate(filteredTasks) : null;
@@ -1305,6 +1313,34 @@ export default function TasksPage() {
             </button>
           ))}
           <div style={{ flex: 1 }} />
+          {/* Patient name search */}
+          <div style={{ position: 'relative', marginBottom: '4px', marginRight: '8px' }}>
+            <input
+              type="text"
+              value={patientSearchFilter}
+              onChange={e => setPatientSearchFilter(e.target.value)}
+              placeholder="Search patient..."
+              style={{
+                ...sharedStyles.input,
+                width: '160px',
+                fontSize: '12px',
+                padding: '4px 28px 4px 8px',
+                margin: 0,
+              }}
+            />
+            {patientSearchFilter && (
+              <button
+                onClick={() => setPatientSearchFilter('')}
+                style={{
+                  position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer', color: '#999',
+                  fontSize: '14px', padding: '0 4px', lineHeight: 1,
+                }}
+              >
+                ✕
+              </button>
+            )}
+          </div>
           {/* Employee filter — shown on "All Tasks" view */}
           {filter === 'all' && (
             <select

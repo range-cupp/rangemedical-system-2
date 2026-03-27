@@ -28,6 +28,8 @@ const CONSENT_TYPE_MAP = {
   'red-light': 'red-light',
   'red_light': 'red-light',
   'peptide': 'peptide',
+  'knee-aspiration': 'knee-aspiration',
+  'knee_aspiration': 'knee-aspiration',
   'intake': 'intake',
   'medical_intake': 'intake',
 };

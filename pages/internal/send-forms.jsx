@@ -14,6 +14,7 @@ const AVAILABLE_FORMS = [
   { id: 'red-light', name: 'Red Light Therapy', path: '/consent/red-light', icon: '🔴', time: '5 min' },
   { id: 'prp', name: 'PRP Consent', path: '/consent/prp', icon: '🩸', time: '5 min' },
   { id: 'exosome-iv', name: 'Exosome IV Consent', path: '/consent/exosome-iv', icon: '🧬', time: '5 min' },
+  { id: 'knee-aspiration', name: 'Knee Aspiration Consent', path: '/consent/knee-aspiration', icon: '🦵', time: '5 min' },
 ];
 
 const QUICK_SELECTIONS = [
@@ -26,6 +27,7 @@ const QUICK_SELECTIONS = [
   { label: 'Red Light', forms: ['intake', 'hipaa', 'red-light'] },
   { label: 'PRP', forms: ['intake', 'hipaa', 'prp', 'blood-draw'] },
   { label: 'Exosome IV', forms: ['intake', 'hipaa', 'exosome-iv'] },
+  { label: 'Knee Aspiration', forms: ['intake', 'hipaa', 'knee-aspiration'] },
 ];
 
 export default function SendForms() {

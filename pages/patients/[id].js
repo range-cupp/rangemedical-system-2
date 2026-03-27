@@ -1467,27 +1467,44 @@ export default function PatientProfile() {
   const getProtocolLastActivity = () => {
     if (!activeProtocols.length) return [];
     const result = activeProtocols.map(protocol => {
-      // Find latest service log for this protocol
+      // Find latest service log for this protocol (sorted desc by entry_date already)
       const protoLogs = serviceLogs.filter(l => l.protocol_id === protocol.id);
-      const latestLogDate = protoLogs.length > 0 ? protoLogs.reduce((latest, l) => {
-        const d = new Date(l.entry_date);
-        return d > latest ? d : latest;
-      }, new Date(0)) : null;
+      const latestLog = protoLogs.length > 0 ? protoLogs.reduce((best, l) => {
+        return new Date(l.entry_date) > new Date(best.entry_date) ? l : best;
+      }) : null;
 
       // Find latest session for this protocol
       const protoSessions = sessions.filter(s => s.protocol_id === protocol.id);
-      const latestSessionDate = protoSessions.length > 0 ? protoSessions.reduce((latest, s) => {
-        const d = new Date(s.session_date);
-        return d > latest ? d : latest;
-      }, new Date(0)) : null;
+      const latestSession = protoSessions.length > 0 ? protoSessions.reduce((best, s) => {
+        return new Date(s.session_date) > new Date(best.session_date) ? s : best;
+      }) : null;
 
-      // Take the most recent of the two
+      // Pick whichever is more recent
       let lastDate = null;
-      if (latestLogDate && latestSessionDate) {
-        lastDate = latestLogDate > latestSessionDate ? latestLogDate : latestSessionDate;
-      } else {
-        lastDate = latestLogDate || latestSessionDate;
+      let lastType = null;
+      let lastMed = null;
+      if (latestLog && latestSession) {
+        if (new Date(latestLog.entry_date) >= new Date(latestSession.session_date)) {
+          lastDate = new Date(latestLog.entry_date);
+          lastType = latestLog.entry_type;
+          lastMed = latestLog.medication;
+        } else {
+          lastDate = new Date(latestSession.session_date);
+          lastType = 'session';
+          lastMed = null;
+        }
+      } else if (latestLog) {
+        lastDate = new Date(latestLog.entry_date);
+        lastType = latestLog.entry_type;
+        lastMed = latestLog.medication;
+      } else if (latestSession) {
+        lastDate = new Date(latestSession.session_date);
+        lastType = 'session';
+        lastMed = null;
       }
+
+      // Build descriptive label
+      const typeLabel = lastType === 'pickup' ? 'Pickup' : lastType === 'injection' ? 'Injection' : lastType === 'session' ? 'Session' : null;
 
       const catStyle = getCategoryStyle(protocol.category);
       return {
@@ -1496,6 +1513,8 @@ export default function PatientProfile() {
         category: protocol.category,
         catStyle,
         lastDate,
+        lastType: typeLabel,
+        lastMed,
       };
     });
     return result;
@@ -3045,19 +3064,26 @@ export default function PatientProfile() {
                   <div className="protocol-activity-row">
                     {getProtocolLastActivity().map(p => {
                       const daysSince = p.lastDate ? Math.floor((new Date() - p.lastDate) / (1000 * 60 * 60 * 24)) : null;
-                      const dateLabel = p.lastDate
-                        ? (daysSince === 0 ? 'Today' : daysSince === 1 ? '1 day ago' : `${daysSince}d ago`)
-                        : 'No activity';
+                      const dateStr = p.lastDate ? `${p.lastDate.getMonth() + 1}/${p.lastDate.getDate()}` : null;
+                      // Build detail line: "Pickup — BPC-157 — 3/22" or "Injection — 3/20" or "No activity"
+                      const detailParts = [];
+                      if (p.lastType) detailParts.push(p.lastType);
+                      if (p.lastMed) detailParts.push(p.lastMed);
+                      if (dateStr) detailParts.push(dateStr);
+                      const detailLine = detailParts.length > 0 ? detailParts.join(' \u2022 ') : 'No activity yet';
+                      const timeAgo = p.lastDate
+                        ? (daysSince === 0 ? 'today' : daysSince === 1 ? '1 day ago' : `${daysSince}d ago`)
+                        : null;
                       return (
                         <span key={p.id} className="protocol-activity-badge" style={{
                           backgroundColor: p.catStyle.bg,
                           color: p.catStyle.text,
                           borderLeft: `3px solid ${p.catStyle.text}`,
-                        }} onClick={() => setActiveTab('protocols')} title={p.lastDate ? `Last activity: ${p.lastDate.toLocaleDateString()}` : 'No injections or pickups logged yet'}>
+                        }} onClick={() => setActiveTab('protocols')} title={p.lastDate ? `Last: ${p.lastType || 'Activity'} on ${p.lastDate.toLocaleDateString()}` : 'No injections or pickups logged yet'}>
                           <span className="protocol-activity-name">{p.name}</span>
-                          <span className="protocol-activity-date" style={{
+                          <span className="protocol-activity-detail" style={{
                             color: !p.lastDate ? '#9ca3af' : daysSince > 14 ? '#dc2626' : p.catStyle.text,
-                          }}>{dateLabel}</span>
+                          }}>{detailLine}{timeAgo ? ` (${timeAgo})` : ''}</span>
                         </span>
                       );
                     })}
@@ -9267,14 +9293,12 @@ export default function PatientProfile() {
         .protocol-activity-name {
           font-weight: 600;
           white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          max-width: 140px;
         }
-        .protocol-activity-date {
+        .protocol-activity-detail {
           font-size: 11px;
           font-weight: 500;
           white-space: nowrap;
+          opacity: 0.85;
         }
         /* Header Toolbar */
         .header-toolbar {

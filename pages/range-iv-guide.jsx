@@ -263,7 +263,7 @@ export default function RangeIVGuide() {
           text-align: left;
         }
         .guide-hero h1 {
-          font-size: 2.75rem;
+          font-size: clamp(2.5rem, 6vw, 4rem);
           font-weight: 900;
           line-height: 0.95;
           letter-spacing: -0.02em;
@@ -298,7 +298,7 @@ export default function RangeIVGuide() {
         .section-dark { background: #1a1a1a; color: #ffffff; }
         .section-dark .v2-label { color: rgba(255,255,255,0.6); }
         .section-dark .v2-dot { background: #808080; }
-        .section-title { font-size: 1.75rem; font-weight: 900; letter-spacing: -0.02em; line-height: 0.95; text-transform: uppercase; margin-bottom: 0.75rem; }
+        .section-title { font-size: clamp(2rem, 5vw, 3rem); font-weight: 900; letter-spacing: -0.02em; line-height: 0.95; text-transform: uppercase; margin-bottom: 0.75rem; }
         .section-subtitle { font-size: 1rem; color: #737373; max-width: 600px; line-height: 1.7; margin-bottom: 2rem; }
         .section-dark .section-subtitle { color: rgba(255,255,255,0.8); }
         .section-dark .section-title { color: #ffffff; }
@@ -322,7 +322,7 @@ export default function RangeIVGuide() {
         .steps-list { margin-top: 1.5rem; }
         .step-item { display: flex; gap: 1rem; padding: 1.25rem 0; border-bottom: 1px solid #e0e0e0; }
         .step-item:last-child { border-bottom: none; }
-        .step-number { width: 2rem; height: 2rem; background: #1a1a1a; color: #808080; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.875rem; flex-shrink: 0; }
+        .step-number { width: 2rem; height: 2rem; background: #000000; color: #ffffff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.875rem; flex-shrink: 0; }
         .step-content h4 { font-size: 1rem; font-weight: 700; margin-bottom: 0.25rem; }
         .step-content p { font-size: 0.9rem; color: #737373; line-height: 1.6; }
         .timeline-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.5rem; }

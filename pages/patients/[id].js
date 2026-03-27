@@ -4926,7 +4926,7 @@ export default function PatientProfile() {
                                 <div className="wl-stat-divider" />
                                 <div className="wl-stat">
                                   <span className="wl-stat-label">Sessions</span>
-                                  <span className="wl-stat-value">{Math.max(wlLogs.length, protocol.sessions_used || 0)}{protocol.total_sessions ? ` of ${protocol.total_sessions}` : ''}</span>
+                                  <span className="wl-stat-value">{wlLogs.filter(l => l.entry_type === 'injection').length}{protocol.total_sessions ? ` of ${protocol.total_sessions}` : ''}</span>
                                 </div>
                                 {chartData.length >= 2 && (
                                   <div style={{ marginLeft: 'auto', display: 'flex', gap: '6px' }}>
@@ -5044,25 +5044,13 @@ export default function PatientProfile() {
                                         return { num: i + 1, expDate, expStr, log: null, isFuture: expDate > todayDate };
                                       });
 
-                                      // Greedy nearest-slot matching: sort logs by date, assign each to nearest available slot
+                                      // Sequential assignment: logs in chronological order → slot 1, 2, 3...
+                                      // This keeps the table always in chronological order
                                       const sortedLogs = [...wlLogs].sort((a, b) => a.entry_date.localeCompare(b.entry_date));
                                       const usedIds = new Set();
-                                      const usedSlots = new Set();
-                                      sortedLogs.forEach(log => {
-                                        const logDate = new Date(log.entry_date + 'T12:00:00');
-                                        let bestIdx = -1;
-                                        let bestDist = Infinity;
-                                        slotsRaw.forEach((slot, idx) => {
-                                          if (usedSlots.has(idx)) return;
-                                          const dist = Math.abs(logDate - slot.expDate);
-                                          if (dist < bestDist) {
-                                            bestDist = dist;
-                                            bestIdx = idx;
-                                          }
-                                        });
-                                        if (bestIdx >= 0) {
-                                          slotsRaw[bestIdx].log = log;
-                                          usedSlots.add(bestIdx);
+                                      sortedLogs.forEach((log, i) => {
+                                        if (i < slotsRaw.length) {
+                                          slotsRaw[i].log = log;
                                           usedIds.add(log.id);
                                         }
                                       });

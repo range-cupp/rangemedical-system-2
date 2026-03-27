@@ -18,11 +18,12 @@ function CheckoutForm({ onSuccess }) {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
+  const [completing, setCompleting] = useState(false);
   const [payError, setPayError] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!stripe || !elements) return;
+    if (!stripe || !elements || processing || completing) return;
     setProcessing(true);
     setPayError(null);
 
@@ -35,14 +36,18 @@ function CheckoutForm({ onSuccess }) {
 
       if (error) throw new Error(error.message);
       if (paymentIntent?.status === 'succeeded') {
-        onSuccess(paymentIntent.id);
+        setProcessing(false);
+        setCompleting(true);
+        await onSuccess(paymentIntent.id);
       }
     } catch (err) {
       setPayError(err.message);
-    } finally {
       setProcessing(false);
     }
   };
+
+  const busy = processing || completing;
+  const label = completing ? 'Confirming your trial...' : processing ? 'Processing payment...' : 'Start My Trial — $49';
 
   return (
     <form onSubmit={handleSubmit}>
@@ -50,15 +55,15 @@ function CheckoutForm({ onSuccess }) {
       {payError && <p style={{ color: '#dc2626', fontSize: 14, marginTop: 12 }}>{payError}</p>}
       <button
         type="submit"
-        disabled={!stripe || processing}
+        disabled={!stripe || busy}
         style={{
           width: '100%', marginTop: 20, padding: 16, background: '#dc2626', color: '#fff',
           border: 'none', borderRadius: 0, fontSize: 16, fontWeight: 600,
-          cursor: processing ? 'not-allowed' : 'pointer', opacity: processing ? 0.6 : 1,
+          cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.6 : 1,
           fontFamily: 'inherit',
         }}
       >
-        {processing ? 'Processing...' : 'Start My Trial — $49'}
+        {label}
       </button>
     </form>
   );

@@ -6,10 +6,11 @@
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import stripe from '../../../lib/stripe';
-import { sendSMS } from '../../../lib/send-sms';
+import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
 import { sendTrialConfirmation } from '../../../lib/trial-sms';
 import { todayPacific } from '../../../lib/date-utils';
+import { hasBlooioOptIn, isBlooioProvider, queuePendingLinkMessage } from '../../../lib/blooio-optin';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -173,17 +174,54 @@ export default async function handler(req, res) {
       }
     }
 
-    // Send confirmation SMS to patient
-    if (phone && trialPassId) {
+    // Send confirmation SMS to patient (Blooio two-step opt-in aware)
+    const normalizedPhone = normalizePhone(phone);
+    if (normalizedPhone && trialPassId) {
       try {
-        await sendTrialConfirmation({ phone, firstName, trialId: trialPassId });
+        const useBlooio = isBlooioProvider();
+        const optedIn = useBlooio ? await hasBlooioOptIn(normalizedPhone) : true;
+
+        if (optedIn) {
+          // Patient has replied before — send survey link directly
+          await sendTrialConfirmation({ phone: normalizedPhone, firstName, trialId: trialPassId });
+        } else {
+          // New contact on Blooio — send plain text first, queue the link
+          const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://range-medical.com';
+          const surveyLink = `${BASE_URL}/rlt-trial/survey?trial_id=${trialPassId}&type=pre`;
+
+          // Step 1: Plain text intro (no links) — prompts them to reply
+          const introMessage = `Hey ${firstName}! Your Red Light Trial is confirmed — 3 sessions over 7 days. Reply YES to get your energy survey link and book your first session.\n\n- Range Medical`;
+          await sendSMS({ to: normalizedPhone, message: introMessage });
+          await logComm({
+            channel: 'sms',
+            messageType: 'rlt_trial_confirmation_intro',
+            message: introMessage,
+            source: 'trial-checkout',
+            recipient: normalizedPhone,
+            patientName: firstName,
+            status: 'sent',
+            provider: useBlooio ? 'blooio' : 'twilio',
+          });
+
+          // Step 2: Queue the survey link — auto-sent when they reply
+          const linkMessage = `Here's your 60-second energy survey:\n${surveyLink}\n\nComplete it before your first session — it takes less than a minute.\n\n- Range Medical`;
+          await queuePendingLinkMessage({
+            phone: normalizedPhone,
+            message: linkMessage,
+            messageType: 'rlt_trial_survey_link',
+            patientId: patientId,
+            patientName: customerName,
+          });
+
+          console.log(`Trial confirmation: intro sent, survey link queued for ${normalizedPhone}`);
+        }
       } catch (smsErr) {
         console.error('Trial confirmation SMS error:', smsErr);
       }
     }
 
     // Notify owner
-    const ownerSms = `New RLT Trial Purchase!\n\n${customerName}\n$49 — Red Light Trial (3 sessions / 7 days)\n${phone || 'No phone'}\n\nvia range-medical.com`;
+    const ownerSms = `New RLT Trial Purchase!\n\n${customerName}\n$49 — Red Light Trial (3 sessions / 7 days)\n${normalizedPhone || phone || 'No phone'}\n\nvia range-medical.com`;
     await sendSMS({ to: OWNER_PHONE, message: ownerSms });
 
     try {

@@ -1506,6 +1506,29 @@ export default function PatientProfile() {
       // Build descriptive label
       const typeLabel = lastType === 'pickup' ? 'Pickup' : lastType === 'injection' ? 'Injection' : lastType === 'session' ? 'Session' : null;
 
+      // Renewal / supply status
+      let renewalTag = null;
+      const daysLeft = protocol.days_remaining;
+      const sessLeft = protocol.sessions_remaining;
+      const totalSess = protocol.total_sessions;
+      if (daysLeft !== null && daysLeft !== undefined) {
+        if (daysLeft <= 0) renewalTag = { label: 'Refill overdue', urgent: true };
+        else if (daysLeft <= 7) renewalTag = { label: `Refill in ${daysLeft}d`, urgent: true };
+        else if (daysLeft <= 14) renewalTag = { label: `Refill in ${daysLeft}d`, urgent: false };
+      }
+      if (!renewalTag && sessLeft !== null && sessLeft !== undefined && totalSess > 0) {
+        if (sessLeft <= 0) renewalTag = { label: 'Renewal needed', urgent: true };
+        else if (sessLeft <= 2) renewalTag = { label: `${sessLeft} session${sessLeft === 1 ? '' : 's'} left`, urgent: true };
+        else if (sessLeft <= 4) renewalTag = { label: `${sessLeft} sessions left`, urgent: false };
+      }
+      // End-date based protocols without days_remaining (fallback)
+      if (!renewalTag && protocol.end_date && !daysLeft) {
+        const endDate = new Date(protocol.end_date + 'T00:00:00');
+        const daysToEnd = Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24));
+        if (daysToEnd <= 0) renewalTag = { label: 'Expired', urgent: true };
+        else if (daysToEnd <= 14) renewalTag = { label: `Ends in ${daysToEnd}d`, urgent: daysToEnd <= 7 };
+      }
+
       const catStyle = getCategoryStyle(protocol.category);
       return {
         id: protocol.id,
@@ -1515,6 +1538,7 @@ export default function PatientProfile() {
         lastDate,
         lastType: typeLabel,
         lastMed,
+        renewalTag,
       };
     });
     return result;
@@ -3084,6 +3108,13 @@ export default function PatientProfile() {
                           <span className="protocol-activity-detail" style={{
                             color: !p.lastDate ? '#9ca3af' : daysSince > 14 ? '#dc2626' : p.catStyle.text,
                           }}>{detailLine}{timeAgo ? ` (${timeAgo})` : ''}</span>
+                          {p.renewalTag && (
+                            <span className="protocol-renewal-tag" style={{
+                              backgroundColor: p.renewalTag.urgent ? '#fef2f2' : '#fffbeb',
+                              color: p.renewalTag.urgent ? '#dc2626' : '#92400e',
+                              border: `1px solid ${p.renewalTag.urgent ? '#fecaca' : '#fde68a'}`,
+                            }}>{p.renewalTag.urgent ? '⚠' : '🔔'} {p.renewalTag.label}</span>
+                          )}
                         </span>
                       );
                     })}
@@ -9299,6 +9330,14 @@ export default function PatientProfile() {
           font-weight: 500;
           white-space: nowrap;
           opacity: 0.85;
+        }
+        .protocol-renewal-tag {
+          font-size: 10px;
+          font-weight: 600;
+          padding: 1px 6px;
+          border-radius: 4px;
+          white-space: nowrap;
+          margin-left: 2px;
         }
         /* Header Toolbar */
         .header-toolbar {

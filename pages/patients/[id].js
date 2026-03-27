@@ -6121,6 +6121,21 @@ export default function PatientProfile() {
                             {apt.appointment_title && apt.appointment_title !== apt.calendar_name && (
                               <span className="apt-title">{apt.appointment_title}</span>
                             )}
+                            {apt.provider && (
+                              <span className="apt-title" style={{ color: '#6366f1', fontSize: '12px' }}>
+                                {apt.provider}
+                              </span>
+                            )}
+                            {apt.duration_minutes && (
+                              <span className="apt-title" style={{ color: '#6b7280', fontSize: '12px' }}>
+                                {apt.duration_minutes} min
+                              </span>
+                            )}
+                            {apt.notes && (
+                              <span className="apt-title" style={{ color: '#6b7280', fontSize: '12px', fontStyle: 'italic' }}>
+                                {apt.notes}
+                              </span>
+                            )}
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             {apt.encounter_note_count > 0 && (

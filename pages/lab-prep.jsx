@@ -605,29 +605,7 @@ export default function LabPrepPage() {
           color: #737373;
         }
 
-        /* Final CTA */
-        .final-cta {
-          background: #fafafa;
-          padding: 4rem 1.5rem;
-          text-align: center;
-          border-top: 1px solid #e5e5e5;
-        }
-
-        .final-cta h2 {
-          font-size: 2rem;
-          font-weight: 700;
-          margin-bottom: 0.75rem;
-          color: #171717;
-        }
-
-        .final-cta p {
-          font-size: 1.0625rem;
-          color: #525252;
-          margin-bottom: 2rem;
-          max-width: 600px;
-          margin-left: auto;
-          margin-right: auto;
-        }
+        /* Final CTA — uses global .final-cta styles (dark bg, white text) */
 
         .hero-buttons {
           margin-bottom: 1rem;

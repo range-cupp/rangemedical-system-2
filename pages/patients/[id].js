@@ -6318,6 +6318,27 @@ export default function PatientProfile() {
 
             return (
             <>
+              {/* Log Encounter — always visible, primary action */}
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '12px 16px', marginBottom: 16, borderRadius: 0,
+                background: '#111827', color: '#fff',
+              }}>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>
+                  📋 Need to document a patient encounter?
+                </div>
+                <button
+                  onClick={() => setShowStandaloneEncounterModal(true)}
+                  style={{
+                    padding: '8px 20px', fontSize: 13, fontWeight: 700, borderRadius: 0,
+                    background: '#fff', color: '#111827', border: 'none',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                  }}
+                >
+                  Log Encounter
+                </button>
+              </div>
+
               {/* Filter pills */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
                 <button
@@ -6342,7 +6363,7 @@ export default function PatientProfile() {
                     cursor: 'pointer', transition: 'all 0.15s',
                   }}
                 >
-                  📝 Internal Notes ({internalNotes.length})
+                  📝 Staff Notes ({internalNotes.length})
                 </button>
               </div>
 
@@ -6354,31 +6375,23 @@ export default function PatientProfile() {
                 border: `1px solid ${noteFilter === 'clinical' ? '#bbf7d0' : '#bfdbfe'}`,
               }}>
                 {noteFilter === 'clinical'
-                  ? '🩺 Clinical notes are part of the patient\'s medical chart — encounter notes, signed notes, and protocol notes. These are included when printing or exporting the chart.'
-                  : '📝 Internal notes are for staff only — patient experience, operational notes, reminders. These are NOT included in the patient\'s medical chart.'}
+                  ? '🩺 Clinical notes are part of the patient\'s medical chart — encounter notes, signed notes, and protocol notes. These are included when printing or exporting the chart. To add a clinical note, use "Log Encounter" above.'
+                  : '📝 Staff notes are for internal use only — patient experience, operational notes, reminders. These are NOT included in the patient\'s medical chart. Do NOT log encounter notes here.'}
               </div>
 
               <section className="card">
                 <div className="card-header">
-                  <h3>{noteFilter === 'clinical' ? 'Clinical Notes' : 'Internal Notes'} ({filteredNotes.length})</h3>
+                  <h3>{noteFilter === 'clinical' ? 'Clinical Notes' : 'Staff Notes'} ({filteredNotes.length})</h3>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    {noteFilter === 'clinical' && (
-                      <button
-                        className="btn-secondary-sm"
-                        onClick={() => setShowStandaloneEncounterModal(true)}
-                        style={{ display: 'flex', alignItems: 'center', gap: 4 }}
-                        title="Log an encounter not tied to a scheduled appointment"
-                      >
-                        📋 Log Encounter
+                    {noteFilter === 'internal' && (
+                      <button className="btn-primary-sm" onClick={() => { setAddNoteCategory('internal'); setShowAddNoteModal(true); }}>
+                        + Add Staff Note
                       </button>
                     )}
-                    <button className="btn-primary-sm" onClick={() => { setAddNoteCategory(noteFilter); setShowAddNoteModal(true); }}>
-                      + Add {noteFilter === 'clinical' ? 'Clinical' : 'Internal'} Note
-                    </button>
                   </div>
                 </div>
                 {filteredNotes.length === 0 ? (
-                  <div className="empty">No {noteFilter === 'clinical' ? 'clinical' : 'internal'} notes yet</div>
+                  <div className="empty">No {noteFilter === 'clinical' ? 'clinical' : 'staff'} notes yet</div>
                 ) : (
                   <div className="notes-list">
                     {filteredNotes.map(note => (
@@ -7673,18 +7686,24 @@ export default function PatientProfile() {
           <div className="modal-overlay" {...overlayClickProps(() => { setShowAddNoteModal(false); stopDictation(); })}>
             <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 640 }}>
               <div className="modal-header">
-                <h3>Add {addNoteCategory === 'clinical' ? 'Clinical' : 'Internal'} Note</h3>
+                <h3>Add Staff Note</h3>
                 <button onClick={() => { setShowAddNoteModal(false); stopDictation(); setNoteInput(''); setNoteFormatted(''); }} className="close-btn">×</button>
               </div>
               <div className="modal-body">
-                {/* Category indicator (locked to whichever section the user clicked from) */}
+                {/* Category indicator — always internal/staff */}
                 <div style={{
                   padding: '10px 14px', marginBottom: 16, borderRadius: 0, fontSize: 13, fontWeight: 600, textAlign: 'center',
-                  border: addNoteCategory === 'clinical' ? '2px solid #059669' : '2px solid #2563eb',
-                  background: addNoteCategory === 'clinical' ? '#ecfdf5' : '#eff6ff',
-                  color: addNoteCategory === 'clinical' ? '#059669' : '#2563eb',
+                  border: '2px solid #2563eb',
+                  background: '#eff6ff',
+                  color: '#2563eb',
                 }}>
-                  {addNoteCategory === 'clinical' ? '🩺 Clinical Note — Included in chart' : '📝 Internal Note — Staff only, not in chart'}
+                  📝 Staff Note — Internal only, NOT in patient chart
+                </div>
+                <div style={{
+                  padding: '8px 12px', marginBottom: 16, borderRadius: 0, fontSize: 12, lineHeight: 1.5,
+                  background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a',
+                }}>
+                  ⚠️ This is for internal staff notes only (reminders, patient experience, operational notes). To document a clinical encounter, close this and use <strong>Log Encounter</strong> instead.
                 </div>
 
                 <div className="form-group">
@@ -7694,7 +7713,7 @@ export default function PatientProfile() {
                       value={noteInput}
                       onChange={e => setNoteInput(e.target.value)}
                       rows={6}
-                      placeholder="Type your clinical note here, or click the microphone to dictate..."
+                      placeholder="Type your staff note here (internal only — not for encounter notes)..."
                       style={{ width: '100%', resize: 'vertical', paddingRight: 50, fontFamily: 'inherit', fontSize: 14, lineHeight: 1.6 }}
                     />
                     <button

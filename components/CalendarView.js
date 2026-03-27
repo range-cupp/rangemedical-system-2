@@ -2986,6 +2986,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
         const consents = drawerData?.consents || [];
         const notes = drawerData?.notes || [];
         const stats = drawerData?.stats || {};
+        const wlLogs = drawerData?.weightLossLogs || [];
         const upcomingAppts = appts.filter(a => new Date(a.start_time) >= new Date());
         const pastAppts = appts.filter(a => new Date(a.start_time) < new Date());
 
@@ -3115,6 +3116,120 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                         );
                       }) : <span style={{ fontSize: '13px', color: '#bbb' }}>No active protocols</span>}
                     </div>
+
+                    {/* Weight Loss Snapshot */}
+                    {(() => {
+                      const wlProtos = activeProtos.filter(p => p.category === 'weight_loss' || p.program_type === 'weight_loss' || ['semaglutide', 'tirzepatide', 'retatrutide'].some(m => (p.medication || '').toLowerCase().includes(m)));
+                      if (wlProtos.length === 0) return null;
+
+                      // Get injection logs sorted by date
+                      const injections = wlLogs.filter(l => l.entry_type === 'injection').sort((a, b) => new Date(a.entry_date) - new Date(b.entry_date));
+                      const weightEntries = wlLogs.filter(l => l.weight).sort((a, b) => new Date(a.entry_date) - new Date(b.entry_date));
+                      const startWeight = weightEntries.length > 0 ? weightEntries[0].weight : null;
+                      const currentWeight = weightEntries.length > 0 ? weightEntries[weightEntries.length - 1].weight : null;
+                      const weightChange = startWeight && currentWeight ? (currentWeight - startWeight).toFixed(1) : null;
+
+                      // Build dose timeline (group consecutive same-dose injections)
+                      const doseTimeline = [];
+                      injections.forEach(inj => {
+                        const dose = inj.dosage || 'Unknown';
+                        const last = doseTimeline[doseTimeline.length - 1];
+                        if (last && last.dose === dose) {
+                          last.count++;
+                          last.lastDate = inj.entry_date;
+                        } else {
+                          doseTimeline.push({ dose, count: 1, firstDate: inj.entry_date, lastDate: inj.entry_date });
+                        }
+                      });
+
+                      return wlProtos.map(proto => (
+                        <div key={`wl-${proto.id}`} style={{ ...card, border: '1px solid #e0e7ff', background: '#f8f9ff' }}>
+                          <h4 style={sectionHead}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#6366f1', flexShrink: 0 }} />
+                              Weight Loss — {proto.medication || 'Protocol'}
+                            </span>
+                          </h4>
+
+                          {/* Current dose + injection count */}
+                          <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+                            <div style={{ flex: 1, background: '#fff', padding: '10px 12px', border: '1px solid #e5e7eb' }}>
+                              <div style={{ fontSize: '10px', textTransform: 'uppercase', color: '#888', letterSpacing: '0.04em', marginBottom: '2px' }}>Current Dose</div>
+                              <div style={{ fontSize: '16px', fontWeight: '700', color: '#111' }}>
+                                {injections.length > 0 ? injections[injections.length - 1].dosage || '—' : proto.selected_dose || proto.dosage || '—'}
+                              </div>
+                            </div>
+                            <div style={{ flex: 1, background: '#fff', padding: '10px 12px', border: '1px solid #e5e7eb' }}>
+                              <div style={{ fontSize: '10px', textTransform: 'uppercase', color: '#888', letterSpacing: '0.04em', marginBottom: '2px' }}>Injections</div>
+                              <div style={{ fontSize: '16px', fontWeight: '700', color: '#111' }}>
+                                {injections.length}{proto.total_sessions ? ` / ${proto.total_sessions}` : ''}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Weight progress */}
+                          {startWeight && currentWeight && (
+                            <div style={{ background: '#fff', padding: '10px 12px', border: '1px solid #e5e7eb', marginBottom: '12px' }}>
+                              <div style={{ fontSize: '10px', textTransform: 'uppercase', color: '#888', letterSpacing: '0.04em', marginBottom: '4px' }}>Weight</div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontSize: '14px', color: '#666' }}>{startWeight} lbs</span>
+                                <span style={{ fontSize: '12px', color: '#aaa' }}>→</span>
+                                <span style={{ fontSize: '16px', fontWeight: '700', color: '#111' }}>{currentWeight} lbs</span>
+                                {weightChange && (
+                                  <span style={{
+                                    fontSize: '13px', fontWeight: '600', marginLeft: 'auto',
+                                    color: parseFloat(weightChange) < 0 ? '#16a34a' : parseFloat(weightChange) > 0 ? '#dc2626' : '#666'
+                                  }}>
+                                    {parseFloat(weightChange) <= 0 ? weightChange : `+${weightChange}`} lbs
+                                  </span>
+                                )}
+                              </div>
+                              {/* Mini weight sparkline */}
+                              {weightEntries.length >= 3 && (
+                                <div style={{ marginTop: '8px', display: 'flex', alignItems: 'flex-end', gap: '2px', height: '32px' }}>
+                                  {(() => {
+                                    const weights = weightEntries.slice(-12).map(e => parseFloat(e.weight));
+                                    const min = Math.min(...weights);
+                                    const max = Math.max(...weights);
+                                    const range = max - min || 1;
+                                    return weights.map((w, i) => (
+                                      <div key={i} style={{
+                                        flex: 1, minWidth: '4px', maxWidth: '12px',
+                                        height: `${Math.max(4, ((w - min) / range) * 28 + 4)}px`,
+                                        background: i === weights.length - 1 ? '#6366f1' : '#c7d2fe',
+                                        borderRadius: '1px'
+                                      }} title={`${w} lbs`} />
+                                    ));
+                                  })()}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Dose titration timeline */}
+                          {doseTimeline.length > 0 && (
+                            <div>
+                              <div style={{ fontSize: '10px', textTransform: 'uppercase', color: '#888', letterSpacing: '0.04em', marginBottom: '6px' }}>Dose History</div>
+                              {doseTimeline.map((step, i) => (
+                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0' }}>
+                                  <div style={{
+                                    width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0,
+                                    background: i === doseTimeline.length - 1 ? '#6366f1' : '#d1d5db'
+                                  }} />
+                                  <span style={{ fontSize: '13px', fontWeight: i === doseTimeline.length - 1 ? '600' : '400', color: i === doseTimeline.length - 1 ? '#111' : '#666', minWidth: '50px' }}>
+                                    {step.dose}
+                                  </span>
+                                  <span style={{ fontSize: '11px', color: '#aaa' }}>
+                                    {step.count} inj · {new Date(step.firstDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                    {step.count > 1 ? ` – ${new Date(step.lastDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ));
+                    })()}
 
                     {/* Completed Protocols */}
                     {completedProtos.length > 0 && (

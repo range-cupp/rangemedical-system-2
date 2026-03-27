@@ -206,14 +206,37 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
     }
   }, [currentUser]);
 
+  // Signature IV formula → vitamin presets (matches range-medical.com/iv-therapy)
+  const IV_FORMULA_PRESETS = {
+    'Immune Defense IV': [
+      'Vitamin C (Ascorbic Acid)', 'Zinc Sulfate', 'Glutathione', 'B-Complex (B1, B2, B3, B5, B6)', 'Magnesium Chloride',
+    ],
+    'Energy & Vitality IV': [
+      'Vitamin B12 (Methylcobalamin)', 'B-Complex (B1, B2, B3, B5, B6)', 'L-Carnitine', 'Magnesium Chloride', 'Vitamin C (Ascorbic Acid)',
+    ],
+    'Muscle Recovery & Performance IV': [
+      'Taurine', 'Magnesium Chloride', 'B-Complex (B1, B2, B3, B5, B6)', 'Vitamin C (Ascorbic Acid)', 'Glutathione',
+    ],
+    'Detox & Cellular Repair IV': [
+      'Glutathione', 'Vitamin C (Ascorbic Acid)', 'Alpha Lipoic Acid (ALA)', 'Zinc Sulfate', 'Magnesium Chloride',
+    ],
+  };
+
   const updateField = (sectionKey, fieldKey, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [sectionKey]: {
-        ...prev[sectionKey],
-        [fieldKey]: value,
-      },
-    }));
+    setFormData(prev => {
+      const next = {
+        ...prev,
+        [sectionKey]: {
+          ...prev[sectionKey],
+          [fieldKey]: value,
+        },
+      };
+      // Auto-check vitamins when a signature IV formula is selected
+      if (sectionKey === 'infusion' && fieldKey === 'infusion_type' && IV_FORMULA_PRESETS[value]) {
+        next.infusion = { ...next.infusion, vitamins: [...IV_FORMULA_PRESETS[value]] };
+      }
+      return next;
+    });
   };
 
   const toggleChecklistItem = (sectionKey, itemKey) => {

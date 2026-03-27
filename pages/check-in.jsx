@@ -2,7 +2,7 @@
 // iPad check-in kiosk — staff searches/enters patient, picks forms, hands iPad to patient
 // Range Medical
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 
@@ -56,6 +56,18 @@ export default function CheckInPage() {
 
   // Error state
   const [error, setError] = useState(null);
+
+  // Inject spinner keyframe
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const id = 'checkin-spin';
+    if (!document.getElementById(id)) {
+      const style = document.createElement('style');
+      style.id = id;
+      style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+      document.head.appendChild(style);
+    }
+  }, []);
 
   // Patient search
   const handleSearch = (query) => {
@@ -392,18 +404,11 @@ export default function CheckInPage() {
               <div style={styles.launchingSection}>
                 <div style={styles.spinner} />
                 <p style={styles.launchingText}>Setting up forms...</p>
-                <style jsx global>{`
-                  @keyframes spin { to { transform: rotate(360deg); } }
-                `}</style>
               </div>
             )}
           </div>
         </div>
       </div>
-
-      <style jsx global>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
     </>
   );
 }

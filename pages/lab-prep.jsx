@@ -230,16 +230,14 @@ export default function LabPrepPage() {
       {/* Final CTA */}
       <section className="final-cta">
         <div className="container">
-          <h2>Ready to Book?</h2>
+          <h2>READY TO BOOK?</h2>
           <p>If you found this page but haven't scheduled yet, start with an assessment. Labs, symptoms review, and a written plan in under a week.</p>
-          <div className="hero-buttons">
-            <Link href="/start" className="btn-primary">Start Now</Link>
+          <div className="cta-buttons">
+            <Link href="/start" className="btn-white">START NOW</Link>
+            <a href="tel:+19499973988" className="btn-outline">CALL (949) 997-3988</a>
           </div>
-          <p className="hero-secondary">Already a patient? <a href="tel:+19499973988">Call or text (949) 997-3988</a> to schedule.</p>
-          <div className="location-info">
-            <p>1901 Westcliff Dr Suite 10, Newport Beach, CA</p>
-            <p>Upstairs from Range Sports Therapy</p>
-          </div>
+          <p className="cta-location">Already a patient? <a href="tel:+19499973988">Call or text (949) 997-3988</a> to schedule.</p>
+          <p className="cta-location">1901 Westcliff Dr Suite 10, Newport Beach, CA</p>
         </div>
       </section>
 

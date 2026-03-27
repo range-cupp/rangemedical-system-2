@@ -1463,6 +1463,44 @@ export default function PatientProfile() {
 
   const getCategoryStyle = (category) => CATEGORY_COLORS[category] || CATEGORY_COLORS.other;
 
+  // Compute last activity date per active protocol from service logs + sessions
+  const getProtocolLastActivity = () => {
+    if (!activeProtocols.length) return [];
+    const result = activeProtocols.map(protocol => {
+      // Find latest service log for this protocol
+      const protoLogs = serviceLogs.filter(l => l.protocol_id === protocol.id);
+      const latestLogDate = protoLogs.length > 0 ? protoLogs.reduce((latest, l) => {
+        const d = new Date(l.entry_date);
+        return d > latest ? d : latest;
+      }, new Date(0)) : null;
+
+      // Find latest session for this protocol
+      const protoSessions = sessions.filter(s => s.protocol_id === protocol.id);
+      const latestSessionDate = protoSessions.length > 0 ? protoSessions.reduce((latest, s) => {
+        const d = new Date(s.session_date);
+        return d > latest ? d : latest;
+      }, new Date(0)) : null;
+
+      // Take the most recent of the two
+      let lastDate = null;
+      if (latestLogDate && latestSessionDate) {
+        lastDate = latestLogDate > latestSessionDate ? latestLogDate : latestSessionDate;
+      } else {
+        lastDate = latestLogDate || latestSessionDate;
+      }
+
+      const catStyle = getCategoryStyle(protocol.category);
+      return {
+        id: protocol.id,
+        name: protocol.program_name || protocol.medication || protocol.program_type,
+        category: protocol.category,
+        catStyle,
+        lastDate,
+      };
+    });
+    return result;
+  };
+
   // Protocol handlers
   const openAssignModal = async (notification = null) => {
     setSelectedNotification(notification);
@@ -3002,6 +3040,29 @@ export default function PatientProfile() {
                     </span>
                   )}
                 </div>
+                {/* Active Protocol Last Activity Badges */}
+                {activeProtocols.length > 0 && (
+                  <div className="protocol-activity-row">
+                    {getProtocolLastActivity().map(p => {
+                      const daysSince = p.lastDate ? Math.floor((new Date() - p.lastDate) / (1000 * 60 * 60 * 24)) : null;
+                      const dateLabel = p.lastDate
+                        ? (daysSince === 0 ? 'Today' : daysSince === 1 ? '1 day ago' : `${daysSince}d ago`)
+                        : 'No activity';
+                      return (
+                        <span key={p.id} className="protocol-activity-badge" style={{
+                          backgroundColor: p.catStyle.bg,
+                          color: p.catStyle.text,
+                          borderLeft: `3px solid ${p.catStyle.text}`,
+                        }} onClick={() => setActiveTab('protocols')} title={p.lastDate ? `Last activity: ${p.lastDate.toLocaleDateString()}` : 'No injections or pickups logged yet'}>
+                          <span className="protocol-activity-name">{p.name}</span>
+                          <span className="protocol-activity-date" style={{
+                            color: !p.lastDate ? '#9ca3af' : daysSince > 14 ? '#dc2626' : p.catStyle.text,
+                          }}>{dateLabel}</span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -9183,6 +9244,37 @@ export default function PatientProfile() {
           padding: 2px 8px;
           border-radius: 10px;
           font-weight: 600;
+        }
+        /* Protocol Activity Row */
+        .protocol-activity-row {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          margin-top: 6px;
+        }
+        .protocol-activity-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 3px 10px;
+          border-radius: 6px;
+          font-size: 12px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: opacity 0.15s;
+        }
+        .protocol-activity-badge:hover { opacity: 0.8; }
+        .protocol-activity-name {
+          font-weight: 600;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 140px;
+        }
+        .protocol-activity-date {
+          font-size: 11px;
+          font-weight: 500;
+          white-space: nowrap;
         }
         /* Header Toolbar */
         .header-toolbar {

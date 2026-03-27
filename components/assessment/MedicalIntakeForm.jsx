@@ -149,6 +149,7 @@ const conditionDetailsStyle = {
 export default function MedicalIntakeForm({ intakeData, onIntakeChange, onSubmit, onBack, isSubmitting, error, patientName }) {
   const [step, setStep] = useState(1);
   const [validationError, setValidationError] = useState('');
+  const [isProcessingPhoto, setIsProcessingPhoto] = useState(false);
   const canvasRef = useRef(null);
   const photoInputRef = useRef(null);
   const isDrawingRef = useRef(false);
@@ -165,28 +166,43 @@ export default function MedicalIntakeForm({ intakeData, onIntakeChange, onSubmit
       setValidationError('Photo must be under 10MB');
       return;
     }
+    setIsProcessingPhoto(true);
+    setValidationError('');
     // Resize and compress to JPEG to keep payload small
     const reader = new FileReader();
     reader.onload = (ev) => {
       const img = new Image();
       img.onload = () => {
-        const maxDim = 1200;
-        let w = img.width;
-        let h = img.height;
-        if (w > maxDim || h > maxDim) {
-          if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
-          else { w = Math.round(w * maxDim / h); h = maxDim; }
+        try {
+          const maxDim = 1200;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+            else { w = Math.round(w * maxDim / h); h = maxDim; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const compressed = canvas.toDataURL('image/jpeg', 0.7);
+          updateField('photoIdData', compressed);
+          setValidationError('');
+        } catch {
+          setValidationError('Could not process this image. Please try a different photo.');
         }
-        const canvas = document.createElement('canvas');
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, w, h);
-        const compressed = canvas.toDataURL('image/jpeg', 0.7);
-        updateField('photoIdData', compressed);
-        setValidationError('');
+        setIsProcessingPhoto(false);
+      };
+      img.onerror = () => {
+        setValidationError('Could not read this image. Please try a different photo or format (JPG, PNG).');
+        setIsProcessingPhoto(false);
       };
       img.src = ev.target.result;
+    };
+    reader.onerror = () => {
+      setValidationError('Failed to read the file. Please try again.');
+      setIsProcessingPhoto(false);
     };
     reader.readAsDataURL(file);
   };
@@ -1011,13 +1027,33 @@ export default function MedicalIntakeForm({ intakeData, onIntakeChange, onSubmit
                       Remove & re-upload
                     </button>
                   </div>
+                ) : isProcessingPhoto ? (
+                  <div style={{
+                    width: '100%',
+                    padding: '2rem 1.25rem',
+                    border: '2px dashed #d4d4d4',
+                    background: '#f9fafb',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    color: '#525252',
+                    fontSize: '0.875rem'
+                  }}>
+                    <div style={{
+                      width: 32, height: 32, border: '3px solid #e5e5e5',
+                      borderTopColor: '#525252', borderRadius: '50%',
+                      animation: 'spin 0.8s linear infinite'
+                    }} />
+                    <span style={{ fontWeight: 600 }}>Processing photo...</span>
+                    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+                  </div>
                 ) : (
                   <div>
                     <input
                       ref={photoInputRef}
                       type="file"
                       accept="image/*"
-                      capture="environment"
                       onChange={handlePhotoIdUpload}
                       style={{ display: 'none' }}
                     />
@@ -1045,7 +1081,7 @@ export default function MedicalIntakeForm({ intakeData, onIntakeChange, onSubmit
                         <path d="M21 15l-5-5L5 21"/>
                       </svg>
                       <span style={{ fontWeight: 600 }}>Take photo or upload file</span>
-                      <span style={{ fontSize: '0.75rem', color: '#a3a3a3' }}>JPG, PNG — max 5MB</span>
+                      <span style={{ fontSize: '0.75rem', color: '#a3a3a3' }}>JPG, PNG — max 10MB</span>
                     </button>
                   </div>
                 )}

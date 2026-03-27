@@ -63,6 +63,7 @@ const APPT_CATEGORY_TO_SERVICE_LOG = {
 const SESSION_BASED_CATEGORIES = ['rlt', 'hbot', 'iv', 'injection'];
 
 const HOURS = Array.from({ length: 15 }, (_, i) => i + 6); // 6 AM to 8 PM
+const HOUR_HEIGHT = 80; // pixels per hour in day view
 
 export default function CalendarView({ preselectedPatient = null, wizardOnly = false }) {
   const { session, employee } = useAuth();
@@ -1004,6 +1005,18 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     );
   };
 
+  // Smart name display — truncate to "First L." when card is narrow
+  const displayName = (name, isNarrow) => {
+    if (!name) return 'Unknown';
+    if (!isNarrow) return name;
+    const parts = name.trim().split(/\s+/);
+    if (parts.length <= 1) return name;
+    return `${parts[0]} ${parts[parts.length - 1][0]}.`;
+  };
+
+  // Hovered appointment for expand-on-hover
+  const [hoveredApptId, setHoveredApptId] = useState(null);
+
   // Note badge component
   const noteBadge = (apptId, size = 'small') => {
     const ns = noteStatusMap[apptId];
@@ -1135,35 +1148,46 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
         {columnized.map(({ appt, column, totalColumns }) => {
           const start = new Date(appt.start_time);
           const startHour = start.getHours() + start.getMinutes() / 60;
-          const top = (startHour - 6) * 60;
-          const height = Math.max(appt.duration_minutes || 30, 20);
+          const top = (startHour - 6) * HOUR_HEIGHT;
+          const height = Math.max((appt.duration_minutes || 30) * (HOUR_HEIGHT / 60), 28);
           if (top < 0 || startHour > 20) return null;
           const catStyle = getApptStyle(appt);
+          const isHovered = hoveredApptId === appt.id;
 
           // Calculate horizontal position based on column
           const gridLeft = 75; // px after time labels
           const gridRight = 10;
+          const isNarrow = totalColumns >= 3;
           const colWidthPercent = 100 / totalColumns;
           const leftPercent = column * colWidthPercent;
-          // Small gap between columns for visual separation
           const gapPx = totalColumns > 1 ? 2 : 0;
 
           return (
             <div
               key={appt.id}
               onClick={(e) => { e.stopPropagation(); setSelectedAppt(appt); }}
+              onMouseEnter={() => setHoveredApptId(appt.id)}
+              onMouseLeave={() => setHoveredApptId(null)}
               style={{
                 ...styles.apptBlock,
                 ...catStyle,
                 top: `${top}px`,
-                height: `${height}px`,
+                height: isHovered ? 'auto' : `${height}px`,
+                minHeight: `${height}px`,
                 left: `calc(${gridLeft}px + (100% - ${gridLeft + gridRight}px) * ${leftPercent / 100} + ${gapPx}px)`,
                 right: 'auto',
-                width: `calc((100% - ${gridLeft + gridRight}px) * ${colWidthPercent / 100} - ${gapPx * 2}px)`,
+                width: isHovered && totalColumns > 1
+                  ? `calc((100% - ${gridLeft + gridRight}px) * ${Math.min(colWidthPercent * 2, 60) / 100})`
+                  : `calc((100% - ${gridLeft + gridRight}px) * ${colWidthPercent / 100} - ${gapPx * 2}px)`,
+                zIndex: isHovered ? 20 : 5,
+                boxShadow: isHovered ? '0 4px 16px rgba(0,0,0,0.2)' : 'none',
+                transition: 'box-shadow 0.15s, width 0.15s, z-index 0s',
               }}
             >
               <div style={{ ...styles.apptBlockName, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                {appt.patient_name}
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {isHovered ? appt.patient_name : displayName(appt.patient_name, isNarrow)}
+                </span>
                 {noteBadge(appt.id)}
                 {renewalMap[appt.patient_id]?.length > 0 && (
                   <span style={{
@@ -1172,14 +1196,14 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                   }} />
                 )}
               </div>
-              {height >= 35 && <div style={styles.apptBlockService}>{appt.service_name}</div>}
-              {height >= 50 && appt.provider && (
-                <div style={{ fontSize: '11px', opacity: 0.7, marginTop: '1px' }}>{appt.provider}</div>
+              {(height >= 40 || isHovered) && <div style={styles.apptBlockService}>{appt.service_name}</div>}
+              {(height >= 56 || isHovered) && appt.provider && (
+                <div style={{ fontSize: '12px', opacity: 0.7, marginTop: '2px' }}>{appt.provider}</div>
               )}
-              {height >= 50 && appt.location && appt.location !== DEFAULT_LOCATION.label && (
-                <div style={{ fontSize: '10px', opacity: 0.7, marginTop: '1px' }}>📍 {LOCATIONS.find(l => l.label === appt.location)?.short || 'Placentia'}</div>
+              {(height >= 56 || isHovered) && appt.location && appt.location !== DEFAULT_LOCATION.label && (
+                <div style={{ fontSize: '11px', opacity: 0.7, marginTop: '2px' }}>📍 {LOCATIONS.find(l => l.label === appt.location)?.short || 'Placentia'}</div>
               )}
-              {height >= 65 && (
+              {(height >= 72 || isHovered) && (
                 <div style={styles.apptBlockTime}>
                   {formatTime(appt.start_time)} – {formatTime(appt.end_time)}
                 </div>
@@ -1221,8 +1245,8 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               const [eh, em] = block.end_time.split(':').map(Number);
               const startH = sh + sm / 60;
               const endH = eh + em / 60;
-              const bTop = (startH - 6) * 60;
-              const bHeight = (endH - startH) * 60;
+              const bTop = (startH - 6) * HOUR_HEIGHT;
+              const bHeight = (endH - startH) * HOUR_HEIGHT;
               if (bTop < 0 || startH > 20) return null;
               return (
                 <div
@@ -1253,7 +1277,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
         {showTimeLine && (() => {
           const nowHour = now.getHours() + now.getMinutes() / 60;
           if (nowHour < 6 || nowHour > 20) return null;
-          const top = (nowHour - 6) * 60;
+          const top = (nowHour - 6) * HOUR_HEIGHT;
           return <div style={{ ...styles.timeLine, top: `${top}px` }} />;
         })()}
       </div>
@@ -1454,7 +1478,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     const colWidth = `${100 / cols.length}%`;
 
     return (
-      <div style={{ position: 'relative', minHeight: `${HOURS.length * 60}px` }}>
+      <div style={{ position: 'relative', minHeight: `${HOURS.length * HOUR_HEIGHT}px` }}>
         {/* Employee column headers */}
         <div style={{
           display: 'flex', borderBottom: '2px solid #e5e7eb',
@@ -1473,7 +1497,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
         </div>
 
         {/* Hour rows */}
-        <div style={{ position: 'relative', minHeight: `${HOURS.length * 60}px` }}>
+        <div style={{ position: 'relative', minHeight: `${HOURS.length * HOUR_HEIGHT}px` }}>
           {HOURS.map(hour => (
             <div key={hour} style={styles.hourRow}>
               <div style={styles.hourLabel}>
@@ -1482,7 +1506,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               <div style={{ ...styles.hourCell, display: 'flex' }}>
                 {cols.map(emp => (
                   <div key={emp.id} style={{
-                    width: colWidth, borderRight: '1px solid #f3f4f6', minHeight: '60px',
+                    width: colWidth, borderRight: '1px solid #f3f4f6', minHeight: `${HOUR_HEIGHT}px`,
                   }} />
                 ))}
               </div>
@@ -1534,8 +1558,8 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 {empAppts.map(appt => {
                   const start = new Date(appt.start_time);
                   const startHour = start.getHours() + start.getMinutes() / 60;
-                  const top = (startHour - 6) * 60;
-                  const height = Math.max(appt.duration_minutes || 30, 20);
+                  const top = (startHour - 6) * HOUR_HEIGHT;
+                  const height = Math.max((appt.duration_minutes || 30) * (HOUR_HEIGHT / 60), 28);
                   if (top < 0 || startHour > 20) return null;
                   const catStyle = getApptStyle(appt);
 
@@ -1574,7 +1598,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
           {showTimeLine && (() => {
             const nowHour = now.getHours() + now.getMinutes() / 60;
             if (nowHour < 6 || nowHour > 20) return null;
-            const top = (nowHour - 6) * 60;
+            const top = (nowHour - 6) * HOUR_HEIGHT;
             return <div style={{ ...styles.timeLine, top: `${top}px` }} />;
           })()}
         </div>
@@ -3691,11 +3715,11 @@ const styles = {
   // Day view
   dayGrid: {
     position: 'relative',
-    minHeight: `${15 * 60}px`,
+    minHeight: `${15 * 80}px`,
     paddingLeft: '70px',
   },
   hourRow: {
-    height: '60px',
+    height: '80px',
     display: 'flex',
     borderBottom: '1px solid #f0f0f0',
   },

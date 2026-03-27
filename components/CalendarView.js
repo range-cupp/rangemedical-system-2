@@ -1182,6 +1182,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 zIndex: isHovered ? 100 : 5,
                 boxShadow: isHovered ? '0 10px 40px rgba(0,0,0,0.7), 0 0 0 3px rgba(0,0,0,0.5)' : 'none',
                 transition: 'box-shadow 0.15s, width 0.15s',
+                ...(isHovered ? { opacity: 1, filter: 'none' } : {}),
               }}
             >
               <div style={{ ...styles.apptBlockName, display: 'flex', alignItems: 'center', gap: '4px' }}>

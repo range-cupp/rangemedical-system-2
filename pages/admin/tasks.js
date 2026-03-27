@@ -67,20 +67,38 @@ function InlineEncounterEditor({ task, session, currentUser, onTaskComplete }) {
   const [addendumParentId, setAddendumParentId] = useState(null);
   const [addendumInput, setAddendumInput] = useState('');
   const [addendumSaving, setAddendumSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
 
   const canAuthorNotes = ['burgess@range-medical.com', 'lily@range-medical.com', 'evan@range-medical.com', 'chris@range-medical.com']
     .some(email => currentUser?.toLowerCase()?.includes(email));
 
   const getNoteMarkdown = () => htmlToMd(noteRef.current?.innerHTML || '');
 
-  // Fetch appointment details
+  // Fetch appointment details + resolve patient_id if missing
   useEffect(() => {
     if (!task.appointment_id) { setLoading(false); return; }
     fetch(`/api/appointments/${task.appointment_id}`, {
       headers: { Authorization: `Bearer ${session?.access_token}` },
     })
       .then(r => r.json())
-      .then(data => { setAppointment(data.appointment || data); setLoading(false); })
+      .then(async (data) => {
+        const appt = data.appointment || data;
+        // If appointment has no patient_id, try to resolve from patient_name
+        if (!appt.patient_id && (appt.patient_name || task.patient_name)) {
+          try {
+            const name = appt.patient_name || task.patient_name;
+            const lookupRes = await fetch(`/api/patients/search?q=${encodeURIComponent(name)}`);
+            const lookupData = await lookupRes.json();
+            // Use exact name match if found
+            const match = (lookupData.patients || []).find(p => p.name?.toLowerCase() === name.toLowerCase());
+            if (match) {
+              appt.patient_id = match.id;
+            }
+          } catch (e) { /* best-effort lookup */ }
+        }
+        setAppointment(appt);
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, [task.appointment_id, session]);
 
@@ -228,9 +246,14 @@ function InlineEncounterEditor({ task, session, currentUser, onTaskComplete }) {
   const handleSaveNote = async () => {
     const body = getNoteMarkdown();
     if (!body.trim()) return;
+    setSaveError(null);
+    const patientId = appointment?.patient_id || task.patient_id;
+    if (!patientId) {
+      setSaveError('Unable to save — no patient linked to this task. Please link a patient first.');
+      return;
+    }
     setNoteSaving(true);
     try {
-      const patientId = appointment?.patient_id || task.patient_id;
       const res = await fetch('/api/notes/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -243,6 +266,10 @@ function InlineEncounterEditor({ task, session, currentUser, onTaskComplete }) {
         }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        setSaveError(data.error || 'Failed to save note');
+        return;
+      }
       if (data.note) {
         setNotes(prev => [...prev, data.note]);
         if (noteRef.current) noteRef.current.innerHTML = '';
@@ -250,7 +277,10 @@ function InlineEncounterEditor({ task, session, currentUser, onTaskComplete }) {
         setShowForm(false);
         stopDictation();
       }
-    } catch (err) { console.error('Save note error:', err); }
+    } catch (err) {
+      console.error('Save note error:', err);
+      setSaveError('Network error — please try again');
+    }
     finally { setNoteSaving(false); }
   };
 
@@ -535,8 +565,13 @@ function InlineEncounterEditor({ task, session, currentUser, onTaskComplete }) {
                 currentUser={currentUser}
                 onCancel={() => { setNoteMode('choose'); setInteractiveFormType(null); }}
                 onSave={async ({ markdown, structured_data, note_type, form_type }) => {
+                  setSaveError(null);
+                  const patientId = appointment?.patient_id || task.patient_id;
+                  if (!patientId) {
+                    setSaveError('Unable to save — no patient linked to this task. Please link a patient first.');
+                    return;
+                  }
                   try {
-                    const patientId = appointment?.patient_id || task.patient_id;
                     const res = await fetch('/api/notes/create', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
@@ -550,15 +585,23 @@ function InlineEncounterEditor({ task, session, currentUser, onTaskComplete }) {
                       }),
                     });
                     const data = await res.json();
+                    if (!res.ok) {
+                      setSaveError(data.error || 'Failed to save note');
+                      return;
+                    }
                     if (data.note) {
                       setNotes(prev => [...prev, data.note]);
                       setShowForm(false);
                       setNoteMode('choose');
                       setInteractiveFormType(null);
                     }
-                  } catch (err) { console.error('Save interactive note error:', err); }
+                  } catch (err) {
+                    console.error('Save interactive note error:', err);
+                    setSaveError('Network error — please try again');
+                  }
                 }}
               />
+              {saveError && <div style={{ color: '#dc2626', fontSize: '12px', marginTop: '8px' }}>{saveError}</div>}
             </div>
           )}
 
@@ -684,7 +727,8 @@ function InlineEncounterEditor({ task, session, currentUser, onTaskComplete }) {
                   {noteFormatting ? 'Formatting...' : '✨ Format with AI'}
                 </button>
                 <div style={s.actionsRight}>
-                  <button onClick={() => { setShowForm(false); setNoteMode('choose'); if (noteRef.current) noteRef.current.innerHTML = ''; setNoteIsEmpty(true); stopDictation(); }} style={{ ...s.btn, ...s.btnSecondary }}>Cancel</button>
+                  {saveError && <span style={{ color: '#dc2626', fontSize: '12px', marginRight: '8px' }}>{saveError}</span>}
+                  <button onClick={() => { setShowForm(false); setNoteMode('choose'); if (noteRef.current) noteRef.current.innerHTML = ''; setNoteIsEmpty(true); stopDictation(); setSaveError(null); }} style={{ ...s.btn, ...s.btnSecondary }}>Cancel</button>
                   <button onClick={handleSaveNote} disabled={noteIsEmpty || noteSaving} style={{ ...s.btn, ...s.btnPrimary, opacity: (noteIsEmpty || noteSaving) ? 0.5 : 1 }}>
                     {noteSaving ? 'Saving...' : 'Save as Draft'}
                   </button>

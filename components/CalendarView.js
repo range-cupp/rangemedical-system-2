@@ -4,7 +4,7 @@
 // Replaces BookingTab in Command Center
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getCategoryStyle } from '../lib/protocol-config';
+import { getCategoryStyle, CATEGORY_COLORS } from '../lib/protocol-config';
 import { overlayClickProps } from './AdminLayout';
 import { APPOINTMENT_SERVICES, getAllServices, PROVIDERS, LOCATIONS, DEFAULT_LOCATION, LOCATION_ENABLED_CATEGORIES, REQUIRED_FORMS } from '../lib/appointment-services';
 import EncounterModal from './EncounterModal';
@@ -142,6 +142,12 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   const [calendarMode, setCalendarMode] = useState('service'); // 'service' or 'employee'
   const [employees, setEmployees] = useState([]);
 
+  // Encounter note status for appointment badges
+  const [noteStatusMap, setNoteStatusMap] = useState({}); // appointment_id -> { hasNote, status }
+
+  // Collapsible wizard panel
+  const [wizardCollapsed, setWizardCollapsed] = useState(true);
+
   // Fetch appointments
   const fetchAppointments = useCallback(async () => {
     setLoading(true);
@@ -195,6 +201,18 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
         setRenewalMap(map);
       })
       .catch(err => console.error('Renewal fetch error:', err));
+  }, [appointments]);
+
+  // Fetch encounter note status for all visible appointments
+  useEffect(() => {
+    if (appointments.length === 0) { setNoteStatusMap({}); return; }
+    const apptIds = appointments.map(a => a.id).filter(Boolean);
+    if (apptIds.length === 0) return;
+
+    fetch(`/api/notes/status-batch?appointment_ids=${apptIds.join(',')}`)
+      .then(r => r.json())
+      .then(data => setNoteStatusMap(data.noteStatus || {}))
+      .catch(err => console.error('Note status fetch error:', err));
   }, [appointments]);
 
   // Fetch schedule blocks for calendar overlays
@@ -986,6 +1004,40 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     );
   };
 
+  // Note badge component
+  const noteBadge = (apptId, size = 'small') => {
+    const ns = noteStatusMap[apptId];
+    const isSmall = size === 'small';
+    if (ns?.hasNote) {
+      // Note exists
+      const isSigned = ns.status === 'signed';
+      return (
+        <span title={isSigned ? 'Note signed' : 'Note draft'} style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          width: isSmall ? '16px' : '20px', height: isSmall ? '16px' : '20px',
+          borderRadius: '50%', flexShrink: 0, fontSize: isSmall ? '10px' : '12px',
+          background: isSigned ? '#dcfce7' : '#fef3c7',
+          color: isSigned ? '#16a34a' : '#92400e',
+          fontWeight: '700', lineHeight: 1,
+        }}>
+          {isSigned ? '✓' : '●'}
+        </span>
+      );
+    }
+    // No note — show needs-note indicator
+    return (
+      <span title="Note needed" style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        width: isSmall ? '16px' : '20px', height: isSmall ? '16px' : '20px',
+        borderRadius: '50%', flexShrink: 0, fontSize: isSmall ? '9px' : '11px',
+        background: '#fee2e2', color: '#dc2626',
+        fontWeight: '700', lineHeight: 1, border: '1.5px solid #fca5a5',
+      }}>
+        !
+      </span>
+    );
+  };
+
   // ===================== DAY VIEW =====================
 
   // Assign columns to overlapping appointments (Google Calendar-style)
@@ -1112,6 +1164,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             >
               <div style={{ ...styles.apptBlockName, display: 'flex', alignItems: 'center', gap: '4px' }}>
                 {appt.patient_name}
+                {noteBadge(appt.id)}
                 {renewalMap[appt.patient_id]?.length > 0 && (
                   <span style={{
                     display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0,
@@ -1254,6 +1307,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                   >
                     <div style={{ fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
                       {appt.patient_name}
+                      {noteBadge(appt.id)}
                       {renewalMap[appt.patient_id]?.length > 0 && (
                         <span style={{
                           display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0,
@@ -1351,6 +1405,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                       }}
                     >
                       <span style={{ fontWeight: '600' }}>{appt.patient_name?.split(' ')[0]}</span>
+                      {noteBadge(appt.id)}
                       <span style={{ opacity: 0.7 }}> {formatTime(appt.start_time)}</span>
                     </div>
                   );
@@ -1498,7 +1553,10 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                         right: 'auto',
                       }}
                     >
-                      <div style={styles.apptBlockName}>{appt.patient_name}</div>
+                      <div style={{ ...styles.apptBlockName, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {appt.patient_name}
+                        {noteBadge(appt.id)}
+                      </div>
                       {height >= 35 && <div style={styles.apptBlockService}>{appt.service_name}</div>}
                       {height >= 50 && (
                         <div style={styles.apptBlockTime}>
@@ -1865,13 +1923,17 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               </div>
             )}
 
-            {/* Encounter Note button */}
+            {/* Encounter Note button with status badge */}
             <div style={{ marginTop: '12px' }}>
               <button
                 onClick={() => { setSelectedAppt(null); setEncounterAppt(appt); }}
-                style={{ ...styles.actionBtn, width: '100%', background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', fontWeight: '600' }}
+                style={{ ...styles.actionBtn, width: '100%', background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', fontWeight: '600', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
               >
-                Encounter Note
+                {noteBadge(appt.id, 'medium')}
+                {noteStatusMap[appt.id]?.hasNote
+                  ? (noteStatusMap[appt.id].status === 'signed' ? 'Note Signed' : 'Edit Note')
+                  : 'Write Encounter Note'
+                }
               </button>
             </div>
 
@@ -2890,18 +2952,51 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   );
 
   // ===================== MAIN RENDER =====================
-  return (
-    <div style={wizardOnly ? { ...styles.container, minHeight: 'unset' } : styles.container} className="cal-container">
-      {/* Left Panel — Wizard */}
-      <div style={wizardOnly ? { ...styles.leftPanel, width: '100%', minWidth: 'unset', borderRight: 'none', maxHeight: 'unset' } : styles.leftPanel} className="cal-left">
-        {renderWizard()}
-      </div>
 
-      {/* Right Panel — Calendar (hidden in wizardOnly mode) */}
+  // Color legend categories (only show ones that appear in appointments)
+  const LEGEND_CATEGORIES = ['hrt', 'weight_loss', 'peptide', 'iv', 'hbot', 'rlt', 'injection', 'labs', 'other'];
+
+  return (
+    <div style={wizardOnly ? { ...styles.container, minHeight: 'unset' } : { ...styles.container, flexDirection: 'column' }} className="cal-container">
+      {/* Collapsible New Appointment panel */}
+      {!wizardOnly && (
+        <div style={{
+          borderBottom: wizardCollapsed ? 'none' : '1px solid #e5e5e5',
+          background: '#fafafa',
+        }}>
+          <button
+            onClick={() => setWizardCollapsed(!wizardCollapsed)}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '12px 20px', background: 'none', border: 'none', borderBottom: '1px solid #e5e5e5',
+              cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: '#1a1a1a',
+            }}
+          >
+            <span>+ New Appointment</span>
+            <span style={{ fontSize: '12px', color: '#888', fontWeight: '400' }}>
+              {wizardCollapsed ? 'Click to expand' : 'Click to collapse'}
+            </span>
+          </button>
+          {!wizardCollapsed && (
+            <div style={{ padding: '20px', maxWidth: '500px' }}>
+              {renderWizard()}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Wizard-only mode (used when embedded elsewhere) */}
+      {wizardOnly && (
+        <div style={{ ...styles.leftPanel, width: '100%', minWidth: 'unset', borderRight: 'none', maxHeight: 'unset' }} className="cal-left">
+          {renderWizard()}
+        </div>
+      )}
+
+      {/* Calendar Panel — now takes full width */}
       {!wizardOnly && <div style={styles.rightPanel} className="cal-right">
-        {/* View toggle + navigation */}
+        {/* View toggle + navigation + legend */}
         <div style={styles.calHeader}>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={styles.viewToggle}>
               {['day', 'week', 'month'].map(mode => (
                 <button
@@ -2958,6 +3053,58 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               })()}
               {viewMode === 'month' && currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </span>
+          </div>
+
+          {/* Legend row — service colors + note status */}
+          <div style={{ display: 'flex', gap: '16px', marginTop: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+            {/* Service category colors */}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              {LEGEND_CATEGORIES.map(cat => {
+                const cs = CATEGORY_COLORS[cat];
+                if (!cs) return null;
+                return (
+                  <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{
+                      display: 'inline-block', width: '10px', height: '10px',
+                      background: cs.bg, border: `1px solid ${cs.text}40`,
+                    }} />
+                    <span style={{ fontSize: '11px', color: '#666' }}>{cs.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Divider */}
+            <div style={{ width: '1px', height: '16px', background: '#e5e5e5' }} />
+
+            {/* Note status legend */}
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  width: '14px', height: '14px', borderRadius: '50%', fontSize: '9px',
+                  background: '#dcfce7', color: '#16a34a', fontWeight: '700',
+                }}>✓</span>
+                <span style={{ fontSize: '11px', color: '#666' }}>Signed</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  width: '14px', height: '14px', borderRadius: '50%', fontSize: '9px',
+                  background: '#fef3c7', color: '#92400e', fontWeight: '700',
+                }}>●</span>
+                <span style={{ fontSize: '11px', color: '#666' }}>Draft</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  width: '14px', height: '14px', borderRadius: '50%', fontSize: '9px',
+                  background: '#fee2e2', color: '#dc2626', fontWeight: '700',
+                  border: '1.5px solid #fca5a5',
+                }}>!</span>
+                <span style={{ fontSize: '11px', color: '#666' }}>Note needed</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -3442,6 +3589,7 @@ function generateTimeSlots() {
 const styles = {
   container: {
     display: 'flex',
+    flexDirection: 'column',
     gap: '0',
     minHeight: '700px',
     background: '#fff',
@@ -3525,7 +3673,6 @@ const styles = {
     flex: 1,
     overflow: 'auto',
     position: 'relative',
-    maxHeight: '680px',
   },
   loadingOverlay: {
     position: 'absolute',
@@ -3604,11 +3751,11 @@ const styles = {
   weekGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(7, 1fr)',
-    minHeight: '500px',
+    minHeight: '600px',
   },
   weekDay: {
     borderRight: '1px solid #f0f0f0',
-    minHeight: '400px',
+    minHeight: '500px',
   },
   weekDayToday: {
     background: '#fafafa',

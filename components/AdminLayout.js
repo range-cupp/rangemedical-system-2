@@ -703,10 +703,20 @@ const icons = {
   )
 };
 
+// Primary mobile tabs — the 5 most-used screens
+const MOBILE_TABS = [
+  { href: '/admin', label: 'Home', icon: 'grid' },
+  { href: '/admin/schedule', label: 'Schedule', icon: 'calendar' },
+  { href: '/admin/communications', label: 'Messages', icon: 'message', badgeKey: 'unread' },
+  { href: '/admin/tasks', label: 'Tasks', icon: 'check-square', badgeKey: 'tasks' },
+  { href: '#more', label: 'More', icon: 'menu' },
+];
+
 export default function AdminLayout({ children, title = 'Admin', actions, hideHeader = false }) {
   const router = useRouter();
   const currentPath = router.pathname;
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const { unreadCount, toast, dismissToast } = useUnreadNotifications(router);
   useNewPatientNotifications(router);
   const { purchaseCount, purchaseToast, dismissPurchaseToast } = useNewPurchaseNotifications(router);
@@ -889,6 +899,109 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
           </main>
         </div>
       </div>
+
+      {/* Mobile bottom tab bar */}
+      <nav data-mobile-tab-bar style={mobileTabStyles.bar}>
+        {MOBILE_TABS.map(tab => {
+          const isMore = tab.href === '#more';
+          const isActive = isMore
+            ? moreMenuOpen
+            : (currentPath === tab.href || (tab.href !== '/admin' && currentPath.startsWith(tab.href)));
+          const badge = tab.badgeKey === 'unread' ? unreadCount
+            : tab.badgeKey === 'tasks' ? (taskCount + overdueCount)
+            : 0;
+
+          return (
+            <button
+              key={tab.href}
+              style={{
+                ...mobileTabStyles.tab,
+                color: isActive ? '#000' : '#999',
+              }}
+              onClick={() => {
+                if (isMore) {
+                  setMoreMenuOpen(!moreMenuOpen);
+                } else {
+                  setMoreMenuOpen(false);
+                  router.push(tab.href);
+                }
+              }}
+            >
+              <span style={{ position: 'relative', display: 'inline-flex' }}>
+                {icons[tab.icon]}
+                {badge > 0 && (
+                  <span style={mobileTabStyles.badge}>
+                    {badge > 99 ? '99+' : badge}
+                  </span>
+                )}
+              </span>
+              <span style={mobileTabStyles.tabLabel}>{tab.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* Mobile "More" slide-up menu */}
+      {moreMenuOpen && (
+        <>
+          <div
+            data-more-overlay
+            style={mobileTabStyles.moreOverlay}
+            onClick={() => setMoreMenuOpen(false)}
+          />
+          <div data-more-menu style={mobileTabStyles.moreMenu}>
+            <div style={mobileTabStyles.moreHandle} />
+            <div style={mobileTabStyles.moreGrid}>
+              {visibleNavItems
+                .filter(item => !MOBILE_TABS.some(t => t.href === item.href))
+                .map(item => {
+                  const isActive = currentPath === item.href ||
+                    (item.href !== '/admin' && currentPath.startsWith(item.href));
+                  const badge = item.href === '/admin/payments' && purchaseCount > 0 ? purchaseCount : 0;
+                  return (
+                    <button
+                      key={item.href}
+                      style={{
+                        ...mobileTabStyles.moreItem,
+                        background: isActive ? '#f0f0f0' : '#fff',
+                      }}
+                      onClick={() => {
+                        setMoreMenuOpen(false);
+                        router.push(item.href);
+                      }}
+                    >
+                      <span style={{ position: 'relative', display: 'inline-flex', color: isActive ? '#000' : '#666' }}>
+                        {icons[item.icon]}
+                        {badge > 0 && (
+                          <span style={mobileTabStyles.badge}>{badge > 99 ? '99+' : badge}</span>
+                        )}
+                      </span>
+                      <span style={{
+                        fontSize: '12px',
+                        fontWeight: isActive ? '600' : '400',
+                        color: isActive ? '#000' : '#333',
+                      }}>
+                        {item.label}
+                      </span>
+                    </button>
+                  );
+                })}
+            </div>
+            {employee && (
+              <div style={mobileTabStyles.moreFooter}>
+                <div style={{ fontSize: '13px', fontWeight: '600' }}>{employee.name}</div>
+                <div style={{ fontSize: '11px', color: '#999' }}>{employee.title}</div>
+                <button
+                  onClick={() => { setMoreMenuOpen(false); signOut(); }}
+                  style={mobileTabStyles.signOutLink}
+                >
+                  Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Floating staff chat — available on every admin page */}
       <StaffChatPanel />
@@ -1092,6 +1205,119 @@ const toastStyles = {
     padding: '0 4px',
     alignSelf: 'flex-start',
     lineHeight: 1,
+  },
+};
+
+// Mobile bottom tab bar styles
+const mobileTabStyles = {
+  bar: {
+    display: 'none', // shown via media query
+    position: 'fixed',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    background: '#fff',
+    borderTop: '1px solid #e5e5e5',
+    zIndex: 300,
+    paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+  },
+  tab: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '2px',
+    padding: '8px 0 6px',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    WebkitTapHighlightColor: 'transparent',
+    fontFamily: 'inherit',
+  },
+  tabLabel: {
+    fontSize: '10px',
+    fontWeight: '500',
+    letterSpacing: '0.2px',
+  },
+  badge: {
+    position: 'absolute',
+    top: '-6px',
+    right: '-10px',
+    background: '#ef4444',
+    color: '#fff',
+    fontSize: '9px',
+    fontWeight: '700',
+    minWidth: '16px',
+    height: '16px',
+    borderRadius: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '0 4px',
+    lineHeight: 1,
+  },
+  moreOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'rgba(0,0,0,0.4)',
+    zIndex: 299,
+    animation: 'fadeInOverlay 0.2s ease-out',
+  },
+  moreMenu: {
+    position: 'fixed',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    background: '#fff',
+    zIndex: 301,
+    paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0px))',
+    maxHeight: '70vh',
+    overflowY: 'auto',
+    animation: 'slideUpMore 0.25s ease-out',
+  },
+  moreHandle: {
+    width: '36px',
+    height: '4px',
+    background: '#ddd',
+    borderRadius: '2px',
+    margin: '10px auto 6px',
+  },
+  moreGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, 1fr)',
+    gap: '2px',
+    padding: '8px 12px 12px',
+  },
+  moreItem: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '14px 4px',
+    border: 'none',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
+    WebkitTapHighlightColor: 'transparent',
+  },
+  moreFooter: {
+    padding: '12px 20px 16px',
+    borderTop: '1px solid #e5e5e5',
+    textAlign: 'center',
+  },
+  signOutLink: {
+    background: 'none',
+    border: 'none',
+    color: '#ef4444',
+    fontSize: '13px',
+    fontWeight: '500',
+    cursor: 'pointer',
+    marginTop: '8px',
+    padding: '4px 0',
+    fontFamily: 'inherit',
   },
 };
 
@@ -1617,18 +1843,47 @@ if (typeof document !== 'undefined') {
         from { transform: translateX(100%); opacity: 0; }
         to { transform: translateX(0); opacity: 1; }
       }
+      @keyframes fadeInOverlay {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes slideUpMore {
+        from { transform: translateY(100%); }
+        to { transform: translateY(0); }
+      }
       @media (max-width: 768px) {
+        /* Hide sidebar completely on mobile — bottom tabs replace it */
         [data-admin-sidebar] {
-          transform: translateX(-100%);
-        }
-        [data-admin-sidebar].open {
-          transform: translateX(0);
+          display: none !important;
         }
         [data-admin-main] {
           margin-left: 0 !important;
         }
+        /* Compact mobile header — page title only, no hamburger */
         [data-admin-mobile-header] {
           display: flex !important;
+        }
+        [data-admin-mobile-header] button {
+          display: none !important;
+        }
+        /* Bottom padding so content isn't hidden behind tab bar */
+        [data-admin-main] > main {
+          padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important;
+        }
+        /* Show bottom tab bar */
+        [data-mobile-tab-bar] {
+          display: flex !important;
+        }
+        /* Tighter padding on mobile */
+        [data-admin-main] > main {
+          padding-left: 12px !important;
+          padding-right: 12px !important;
+          padding-top: 12px !important;
+        }
+        /* Page header tighter on mobile */
+        [data-admin-main] > div:first-of-type {
+          padding-left: 12px !important;
+          padding-right: 12px !important;
         }
       }
     `;

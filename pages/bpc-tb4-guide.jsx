@@ -244,7 +244,7 @@ export default function BPCTB4Guide() {
         }
 
         .guide-hero h1 {
-          font-size: 2.75rem;
+          font-size: clamp(2.5rem, 6vw, 4rem);
           font-weight: 900;
           line-height: 0.95;
           letter-spacing: -0.02em;
@@ -546,6 +546,7 @@ export default function BPCTB4Guide() {
           font-size: 1rem;
           font-weight: 700;
           margin-bottom: 0.5rem;
+          color: #ffffff;
         }
 
         .timeline-card p {

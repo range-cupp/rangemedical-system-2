@@ -536,6 +536,7 @@ export default function HRTGuide() {
           font-size: 1rem;
           font-weight: 700;
           margin-bottom: 0.5rem;
+          color: #ffffff;
         }
         .timeline-card p {
           font-size: 0.875rem;

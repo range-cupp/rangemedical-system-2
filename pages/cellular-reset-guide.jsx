@@ -228,7 +228,7 @@ export default function CellularResetGuide() {
 
       <style jsx>{`
         .guide-hero { padding: 6rem 2rem 5rem; }
-        .guide-hero h1 { font-size: clamp(2.5rem, 6vw, 3.5rem); font-weight: 900; line-height: 0.95; letter-spacing: -0.02em; text-transform: uppercase; color: #1a1a1a; margin-bottom: 2rem; }
+        .guide-hero h1 { font-size: clamp(2.5rem, 6vw, 4rem); font-weight: 900; line-height: 0.95; letter-spacing: -0.02em; text-transform: uppercase; color: #1a1a1a; margin-bottom: 2rem; }
         .hero-rule { width: 100%; max-width: 700px; height: 1px; background: #e0e0e0; margin-bottom: 1.5rem; }
         .hero-sub { font-size: 1.0625rem; color: #737373; max-width: 600px; line-height: 1.75; }
         .hero-dose { display: inline-flex; gap: 1.5rem; margin-top: 1.5rem; padding: 1rem 1.5rem; background: #ffffff; border: 1px solid #e0e0e0; font-size: 0.9rem; color: #737373; }
@@ -236,7 +236,7 @@ export default function CellularResetGuide() {
         .section { padding: 6rem 2rem; }
         .section-gray { background: #fafafa; }
         .section-dark { background: #1a1a1a; color: #ffffff; }
-        .section-title { font-size: clamp(1.75rem, 4vw, 2.25rem); font-weight: 900; line-height: 0.95; letter-spacing: -0.02em; text-transform: uppercase; color: #1a1a1a; margin-bottom: 1rem; }
+        .section-title { font-size: clamp(2rem, 5vw, 3rem); font-weight: 900; line-height: 0.95; letter-spacing: -0.02em; text-transform: uppercase; color: #1a1a1a; margin-bottom: 1rem; }
         .section-subtitle { font-size: 1rem; color: #737373; max-width: 600px; line-height: 1.75; margin-bottom: 2rem; }
         .section-dark .section-subtitle { color: rgba(255,255,255,0.7); }
         .section-dark .section-title { color: #ffffff; }
@@ -260,7 +260,7 @@ export default function CellularResetGuide() {
         .tip-box p { font-size: 0.9rem; color: #737373; line-height: 1.6; margin: 0; }
         .timeline-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.5rem; }
         .timeline-card { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); padding: 1.5rem; }
-        .timeline-card h4 { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .timeline-card h4 { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; color: #ffffff; }
         .timeline-card p { font-size: 0.875rem; color: rgba(255,255,255,0.7); line-height: 1.6; }
         .safety-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
         .safety-card { background: #ffffff; border: 1px solid #e0e0e0; padding: 1.5rem; }

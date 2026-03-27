@@ -260,7 +260,7 @@ export default function HBOTGuide() {
         .step-content p { font-size: 0.9rem; color: #737373; line-height: 1.6; }
         .timeline-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.5rem; }
         .timeline-card { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 1.5rem; }
-        .timeline-card h4 { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .timeline-card h4 { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; color: #ffffff; }
         .timeline-card p { font-size: 0.875rem; color: rgba(255,255,255,0.8); line-height: 1.6; }
         .safety-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
         .safety-card { background: #ffffff; border: 1px solid #e0e0e0; padding: 1.5rem; }

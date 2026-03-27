@@ -179,6 +179,26 @@ export default async function handler(req, res) {
       }
     }
 
+    // ── Auto-complete "Document encounter" task when note is created ──
+    const resolvedApptId = data.appointment_id || appointment_id;
+    if (resolvedApptId) {
+      try {
+        await supabase
+          .from('tasks')
+          .update({
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+          })
+          .eq('appointment_id', resolvedApptId)
+          .eq('status', 'pending')
+          .ilike('title', 'Document encounter%');
+
+        console.log(`Auto-completed encounter task for appointment ${resolvedApptId}`);
+      } catch (taskErr) {
+        console.error('Task auto-complete error (non-fatal):', taskErr.message);
+      }
+    }
+
     // ── Weight Loss: Sync note data → service_logs, protocol, vitals ──
     // Detect weight loss encounter by encounter_service string or form type
     const esLower = (encounter_service || '').toLowerCase();

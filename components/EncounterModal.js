@@ -79,6 +79,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
   const [noteType, setNoteType] = useState('soap');
   const [noteFormatting, setNoteFormatting] = useState(false);
   const [noteSaving, setNoteSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef(null);
   const noteRef = useRef(null);
@@ -496,6 +497,11 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
   const handleSaveNote = async () => {
     const noteMarkdown = getNoteMarkdown();
     if (!noteMarkdown.trim()) return;
+    setSaveError(null);
+    if (!appointment.patient_id) {
+      setSaveError('Unable to save — no patient linked to this appointment.');
+      return;
+    }
     setNoteSaving(true);
     try {
       const res = await fetch('/api/notes/create', {
@@ -511,7 +517,9 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
         }),
       });
       const data = await res.json();
-      if (data.note) {
+      if (!res.ok) {
+        setSaveError(data.error || 'Failed to save note');
+      } else if (data.note) {
         setEncounterNotes(prev => [...prev, data.note]);
         if (noteRef.current) noteRef.current.innerHTML = '';
         setNoteIsEmpty(true);
@@ -521,6 +529,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
       }
     } catch (err) {
       console.error('Save note error:', err);
+      setSaveError('Network error — please try again');
     } finally {
       setNoteSaving(false);
     }
@@ -1317,13 +1326,18 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                 )}
 
                 {/* Note creation — interactive form mode */}
-                {showNoteForm && canAuthorNotes && noteMode === 'interactive' && interactiveFormType && (
+                {showNoteForm && canAuthorNotes && noteMode === 'interactive' && interactiveFormType && (<>
                   <InteractiveEncounterForm
                     formType={interactiveFormType}
                     vitals={vitals}
                     currentUser={currentUser}
                     onCancel={() => { setNoteMode('choose'); setInteractiveFormType(null); }}
                     onSave={async ({ markdown, structured_data, note_type, form_type }) => {
+                      setSaveError(null);
+                      if (!appointment.patient_id) {
+                        setSaveError('Unable to save — no patient linked to this appointment.');
+                        return;
+                      }
                       try {
                         const res = await fetch('/api/notes/create', {
                           method: 'POST',
@@ -1339,6 +1353,10 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                           }),
                         });
                         const data = await res.json();
+                        if (!res.ok) {
+                          setSaveError(data.error || 'Failed to save note');
+                          return;
+                        }
                         if (data.note) {
                           setEncounterNotes(prev => [...prev, data.note]);
                           setShowNoteForm(false);
@@ -1348,10 +1366,12 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                         }
                       } catch (err) {
                         console.error('Save interactive note error:', err);
+                        setSaveError('Network error — please try again');
                       }
                     }}
                   />
-                )}
+                  {saveError && <div style={{ color: '#dc2626', fontSize: '12px', marginTop: '8px' }}>{saveError}</div>}
+                </>)}
 
                 {/* Note creation — free text mode */}
                 {showNoteForm && canAuthorNotes && noteMode === 'freetext' && (
@@ -1532,7 +1552,8 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                         {noteFormatting ? 'Formatting...' : '✨ Format with AI'}
                       </button>
                       <div className="enc-actions-right">
-                        <button onClick={() => { setShowNoteForm(false); setNoteMode('choose'); if (noteRef.current) noteRef.current.innerHTML = ''; setNoteIsEmpty(true); stopDictation(); }} className="enc-btn enc-btn-secondary">Cancel</button>
+                        {saveError && <span style={{ color: '#dc2626', fontSize: '12px', marginRight: '8px' }}>{saveError}</span>}
+                        <button onClick={() => { setShowNoteForm(false); setNoteMode('choose'); if (noteRef.current) noteRef.current.innerHTML = ''; setNoteIsEmpty(true); stopDictation(); setSaveError(null); }} className="enc-btn enc-btn-secondary">Cancel</button>
                         <button onClick={handleSaveNote} disabled={noteIsEmpty || noteSaving} className="enc-btn enc-btn-primary">
                           {noteSaving ? 'Saving...' : 'Save as Draft'}
                         </button>

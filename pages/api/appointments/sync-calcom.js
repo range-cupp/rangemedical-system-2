@@ -73,13 +73,21 @@ export default async function handler(req, res) {
         continue;
       }
 
-      // Try to find the patient
+      // Try to find the patient — match by email first, then by name
       let patientId = null;
       if (booking.attendee_email) {
         const { data: patient } = await supabase
           .from('patients')
           .select('id')
           .eq('email', booking.attendee_email)
+          .single();
+        if (patient) patientId = patient.id;
+      }
+      if (!patientId && booking.attendee_name) {
+        const { data: patient } = await supabase
+          .from('patients')
+          .select('id')
+          .ilike('name', booking.attendee_name.trim())
           .single();
         if (patient) patientId = patient.id;
       }

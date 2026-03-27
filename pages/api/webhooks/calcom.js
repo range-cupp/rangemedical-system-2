@@ -196,7 +196,7 @@ export default async function handler(req, res) {
     if (triggerEvent === 'BOOKING_CREATED') {
       console.log('Cal.com BOOKING_CREATED:', calcomUid, eventTitle, attendee.email, 'action:', action);
 
-      // Try to match attendee email to a patient
+      // Try to match attendee to a patient — email first, then name fallback
       let patientId = null;
       if (attendee.email && !attendee.email.endsWith('@booking.rangemedical.com')) {
         const { data: patient } = await supabase
@@ -212,6 +212,17 @@ export default async function handler(req, res) {
         const idPart = attendee.email.split('@')[0];
         if (idPart.length === 36) {
           patientId = idPart;
+        }
+      }
+      // Fallback: match by name if email didn't resolve
+      if (!patientId && attendee.name) {
+        const { data: patient } = await supabase
+          .from('patients')
+          .select('id')
+          .ilike('name', attendee.name.trim())
+          .single();
+        if (patient) {
+          patientId = patient.id;
         }
       }
 

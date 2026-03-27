@@ -57,14 +57,25 @@ function CheckoutForm({ onSuccess }) {
         type="submit"
         disabled={!stripe || busy}
         style={{
-          width: '100%', marginTop: 20, padding: 16, background: '#dc2626', color: '#fff',
+          width: '100%', marginTop: 20, padding: 16, background: busy ? '#991b1b' : '#dc2626', color: '#fff',
           border: 'none', borderRadius: 0, fontSize: 16, fontWeight: 600,
-          cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.6 : 1,
-          fontFamily: 'inherit',
+          cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.85 : 1,
+          fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+          transition: 'background 0.2s, opacity 0.2s',
         }}
       >
+        {busy && (
+          <span style={{
+            display: 'inline-block', width: 18, height: 18,
+            border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff',
+            borderRadius: '50%', animation: 'spin 0.6s linear infinite',
+          }} />
+        )}
         {label}
       </button>
+      {busy && (
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      )}
     </form>
   );
 }

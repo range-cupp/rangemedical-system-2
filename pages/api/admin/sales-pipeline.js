@@ -122,6 +122,11 @@ async function handleTrialView(res) {
         else if (trial.sessions_used === 1) derivedStage = 'day_1';
         else if (trial.payment_status === 'paid') derivedStage = 'purchased';
         else derivedStage = 'new_lead';
+      } else {
+        // No trial pass data — map generic pipeline stages to trial stages
+        // 'booked' from checkout-complete = purchased, otherwise new_lead
+        const stageMap = { booked: 'purchased', new_lead: 'new_lead', lost: 'lost' };
+        derivedStage = stageMap[lead.stage] || 'new_lead';
       }
 
       return {

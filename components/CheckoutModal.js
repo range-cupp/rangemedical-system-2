@@ -15,11 +15,12 @@ function PaymentForm({ onSuccess, onError, productName, amountLabel }) {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
+  const [completing, setCompleting] = useState(false);
   const [payError, setPayError] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!stripe || !elements) return;
+    if (!stripe || !elements || processing || completing) return;
     setProcessing(true);
     setPayError(null);
 
@@ -34,23 +35,44 @@ function PaymentForm({ onSuccess, onError, productName, amountLabel }) {
 
       if (error) throw new Error(error.message);
       if (paymentIntent?.status === 'succeeded') {
-        onSuccess(paymentIntent.id);
+        setProcessing(false);
+        setCompleting(true);
+        await onSuccess(paymentIntent.id);
       }
     } catch (err) {
       setPayError(err.message);
       if (onError) onError(err.message);
-    } finally {
       setProcessing(false);
     }
   };
+
+  const busy = processing || completing;
+  const label = completing ? 'Confirming...' : processing ? 'Processing...' : `Pay ${amountLabel}`;
 
   return (
     <form onSubmit={handleSubmit}>
       <PaymentElement />
       {payError && <p style={s.error}>{payError}</p>}
-      <button type="submit" disabled={!stripe || processing} style={{ ...s.submitBtn, opacity: processing ? 0.6 : 1, cursor: processing ? 'not-allowed' : 'pointer' }}>
-        {processing ? 'Processing...' : `Pay ${amountLabel}`}
+      <button type="submit" disabled={!stripe || busy} style={{
+        ...s.submitBtn,
+        opacity: busy ? 0.85 : 1,
+        cursor: busy ? 'not-allowed' : 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+        background: busy ? '#333' : '#171717',
+        transition: 'background 0.2s, opacity 0.2s',
+      }}>
+        {busy && (
+          <span style={{
+            display: 'inline-block', width: 18, height: 18,
+            border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff',
+            borderRadius: '50%', animation: 'checkoutSpin 0.6s linear infinite',
+          }} />
+        )}
+        {label}
       </button>
+      {busy && (
+        <style>{`@keyframes checkoutSpin { to { transform: rotate(360deg); } }`}</style>
+      )}
     </form>
   );
 }
@@ -150,7 +172,7 @@ export default function CheckoutModal({
 
     // Record the purchase server-side
     try {
-      await fetch('/api/stripe/checkout-complete', {
+      const res = await fetch('/api/stripe/checkout-complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -166,6 +188,7 @@ export default function CheckoutModal({
           serviceName: serviceName || null,
         }),
       });
+      await res.json(); // Ensure response completes
     } catch (e) {
       console.error('Post-payment recording error:', e);
     }

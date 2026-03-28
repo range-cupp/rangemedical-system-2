@@ -1887,28 +1887,32 @@ export default function PatientProfile() {
   // Quick weight log for missed WL sessions (patient called/texted weight)
   const openQuickWeightModal = (protocol, slotDate) => {
     setQuickWeightModal({ protocol, slotDate });
-    setQuickWeightForm({ weight: '', notes: '' });
+    setQuickWeightForm({ weight: '', dosage: protocol.selected_dose || '', notes: '' });
     setQuickWeightSaving(false);
   };
 
   const handleQuickWeightSave = async () => {
-    if (!quickWeightModal || !quickWeightForm.weight) return;
+    if (!quickWeightModal) return;
+    // Allow saving with just dose (no weight required for backfilling)
+    if (!quickWeightForm.weight && !quickWeightForm.dosage) return;
     setQuickWeightSaving(true);
     try {
       const { protocol, slotDate } = quickWeightModal;
-      // Use entry_type 'weight_check' so it does NOT increment sessions_used
-      // This is for when patients call/text their weight — the injection was already dispensed
+      // If dose is provided, treat as an injection entry; otherwise weight_check
+      const hasWeight = !!quickWeightForm.weight;
+      const hasDose = !!quickWeightForm.dosage;
+      const entryType = hasDose ? 'injection' : 'weight_check';
       const res = await fetch('/api/service-log', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           patient_id: patient.id,
           category: 'weight_loss',
-          entry_type: 'weight_check',
+          entry_type: entryType,
           entry_date: slotDate,
           medication: protocol.medication || protocol.selected_medication || null,
-          dosage: protocol.selected_dose || null,
-          weight: quickWeightForm.weight,
+          dosage: quickWeightForm.dosage || protocol.selected_dose || null,
+          weight: hasWeight ? quickWeightForm.weight : null,
           notes: quickWeightForm.notes || null,
           protocol_id: protocol.id,
           force: true,
@@ -2041,6 +2045,7 @@ export default function PatientProfile() {
           status: editForm.status,
           notes: editForm.notes || null,
           sessions_used: editForm.sessionsUsed,
+          total_sessions: editForm.totalSessions ? parseInt(editForm.totalSessions) : null,
           // Peptide vial fields
           num_vials: editForm.numVials ? parseInt(editForm.numVials) : null,
           doses_per_vial: editForm.dosesPerVial ? parseInt(editForm.dosesPerVial) : null,
@@ -8091,8 +8096,51 @@ export default function PatientProfile() {
                   )}
                 </div>
 
-                {/* ── Frequency (weight loss & peptide) ── */}
-                {(selectedProtocol.category === 'weight_loss' || selectedProtocol.category === 'peptide') && (
+                {/* ── Weight Loss: Start Date, Total Sessions, Frequency ── */}
+                {selectedProtocol.category === 'weight_loss' && (
+                  <>
+                    <div className="form-section-label" style={{ marginTop: '12px' }}>Timeline</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div className="form-group">
+                        <label>Start Date</label>
+                        <input type="date" value={editForm.startDate} onChange={e => setEditForm({...editForm, startDate: e.target.value})} />
+                      </div>
+                      <div className="form-group">
+                        <label>Total Sessions (weeks)</label>
+                        <input type="number" min="1" value={editForm.totalSessions || ''} onChange={e => setEditForm({...editForm, totalSessions: e.target.value ? parseInt(e.target.value) : null})} placeholder="e.g. 8" />
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div className="form-group">
+                        <label>Frequency</label>
+                        <select value={editForm.frequency} onChange={e => setEditForm({...editForm, frequency: e.target.value})}>
+                          <option value="">Select frequency...</option>
+                          {FREQUENCY_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label>Delivery Method</label>
+                        <select value={editForm.deliveryMethod} onChange={e => setEditForm({...editForm, deliveryMethod: e.target.value})}>
+                          <option value="take_home">Take Home</option>
+                          <option value="in_clinic">In-Clinic</option>
+                        </select>
+                      </div>
+                    </div>
+                    {editForm.startDate && editForm.totalSessions && (
+                      <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', padding: '8px 12px', borderRadius: 0, fontSize: 12, color: '#0369a1', marginBottom: 12 }}>
+                        Timeline: {editForm.startDate} → {(() => {
+                          const interval = (editForm.frequency || '').toLowerCase().includes('bi') ? 14 : 7;
+                          const end = new Date(editForm.startDate + 'T12:00:00');
+                          end.setDate(end.getDate() + (editForm.totalSessions - 1) * interval);
+                          return end.toISOString().split('T')[0];
+                        })()} ({editForm.totalSessions} {(editForm.frequency || '').toLowerCase().includes('bi') ? 'bi-weekly' : 'weekly'} slots)
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* ── Frequency (peptide only) ── */}
+                {selectedProtocol.category === 'peptide' && (
                   <div className="form-group">
                     <label>Frequency</label>
                     <select value={editForm.frequency} onChange={e => setEditForm({...editForm, frequency: e.target.value})}>
@@ -8813,24 +8861,34 @@ export default function PatientProfile() {
           <div className="modal-overlay" {...overlayClickProps(() => setQuickWeightModal(null))}>
             <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 400 }}>
               <div className="modal-header">
-                <h3>Log Weight — {formatShortDate(quickWeightModal.slotDate)}</h3>
+                <h3>Log Entry — {formatShortDate(quickWeightModal.slotDate)}</h3>
                 <button onClick={() => setQuickWeightModal(null)} className="close-btn">&times;</button>
               </div>
               <div className="modal-body">
                 <p style={{ fontSize: 13, color: '#6b7280', margin: '0 0 16px' }}>
-                  Weight check-in for {patient?.first_name || patient?.name}. This logs their weight only — it won't count as an injection or change session count.
+                  Fill in this week for {patient?.first_name || patient?.name}. Add dose to log as injection, or just weight for a check-in.
                 </p>
-                <div className="form-group">
-                  <label>Weight (lbs) *</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={quickWeightForm.weight}
-                    onChange={e => setQuickWeightForm({ ...quickWeightForm, weight: e.target.value })}
-                    placeholder="e.g. 148.5"
-                    autoFocus
-                    style={{ fontSize: 16 }}
-                  />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="form-group">
+                    <label>Dose</label>
+                    <input
+                      type="text"
+                      value={quickWeightForm.dosage}
+                      onChange={e => setQuickWeightForm({ ...quickWeightForm, dosage: e.target.value })}
+                      placeholder="e.g. 4mg"
+                      autoFocus
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Weight (lbs)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={quickWeightForm.weight}
+                      onChange={e => setQuickWeightForm({ ...quickWeightForm, weight: e.target.value })}
+                      placeholder="e.g. 148.5"
+                    />
+                  </div>
                 </div>
                 <div className="form-group">
                   <label>Notes</label>
@@ -8838,7 +8896,7 @@ export default function PatientProfile() {
                     value={quickWeightForm.notes}
                     onChange={e => setQuickWeightForm({ ...quickWeightForm, notes: e.target.value })}
                     rows={2}
-                    placeholder="e.g. Called in weight, no injection this week"
+                    placeholder="e.g. Backfill, no side effects"
                   />
                 </div>
               </div>
@@ -8856,7 +8914,7 @@ export default function PatientProfile() {
                   <button onClick={() => setQuickWeightModal(null)} className="btn-secondary">Cancel</button>
                   <button
                     onClick={handleQuickWeightSave}
-                    disabled={quickWeightSaving || !quickWeightForm.weight}
+                    disabled={quickWeightSaving || (!quickWeightForm.weight && !quickWeightForm.dosage)}
                     className="btn-primary"
                   >
                     {quickWeightSaving ? 'Saving...' : 'Save Weight'}

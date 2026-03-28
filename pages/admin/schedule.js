@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import AdminLayout from '../../components/AdminLayout';
 import EncounterModal from '../../components/EncounterModal';
 import { useAuth } from '../../components/AuthProvider';
@@ -224,6 +225,24 @@ export default function SchedulePage() {
                   </td>
                   <td style={styles.td}>
                     <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      <Link
+                        href={`/admin/appointments/${apt.id}/prep`}
+                        style={{
+                          background: '#fef3c7',
+                          border: '1px solid #fcd34d',
+                          borderRadius: 0,
+                          cursor: 'pointer',
+                          color: '#92400e',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          padding: '4px 10px',
+                          textDecoration: 'none',
+                          display: 'inline-block',
+                        }}
+                        title="Appointment prep checklist"
+                      >
+                        Prep
+                      </Link>
                       <button
                         onClick={() => setEncounterAppt(apt)}
                         style={{

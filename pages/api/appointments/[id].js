@@ -77,5 +77,41 @@ export default async function handler(req, res) {
     }
   }
 
+  // ── PATCH: Update prep fields on appointment ──
+  if (req.method === 'PATCH') {
+    try {
+      const allowedFields = [
+        'labs_delivered', 'prep_complete', 'provider_briefed', 'prep_notes',
+      ];
+      const updates = {};
+      for (const field of allowedFields) {
+        if (req.body[field] !== undefined) {
+          updates[field] = req.body[field];
+        }
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ error: 'No valid fields to update' });
+      }
+
+      const { data, error } = await supabase
+        .from('appointments')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Patch appointment error:', error);
+        return res.status(500).json({ error: error.message });
+      }
+
+      return res.status(200).json({ appointment: data });
+    } catch (error) {
+      console.error('Patch appointment error:', error);
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
   return res.status(405).json({ error: 'Method not allowed' });
 }

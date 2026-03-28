@@ -1778,19 +1778,23 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               <span>{getStatusBadge(appt.status)}</span>
             </div>
 
-            {/* Forms / Consent checklist */}
-            {apptPatientInfo && (() => {
-              const requiredFormIds = REQUIRED_FORMS[appt.service_category] || REQUIRED_FORMS['other'] || ['intake', 'hipaa'];
+            {/* Forms / Consent checklist — compute live status for use in prep checklist too */}
+            {(() => {
+              // Compute live form completion (used by both form display and prep checklist)
+              const requiredFormIds = apptPatientInfo ? (REQUIRED_FORMS[appt.service_category] || REQUIRED_FORMS['other'] || ['intake', 'hipaa']) : [];
               const completedConsentFormIds = new Set(
-                (apptPatientInfo.consents || []).map(c => CONSENT_TYPE_TO_FORM_ID[c.consent_type] || c.consent_type)
+                (apptPatientInfo?.consents || []).map(c => CONSENT_TYPE_TO_FORM_ID[c.consent_type] || c.consent_type)
               );
-              const hasIntake = (apptPatientInfo.intakes || []).length > 0;
+              const hasIntake = (apptPatientInfo?.intakes || []).length > 0;
               const formChecks = requiredFormIds.map(formId => {
                 if (formId === 'intake') return { formId, name: 'Medical Intake', done: hasIntake };
                 return { formId, name: FORM_NAMES[formId] || formId, done: completedConsentFormIds.has(formId) };
               });
-              const allDone = formChecks.every(f => f.done);
+              const allDone = requiredFormIds.length === 0 || formChecks.every(f => f.done);
+              // Store on appt for prep checklist to use
+              appt._liveFormsComplete = allDone;
               const missingCount = formChecks.filter(f => !f.done).length;
+              if (!apptPatientInfo) return null;
               return (
                 <div style={{
                   margin: '12px 0',
@@ -2033,12 +2037,13 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             {(() => {
               const sn = (appt.service_name || '').toLowerCase();
               const isPrereqSvc = sn.includes('vitamin c') || sn.includes('methylene blue') || sn.includes('mb +') || sn.includes('mb combo');
-              const isLabRev = sn.includes('lab review');
+              const isLabAppt = sn.includes('lab review') || sn.includes('lab assessment') || sn.includes('lab follow') || sn.includes('initial lab');
+              const labDeliveryLabel = appt.modality === 'telemedicine' ? 'Labs emailed to patient' : 'Labs printed';
               const prepItems = [
                 { label: 'Instructions sent', ok: appt.instructions_sent, auto: true },
-                { label: 'Forms complete', ok: appt.forms_complete, auto: true },
+                { label: 'Forms complete', ok: appt._liveFormsComplete ?? appt.forms_complete, auto: true },
                 ...(isPrereqSvc ? [{ label: 'Blood work prereq', ok: appt.prereqs_met, auto: true }] : []),
-                ...(isLabRev ? [{ label: 'Labs delivered', ok: appt.labs_delivered, field: 'labs_delivered' }] : []),
+                ...(isLabAppt ? [{ label: labDeliveryLabel, ok: appt.labs_delivered, field: 'labs_delivered' }] : []),
                 { label: 'Room / supplies prepped', ok: appt.prep_complete, field: 'prep_complete' },
                 { label: 'Provider briefed', ok: appt.provider_briefed, field: 'provider_briefed' },
               ];

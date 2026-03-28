@@ -277,10 +277,34 @@ export default async function handler(req, res) {
               updated_at: new Date().toISOString(),
             };
 
-            // Update dose on protocol if provided
+            // Update dose on protocol if provided + track escalation
             if (dose) {
+              const previousDose = activeProtocol.selected_dose || activeProtocol.dose || null;
               protocolUpdates.selected_dose = dose;
               protocolUpdates.dose = dose;
+              protocolUpdates.current_dose = dose;
+
+              // Log dose change if different from previous dose
+              if (previousDose && previousDose !== dose) {
+                const plan = structured_data?.assessment?.plan || '';
+                const isIncrease = plan.toLowerCase().includes('increase');
+                const isDecrease = plan.toLowerCase().includes('decrease');
+                const direction = isIncrease ? 'increased' : (isDecrease ? 'decreased' : 'changed');
+
+                await supabase.from('protocol_logs').insert({
+                  protocol_id: activeProtocol.id,
+                  patient_id,
+                  log_type: 'dose_change',
+                  log_date: logDate,
+                  dose: dose,
+                  weight: weight || null,
+                  notes: `Dose ${direction}: ${previousDose} → ${dose}. ${plan}${structured_data?.additional?.notes ? ' — ' + structured_data.additional.notes : ''}`,
+                  logged_by: created_by || 'Staff',
+                }).then(({ error: doseLogErr }) => {
+                  if (doseLogErr) console.error('Dose change log error:', doseLogErr);
+                  else console.log(`Dose escalation logged: ${previousDose} → ${dose} for protocol ${activeProtocol.id}`);
+                });
+              }
             }
 
             // Increment sessions_used only if we created a new service log (not updating existing)

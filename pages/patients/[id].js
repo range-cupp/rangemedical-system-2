@@ -4463,6 +4463,40 @@ export default function PatientProfile() {
                           )}
                           <div className="protocol-dates">Started {formatShortDate(protocol.start_date)}{protocol.end_date && ` → ${formatShortDate(protocol.end_date)}`}</div>
 
+                          {/* Billing info for weight loss — monthly charge tracking */}
+                          {isWeightLoss && protocol.status === 'active' && (() => {
+                            const protoPurchases = allPurchases
+                              .filter(p => p.protocol_id === protocol.id && p.purchase_date)
+                              .sort((a, b) => new Date(b.purchase_date) - new Date(a.purchase_date));
+                            if (protoPurchases.length === 0) return null;
+                            const lastPurchase = protoPurchases[0];
+                            const lastDate = new Date(lastPurchase.purchase_date + 'T12:00:00');
+                            const nextChargeDate = new Date(lastDate);
+                            nextChargeDate.setDate(nextChargeDate.getDate() + 28);
+                            const today = new Date();
+                            const daysUntilCharge = Math.ceil((nextChargeDate - today) / (1000 * 60 * 60 * 24));
+                            const isOverdue = daysUntilCharge < 0;
+                            const isDueSoon = daysUntilCharge >= 0 && daysUntilCharge <= 5;
+                            return (
+                              <div style={{ margin: '6px 0 2px', padding: '8px 12px', background: isOverdue ? '#fef2f2' : isDueSoon ? '#fffbeb' : '#f0fdf4', border: `1px solid ${isOverdue ? '#fecaca' : isDueSoon ? '#fde68a' : '#bbf7d0'}`, borderRadius: 0, fontSize: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span>
+                                  <span style={{ color: '#6b7280' }}>Last charge: </span>
+                                  <strong>{formatShortDate(lastPurchase.purchase_date)}</strong>
+                                  <span style={{ color: '#6b7280' }}> — ${lastPurchase.amount}</span>
+                                  <span style={{ color: '#9ca3af', marginLeft: 6 }}>Month {protoPurchases.length}</span>
+                                </span>
+                                <span style={{ fontWeight: 600, color: isOverdue ? '#dc2626' : isDueSoon ? '#d97706' : '#16a34a' }}>
+                                  {isOverdue
+                                    ? `⚠ Charge overdue by ${Math.abs(daysUntilCharge)}d`
+                                    : isDueSoon
+                                      ? `Next charge in ${daysUntilCharge}d (~${formatShortDate(nextChargeDate.toISOString().split('T')[0])})`
+                                      : `Next charge ~${formatShortDate(nextChargeDate.toISOString().split('T')[0])} (${daysUntilCharge}d)`
+                                  }
+                                </span>
+                              </div>
+                            );
+                          })()}
+
                           {/* Activity Summary + Fulfillment Tracker — at-a-glance for staff */}
                           {protocol.status === 'active' && (protoServiceLogs.length > 0 || sessionsTotal > 0) && (() => {
                             // Aggregate fulfillment from service logs

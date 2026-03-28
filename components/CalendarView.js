@@ -20,7 +20,7 @@ const FORM_NAMES = {
 };
 const CONSENT_TYPE_TO_FORM_ID = {
   'hipaa': 'hipaa', 'blood_draw': 'blood-draw', 'blood-draw': 'blood-draw',
-  'hrt': 'hrt', 'peptide': 'peptide', 'iv': 'iv', 'iv_injection': 'iv',
+  'hrt': 'hrt', 'peptide': 'peptide', 'iv': 'iv', 'iv_injection': 'iv', 'iv-injection': 'iv',
   'hbot': 'hbot', 'weight_loss': 'weight-loss', 'weight-loss': 'weight-loss',
   'red_light': 'red-light', 'red-light': 'red-light', 'prp': 'prp',
   'exosome_iv': 'exosome-iv', 'exosome-iv': 'exosome-iv',

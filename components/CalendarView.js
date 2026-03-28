@@ -4,6 +4,7 @@
 // Replaces BookingTab in Command Center
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import { getCategoryStyle, CATEGORY_COLORS } from '../lib/protocol-config';
 import { overlayClickProps } from './AdminLayout';
 import { APPOINTMENT_SERVICES, getAllServices, PROVIDERS, LOCATIONS, DEFAULT_LOCATION, LOCATION_ENABLED_CATEGORIES, REQUIRED_FORMS } from '../lib/appointment-services';
@@ -1960,6 +1961,16 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                   : 'Write Encounter Note'
                 }
               </button>
+            </div>
+
+            {/* Prep Checklist link */}
+            <div style={{ marginTop: '8px' }}>
+              <Link
+                href={`/admin/appointments/${appt.id}/prep`}
+                style={{ ...styles.actionBtn, width: '100%', background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', fontWeight: '600', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', textDecoration: 'none', boxSizing: 'border-box' }}
+              >
+                Prep Checklist
+              </Link>
             </div>
 
             {/* Delete button — always visible, no notification sent */}

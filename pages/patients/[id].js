@@ -4463,146 +4463,113 @@ export default function PatientProfile() {
                           )}
                           <div className="protocol-dates">Started {formatShortDate(protocol.start_date)}{protocol.end_date && ` → ${formatShortDate(protocol.end_date)}`}</div>
 
-                          {/* Billing info for weight loss — monthly charge tracking */}
+
+                          {/* ===== Weight Loss: Section 1 — Status Strip ===== */}
                           {isWeightLoss && protocol.status === 'active' && (() => {
                             const protoPurchases = allPurchases
                               .filter(p => p.protocol_id === protocol.id && p.purchase_date)
                               .sort((a, b) => new Date(b.purchase_date) - new Date(a.purchase_date));
-                            if (protoPurchases.length === 0) return null;
-                            const lastPurchase = protoPurchases[0];
-                            const lastDate = new Date(lastPurchase.purchase_date + 'T12:00:00');
-                            const nextChargeDate = new Date(lastDate);
-                            nextChargeDate.setDate(nextChargeDate.getDate() + 28);
+                            const lastPurchase = protoPurchases.length > 0 ? protoPurchases[0] : null;
+                            const lastPurchaseDate = lastPurchase ? new Date(lastPurchase.purchase_date + 'T12:00:00') : null;
+                            const nextChargeDate = lastPurchaseDate ? new Date(lastPurchaseDate.getTime() + 28 * 86400000) : null;
                             const today = new Date();
-                            const daysUntilCharge = Math.ceil((nextChargeDate - today) / (1000 * 60 * 60 * 24));
-                            const isOverdue = daysUntilCharge < 0;
-                            const isDueSoon = daysUntilCharge >= 0 && daysUntilCharge <= 5;
-                            return (
-                              <div style={{ margin: '6px 0 2px', padding: '8px 12px', background: isOverdue ? '#fef2f2' : isDueSoon ? '#fffbeb' : '#f0fdf4', border: `1px solid ${isOverdue ? '#fecaca' : isDueSoon ? '#fde68a' : '#bbf7d0'}`, borderRadius: 0, fontSize: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span>
-                                  <span style={{ color: '#6b7280' }}>Last charge: </span>
-                                  <strong>{formatShortDate(lastPurchase.purchase_date)}</strong>
-                                  <span style={{ color: '#6b7280' }}> — ${lastPurchase.amount}</span>
-                                  <span style={{ color: '#9ca3af', marginLeft: 6 }}>Month {protoPurchases.length}</span>
-                                </span>
-                                <span style={{ fontWeight: 600, color: isOverdue ? '#dc2626' : isDueSoon ? '#d97706' : '#16a34a' }}>
-                                  {isOverdue
-                                    ? `⚠ Charge overdue by ${Math.abs(daysUntilCharge)}d`
-                                    : isDueSoon
-                                      ? `Next charge in ${daysUntilCharge}d (~${formatShortDate(nextChargeDate.toISOString().split('T')[0])})`
-                                      : `Next charge ~${formatShortDate(nextChargeDate.toISOString().split('T')[0])} (${daysUntilCharge}d)`
-                                  }
-                                </span>
-                              </div>
-                            );
-                          })()}
+                            const daysUntilCharge = nextChargeDate ? Math.ceil((nextChargeDate - today) / 86400000) : null;
+                            const chargeOverdue = daysUntilCharge !== null && daysUntilCharge < 0;
+                            const chargeSoon = daysUntilCharge !== null && daysUntilCharge >= 0 && daysUntilCharge <= 5;
 
-                          {/* Activity Summary + Fulfillment Tracker — at-a-glance for staff */}
-                          {protocol.status === 'active' && (protoServiceLogs.length > 0 || sessionsTotal > 0) && (() => {
-                            // Aggregate fulfillment from service logs
-                            // "Dispensed" = medication that left the clinic (pickups + shipped)
-                            // "Administered" = actual injections taken (self-reported check-ins + in-clinic injections)
-                            const injectionLogs = protoServiceLogs.filter(l => l.entry_type === 'injection');
-                            const shippedLogs = protoServiceLogs.filter(l => l.entry_type === 'pickup' && l.fulfillment_method === 'overnight');
-                            const pickupLogs = protoServiceLogs.filter(l => l.entry_type === 'pickup' && l.fulfillment_method !== 'overnight');
-                            const shippedCount = shippedLogs.reduce((sum, l) => sum + (l.quantity || 1), 0);
-                            const pickupCount = pickupLogs.reduce((sum, l) => sum + (l.quantity || 1), 0);
-                            const totalDispensed = shippedCount + pickupCount;
-                            const totalAdministered = injectionLogs.length;
-                            const pending = sessionsTotal ? Math.max(sessionsTotal - totalDispensed, 0) : 0;
-                            const lastEntry = lastInjection || lastSession;
-                            const daysSinceLast = lastEntry ? Math.floor((new Date() - new Date(lastEntry.entry_date + 'T00:00:00')) / (1000 * 60 * 60 * 24)) : null;
+                            const lastPickupLog = wlDeliveryLogs.length > 0 ? wlDeliveryLogs[0] : null;
+                            const lastPickupDate = lastPickupLog ? new Date(lastPickupLog.entry_date + 'T12:00:00') : null;
+                            const nextRefillDate = lastPickupDate ? new Date(lastPickupDate.getTime() + 28 * 86400000) : null;
+                            const daysUntilRefill = nextRefillDate ? Math.ceil((nextRefillDate - today) / 86400000) : null;
+                            const refillOverdue = daysUntilRefill !== null && daysUntilRefill < 0;
+                            const refillSoon = daysUntilRefill !== null && daysUntilRefill >= 0 && daysUntilRefill <= 5;
+
+                            if (!lastPickupLog && !lastPurchase) return null;
 
                             return (
-                              <div style={{ margin: '8px 0 4px', padding: '10px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 0, fontSize: '12px' }}>
-                                {/* Row 1: Last activity + sessions progress */}
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: (pickupCount > 0 || shippedCount > 0) ? 8 : 0 }}>
-                                  {lastEntry && (
-                                    <div>
-                                      <span style={{ color: '#6b7280' }}>Last {lastInjection ? 'injection' : 'session'}: </span>
-                                      <strong style={{ color: daysSinceLast > 14 ? '#dc2626' : '#111' }}>
-                                        {formatShortDate(lastEntry.entry_date)}
-                                      </strong>
-                                      <span style={{ color: daysSinceLast > 14 ? '#dc2626' : '#9ca3af', marginLeft: 4 }}>
-                                        ({daysSinceLast === 0 ? 'today' : daysSinceLast === 1 ? '1d ago' : `${daysSinceLast}d ago`})
-                                      </span>
-                                      {lastEntry.dosage && <span style={{ color: '#6b7280', marginLeft: 6 }}>{lastEntry.dosage}</span>}
-                                    </div>
-                                  )}
-                                  {sessionsTotal > 0 && (
-                                    <div style={{ textAlign: 'right', minWidth: 90 }}>
-                                      <strong>{totalDispensed}</strong><span style={{ color: '#6b7280' }}> of {sessionsTotal} dispensed</span>
-                                      <div style={{ marginTop: 3, height: 4, background: '#e5e7eb', borderRadius: 2, overflow: 'hidden' }}>
-                                        <div style={{ height: '100%', width: `${Math.min((totalDispensed / sessionsTotal) * 100, 100)}%`, background: totalDispensed >= sessionsTotal ? '#16a34a' : '#3b82f6', borderRadius: 2 }} />
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                                {/* Row 2: Fulfillment breakdown — only if there are logs */}
-                                {(totalAdministered > 0 || shippedCount > 0 || pickupCount > 0) && (
-                                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', paddingTop: 8, borderTop: '1px solid #e2e8f0' }}>
-                                    {totalAdministered > 0 && (
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                        <span style={{ color: '#16a34a', fontWeight: 600 }}>{totalAdministered}</span>
-                                        <span style={{ color: '#6b7280' }}>injections taken</span>
-                                      </div>
-                                    )}
-                                    {shippedCount > 0 && (
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                        <span style={{ color: '#1e40af', fontWeight: 600 }}>{shippedCount}</span>
-                                        <span style={{ color: '#6b7280' }}>shipped</span>
-                                        {(() => {
-                                          const latestShipped = shippedLogs[0]; // already sorted newest first
-                                          return (
-                                            <span style={{ color: '#9ca3af' }}>
-                                              ({formatShortDate(latestShipped.entry_date)}
-                                              {latestShipped.tracking_number && <span style={{ color: '#3b82f6' }}> — {latestShipped.tracking_number}</span>})
-                                            </span>
-                                          );
-                                        })()}
-                                      </div>
-                                    )}
-                                    {pickupCount > 0 && (
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                        <span style={{ color: '#166534', fontWeight: 600 }}>{pickupCount}</span>
-                                        <span style={{ color: '#6b7280' }}>picked up</span>
-                                        {(() => {
-                                          const latestPickup = pickupLogs[0];
-                                          return latestPickup ? (
-                                            <span style={{ color: '#9ca3af' }}>({formatShortDate(latestPickup.entry_date)})</span>
-                                          ) : null;
-                                        })()}
-                                      </div>
-                                    )}
-                                    {pending > 0 && (
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                        <span style={{ color: '#f59e0b', fontWeight: 600 }}>{pending}</span>
-                                        <span style={{ color: '#6b7280' }}>pending</span>
-                                      </div>
-                                    )}
-                                  </div>
+                              <div style={{ margin: '6px 0 2px', padding: '7px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 0, fontSize: 12, display: 'flex', flexWrap: 'wrap', gap: '4px 16px', alignItems: 'center' }}>
+                                {lastPickupLog && (
+                                  <span>
+                                    <span style={{ color: '#6b7280' }}>Last pickup: </span>
+                                    <strong>{formatShortDate(lastPickupLog.entry_date)}</strong>
+                                  </span>
+                                )}
+                                {nextRefillDate && (
+                                  <span>
+                                    <span style={{ color: '#6b7280' }}>Next refill: </span>
+                                    <strong style={{ color: refillOverdue ? '#dc2626' : refillSoon ? '#d97706' : '#111' }}>
+                                      {formatShortDate(nextRefillDate.toISOString().split('T')[0])}
+                                      {refillOverdue ? ` (${Math.abs(daysUntilRefill)}d overdue)` : ` (${daysUntilRefill}d)`}
+                                    </strong>
+                                  </span>
+                                )}
+                                {lastPickupLog && lastPurchase && <span style={{ color: '#d1d5db' }}>|</span>}
+                                {lastPurchase && (
+                                  <span>
+                                    <span style={{ color: '#6b7280' }}>Last charge: </span>
+                                    <strong>{formatShortDate(lastPurchase.purchase_date)}</strong>
+                                    <span style={{ color: '#6b7280' }}> — ${lastPurchase.amount}</span>
+                                  </span>
+                                )}
+                                {nextChargeDate && (
+                                  <span>
+                                    <span style={{ color: '#6b7280' }}>Next: </span>
+                                    <strong style={{ color: chargeOverdue ? '#dc2626' : chargeSoon ? '#d97706' : '#16a34a' }}>
+                                      ~{formatShortDate(nextChargeDate.toISOString().split('T')[0])}
+                                      {chargeOverdue ? ` (${Math.abs(daysUntilCharge)}d overdue)` : ` (${daysUntilCharge}d)`}
+                                    </strong>
+                                  </span>
+                                )}
+                                {recentSideEffects && (
+                                  <>
+                                    <span style={{ color: '#d1d5db' }}>|</span>
+                                    <span style={{ color: '#dc2626', fontWeight: 600 }}>
+                                      {'\u26A0'} {recentSideEffects.effects} ({formatShortDate(recentSideEffects.date)})
+                                    </span>
+                                  </>
                                 )}
                               </div>
                             );
                           })()}
 
-                          {/* Side Effects Alert — shows if any side effects reported */}
-                          {recentSideEffects && (
-                            <div style={{ margin: '6px 0 2px', padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 0, fontSize: '12px' }}>
-                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-                                <span style={{ color: '#dc2626', fontWeight: 600, whiteSpace: 'nowrap' }}>⚠️ Side Effects</span>
-                                <div style={{ color: '#991b1b' }}>
-                                  <span style={{ fontWeight: 600 }}>{recentSideEffects.effects}</span>
-                                  <span style={{ color: '#dc2626', marginLeft: 6 }}>({formatShortDate(recentSideEffects.date)})</span>
-                                  {logsWithSideEffects.length > 1 && (
-                                    <span style={{ color: '#9ca3af', marginLeft: 6 }}>
-                                      + {logsWithSideEffects.length - 1} prior {logsWithSideEffects.length - 1 === 1 ? 'report' : 'reports'}
+                          {/* ===== Weight Loss: Section 2 — Progress Summary ===== */}
+                          {isWeightLoss && protocol.status === 'active' && wlLogs.length > 0 && (
+                            <div style={{ margin: '4px 0 2px', padding: '6px 12px', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 0, fontSize: 12, display: 'flex', flexWrap: 'wrap', gap: '4px 12px', alignItems: 'center' }}>
+                              {startingWeight && currentWeight ? (
+                                <span>
+                                  <strong>{startingWeight} lbs</strong>
+                                  <span style={{ color: '#9ca3af', margin: '0 4px' }}>{'\u2192'}</span>
+                                  <strong>{currentWeight} lbs</strong>
+                                  {totalLoss && (
+                                    <span style={{ color: parseFloat(totalLoss) > 0 ? '#16a34a' : '#dc2626', fontWeight: 600, marginLeft: 4 }}>
+                                      ({'\u2193'}{totalLoss})
                                     </span>
                                   )}
-                                </div>
-                              </div>
+                                </span>
+                              ) : (
+                                <span style={{ color: '#9ca3af' }}>No weight data yet</span>
+                              )}
+                              {(startingDose || currentDose) && (
+                                <>
+                                  <span style={{ color: '#d1d5db' }}>|</span>
+                                  <span>
+                                    {startingDose && <strong>{startingDose}</strong>}
+                                    {startingDose && currentDose && startingDose !== currentDose && (
+                                      <><span style={{ color: '#9ca3af', margin: '0 4px' }}>{'\u2192'}</span><strong>{currentDose}</strong></>
+                                    )}
+                                    {!startingDose && currentDose && <strong>{currentDose}</strong>}
+                                  </span>
+                                </>
+                              )}
+                              <span style={{ color: '#d1d5db' }}>|</span>
+                              <span>
+                                <strong>{wlLogs.filter(l => l.entry_type === 'injection').length}</strong>
+                                {protocol.total_sessions ? <span style={{ color: '#6b7280' }}> of {protocol.total_sessions}</span> : ''}
+                                <span style={{ color: '#6b7280' }}> injections</span>
+                              </span>
                             </div>
                           )}
+
 
                           {/* Range IV perk status on HRT protocol cards */}
                           {isHRTProtocol(protocol.program_type) && hrtRangeIVStatus && hrtRangeIVStatus.protocolId === protocol.id && (
@@ -4624,62 +4591,6 @@ export default function PatientProfile() {
                               )}
                             </div>
                           )}
-                          {protocol.delivery_method === 'take_home' && protocol.status === 'active' && (
-                            <div style={{ display: 'flex', gap: '16px', fontSize: '12px', margin: '6px 0 2px', flexWrap: 'wrap' }}>
-                              <span style={{ color: '#6b7280' }}>
-                                Last pickup: <strong style={{ color: protocol.last_refill_date ? '#111' : '#9ca3af' }}>
-                                  {protocol.last_refill_date ? formatShortDate(protocol.last_refill_date) : 'Never'}
-                                </strong>
-                              </span>
-                              {protocol.next_expected_date && (() => {
-                                const next = new Date(protocol.next_expected_date + 'T00:00:00');
-                                const today = new Date(); today.setHours(0,0,0,0);
-                                const diffDays = Math.ceil((next - today) / (1000 * 60 * 60 * 24));
-                                const isOverdue = diffDays < 0;
-                                const isDueSoon = !isOverdue && diffDays <= 3;
-                                return (
-                                  <span style={{ color: '#6b7280' }}>
-                                    Next refill: <strong style={{ color: isOverdue ? '#dc2626' : isDueSoon ? '#f59e0b' : '#111' }}>
-                                      {formatShortDate(protocol.next_expected_date)}
-                                      {isOverdue && ` (${Math.abs(diffDays)}d overdue)`}
-                                      {isDueSoon && ` (in ${diffDays}d)`}
-                                    </strong>
-                                  </span>
-                                );
-                              })()}
-                            </div>
-                          )}
-                          {/* Fulfillment / Shipping Info — all protocol categories */}
-                          {(() => {
-                            // Use protocol-specific service logs for any category, fall back to wlLogs for weight loss
-                            const logs = protoServiceLogs.length > 0
-                              ? [...protoServiceLogs].sort((a, b) => new Date(a.entry_date) - new Date(b.entry_date))
-                              : (isWeightLoss ? wlLogs : []);
-                            const shippedLog = logs.find(l => l.fulfillment_method === 'overnight');
-                            const pickupLog = logs.find(l => l.fulfillment_method === 'in_clinic');
-                            if (shippedLog) {
-                              return (
-                                <div style={{ margin: '6px 0 2px', padding: '6px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 0, fontSize: 12, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                                  <span style={{ fontWeight: 600, color: '#1e40af' }}>📦 Overnighted to patient</span>
-                                  {shippedLog.tracking_number && (
-                                    <span style={{ color: '#3b82f6' }}>Tracking: <strong>{shippedLog.tracking_number}</strong></span>
-                                  )}
-                                  <span style={{ color: '#6b7280' }}>Shipped {formatShortDate(shippedLog.entry_date)}</span>
-                                  {shippedLog.quantity && <span style={{ color: '#6b7280' }}>· {shippedLog.quantity} injections</span>}
-                                </div>
-                              );
-                            }
-                            if (pickupLog) {
-                              return (
-                                <div style={{ margin: '6px 0 2px', padding: '6px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 0, fontSize: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                  <span style={{ fontWeight: 600, color: '#166534' }}>🏥 Picked up in clinic</span>
-                                  <span style={{ color: '#6b7280' }}>{formatShortDate(pickupLog.entry_date)}</span>
-                                  {pickupLog.quantity && <span style={{ color: '#6b7280' }}>· {pickupLog.quantity} injections</span>}
-                                </div>
-                              );
-                            }
-                            return null;
-                          })()}
                           <div className="protocol-footer">
                             <span className="status-badge">{protocol.status_text}</span>
                             <div style={{ display: 'flex', gap: 8 }}>
@@ -4869,141 +4780,16 @@ export default function PatientProfile() {
                             );
                           })()}
 
-                          {/* Weight Loss Progress Panel */}
-                          {/* Weight Loss Email Drip Sequence */}
-                          {isWeightLoss && protocol.status === 'active' && (() => {
-                            const pDripLogs = dripLogs[protocol.id] || [];
-                            const hasStarted = pDripLogs.length > 0;
-                            return (
-                              <div style={{ marginTop: 10, padding: '10px 14px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 0 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                                  <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Email Sequence</span>
-                                  {!hasStarted && (
-                                    <button
-                                      onClick={async () => {
-                                        if (!confirm('Start the 4-day email sequence? Email 1 will send immediately.')) return;
-                                        setStartingDrip(protocol.id);
-                                        try {
-                                          const resp = await fetch('/api/protocols/start-drip', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ protocolId: protocol.id }) });
-                                          const data = await resp.json();
-                                          if (data.success) { alert('Email 1 sent! Emails 2-4 follow over next 3 days.'); fetchDripLogs(protocol.id); }
-                                          else { alert('Error: ' + (data.error || 'Failed to start sequence')); }
-                                        } catch (err) { alert('Error: ' + err.message); }
-                                        setStartingDrip(null);
-                                      }}
-                                      disabled={startingDrip === protocol.id}
-                                      style={{ padding: '3px 10px', fontSize: 11, fontWeight: 600, background: '#000', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer' }}
-                                    >{startingDrip === protocol.id ? 'Starting...' : 'Start Sequence'}</button>
-                                  )}
-                                </div>
-                                <div style={{ display: 'flex', gap: 8 }}>
-                                  {WL_DRIP_EMAILS.map(em => {
-                                    const sent = pDripLogs.some(l => (l.notes || '').includes(`Email ${em.num}`));
-                                    return (
-                                      <div key={em.num} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11 }}>
-                                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: sent ? '#22c55e' : '#d1d5db', display: 'inline-block' }} />
-                                        <span style={{ color: sent ? '#166534' : '#9ca3af' }}>{em.subject}</span>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            );
-                          })()}
-
-                          {/* Weight Loss Weekly Check-in Texts */}
-                          {isWeightLoss && protocol.status === 'active' && protocol.delivery_method !== 'in_clinic' && (() => {
-                            const enabled = protocol.checkin_reminder_enabled === true;
-                            const injDay = protocol.injection_day;
-                            if (enabled) {
-                              return (
-                                <div style={{ marginTop: 6, padding: '8px 14px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 0, fontSize: 12, color: '#16A34A', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                  <span>✅ Weekly check-ins ({injDay || 'Monday'})</span>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <select value={injDay || 'Monday'} onChange={async e => { try { await fetch(`/api/admin/protocols/${protocol.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ injection_day: e.target.value }) }); fetchPatient(); } catch {} }} style={{ padding: '2px 4px', border: '1px solid #BBF7D0', borderRadius: 0, fontSize: 11, color: '#15803D', background: '#F0FDF4' }}>
-                                      {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(d => <option key={d} value={d}>{d}</option>)}
-                                    </select>
-                                    <button onClick={async () => { try { await fetch(`/api/admin/protocols/${protocol.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ checkin_reminder_enabled: false }) }); fetchPatient(); } catch {} }} style={{ fontSize: 10, color: '#666', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Disable</button>
-                                  </div>
-                                </div>
-                              );
-                            }
-                            return (
-                              <div style={{ marginTop: 6, padding: '8px 14px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span style={{ fontSize: 11, color: '#666' }}>Check-in day:</span>
-                                <select value={wlCheckinDay} onChange={e => setWlCheckinDay(e.target.value)} style={{ padding: '3px 6px', border: '1px solid #e5e5e5', borderRadius: 0, fontSize: 11 }}>
-                                  {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(d => <option key={d} value={d}>{d}</option>)}
-                                </select>
-                                <button
-                                  onClick={async () => { setEnablingCheckin(protocol.id); try { await fetch(`/api/admin/protocols/${protocol.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ checkin_reminder_enabled: true, injection_day: wlCheckinDay }) }); fetchPatient(); } catch { alert('Failed'); } setEnablingCheckin(null); }}
-                                  disabled={enablingCheckin === protocol.id}
-                                  style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', background: '#000', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer', marginLeft: 'auto' }}
-                                >{enablingCheckin === protocol.id ? 'Enabling...' : 'Enable Check-ins'}</button>
-                              </div>
-                            );
-                          })()}
-
+                          {/* ===== Weight Loss: Section 3 — Expanded Details ===== */}
                           {isWeightLoss && isExpanded && wlLogs.length > 0 && (
                             <div className="wl-progress">
-                              {/* Stats Row */}
-                              <div className="wl-stats-row">
-                                <div className="wl-stat">
-                                  <span className="wl-stat-label">Starting Weight</span>
-                                  <span className="wl-stat-value">{startingWeight ? `${startingWeight} lbs` : '—'}</span>
-                                </div>
-                                <span className="wl-stat-arrow">→</span>
-                                <div className="wl-stat">
-                                  <span className="wl-stat-label">Current Weight</span>
-                                  <span className="wl-stat-value">{currentWeight ? `${currentWeight} lbs` : '—'}</span>
-                                  {totalLoss && <span className="wl-stat-delta">-{totalLoss} lbs</span>}
-                                </div>
-                                <div className="wl-stat-divider" />
-                                <div className="wl-stat">
-                                  <span className="wl-stat-label">Starting Dose</span>
-                                  <span className="wl-stat-value">{startingDose || '—'}</span>
-                                </div>
-                                <span className="wl-stat-arrow">→</span>
-                                <div className="wl-stat">
-                                  <span className="wl-stat-label">Current Dose</span>
-                                  <span className="wl-stat-value">{currentDose || '—'}</span>
-                                </div>
-                                <div className="wl-stat-divider" />
-                                <div className="wl-stat">
-                                  <span className="wl-stat-label">Sessions</span>
-                                  <span className="wl-stat-value">{wlLogs.filter(l => l.entry_type === 'injection').length}{protocol.total_sessions ? ` of ${protocol.total_sessions}` : ''}</span>
-                                </div>
-                                {chartData.length >= 2 && (
-                                  <div style={{ marginLeft: 'auto', display: 'flex', gap: '6px' }}>
-                                    <button
-                                      onClick={() => window.open(`/portal/${protocol.access_token || protocol.id}`, '_blank')}
-                                      style={{ padding: '5px 12px', fontSize: '12px', fontWeight: 600, background: '#f5f5f5', color: '#333', border: '1px solid #ddd', borderRadius: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
-                                    >
-                                      👁 View Portal
-                                    </button>
-                                    <button
-                                      onClick={() => {
-                                        setSendProgressProtocol(protocol);
-                                        setSendProgressMethod('both');
-                                        setSendProgressResult(null);
-                                        setShowSendProgressModal(true);
-                                      }}
-                                      style={{ padding: '5px 12px', fontSize: '12px', fontWeight: 600, background: '#1e40af', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
-                                    >
-                                      📤 Send Progress
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-
                               {/* Weight Chart */}
                               {chartData.length >= 2 && (() => {
-                                // Build payment markers from delivery logs OR purchases
                                 let paymentMarkers = wlDeliveryLogs.map(log => ({
                                   date: new Date(log.entry_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
                                   qty: log.quantity || 1,
                                   method: log.fulfillment_method === 'overnight' ? 'Shipped' : 'Pickup',
                                 }));
-                                // For in-clinic patients with no delivery logs, use purchases linked to this protocol
                                 if (paymentMarkers.length === 0) {
                                   const protoPurchases = allPurchases.filter(p => p.protocol_id === protocol.id && p.purchase_date);
                                   paymentMarkers = protoPurchases.map(p => {
@@ -5052,7 +4838,30 @@ export default function PatientProfile() {
                                 );
                               })()}
 
-                              {/* Injection Schedule Table — full slot view */}
+                              {/* Send Progress buttons */}
+                              {chartData.length >= 2 && (
+                                <div style={{ display: 'flex', gap: '6px', marginBottom: 8 }}>
+                                  <button
+                                    onClick={() => window.open(`/portal/${protocol.access_token || protocol.id}`, '_blank')}
+                                    style={{ padding: '5px 12px', fontSize: '12px', fontWeight: 600, background: '#f5f5f5', color: '#333', border: '1px solid #ddd', borderRadius: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
+                                  >
+                                    👁 View Portal
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setSendProgressProtocol(protocol);
+                                      setSendProgressMethod('both');
+                                      setSendProgressResult(null);
+                                      setShowSendProgressModal(true);
+                                    }}
+                                    style={{ padding: '5px 12px', fontSize: '12px', fontWeight: 600, background: '#1e40af', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
+                                  >
+                                    📤 Send Progress
+                                  </button>
+                                </div>
+                              )}
+
+                              {/* Injection Schedule Table */}
                               <div className="wl-history">
                                 <table className="wl-table">
                                   <thead>
@@ -5071,8 +4880,9 @@ export default function PatientProfile() {
                                       const startStr = protocol.start_date;
                                       const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
                                       const todayDate = new Date(todayStr + 'T12:00:00');
+                                      const isTakeHome = protocol.delivery_method === 'take_home';
 
-                                      // If no schedule defined, fall back to simple list of actual logs
+                                      // Ongoing protocols (no total_sessions) — just show actual logs
                                       if (!totalSlots || !startStr) {
                                         return wlLogs.flatMap((log, i) => {
                                           const prevWeight = i > 0 && wlLogs[i - 1].weight ? parseFloat(wlLogs[i - 1].weight) : null;
@@ -5083,11 +4893,11 @@ export default function PatientProfile() {
                                             <tr key={log.id} className="wl-editable-row" onClick={() => openEditInjection(log)} title="Click to edit">
                                               <td style={{ color: '#9ca3af', fontSize: 12 }}>{i + 1}</td>
                                               <td>{formatShortDate(log.entry_date)}</td>
-                                              <td>{log.dosage || '—'}</td>
-                                              <td>{log.weight ? `${log.weight} lbs` : '—'}</td>
+                                              <td>{log.dosage || '\u2014'}</td>
+                                              <td>{log.weight ? `${log.weight} lbs` : '\u2014'}</td>
                                               <td style={{ color: delta && parseFloat(delta) < 0 ? '#16a34a' : delta && parseFloat(delta) > 0 ? '#dc2626' : '#666' }}>
-                                                {delta ? (parseFloat(delta) > 0 ? `+${delta}` : delta) + ' lbs' : '—'}
-                                                {logSideEffects && <span style={{ marginLeft: 6, color: '#dc2626', fontSize: 11 }}>⚠️</span>}
+                                                {delta ? (parseFloat(delta) > 0 ? `+${delta}` : delta) + ' lbs' : '\u2014'}
+                                                {logSideEffects && <span style={{ marginLeft: 6, color: '#dc2626', fontSize: 11 }}>{'\u26A0\uFE0F'}</span>}
                                               </td>
                                               <td style={{ textAlign: 'center' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></td>
                                             </tr>
@@ -5107,9 +4917,6 @@ export default function PatientProfile() {
                                       }
 
                                       // Check if all injections were dispensed at once (bulk shipment)
-                                      // Only true if there's a single pickup log with quantity >= total sessions
-                                      // Do NOT use sessions_used — that triggers even for weekly in-clinic patients
-                                      // who just missed a weight check on one week
                                       const bulkPickup = allWlLogs.find(l => l.quantity && l.quantity >= totalSlots);
                                       const allDispensed = !!bulkPickup;
 
@@ -5118,7 +4925,6 @@ export default function PatientProfile() {
                                       const intervalDays = freqLower.includes('bi') ? 14 : 7;
                                       const startDate = new Date(startStr + 'T12:00:00');
 
-                                      // Build slots first
                                       const slotsRaw = Array.from({ length: totalSlots }, (_, i) => {
                                         const expDate = new Date(startDate);
                                         expDate.setDate(expDate.getDate() + i * intervalDays);
@@ -5126,8 +4932,7 @@ export default function PatientProfile() {
                                         return { num: i + 1, expDate, expStr, log: null, isFuture: expDate > todayDate };
                                       });
 
-                                      // Sequential assignment: logs in chronological order → slot 1, 2, 3...
-                                      // This keeps the table always in chronological order
+                                      // Sequential assignment: logs in chronological order
                                       const sortedLogs = [...wlLogs].sort((a, b) => a.entry_date.localeCompare(b.entry_date));
                                       const usedIds = new Set();
                                       sortedLogs.forEach((log, i) => {
@@ -5139,11 +4944,11 @@ export default function PatientProfile() {
                                       const slots = slotsRaw;
 
                                       const rows = slots.flatMap(slot => {
-                                        // If all dispensed at once (bulk shipment), show each slot as dispensed
+                                        // Bulk dispensed slot without a log
                                         if (allDispensed && !slot.log) {
                                           const shipLog = bulkPickup || allWlLogs[0];
                                           const shipDate = shipLog ? formatShortDate(shipLog.entry_date) : formatShortDate(slot.expStr);
-                                          const doseLabel = parseDose(shipLog?.dosage) || protocol.selected_dose || '—';
+                                          const doseLabel = parseDose(shipLog?.dosage) || protocol.selected_dose || '\u2014';
                                           const fulfillment = shipLog?.fulfillment_method;
                                           return (
                                             <tr key={'dispensed-' + slot.num} style={{ background: '#f0fdf4' }}>
@@ -5151,12 +4956,13 @@ export default function PatientProfile() {
                                               <td>{formatShortDate(slot.expStr)}</td>
                                               <td>{doseLabel}</td>
                                               <td colSpan={2} style={{ color: '#16a34a', fontSize: 12 }}>
-                                                ✓ Dispensed {shipDate}{fulfillment === 'overnight' ? ' · 📦 Shipped' : fulfillment === 'in_clinic' ? ' · 🏥 Pickup' : ''}
+                                                {'\u2713'} Dispensed {shipDate}{fulfillment === 'overnight' ? ' \u00B7 📦 Shipped' : fulfillment === 'in_clinic' ? ' \u00B7 🏥 Pickup' : ''}
                                               </td>
                                               <td></td>
                                             </tr>
                                           );
                                         }
+                                        // Slot with a log
                                         if (slot.log) {
                                           const prevSlot = slots.slice(0, slot.num - 1).reverse().find(s => s.log);
                                           const prevWeight = prevSlot?.log?.weight ? parseFloat(prevSlot.log.weight) : null;
@@ -5168,11 +4974,11 @@ export default function PatientProfile() {
                                             <tr key={slot.log.id} className="wl-editable-row" onClick={() => openEditInjection(slot.log)} title="Click to edit or delete">
                                               <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
                                               <td>{formatShortDate(slot.log.entry_date)}{fulfillment === 'overnight' ? <span style={{ marginLeft: 4, fontSize: 11 }}>📦</span> : fulfillment === 'in_clinic' ? <span style={{ marginLeft: 4, fontSize: 11 }}>🏥</span> : ''}</td>
-                                              <td>{parseDose(slot.log.dosage) || slot.log.dosage || '—'}</td>
-                                              <td>{slot.log.weight ? `${slot.log.weight} lbs` : '—'}</td>
+                                              <td>{parseDose(slot.log.dosage) || slot.log.dosage || '\u2014'}</td>
+                                              <td>{slot.log.weight ? `${slot.log.weight} lbs` : '\u2014'}</td>
                                               <td style={{ color: delta && parseFloat(delta) < 0 ? '#16a34a' : delta && parseFloat(delta) > 0 ? '#dc2626' : '#666' }}>
-                                                {delta ? (parseFloat(delta) > 0 ? `+${delta}` : delta) + ' lbs' : '—'}
-                                                {slotSideEffects && <span style={{ marginLeft: 6, color: '#dc2626', fontSize: 11 }}>⚠️</span>}
+                                                {delta ? (parseFloat(delta) > 0 ? `+${delta}` : delta) + ' lbs' : '\u2014'}
+                                                {slotSideEffects && <span style={{ marginLeft: 6, color: '#dc2626', fontSize: 11 }}>{'\u26A0\uFE0F'}</span>}
                                               </td>
                                               <td style={{ textAlign: 'center' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></td>
                                             </tr>
@@ -5188,30 +4994,51 @@ export default function PatientProfile() {
                                             );
                                           }
                                           return rowElements;
-                                        } else if (!slot.isFuture) {
-                                          return (
-                                            <tr key={'missed-' + slot.num} style={{ background: '#fef2f2', cursor: 'pointer' }}
-                                              onClick={() => openQuickWeightModal(protocol, slot.expStr)}
-                                              title="Click to log weight for this session">
-                                              <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
-                                              <td style={{ color: '#dc2626' }}>{formatShortDate(slot.expStr)}</td>
-                                              <td colSpan={3} style={{ color: '#dc2626', fontStyle: 'italic' }}>Missed — click to add</td>
-                                              <td style={{ textAlign: 'center', color: '#dc2626', fontWeight: 700, fontSize: 16 }}>+</td>
-                                            </tr>
-                                          );
-                                        } else {
-                                          return (
-                                            <tr key={'future-' + slot.num} style={{ opacity: 0.35 }}>
-                                              <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
-                                              <td style={{ color: '#9ca3af' }}>{formatShortDate(slot.expStr)}</td>
-                                              <td colSpan={3} style={{ color: '#9ca3af', fontStyle: 'italic' }}>Upcoming</td>
-                                              <td></td>
-                                            </tr>
-                                          );
                                         }
+                                        // Past slot without log
+                                        if (!slot.isFuture) {
+                                          if (isTakeHome) {
+                                            // Take-home: neutral "click to add weight" style
+                                            return (
+                                              <tr key={'empty-' + slot.num} style={{ background: '#f9fafb', cursor: 'pointer' }}
+                                                onClick={() => openQuickWeightModal(protocol, slot.expStr)}
+                                                title="Click to log weight for this session">
+                                                <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
+                                                <td style={{ color: '#6b7280' }}>{formatShortDate(slot.expStr)}</td>
+                                                <td style={{ color: '#9ca3af' }}>{currentDose || '\u2014'}</td>
+                                                <td style={{ color: '#9ca3af' }}>{'\u2014'}</td>
+                                                <td style={{ color: '#9ca3af', fontStyle: 'italic', fontSize: 11 }}>Click to add weight</td>
+                                                <td style={{ textAlign: 'center', color: '#9ca3af', fontWeight: 700, fontSize: 14 }}>+</td>
+                                              </tr>
+                                            );
+                                          } else {
+                                            // In-clinic: amber "No show"
+                                            return (
+                                              <tr key={'noshow-' + slot.num} style={{ background: '#fffbeb', cursor: 'pointer' }}
+                                                onClick={() => openQuickWeightModal(protocol, slot.expStr)}
+                                                title="Click to log weight for this session">
+                                                <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
+                                                <td style={{ color: '#92400e' }}>{formatShortDate(slot.expStr)}</td>
+                                                <td style={{ color: '#b45309' }}>{currentDose || '\u2014'}</td>
+                                                <td style={{ color: '#b45309' }}>{'\u2014'}</td>
+                                                <td style={{ color: '#b45309', fontStyle: 'italic', fontSize: 11 }}>No show</td>
+                                                <td style={{ textAlign: 'center', color: '#b45309', fontWeight: 700, fontSize: 14 }}>+</td>
+                                              </tr>
+                                            );
+                                          }
+                                        }
+                                        // Future slot
+                                        return (
+                                          <tr key={'future-' + slot.num} style={{ opacity: 0.35 }}>
+                                            <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
+                                            <td style={{ color: '#9ca3af' }}>{formatShortDate(slot.expStr)}</td>
+                                            <td colSpan={3} style={{ color: '#9ca3af', fontStyle: 'italic' }}>Upcoming</td>
+                                            <td></td>
+                                          </tr>
+                                        );
                                       });
 
-                                      // Append any unmatched logs (don't fall in any expected slot)
+                                      // Append any unmatched logs
                                       wlLogs.filter(l => !usedIds.has(l.id)).forEach((log, i) => {
                                         const prevSlot = slots.filter(s => s.log).reverse()[0];
                                         const prevWeight = prevSlot?.log?.weight ? parseFloat(prevSlot.log.weight) : null;
@@ -5221,9 +5048,9 @@ export default function PatientProfile() {
                                           <tr key={'extra-' + log.id} className="wl-editable-row" onClick={() => openEditInjection(log)} title="Click to edit or delete">
                                             <td style={{ color: '#9ca3af', fontSize: 12 }}>+</td>
                                             <td>{formatShortDate(log.entry_date)}</td>
-                                            <td>{log.dosage || '—'}</td>
-                                            <td>{log.weight ? `${log.weight} lbs` : '—'}</td>
-                                            <td style={{ color: delta && parseFloat(delta) < 0 ? '#16a34a' : delta && parseFloat(delta) > 0 ? '#dc2626' : '#666' }}>{delta ? (parseFloat(delta) > 0 ? `+${delta}` : delta) + ' lbs' : '—'}</td>
+                                            <td>{log.dosage || '\u2014'}</td>
+                                            <td>{log.weight ? `${log.weight} lbs` : '\u2014'}</td>
+                                            <td style={{ color: delta && parseFloat(delta) < 0 ? '#16a34a' : delta && parseFloat(delta) > 0 ? '#dc2626' : '#666' }}>{delta ? (parseFloat(delta) > 0 ? `+${delta}` : delta) + ' lbs' : '\u2014'}</td>
                                             <td style={{ textAlign: 'center' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></td>
                                           </tr>
                                         );
@@ -5234,7 +5061,8 @@ export default function PatientProfile() {
                                   </tbody>
                                 </table>
                               </div>
-                              {/* Medication Deliveries — separate from injection check-ins */}
+
+                              {/* Medication Deliveries */}
                               {wlDeliveryLogs.length > 0 && (
                                 <div style={{ marginTop: 12 }}>
                                   <div style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
@@ -5246,7 +5074,7 @@ export default function PatientProfile() {
                                         key={log.id}
                                         onClick={() => openEditInjection(log)}
                                         title="Click to edit delivery"
-                                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: '#f0f9ff', border: '1px solid #bfdbfe', fontSize: 12, cursor: 'pointer', transition: 'background 0.15s' }}
+                                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: '#f0f9ff', border: '1px solid #bfdbfe', fontSize: 12, cursor: 'pointer', borderRadius: 0, transition: 'background 0.15s' }}
                                         onMouseEnter={e => e.currentTarget.style.background = '#dbeafe'}
                                         onMouseLeave={e => e.currentTarget.style.background = '#f0f9ff'}
                                       >
@@ -5256,7 +5084,7 @@ export default function PatientProfile() {
                                           {log.quantity || 1} {(log.quantity || 1) === 1 ? 'injection' : 'injections'}
                                           {log.fulfillment_method === 'overnight' ? ' shipped' : ' picked up'}
                                         </span>
-                                        {log.medication && <span style={{ color: '#6b7280' }}>— {log.medication}</span>}
+                                        {log.medication && <span style={{ color: '#6b7280' }}>{'\u2014'} {log.medication}</span>}
                                         {log.dosage && <span style={{ color: '#6b7280' }}>{parseDose(log.dosage) || log.dosage}</span>}
                                         {log.tracking_number && (
                                           <span style={{ color: '#3b82f6', marginLeft: 'auto' }}>Tracking: {log.tracking_number}</span>
@@ -5267,8 +5095,41 @@ export default function PatientProfile() {
                                   </div>
                                 </div>
                               )}
+
+                              {/* Weekly Check-in Settings */}
+                              {protocol.delivery_method !== 'in_clinic' && (() => {
+                                const enabled = protocol.checkin_reminder_enabled === true;
+                                const injDay = protocol.injection_day;
+                                if (enabled) {
+                                  return (
+                                    <div style={{ marginTop: 10, padding: '6px 12px', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 0, fontSize: 11, color: '#16A34A', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                      <span>{'\u2705'} Weekly check-ins ({injDay || 'Monday'})</span>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        <select value={injDay || 'Monday'} onChange={async e => { try { await fetch(`/api/admin/protocols/${protocol.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ injection_day: e.target.value }) }); fetchPatient(); } catch {} }} style={{ padding: '2px 4px', border: '1px solid #BBF7D0', borderRadius: 0, fontSize: 10, color: '#15803D', background: '#F0FDF4' }}>
+                                          {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(d => <option key={d} value={d}>{d}</option>)}
+                                        </select>
+                                        <button onClick={async () => { try { await fetch(`/api/admin/protocols/${protocol.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ checkin_reminder_enabled: false }) }); fetchPatient(); } catch {} }} style={{ fontSize: 10, color: '#666', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Disable</button>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                return (
+                                  <div style={{ marginTop: 10, padding: '6px 12px', background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 0, display: 'flex', alignItems: 'center', gap: 8, fontSize: 11 }}>
+                                    <span style={{ color: '#666' }}>Check-in day:</span>
+                                    <select value={wlCheckinDay} onChange={e => setWlCheckinDay(e.target.value)} style={{ padding: '2px 6px', border: '1px solid #e5e5e5', borderRadius: 0, fontSize: 11 }}>
+                                      {['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(d => <option key={d} value={d}>{d}</option>)}
+                                    </select>
+                                    <button
+                                      onClick={async () => { setEnablingCheckin(protocol.id); try { await fetch(`/api/admin/protocols/${protocol.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ checkin_reminder_enabled: true, injection_day: wlCheckinDay }) }); fetchPatient(); } catch { alert('Failed'); } setEnablingCheckin(null); }}
+                                      disabled={enablingCheckin === protocol.id}
+                                      style={{ fontSize: 11, fontWeight: 600, padding: '2px 10px', background: '#000', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer', marginLeft: 'auto' }}
+                                    >{enablingCheckin === protocol.id ? 'Enabling...' : 'Enable Check-ins'}</button>
+                                  </div>
+                                );
+                              })()}
                             </div>
                           )}
+
 
                           {/* ===== Session-Based Expanded (HBOT, RLT, IV) ===== */}
                           {['hbot', 'rlt', 'iv'].includes(protocol.category) && isExpanded && (() => {

@@ -47,8 +47,6 @@ const _injectionMeds = PROTOCOL_TYPES.single_injection.medications;
 const VITAMIN_OPTIONS = [
   ..._injectionMeds.map(m => ({ value: m, label: m })),
   // Service-log extras not sold as standalone protocols
-  { value: 'NAD+ 50mg', label: 'NAD+ 50mg' },
-  { value: 'NAD+ 100mg', label: 'NAD+ 100mg' },
   { value: 'Lipo-C', label: 'Lipo-C' },
   { value: 'Taurine', label: 'Taurine' },
   { value: 'Toradol', label: 'Toradol' }
@@ -637,7 +635,13 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
         } else if (item.serviceType.id === 'vitamin') {
           payload.medication = item.formData.medication;
           payload.quantity = item.formData.quantity || 1;
-          payload.dosage = item.formData.quantity > 1 ? `${item.formData.quantity} injections` : 'Standard';
+          if (item.formData.medication === 'NAD+' && item.formData.dosage) {
+            payload.dosage = item.formData.quantity > 1
+              ? `${item.formData.quantity} injections @ ${item.formData.dosage}`
+              : item.formData.dosage;
+          } else {
+            payload.dosage = item.formData.quantity > 1 ? `${item.formData.quantity} injections` : 'Standard';
+          }
         } else if (item.serviceType.id === 'peptide') {
           payload.medication = item.formData.medication;
           if (item.entryType === 'injection') {
@@ -1765,7 +1769,7 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
                             value={formData.medication}
                             onChange={(e) => {
                               const med = e.target.value;
-                              setFormData(prev => ({ ...prev, medication: med }));
+                              setFormData(prev => ({ ...prev, medication: med, dosage: med === 'NAD+' ? '' : prev.dosage }));
                               // Auto-match protocol by medication name when multiple protocols exist
                               if (availableProtocols.length > 1 && med) {
                                 const medLower = med.toLowerCase();
@@ -1787,6 +1791,23 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
                             ))}
                           </select>
                         </div>
+
+                        {/* NAD+ dosage selector */}
+                        {formData.medication === 'NAD+' && (
+                          <div style={slcStyles.formGroup}>
+                            <label style={slcStyles.label}>Dosage</label>
+                            <select
+                              value={formData.dosage}
+                              onChange={(e) => setFormData(prev => ({ ...prev, dosage: e.target.value }))}
+                              style={slcStyles.select}
+                            >
+                              <option value="">Select dosage...</option>
+                              {[25, 50, 75, 100, 125, 150].map(mg => (
+                                <option key={mg} value={`${mg}mg`}>{mg}mg</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
 
                         <div style={slcStyles.formGroup}>
                           <label style={slcStyles.label}>Quantity</label>

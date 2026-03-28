@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 import { sendAppointmentNotification } from '../../../lib/appointment-notifications';
 import { sendProviderNotification } from '../../../lib/provider-notifications';
 import { logAction } from '../../../lib/auth';
+import { runBookingAutomations } from '../../../lib/booking-automations';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -24,6 +25,7 @@ export default async function handler(req, res) {
       patient_phone,
       service_name,
       service_category,
+      service_slug,
       provider,
       location,
       start_time,
@@ -147,6 +149,33 @@ export default async function handler(req, res) {
           startTime: start_time,
         },
       }).catch(err => console.error('Provider SMS notification failed:', err));
+    }
+
+    // Run booking automations (prep instructions, forms, prereq check)
+    // Skip if cal_com_booking_id exists — the Cal.com webhook handles those
+    if (!cal_com_booking_id) {
+      // Look up patient email for form sends
+      let patientEmail = null;
+      if (patient_id) {
+        const { data: pt } = await supabase
+          .from('patients')
+          .select('email')
+          .eq('id', patient_id)
+          .single();
+        patientEmail = pt?.email || null;
+      }
+
+      runBookingAutomations({
+        appointmentId: appointment.id,
+        eventTypeSlug: service_slug || null,
+        serviceCategory: service_category || 'other',
+        patientId: patient_id || null,
+        patientName: patient_name,
+        patientEmail,
+        patientPhone: patient_phone || null,
+        serviceName: service_name,
+        startTime: start_time,
+      }).catch(err => console.error('Booking automations error:', err));
     }
 
     return res.status(200).json({ appointment });

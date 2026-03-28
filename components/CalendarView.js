@@ -134,9 +134,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   const [drawerData, setDrawerData] = useState(null);
   const [drawerLoading, setDrawerLoading] = useState(false);
 
-  // Prep slide-out drawer
-  const [prepDrawerAppt, setPrepDrawerAppt] = useState(null);
-  const [prepDrawerLoading, setPrepDrawerLoading] = useState(false);
+  // Prep checklist state (inline in appointment card)
   const [prepSaving, setPrepSaving] = useState({});
   const [prepNotes, setPrepNotes] = useState('');
   const [prepNotesSaved, setPrepNotesSaved] = useState(false);
@@ -302,6 +300,15 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     return () => { cancelled = true; };
   }, [selectedAppt?.patient_id]);
 
+  // Initialize prep notes when appointment selected
+  useEffect(() => {
+    if (selectedAppt) {
+      setPrepNotes(selectedAppt.prep_notes || '');
+      setPrepNotesSaved(false);
+      setPrepSaving({});
+    }
+  }, [selectedAppt?.id]);
+
   // Open patient drawer from appointment detail
   const openPatientDrawer = (patientId) => {
     if (!patientId) return;
@@ -318,37 +325,22 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
 
   const closeDrawer = () => { setDrawerData(null); setDrawerLoading(false); };
 
-  // Open prep drawer
-  const openPrepDrawer = (appt) => {
-    setPrepDrawerLoading(true);
-    setPrepDrawerAppt(null);
-    setPrepSaving({});
-    setPrepNotesSaved(false);
-    fetch(`/api/appointments/${appt.id}`)
-      .then(r => r.json())
-      .then(data => {
-        setPrepDrawerAppt(data.appointment);
-        setPrepNotes(data.appointment.prep_notes || '');
-        setPrepDrawerLoading(false);
-      })
-      .catch(() => setPrepDrawerLoading(false));
-  };
-
-  const closePrepDrawer = () => { setPrepDrawerAppt(null); setPrepDrawerLoading(false); };
-
+  // Prep checklist functions (inline in appointment card)
   const togglePrepField = async (field) => {
-    if (!prepDrawerAppt) return;
-    const newValue = !prepDrawerAppt[field];
+    if (!selectedAppt) return;
+    const newValue = !selectedAppt[field];
     setPrepSaving(prev => ({ ...prev, [field]: true }));
     try {
-      const res = await fetch(`/api/appointments/${prepDrawerAppt.id}`, {
+      const res = await fetch(`/api/appointments/${selectedAppt.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [field]: newValue }),
       });
       if (res.ok) {
         const data = await res.json();
-        setPrepDrawerAppt(data.appointment);
+        // Update selectedAppt and the appointments list
+        setSelectedAppt(prev => ({ ...prev, ...data.appointment }));
+        setAppointments(prev => prev.map(a => a.id === selectedAppt.id ? { ...a, ...data.appointment } : a));
       }
     } catch (err) {
       console.error('Prep toggle error:', err);
@@ -358,9 +350,9 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   };
 
   const savePrepNotes = async (text) => {
-    if (!prepDrawerAppt) return;
+    if (!selectedAppt) return;
     try {
-      const res = await fetch(`/api/appointments/${prepDrawerAppt.id}`, {
+      const res = await fetch(`/api/appointments/${selectedAppt.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prep_notes: text }),
@@ -2037,15 +2029,62 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               </button>
             </div>
 
-            {/* Prep Checklist — opens slide-out drawer */}
-            <div style={{ marginTop: '8px' }}>
-              <button
-                onClick={() => { setSelectedAppt(null); openPrepDrawer(appt); }}
-                style={{ ...styles.actionBtn, width: '100%', background: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', fontWeight: '600', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-              >
-                Prep Checklist
-              </button>
-            </div>
+            {/* Inline Prep Checklist */}
+            {(() => {
+              const sn = (appt.service_name || '').toLowerCase();
+              const isPrereqSvc = sn.includes('vitamin c') || sn.includes('methylene blue') || sn.includes('mb +') || sn.includes('mb combo');
+              const isLabRev = sn.includes('lab review');
+              const prepItems = [
+                { label: 'Instructions sent', ok: appt.instructions_sent, auto: true },
+                { label: 'Forms complete', ok: appt.forms_complete, auto: true },
+                ...(isPrereqSvc ? [{ label: 'Blood work prereq', ok: appt.prereqs_met, auto: true }] : []),
+                ...(isLabRev ? [{ label: 'Labs delivered', ok: appt.labs_delivered, field: 'labs_delivered' }] : []),
+                { label: 'Room / supplies prepped', ok: appt.prep_complete, field: 'prep_complete' },
+                { label: 'Provider briefed', ok: appt.provider_briefed, field: 'provider_briefed' },
+              ];
+              const allReady = prepItems.every(i => i.ok);
+              return (
+                <div style={{ marginTop: '12px', borderTop: '1px solid #f0f0f0', paddingTop: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#666' }}>Prep Checklist</span>
+                    <span style={{ fontSize: '11px', fontWeight: '700', padding: '2px 8px', background: allReady ? '#dcfce7' : '#fef3c7', color: allReady ? '#166534' : '#92400e' }}>
+                      {allReady ? '✓ Ready' : '⚠ Action Needed'}
+                    </span>
+                  </div>
+                  {prepItems.map(item => (
+                    <div
+                      key={item.label}
+                      style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 0', cursor: item.field ? 'pointer' : 'default', opacity: prepSaving[item.field] ? 0.6 : 1 }}
+                      onClick={item.field && !prepSaving[item.field] ? () => togglePrepField(item.field) : undefined}
+                    >
+                      <div style={{
+                        width: '16px', height: '16px', border: `2px solid ${item.ok ? '#22c55e' : '#d1d5db'}`,
+                        background: item.ok ? '#22c55e' : '#fff', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', flexShrink: 0,
+                      }}>
+                        {item.ok && <span style={{ color: '#fff', fontSize: '10px', fontWeight: '700' }}>✓</span>}
+                      </div>
+                      <span style={{ fontSize: '12px', flex: 1, color: item.ok ? '#999' : '#111', textDecoration: item.ok ? 'line-through' : 'none' }}>
+                        {item.label}
+                      </span>
+                      {item.auto && <span style={{ fontSize: '8px', fontWeight: '600', textTransform: 'uppercase', color: '#bbb', background: '#f5f5f5', padding: '1px 4px' }}>auto</span>}
+                    </div>
+                  ))}
+                  {/* Prep notes */}
+                  <div style={{ marginTop: '8px' }}>
+                    <textarea
+                      value={prepNotes}
+                      onChange={handlePrepNotesChange}
+                      placeholder="Prep notes..."
+                      style={{ width: '100%', padding: '6px 8px', fontSize: '12px', border: '1px solid #e5e5e5', resize: 'vertical', fontFamily: 'inherit', lineHeight: '1.4', boxSizing: 'border-box' }}
+                      rows={2}
+                      onClick={e => e.stopPropagation()}
+                    />
+                    {prepNotesSaved && <span style={{ fontSize: '10px', color: '#22c55e', fontWeight: '600' }}>Saved</span>}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Delete button — always visible, no notification sent */}
             <div style={{ marginTop: '12px', borderTop: '1px solid #f3f4f6', paddingTop: '12px' }}>
@@ -3639,184 +3678,6 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
           }
         }
       `}</style>
-
-      {/* Prep slide-out drawer */}
-      {(prepDrawerAppt || prepDrawerLoading) && (() => {
-        const apt = prepDrawerAppt;
-        const sn = (apt?.service_name || '').toLowerCase();
-        const isPrereqService = sn.includes('vitamin c') || sn.includes('methylene blue') || sn.includes('mb +') || sn.includes('mb combo');
-        const isLabReview = sn.includes('lab review');
-
-        const modalityLabels = { in_clinic: 'In-Clinic', telemedicine: 'Telemedicine', phone: 'Phone' };
-
-        // Checklist items
-        const autoItems = apt ? [
-          { label: 'Instructions sent', ok: apt.instructions_sent },
-          { label: 'Forms complete', ok: apt.forms_complete },
-          ...(isPrereqService ? [{ label: 'Blood work prereq met', ok: apt.prereqs_met }] : []),
-          ...(isLabReview ? [{ label: 'Labs delivered to patient', ok: apt.labs_delivered, field: 'labs_delivered' }] : []),
-        ] : [];
-        const manualItems = apt ? [
-          { label: 'Room / supplies prepped', ok: apt.prep_complete, field: 'prep_complete' },
-          { label: 'Provider briefed', ok: apt.provider_briefed, field: 'provider_briefed' },
-        ] : [];
-        const allItems = [...autoItems, ...manualItems];
-        const allReady = apt && allItems.every(i => i.ok);
-
-        const PrepCheck = ({ label, checked, auto, field }) => (
-          <div
-            style={{
-              display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0',
-              borderBottom: '1px solid #f5f5f5', cursor: field ? 'pointer' : 'default',
-              opacity: prepSaving[field] ? 0.6 : 1,
-            }}
-            onClick={field && !prepSaving[field] ? () => togglePrepField(field) : undefined}
-          >
-            <div style={{
-              width: '20px', height: '20px', border: `2px solid ${checked ? '#22c55e' : '#d1d5db'}`,
-              background: checked ? '#22c55e' : '#fff', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', flexShrink: 0,
-            }}>
-              {checked && <span style={{ color: '#fff', fontSize: '12px', fontWeight: '700' }}>✓</span>}
-            </div>
-            <span style={{
-              fontSize: '13px', flex: 1,
-              textDecoration: checked ? 'line-through' : 'none',
-              color: checked ? '#999' : '#111',
-            }}>{label}</span>
-            {auto && <span style={{ fontSize: '9px', fontWeight: '600', textTransform: 'uppercase', color: '#999', background: '#f5f5f5', padding: '2px 5px' }}>auto</span>}
-            {prepSaving[field] && <span style={{ fontSize: '10px', color: '#999', fontStyle: 'italic' }}>saving...</span>}
-          </div>
-        );
-
-        return (
-          <>
-            <div {...overlayClickProps(closePrepDrawer)} style={{
-              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.25)', zIndex: 9998
-            }} />
-            <div style={{
-              position: 'fixed', top: 0, right: 0, bottom: 0, width: '420px', maxWidth: '92vw',
-              background: '#fff', zIndex: 9999, boxShadow: '-4px 0 24px rgba(0,0,0,0.18)',
-              display: 'flex', flexDirection: 'column', overflow: 'hidden'
-            }}>
-              {/* Header */}
-              <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#92400e', flexShrink: 0 }}>
-                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '600', color: '#fff' }}>
-                  Prep Checklist
-                </h3>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  {apt && (
-                    <Link href={`/admin/appointments/${apt.id}/prep`}
-                      style={{ fontSize: '12px', color: '#fff', textDecoration: 'none', padding: '4px 12px', border: '1px solid rgba(255,255,255,0.4)' }}>
-                      Full Page →
-                    </Link>
-                  )}
-                  <button onClick={closePrepDrawer}
-                    style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', color: '#fff', padding: '0 4px', lineHeight: 1 }}>
-                    ×
-                  </button>
-                </div>
-              </div>
-
-              {/* Body */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-                {prepDrawerLoading && !apt ? (
-                  <div style={{ textAlign: 'center', padding: '40px 0', color: '#999' }}>Loading prep data...</div>
-                ) : apt ? (
-                  <>
-                    {/* Patient + Service header */}
-                    <div style={{ marginBottom: '16px' }}>
-                      <h4 style={{ margin: '0 0 4px', fontSize: '17px', fontWeight: '700', color: '#111' }}>
-                        {apt.patient_name || 'Unknown Patient'}
-                      </h4>
-                      <div style={{ fontSize: '14px', color: '#555', marginBottom: '6px' }}>{apt.service_name || 'Appointment'}</div>
-                      <div style={{ fontSize: '13px', color: '#888' }}>
-                        {apt.start_time ? new Date(apt.start_time).toLocaleString('en-US', {
-                          weekday: 'short', month: 'short', day: 'numeric',
-                          hour: 'numeric', minute: '2-digit',
-                          timeZone: 'America/Los_Angeles',
-                        }) : '-'}
-                        {apt.provider && <span> · {apt.provider}</span>}
-                        {apt.duration_minutes && <span> · {apt.duration_minutes} min</span>}
-                      </div>
-                      {apt.modality && modalityLabels[apt.modality] && (
-                        <span style={{
-                          display: 'inline-block', marginTop: '6px', padding: '2px 8px',
-                          fontSize: '10px', fontWeight: '600', textTransform: 'uppercase',
-                          background: apt.modality === 'in_clinic' ? '#dcfce7' : apt.modality === 'telemedicine' ? '#dbeafe' : '#f3f4f6',
-                          color: apt.modality === 'in_clinic' ? '#166534' : apt.modality === 'telemedicine' ? '#1e40af' : '#374151',
-                        }}>
-                          {modalityLabels[apt.modality]}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Overall status */}
-                    <div style={{
-                      padding: '10px 14px', marginBottom: '16px', fontWeight: '700', fontSize: '13px',
-                      background: allReady ? '#dcfce7' : '#fef3c7',
-                      color: allReady ? '#166534' : '#92400e',
-                    }}>
-                      {allReady ? '✓ Ready' : '⚠ Action Needed'}
-                    </div>
-
-                    {/* Checklist */}
-                    <div style={{ marginBottom: '16px' }}>
-                      <h5 style={{ margin: '0 0 8px', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#666' }}>
-                        Auto checks
-                      </h5>
-                      {autoItems.map(item => (
-                        <PrepCheck key={item.label} label={item.label} checked={item.ok} auto={!item.field} field={item.field} />
-                      ))}
-
-                      <div style={{ borderTop: '2px solid #e5e5e5', margin: '10px 0 6px' }} />
-                      <h5 style={{ margin: '0 0 8px', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#666' }}>
-                        Manual checks
-                      </h5>
-                      {manualItems.map(item => (
-                        <PrepCheck key={item.label} label={item.label} checked={item.ok} field={item.field} />
-                      ))}
-                    </div>
-
-                    {/* Visit reason */}
-                    {apt.visit_reason && (
-                      <div style={{ marginBottom: '16px' }}>
-                        <h5 style={{ margin: '0 0 6px', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#666' }}>
-                          Visit Reason
-                        </h5>
-                        <p style={{ margin: 0, fontSize: '13px', color: '#333', lineHeight: '1.6', background: '#f9fafb', padding: '10px 12px' }}>
-                          {apt.visit_reason}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Prep notes */}
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                        <h5 style={{ margin: 0, fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#666' }}>
-                          Prep Notes
-                        </h5>
-                        {prepNotesSaved && <span style={{ fontSize: '11px', color: '#22c55e', fontWeight: '600' }}>Saved</span>}
-                      </div>
-                      <textarea
-                        value={prepNotes}
-                        onChange={handlePrepNotesChange}
-                        placeholder="Add prep notes for this appointment..."
-                        style={{
-                          width: '100%', padding: '10px 12px', fontSize: '13px',
-                          border: '1px solid #e5e5e5', resize: 'vertical',
-                          fontFamily: 'inherit', lineHeight: '1.5', boxSizing: 'border-box',
-                        }}
-                        rows={3}
-                      />
-                    </div>
-                  </>
-                ) : null}
-              </div>
-            </div>
-          </>
-        );
-      })()}
 
       {/* Encounter Note Modal */}
       {encounterAppt && (

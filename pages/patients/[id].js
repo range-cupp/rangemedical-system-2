@@ -8103,7 +8103,14 @@ export default function PatientProfile() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                       <div className="form-group">
                         <label>Start Date</label>
-                        <input type="date" value={editForm.startDate} onChange={e => setEditForm({...editForm, startDate: e.target.value})} />
+                        <input type="date" value={editForm.startDate} onChange={e => {
+                          const newStart = e.target.value;
+                          const interval = (editForm.frequency || '').toLowerCase().includes('bi') ? 14 : 7;
+                          const today = new Date(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }) + 'T12:00:00');
+                          const start = new Date(newStart + 'T12:00:00');
+                          const autoWeeks = start <= today ? Math.floor((today - start) / (1000 * 60 * 60 * 24 * interval)) + 1 : 1;
+                          setEditForm({...editForm, startDate: newStart, totalSessions: autoWeeks});
+                        }} />
                       </div>
                       <div className="form-group">
                         <label>Total Sessions (weeks)</label>

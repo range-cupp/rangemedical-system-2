@@ -112,8 +112,9 @@ export default function AppointmentPrepPage() {
   const sn = serviceName.toLowerCase();
   const isPrereqService = sn.includes('vitamin c') || sn.includes('methylene blue') || sn.includes('mb +') || sn.includes('mb combo');
 
-  // Determine if this is a lab review
-  const isLabReview = sn.includes('lab review');
+  // Determine if this is a lab appointment (review, assessment, follow-up)
+  const isLabAppt = sn.includes('lab review') || sn.includes('lab assessment') || sn.includes('lab follow') || sn.includes('initial lab');
+  const labDeliveryLabel = apt.modality === 'telemedicine' ? 'Labs emailed to patient' : 'Labs printed';
 
   // Modality badge
   const modalityMap = {
@@ -129,7 +130,7 @@ export default function AppointmentPrepPage() {
     { ok: apt.forms_complete },
   ];
   if (isPrereqService) autoItems.push({ ok: apt.prereqs_met });
-  if (isLabReview) autoItems.push({ ok: apt.labs_delivered });
+  if (isLabAppt) autoItems.push({ ok: apt.labs_delivered });
   const manualItems = [
     { ok: apt.prep_complete },
     { ok: apt.provider_briefed },
@@ -200,9 +201,9 @@ export default function AppointmentPrepPage() {
             auto
           />
         )}
-        {isLabReview && (
+        {isLabAppt && (
           <CheckItem
-            label="Labs delivered to patient"
+            label={labDeliveryLabel}
             checked={apt.labs_delivered}
             saving={saving.labs_delivered}
             onToggle={() => toggleField('labs_delivered')}

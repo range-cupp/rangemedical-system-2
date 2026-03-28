@@ -124,6 +124,7 @@ export default async function handler(req, res) {
             },
             appointment: {
               serviceName: services ? services.map(s => s.name).join(' + ') : service_name,
+              serviceSlug: service_slug || null,
               startTime: start_time,
               endTime: end_time,
               durationMinutes: duration_minutes,

@@ -4932,13 +4932,28 @@ export default function PatientProfile() {
                                         return { num: i + 1, expDate, expStr, log: null, isFuture: expDate > todayDate };
                                       });
 
-                                      // Sequential assignment: logs in chronological order
+                                      // Match logs to nearest slot by date (within ±4 days)
                                       const sortedLogs = [...wlLogs].sort((a, b) => a.entry_date.localeCompare(b.entry_date));
                                       const usedIds = new Set();
-                                      sortedLogs.forEach((log, i) => {
-                                        if (i < slotsRaw.length) {
-                                          slotsRaw[i].log = log;
+                                      const usedSlots = new Set();
+                                      // First pass: match each log to its closest unmatched slot
+                                      sortedLogs.forEach(log => {
+                                        const logDate = new Date(log.entry_date + 'T12:00:00');
+                                        let bestIdx = -1;
+                                        let bestDist = Infinity;
+                                        slotsRaw.forEach((slot, idx) => {
+                                          if (usedSlots.has(idx)) return;
+                                          const dist = Math.abs(logDate - slot.expDate) / (1000 * 60 * 60 * 24);
+                                          if (dist < bestDist) {
+                                            bestDist = dist;
+                                            bestIdx = idx;
+                                          }
+                                        });
+                                        // Match if within 4 days of expected date, or if it's the closest available slot
+                                        if (bestIdx >= 0 && (bestDist <= 4 || sortedLogs.length <= slotsRaw.length)) {
+                                          slotsRaw[bestIdx].log = log;
                                           usedIds.add(log.id);
+                                          usedSlots.add(bestIdx);
                                         }
                                       });
                                       const slots = slotsRaw;

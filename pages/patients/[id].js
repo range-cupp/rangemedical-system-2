@@ -4568,7 +4568,7 @@ export default function PatientProfile() {
                               )}
                               <span style={{ color: '#d1d5db' }}>|</span>
                               <span>
-                                <strong>{wlLogs.filter(l => l.entry_type === 'injection').length}</strong>
+                                <strong>{protocol.sessions_used ?? wlLogs.filter(l => l.entry_type === 'injection').length}</strong>
                                 {protocol.total_sessions ? <span style={{ color: '#6b7280' }}> of {protocol.total_sessions}</span> : ''}
                                 <span style={{ color: '#6b7280' }}> injections</span>
                               </span>

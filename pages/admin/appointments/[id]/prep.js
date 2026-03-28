@@ -132,7 +132,6 @@ export default function AppointmentPrepPage() {
   if (isPrereqService) autoItems.push({ ok: apt.prereqs_met });
   if (isLabAppt) autoItems.push({ ok: apt.labs_delivered });
   const manualItems = [
-    { ok: apt.prep_complete },
     { ok: apt.provider_briefed },
   ];
   const allItems = [...autoItems, ...manualItems];
@@ -213,12 +212,6 @@ export default function AppointmentPrepPage() {
         {/* Manual items */}
         <div style={s.divider} />
         <div style={s.manualLabel}>Manual checks</div>
-        <CheckItem
-          label="Room / supplies prepped"
-          checked={apt.prep_complete}
-          saving={saving.prep_complete}
-          onToggle={() => toggleField('prep_complete')}
-        />
         <CheckItem
           label="Provider briefed"
           checked={apt.provider_briefed}

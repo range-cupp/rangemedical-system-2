@@ -81,7 +81,7 @@ export default async function handler(req, res) {
   if (req.method === 'PATCH') {
     try {
       const allowedFields = [
-        'labs_delivered', 'prep_complete', 'provider_briefed', 'prep_notes',
+        'labs_delivered', 'provider_briefed', 'prep_notes',
       ];
       const updates = {};
       for (const field of allowedFields) {

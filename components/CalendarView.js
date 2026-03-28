@@ -2044,7 +2044,6 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 { label: 'Forms complete', ok: appt._liveFormsComplete ?? appt.forms_complete, auto: true },
                 ...(isPrereqSvc ? [{ label: 'Blood work prereq', ok: appt.prereqs_met, auto: true }] : []),
                 ...(isLabAppt ? [{ label: labDeliveryLabel, ok: appt.labs_delivered, field: 'labs_delivered' }] : []),
-                { label: 'Room / supplies prepped', ok: appt.prep_complete, field: 'prep_complete' },
                 { label: 'Provider briefed', ok: appt.provider_briefed, field: 'provider_briefed' },
               ];
               const allReady = prepItems.every(i => i.ok);

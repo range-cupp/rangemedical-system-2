@@ -85,11 +85,6 @@ function evaluateFlags(appt) {
     flags.push('Labs not delivered');
   }
 
-  // prep_complete and provider_briefed are always manual checklist items
-  if (!appt.prep_complete) {
-    flags.push('Room/supplies prep needed');
-  }
-
   if (!appt.provider_briefed) {
     flags.push('Provider not yet briefed');
   }
@@ -120,7 +115,7 @@ function buildSMS(dateDisplay, appointments) {
     }
   }
 
-  msg += '\n\n---\nprep_complete + provider_briefed = manual checks';
+  msg += '\n\n---\nprovider_briefed = manual check';
 
   return msg;
 }
@@ -179,7 +174,7 @@ function buildEmailHtml(dateDisplay, appointments) {
     ${rows}
   </table>
 
-  <p style="margin:20px 0 0;color:#999;font-size:12px;font-style:italic;">prep_complete + provider_briefed = manual checks before each appointment</p>
+  <p style="margin:20px 0 0;color:#999;font-size:12px;font-style:italic;">provider_briefed = manual check before each appointment</p>
 </td></tr>
 
 <!-- Footer -->
@@ -219,7 +214,7 @@ export default async function handler(req, res) {
     // Query tomorrow's scheduled appointments with all prep fields
     const { data: appointments, error: queryError } = await supabase
       .from('appointments')
-      .select('id, patient_name, service_name, service_category, start_time, cal_com_booking_id, forms_complete, instructions_sent, prereqs_met, labs_delivered, prep_complete, provider_briefed')
+      .select('id, patient_name, service_name, service_category, start_time, cal_com_booking_id, forms_complete, instructions_sent, prereqs_met, labs_delivered, provider_briefed')
       .eq('status', 'scheduled')
       .gte('start_time', `${dateStr}T00:00:00`)
       .lt('start_time', `${dateStr}T23:59:59`)

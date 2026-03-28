@@ -3,6 +3,7 @@
 // Updated: Added decision tree fields (minor, optimization, symptoms)
 
 import { createClient } from '@supabase/supabase-js';
+import { checkAndUpdateFormsComplete } from '../../lib/check-forms-complete';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -241,8 +242,8 @@ export default async function handler(req, res) {
 
     // ===== Link intake to patient =====
     // Priority: 1) bundle token  2) email match  3) phone match  4) create new
+    let linkedPatientId = null;
     try {
-      let linkedPatientId = null;
 
       const cap = str => str ? str.charAt(0).toUpperCase() + str.slice(1).toLowerCase() : '';
       const capFirst = cap(intakeRecord.first_name);
@@ -392,6 +393,13 @@ export default async function handler(req, res) {
 
     } catch (demoErr) {
       console.error('Patient linking error:', demoErr);
+    }
+
+    // T-03: Check if this completes all required forms for any upcoming appointment
+    if (linkedPatientId) {
+      checkAndUpdateFormsComplete(linkedPatientId).catch(err =>
+        console.error('forms_complete check error:', err)
+      );
     }
 
     // ===== Trigger baseline questionnaire SMS =====

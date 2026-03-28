@@ -2,6 +2,7 @@
 // Saves consent form submissions to Supabase database
 
 import { createClient } from '@supabase/supabase-js';
+import { checkAndUpdateFormsComplete } from '../../../lib/check-forms-complete';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -123,6 +124,13 @@ export default async function handler(req, res) {
     }
 
     console.log(`✅ ${consentType} consent saved! ID:`, consent.id);
+
+    // T-03: Check if this completes all required forms for any upcoming appointment
+    if (patientId) {
+      checkAndUpdateFormsComplete(patientId).catch(err =>
+        console.error('forms_complete check error:', err)
+      );
+    }
 
     return res.status(200).json({
       success: true,

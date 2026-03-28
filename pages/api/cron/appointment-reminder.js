@@ -8,6 +8,9 @@ import { createClient } from '@supabase/supabase-js';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
 import { isInQuietHours } from '../../../lib/quiet-hours';
+import { sendBlooioMessage } from '../../../lib/blooio';
+import { REQUIRED_FORMS } from '../../../lib/appointment-services';
+import { FORM_DEFINITIONS } from '../../../lib/form-bundles';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -235,6 +238,42 @@ export default async function handler(req, res) {
 
     console.log(`[appointment-reminder] Done — sent: ${results.sent.length}, skipped: ${results.skipped.length}, errors: ${results.errors.length}`);
 
+    // ── T-03: Alert Tara about incomplete forms for tomorrow's appointments ──
+    const incompleteFormsAlerts = [];
+    try {
+      const { data: tomorrowAppts } = await supabase
+        .from('appointments')
+        .select('id, patient_name, service_name, service_category, start_time, forms_complete')
+        .eq('status', 'scheduled')
+        .eq('forms_complete', false)
+        .gte('start_time', `${tomorrowStr}T00:00:00`)
+        .lt('start_time', `${tomorrowStr}T23:59:59`);
+
+      if (tomorrowAppts && tomorrowAppts.length > 0) {
+        const taraPhone = process.env.TARA_PHONE;
+        if (taraPhone) {
+          const lines = tomorrowAppts.map(a => {
+            const time = formatAppointmentTime(a.start_time);
+            const requiredForms = REQUIRED_FORMS[a.service_category];
+            const formNames = requiredForms
+              ? requiredForms.map(id => FORM_DEFINITIONS[id]?.name || id).join(', ')
+              : 'intake forms';
+            return `• ${a.patient_name} — ${a.service_name} at ${time} (missing: ${formNames})`;
+          }).join('\n');
+
+          const alertMsg = `⚠️ FORMS INCOMPLETE — ${tomorrowAppts.length} patient(s) with outstanding forms for tomorrow:\n\n${lines}\n\nPlease follow up before their appointments.`;
+
+          await sendBlooioMessage({ to: taraPhone, message: alertMsg });
+          console.log(`[appointment-reminder] Tara alerted about ${tomorrowAppts.length} incomplete form(s)`);
+          tomorrowAppts.forEach(a => incompleteFormsAlerts.push(a.patient_name));
+        } else {
+          console.warn('[appointment-reminder] TARA_PHONE not set — skipping incomplete forms alert');
+        }
+      }
+    } catch (formsErr) {
+      console.error('[appointment-reminder] Incomplete forms check error:', formsErr);
+    }
+
     return res.status(200).json({
       success: true,
       tomorrow: tomorrowStr,
@@ -242,8 +281,9 @@ export default async function handler(req, res) {
         sent: results.sent.length,
         skipped: results.skipped.length,
         errors: results.errors.length,
+        incompleteFormsAlerts: incompleteFormsAlerts.length,
       },
-      details: results,
+      details: { ...results, incompleteFormsAlerts },
     });
 
   } catch (error) {

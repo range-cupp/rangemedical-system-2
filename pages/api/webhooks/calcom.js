@@ -10,6 +10,12 @@ import { Resend } from 'resend';
 import { sendAppointmentNotification } from '../../../lib/appointment-notifications';
 import { sendProviderNotification } from '../../../lib/provider-notifications';
 import { todayPacific } from '../../../lib/date-utils';
+import { slugRequiresBloodWork, BLOOD_WORK_VALIDITY_DAYS, getPrepInstructions, TELEMEDICINE_LINK_APPEND, REQUIRED_FORMS } from '../../../lib/appointment-services';
+import { sendBlooioMessage } from '../../../lib/blooio';
+import { createFormBundle, FORM_DEFINITIONS } from '../../../lib/form-bundles';
+import { sendSMS as sendSMSRouter, normalizePhone as normalizePhoneUtil } from '../../../lib/send-sms';
+import { logComm } from '../../../lib/comms-log';
+import { hasBlooioOptIn, queuePendingLinkMessage, isBlooioProvider } from '../../../lib/blooio-optin';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -346,6 +352,51 @@ export default async function handler(req, res) {
           },
         }).catch(err => console.error('Patient confirmation notification failed:', err));
       }
+
+      // ── T-05: Blood work prerequisite check ──
+      // For services requiring blood work, verify labs are on file within validity window
+      if (slugRequiresBloodWork(eventTypeSlug)) {
+        const prereqResult = await checkBloodWorkPrereq(patientId, eventTypeSlug, {
+          patientName: attendee.name,
+          serviceName: eventTitle,
+          startTime,
+          calcomBookingId,
+        });
+        // Update prereqs_met on the appointments record
+        if (calcomBookingId) {
+          await supabase.from('appointments')
+            .update({ prereqs_met: prereqResult.met })
+            .eq('cal_com_booking_id', String(calcomBookingId))
+            .then(({ error: prereqErr }) => {
+              if (prereqErr) console.error('Prereq update error:', prereqErr);
+            });
+        }
+      }
+
+      // ── T-02: Pre-visit instruction send ──
+      // Send prep instructions for the booked service (fire-and-forget)
+      sendPrepInstructions({
+        eventTypeSlug,
+        patientId,
+        patientName: attendee.name,
+        patientEmail,
+        patientPhone,
+        serviceName: eventTitle,
+        startTime,
+        calcomBookingId: String(calcomBookingId),
+      }).catch(err => console.error('Prep instructions send failed:', err));
+
+      // ── T-03: Auto-send intake and consent forms ──
+      // Send required forms for the booked service category (fire-and-forget)
+      sendRequiredForms({
+        eventTypeSlug,
+        serviceCategory: slugToCategory[eventTypeSlug] || 'other',
+        patientId,
+        patientName: attendee.name,
+        patientEmail,
+        patientPhone,
+        calcomBookingId: String(calcomBookingId),
+      }).catch(err => console.error('Form auto-send failed:', err));
 
       return res.status(200).json({ success: true, message: 'Booking created/synced', action: action || 'none' });
     }
@@ -694,6 +745,266 @@ async function updateLabJourney(patientId, slug) {
         .eq('id', lab.id);
       console.log(`Legacy lab updated: patient ${patientId}, lab ${lab.id} -> ${legacyStatus}`);
     }
+  }
+}
+
+// =====================================================
+// BLOOD WORK PREREQUISITE CHECK (T-05)
+// =====================================================
+
+async function checkBloodWorkPrereq(patientId, slug, { patientName, serviceName, startTime, calcomBookingId }) {
+  // If no patient matched, we can't verify — flag for Tara
+  if (!patientId) {
+    console.log(`Blood work prereq: no patient_id for ${patientName}, flagging as unmet`);
+    await alertTaraPrereqMissing({ patientName, serviceName, startTime, reason: 'Patient not matched in system' });
+    return { met: false };
+  }
+
+  // Calculate the cutoff date (90 days ago)
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - BLOOD_WORK_VALIDITY_DAYS);
+  const cutoffISO = cutoff.toISOString().split('T')[0]; // YYYY-MM-DD
+
+  // Check labs table for blood work within validity window
+  const { data: recentLab } = await supabase
+    .from('labs')
+    .select('id, test_date, status')
+    .eq('patient_id', patientId)
+    .gte('test_date', cutoffISO)
+    .in('status', ['results_in', 'reviewed', 'provider_reviewed', 'consult_complete', 'collected'])
+    .order('test_date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (recentLab) {
+    console.log(`✓ Blood work prereq met for ${patientName}: lab ${recentLab.id} from ${recentLab.test_date}`);
+    return { met: true };
+  }
+
+  // No valid blood work on file — alert Tara
+  console.log(`✗ Blood work prereq NOT met for ${patientName} — no labs within ${BLOOD_WORK_VALIDITY_DAYS} days`);
+  await alertTaraPrereqMissing({ patientName, serviceName, startTime, reason: `No blood work on file within ${BLOOD_WORK_VALIDITY_DAYS} days` });
+  return { met: false };
+}
+
+async function alertTaraPrereqMissing({ patientName, serviceName, startTime, reason }) {
+  const taraPhone = process.env.TARA_PHONE;
+  if (!taraPhone) {
+    console.error('TARA_PHONE env var not set — cannot send prereq alert');
+    return;
+  }
+
+  const apptDate = startTime
+    ? new Date(startTime).toLocaleString('en-US', {
+        weekday: 'short', month: 'short', day: 'numeric',
+        hour: 'numeric', minute: '2-digit', timeZone: 'America/Los_Angeles'
+      })
+    : 'Unknown date';
+
+  const message = `⚠️ PREREQ ALERT — Blood work missing\n\nPatient: ${patientName}\nService: ${serviceName}\nAppointment: ${apptDate}\nReason: ${reason}\n\nPlease verify blood work is on file before this appointment. Do NOT cancel — resolve with patient.`;
+
+  try {
+    await sendBlooioMessage({ to: taraPhone, message });
+    console.log(`Prereq alert sent to Tara for ${patientName}`);
+  } catch (err) {
+    console.error('Failed to send Tara prereq alert:', err);
+  }
+}
+
+// =====================================================
+// T-02: PRE-VISIT INSTRUCTION SEND
+// =====================================================
+
+async function sendPrepInstructions({ eventTypeSlug, patientId, patientName, patientEmail, patientPhone, serviceName, startTime, calcomBookingId }) {
+  // Blood draws use gender-specific logic in appointment-notifications.js (already sent with confirmation)
+  const BLOOD_DRAW_SLUGS = ['new-patient-blood-draw', 'follow-up-blood-draw'];
+  if (BLOOD_DRAW_SLUGS.includes(eventTypeSlug)) {
+    // Mark instructions_sent since they're included in the confirmation email
+    if (calcomBookingId) {
+      await supabase.from('appointments').update({ instructions_sent: true }).eq('cal_com_booking_id', calcomBookingId);
+    }
+    return;
+  }
+
+  const prep = getPrepInstructions(eventTypeSlug);
+  if (!prep) {
+    console.log(`No prep instructions for slug: ${eventTypeSlug}`);
+    return;
+  }
+
+  const firstName = (patientName || 'there').split(' ')[0];
+
+  // Check if this is a telemedicine slug and append video link
+  const isTelemedicine = eventTypeSlug?.includes('telemedicine');
+  let smsBody = `Hi ${firstName}! ${prep.sms}`;
+  if (isTelemedicine) {
+    smsBody += TELEMEDICINE_LINK_APPEND;
+  }
+  smsBody += ' — Range Medical';
+
+  const phone = patientPhone ? normalizePhoneUtil(patientPhone) : null;
+
+  // Send SMS prep instructions
+  if (phone) {
+    try {
+      const smsResult = await sendSMSRouter({ to: phone, message: smsBody });
+      await logComm({
+        channel: 'sms',
+        messageType: 'prep_instructions',
+        message: smsBody,
+        source: 'calcom-webhook',
+        patientId,
+        patientName,
+        recipient: phone,
+        status: smsResult.success ? 'sent' : 'error',
+        errorMessage: smsResult.error || null,
+        direction: 'outbound',
+      });
+      if (smsResult.success) {
+        console.log(`Prep instructions SMS sent for ${patientName} (${eventTypeSlug})`);
+      }
+    } catch (err) {
+      console.error('Prep instructions SMS error:', err);
+    }
+  }
+
+  // Mark instructions_sent on appointment
+  if (calcomBookingId) {
+    await supabase.from('appointments').update({ instructions_sent: true }).eq('cal_com_booking_id', calcomBookingId)
+      .then(({ error: err }) => { if (err) console.error('instructions_sent update error:', err); });
+  }
+}
+
+// =====================================================
+// T-03: AUTO-SEND INTAKE AND CONSENT FORMS
+// =====================================================
+
+async function sendRequiredForms({ eventTypeSlug, serviceCategory, patientId, patientName, patientEmail, patientPhone, calcomBookingId }) {
+  const requiredFormIds = REQUIRED_FORMS[serviceCategory];
+  if (!requiredFormIds || requiredFormIds.length === 0) {
+    console.log(`No required forms for category: ${serviceCategory}`);
+    return;
+  }
+
+  // Check which forms the patient already has on file
+  let completedFormIds = [];
+  if (patientId) {
+    // Check consents table
+    const { data: consents } = await supabase
+      .from('consents')
+      .select('consent_type')
+      .eq('patient_id', patientId);
+
+    if (consents) {
+      const consentMap = {
+        'hipaa': 'hipaa', 'blood_draw': 'blood-draw', 'blood-draw': 'blood-draw',
+        'hrt': 'hrt', 'peptide': 'peptide', 'iv': 'iv', 'iv_injection': 'iv',
+        'hbot': 'hbot', 'weight_loss': 'weight-loss', 'weight-loss': 'weight-loss',
+        'red_light': 'red-light', 'red-light': 'red-light', 'prp': 'prp',
+        'exosome_iv': 'exosome-iv', 'exosome-iv': 'exosome-iv',
+        'knee_aspiration': 'knee-aspiration', 'knee-aspiration': 'knee-aspiration',
+      };
+      completedFormIds = consents.map(c => consentMap[c.consent_type] || c.consent_type).filter(Boolean);
+    }
+
+    // Check intakes table for medical intake
+    if (requiredFormIds.includes('intake')) {
+      const { data: intakes } = await supabase
+        .from('intakes')
+        .select('id')
+        .eq('patient_id', patientId)
+        .limit(1);
+      if (intakes && intakes.length > 0) {
+        completedFormIds.push('intake');
+      }
+    }
+  }
+
+  // Filter to only missing forms
+  const completedSet = new Set(completedFormIds);
+  const missingFormIds = requiredFormIds.filter(id => !completedSet.has(id));
+
+  if (missingFormIds.length === 0) {
+    console.log(`All forms already on file for ${patientName} (${serviceCategory})`);
+    // Mark forms_complete since everything is already done
+    if (calcomBookingId) {
+      await supabase.from('appointments').update({ forms_complete: true }).eq('cal_com_booking_id', calcomBookingId);
+    }
+    return;
+  }
+
+  console.log(`Missing forms for ${patientName}: ${missingFormIds.join(', ')}`);
+
+  const phone = patientPhone ? normalizePhoneUtil(patientPhone) : null;
+  if (!phone && !patientEmail) {
+    console.log(`No contact info for form send — skipping for ${patientName}`);
+    return;
+  }
+
+  try {
+    // Create form bundle
+    const bundle = await createFormBundle({
+      formIds: missingFormIds,
+      patientId: patientId || null,
+      patientName: patientName || null,
+      patientEmail: patientEmail || null,
+      patientPhone: phone || null,
+      metadata: { source: 'auto_booking', calcomBookingId },
+    });
+
+    const firstName = (patientName || 'there').split(' ')[0];
+
+    // Send SMS with form link
+    if (phone) {
+      const formCount = missingFormIds.length;
+      const messageBody = formCount === 1
+        ? `Hi ${firstName}! Range Medical here. Please complete your ${FORM_DEFINITIONS[missingFormIds[0]]?.name || 'form'} before your visit:\n\n${bundle.url}`
+        : `Hi ${firstName}! Range Medical here. Please complete your ${formCount} forms before your visit:\n\n${bundle.url}`;
+
+      // Respect Blooio two-step opt-in
+      if (isBlooioProvider()) {
+        const optedIn = await hasBlooioOptIn(phone);
+        if (!optedIn) {
+          // Send opt-in request first, queue the link message
+          const optInMsg = formCount === 1
+            ? `Hi ${firstName}! Range Medical here. We have your ${FORM_DEFINITIONS[missingFormIds[0]]?.name || 'form'} ready for you. Reply YES to receive it.`
+            : `Hi ${firstName}! Range Medical here. We have ${formCount} forms ready for you. Reply YES to receive them.`;
+
+          await sendSMSRouter({ to: phone, message: optInMsg });
+          await queuePendingLinkMessage({
+            phone,
+            message: messageBody,
+            messageType: 'form_links',
+            patientId: patientId || null,
+            patientName: patientName || null,
+          });
+          console.log(`Form opt-in sent for ${patientName} (bundle: ${bundle.token})`);
+        } else {
+          await sendSMSRouter({ to: phone, message: messageBody });
+          console.log(`Forms SMS sent for ${patientName} (bundle: ${bundle.token})`);
+        }
+      } else {
+        await sendSMSRouter({ to: phone, message: messageBody });
+        console.log(`Forms SMS sent for ${patientName} (bundle: ${bundle.token})`);
+      }
+
+      await logComm({
+        channel: 'sms',
+        messageType: 'form_links',
+        message: `Auto-sent ${formCount} form(s) for ${serviceCategory} booking`,
+        source: 'calcom-webhook-auto',
+        patientId: patientId || null,
+        patientName,
+        recipient: phone,
+        status: 'sent',
+        direction: 'outbound',
+      });
+    }
+
+    // forms_complete stays false (default) — will be updated when patient completes forms
+
+  } catch (err) {
+    console.error('Form auto-send error:', err);
   }
 }
 

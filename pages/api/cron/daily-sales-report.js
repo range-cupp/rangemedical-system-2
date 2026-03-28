@@ -6,6 +6,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
 import { logComm } from '../../../lib/comms-log';
+import { sendSMS } from '../../../lib/send-sms';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -172,6 +173,43 @@ export default async function handler(req, res) {
       subject,
       status: 'sent',
     });
+
+    // ── 5. Send SMS with same numbers ────────────────────────────────────
+    const smsBody = buildReportSMS({
+      shortDate,
+      totalRevenue,
+      transactionCount,
+      revenueByCategory,
+      sessionCount,
+      sessionsByCategory,
+      newPatientCount,
+      returningPatientCount,
+    });
+
+    const smsResult = await sendSMS({ to: '+19496900339', message: smsBody });
+
+    if (smsResult.success) {
+      await logComm({
+        channel: 'sms',
+        messageType: 'daily_sales_report',
+        message: smsBody,
+        source: 'cron/daily-sales-report',
+        recipient: '+19496900339',
+        status: 'sent',
+      });
+      console.log('Daily Sales Report SMS sent to Chris');
+    } else {
+      console.error('Daily Sales Report SMS error:', smsResult.error);
+      await logComm({
+        channel: 'sms',
+        messageType: 'daily_sales_report',
+        message: smsBody,
+        source: 'cron/daily-sales-report',
+        recipient: '+19496900339',
+        status: 'error',
+        errorMessage: smsResult.error,
+      });
+    }
 
     console.log(`Daily Sales Report sent — $${totalRevenue.toFixed(2)}, ${sessionCount} sessions, ${newPatientCount} new patients`);
 
@@ -393,4 +431,39 @@ function buildReportEmail({
   </table>
 </body>
 </html>`;
+}
+
+// ── Build plain-text SMS ─────────────────────────────────────────────────────
+function buildReportSMS({
+  shortDate, totalRevenue, transactionCount, revenueByCategory,
+  sessionCount, sessionsByCategory, newPatientCount, returningPatientCount,
+}) {
+  const lines = [];
+  lines.push(`Range Medical EOD ${shortDate}`);
+  lines.push(`Revenue: ${fmtMoney(totalRevenue)} (${transactionCount} txns)`);
+
+  // Category breakdown
+  const sortedCats = Object.entries(revenueByCategory).sort((a, b) => b[1].total - a[1].total);
+  if (sortedCats.length > 0) {
+    lines.push('');
+    sortedCats.forEach(([cat, data]) => {
+      lines.push(`  ${catLabel(cat)}: ${fmtMoney(data.total)} (${data.count})`);
+    });
+  }
+
+  lines.push('');
+  lines.push(`Sessions: ${sessionCount}`);
+
+  const sortedSessionCats = Object.entries(sessionsByCategory).sort((a, b) => b[1] - a[1]);
+  if (sortedSessionCats.length > 0) {
+    sortedSessionCats.forEach(([cat, count]) => {
+      lines.push(`  ${catLabel(cat)}: ${count}`);
+    });
+  }
+
+  lines.push('');
+  lines.push(`New patients: ${newPatientCount}`);
+  lines.push(`Returning: ${returningPatientCount}`);
+
+  return lines.join('\n');
 }

@@ -84,8 +84,12 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
   const recognitionRef = useRef(null);
   const noteRef = useRef(null);
   const [showTemplateMenu, setShowTemplateMenu] = useState(false);
-  const [noteMode, setNoteMode] = useState('choose'); // 'choose' | 'interactive' | 'freetext'
+  const [noteMode, setNoteMode] = useState('choose'); // 'choose' | 'interactive' | 'freetext' | 'copy_previous'
   const [interactiveFormType, setInteractiveFormType] = useState(null);
+
+  // Copy from previous encounter state
+  const [previousNotes, setPreviousNotes] = useState([]);
+  const [loadingPrevious, setLoadingPrevious] = useState(false);
 
   // Get markdown from contentEditable div
   const getNoteMarkdown = () => htmlToMd(noteRef.current?.innerHTML || '');
@@ -277,6 +281,30 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
     return [...new Set(forms)];
   };
   const availableInteractiveForms = getAvailableInteractiveForms();
+
+  // Fetch previous encounter notes for this patient (for copy-from-previous)
+  const fetchPreviousNotes = async () => {
+    if (!appointment?.patient_id) return;
+    setLoadingPrevious(true);
+    try {
+      const res = await fetch(`/api/notes/by-patient?patient_id=${appointment.patient_id}`);
+      const data = await res.json();
+      const notes = (data.notes || [])
+        // Exclude notes from this appointment, exclude addendums
+        .filter(n => n.appointment_id !== appointment.id && n.source !== 'addendum')
+        // Only include encounter notes (not manual/protocol-generated)
+        .filter(n => n.source === 'encounter' || n.encounter_service)
+        // Match same service type if possible — show all encounter notes as fallback
+        .sort((a, b) => new Date(b.note_date || b.created_at) - new Date(a.note_date || a.created_at))
+        .slice(0, 5);
+      setPreviousNotes(notes);
+    } catch (err) {
+      console.error('Fetch previous notes error:', err);
+      setPreviousNotes([]);
+    } finally {
+      setLoadingPrevious(false);
+    }
+  };
 
   // Set default note type from template
   useEffect(() => {
@@ -1306,6 +1334,22 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                         );
                       })}
                       <button
+                        onClick={() => { setNoteMode('copy_previous'); fetchPreviousNotes(); }}
+                        style={{
+                          flex: 1, maxWidth: 260, padding: '24px 20px', borderRadius: 0,
+                          border: '2px solid #d1fae5', background: '#f0fdf4', cursor: 'pointer',
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+                          transition: 'all 0.15s',
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#059669'; e.currentTarget.style.background = '#dcfce7'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#d1fae5'; e.currentTarget.style.background = '#f0fdf4'; }}
+                      >
+                        <span style={{ fontSize: 32 }}>📋</span>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>Copy from Previous</span>
+                        <span style={{ fontSize: 12, color: '#059669', fontWeight: 600 }}>Use a past encounter</span>
+                        <span style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>Edit & save as new</span>
+                      </button>
+                      <button
                         onClick={() => setNoteMode('freetext')}
                         style={{
                           flex: 1, maxWidth: 260, padding: '24px 20px', borderRadius: 0,
@@ -1322,6 +1366,85 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                         <span style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>Write from scratch</span>
                       </button>
                     </div>
+                  </div>
+                )}
+
+                {/* Note creation — copy from previous encounter picker */}
+                {showNoteForm && canAuthorNotes && noteMode === 'copy_previous' && (
+                  <div className="enc-form-card" style={{ padding: 24 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: 16, fontWeight: 700, color: '#111' }}>Select a Previous Encounter</span>
+                        <button
+                          onClick={() => setNoteMode('choose')}
+                          style={{ fontSize: 12, color: '#059669', background: '#f0fdf4', border: 'none', borderRadius: 0, padding: '3px 12px', cursor: 'pointer', fontWeight: 600 }}
+                        >
+                          ← Back
+                        </button>
+                      </div>
+                      <button onClick={() => { setShowNoteForm(false); setNoteMode('choose'); }} className="enc-close" style={{ width: 28, height: 28, fontSize: 16 }}>×</button>
+                    </div>
+                    {loadingPrevious ? (
+                      <div style={{ textAlign: 'center', padding: 32, color: '#9ca3af' }}>Loading previous encounters...</div>
+                    ) : previousNotes.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: 32, color: '#9ca3af' }}>
+                        <div style={{ fontSize: 14, marginBottom: 8 }}>No previous encounter notes found for this patient.</div>
+                        <button
+                          onClick={() => setNoteMode('freetext')}
+                          style={{ fontSize: 13, color: '#059669', background: 'none', border: '1px solid #d1fae5', borderRadius: 0, padding: '6px 16px', cursor: 'pointer', fontWeight: 600 }}
+                        >
+                          Write from scratch instead
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {previousNotes.map(note => {
+                          const noteDate = new Date(note.note_date || note.created_at);
+                          const dateStr = noteDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                          const preview = (note.body || '').replace(/\*\*/g, '').replace(/\n/g, ' ').slice(0, 120);
+                          return (
+                            <button
+                              key={note.id}
+                              onClick={() => {
+                                setNoteMode('freetext');
+                                // Load previous note body into the free text editor after it renders
+                                setTimeout(() => {
+                                  if (noteRef.current) {
+                                    noteRef.current.innerHTML = mdToHtml(note.body || '');
+                                    setNoteIsEmpty(false);
+                                  }
+                                }, 100);
+                              }}
+                              style={{
+                                textAlign: 'left', padding: '14px 16px', borderRadius: 0,
+                                border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer',
+                                transition: 'all 0.15s',
+                              }}
+                              onMouseEnter={e => { e.currentTarget.style.borderColor = '#059669'; e.currentTarget.style.background = '#f0fdf4'; }}
+                              onMouseLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.background = '#fff'; }}
+                            >
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: '#111' }}>{dateStr}</span>
+                                {note.encounter_service && (
+                                  <span style={{ fontSize: 11, color: '#059669', fontWeight: 600, background: '#f0fdf4', padding: '1px 8px', borderRadius: 0 }}>
+                                    {note.encounter_service}
+                                  </span>
+                                )}
+                                {note.created_by && (
+                                  <span style={{ fontSize: 11, color: '#9ca3af' }}>by {note.created_by}</span>
+                                )}
+                                {note.status === 'signed' && (
+                                  <span style={{ fontSize: 11, color: '#059669' }}>✓ Signed</span>
+                                )}
+                              </div>
+                              <div style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.4 }}>
+                                {preview}{(note.body || '').length > 120 ? '...' : ''}
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
 

@@ -2039,13 +2039,12 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               const isPrereqSvc = sn.includes('vitamin c') || sn.includes('methylene blue') || sn.includes('mb +') || sn.includes('mb combo');
               const isLabAppt = sn.includes('lab review') || sn.includes('lab assessment') || sn.includes('lab follow') || sn.includes('initial lab');
               const labDeliveryLabel = appt.modality === 'telemedicine' ? 'Labs emailed to patient' : 'Labs printed';
-              const needsIdCheck = sn.includes('blood draw') || sn.includes('phlebotomy') || sn.includes('medication pickup');
               const prepItems = [
                 { label: 'Instructions sent', ok: appt.instructions_sent, auto: true },
                 { label: 'Forms complete', ok: appt._liveFormsComplete ?? appt.forms_complete, auto: true },
                 ...(isPrereqSvc ? [{ label: 'Blood work prereq', ok: appt.prereqs_met, auto: true }] : []),
                 ...(isLabAppt ? [{ label: labDeliveryLabel, ok: appt.labs_delivered, field: 'labs_delivered' }] : []),
-                ...(needsIdCheck ? [{ label: 'ID verified', ok: appt.id_verified, field: 'id_verified' }] : []),
+                { label: 'ID verified', ok: appt.id_verified, field: 'id_verified' },
                 { label: 'Provider briefed', ok: appt.provider_briefed, field: 'provider_briefed' },
               ];
               const allReady = prepItems.every(i => i.ok);

@@ -116,9 +116,6 @@ export default function AppointmentPrepPage() {
   const isLabAppt = sn.includes('lab review') || sn.includes('lab assessment') || sn.includes('lab follow') || sn.includes('initial lab');
   const labDeliveryLabel = apt.modality === 'telemedicine' ? 'Labs emailed to patient' : 'Labs printed';
 
-  // Determine if ID verification is needed (blood draws, phlebotomy, medication pickup)
-  const needsIdCheck = sn.includes('blood draw') || sn.includes('phlebotomy') || sn.includes('medication pickup');
-
   // Modality badge
   const modalityMap = {
     in_clinic: { label: 'In-Clinic', bg: '#dcfce7', color: '#166534' },
@@ -137,7 +134,7 @@ export default function AppointmentPrepPage() {
   const manualItems = [
     { ok: apt.provider_briefed },
   ];
-  if (needsIdCheck) manualItems.push({ ok: apt.id_verified });
+  manualItems.push({ ok: apt.id_verified });
   const allItems = [...autoItems, ...manualItems];
   const allReady = allItems.every(i => i.ok);
 
@@ -222,14 +219,12 @@ export default function AppointmentPrepPage() {
           saving={saving.provider_briefed}
           onToggle={() => toggleField('provider_briefed')}
         />
-        {needsIdCheck && (
-          <CheckItem
-            label="ID verified"
-            checked={apt.id_verified}
-            saving={saving.id_verified}
-            onToggle={() => toggleField('id_verified')}
-          />
-        )}
+        <CheckItem
+          label="ID verified"
+          checked={apt.id_verified}
+          saving={saving.id_verified}
+          onToggle={() => toggleField('id_verified')}
+        />
       </div>
 
       {/* Visit reason */}

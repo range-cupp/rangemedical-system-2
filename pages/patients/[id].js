@@ -7371,7 +7371,6 @@ export default function PatientProfile() {
                       card_brand: charge.card_brand,
                       card_last4: charge.card_last4,
                       description: charge.description,
-                      receipt_url: charge.receipt_url,
                       items: matchedPurchases,
                     };
                   });
@@ -7436,8 +7435,8 @@ export default function PatientProfile() {
                                 </div>
                                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
                                   {charge.refunded && <span className="pay-badge pay-badge-red">refunded</span>}
-                                  {charge.receipt_url && (
-                                    <a href={charge.receipt_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                                  {charge.items.length > 0 && (
+                                    <a href={`/api/receipt/${charge.items[0].id}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
                                       style={{ fontSize: 10, color: '#3b82f6', textDecoration: 'none', fontWeight: 600 }}>
                                       Receipt
                                     </a>

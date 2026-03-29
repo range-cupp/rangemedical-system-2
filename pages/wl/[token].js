@@ -364,8 +364,8 @@ export default function WeightLossPortal() {
           background: C.black, padding: '10px 24px',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
-          <span style={{ ...label, color: 'rgba(255,255,255,0.5)', fontSize: 10, margin: 0 }}>RANGE MEDICAL</span>
-          <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12 }}>{protocol.medication}</span>
+          <span style={{ ...label, color: '#FFFFFF', fontSize: 10, margin: 0 }}>RANGE MEDICAL</span>
+          <span style={{ color: '#FFFFFF', fontSize: 12 }}>{protocol.medication}</span>
         </div>
 
         {/* ─── Hero Section ─────────────────────────────────────────────── */}

@@ -524,7 +524,7 @@ export default function PatientProfile() {
     templateId: '', peptideId: '', selectedDose: '', frequency: '',
     startDate: new Date().toISOString().split('T')[0], notes: '',
     injectionMedication: '', injectionDose: '', vialDuration: '',
-    medication: ''
+    medication: '', deliveryMethod: '', injectionDay: '', pickupFrequencyDays: ''
   });
 
   const [editForm, setEditForm] = useState({
@@ -1625,7 +1625,11 @@ export default function PatientProfile() {
           startDate: assignForm.startDate,
           notes: assignForm.notes,
           purchaseId: selectedNotification?.id,
-          peptideDurationDays
+          peptideDurationDays,
+          deliveryMethod: isWeightLoss ? assignForm.deliveryMethod : undefined,
+          injectionDay: isWeightLoss ? assignForm.injectionDay : undefined,
+          pickupFrequencyDays: isWeightLoss && assignForm.pickupFrequencyDays ? parseInt(assignForm.pickupFrequencyDays) : undefined,
+          isWeightLoss: isWeightLoss || undefined
         })
       });
 
@@ -7994,6 +7998,43 @@ export default function PatientProfile() {
                             </select>
                           </div>
                         )}
+                        <div className="form-group">
+                          <label>Injection Frequency</label>
+                          <select value={assignForm.frequency} onChange={e => setAssignForm({...assignForm, frequency: e.target.value})}>
+                            <option value="">Select frequency...</option>
+                            <option value="Weekly">Weekly</option>
+                            <option value="Every 10 days">Every 10 days</option>
+                            <option value="Every 14 days">Every 14 days</option>
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label>Injection Day</label>
+                          <select value={assignForm.injectionDay} onChange={e => setAssignForm({...assignForm, injectionDay: e.target.value})}>
+                            <option value="">Select day...</option>
+                            {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(d => (
+                              <option key={d} value={d}>{d}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label>Delivery Method *</label>
+                          <select value={assignForm.deliveryMethod} onChange={e => setAssignForm({...assignForm, deliveryMethod: e.target.value})}>
+                            <option value="">Select delivery...</option>
+                            <option value="in_clinic">In-Clinic (all injections)</option>
+                            <option value="take_home">Take-Home (all injections)</option>
+                            <option value="hybrid">1st Injection In-Clinic + Take-Home Remaining</option>
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label>Supply Duration</label>
+                          <select value={assignForm.pickupFrequencyDays} onChange={e => setAssignForm({...assignForm, pickupFrequencyDays: e.target.value})}>
+                            <option value="">Select duration...</option>
+                            <option value="7">1 Week (1 injection)</option>
+                            <option value="14">2 Weeks (2 injections)</option>
+                            <option value="28">4 Weeks (4 injections)</option>
+                            <option value="56">8 Weeks (8 injections)</option>
+                          </select>
+                        </div>
                       </>
                     )}
 
@@ -8153,15 +8194,17 @@ export default function PatientProfile() {
                       </>
                     )}
 
-                    <div className="form-group">
-                      <label>Frequency</label>
-                      <select value={assignForm.frequency} onChange={e => setAssignForm({...assignForm, frequency: e.target.value})}>
-                        <option value="">Select frequency...</option>
-                        {FREQUENCY_OPTIONS.map(opt => (
-                          <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                      </select>
-                    </div>
+                    {!isWeightLossTemplate() && (
+                      <div className="form-group">
+                        <label>Frequency</label>
+                        <select value={assignForm.frequency} onChange={e => setAssignForm({...assignForm, frequency: e.target.value})}>
+                          <option value="">Select frequency...</option>
+                          {FREQUENCY_OPTIONS.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
 
                     <div className="form-group">
                       <label>Start Date</label>

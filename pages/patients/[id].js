@@ -8070,7 +8070,8 @@ export default function PatientProfile() {
                             return steps;
                           };
 
-                          const titrationSteps = !hasDoseList ? generateDoseSteps(peptideInfo.startingDose, peptideInfo.maxDose) : null;
+                          const hasExplicitDoseOptions = peptideInfo.doseOptions?.length > 0;
+                          const titrationSteps = !hasDoseList && !hasExplicitDoseOptions ? generateDoseSteps(peptideInfo.startingDose, peptideInfo.maxDose) : null;
 
                           return (
                             <>
@@ -8080,6 +8081,14 @@ export default function PatientProfile() {
                                   <select value={assignForm.selectedDose} onChange={e => setAssignForm({...assignForm, selectedDose: e.target.value})}>
                                     <option value="">Select dose...</option>
                                     {peptideInfo.doses.map(dose => <option key={dose} value={dose}>{dose}</option>)}
+                                  </select>
+                                ) : hasExplicitDoseOptions ? (
+                                  <select value={assignForm.selectedDose} onChange={e => setAssignForm({...assignForm, selectedDose: e.target.value})}>
+                                    <option value="">Select dose...</option>
+                                    {peptideInfo.doseOptions.map(d => {
+                                      const label = d === peptideInfo.startingDose ? `${d} (starting)` : d === peptideInfo.maxDose ? `${d} (max)` : d;
+                                      return <option key={d} value={d}>{label}</option>;
+                                    })}
                                   </select>
                                 ) : titrationSteps ? (
                                   <select value={assignForm.selectedDose} onChange={e => setAssignForm({...assignForm, selectedDose: e.target.value})}>
@@ -8238,9 +8247,11 @@ export default function PatientProfile() {
                   ) : selectedProtocol.category === 'peptide' && editForm.medication ? (() => {
                     const peptide = PEPTIDE_OPTIONS.flatMap(g => g.options).find(o => o.value === editForm.medication);
                     if (!peptide) return <input type="text" value={editForm.selectedDose} onChange={e => setEditForm({...editForm, selectedDose: e.target.value})} placeholder="Dose" />;
-                    // Build dose options: use explicit doses array, or generate range from startingDose → maxDose
+                    // Build dose options: use explicit doseOptions/doses array, or generate range from startingDose → maxDose
                     let doseOptions;
-                    if (peptide.doses) {
+                    if (peptide.doseOptions) {
+                      doseOptions = peptide.doseOptions;
+                    } else if (peptide.doses) {
                       doseOptions = peptide.doses;
                     } else if (peptide.startingDose === peptide.maxDose) {
                       doseOptions = [peptide.startingDose];

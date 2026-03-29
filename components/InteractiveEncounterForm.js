@@ -326,7 +326,7 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
 
       case 'dose_select': {
         const doseOptions = selectedMedInfo
-          ? generateDoseOptions(selectedMedInfo.startingDose, selectedMedInfo.maxDose)
+          ? (selectedMedInfo.doseOptions || generateDoseOptions(selectedMedInfo.startingDose, selectedMedInfo.maxDose))
           : [];
 
         if (!selectedMedInfo) {

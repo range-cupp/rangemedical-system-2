@@ -152,11 +152,11 @@ async function notifyAssignee(employeeId, assignerName, taskTitle, priority) {
 
   if (!emp?.phone) return; // No phone on file — skip
 
-  // Check quiet hours: 8am-6pm PST
+  // Check quiet hours: before 7am or after 8pm PST
   const now = new Date();
   const pst = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
   const hour = pst.getHours();
-  const isQuietHours = hour < 8 || hour >= 18;
+  const isQuietHours = hour < 7 || hour >= 20;
 
   if (isQuietHours) {
     // Queue for later — store in notification_queue table

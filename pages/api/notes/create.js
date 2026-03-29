@@ -220,9 +220,9 @@ export default async function handler(req, res) {
           // Find the patient's active weight loss protocol
           const { data: protocols } = await supabase
             .from('protocols')
-            .select('id, starting_weight, sessions_used, total_sessions, selected_dose, dose, patient_id')
+            .select('id, starting_weight, sessions_used, total_sessions, selected_dose, dose, patient_id, medication')
             .eq('patient_id', patient_id)
-            .in('category', ['weight_loss'])
+            .ilike('program_type', 'weight_loss%')
             .in('status', ['active', 'in_progress'])
             .order('created_at', { ascending: false })
             .limit(1);

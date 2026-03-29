@@ -387,6 +387,7 @@ export default function PatientProfile() {
   const [protocolPdfPlanDate, setProtocolPdfPlanDate] = useState(new Date().toISOString().split('T')[0]);
   const [protocolPdfGenerating, setProtocolPdfGenerating] = useState(false);
   const [protocolPdfSaving, setProtocolPdfSaving] = useState(false);
+  const [sendingWlLink, setSendingWlLink] = useState(null); // protocol id being sent
 
   // Send Document modal state
   const [sendDocModal, setSendDocModal] = useState({ open: false, url: '', name: '', type: '' });
@@ -1965,6 +1966,26 @@ export default function PatientProfile() {
         setDripLogs(prev => ({ ...prev, [protocolId]: logs }));
       }
     } catch { /* ignore */ }
+  };
+
+  const handleSendWlLink = async (protocolId) => {
+    setSendingWlLink(protocolId);
+    try {
+      const res = await fetch('/api/protocols/send-wl-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ protocolId })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('WL page link sent successfully!');
+      } else {
+        alert(data.error || 'Failed to send');
+      }
+    } catch {
+      alert('Failed to send WL link');
+    }
+    setSendingWlLink(null);
   };
 
   const openEditModal = (protocol) => {
@@ -4638,6 +4659,13 @@ export default function PatientProfile() {
                                 >{isExpanded ? 'Hide Details' : 'View Details'}</button>
                               )}
                               <button onClick={() => openEditModal(protocol)} className="btn-secondary-sm">Edit</button>
+                              {protocol.category === 'weight_loss' && protocol.status === 'active' && (
+                                <button
+                                  onClick={() => handleSendWlLink(protocol.id)}
+                                  disabled={sendingWlLink === protocol.id}
+                                  style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 0, padding: '4px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', opacity: sendingWlLink === protocol.id ? 0.6 : 1 }}
+                                >{sendingWlLink === protocol.id ? 'Sending...' : 'Send WL Link'}</button>
+                              )}
                               {/* Merge button — only show when there are other protocols of the same category */}
                               {protocol.status === 'active' && (() => {
                                 const allProtos = [...activeProtocols, ...completedProtocols];

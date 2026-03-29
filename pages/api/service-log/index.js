@@ -429,6 +429,49 @@ async function handlePost(req, res) {
       console.log(`[service-log] Created ${additionalLogs.length} additional WL entries for multi-injection pickup`);
     }
 
+    // ── Weight loss pickup: auto-create injection schedule entries ──
+    // When a pickup is logged with quantity > 0, create individual injection entries
+    // for each week so the View Details timeline populates correctly.
+    const wlPickupQty = isWeightLossType(category) && resolvedEntryType === 'pickup' && quantity && parseInt(quantity) > 0 ? parseInt(quantity) : 0;
+    if (wlPickupQty > 0) {
+      // Extract per-injection dose from pickup dosage (e.g., "4 week supply @ 2mg" → "2mg")
+      const pickupDosage = dosage || '';
+      const atMatch = pickupDosage.match(/@\s*(.+)/);
+      const injectionDose = atMatch ? atMatch[1].trim() : pickupDosage;
+
+      const injectionLogs = [];
+      for (let i = 0; i < wlPickupQty; i++) {
+        const injDate = new Date(logDate + 'T12:00:00');
+        injDate.setDate(injDate.getDate() + i * 7);
+        const injDateStr = injDate.toISOString().split('T')[0];
+        const injLogData = {
+          patient_id,
+          category,
+          entry_type: 'injection',
+          entry_date: injDateStr,
+          medication: medication || null,
+          dosage: injectionDose || null,
+          weight: null,
+          quantity: 1,
+          notes: `Dispensed on ${logDate} (${wlPickupQty}-injection pickup, week ${i + 1} of ${wlPickupQty})`,
+          protocol_id: protocol_id || null,
+          administered_by: administered_by || null,
+          fulfillment_method: fulfillment_method || 'in_clinic',
+        };
+        const { data: injLog, error: injErr } = await supabase
+          .from('service_logs')
+          .insert([injLogData])
+          .select()
+          .single();
+        if (!injErr && injLog) {
+          injectionLogs.push(injLog);
+        } else {
+          console.error(`[service-log] Failed to create WL injection entry for ${injDateStr}:`, injErr);
+        }
+      }
+      console.log(`[service-log] Created ${injectionLogs.length} injection entries from WL pickup (qty ${wlPickupQty})`);
+    }
+
     // 2. Check for active package and decrement if found
     // Skip protocol logic for supplements — they're one-time purchases, not ongoing protocols
     const packageUpdate = category === 'supplement'

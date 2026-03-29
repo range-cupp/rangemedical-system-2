@@ -333,6 +333,10 @@ export default function PatientProfile() {
   const [commsLog, setCommsLog] = useState([]);
   const [allPurchases, setAllPurchases] = useState([]);
   const [expandedTransactions, setExpandedTransactions] = useState({});
+  const [stripeCharges, setStripeCharges] = useState([]);
+  const [loadingStripeCharges, setLoadingStripeCharges] = useState(false);
+  const [stripeChargesFetched, setStripeChargesFetched] = useState(false);
+  const [hasStripeCustomer, setHasStripeCustomer] = useState(false);
   const [invoices, setInvoices] = useState([]);
   const [subscriptions, setSubscriptions] = useState([]);
   const [medications, setMedications] = useState([]);
@@ -795,6 +799,22 @@ export default function PatientProfile() {
       console.error('Error fetching patient:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchStripeCharges = async () => {
+    if (!id || stripeChargesFetched) return;
+    try {
+      setLoadingStripeCharges(true);
+      const res = await fetch(`/api/patients/${id}/stripe-charges`);
+      const data = await res.json();
+      setStripeCharges(data.charges || []);
+      setHasStripeCustomer(data.hasStripeCustomer || false);
+      setStripeChargesFetched(true);
+    } catch (err) {
+      console.error('Error fetching Stripe charges:', err);
+    } finally {
+      setLoadingStripeCharges(false);
     }
   };
 
@@ -7036,7 +7056,7 @@ export default function PatientProfile() {
                 ].map(tab => (
                   <button
                     key={tab.key}
-                    onClick={() => setPaymentsSubTab(tab.key)}
+                    onClick={() => { setPaymentsSubTab(tab.key); if (tab.key === 'purchases') fetchStripeCharges(); }}
                     className={`pay-tab ${paymentsSubTab === tab.key ? 'active' : ''}`}
                   >
                     {tab.label}
@@ -7321,118 +7341,185 @@ export default function PatientProfile() {
                 </div>
               )}
 
-              {/* Purchases Sub-tab */}
+              {/* Purchases Sub-tab — Stripe-powered payment history */}
               {paymentsSubTab === 'purchases' && (() => {
-                // Group purchases into transactions by stripe_payment_intent_id
-                const transactions = [];
-                const grouped = {};
+                // Build a lookup of purchases by payment_intent_id
+                const purchasesByPI = {};
                 allPurchases.forEach(p => {
-                  const key = p.stripe_payment_intent_id;
-                  if (key) {
-                    if (!grouped[key]) {
-                      grouped[key] = { key, items: [], date: p.purchased_at || p.purchase_date || p.created_at, card_brand: p.card_brand, card_last4: p.card_last4, payment_method: p.payment_method, source: p.source };
-                      transactions.push(grouped[key]);
-                    }
-                    grouped[key].items.push(p);
-                  } else {
-                    // Standalone purchase (cash, manual, no stripe id)
-                    transactions.push({ key: p.id, items: [p], date: p.purchased_at || p.purchase_date || p.created_at, card_brand: p.card_brand, card_last4: p.card_last4, payment_method: p.payment_method, source: p.source });
+                  if (p.stripe_payment_intent_id) {
+                    if (!purchasesByPI[p.stripe_payment_intent_id]) purchasesByPI[p.stripe_payment_intent_id] = [];
+                    purchasesByPI[p.stripe_payment_intent_id].push(p);
                   }
                 });
 
-                return (
-                <div className="pay-section">
-                  <div className="pay-section-header">
-                    <h3>Payments ({transactions.length})</h3>
-                  </div>
-                  {transactions.length === 0 ? (
-                    <div className="pay-empty">No payments found</div>
-                  ) : (
-                    <div className="pay-list">
-                      {transactions.map(txn => {
-                        const totalAmount = txn.items.reduce((sum, p) => sum + (p.amount_paid || p.amount || 0), 0);
-                        const hasMultipleItems = txn.items.length > 1;
-                        const isExpanded = expandedTransactions[txn.key];
-                        const firstItem = txn.items[0];
-                        const isStripePayment = !!firstItem.stripe_payment_intent_id;
-                        const isCash = firstItem.payment_method === 'cash' || firstItem.payment_method === 'manual';
-                        // Transaction title: if single item show item name, if multiple show count
-                        const txnTitle = hasMultipleItems
-                          ? `${txn.items.length} items`
-                          : (firstItem.item_name || firstItem.description || firstItem.product_name || 'Purchase');
+                // Track which purchases are matched to a Stripe charge
+                const matchedPurchaseIds = new Set();
 
-                        return (
-                        <div key={txn.key} style={{ marginBottom: 6 }}>
-                          <div
-                            className="pay-item"
-                            style={{ cursor: hasMultipleItems ? 'pointer' : (isStripePayment ? 'default' : 'pointer'), marginBottom: 0 }}
-                            onClick={() => {
-                              if (hasMultipleItems) {
-                                setExpandedTransactions(prev => ({ ...prev, [txn.key]: !prev[txn.key] }));
-                              } else if (!isStripePayment) {
-                                openEditPurchase(firstItem);
-                              }
-                            }}
-                          >
-                            {hasMultipleItems && (
-                              <span style={{ fontSize: 11, color: '#94a3b8', flexShrink: 0, width: 16, textAlign: 'center', transition: 'transform 0.15s', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
-                            )}
+                // Build charge rows from Stripe data (actual amounts)
+                const chargeRows = stripeCharges
+                  .filter(c => c.status === 'succeeded')
+                  .map(charge => {
+                    const matchedPurchases = purchasesByPI[charge.payment_intent_id] || [];
+                    matchedPurchases.forEach(p => matchedPurchaseIds.add(p.id));
+                    return {
+                      key: charge.id,
+                      type: 'stripe',
+                      amount: charge.amount / 100, // actual amount charged
+                      amountRefunded: charge.amount_refunded / 100,
+                      refunded: charge.refunded,
+                      date: new Date(charge.created * 1000),
+                      card_brand: charge.card_brand,
+                      card_last4: charge.card_last4,
+                      description: charge.description,
+                      receipt_url: charge.receipt_url,
+                      items: matchedPurchases,
+                    };
+                  });
+
+                // Unmatched purchases (legacy — no Stripe charge found)
+                const unmatchedPurchases = allPurchases.filter(p => !matchedPurchaseIds.has(p.id));
+
+                const showStripeSection = hasStripeCustomer && stripeChargesFetched;
+                const showLegacySection = unmatchedPurchases.length > 0;
+
+                return (
+                <div>
+                  {/* Stripe-verified payments */}
+                  {showStripeSection && (
+                    <div className="pay-section" style={{ marginBottom: showLegacySection ? 16 : 0 }}>
+                      <div className="pay-section-header">
+                        <h3>Payments ({chargeRows.length})</h3>
+                        <button onClick={() => { setStripeChargesFetched(false); fetchStripeCharges(); }} className="pay-btn-secondary" style={{ fontSize: 11 }}>
+                          {loadingStripeCharges ? 'Loading...' : 'Refresh'}
+                        </button>
+                      </div>
+                      {loadingStripeCharges && chargeRows.length === 0 ? (
+                        <div className="pay-empty">Loading payments from Stripe...</div>
+                      ) : chargeRows.length === 0 ? (
+                        <div className="pay-empty">No Stripe payments found</div>
+                      ) : (
+                        <div className="pay-list">
+                          {chargeRows.map(charge => {
+                            const isExpanded = expandedTransactions[charge.key];
+                            const hasItems = charge.items.length > 0;
+                            const dateStr = charge.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+                            return (
+                            <div key={charge.key} style={{ marginBottom: 6 }}>
+                              <div
+                                className="pay-item"
+                                style={{ cursor: hasItems ? 'pointer' : 'default', marginBottom: 0 }}
+                                onClick={() => hasItems && setExpandedTransactions(prev => ({ ...prev, [charge.key]: !prev[charge.key] }))}
+                              >
+                                {hasItems && (
+                                  <span style={{ fontSize: 11, color: '#94a3b8', flexShrink: 0, width: 16, textAlign: 'center', transition: 'transform 0.15s', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
+                                )}
+                                <div className="pay-item-info">
+                                  <div className="pay-item-title">
+                                    {hasItems
+                                      ? (charge.items.length === 1
+                                        ? (charge.items[0].item_name || charge.items[0].product_name || charge.description || 'Payment')
+                                        : `${charge.items.length} items`)
+                                      : (charge.description || 'Stripe Payment')}
+                                  </div>
+                                  <div className="pay-item-sub">
+                                    {dateStr}
+                                    {charge.card_last4 && (
+                                      <span style={{ marginLeft: 8, color: '#888' }}>
+                                        {charge.card_brand ? charge.card_brand.charAt(0).toUpperCase() + charge.card_brand.slice(1) : ''} ····{charge.card_last4}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="pay-item-amount" style={charge.refunded ? { textDecoration: 'line-through', color: '#94a3b8' } : {}}>
+                                  ${charge.amount.toFixed(2)}
+                                </div>
+                                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+                                  {charge.refunded && <span className="pay-badge pay-badge-red">refunded</span>}
+                                  {charge.receipt_url && (
+                                    <a href={charge.receipt_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                                      style={{ fontSize: 10, color: '#3b82f6', textDecoration: 'none', fontWeight: 600 }}>
+                                      Receipt
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                              {/* Expanded: show what was purchased */}
+                              {hasItems && isExpanded && (
+                                <div style={{ marginLeft: 28, borderLeft: '2px solid #e2e8f0', paddingLeft: 12, marginTop: 2 }}>
+                                  {charge.items.map(item => (
+                                    <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', fontSize: 12, color: '#475569', borderBottom: '1px solid #f1f5f9' }}>
+                                      <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ fontWeight: 600, fontSize: 12, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                          {item.item_name || item.description || item.product_name || 'Item'}
+                                        </div>
+                                        {item.category && <span style={{ fontSize: 10, color: '#94a3b8' }}>{item.category}</span>}
+                                      </div>
+                                      <div style={{ fontWeight: 600, fontSize: 12, color: '#64748b', flexShrink: 0 }}>${(item.amount_paid || item.amount || 0).toFixed(2)}</div>
+                                      <span className={`pay-badge ${item.protocol_created ? 'pay-badge-green' : 'pay-badge-yellow'}`} style={{ fontSize: 9 }}>
+                                        {item.protocol_created ? (() => {
+                                          const linked = [...activeProtocols, ...completedProtocols].find(p => p.id === item.protocol_id);
+                                          return linked ? `✓ ${linked.program_name}` : '✓ protocol';
+                                        })() : 'no protocol'}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Loading state when no Stripe data yet */}
+                  {!stripeChargesFetched && loadingStripeCharges && (
+                    <div className="pay-section" style={{ marginBottom: showLegacySection ? 16 : 0 }}>
+                      <div className="pay-empty">Loading payments from Stripe...</div>
+                    </div>
+                  )}
+
+                  {/* Legacy / unmatched purchases */}
+                  {showLegacySection && (
+                    <div className="pay-section">
+                      <div className="pay-section-header">
+                        <h3>{showStripeSection ? 'Imported Records' : 'Purchases'} ({unmatchedPurchases.length})</h3>
+                      </div>
+                      <div className="pay-list">
+                        {unmatchedPurchases.map(purchase => (
+                          <div key={purchase.id} className="pay-item" style={{ cursor: 'pointer' }} onClick={() => openEditPurchase(purchase)}>
                             <div className="pay-item-info">
-                              <div className="pay-item-title">{txnTitle}</div>
+                              <div className="pay-item-title">{purchase.item_name || purchase.description || purchase.product_name || 'Purchase'}</div>
                               <div className="pay-item-sub">
-                                {formatDate(txn.date)}
-                                {txn.card_last4 && (
-                                  <span style={{ marginLeft: 8, color: '#888' }}>
-                                    {txn.card_brand ? txn.card_brand.charAt(0).toUpperCase() + txn.card_brand.slice(1) : ''} ····{txn.card_last4}
+                                {formatDate(purchase.purchased_at || purchase.purchase_date || purchase.created_at)}
+                                {purchase.source && !['stripe_pos', 'payment_link'].includes(purchase.source) && (
+                                  <span style={{ marginLeft: 8, color: '#c084fc', fontSize: 10, fontWeight: 600 }}>
+                                    {purchase.source === 'ghl_webhook' || purchase.source === 'GoHighLevel' ? 'GHL' : purchase.source === 'Mangomint' || purchase.source === 'mango_mint' ? 'Mangomint' : purchase.source === 'Zenoti' || purchase.source === 'zenoti' ? 'Zenoti' : purchase.source}
                                   </span>
                                 )}
-                                {isCash && <span style={{ marginLeft: 8, color: '#888' }}>{firstItem.payment_method === 'cash' ? 'Cash' : 'Manual'}</span>}
                               </div>
                             </div>
-                            <div className="pay-item-amount">${totalAmount.toFixed(2)}</div>
-                            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                              {firstItem.stripe_subscription_id && (
-                                <span className="pay-badge pay-badge-blue">recurring</span>
-                              )}
-                              {!hasMultipleItems && (
-                                <span className={`pay-badge ${firstItem.protocol_created ? 'pay-badge-green' : 'pay-badge-yellow'}`}
-                                  title={firstItem.protocol_id ? (() => {
-                                    const linked = [...activeProtocols, ...completedProtocols].find(p => p.id === firstItem.protocol_id);
-                                    return linked ? `Protocol: ${linked.program_name}${linked.medication && linked.medication !== linked.program_name ? ' — ' + linked.medication : ''}` : 'Protocol created';
-                                  })() : undefined}>
-                                  {firstItem.protocol_created ? (() => {
-                                    const linked = [...activeProtocols, ...completedProtocols].find(p => p.id === firstItem.protocol_id);
-                                    return linked ? `✓ ${linked.program_name}` : '✓ protocol set';
-                                  })() : 'no protocol'}
-                                </span>
-                              )}
+                            <div className="pay-item-amount">${(purchase.amount_paid || purchase.amount || 0).toFixed(2)}</div>
+                            <div style={{ display: 'flex', gap: 4 }}>
+                              <span className={`pay-badge ${purchase.protocol_created ? 'pay-badge-green' : 'pay-badge-yellow'}`}>
+                                {purchase.protocol_created ? (() => {
+                                  const linked = [...activeProtocols, ...completedProtocols].find(p => p.id === purchase.protocol_id);
+                                  return linked ? `✓ ${linked.program_name}` : '✓ protocol set';
+                                })() : 'no protocol'}
+                              </span>
                             </div>
                           </div>
-                          {/* Expanded line items for multi-item transactions */}
-                          {hasMultipleItems && isExpanded && (
-                            <div style={{ marginLeft: 28, borderLeft: '2px solid #e2e8f0', paddingLeft: 12, marginTop: 2 }}>
-                              {txn.items.map(item => (
-                                <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', fontSize: 12, color: '#475569', borderBottom: '1px solid #f1f5f9' }}>
-                                  <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontWeight: 600, fontSize: 12, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                      {item.item_name || item.description || item.product_name || 'Item'}
-                                    </div>
-                                    {item.category && <span style={{ fontSize: 10, color: '#94a3b8' }}>{item.category}</span>}
-                                  </div>
-                                  <div style={{ fontWeight: 700, fontSize: 12, color: '#334155', flexShrink: 0 }}>${(item.amount_paid || item.amount || 0).toFixed(2)}</div>
-                                  <span className={`pay-badge ${item.protocol_created ? 'pay-badge-green' : 'pay-badge-yellow'}`} style={{ fontSize: 9 }}>
-                                    {item.protocol_created ? (() => {
-                                      const linked = [...activeProtocols, ...completedProtocols].find(p => p.id === item.protocol_id);
-                                      return linked ? `✓ ${linked.program_name}` : '✓ protocol';
-                                    })() : 'no protocol'}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        );
-                      })}
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* No data at all */}
+                  {!loadingStripeCharges && chargeRows.length === 0 && unmatchedPurchases.length === 0 && (
+                    <div className="pay-section">
+                      <div className="pay-empty">No payments found</div>
                     </div>
                   )}
                 </div>

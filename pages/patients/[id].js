@@ -8238,12 +8238,41 @@ export default function PatientProfile() {
                   ) : selectedProtocol.category === 'peptide' && editForm.medication ? (() => {
                     const peptide = PEPTIDE_OPTIONS.flatMap(g => g.options).find(o => o.value === editForm.medication);
                     if (!peptide) return <input type="text" value={editForm.selectedDose} onChange={e => setEditForm({...editForm, selectedDose: e.target.value})} placeholder="Dose" />;
-                    // Build dose options: use explicit doses array, or construct from startingDose/maxDose
-                    const doseOptions = peptide.doses
-                      ? peptide.doses
-                      : peptide.startingDose === peptide.maxDose
-                        ? [peptide.startingDose]
-                        : [peptide.startingDose, peptide.maxDose];
+                    // Build dose options: use explicit doses array, or generate range from startingDose → maxDose
+                    let doseOptions;
+                    if (peptide.doses) {
+                      doseOptions = peptide.doses;
+                    } else if (peptide.startingDose === peptide.maxDose) {
+                      doseOptions = [peptide.startingDose];
+                    } else if (peptide.startingDose.includes('/') || peptide.maxDose.includes('/')) {
+                      // Blend doses (e.g., "500mcg/500mcg") — just show start and max
+                      doseOptions = [peptide.startingDose, peptide.maxDose];
+                    } else {
+                      // Generate range: parse values, step by 1 for mg ≥ 1, else by starting value
+                      const parseD = (d) => { const m = d.match(/^([\d.]+)\s*(mg|mcg|IU)/i); return m ? { v: parseFloat(m[1]), u: m[2].toLowerCase() } : null; };
+                      const s = parseD(peptide.startingDose), mx = parseD(peptide.maxDose);
+                      if (s && mx && s.u === mx.u) {
+                        const step = (s.u === 'mg' && s.v >= 1 && s.v === Math.floor(s.v)) ? 1 : s.v;
+                        doseOptions = [];
+                        for (let v = s.v; v <= mx.v + 0.001; v += step) {
+                          const r = Math.round(v * 1000) / 1000;
+                          doseOptions.push(`${r}${s.u}`);
+                          if (doseOptions.length >= 20) break;
+                        }
+                      } else if (s && mx && s.u === 'mcg' && mx.u === 'mg') {
+                        // Mixed units: convert max to mcg, generate range, format back
+                        const maxMcg = mx.v * 1000;
+                        const step = s.v;
+                        doseOptions = [];
+                        for (let v = s.v; v <= maxMcg + 0.001; v += step) {
+                          const r = Math.round(v);
+                          doseOptions.push(r >= 1000 ? `${r / 1000}mg` : `${r}mcg`);
+                          if (doseOptions.length >= 20) break;
+                        }
+                      } else {
+                        doseOptions = [peptide.startingDose, peptide.maxDose];
+                      }
+                    }
                     return (
                       <select value={editForm.selectedDose} onChange={e => setEditForm({...editForm, selectedDose: e.target.value})}>
                         <option value="">Select dose...</option>

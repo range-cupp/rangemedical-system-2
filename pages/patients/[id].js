@@ -332,6 +332,7 @@ export default function PatientProfile() {
   const [vitalsDisplayCount, setVitalsDisplayCount] = useState(5);
   const [commsLog, setCommsLog] = useState([]);
   const [allPurchases, setAllPurchases] = useState([]);
+  const [expandedTransactions, setExpandedTransactions] = useState({});
   const [invoices, setInvoices] = useState([]);
   const [subscriptions, setSubscriptions] = useState([]);
   const [medications, setMedications] = useState([]);
@@ -4482,9 +4483,10 @@ export default function PatientProfile() {
                             const chargeOverdue = daysUntilCharge !== null && daysUntilCharge < 0;
                             const chargeSoon = daysUntilCharge !== null && daysUntilCharge >= 0 && daysUntilCharge <= 5;
 
-                            const lastPickupLog = wlDeliveryLogs.length > 0 ? wlDeliveryLogs[0] : null;
+                            const lastPickupLog = wlDeliveryLogs.length > 0 ? wlDeliveryLogs[wlDeliveryLogs.length - 1] : null;
                             const lastPickupDate = lastPickupLog ? new Date(lastPickupLog.entry_date + 'T12:00:00') : null;
-                            const nextRefillDate = lastPickupDate ? new Date(lastPickupDate.getTime() + 28 * 86400000) : null;
+                            const pickupSupplyDays = lastPickupLog && lastPickupLog.quantity ? lastPickupLog.quantity * 7 : 28;
+                            const nextRefillDate = lastPickupDate ? new Date(lastPickupDate.getTime() + pickupSupplyDays * 86400000) : null;
                             const daysUntilRefill = nextRefillDate ? Math.ceil((nextRefillDate - today) / 86400000) : null;
                             const refillOverdue = daysUntilRefill !== null && daysUntilRefill < 0;
                             const refillSoon = daysUntilRefill !== null && daysUntilRefill >= 0 && daysUntilRefill <= 5;
@@ -7320,53 +7322,122 @@ export default function PatientProfile() {
               )}
 
               {/* Purchases Sub-tab */}
-              {paymentsSubTab === 'purchases' && (
+              {paymentsSubTab === 'purchases' && (() => {
+                // Group purchases into transactions by stripe_payment_intent_id
+                const transactions = [];
+                const grouped = {};
+                allPurchases.forEach(p => {
+                  const key = p.stripe_payment_intent_id;
+                  if (key) {
+                    if (!grouped[key]) {
+                      grouped[key] = { key, items: [], date: p.purchased_at || p.purchase_date || p.created_at, card_brand: p.card_brand, card_last4: p.card_last4, payment_method: p.payment_method, source: p.source };
+                      transactions.push(grouped[key]);
+                    }
+                    grouped[key].items.push(p);
+                  } else {
+                    // Standalone purchase (cash, manual, no stripe id)
+                    transactions.push({ key: p.id, items: [p], date: p.purchased_at || p.purchase_date || p.created_at, card_brand: p.card_brand, card_last4: p.card_last4, payment_method: p.payment_method, source: p.source });
+                  }
+                });
+
+                return (
                 <div className="pay-section">
                   <div className="pay-section-header">
-                    <h3>Purchases ({allPurchases.length})</h3>
+                    <h3>Payments ({transactions.length})</h3>
                   </div>
-                  {allPurchases.length === 0 ? (
-                    <div className="pay-empty">No purchases found</div>
+                  {transactions.length === 0 ? (
+                    <div className="pay-empty">No payments found</div>
                   ) : (
                     <div className="pay-list">
-                      {allPurchases.map(purchase => {
-                        const isStripePayment = !!purchase.stripe_payment_intent_id;
+                      {transactions.map(txn => {
+                        const totalAmount = txn.items.reduce((sum, p) => sum + (p.amount_paid || p.amount || 0), 0);
+                        const hasMultipleItems = txn.items.length > 1;
+                        const isExpanded = expandedTransactions[txn.key];
+                        const firstItem = txn.items[0];
+                        const isStripePayment = !!firstItem.stripe_payment_intent_id;
+                        const isCash = firstItem.payment_method === 'cash' || firstItem.payment_method === 'manual';
+                        // Transaction title: if single item show item name, if multiple show count
+                        const txnTitle = hasMultipleItems
+                          ? `${txn.items.length} items`
+                          : (firstItem.item_name || firstItem.description || firstItem.product_name || 'Purchase');
+
                         return (
-                        <div key={purchase.id} className="pay-item" style={{ cursor: isStripePayment ? 'default' : 'pointer' }} onClick={() => !isStripePayment && openEditPurchase(purchase)}>
-                          <div className="pay-item-info">
-                            <div className="pay-item-title">{purchase.item_name || purchase.description || purchase.product_name || 'Purchase'}</div>
-                            <div className="pay-item-sub">
-                              {formatDate(purchase.purchased_at || purchase.purchase_date || purchase.created_at)}
-                              {purchase.card_last4 && (
-                                <span style={{ marginLeft: 8, color: '#888' }}>
-                                  {purchase.card_brand ? purchase.card_brand.charAt(0).toUpperCase() + purchase.card_brand.slice(1) : ''} ····{purchase.card_last4}
+                        <div key={txn.key} style={{ marginBottom: 6 }}>
+                          <div
+                            className="pay-item"
+                            style={{ cursor: hasMultipleItems ? 'pointer' : (isStripePayment ? 'default' : 'pointer'), marginBottom: 0 }}
+                            onClick={() => {
+                              if (hasMultipleItems) {
+                                setExpandedTransactions(prev => ({ ...prev, [txn.key]: !prev[txn.key] }));
+                              } else if (!isStripePayment) {
+                                openEditPurchase(firstItem);
+                              }
+                            }}
+                          >
+                            {hasMultipleItems && (
+                              <span style={{ fontSize: 11, color: '#94a3b8', flexShrink: 0, width: 16, textAlign: 'center', transition: 'transform 0.15s', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
+                            )}
+                            <div className="pay-item-info">
+                              <div className="pay-item-title">{txnTitle}</div>
+                              <div className="pay-item-sub">
+                                {formatDate(txn.date)}
+                                {txn.card_last4 && (
+                                  <span style={{ marginLeft: 8, color: '#888' }}>
+                                    {txn.card_brand ? txn.card_brand.charAt(0).toUpperCase() + txn.card_brand.slice(1) : ''} ····{txn.card_last4}
+                                  </span>
+                                )}
+                                {isCash && <span style={{ marginLeft: 8, color: '#888' }}>{firstItem.payment_method === 'cash' ? 'Cash' : 'Manual'}</span>}
+                              </div>
+                            </div>
+                            <div className="pay-item-amount">${totalAmount.toFixed(2)}</div>
+                            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                              {firstItem.stripe_subscription_id && (
+                                <span className="pay-badge pay-badge-blue">recurring</span>
+                              )}
+                              {!hasMultipleItems && (
+                                <span className={`pay-badge ${firstItem.protocol_created ? 'pay-badge-green' : 'pay-badge-yellow'}`}
+                                  title={firstItem.protocol_id ? (() => {
+                                    const linked = [...activeProtocols, ...completedProtocols].find(p => p.id === firstItem.protocol_id);
+                                    return linked ? `Protocol: ${linked.program_name}${linked.medication && linked.medication !== linked.program_name ? ' — ' + linked.medication : ''}` : 'Protocol created';
+                                  })() : undefined}>
+                                  {firstItem.protocol_created ? (() => {
+                                    const linked = [...activeProtocols, ...completedProtocols].find(p => p.id === firstItem.protocol_id);
+                                    return linked ? `✓ ${linked.program_name}` : '✓ protocol set';
+                                  })() : 'no protocol'}
                                 </span>
                               )}
                             </div>
                           </div>
-                          <div className="pay-item-amount">${(purchase.amount_paid || purchase.amount || 0).toFixed(2)}</div>
-                          <div style={{ display: 'flex', gap: 4 }}>
-                            {purchase.stripe_subscription_id && (
-                              <span className="pay-badge pay-badge-blue">recurring</span>
-                            )}
-                            <span className={`pay-badge ${purchase.protocol_created ? 'pay-badge-green' : 'pay-badge-yellow'}`}
-                              title={purchase.protocol_id ? (() => {
-                                const linked = [...activeProtocols, ...completedProtocols].find(p => p.id === purchase.protocol_id);
-                                return linked ? `Protocol: ${linked.program_name}${linked.medication && linked.medication !== linked.program_name ? ' — ' + linked.medication : ''}` : 'Protocol created';
-                              })() : undefined}>
-                              {purchase.protocol_created ? (() => {
-                                const linked = [...activeProtocols, ...completedProtocols].find(p => p.id === purchase.protocol_id);
-                                return linked ? `✓ ${linked.program_name}` : '✓ protocol set';
-                              })() : 'no protocol'}
-                            </span>
-                          </div>
+                          {/* Expanded line items for multi-item transactions */}
+                          {hasMultipleItems && isExpanded && (
+                            <div style={{ marginLeft: 28, borderLeft: '2px solid #e2e8f0', paddingLeft: 12, marginTop: 2 }}>
+                              {txn.items.map(item => (
+                                <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', fontSize: 12, color: '#475569', borderBottom: '1px solid #f1f5f9' }}>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontWeight: 600, fontSize: 12, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                      {item.item_name || item.description || item.product_name || 'Item'}
+                                    </div>
+                                    {item.category && <span style={{ fontSize: 10, color: '#94a3b8' }}>{item.category}</span>}
+                                  </div>
+                                  <div style={{ fontWeight: 700, fontSize: 12, color: '#334155', flexShrink: 0 }}>${(item.amount_paid || item.amount || 0).toFixed(2)}</div>
+                                  <span className={`pay-badge ${item.protocol_created ? 'pay-badge-green' : 'pay-badge-yellow'}`} style={{ fontSize: 9 }}>
+                                    {item.protocol_created ? (() => {
+                                      const linked = [...activeProtocols, ...completedProtocols].find(p => p.id === item.protocol_id);
+                                      return linked ? `✓ ${linked.program_name}` : '✓ protocol';
+                                    })() : 'no protocol'}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                         );
                       })}
                     </div>
                   )}
                 </div>
-              )}
+                );
+              })()}
 
               {/* Payment Methods (Cards) Sub-tab */}
               {paymentsSubTab === 'cards' && (

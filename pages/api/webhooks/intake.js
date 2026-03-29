@@ -118,12 +118,14 @@ export default async function handler(req, res) {
         // Fetch current patient demographics to avoid overwriting
         const { data: fullPatient } = await supabase
           .from('patients')
-          .select('date_of_birth, gender, address, city, state, zip_code')
+          .select('email, phone, date_of_birth, gender, address, city, state, zip_code')
           .eq('id', patient.id)
           .single();
 
         const p = fullPatient || {};
         const demoUpdates = {};
+        if (!p.email && intakeData.email) demoUpdates.email = intakeData.email.toLowerCase().trim();
+        if (!p.phone && intakeData.phone) demoUpdates.phone = intakeData.phone;
         if (!p.date_of_birth && intakeData.date_of_birth) demoUpdates.date_of_birth = intakeData.date_of_birth;
         if (!p.gender && intakeData.gender) demoUpdates.gender = intakeData.gender;
         if (!p.address && intakeData.address) demoUpdates.address = intakeData.address;

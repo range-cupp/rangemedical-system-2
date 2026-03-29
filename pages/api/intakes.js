@@ -252,6 +252,8 @@ export default async function handler(req, res) {
       // Build demographics update object from intake data
       const buildDemoUpdates = (existing) => {
         const u = {};
+        if (!existing.email && intakeRecord.email) u.email = intakeRecord.email.toLowerCase().trim();
+        if (!existing.phone && intakeRecord.phone) u.phone = intakeRecord.phone;
         if (!existing.date_of_birth && intakeRecord.date_of_birth) u.date_of_birth = intakeRecord.date_of_birth;
         if (!existing.gender && intakeRecord.gender) u.gender = intakeRecord.gender;
         if (!existing.address && intakeRecord.street_address) u.address = intakeRecord.street_address;
@@ -280,7 +282,7 @@ export default async function handler(req, res) {
         if (bundle?.patient_id) {
           const { data: bp } = await supabase
             .from('patients')
-            .select('id, first_name, last_name, date_of_birth, gender, address, city, state, zip_code, preferred_name, referral_source')
+            .select('id, email, phone, first_name, last_name, date_of_birth, gender, address, city, state, zip_code, preferred_name, referral_source')
             .eq('id', bundle.patient_id)
             .maybeSingle();
           if (bp) {
@@ -295,7 +297,7 @@ export default async function handler(req, res) {
           const last10 = bundle.patient_phone.replace(/\D/g, '').slice(-10);
           const { data: pp } = await supabase
             .from('patients')
-            .select('id, first_name, last_name, date_of_birth, gender, address, city, state, zip_code, preferred_name, referral_source')
+            .select('id, email, phone, first_name, last_name, date_of_birth, gender, address, city, state, zip_code, preferred_name, referral_source')
             .ilike('phone', `%${last10}`)
             .maybeSingle();
           if (pp) {
@@ -312,7 +314,7 @@ export default async function handler(req, res) {
         const normalizedEmail = intakeRecord.email.toLowerCase().trim();
         const { data: ep } = await supabase
           .from('patients')
-          .select('id, first_name, last_name, date_of_birth, gender, address, city, state, zip_code, preferred_name, referral_source')
+          .select('id, email, phone, first_name, last_name, date_of_birth, gender, address, city, state, zip_code, preferred_name, referral_source')
           .eq('email', normalizedEmail)
           .maybeSingle();
         if (ep) {
@@ -329,7 +331,7 @@ export default async function handler(req, res) {
         if (last10.length === 10) {
           const { data: pp } = await supabase
             .from('patients')
-            .select('id, first_name, last_name, date_of_birth, gender, address, city, state, zip_code, preferred_name, referral_source')
+            .select('id, email, phone, first_name, last_name, date_of_birth, gender, address, city, state, zip_code, preferred_name, referral_source')
             .ilike('phone', `%${last10}`)
             .maybeSingle();
           if (pp) {

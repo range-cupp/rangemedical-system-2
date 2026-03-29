@@ -61,6 +61,26 @@ export default async function handler(req, res) {
     if (patient) {
       consentData.patient_id = patient.id;
       consentData.ghl_contact_id = patient.ghl_contact_id || consentData.ghl_contact_id;
+
+      // Backfill email/phone to patient record if missing
+      try {
+        const { data: fullPatient } = await supabase
+          .from('patients')
+          .select('email, phone')
+          .eq('id', patient.id)
+          .single();
+
+        const backfill = {};
+        if (!fullPatient?.email && consentData.email) backfill.email = consentData.email.toLowerCase().trim();
+        if (!fullPatient?.phone && consentData.phone) backfill.phone = consentData.phone;
+
+        if (Object.keys(backfill).length > 0) {
+          await supabase.from('patients').update(backfill).eq('id', patient.id);
+          console.log(`Backfilled patient ${patient.id} contact info from consent:`, Object.keys(backfill).join(', '));
+        }
+      } catch (err) {
+        console.error('Consent contact backfill error:', err);
+      }
     }
 
     // Check for existing consent of same type from same person (avoid duplicates)

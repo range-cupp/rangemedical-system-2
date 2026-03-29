@@ -423,7 +423,13 @@ export default function WeightLossPortal() {
         <div style={{ maxWidth: 480, margin: '0 auto', padding: '20px 24px 60px' }}>
 
           {/* ─── Injection Day Picker ─────────────────────────────────── */}
-          {(!protocol.injectionDay || changeDay) && (
+          {(!protocol.injectionDay || changeDay) && (() => {
+            const isInClinic = protocol.deliveryMethod === 'in_clinic';
+            const dayLabel = isInClinic ? 'Clinic Visit Day' : 'Injection Day';
+            const dayDesc = isInClinic
+              ? 'Pick the day you\'d like to come in for your weekly injection. We\'ll send you a reminder each week.'
+              : 'Pick the day you\'ll do your weekly injection. We\'ll send you a reminder each week.';
+            return (
             <div style={{
               ...card,
               borderLeft: `4px solid ${C.bronze}`,
@@ -433,10 +439,10 @@ export default function WeightLossPortal() {
             }}>
               <p style={{ ...label, marginBottom: 4 }}>SET UP YOUR SCHEDULE</p>
               <h2 style={{ ...heading(20), marginBottom: 8 }}>
-                {changeDay ? 'Change Injection Day' : 'Choose Your Injection Day'}
+                {changeDay ? `Change ${dayLabel}` : `Choose Your ${dayLabel}`}
               </h2>
               <p style={{ ...bodyText, color: C.caption, fontSize: 14, marginBottom: 20 }}>
-                Pick the day you'll do your weekly injection. We'll send you a reminder each week.
+                {dayDesc}
               </p>
               <div style={{
                 display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
@@ -475,7 +481,8 @@ export default function WeightLossPortal() {
                 </button>
               )}
             </div>
-          )}
+            );
+          })()}
 
           {protocol.injectionDay && !changeDay && (
             <div style={{
@@ -483,7 +490,7 @@ export default function WeightLossPortal() {
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             }}>
               <div>
-                <p style={{ ...label, marginBottom: 2, fontSize: 10 }}>INJECTION DAY</p>
+                <p style={{ ...label, marginBottom: 2, fontSize: 10 }}>{protocol.deliveryMethod === 'in_clinic' ? 'CLINIC VISIT DAY' : 'INJECTION DAY'}</p>
                 <p style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0 }}>
                   {protocol.injectionDay}s
                 </p>

@@ -791,14 +791,13 @@ export default async function handler(req, res) {
     }
 
     // ============================================
-    // SEND WELCOME SMS WITH WL PAGE LINK (weight loss only)
-    // Replaces old drip email sequence. Sends personalized page link.
-    // Mark drip emails as skipped so cron doesn't send them.
+    // WEIGHT LOSS: Skip drip emails + send welcome SMS (take-home/hybrid only)
+    // In-clinic patients don't need injection day picker or the WL page SMS.
     // ============================================
     let wlWelcomeSent = false;
     if (isWeightLossType(programType)) {
       try {
-        // Mark drip emails as done so cron never sends them
+        // Mark drip emails as done so cron never sends them (all WL protocols)
         const today = todayPacific();
         await supabase.from('protocol_logs').insert([
           { protocol_id: protocol.id, patient_id: finalPatientId, log_type: 'drip_email', log_date: today, notes: 'Drip emails replaced by WL welcome SMS + page link' },
@@ -807,7 +806,7 @@ export default async function handler(req, res) {
           { protocol_id: protocol.id, patient_id: finalPatientId, log_type: 'drip_email', log_date: today, notes: 'Drip email 4 skipped (replaced by WL page)' }
         ]);
 
-        // Send welcome SMS with personalized page link
+        // Send welcome SMS for all WL protocols (take-home, hybrid, and in-clinic)
         if (!isInQuietHours()) {
           const { data: wlPatientData } = await supabase
             .from('patients')

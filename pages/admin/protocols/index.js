@@ -88,7 +88,8 @@ function getWLDaysSinceActivity(p) {
 }
 
 function getWLStatus(p) {
-  if (p.status === 'completed' || p.injections_remaining <= 0) return 'complete';
+  // Only mark complete if DB status is explicitly 'completed' — never auto-complete weight loss
+  if (p.status === 'completed') return 'complete';
   if (p.delivery_method === 'take_home' && p.next_expected_date) {
     const now = new Date();
     const supplyEnd = new Date(p.next_expected_date + 'T00:00:00');

@@ -44,8 +44,10 @@ export default async function handler(req, res) {
       });
     }
 
-    // Determine if protocol should be completed
-    const newStatus = (totalSessions > 0 && newUsed >= totalSessions) ? 'completed' : protocol.status;
+    // Determine if protocol should be completed (never auto-complete weight loss or HRT)
+    const isWeightLoss = (protocol.program_type || '').toLowerCase().includes('weight');
+    const isHRT = (protocol.program_type || '').toLowerCase().includes('hrt');
+    const newStatus = (!isWeightLoss && !isHRT && totalSessions > 0 && newUsed >= totalSessions) ? 'completed' : protocol.status;
 
     // Update protocol
     const { data: updated, error: updateError } = await supabase

@@ -179,7 +179,10 @@ export default async function handler(req, res) {
 
         // Update the protocol with correct session count
         if (!dryRun) {
-          const newStatus = appointmentCount >= (protocol.total_sessions || 0) ? 'completed' : protocol.status;
+          // Never auto-complete weight loss or HRT protocols
+          const isWeightLoss = (protocol.program_type || '').toLowerCase().includes('weight');
+          const isHRT = (protocol.program_type || '').toLowerCase().includes('hrt');
+          const newStatus = (!isWeightLoss && !isHRT && appointmentCount >= (protocol.total_sessions || 0)) ? 'completed' : protocol.status;
 
           const { error: updateError } = await supabase
             .from('protocols')

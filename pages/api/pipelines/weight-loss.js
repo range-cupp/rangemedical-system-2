@@ -147,8 +147,8 @@ export default async function handler(req, res) {
       const injectionsUsed = p.sessions_used || 0;
       const injectionsRemaining = totalInjections - injectionsUsed;
       
-      // Completion status
-      const isCompleted = p.status === 'completed' || injectionsRemaining <= 0;
+      // Completion status — only use the actual DB status, never auto-complete weight loss
+      const isCompleted = p.status === 'completed';
 
       return {
         id: p.id,

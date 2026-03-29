@@ -8312,15 +8312,58 @@ export default function PatientProfile() {
                   </>
                 )}
 
-                {/* ── Frequency (peptide only) ── */}
+                {/* ── Peptide: Frequency, Timeline, Delivery ── */}
                 {selectedProtocol.category === 'peptide' && (
-                  <div className="form-group">
-                    <label>Frequency</label>
-                    <select value={editForm.frequency} onChange={e => setEditForm({...editForm, frequency: e.target.value})}>
-                      <option value="">Select frequency...</option>
-                      {FREQUENCY_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                    </select>
-                  </div>
+                  <>
+                    <div className="form-section-label" style={{ marginTop: '12px' }}>Protocol Details</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div className="form-group">
+                        <label>Frequency</label>
+                        <select value={editForm.frequency} onChange={e => setEditForm({...editForm, frequency: e.target.value})}>
+                          <option value="">Select frequency...</option>
+                          {FREQUENCY_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                        </select>
+                      </div>
+                      <div className="form-group">
+                        <label>Delivery Method</label>
+                        <select value={editForm.deliveryMethod} onChange={e => setEditForm({...editForm, deliveryMethod: e.target.value})}>
+                          <option value="take_home">Take Home</option>
+                          <option value="in_clinic">In-Clinic</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div className="form-group">
+                        <label>Start Date</label>
+                        <input type="date" value={editForm.startDate} onChange={e => setEditForm({...editForm, startDate: e.target.value})} />
+                      </div>
+                      <div className="form-group">
+                        <label>Total Injections</label>
+                        <input type="number" min="1" value={editForm.totalSessions || ''} onChange={e => setEditForm({...editForm, totalSessions: e.target.value ? parseInt(e.target.value) : null})} placeholder="e.g. 30" />
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div className="form-group">
+                        <label>Sessions Used</label>
+                        <input type="number" min="0" max={editForm.totalSessions || 999} value={editForm.sessionsUsed ?? 0} onChange={e => setEditForm({...editForm, sessionsUsed: e.target.value ? parseInt(e.target.value) : 0})} />
+                        {editForm.totalSessions && (
+                          <div style={{ fontSize: 11, color: editForm.sessionsUsed >= editForm.totalSessions ? '#dc2626' : '#6b7280', marginTop: 2 }}>
+                            {editForm.sessionsUsed ?? 0} of {editForm.totalSessions} — {Math.max(0, (editForm.totalSessions || 0) - (editForm.sessionsUsed || 0))} remaining
+                          </div>
+                        )}
+                      </div>
+                      <div className="form-group">
+                        <label>End Date</label>
+                        <input type="date" value={editForm.endDate || ''} onChange={e => setEditForm({...editForm, endDate: e.target.value})} />
+                      </div>
+                    </div>
+                    {editForm.startDate && editForm.endDate && (
+                      <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', padding: '8px 12px', borderRadius: 0, fontSize: 12, color: '#0369a1', marginBottom: 12 }}>
+                        Duration: {Math.round((new Date(editForm.endDate + 'T12:00:00') - new Date(editForm.startDate + 'T12:00:00')) / 86400000)} days
+                        {editForm.totalSessions ? ` — ${editForm.totalSessions} injections` : ''}
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {/* ── HRT-specific fields ── */}

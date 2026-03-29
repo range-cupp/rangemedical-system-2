@@ -222,6 +222,17 @@ async function handlePatch(req, res, employee) {
   if (due_date !== undefined) updateData.due_date = due_date || null;
   if (assigned_to !== undefined) updateData.assigned_to = assigned_to;
 
+  // Fetch existing task to detect reassignment
+  let previousAssignee = null;
+  if (assigned_to !== undefined) {
+    const { data: existing } = await supabase
+      .from('tasks')
+      .select('assigned_to, title, priority')
+      .eq('id', id)
+      .single();
+    if (existing) previousAssignee = existing.assigned_to;
+  }
+
   const { data, error } = await supabase
     .from('tasks')
     .update(updateData)
@@ -243,6 +254,13 @@ async function handlePatch(req, res, employee) {
     details: updateData,
     req,
   });
+
+  // Send SMS if task was reassigned to a different person
+  if (assigned_to && assigned_to !== previousAssignee && assigned_to !== employee.id) {
+    notifyAssignee(assigned_to, employee.name, data.title, data.priority).catch(err =>
+      console.error('Task reassignment SMS notification error:', err)
+    );
+  }
 
   return res.status(200).json({ success: true, task: data });
 }

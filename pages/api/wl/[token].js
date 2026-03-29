@@ -41,6 +41,21 @@ export default async function handler(req, res) {
   const currentWeight = weightLogs.length > 0 ? parseFloat(weightLogs[weightLogs.length - 1].weight) : null;
   const lowestWeight = weightLogs.length > 0 ? Math.min(...weightLogs.map(l => parseFloat(l.weight))) : null;
 
+  // PATCH handler for updating injection day
+  if (req.method === 'PATCH') {
+    const { injection_day } = req.body;
+    const validDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    if (!injection_day || !validDays.includes(injection_day)) {
+      return res.status(400).json({ error: 'Valid day required' });
+    }
+    const { error: updateError } = await supabase
+      .from('protocols')
+      .update({ injection_day })
+      .eq('id', protocol.id);
+    if (updateError) return res.status(500).json({ error: 'Failed to update' });
+    return res.status(200).json({ success: true, injection_day });
+  }
+
   // POST handler for check-in
   if (req.method === 'POST') {
     const { weight, side_effects, notes } = req.body;

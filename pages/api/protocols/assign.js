@@ -791,73 +791,57 @@ export default async function handler(req, res) {
     }
 
     // ============================================
-    // SEND FIRST DRIP EMAIL (weight loss only)
+    // SEND WELCOME SMS WITH WL PAGE LINK (weight loss only)
+    // Replaces old drip email sequence. Sends personalized page link.
+    // Mark drip emails as skipped so cron doesn't send them.
     // ============================================
-    let dripEmailSent = false;
+    let wlWelcomeSent = false;
     if (isWeightLossType(programType)) {
       try {
-        // Check if this patient has EVER received drip emails from any WL protocol
-        const { data: previousDrips } = await supabase
-          .from('protocol_logs')
-          .select('id')
-          .eq('patient_id', finalPatientId)
-          .eq('log_type', 'drip_email')
-          .limit(1);
+        // Mark drip emails as done so cron never sends them
+        const today = todayPacific();
+        await supabase.from('protocol_logs').insert([
+          { protocol_id: protocol.id, patient_id: finalPatientId, log_type: 'drip_email', log_date: today, notes: 'Drip emails replaced by WL welcome SMS + page link' },
+          { protocol_id: protocol.id, patient_id: finalPatientId, log_type: 'drip_email', log_date: today, notes: 'Drip email 2 skipped (replaced by WL page)' },
+          { protocol_id: protocol.id, patient_id: finalPatientId, log_type: 'drip_email', log_date: today, notes: 'Drip email 3 skipped (replaced by WL page)' },
+          { protocol_id: protocol.id, patient_id: finalPatientId, log_type: 'drip_email', log_date: today, notes: 'Drip email 4 skipped (replaced by WL page)' }
+        ]);
 
-        if (previousDrips && previousDrips.length > 0) {
-          console.log(`Patient ${finalPatientId} already received WL drip emails — skipping (monthly renewal)`);
-          // Mark all 4 as "sent" on this protocol so the cron skips it too
-          const today = todayPacific();
-          await supabase.from('protocol_logs').insert([
-            { protocol_id: protocol.id, patient_id: finalPatientId, log_type: 'drip_email', log_date: today, notes: 'Drip emails skipped — patient previously received sequence' },
-            { protocol_id: protocol.id, patient_id: finalPatientId, log_type: 'drip_email', log_date: today, notes: 'Drip email 2 skipped' },
-            { protocol_id: protocol.id, patient_id: finalPatientId, log_type: 'drip_email', log_date: today, notes: 'Drip email 3 skipped' },
-            { protocol_id: protocol.id, patient_id: finalPatientId, log_type: 'drip_email', log_date: today, notes: 'Drip email 4 skipped' }
-          ]);
-        } else {
-        // Look up patient email and first name
-        const { data: patientData } = await supabase
-          .from('patients')
-          .select('email, first_name, name')
-          .eq('id', finalPatientId)
-          .single();
+        // Send welcome SMS with personalized page link
+        if (!isInQuietHours()) {
+          const { data: wlPatientData } = await supabase
+            .from('patients')
+            .select('first_name, name, phone')
+            .eq('id', finalPatientId)
+            .single();
 
-        if (patientData?.email) {
-          const firstName = patientData.first_name || (patientData.name ? patientData.name.split(' ')[0] : null);
-          const emailTemplate = WL_DRIP_EMAILS[0];
-          const personalizedHtml = personalizeEmail(emailTemplate.html, firstName);
+          const wlPhone = wlPatientData?.phone ? normalizePhone(wlPatientData.phone) : null;
+          if (wlPhone) {
+            const wlFirstName = wlPatientData?.first_name || (wlPatientData?.name ? wlPatientData.name.split(' ')[0] : 'there');
+            const wlPageUrl = `https://www.range-medical.com/wl/${protocol.access_token}`;
+            const wlMessage = `Hi ${wlFirstName}! Congrats on starting your weight loss program with Range Medical. Here's your personalized page to set your injection day, track your progress, and check in each week: ${wlPageUrl} - Range Medical`;
 
-          const resend = new Resend(process.env.RESEND_API_KEY);
-          const { error: sendError } = await resend.emails.send({
-            from: 'Range Medical <noreply@range-medical.com>',
-            replyTo: 'info@range-medical.com',
-            to: patientData.email,
-            subject: emailTemplate.subject,
-            html: personalizedHtml
-          });
-
-          if (sendError) {
-            console.error('Drip email 1 send error:', sendError);
-            await logComm({ channel: 'email', messageType: 'drip_email_1', message: `Drip email 1: ${emailTemplate.subject}`, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, patientName, recipient: patientData.email, subject: emailTemplate.subject, status: 'error', errorMessage: sendError.message });
+            const smsResult = await sendSMS({ to: wlPhone, message: wlMessage });
+            if (smsResult.success) {
+              await supabase.from('protocol_logs').insert({
+                protocol_id: protocol.id, patient_id: finalPatientId,
+                log_type: 'wl_welcome_sms', log_date: today,
+                notes: wlMessage
+              });
+              await logComm({ channel: 'sms', messageType: 'wl_welcome_sms', message: wlMessage, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, patientName, provider: smsResult.provider });
+              wlWelcomeSent = true;
+              console.log('WL welcome SMS sent via', smsResult.provider, 'to', wlPhone);
+            } else {
+              console.error('WL welcome SMS error:', smsResult.error);
+            }
           } else {
-            // Log so the cron doesn't re-send it
-            await supabase.from('protocol_logs').insert({
-              protocol_id: protocol.id,
-              patient_id: finalPatientId,
-              log_type: 'drip_email',
-              log_date: todayPacific(),
-              notes: `Drip email 1: ${emailTemplate.subject}`
-            });
-            await logComm({ channel: 'email', messageType: 'drip_email_1', message: `Drip email 1: ${emailTemplate.subject}`, source: 'assign', patientId: finalPatientId, protocolId: protocol.id, patientName, recipient: patientData.email, subject: emailTemplate.subject });
-            dripEmailSent = true;
-            console.log('Drip email 1 sent to', patientData.email);
+            console.log('No patient phone - skipping WL welcome SMS');
           }
         } else {
-          console.log('No patient email - skipping drip email 1');
+          console.log('WL welcome SMS skipped (quiet hours) for patient', finalPatientId);
         }
-        } // close else (no previous drips)
-      } catch (dripError) {
-        console.error('Drip email error (non-fatal):', dripError);
+      } catch (wlSmsError) {
+        console.error('WL welcome SMS error (non-fatal):', wlSmsError);
       }
     }
 
@@ -1229,7 +1213,7 @@ export default async function handler(req, res) {
       protocol,
       purchaseUpdated: !!purchaseId,
       ghlSynced: !!finalGhlContactId,
-      dripEmailSent,
+      wlWelcomeSent,
       peptideGuideSent,
       skinGuideSent,
       guideSent,

@@ -193,6 +193,8 @@ export default function WeightLossPortal() {
   const [submitted, setSubmitted] = useState(false);
   const [expandedSections, setExpandedSections] = useState({});
   const [showNotes, setShowNotes] = useState(false);
+  const [savingDay, setSavingDay] = useState(false);
+  const [changeDay, setChangeDay] = useState(false);
 
   useEffect(() => { injectKeyframes(); }, []);
 
@@ -258,6 +260,28 @@ export default function WeightLossPortal() {
       // silent
     }
     setSubmitting(false);
+  }
+
+  // ─── Save injection day ─────────────────────────────────────────────────
+  async function saveInjectionDay(day) {
+    setSavingDay(true);
+    try {
+      const res = await fetch(`/api/wl/${token}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ injection_day: day }),
+      });
+      if (res.ok) {
+        setData(prev => ({
+          ...prev,
+          protocol: { ...prev.protocol, injectionDay: day }
+        }));
+        setChangeDay(false);
+      }
+    } catch {
+      // silent
+    }
+    setSavingDay(false);
   }
 
   // ─── Side effect toggle ─────────────────────────────────────────────────
@@ -397,6 +421,85 @@ export default function WeightLossPortal() {
 
         {/* ─── Content container ────────────────────────────────────────── */}
         <div style={{ maxWidth: 480, margin: '0 auto', padding: '20px 24px 60px' }}>
+
+          {/* ─── Injection Day Picker ─────────────────────────────────── */}
+          {(!protocol.injectionDay || changeDay) && (
+            <div style={{
+              ...card,
+              borderLeft: `4px solid ${C.bronze}`,
+              padding: 24,
+              marginBottom: 16,
+              animation: 'fadeInUp 0.4s ease',
+            }}>
+              <p style={{ ...label, marginBottom: 4 }}>SET UP YOUR SCHEDULE</p>
+              <h2 style={{ ...heading(20), marginBottom: 8 }}>
+                {changeDay ? 'Change Injection Day' : 'Choose Your Injection Day'}
+              </h2>
+              <p style={{ ...bodyText, color: C.caption, fontSize: 14, marginBottom: 20 }}>
+                Pick the day you'll do your weekly injection. We'll send you a reminder each week.
+              </p>
+              <div style={{
+                display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+                gap: 8, marginBottom: changeDay ? 12 : 0,
+              }}>
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((short, i) => {
+                  const full = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][i];
+                  return (
+                    <button
+                      key={full}
+                      onClick={() => saveInjectionDay(full)}
+                      disabled={savingDay}
+                      style={{
+                        padding: '14px 0', border: `1px solid ${C.border}`,
+                        background: savingDay ? '#f5f5f5' : C.white,
+                        cursor: savingDay ? 'default' : 'pointer',
+                        fontSize: 14, fontWeight: 600, color: C.text,
+                        transition, borderRadius: 0,
+                        ...(i === 6 ? { gridColumn: '2 / 4' } : {}),
+                      }}
+                    >
+                      {short}
+                    </button>
+                  );
+                })}
+              </div>
+              {changeDay && (
+                <button
+                  onClick={() => setChangeDay(false)}
+                  style={{
+                    background: 'none', border: 'none', color: C.caption,
+                    fontSize: 13, cursor: 'pointer', padding: 0,
+                  }}
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          )}
+
+          {protocol.injectionDay && !changeDay && (
+            <div style={{
+              ...card, padding: '14px 20px', marginBottom: 16,
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}>
+              <div>
+                <p style={{ ...label, marginBottom: 2, fontSize: 10 }}>INJECTION DAY</p>
+                <p style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0 }}>
+                  {protocol.injectionDay}s
+                </p>
+              </div>
+              <button
+                onClick={() => setChangeDay(true)}
+                style={{
+                  background: 'none', border: `1px solid ${C.border}`,
+                  padding: '6px 14px', fontSize: 12, color: C.caption,
+                  cursor: 'pointer', borderRadius: 0, transition,
+                }}
+              >
+                Change
+              </button>
+            </div>
+          )}
 
           {/* ─── Progress Dashboard ───────────────────────────────────── */}
           <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>

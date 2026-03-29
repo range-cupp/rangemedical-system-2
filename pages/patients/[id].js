@@ -8235,15 +8235,22 @@ export default function PatientProfile() {
                       <option value="">Select dose...</option>
                       {WEIGHT_LOSS_DOSAGES[editForm.medication].map(d => <option key={d} value={d}>{d}</option>)}
                     </select>
-                  ) : selectedProtocol.category === 'peptide' && editForm.medication && (() => {
+                  ) : selectedProtocol.category === 'peptide' && editForm.medication ? (() => {
                     const peptide = PEPTIDE_OPTIONS.flatMap(g => g.options).find(o => o.value === editForm.medication);
-                    return peptide?.doses;
-                  })() ? (
-                    <select value={editForm.selectedDose} onChange={e => setEditForm({...editForm, selectedDose: e.target.value})}>
-                      <option value="">Select dose...</option>
-                      {PEPTIDE_OPTIONS.flatMap(g => g.options).find(o => o.value === editForm.medication)?.doses.map(d => <option key={d} value={d}>{d}</option>)}
-                    </select>
-                  ) : selectedProtocol.category === 'hrt' ? (
+                    if (!peptide) return <input type="text" value={editForm.selectedDose} onChange={e => setEditForm({...editForm, selectedDose: e.target.value})} placeholder="Dose" />;
+                    // Build dose options: use explicit doses array, or construct from startingDose/maxDose
+                    const doseOptions = peptide.doses
+                      ? peptide.doses
+                      : peptide.startingDose === peptide.maxDose
+                        ? [peptide.startingDose]
+                        : [peptide.startingDose, peptide.maxDose];
+                    return (
+                      <select value={editForm.selectedDose} onChange={e => setEditForm({...editForm, selectedDose: e.target.value})}>
+                        <option value="">Select dose...</option>
+                        {doseOptions.map(d => <option key={d} value={d}>{d}</option>)}
+                      </select>
+                    );
+                  })() : selectedProtocol.category === 'hrt' ? (
                     <select value={editForm.selectedDose} onChange={e => setEditForm({...editForm, selectedDose: e.target.value})}>
                       <option value="">Select dose...</option>
                       {(TESTOSTERONE_DOSES[selectedProtocol.hrt_type === 'female' ? 'female' : 'male'] || TESTOSTERONE_DOSES.male).map(d => <option key={d.value} value={d.value}>{d.label}</option>)}

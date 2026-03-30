@@ -145,6 +145,13 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   const [prepNotesSaved, setPrepNotesSaved] = useState(false);
   const [prepNotesTimer, setPrepNotesTimer] = useState(null);
 
+  // Photo ID viewer state
+  const [photoIdViewer, setPhotoIdViewer] = useState(null); // { url, title }
+
+  // Lab documents for print
+  const [labDocs, setLabDocs] = useState(null); // null = not loaded, [] = none
+  const [loadingLabDocs, setLoadingLabDocs] = useState(false);
+
   // Renewal tracking for patients with appointments
   const [renewalMap, setRenewalMap] = useState({}); // patient_id -> [renewals]
 
@@ -1696,18 +1703,18 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     const appt = selectedAppt;
 
     return (
-      <div style={styles.popoverOverlay} {...overlayClickProps(() => { setSelectedAppt(null); setRescheduleAppt(null); })}>
+      <div style={styles.popoverOverlay} {...overlayClickProps(() => { setSelectedAppt(null); setRescheduleAppt(null); setPhotoIdViewer(null); setLabDocs(null); })}>
         <div ref={popoverRef} style={{ ...styles.popover, ...(showIntakePanel ? { width: '820px', display: 'flex' } : {}) }} onClick={e => e.stopPropagation()}>
           {/* Main appointment column */}
           <div style={showIntakePanel ? { width: '420px', flexShrink: 0, overflow: 'auto', maxHeight: '80vh' } : {}}>
           <div style={styles.popoverHeader}>
             <h3 style={{ margin: 0, fontSize: '16px' }}>Appointment Details</h3>
-            <button onClick={() => { setSelectedAppt(null); setRescheduleAppt(null); }} style={styles.closeBtn}>&times;</button>
+            <button onClick={() => { setSelectedAppt(null); setRescheduleAppt(null); setPhotoIdViewer(null); setLabDocs(null); }} style={styles.closeBtn}>&times;</button>
           </div>
           <div style={styles.popoverBody}>
             <div style={styles.popoverRow}>
               <span style={styles.popoverLabel}>Patient</span>
-              <span style={styles.popoverValue}>
+              <span style={{ ...styles.popoverValue, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {appt.patient_id ? (
                   <button onClick={() => openPatientDrawer(appt.patient_id)}
                     style={{ background: 'none', border: 'none', padding: 0, color: '#1e40af', fontWeight: '600', cursor: 'pointer', fontSize: 'inherit', fontFamily: 'inherit', textDecoration: 'none' }}
@@ -1716,6 +1723,32 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                     {appt.patient_name}
                   </button>
                 ) : appt.patient_name}
+                {/* Photo ID badge */}
+                {apptPatientInfo && (() => {
+                  const photoUrl = (apptPatientInfo.intakes || []).find(i => i.photo_id_url)?.photo_id_url;
+                  return photoUrl ? (
+                    <button
+                      onClick={() => setPhotoIdViewer({ url: photoUrl, title: `${appt.patient_name} — Photo ID` })}
+                      title="View Photo ID"
+                      style={{
+                        width: '28px', height: '28px', borderRadius: '50%', border: '1px solid #e5e5e5',
+                        background: '#f9fafb', cursor: 'pointer', display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', fontSize: '14px', flexShrink: 0, padding: 0,
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#f0f0f0'; e.currentTarget.style.borderColor = '#ccc'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = '#f9fafb'; e.currentTarget.style.borderColor = '#e5e5e5'; }}
+                    >🪪</button>
+                  ) : (
+                    <span
+                      title="No photo ID on file"
+                      style={{
+                        width: '28px', height: '28px', borderRadius: '50%', border: '1px dashed #d1d5db',
+                        background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '11px', color: '#ccc', flexShrink: 0, fontWeight: '600',
+                      }}
+                    >{(appt.patient_name?.[0] || '?').toUpperCase()}</span>
+                  );
+                })()}
               </span>
             </div>
             {/* Patient contact info */}
@@ -2110,6 +2143,42 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                       {item.auto && <span style={{ fontSize: '8px', fontWeight: '600', textTransform: 'uppercase', color: '#bbb', background: '#f5f5f5', padding: '1px 4px' }}>auto</span>}
                     </div>
                   ))}
+                  {/* Print Labs button — for lab appointments */}
+                  {isLabAppt && appt.patient_id && (
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        setLoadingLabDocs(true);
+                        try {
+                          const resp = await fetch(`/api/patients/${appt.patient_id}/lab-documents`);
+                          const data = await resp.json();
+                          const docs = data.documents || [];
+                          if (docs.length === 0) {
+                            alert('No lab documents found for this patient.');
+                          } else if (docs.length === 1) {
+                            window.open(docs[0].url, '_blank');
+                          } else {
+                            setLabDocs(docs);
+                          }
+                        } catch (err) {
+                          console.error('Error fetching lab docs:', err);
+                          alert('Failed to load lab documents.');
+                        } finally {
+                          setLoadingLabDocs(false);
+                        }
+                      }}
+                      disabled={loadingLabDocs}
+                      style={{
+                        width: '100%', margin: '8px 0 0', padding: '7px 0', background: '#fff',
+                        border: '1px solid #d1d5db', fontSize: '12px', fontWeight: '600',
+                        color: '#374151', cursor: loadingLabDocs ? 'wait' : 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                      }}
+                    >
+                      <span>🖨️</span>
+                      {loadingLabDocs ? 'Loading Labs...' : 'Print Labs'}
+                    </button>
+                  )}
                   {/* Prep notes */}
                   <div style={{ marginTop: '8px' }}>
                     <textarea
@@ -3569,6 +3638,72 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
 
       {/* Detail popover */}
       {renderDetailPopover()}
+
+      {/* Photo ID Viewer overlay */}
+      {photoIdViewer && (
+        <div onClick={() => setPhotoIdViewer(null)} style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 10001,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#fff', padding: '16px', maxWidth: '500px', maxHeight: '90vh',
+            overflow: 'auto', position: 'relative',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <span style={{ fontSize: '14px', fontWeight: '600' }}>{photoIdViewer.title}</span>
+              <button onClick={() => setPhotoIdViewer(null)} style={{ border: 'none', background: 'none', fontSize: '20px', cursor: 'pointer', color: '#666', padding: '0 4px' }}>&times;</button>
+            </div>
+            {photoIdViewer.url.match(/\.pdf/i) ? (
+              <iframe src={photoIdViewer.url} style={{ width: '100%', height: '60vh', border: '1px solid #e5e5e5' }} />
+            ) : (
+              <img src={photoIdViewer.url} alt="Photo ID" style={{ width: '100%', height: 'auto', border: '1px solid #e5e5e5' }} />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Lab Documents picker overlay */}
+      {labDocs && (
+        <div onClick={() => setLabDocs(null)} style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 10001,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#fff', padding: '20px', width: '400px', maxHeight: '70vh', overflow: 'auto',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <span style={{ fontSize: '15px', fontWeight: '600' }}>Lab Documents</span>
+              <button onClick={() => setLabDocs(null)} style={{ border: 'none', background: 'none', fontSize: '20px', cursor: 'pointer', color: '#666' }}>&times;</button>
+            </div>
+            <div style={{ fontSize: '12px', color: '#666', marginBottom: '12px' }}>
+              {labDocs.length} document{labDocs.length !== 1 ? 's' : ''} on file. Click to open for printing.
+            </div>
+            {labDocs.map((doc, i) => (
+              <button
+                key={doc.id || i}
+                onClick={() => window.open(doc.url, '_blank')}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '10px 12px', marginBottom: '6px', background: '#f9fafb',
+                  border: '1px solid #e5e5e5', cursor: 'pointer', fontSize: '13px', textAlign: 'left',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#f0f0f0'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#f9fafb'; }}
+              >
+                <div>
+                  <div style={{ fontWeight: '500', color: '#111' }}>{doc.file_name || doc.lab_type || 'Lab Document'}</div>
+                  <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
+                    {doc.collection_date ? new Date(doc.collection_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+                    {doc.panel_type ? ` · ${doc.panel_type}` : ''}
+                    {doc.source === 'labs' ? ' · Primex' : ''}
+                  </div>
+                </div>
+                <span style={{ fontSize: '16px', color: '#888' }}>↗</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Patient slide-out drawer */}
       {(drawerData || drawerLoading) && (() => {

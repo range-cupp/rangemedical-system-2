@@ -10,12 +10,17 @@ export default function LabPrepPage() {
   const [ackState, setAckState] = useState('idle'); // idle | confirming | confirmed | already | error
   const [patientName, setPatientName] = useState('');
   const [token, setToken] = useState(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (router.isReady && router.query.t) {
-      setToken(router.query.t);
+    setMounted(true);
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get('t');
+    if (t) {
+      console.log('[lab-prep] Token found:', t);
+      setToken(t);
     }
-  }, [router.isReady, router.query.t]);
+  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -302,7 +307,7 @@ export default function LabPrepPage() {
 
         {/* ── ACKNOWLEDGE ── */}
         {token && (
-          <section id="v2-ack" className={`v2-section v2-ack-section v2-reveal ${visible['v2-ack'] ? 'v2-visible' : ''}`}>
+          <section id="v2-ack" className="v2-section v2-ack-section">
             <div className="v2-container v2-ack-inner">
               {ackState === 'confirmed' ? (
                 <>

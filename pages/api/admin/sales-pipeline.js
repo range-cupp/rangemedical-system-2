@@ -14,8 +14,8 @@ const supabase = createClient(
 
 const STAGES = [
   { key: 'new_lead', label: 'New Lead' },
-  { key: 'intake_completed', label: 'Intake Completed' },
   { key: 'contacted', label: 'Contacted' },
+  { key: 'intake_completed', label: 'Intake Completed' },
   { key: 'follow_up', label: 'Follow-Up' },
   { key: 'booked', label: 'Booked' },
   { key: 'showed', label: 'Showed' },

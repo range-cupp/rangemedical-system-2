@@ -63,6 +63,26 @@ export default async function handler(req, res) {
 
     if (error) throw error;
 
+    // For rows with protocol_id, look up medication from protocols table
+    const needsProtocol = (logs || []).filter(l => l.protocol_id);
+    if (needsProtocol.length > 0) {
+      const protocolIds = [...new Set(needsProtocol.map(l => l.protocol_id))];
+      const { data: protocols } = await supabase
+        .from('protocols')
+        .select('id, medication, program_type')
+        .in('id', protocolIds);
+
+      if (protocols) {
+        const protoMap = Object.fromEntries(protocols.map(p => [p.id, p]));
+        for (const log of logs) {
+          if (log.protocol_id && protoMap[log.protocol_id]) {
+            log.protocol_medication = protoMap[log.protocol_id].medication;
+            log.protocol_program_type = protoMap[log.protocol_id].program_type;
+          }
+        }
+      }
+    }
+
     // For rows missing patient_name, look up from patients table
     const needsName = (logs || []).filter(l => !l.patient_name && l.patient_id);
     if (needsName.length > 0) {

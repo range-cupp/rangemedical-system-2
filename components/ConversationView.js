@@ -1763,6 +1763,19 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                   <span style={{ color: '#dc2626' }}>{selectedMessage.error_message}</span>
                 </div>
               )}
+              {selectedMessage.protocol_medication && (
+                <div style={styles.modalMetaRow}>
+                  <span style={styles.modalMetaLabel}>Protocol:</span>
+                  <span style={{ fontWeight: '500' }}>
+                    {selectedMessage.protocol_medication}
+                    {selectedMessage.protocol_program_type && (
+                      <span style={{ color: '#9ca3af', fontWeight: '400', marginLeft: '6px' }}>
+                        ({selectedMessage.protocol_program_type.replace(/_/g, ' ')})
+                      </span>
+                    )}
+                  </span>
+                </div>
+              )}
               {selectedMessage.source && (
                 <div style={styles.modalMetaRow}>
                   <span style={styles.modalMetaLabel}>Source:</span>

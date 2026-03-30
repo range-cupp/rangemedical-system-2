@@ -844,6 +844,19 @@ export default function CommunicationsPage() {
                       <span style={{ color: '#dc2626' }}>{selectedComm.error_message}</span>
                     </div>
                   )}
+                  {selectedComm.protocol_medication && (
+                    <div style={styles.modalMetaRow}>
+                      <span style={styles.modalMetaLabel}>Protocol:</span>
+                      <span style={{ fontWeight: '500' }}>
+                        {selectedComm.protocol_medication}
+                        {selectedComm.protocol_program_type && (
+                          <span style={{ color: '#9ca3af', fontWeight: '400', marginLeft: '6px' }}>
+                            ({selectedComm.protocol_program_type.replace(/_/g, ' ')})
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  )}
                   {selectedComm.source && (
                     <div style={styles.modalMetaRow}>
                       <span style={styles.modalMetaLabel}>Source:</span>

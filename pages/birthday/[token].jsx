@@ -67,13 +67,15 @@ export default function BirthdayGift() {
     validate();
   }, [token]);
 
-  // Build next 14 days of dates when calendar step loads
+  // Build next 14 days of dates when calendar step loads (in Pacific Time)
   useEffect(() => {
     if (step !== 'calendar') return;
     const dates = [];
     const now = new Date();
+    // Get today's date in PST
+    const todayPST = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
     for (let i = 0; i < 14; i++) {
-      const d = new Date(now);
+      const d = new Date(todayPST);
       d.setDate(d.getDate() + i);
       dates.push(d);
     }
@@ -111,11 +113,25 @@ export default function BirthdayGift() {
         const res = await fetch(`/api/birthday/slots?type=${selectedType}&date=${selectedDate}&eventTypeId=${eventTypeId}`);
         const data = await res.json();
         if (data.slots) {
-          // Flatten slots from date-keyed object
+          // Flatten slots from date-keyed object, filtering to only slots on the selected PST date
           const allSlots = [];
           for (const dateSlots of Object.values(data.slots)) {
-            allSlots.push(...dateSlots);
+            for (const slot of dateSlots) {
+              const slotTime = new Date(slot.start || slot.time);
+              const slotDatePST = slotTime.toLocaleDateString('en-US', {
+                timeZone: 'America/Los_Angeles',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+              }).split('/');
+              const slotDateStr = `${slotDatePST[2]}-${slotDatePST[0]}-${slotDatePST[1]}`;
+              if (slotDateStr === selectedDate) {
+                allSlots.push(slot);
+              }
+            }
           }
+          // Sort by time
+          allSlots.sort((a, b) => new Date(a.start || a.time) - new Date(b.start || b.time));
           setSlots(allSlots);
         } else {
           setSlots([]);
@@ -403,6 +419,7 @@ const s = {
     background: '#fff', border: '1px solid #e5e7eb', borderRadius: '0', padding: '32px 24px',
     textAlign: 'center', cursor: 'pointer', transition: 'border-color 0.2s',
     display: 'flex', flexDirection: 'column', alignItems: 'center',
+    outline: 'none',
   },
   optionName: { fontSize: '18px', fontWeight: 700, color: '#111', margin: '0 0 4px' },
   optionSubtitle: { fontSize: '13px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 12px' },
@@ -416,6 +433,7 @@ const s = {
     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px',
     padding: '10px 14px', border: '1px solid #e5e7eb', background: '#fff',
     cursor: 'pointer', minWidth: '64px', borderRadius: '0', transition: 'all 0.15s',
+    outline: 'none',
   },
   dateBtnActive: { borderColor: '#111', background: '#111', color: '#fff' },
   dateDow: { fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' },
@@ -429,6 +447,7 @@ const s = {
     padding: '12px 8px', border: '1px solid #e5e7eb', background: '#fff',
     fontSize: '14px', fontWeight: 500, color: '#111', cursor: 'pointer',
     borderRadius: '0', transition: 'all 0.15s', textAlign: 'center',
+    outline: 'none',
   },
   slotBtnActive: { borderColor: '#111', background: '#111', color: '#fff' },
 

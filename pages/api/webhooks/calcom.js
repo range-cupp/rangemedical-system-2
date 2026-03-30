@@ -295,6 +295,20 @@ export default async function handler(req, res) {
         if (apptErr) console.error('Appointments upsert error:', apptErr);
       });
 
+      // Check if the appointment was created with notifications suppressed
+      // (staff toggled off "Send confirmation to patient" in the booking wizard)
+      let suppressNotifications = false;
+      {
+        const { data: existingAppt } = await supabase
+          .from('appointments')
+          .select('send_notification')
+          .eq('cal_com_booking_id', String(calcomBookingId))
+          .single();
+        if (existingAppt && existingAppt.send_notification === false) {
+          suppressNotifications = true;
+        }
+      }
+
       // Alert Tara via SMS that a Cal.com booking needs visit reason updated
       const taraPhone = process.env.TARA_PHONE;
       if (taraPhone) {
@@ -329,9 +343,7 @@ export default async function handler(req, res) {
         appointment: { patientName: attendee.name, serviceName: eventTitle, startTime },
       }).catch(err => console.error('Provider SMS notification failed:', err));
 
-      // Send patient notification — email + SMS with quiet hours (fire-and-forget)
-      // For staff-booked appointments (@booking.rangemedical.com), look up real email/phone
-      // from patients table so the patient still gets their confirmation + prep instructions
+      // Send patient notification + booking automations — skip if staff suppressed notifications
       const isStaffBooked = attendee.email?.endsWith('@booking.rangemedical.com');
       let patientEmail = isStaffBooked ? null : attendee.email;
       let patientPhone = attendee.phone || null;
@@ -348,60 +360,65 @@ export default async function handler(req, res) {
         }
       }
 
-      if (patientEmail || patientPhone) {
-        const bookingLocation = bookingData.location || bookingData.metadata?.location || null;
-        sendAppointmentNotification({
-          type: 'confirmation',
-          patient: {
-            id: patientId,
-            name: attendee.name,
-            email: patientEmail,
-            phone: patientPhone,
-          },
-          appointment: {
+      if (!suppressNotifications) {
+        // Send patient confirmation — email + SMS with quiet hours (fire-and-forget)
+        if (patientEmail || patientPhone) {
+          const bookingLocation = bookingData.location || bookingData.metadata?.location || null;
+          sendAppointmentNotification({
+            type: 'confirmation',
+            patient: {
+              id: patientId,
+              name: attendee.name,
+              email: patientEmail,
+              phone: patientPhone,
+            },
+            appointment: {
+              serviceName: eventTitle,
+              startTime,
+              endTime,
+              durationMinutes,
+              location: bookingLocation,
+              notes: serviceDetails.notes || null,
+              serviceSlug: eventTypeSlug,
+            },
+          }).catch(err => console.error('Patient confirmation notification failed:', err));
+        }
+
+        // ── T-05: Blood work prerequisite check ──
+        if (slugRequiresBloodWork(eventTypeSlug)) {
+          await checkBloodWorkPrereq(patientId, eventTypeSlug, {
+            patientName: attendee.name,
             serviceName: eventTitle,
             startTime,
-            endTime,
-            durationMinutes,
-            location: bookingLocation,
-            notes: serviceDetails.notes || null,
-            serviceSlug: eventTypeSlug,
-          },
-        }).catch(err => console.error('Patient confirmation notification failed:', err));
-      }
+            calcomBookingId: String(calcomBookingId),
+          });
+        }
 
-      // ── T-05: Blood work prerequisite check ──
-      if (slugRequiresBloodWork(eventTypeSlug)) {
-        await checkBloodWorkPrereq(patientId, eventTypeSlug, {
+        // ── T-02: Pre-visit instruction send ──
+        sendPrepInstructions({
+          eventTypeSlug,
+          patientId,
           patientName: attendee.name,
+          patientEmail,
+          patientPhone,
           serviceName: eventTitle,
           startTime,
           calcomBookingId: String(calcomBookingId),
-        });
+        }).catch(err => console.error('Prep instructions send failed:', err));
+
+        // ── T-03: Auto-send intake and consent forms ──
+        sendRequiredForms({
+          eventTypeSlug,
+          serviceCategory: slugToCategory[eventTypeSlug] || 'other',
+          patientId,
+          patientName: attendee.name,
+          patientEmail,
+          patientPhone,
+          calcomBookingId: String(calcomBookingId),
+        }).catch(err => console.error('Form auto-send failed:', err));
+      } else {
+        console.log(`Notifications suppressed for booking ${calcomBookingId} — staff opted out`);
       }
-
-      // ── T-02: Pre-visit instruction send ──
-      sendPrepInstructions({
-        eventTypeSlug,
-        patientId,
-        patientName: attendee.name,
-        patientEmail,
-        patientPhone,
-        serviceName: eventTitle,
-        startTime,
-        calcomBookingId: String(calcomBookingId),
-      }).catch(err => console.error('Prep instructions send failed:', err));
-
-      // ── T-03: Auto-send intake and consent forms ──
-      sendRequiredForms({
-        eventTypeSlug,
-        serviceCategory: slugToCategory[eventTypeSlug] || 'other',
-        patientId,
-        patientName: attendee.name,
-        patientEmail,
-        patientPhone,
-        calcomBookingId: String(calcomBookingId),
-      }).catch(err => console.error('Form auto-send failed:', err));
 
       return res.status(200).json({ success: true, message: 'Booking created/synced', action: action || 'none' });
     }

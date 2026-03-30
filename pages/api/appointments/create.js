@@ -70,6 +70,7 @@ export default async function handler(req, res) {
       services: services || null, // null for single-service, array for multi-service
       visit_reason: visit_reason.trim(),
       modality: modality || null,
+      send_notification,
     };
 
     // Include cal_com_booking_id if provided (prevents duplicate when webhook fires)
@@ -163,7 +164,8 @@ export default async function handler(req, res) {
 
     // Run booking automations (prep instructions, forms, prereq check)
     // Skip if cal_com_booking_id exists — the Cal.com webhook handles those
-    if (!cal_com_booking_id) {
+    // Skip if send_notification is false — staff opted out of patient comms
+    if (!cal_com_booking_id && send_notification) {
       // Look up patient email for form sends
       let patientEmail = null;
       if (patient_id) {

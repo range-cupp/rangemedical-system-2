@@ -1,13 +1,21 @@
 // /pages/api/birthday/book.js
 // Books a free birthday injection via Cal.com and marks the gift as booked
+// Prefers Lily or Evan over Damien for host assignment
 
 import { createClient } from '@supabase/supabase-js';
-import { createBooking } from '../../../lib/calcom';
+import { createBooking, reassignBooking } from '../../../lib/calcom';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
+
+// Cal.com user IDs — prefer Lily/Evan for birthday injections
+const PREFERRED_HOSTS = [
+  { id: 2197567, name: 'Lily' },
+  { id: 2197566, name: 'Evan' },
+];
+const DAMIEN_ID = 2197563;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -59,6 +67,20 @@ export default async function handler(req, res) {
     }
 
     const bookingUid = booking.uid || booking.id;
+
+    // Check if Damien was assigned — if so, reassign to Lily or Evan
+    const assignedHostId = booking.hosts?.[0]?.id || booking.host?.id || null;
+    if (assignedHostId === DAMIEN_ID) {
+      for (const preferred of PREFERRED_HOSTS) {
+        const result = await reassignBooking(bookingUid, preferred.id);
+        if (!result.error) {
+          console.log(`Birthday injection reassigned from Damien to ${preferred.name} (booking ${bookingUid})`);
+          break;
+        }
+        // If reassign fails (host unavailable), try next preferred host
+        console.log(`Could not reassign to ${preferred.name}, trying next...`);
+      }
+    }
 
     // Mark gift as booked
     await supabase

@@ -177,7 +177,10 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
       } else if (section.type === 'fields') {
         state[section.key] = {};
         section.fields.forEach(field => {
-          if (field.type === 'multi_check') {
+          if (field.type === 'vitamin_dose') {
+            state[section.key][field.key] = [];
+            state[section.key].vitamin_doses = {};
+          } else if (field.type === 'multi_check') {
             state[section.key][field.key] = (field.defaultChecked || []).map(i => field.options[i]);
           } else if (field.type === 'toggle') {
             state[section.key][field.key] = field.defaultValue || field.options[0];
@@ -233,7 +236,18 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
       };
       // Auto-check vitamins when a signature IV formula is selected
       if (sectionKey === 'infusion' && fieldKey === 'infusion_type' && IV_FORMULA_PRESETS[value]) {
-        next.infusion = { ...next.infusion, vitamins: [...IV_FORMULA_PRESETS[value]] };
+        const presetNames = IV_FORMULA_PRESETS[value];
+        next.infusion = { ...next.infusion, vitamins: [...presetNames] };
+        // Also set default 1 mL doses for each preset vitamin
+        const vitField = ENCOUNTER_FORMS.iv_therapy?.sections?.find(s => s.key === 'infusion')?.fields?.find(f => f.key === 'vitamins');
+        if (vitField?.items) {
+          const doses = {};
+          presetNames.forEach(name => {
+            const item = vitField.items.find(it => it.name === name);
+            if (item) doses[name] = { cc: 1, mg: item.mgPerMl };
+          });
+          next.infusion.vitamin_doses = doses;
+        }
       }
       return next;
     });
@@ -680,6 +694,82 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
           </div>
         );
 
+      case 'vitamin_dose': {
+        const selectedVitamins = formData[sectionKey]?.[field.key] || [];
+        const vitaminDoses = formData[sectionKey]?.vitamin_doses || {};
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {field.items.map((item, i) => {
+              const checked = selectedVitamins.includes(item.name);
+              const doseInfo = vitaminDoses[item.name] || {};
+              const ccOptions = [];
+              for (let c = 0.5; c <= item.maxCc; c += 0.5) ccOptions.push(c);
+              return (
+                <div key={i}>
+                  <label style={styles.checkLabel}>
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => {
+                        const updated = checked
+                          ? selectedVitamins.filter(v => v !== item.name)
+                          : [...selectedVitamins, item.name];
+                        const updatedDoses = { ...vitaminDoses };
+                        if (checked) {
+                          delete updatedDoses[item.name];
+                        } else {
+                          updatedDoses[item.name] = { cc: 1, mg: item.mgPerMl };
+                        }
+                        setFormData(prev => ({
+                          ...prev,
+                          [sectionKey]: { ...prev[sectionKey], [field.key]: updated, vitamin_doses: updatedDoses },
+                        }));
+                      }}
+                      style={{ marginRight: 10, width: 18, height: 18, accentColor: '#111' }}
+                    />
+                    <span style={{ fontSize: 14, color: checked ? '#111' : '#6b7280' }}>{item.name}</span>
+                  </label>
+                  {checked && (
+                    <div style={{ marginLeft: 28, marginTop: 4, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      {ccOptions.map(cc => {
+                        const isSelected = doseInfo.cc === cc;
+                        return (
+                          <button
+                            key={cc}
+                            type="button"
+                            onClick={() => {
+                              const mg = Math.round(cc * item.mgPerMl * 100) / 100;
+                              setFormData(prev => ({
+                                ...prev,
+                                [sectionKey]: {
+                                  ...prev[sectionKey],
+                                  vitamin_doses: { ...prev[sectionKey].vitamin_doses, [item.name]: { cc, mg } },
+                                },
+                              }));
+                            }}
+                            style={{
+                              padding: '4px 10px', fontSize: 12, fontWeight: isSelected ? 700 : 400,
+                              border: isSelected ? '2px solid #111' : '1px solid #d1d5db',
+                              background: isSelected ? '#f0fdf4' : '#fff', color: '#111',
+                              borderRadius: 0, cursor: 'pointer', minWidth: 44, textAlign: 'center',
+                            }}
+                          >
+                            {cc} mL
+                          </button>
+                        );
+                      })}
+                      <span style={{ fontSize: 12, color: '#059669', fontWeight: 600, marginLeft: 4 }}>
+                        = {doseInfo.mg || item.mgPerMl} mg
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        );
+      }
+
       case 'multi_check':
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -758,7 +848,7 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
                 }
                 return (
                   <div key={field.key} style={{
-                    ...(field.type === 'button_group' || field.type === 'textarea' || field.type === 'multi_check' || field.type === 'peptide_search' || field.type === 'dose_select' || field.type === 'wl_dose_select' || field.type === 'trt_dose_select' || field.type === 'body_avatar'
+                    ...(field.type === 'button_group' || field.type === 'textarea' || field.type === 'multi_check' || field.type === 'vitamin_dose' || field.type === 'peptide_search' || field.type === 'dose_select' || field.type === 'wl_dose_select' || field.type === 'trt_dose_select' || field.type === 'body_avatar'
                       ? styles.fieldFull : styles.fieldHalf),
                   }}>
                     <label style={styles.fieldLabel}>

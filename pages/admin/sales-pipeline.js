@@ -57,7 +57,7 @@ const LAB_STAGE_CONFIG = {
   awaiting_results:    { label: 'Awaiting Results',    color: '#f59e0b', bg: '#fffbeb', owner: 'Primex' },
   uploaded:            { label: 'Uploaded',             color: '#8b5cf6', bg: '#f5f3ff', owner: 'Chris / Evan' },
   under_review:        { label: 'Under Review',        color: '#3b82f6', bg: '#eff6ff', owner: 'Damien / Evan' },
-  ready_to_schedule:   { label: 'Ready to Schedule',   color: '#f97316', bg: '#fff7ed', owner: 'Terra' },
+  ready_to_schedule:   { label: 'Ready to Schedule',   color: '#f97316', bg: '#fff7ed', owner: 'Tara' },
   consult_scheduled:   { label: 'Consult Booked',      color: '#6366f1', bg: '#eef2ff', owner: null },
   in_treatment:        { label: 'In Treatment',         color: '#10b981', bg: '#ecfdf5', owner: null },
 };

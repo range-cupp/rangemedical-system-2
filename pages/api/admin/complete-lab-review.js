@@ -37,7 +37,7 @@ export default async function handler(req, res) {
       .update({ status: 'completed', completed_at: new Date().toISOString(), updated_at: new Date().toISOString() })
       .eq('id', task_id);
 
-    // 2. Advance protocol to ready_to_schedule (review complete, Terra schedules consult)
+    // 2. Advance protocol to ready_to_schedule (review complete, Tara schedules consult)
     const { data: proto } = await supabase
       .from('protocols')
       .select('id')

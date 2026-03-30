@@ -13,7 +13,7 @@ const LAB_STAGES = [
   { id: 'awaiting_results', label: 'Awaiting Results', color: '#f59e0b', owner: 'Primex' },
   { id: 'uploaded', label: 'Uploaded', color: '#8b5cf6', owner: 'Chris / Evan' },
   { id: 'under_review', label: 'Under Review', color: '#3b82f6', owner: 'Damien / Evan' },
-  { id: 'ready_to_schedule', label: 'Ready to Schedule', color: '#f97316', owner: 'Terra' },
+  { id: 'ready_to_schedule', label: 'Ready to Schedule', color: '#f97316', owner: 'Tara' },
   { id: 'consult_scheduled', label: 'Consult Booked', color: '#6366f1', owner: null },
   { id: 'in_treatment', label: 'In Treatment', color: '#10b981', owner: null }
 ];

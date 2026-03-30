@@ -15,7 +15,7 @@ const supabase = createClient(
 
 // Lab pipeline stages (6-column Kanban with staff ownership)
 // awaiting_results = Primex processing | uploaded = Chris/Evan | under_review = Damien/Evan
-// ready_to_schedule = Terra | consult_scheduled = booked | in_treatment = converted
+// ready_to_schedule = Tara | consult_scheduled = booked | in_treatment = converted
 const LAB_STAGES = ['awaiting_results', 'uploaded', 'under_review', 'ready_to_schedule', 'consult_scheduled', 'in_treatment'];
 
 export default async function handler(req, res) {

@@ -5,12 +5,18 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
+import { loadStripe } from '@stripe/stripe-js';
 import TemplateMessages from './TemplateMessages';
 import EmojiPicker from './EmojiPicker';
+import POSChargeModal from './POSChargeModal';
 import { useAuth } from './AuthProvider';
 import { overlayClickProps } from './AdminLayout';
 
 const CalendarView = dynamic(() => import('./CalendarView'), { ssr: false });
+
+const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+  : null;
 
 const FORM_OPTIONS = [
   { id: 'intake', name: 'Medical Intake' },
@@ -70,6 +76,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const [playingCallSid, setPlayingCallSid] = useState(null);
   const [loadingRecording, setLoadingRecording] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showCharge, setShowCharge] = useState(false);
   const [showReschedule, setShowReschedule] = useState(false);
   const [rescheduleAppts, setRescheduleAppts] = useState([]);
   const [rescheduleLoading, setRescheduleLoading] = useState(false);
@@ -991,6 +998,15 @@ export default function ConversationView({ patientId, patientName, patientPhone,
               🔄 Reschedule
             </button>
           )}
+          {(linkedPatientId || patientId) && (
+            <button
+              onClick={() => setShowCharge(true)}
+              style={{ ...styles.actionBtn, background: '#f0fdf4', color: '#16a34a', borderColor: '#86efac' }}
+              title="Charge this patient"
+            >
+              💳 Charge
+            </button>
+          )}
           <button
             onClick={openTaskModal}
             style={styles.actionBtn}
@@ -1457,6 +1473,20 @@ export default function ConversationView({ patientId, patientName, patientPhone,
           </div>
         </div>
       )}
+
+      {/* POS Charge Modal */}
+      <POSChargeModal
+        isOpen={showCharge}
+        onClose={() => setShowCharge(false)}
+        patient={(linkedPatientId || patientId) ? {
+          id: linkedPatientId || patientId,
+          name: displayName || patientName,
+          email: null,
+          phone: patientPhone,
+        } : null}
+        stripePromise={stripePromise}
+        onChargeComplete={() => {}}
+      />
 
       {/* Messages */}
       <div style={styles.messagesContainer} ref={messagesContainerRef}>

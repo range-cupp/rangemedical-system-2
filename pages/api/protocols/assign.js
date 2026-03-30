@@ -625,7 +625,7 @@ export default async function handler(req, res) {
         end_date: endDate,
         total_sessions: finalTotalSessions,
         sessions_used: 0,
-        status: programType === 'labs' ? 'blood_draw_complete' : (isSingle ? 'completed' : 'active'),
+        status: programType === 'labs' ? 'awaiting_results' : (isSingle ? 'completed' : 'active'),
         notes: notes,
         // Peptide vial specific fields
         num_vials: numVials ? parseInt(numVials) : null,

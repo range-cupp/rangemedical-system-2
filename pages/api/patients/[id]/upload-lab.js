@@ -80,14 +80,14 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to save document record', details: dbError.message });
     }
 
-    // Auto-advance lab pipeline: if patient has a lab protocol at blood_draw_complete, move to results_received
+    // Auto-advance lab pipeline: if patient has a lab protocol at awaiting_results, move to uploaded
     try {
       const { data: labProto } = await supabase
         .from('protocols')
         .select('id, program_name')
         .eq('patient_id', patientId)
         .eq('program_type', 'labs')
-        .eq('status', 'blood_draw_complete')
+        .in('status', ['awaiting_results', 'blood_draw_complete'])
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
@@ -95,9 +95,9 @@ export default async function handler(req, res) {
       if (labProto) {
         await supabase
           .from('protocols')
-          .update({ status: 'results_received', updated_at: new Date().toISOString() })
+          .update({ status: 'uploaded', updated_at: new Date().toISOString() })
           .eq('id', labProto.id);
-        console.log(`✓ Lab pipeline auto-advanced to results_received: patient ${patientId}, protocol ${labProto.id}`);
+        console.log(`✓ Lab pipeline auto-advanced to uploaded: patient ${patientId}, protocol ${labProto.id}`);
       }
     } catch (pipelineErr) {
       // Non-fatal — don't block the upload response

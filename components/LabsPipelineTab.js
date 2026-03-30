@@ -3,18 +3,19 @@
 // Due for Labs to-do section with inline SMS
 // Range Medical
 // CREATED: 2026-01-26
-// UPDATED: 2026-03-21 — Full aesthetic overhaul to match HRT/WL patient tabs
+// UPDATED: 2026-03-30 — V2 pipeline with 6 stages, staff ownership, and time-in-stage
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import AdminLayout, { sharedStyles } from './AdminLayout';
 
 const LAB_STAGES = [
-  { id: 'blood_draw_complete', label: 'Blood Draw', color: '#f59e0b' },
-  { id: 'results_received', label: 'Results In', color: '#8b5cf6' },
-  { id: 'provider_reviewed', label: 'Reviewed', color: '#10b981' },
-  { id: 'consult_scheduled', label: 'Consult', color: '#6366f1' },
-  { id: 'treatment_started', label: 'Treatment Started', color: '#3b82f6' }
+  { id: 'awaiting_results', label: 'Awaiting Results', color: '#f59e0b', owner: 'Primex' },
+  { id: 'uploaded', label: 'Uploaded', color: '#8b5cf6', owner: 'Chris / Evan' },
+  { id: 'under_review', label: 'Under Review', color: '#3b82f6', owner: 'Damien / Evan' },
+  { id: 'ready_to_schedule', label: 'Ready to Schedule', color: '#f97316', owner: 'Terra' },
+  { id: 'consult_scheduled', label: 'Consult Booked', color: '#6366f1', owner: null },
+  { id: 'in_treatment', label: 'In Treatment', color: '#10b981', owner: null }
 ];
 
 
@@ -300,6 +301,9 @@ export default function LabsPipelineTab() {
               <div style={{ ...styles.columnHeader, borderTop: `3px solid ${stage.color}` }}>
                 <div style={styles.columnHeaderLeft}>
                   <span style={styles.columnLabel}>{stage.label}</span>
+                  {stage.owner && (
+                    <span style={{ ...styles.ownerBadge, background: `${stage.color}15`, color: stage.color, borderColor: `${stage.color}30` }}>{stage.owner}</span>
+                  )}
                 </div>
                 <span style={styles.columnCount}>{items.length}</span>
               </div>
@@ -340,9 +344,23 @@ export default function LabsPipelineTab() {
                         <span style={styles.typeBadge}>{labType}</span>
                       </div>
 
-                      {/* Date */}
+                      {/* Date + Time in Stage */}
                       <div style={{ fontSize: '12px', color: '#9ca3af', marginBottom: '10px' }}>
-                        Draw: {formatDate(protocol.start_date)}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span>Draw: {formatDate(protocol.start_date)}</span>
+                          {protocol.updated_at && (() => {
+                            const days = Math.floor((Date.now() - new Date(protocol.updated_at).getTime()) / (1000 * 60 * 60 * 24));
+                            return (
+                              <span style={{
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                color: days > 3 ? '#ef4444' : days > 1 ? '#f59e0b' : '#9ca3af',
+                              }}>
+                                {days === 0 ? 'Today' : `${days}d in stage`}
+                              </span>
+                            );
+                          })()}
+                        </div>
                         {protocol.notes && (
                           <div style={styles.cardNotes}>{protocol.notes}</div>
                         )}
@@ -350,7 +368,7 @@ export default function LabsPipelineTab() {
 
                       {/* Actions */}
                       <div style={styles.cardActions}>
-                        {stage.id !== 'treatment_started' && (
+                        {stage.id !== 'in_treatment' && (
                           <button
                             style={{ ...styles.advanceBtn, background: stage.color, boxShadow: `0 1px 3px ${stage.color}40` }}
                             onClick={() => {
@@ -610,6 +628,15 @@ const styles = {
     fontSize: '13px',
     fontWeight: '600',
     color: '#111',
+  },
+  ownerBadge: {
+    fontSize: '10px',
+    fontWeight: '600',
+    padding: '1px 6px',
+    borderRadius: '3px',
+    border: '1px solid transparent',
+    letterSpacing: '0.2px',
+    whiteSpace: 'nowrap',
   },
   columnCount: {
     fontSize: '12px',

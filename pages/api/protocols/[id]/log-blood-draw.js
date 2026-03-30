@@ -65,7 +65,7 @@ export default async function handler(req, res) {
             .select('id, start_date, program_name, notes')
             .eq('patient_id', protocol.patient_id)
             .eq('program_type', 'labs')
-            .eq('status', 'blood_draw_complete');
+            .in('status', ['awaiting_results', 'blood_draw_complete']);
 
           if (labProtos && labProtos.length > 0) {
             let matchId = null;
@@ -157,9 +157,9 @@ export default async function handler(req, res) {
         if (matchId) {
           await supabase
             .from('protocols')
-            .update({ status: 'blood_draw_complete', updated_at: new Date().toISOString() })
+            .update({ status: 'awaiting_results', updated_at: new Date().toISOString() })
             .eq('id', matchId);
-          console.log(`✓ Synced lab protocol ${matchId} to blood_draw_complete`);
+          console.log(`✓ Synced lab protocol ${matchId} to awaiting_results`);
         }
       }
     } catch (syncErr) {

@@ -18,7 +18,7 @@ export default async function handler(req, res) {
 
   try {
     // Run all database queries in parallel (server-side, no browser connection limit)
-    const LAB_STAGES = ['draw_scheduled', 'blood_draw_complete', 'results_received', 'provider_reviewed', 'consult_scheduled', 'consult_complete'];
+    const LAB_STAGES = ['draw_scheduled', 'awaiting_results', 'uploaded', 'under_review', 'ready_to_schedule', 'consult_scheduled', 'in_treatment'];
 
     const [
       protocolsResult,

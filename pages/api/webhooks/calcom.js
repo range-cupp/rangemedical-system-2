@@ -631,7 +631,7 @@ async function updateLabJourney(patientId, slug) {
 
   if (!isBloodDraw && !isLabReview) return;
 
-  const LAB_PIPELINE_STAGES = ['draw_scheduled', 'blood_draw_complete', 'results_received', 'provider_reviewed', 'consult_scheduled', 'consult_complete'];
+  const LAB_PIPELINE_STAGES = ['draw_scheduled', 'awaiting_results', 'uploaded', 'under_review', 'ready_to_schedule', 'consult_scheduled', 'in_treatment'];
 
   if (isBloodDraw) {
     // Blood draw appointment booked → create lab protocol at draw_scheduled (if none exists)
@@ -644,7 +644,7 @@ async function updateLabJourney(patientId, slug) {
       .select('id, status')
       .eq('patient_id', patientId)
       .eq('program_type', 'labs')
-      .in('status', LAB_PIPELINE_STAGES.filter(s => s !== 'consult_complete'))
+      .in('status', LAB_PIPELINE_STAGES.filter(s => s !== 'in_treatment'))
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
@@ -679,13 +679,13 @@ async function updateLabJourney(patientId, slug) {
   }
 
   if (isLabReview) {
-    // Lab review appointment booked → advance to consult_scheduled if at provider_reviewed
+    // Lab review appointment booked → advance to consult_scheduled if at ready_to_schedule
     const { data: labProto } = await supabase
       .from('protocols')
       .select('id, status')
       .eq('patient_id', patientId)
       .eq('program_type', 'labs')
-      .eq('status', 'provider_reviewed')
+      .in('status', ['ready_to_schedule', 'provider_reviewed'])
       .order('created_at', { ascending: false })
       .limit(1)
       .single();

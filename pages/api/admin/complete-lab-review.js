@@ -37,13 +37,13 @@ export default async function handler(req, res) {
       .update({ status: 'completed', completed_at: new Date().toISOString(), updated_at: new Date().toISOString() })
       .eq('id', task_id);
 
-    // 2. Advance protocol to provider_reviewed
+    // 2. Advance protocol to ready_to_schedule (review complete, Terra schedules consult)
     const { data: proto } = await supabase
       .from('protocols')
       .select('id')
       .eq('patient_id', patient_id)
       .eq('program_type', 'labs')
-      .eq('status', 'results_received')
+      .in('status', ['under_review', 'uploaded', 'results_received'])
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -51,7 +51,7 @@ export default async function handler(req, res) {
     if (proto) {
       await supabase
         .from('protocols')
-        .update({ status: 'provider_reviewed', updated_at: new Date().toISOString() })
+        .update({ status: 'ready_to_schedule', updated_at: new Date().toISOString() })
         .eq('id', proto.id);
     }
 

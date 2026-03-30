@@ -2500,12 +2500,12 @@ export default function PatientProfile() {
 
   // Lab pipeline stage advancement
   const LAB_STAGES = [
-    { id: 'draw_scheduled', label: 'Scheduled', color: '#94a3b8', icon: '📅' },
-    { id: 'blood_draw_complete', label: 'Blood Draw', color: '#f59e0b', icon: '🩸' },
-    { id: 'results_received', label: 'Results In', color: '#8b5cf6', icon: '📋' },
-    { id: 'provider_reviewed', label: 'Reviewed', color: '#10b981', icon: '👨‍⚕️' },
-    { id: 'consult_scheduled', label: 'Consult', color: '#6366f1', icon: '🗓️' },
-    { id: 'consult_complete', label: 'Complete', color: '#3b82f6', icon: '✅' }
+    { id: 'awaiting_results', label: 'Awaiting Results', color: '#f59e0b', icon: '🩸' },
+    { id: 'uploaded', label: 'Uploaded', color: '#8b5cf6', icon: '📋' },
+    { id: 'under_review', label: 'Under Review', color: '#3b82f6', icon: '👨‍⚕️' },
+    { id: 'ready_to_schedule', label: 'Ready to Schedule', color: '#f97316', icon: '📅' },
+    { id: 'consult_scheduled', label: 'Consult Booked', color: '#6366f1', icon: '🗓️' },
+    { id: 'in_treatment', label: 'In Treatment', color: '#10b981', icon: '✅' }
   ];
 
   const handleLabStageAdvance = async (protocolId, newStage) => {
@@ -5875,7 +5875,7 @@ export default function PatientProfile() {
                       </div>
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                         {/* Send Results button — shown when results are available */}
-                        {['results_received', 'provider_reviewed', 'consult_scheduled', 'consult_complete'].includes(lp.status) && (
+                        {['uploaded', 'under_review', 'ready_to_schedule', 'consult_scheduled', 'in_treatment'].includes(lp.status) && (
                           <button
                             onClick={() => handleSendLabResults(lp)}
                             disabled={sendingLabId === lp.id}

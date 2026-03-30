@@ -13,8 +13,10 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Lab pipeline stages (5-column Kanban)
-const LAB_STAGES = ['blood_draw_complete', 'results_received', 'provider_reviewed', 'consult_scheduled', 'treatment_started'];
+// Lab pipeline stages (6-column Kanban with staff ownership)
+// awaiting_results = Primex processing | uploaded = Chris/Evan | under_review = Damien/Evan
+// ready_to_schedule = Terra | consult_scheduled = booked | in_treatment = converted
+const LAB_STAGES = ['awaiting_results', 'uploaded', 'under_review', 'ready_to_schedule', 'consult_scheduled', 'in_treatment'];
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
@@ -392,8 +394,8 @@ async function updateLabProtocol(req, res) {
       return res.status(400).json({ error: error.message });
     }
 
-    // Sync: when advancing to blood_draw_complete, also log blood draw for parent HRT protocol
-    if (newStage === 'blood_draw_complete' && data && (data.notes || '').includes('Auto-scheduled from HRT Protocol')) {
+    // Sync: when advancing to awaiting_results, also log blood draw for parent HRT protocol
+    if (newStage === 'awaiting_results' && data && (data.notes || '').includes('Auto-scheduled from HRT Protocol')) {
       try {
         // Find the parent HRT protocol for this patient
         const { data: hrtProtos } = await supabase
@@ -526,7 +528,7 @@ async function createLabProtocol(req, res) {
       program_type: 'labs',
       medication: panel === 'elite' ? 'Elite' : 'Essential',
       delivery_method: type,
-      status: 'blood_draw_complete',
+      status: 'awaiting_results',
       start_date: bloodDrawDate || todayPacific(),
       notes: notes || null
     };

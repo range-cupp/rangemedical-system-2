@@ -7,12 +7,12 @@ import Link from 'next/link';
 import AdminLayout from '../../components/AdminLayout';
 
 const LAB_STAGES = [
-  { id: 'draw_scheduled', label: 'Scheduled', shortLabel: 'Scheduled' },
-  { id: 'blood_draw_complete', label: 'Blood Draw', shortLabel: 'Drawn' },
-  { id: 'results_received', label: 'Results In', shortLabel: 'Results' },
-  { id: 'provider_reviewed', label: 'Reviewed', shortLabel: 'Reviewed' },
-  { id: 'consult_scheduled', label: 'Consult', shortLabel: 'Consult' },
-  { id: 'consult_complete', label: 'Complete', shortLabel: 'Done' },
+  { id: 'awaiting_results', label: 'Awaiting Results', shortLabel: 'Awaiting' },
+  { id: 'uploaded', label: 'Uploaded', shortLabel: 'Uploaded' },
+  { id: 'under_review', label: 'Under Review', shortLabel: 'Review' },
+  { id: 'ready_to_schedule', label: 'Ready to Schedule', shortLabel: 'Schedule' },
+  { id: 'consult_scheduled', label: 'Consult Booked', shortLabel: 'Consult' },
+  { id: 'in_treatment', label: 'In Treatment', shortLabel: 'Treatment' },
 ];
 
 export default function Dashboard() {

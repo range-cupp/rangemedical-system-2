@@ -90,6 +90,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
   // Copy from previous encounter state
   const [previousNotes, setPreviousNotes] = useState([]);
   const [loadingPrevious, setLoadingPrevious] = useState(false);
+  const [cameFromCopyPrevious, setCameFromCopyPrevious] = useState(false);
 
   // Get markdown from contentEditable div
   const getNoteMarkdown = () => htmlToMd(noteRef.current?.innerHTML || '');
@@ -1406,6 +1407,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                             <button
                               key={note.id}
                               onClick={() => {
+                                setCameFromCopyPrevious(true);
                                 setNoteMode('freetext');
                                 // Load previous note body into the free text editor after it renders
                                 setTimeout(() => {
@@ -1502,16 +1504,24 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                     <div className="enc-form-title">
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <span>New Encounter Note</span>
+                        {cameFromCopyPrevious && (
+                          <button
+                            onClick={() => { setCameFromCopyPrevious(false); setNoteMode('copy_previous'); if (noteRef.current) noteRef.current.innerHTML = ''; setNoteIsEmpty(true); }}
+                            style={{ fontSize: 12, color: '#059669', background: '#f0fdf4', border: 'none', borderRadius: 0, padding: '3px 12px', cursor: 'pointer', fontWeight: 600 }}
+                          >
+                            ← Pick a different encounter
+                          </button>
+                        )}
                         {availableInteractiveForms.length > 0 && (
                           <button
-                            onClick={() => setNoteMode('choose')}
+                            onClick={() => { setCameFromCopyPrevious(false); setNoteMode('choose'); }}
                             style={{ fontSize: 12, color: '#6d28d9', background: '#f3e8ff', border: 'none', borderRadius: 0, padding: '3px 12px', cursor: 'pointer', fontWeight: 600 }}
                           >
                             ← Switch to Interactive Form
                           </button>
                         )}
                       </div>
-                      <button onClick={() => { setShowNoteForm(false); setNoteMode('choose'); if (noteRef.current) noteRef.current.innerHTML = ''; setNoteIsEmpty(true); stopDictation(); }} className="enc-close" style={{ width: 28, height: 28, fontSize: 16 }}>×</button>
+                      <button onClick={() => { setShowNoteForm(false); setNoteMode('choose'); setCameFromCopyPrevious(false); if (noteRef.current) noteRef.current.innerHTML = ''; setNoteIsEmpty(true); stopDictation(); }} className="enc-close" style={{ width: 28, height: 28, fontSize: 16 }}>×</button>
                     </div>
 
                     {/* Note type selector */}

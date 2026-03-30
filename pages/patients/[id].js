@@ -3317,9 +3317,25 @@ export default function PatientProfile() {
     setSendingProgress(true);
     try {
       const chartBase64 = await captureChartAsBase64(sendProgressProtocol.id);
-      const wlLogs = (allProtocolLogs || []).filter(l => l.protocol_id === sendProgressProtocol.id && l.weight);
-      const sWeight = wlLogs.length > 0 ? parseFloat(wlLogs[0].weight) : null;
-      const cWeight = wlLogs.length > 0 ? parseFloat(wlLogs[wlLogs.length - 1].weight) : null;
+      const wlLogsAll = (allProtocolLogs || []).filter(l => l.protocol_id === sendProgressProtocol.id);
+      // Build weight array using vitals fallback
+      const wlWeights = wlLogsAll.map(l => {
+        if (l.weight) return parseFloat(l.weight);
+        // Fall back to vitals
+        if (vitalsHistory && vitalsHistory.length > 0 && l.entry_date) {
+          const target = new Date(l.entry_date + 'T12:00:00');
+          let best = null, bestDist = Infinity;
+          for (const v of vitalsHistory) {
+            if (!v.weight_lbs) continue;
+            const dist = Math.abs(target - new Date(v.recorded_at)) / (1000 * 60 * 60 * 24);
+            if (dist < bestDist && dist <= 3) { bestDist = dist; best = v; }
+          }
+          return best ? parseFloat(best.weight_lbs) : null;
+        }
+        return null;
+      }).filter(Boolean);
+      const sWeight = wlWeights.length > 0 ? wlWeights[0] : null;
+      const cWeight = wlWeights.length > 0 ? wlWeights[wlWeights.length - 1] : null;
       const tLoss = sWeight && cWeight ? (sWeight - cWeight).toFixed(1) : null;
 
       const res = await fetch('/api/protocols/send-progress', {
@@ -4663,11 +4679,38 @@ export default function PatientProfile() {
                       const wlLogs = allWlLogs.filter(l => l.entry_type !== 'pickup');
                       // Delivery logs = pickups & shipments (fulfillment events)
                       const wlDeliveryLogs = allWlLogs.filter(l => l.entry_type === 'pickup');
-                      const chartData = wlLogs.filter(l => l.weight).map(l => ({
-                        date: new Date(l.entry_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                        weight: parseFloat(l.weight),
-                        dose: l.dosage || ''
-                      }));
+                      // Helper: find nearest vitals weight for a date (within ±3 days)
+                      const findVitalsWeight = (dateStr) => {
+                        if (!vitalsHistory || vitalsHistory.length === 0 || !dateStr) return null;
+                        const target = new Date(dateStr + 'T12:00:00');
+                        let best = null;
+                        let bestDist = Infinity;
+                        for (const v of vitalsHistory) {
+                          if (!v.weight_lbs) continue;
+                          const vDate = new Date(v.recorded_at);
+                          const dist = Math.abs(target - vDate) / (1000 * 60 * 60 * 24);
+                          if (dist < bestDist && dist <= 3) {
+                            bestDist = dist;
+                            best = v;
+                          }
+                        }
+                        return best ? parseFloat(best.weight_lbs) : null;
+                      };
+                      // Build chart data: use service_log weight first, fall back to vitals
+                      const chartData = wlLogs
+                        .map(l => {
+                          const logWeight = l.weight ? parseFloat(l.weight) : null;
+                          const vitalsWeight = !logWeight ? findVitalsWeight(l.entry_date) : null;
+                          const weight = logWeight || vitalsWeight;
+                          if (!weight) return null;
+                          return {
+                            date: new Date(l.entry_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                            weight,
+                            dose: l.dosage || '',
+                            fromVitals: !logWeight && !!vitalsWeight,
+                          };
+                        })
+                        .filter(Boolean);
                       const startingWeight = chartData.length > 0 ? chartData[0].weight : null;
                       const currentWeight = chartData.length > 0 ? chartData[chartData.length - 1].weight : null;
                       const totalLoss = startingWeight && currentWeight ? (startingWeight - currentWeight).toFixed(1) : null;
@@ -5222,8 +5265,15 @@ export default function PatientProfile() {
                                       // Ongoing protocols (no total_sessions) — just show actual logs
                                       if (!totalSlots || !startStr) {
                                         return wlLogs.flatMap((log, i) => {
-                                          const prevWeight = i > 0 && wlLogs[i - 1].weight ? parseFloat(wlLogs[i - 1].weight) : null;
-                                          const curWeight = log.weight ? parseFloat(log.weight) : null;
+                                          const logW = log.weight ? parseFloat(log.weight) : null;
+                                          const vitW = !logW ? findVitalsWeight(log.entry_date) : null;
+                                          const curWeight = logW || vitW;
+                                          // Find previous weight (checking vitals too)
+                                          let prevWeight = null;
+                                          for (let j = i - 1; j >= 0; j--) {
+                                            const pw = wlLogs[j].weight ? parseFloat(wlLogs[j].weight) : findVitalsWeight(wlLogs[j].entry_date);
+                                            if (pw) { prevWeight = pw; break; }
+                                          }
                                           const delta = prevWeight && curWeight ? (curWeight - prevWeight).toFixed(1) : null;
                                           const logSideEffects = parseSideEffects(log.notes);
                                           const elements = [
@@ -5231,7 +5281,7 @@ export default function PatientProfile() {
                                               <td style={{ color: '#9ca3af', fontSize: 12 }}>{i + 1}</td>
                                               <td>{formatShortDate(log.entry_date)}</td>
                                               <td>{log.dosage || '\u2014'}</td>
-                                              <td>{log.weight ? `${log.weight} lbs` : '\u2014'}</td>
+                                              <td>{curWeight ? <>{curWeight} lbs{vitW && <span style={{ color: '#3b82f6', fontSize: 9, marginLeft: 4 }} title="From vitals flowsheet">V</span>}</> : '\u2014'}</td>
                                               <td style={{ color: delta && parseFloat(delta) < 0 ? '#16a34a' : delta && parseFloat(delta) > 0 ? '#dc2626' : '#666' }}>
                                                 {delta ? (parseFloat(delta) > 0 ? `+${delta}` : delta) + ' lbs' : '\u2014'}
                                                 {logSideEffects && <span style={{ marginLeft: 6, color: '#dc2626', fontSize: 11 }}>{'\u26A0\uFE0F'}</span>}
@@ -5316,10 +5366,19 @@ export default function PatientProfile() {
                                         }
                                         // Slot with a log
                                         if (slot.log) {
-                                          const prevSlot = slots.slice(0, slot.num - 1).reverse().find(s => s.log);
-                                          const prevWeight = prevSlot?.log?.weight ? parseFloat(prevSlot.log.weight) : null;
-                                          const curWeight = slot.log.weight ? parseFloat(slot.log.weight) : null;
-                                          const delta = prevWeight && curWeight ? (curWeight - prevWeight).toFixed(1) : null;
+                                          // Use vitals weight when service_log weight is missing
+                                          const logWeight = slot.log.weight ? parseFloat(slot.log.weight) : null;
+                                          const vitalsWeight = !logWeight ? findVitalsWeight(slot.log.entry_date) : null;
+                                          const effectiveWeight = logWeight || vitalsWeight;
+                                          // Find previous effective weight for change calculation
+                                          const prevSlot = slots.slice(0, slot.num - 1).reverse().find(s => {
+                                            if (!s.log) return false;
+                                            return s.log.weight || findVitalsWeight(s.log.entry_date);
+                                          });
+                                          const prevWeight = prevSlot?.log?.weight
+                                            ? parseFloat(prevSlot.log.weight)
+                                            : (prevSlot?.log ? findVitalsWeight(prevSlot.log.entry_date) : null);
+                                          const delta = prevWeight && effectiveWeight ? (effectiveWeight - prevWeight).toFixed(1) : null;
                                           const fulfillment = slot.log.fulfillment_method;
                                           const slotSideEffects = parseSideEffects(slot.log.notes);
                                           const rowElements = [
@@ -5327,7 +5386,7 @@ export default function PatientProfile() {
                                               <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
                                               <td>{formatShortDate(slot.log.entry_date)}{fulfillment === 'overnight' ? <span style={{ marginLeft: 4, fontSize: 11 }}>📦</span> : fulfillment === 'in_clinic' ? <span style={{ marginLeft: 4, fontSize: 11 }}>🏥</span> : ''}</td>
                                               <td>{parseDose(slot.log.dosage) || slot.log.dosage || '\u2014'}</td>
-                                              <td>{slot.log.weight ? `${slot.log.weight} lbs` : '\u2014'}</td>
+                                              <td>{effectiveWeight ? <>{effectiveWeight} lbs{vitalsWeight && <span style={{ color: '#3b82f6', fontSize: 9, marginLeft: 4 }} title="From vitals flowsheet">V</span>}</> : '\u2014'}</td>
                                               <td style={{ color: delta && parseFloat(delta) < 0 ? '#16a34a' : delta && parseFloat(delta) > 0 ? '#dc2626' : '#666' }}>
                                                 {delta ? (parseFloat(delta) > 0 ? `+${delta}` : delta) + ' lbs' : '\u2014'}
                                                 {slotSideEffects && <span style={{ marginLeft: 6, color: '#dc2626', fontSize: 11 }}>{'\u26A0\uFE0F'}</span>}
@@ -5349,6 +5408,7 @@ export default function PatientProfile() {
                                         }
                                         // Past slot without log
                                         if (!slot.isFuture) {
+                                          const emptyVitalsWeight = findVitalsWeight(slot.expStr);
                                           if (isTakeHome) {
                                             // Take-home: neutral "click to add weight" style
                                             return (
@@ -5358,7 +5418,7 @@ export default function PatientProfile() {
                                                 <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
                                                 <td style={{ color: '#6b7280' }}>{formatShortDate(slot.expStr)}</td>
                                                 <td style={{ color: '#9ca3af' }}>{currentDose || '\u2014'}</td>
-                                                <td style={{ color: '#9ca3af' }}>{'\u2014'}</td>
+                                                <td>{emptyVitalsWeight ? <span style={{ color: '#3b82f6' }}>{emptyVitalsWeight} lbs <span style={{ fontSize: 9 }} title="From vitals flowsheet">V</span></span> : <span style={{ color: '#9ca3af' }}>{'\u2014'}</span>}</td>
                                                 <td style={{ color: '#9ca3af', fontStyle: 'italic', fontSize: 11 }}>Click to add weight</td>
                                                 <td style={{ textAlign: 'center', color: '#9ca3af', fontWeight: 700, fontSize: 14 }}>+</td>
                                               </tr>
@@ -5372,7 +5432,7 @@ export default function PatientProfile() {
                                                 <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
                                                 <td style={{ color: '#92400e' }}>{formatShortDate(slot.expStr)}</td>
                                                 <td style={{ color: '#b45309' }}>{currentDose || '\u2014'}</td>
-                                                <td style={{ color: '#b45309' }}>{'\u2014'}</td>
+                                                <td>{emptyVitalsWeight ? <span style={{ color: '#3b82f6' }}>{emptyVitalsWeight} lbs <span style={{ fontSize: 9 }} title="From vitals flowsheet">V</span></span> : <span style={{ color: '#b45309' }}>{'\u2014'}</span>}</td>
                                                 <td style={{ color: '#b45309', fontStyle: 'italic', fontSize: 11 }}>No show</td>
                                                 <td style={{ textAlign: 'center', color: '#b45309', fontWeight: 700, fontSize: 14 }}>+</td>
                                               </tr>
@@ -5393,15 +5453,17 @@ export default function PatientProfile() {
                                       // Append any unmatched logs
                                       wlLogs.filter(l => !usedIds.has(l.id)).forEach((log, i) => {
                                         const prevSlot = slots.filter(s => s.log).reverse()[0];
-                                        const prevWeight = prevSlot?.log?.weight ? parseFloat(prevSlot.log.weight) : null;
-                                        const curWeight = log.weight ? parseFloat(log.weight) : null;
-                                        const delta = prevWeight && curWeight ? (curWeight - prevWeight).toFixed(1) : null;
+                                        const pW = prevSlot?.log?.weight ? parseFloat(prevSlot.log.weight) : (prevSlot?.log ? findVitalsWeight(prevSlot.log.entry_date) : null);
+                                        const logW = log.weight ? parseFloat(log.weight) : null;
+                                        const vitW = !logW ? findVitalsWeight(log.entry_date) : null;
+                                        const curWeight = logW || vitW;
+                                        const delta = pW && curWeight ? (curWeight - pW).toFixed(1) : null;
                                         rows.push(
                                           <tr key={'extra-' + log.id} className="wl-editable-row" onClick={() => openEditInjection(log)} title="Click to edit or delete">
                                             <td style={{ color: '#9ca3af', fontSize: 12 }}>+</td>
                                             <td>{formatShortDate(log.entry_date)}</td>
                                             <td>{log.dosage || '\u2014'}</td>
-                                            <td>{log.weight ? `${log.weight} lbs` : '\u2014'}</td>
+                                            <td>{curWeight ? <>{curWeight} lbs{vitW && <span style={{ color: '#3b82f6', fontSize: 9, marginLeft: 4 }} title="From vitals flowsheet">V</span>}</> : '\u2014'}</td>
                                             <td style={{ color: delta && parseFloat(delta) < 0 ? '#16a34a' : delta && parseFloat(delta) > 0 ? '#dc2626' : '#666' }}>{delta ? (parseFloat(delta) > 0 ? `+${delta}` : delta) + ' lbs' : '\u2014'}</td>
                                             <td style={{ textAlign: 'center' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></td>
                                           </tr>

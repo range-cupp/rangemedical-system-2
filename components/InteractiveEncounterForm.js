@@ -244,7 +244,7 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
           const doses = {};
           presetNames.forEach(name => {
             const item = vitField.items.find(it => it.name === name);
-            if (item) doses[name] = { cc: 1, mg: item.mgPerMl };
+            if (item) doses[name] = { cc: 1, mg: item.mgPerMl || null };
           });
           next.infusion.vitamin_doses = doses;
         }
@@ -718,7 +718,8 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
                         if (checked) {
                           delete updatedDoses[item.name];
                         } else {
-                          updatedDoses[item.name] = { cc: 1, mg: item.mgPerMl };
+                          const mg = item.mgPerMl ? item.mgPerMl : null;
+                          updatedDoses[item.name] = { cc: 1, mg };
                         }
                         setFormData(prev => ({
                           ...prev,
@@ -738,7 +739,7 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
                             key={cc}
                             type="button"
                             onClick={() => {
-                              const mg = Math.round(cc * item.mgPerMl * 100) / 100;
+                              const mg = item.mgPerMl ? Math.round(cc * item.mgPerMl * 100) / 100 : null;
                               setFormData(prev => ({
                                 ...prev,
                                 [sectionKey]: {
@@ -758,9 +759,9 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
                           </button>
                         );
                       })}
-                      <span style={{ fontSize: 12, color: '#059669', fontWeight: 600, marginLeft: 4 }}>
+                      {item.mgPerMl && <span style={{ fontSize: 12, color: '#059669', fontWeight: 600, marginLeft: 4 }}>
                         = {doseInfo.mg || item.mgPerMl} mg
-                      </span>
+                      </span>}
                     </div>
                   )}
                 </div>

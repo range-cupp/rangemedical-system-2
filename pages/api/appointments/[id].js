@@ -83,6 +83,7 @@ export default async function handler(req, res) {
       const allowedFields = [
         'labs_delivered', 'id_verified', 'provider_briefed', 'prep_notes',
         'visit_reason', 'modality', 'notes',
+        'service_name', 'service_category', 'duration_minutes',
       ];
       const updates = {};
       for (const field of allowedFields) {
@@ -93,6 +94,30 @@ export default async function handler(req, res) {
 
       if (Object.keys(updates).length === 0) {
         return res.status(400).json({ error: 'No valid fields to update' });
+      }
+
+      // If duration changed, recalculate end_time based on existing start_time
+      if (updates.duration_minutes) {
+        const { data: existing } = await supabase
+          .from('appointments')
+          .select('start_time, service_name')
+          .eq('id', id)
+          .single();
+        if (existing?.start_time) {
+          const start = new Date(existing.start_time);
+          updates.end_time = new Date(start.getTime() + updates.duration_minutes * 60000).toISOString();
+        }
+        // Log service type change event
+        if (updates.service_name && existing?.service_name !== updates.service_name) {
+          await supabase.from('appointment_events').insert({
+            appointment_id: id,
+            event_type: 'service_changed',
+            metadata: {
+              old_service: existing?.service_name,
+              new_service: updates.service_name,
+            },
+          });
+        }
       }
 
       const { data, error } = await supabase

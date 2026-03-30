@@ -124,6 +124,10 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   const [apptNotesValue, setApptNotesValue] = useState('');
   const [savingApptNotes, setSavingApptNotes] = useState(false);
 
+  // Change service type
+  const [changingServiceAppt, setChangingServiceAppt] = useState(null);
+  const [savingServiceChange, setSavingServiceChange] = useState(false);
+
   // Patient contact info for appointment detail
   const [apptPatientInfo, setApptPatientInfo] = useState(null);
   const [loadingPatientInfo, setLoadingPatientInfo] = useState(false);
@@ -971,6 +975,30 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     }
   };
 
+  // Change appointment service type (no patient notification)
+  const handleChangeServiceType = async (apptId, service) => {
+    setSavingServiceChange(true);
+    try {
+      const res = await fetch(`/api/appointments/${apptId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          service_name: service.name,
+          service_category: service.category,
+          duration_minutes: service.duration,
+        }),
+      });
+      if (res.ok) {
+        setChangingServiceAppt(null);
+        fetchAppointments();
+      }
+    } catch (err) {
+      console.error('Change service type error:', err);
+    } finally {
+      setSavingServiceChange(false);
+    }
+  };
+
   // Log a session from the appointment popover — decrements the patient's protocol package
   const handleLogSessionFromAppt = async (appt, protocol) => {
     if (loggingSession) return;
@@ -1783,9 +1811,9 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             )}
             <div style={styles.popoverRow}>
               <span style={styles.popoverLabel}>Service{appt.services?.length > 1 ? 's' : ''}</span>
-              <span style={styles.popoverValue}>
+              <span style={{ ...styles.popoverValue, display: 'flex', alignItems: 'center', gap: '6px' }}>
                 {appt.services?.length > 1 ? (
-                  <span>
+                  <span style={{ flex: 1 }}>
                     {appt.services.map((s, i) => (
                       <span key={s.name} style={{ display: 'block', fontSize: i === 0 ? '13px' : '12px', color: i === 0 ? '#111' : '#555' }}>
                         {s.name}
@@ -1795,9 +1823,41 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                       </span>
                     ))}
                   </span>
-                ) : appt.service_name}
+                ) : <span style={{ flex: 1 }}>{appt.service_name}</span>}
+                {!['completed', 'cancelled'].includes(appt.status) && (
+                  <button
+                    onClick={() => setChangingServiceAppt(changingServiceAppt === appt.id ? null : appt.id)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', color: '#6b7280', flexShrink: 0, padding: '0 2px', textDecoration: 'underline' }}
+                  >
+                    {changingServiceAppt === appt.id ? 'Cancel' : 'Change'}
+                  </button>
+                )}
               </span>
             </div>
+            {changingServiceAppt === appt.id && (
+              <div style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0' }}>
+                <select
+                  disabled={savingServiceChange}
+                  onChange={(e) => {
+                    const svc = getAllServices().find(s => s.name === e.target.value);
+                    if (svc) handleChangeServiceType(appt.id, svc);
+                  }}
+                  defaultValue=""
+                  style={{ width: '100%', padding: '6px 8px', fontSize: '13px', border: '1px solid #d1d5db', background: '#fff', cursor: savingServiceChange ? 'wait' : 'pointer' }}
+                >
+                  <option value="" disabled>{savingServiceChange ? 'Saving...' : 'Select new service type...'}</option>
+                  {Object.entries(APPOINTMENT_SERVICES).map(([group, items]) => (
+                    <optgroup key={group} label={group}>
+                      {items.map(svc => (
+                        <option key={svc.name} value={svc.name} disabled={svc.name === appt.service_name}>
+                          {svc.name} ({svc.duration} min)
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
+            )}
             {appt.provider && (
               <div style={styles.popoverRow}>
                 <span style={styles.popoverLabel}>Provider</span>

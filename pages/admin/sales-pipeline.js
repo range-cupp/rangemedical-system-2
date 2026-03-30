@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
 import LeadDetailPanel from '../../components/LeadDetailPanel';
+import LabsPipelineTab from '../../components/LabsPipelineTab';
 import { supabase } from '../../lib/supabase';
 
 const STAGE_CONFIG = {
@@ -269,7 +270,7 @@ export default function SalesPipeline() {
   return (
     <AdminLayout title="Sales Pipeline">
       {/* Summary Stats */}
-      <div style={styles.statsRow}>
+      {viewMode !== 'labs' && <div style={styles.statsRow}>
         {[
           { num: summary.total, label: 'Total Leads', color: '#111' },
           { num: summary.active, label: 'Active', color: '#3b82f6' },
@@ -281,24 +282,25 @@ export default function SalesPipeline() {
             <span style={styles.statLabel}>{s.label}</span>
           </div>
         ))}
-      </div>
+      </div>}
 
       {/* View Toggle */}
       <div style={{ display: 'flex', gap: 0, marginBottom: 16 }}>
         {[
-          { key: 'standard', label: 'All Leads' },
-          { key: 'trial', label: 'RLT Trials' },
+          { key: 'standard', label: 'All Leads', radius: '6px 0 0 6px' },
+          { key: 'trial', label: 'RLT Trials', radius: '0' },
+          { key: 'labs', label: 'Labs', radius: '0 6px 6px 0' },
         ].map(v => (
           <button
             key={v.key}
-            onClick={() => { setViewMode(v.key); setLoading(true); }}
+            onClick={() => { setViewMode(v.key); if (v.key !== 'labs') setLoading(true); }}
             style={{
               padding: '8px 20px', fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
               border: '1px solid #d1d5db', cursor: 'pointer',
               background: viewMode === v.key ? '#111' : '#fff',
               color: viewMode === v.key ? '#fff' : '#374151',
-              borderRadius: v.key === 'standard' ? '6px 0 0 6px' : '0 6px 6px 0',
-              marginLeft: v.key === 'trial' ? '-1px' : 0,
+              borderRadius: v.radius,
+              marginLeft: v.key === 'standard' ? 0 : '-1px',
             }}
           >
             {v.label}
@@ -306,6 +308,10 @@ export default function SalesPipeline() {
         ))}
       </div>
 
+      {/* Labs Pipeline View */}
+      {viewMode === 'labs' && <LabsPipelineTab />}
+
+      {viewMode !== 'labs' && <>
       {/* Actions Bar */}
       <div style={styles.actionsBar}>
         <div style={styles.actionsLeft}>
@@ -486,6 +492,7 @@ export default function SalesPipeline() {
           </div>
         </div>
       )}
+      </>}
 
       {/* Lead Detail Slide Panel */}
       <LeadDetailPanel

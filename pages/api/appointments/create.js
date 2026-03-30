@@ -37,10 +37,17 @@ export default async function handler(req, res) {
       send_notification = true,
       cal_com_booking_id,
       services, // array of { name, category, duration } for multi-service appointments
+      visit_reason,
+      modality,
     } = req.body;
 
     if (!patient_name || !service_name || !start_time || !end_time || !duration_minutes) {
       return res.status(400).json({ error: 'patient_name, service_name, start_time, end_time, and duration_minutes are required' });
+    }
+
+    // visit_reason is required for all appointments (Cal.com webhook auto-populates a placeholder)
+    if (!visit_reason || !visit_reason.trim()) {
+      return res.status(400).json({ error: 'visit_reason is required' });
     }
 
     const appointmentLocation = location || 'Range Medical — Newport Beach';
@@ -61,6 +68,8 @@ export default async function handler(req, res) {
       source: source || 'manual',
       created_by: created_by || null,
       services: services || null, // null for single-service, array for multi-service
+      visit_reason: visit_reason.trim(),
+      modality: modality || null,
     };
 
     // Include cal_com_booking_id if provided (prevents duplicate when webhook fires)

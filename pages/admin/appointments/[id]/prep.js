@@ -19,6 +19,9 @@ export default function AppointmentPrepPage() {
   const [prepNotes, setPrepNotes] = useState('');
   const [notesSaved, setNotesSaved] = useState(false);
   const [notesTimer, setNotesTimer] = useState(null);
+  const [visitReasonValue, setVisitReasonValue] = useState('');
+  const [visitReasonSaved, setVisitReasonSaved] = useState(false);
+  const [visitReasonTimer, setVisitReasonTimer] = useState(null);
 
   const fetchAppointment = useCallback(async () => {
     if (!id) return;
@@ -28,6 +31,7 @@ export default function AppointmentPrepPage() {
       const data = await res.json();
       setAppointment(data.appointment);
       setPrepNotes(data.appointment.prep_notes || '');
+      setVisitReasonValue(data.appointment.visit_reason || '');
     } catch (err) {
       setError('Appointment not found');
     } finally {
@@ -85,6 +89,33 @@ export default function AppointmentPrepPage() {
     setNotesTimer(setTimeout(() => saveNotes(text), 1000));
   };
 
+  // Auto-save visit reason with debounce
+  const saveVisitReason = useCallback(async (text) => {
+    try {
+      const res = await fetch(`/api/appointments/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visit_reason: text }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAppointment(data.appointment);
+        setVisitReasonSaved(true);
+        setTimeout(() => setVisitReasonSaved(false), 2000);
+      }
+    } catch (err) {
+      console.error('Visit reason save error:', err);
+    }
+  }, [id]);
+
+  const handleVisitReasonChange = (e) => {
+    const text = e.target.value;
+    setVisitReasonValue(text);
+    setVisitReasonSaved(false);
+    if (visitReasonTimer) clearTimeout(visitReasonTimer);
+    setVisitReasonTimer(setTimeout(() => saveVisitReason(text), 1000));
+  };
+
   if (loading) {
     return (
       <AdminLayout title="Appointment Prep">
@@ -124,6 +155,9 @@ export default function AppointmentPrepPage() {
   };
   const modality = modalityMap[apt.modality] || null;
 
+  // Visit reason unconfirmed check
+  const visitReasonUnconfirmed = !apt.visit_reason || apt.visit_reason.includes('to be confirmed by staff');
+
   // Overall status
   const autoItems = [
     { ok: apt.instructions_sent },
@@ -136,7 +170,8 @@ export default function AppointmentPrepPage() {
   ];
   manualItems.push({ ok: apt.id_verified });
   const allItems = [...autoItems, ...manualItems];
-  const allReady = allItems.every(i => i.ok);
+  // Block "Ready" if visit reason is unconfirmed
+  const allReady = allItems.every(i => i.ok) && !visitReasonUnconfirmed;
 
   const formatDateTime = (iso) => {
     if (!iso) return '-';
@@ -227,13 +262,31 @@ export default function AppointmentPrepPage() {
         />
       </div>
 
-      {/* Visit reason */}
-      {apt.visit_reason && (
-        <div style={s.card}>
+      {/* Visit reason — editable */}
+      <div style={s.card}>
+        <div style={s.notesTitleRow}>
           <h3 style={s.sectionTitle}>Visit Reason</h3>
-          <p style={s.visitReason}>{apt.visit_reason}</p>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {visitReasonUnconfirmed && (
+              <span style={s.amberBadge}>Visit reason needs updating</span>
+            )}
+            {visitReasonSaved && <span style={s.savedIndicator}>Saved</span>}
+          </div>
         </div>
-      )}
+        <input
+          type="text"
+          value={visitReasonValue}
+          onChange={handleVisitReasonChange}
+          placeholder="e.g. Initial lab review, HRT follow-up, first NAD+ IV session"
+          style={{
+            ...s.textarea,
+            minHeight: 'unset',
+            height: '40px',
+            resize: 'none',
+            borderColor: visitReasonUnconfirmed ? '#f59e0b' : '#e5e5e5',
+          }}
+        />
+      </div>
 
       {/* Prep notes */}
       <div style={s.card}>
@@ -417,6 +470,15 @@ const s = {
     fontSize: '14px',
     color: '#333',
     lineHeight: '1.6',
+  },
+  amberBadge: {
+    display: 'inline-block',
+    padding: '3px 10px',
+    fontSize: '11px',
+    fontWeight: '600',
+    background: '#fef3c7',
+    color: '#92400e',
+    borderRadius: 0,
   },
   notesTitleRow: {
     display: 'flex',

@@ -82,6 +82,7 @@ export default async function handler(req, res) {
     try {
       const allowedFields = [
         'labs_delivered', 'id_verified', 'provider_briefed', 'prep_notes',
+        'visit_reason', 'modality',
       ];
       const updates = {};
       for (const field of allowedFields) {

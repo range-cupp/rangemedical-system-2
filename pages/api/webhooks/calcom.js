@@ -12,6 +12,7 @@ import { sendProviderNotification } from '../../../lib/provider-notifications';
 import { todayPacific } from '../../../lib/date-utils';
 import { slugRequiresBloodWork } from '../../../lib/appointment-services';
 import { checkBloodWorkPrereq, sendPrepInstructions, sendRequiredForms } from '../../../lib/booking-automations';
+import { sendBlooioMessage } from '../../../lib/blooio';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -273,11 +274,15 @@ export default async function handler(req, res) {
         'initial-consultation': 'other', 'follow-up-consultation': 'follow_up_consultation',
         'follow-up-consultation-telemedicine': 'follow_up_consultation', 'follow-up-consultation-phone': 'follow_up_consultation',
       };
+      // Auto-populate visit_reason with structured placeholder for Cal.com bookings
+      const serviceLabelForReason = eventTitle || eventTypeSlug || 'Cal.com Booking';
+      const placeholderVisitReason = `${serviceLabelForReason} \u2014 reason to be confirmed by staff`;
+
       await supabase.from('appointments').upsert({
         patient_id: patientId,
         patient_name: attendee.name || 'Unknown',
         patient_phone: attendee.phone || null,
-        service_name: eventTitle || eventTypeSlug || 'Cal.com Booking',
+        service_name: serviceLabelForReason,
         service_category: slugToCategory[eventTypeSlug] || 'other',
         start_time: startTime,
         end_time: endTime,
@@ -285,9 +290,25 @@ export default async function handler(req, res) {
         status: 'scheduled',
         source: 'cal_com',
         cal_com_booking_id: String(calcomBookingId),
+        visit_reason: placeholderVisitReason,
       }, { onConflict: 'cal_com_booking_id' }).then(({ error: apptErr }) => {
         if (apptErr) console.error('Appointments upsert error:', apptErr);
       });
+
+      // Alert Tara via SMS that a Cal.com booking needs visit reason updated
+      const taraPhone = process.env.TARA_PHONE;
+      if (taraPhone) {
+        const apptDateDisplay = startTime
+          ? new Date(startTime).toLocaleString('en-US', {
+              weekday: 'short', month: 'short', day: 'numeric',
+              hour: 'numeric', minute: '2-digit',
+              timeZone: 'America/Los_Angeles',
+            })
+          : 'TBD';
+        const visitReasonAlert = `New booking needs your attention:\n${attendee.name || 'Unknown'} \u00b7 ${serviceLabelForReason} \u00b7 ${apptDateDisplay}\nVisit reason not set \u2014 please update in the Range System before this appointment.`;
+        sendBlooioMessage({ to: taraPhone, message: visitReasonAlert })
+          .catch(err => console.error('Tara visit_reason alert SMS failed:', err));
+      }
 
       // Execute appointment action if patient is known
       if (patientId && action) {

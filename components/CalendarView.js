@@ -97,6 +97,8 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   const [apptDate, setApptDate] = useState('');
   const [apptTime, setApptTime] = useState('');
   const [apptNotes, setApptNotes] = useState('');
+  const [visitReason, setVisitReason] = useState('');
+  const [modality, setModality] = useState('');
   const [sendNotification, setSendNotification] = useState(true);
   const [creating, setCreating] = useState(false);
   const [panelType, setPanelType] = useState(null); // 'essential' | 'elite' for New Patient Blood Draw
@@ -728,6 +730,8 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             location: selectedLocation?.label || DEFAULT_LOCATION.label,
             notes: apptNotes || null,
             created_by: employee?.name || session?.user?.email || 'Staff',
+            visit_reason: visitReason.trim(),
+            modality,
             send_notification: sendNotification,
             source: 'cal_com',
             services: detailedServices,
@@ -784,6 +788,8 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 location: selectedLocation?.label || DEFAULT_LOCATION.label,
                 notes: apptNotes || null,
                 created_by: employee?.name || session?.user?.email || 'Staff',
+                visit_reason: visitReason.trim(),
+                modality,
                 send_notification: sendNotification,
                 cal_com_booking_id: String(data.calcom?.id || data.booking?.calcom_booking_id || ''),
                 source: 'cal_com',
@@ -813,6 +819,8 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               location: selectedLocation?.label || DEFAULT_LOCATION.label,
               notes: apptNotes || null,
               created_by: employee?.name || session?.user?.email || 'Staff',
+              visit_reason: visitReason.trim(),
+              modality,
               send_notification: sendNotification,
               service_details: Object.keys(fallbackDetails).length > 0 ? fallbackDetails : null,
               services: servicesPayload,
@@ -838,6 +846,8 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             location: selectedLocation?.label || DEFAULT_LOCATION.label,
             notes: apptNotes || null,
             created_by: employee?.name || session?.user?.email || 'Staff',
+            visit_reason: visitReason.trim(),
+            modality,
             send_notification: sendNotification,
           }),
         });
@@ -892,6 +902,8 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     setApptDate('');
     setApptTime('');
     setApptNotes('');
+    setVisitReason('');
+    setModality('');
     setSendNotification(true);
     setAvailableSlots(null);
     setLoadingSlots(false);
@@ -2892,6 +2904,53 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 </div>
               )}
 
+              {/* Visit reason — required */}
+              <div style={{ marginTop: '12px' }}>
+                <label style={styles.fieldLabel}>Visit reason — why is this patient coming in? <span style={{ color: '#dc2626' }}>*</span></label>
+                <input
+                  type="text"
+                  value={visitReason}
+                  onChange={e => setVisitReason(e.target.value)}
+                  placeholder="e.g. Initial lab review, HRT follow-up, first NAD+ IV session"
+                  style={styles.input}
+                />
+                {visitReason.trim() === '' && apptDate && apptTime && (
+                  <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px' }}>Visit reason is required. Providers need to know why this patient is coming in.</div>
+                )}
+              </div>
+
+              {/* Modality — required */}
+              <div style={{ marginTop: '12px' }}>
+                <label style={styles.fieldLabel}>Modality <span style={{ color: '#dc2626' }}>*</span></label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {[
+                    { value: 'in_clinic', label: 'In-Clinic' },
+                    { value: 'telemedicine', label: 'Telemedicine' },
+                    { value: 'phone', label: 'Phone' },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setModality(opt.value)}
+                      style={{
+                        padding: '8px 16px',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        border: modality === opt.value ? '2px solid #000' : '1px solid #d1d5db',
+                        background: modality === opt.value ? '#f9fafb' : '#fff',
+                        color: '#111',
+                        cursor: 'pointer',
+                        borderRadius: 0,
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                {!modality && apptDate && apptTime && (
+                  <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px' }}>Modality is required.</div>
+                )}
+              </div>
+
               {/* Notes */}
               <div style={{ marginTop: '12px' }}>
                 <label style={styles.fieldLabel}>Notes (optional)</label>
@@ -2907,8 +2966,8 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                 <button
                   onClick={() => setWizardStep(5)}
-                  disabled={!apptDate || !apptTime}
-                  style={{ ...styles.primaryBtn, opacity: (apptDate && apptTime) ? 1 : 0.5 }}
+                  disabled={!apptDate || !apptTime || !visitReason.trim() || !modality}
+                  style={{ ...styles.primaryBtn, opacity: (apptDate && apptTime && visitReason.trim() && modality) ? 1 : 0.5 }}
                 >
                   Next →
                 </button>
@@ -3150,7 +3209,54 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               </div>
             )}
 
+            {/* Visit reason — required */}
             <div style={{ marginBottom: '12px', marginTop: '12px' }}>
+              <label style={styles.fieldLabel}>Visit reason — why is this patient coming in? <span style={{ color: '#dc2626' }}>*</span></label>
+              <input
+                type="text"
+                value={visitReason}
+                onChange={e => setVisitReason(e.target.value)}
+                placeholder="e.g. Initial lab review, HRT follow-up, first NAD+ IV session"
+                style={styles.input}
+              />
+              {visitReason.trim() === '' && apptDate && apptTime && (
+                <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px' }}>Visit reason is required. Providers need to know why this patient is coming in.</div>
+              )}
+            </div>
+
+            {/* Modality — required */}
+            <div style={{ marginBottom: '12px' }}>
+              <label style={styles.fieldLabel}>Modality <span style={{ color: '#dc2626' }}>*</span></label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {[
+                  { value: 'in_clinic', label: 'In-Clinic' },
+                  { value: 'telemedicine', label: 'Telemedicine' },
+                  { value: 'phone', label: 'Phone' },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setModality(opt.value)}
+                    style={{
+                      padding: '8px 16px',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      border: modality === opt.value ? '2px solid #000' : '1px solid #d1d5db',
+                      background: modality === opt.value ? '#f9fafb' : '#fff',
+                      color: '#111',
+                      cursor: 'pointer',
+                      borderRadius: 0,
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              {!modality && apptDate && apptTime && (
+                <div style={{ fontSize: '12px', color: '#dc2626', marginTop: '4px' }}>Modality is required.</div>
+              )}
+            </div>
+
+            <div style={{ marginBottom: '12px' }}>
               <label style={styles.fieldLabel}>Notes (optional)</label>
               <textarea
                 value={apptNotes}
@@ -3162,8 +3268,8 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
                 onClick={() => setWizardStep(5)}
-                disabled={!apptDate || !apptTime || (hasCalcom && !selectedProvider)}
-                style={{ ...styles.primaryBtn, opacity: (apptDate && apptTime && (!hasCalcom || selectedProvider)) ? 1 : 0.5 }}
+                disabled={!apptDate || !apptTime || !visitReason.trim() || !modality || (hasCalcom && !selectedProvider)}
+                style={{ ...styles.primaryBtn, opacity: (apptDate && apptTime && visitReason.trim() && modality && (!hasCalcom || selectedProvider)) ? 1 : 0.5 }}
               >
                 Next
               </button>
@@ -3242,6 +3348,14 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
             <div style={styles.confirmRow}>
               <span style={styles.confirmLabel}>Time</span>
               <span>{formatTimeLabel(apptTime)}</span>
+            </div>
+            <div style={styles.confirmRow}>
+              <span style={styles.confirmLabel}>Visit Reason</span>
+              <span>{visitReason}</span>
+            </div>
+            <div style={styles.confirmRow}>
+              <span style={styles.confirmLabel}>Modality</span>
+              <span>{{ in_clinic: 'In-Clinic', telemedicine: 'Telemedicine', phone: 'Phone' }[modality] || modality}</span>
             </div>
             {apptNotes && (
               <div style={styles.confirmRow}>

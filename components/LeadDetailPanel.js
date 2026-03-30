@@ -723,7 +723,27 @@ export default function LeadDetailPanel({
 }
 
 function AppointmentCard({ appt, formatDate, formatTime, past }) {
+  const [editing, setEditing] = useState(false);
+  const [note, setNote] = useState(appt.notes || '');
+  const [saved, setSaved] = useState(appt.notes || '');
+  const [saving, setSaving] = useState(false);
   const statusStyle = APPT_STATUS_COLORS[appt.status] || APPT_STATUS_COLORS.scheduled;
+
+  const saveNote = async () => {
+    const trimmed = note.trim();
+    if (trimmed === saved) { setEditing(false); return; }
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/appointments/${appt.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: trimmed || null }),
+      });
+      if (res.ok) { setSaved(trimmed); setEditing(false); }
+    } catch (e) { console.error('Save note error:', e); }
+    setSaving(false);
+  };
+
   return (
     <div style={{ ...s.apptCard, ...(past ? { opacity: 0.7 } : {}) }}>
       <div style={s.apptHeader}>
@@ -743,7 +763,38 @@ function AppointmentCard({ appt, formatDate, formatTime, past }) {
           </>
         )}
       </div>
-      {appt.notes && <div style={s.apptNotes}>{appt.notes}</div>}
+      {editing ? (
+        <div style={{ marginTop: '6px' }}>
+          <textarea
+            value={note}
+            onChange={e => setNote(e.target.value)}
+            placeholder="Add a note..."
+            autoFocus
+            rows={2}
+            style={s.apptNoteInput}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveNote(); }
+              if (e.key === 'Escape') { setNote(saved); setEditing(false); }
+            }}
+          />
+          <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+            <button onClick={saveNote} disabled={saving} style={s.apptNoteSaveBtn}>
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+            <button onClick={() => { setNote(saved); setEditing(false); }} style={s.apptNoteCancelBtn}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div
+          onClick={() => setEditing(true)}
+          style={{ ...s.apptNotes, cursor: 'pointer' }}
+          title="Click to add/edit note"
+        >
+          {saved || <span style={{ color: '#d1d5db', fontSize: '11px' }}>+ Add note</span>}
+        </div>
+      )}
     </div>
   );
 }
@@ -1125,6 +1176,37 @@ const s = {
     color: '#9ca3af',
     marginTop: '4px',
     fontStyle: 'italic',
+  },
+  apptNoteInput: {
+    width: '100%',
+    fontSize: '12px',
+    padding: '6px 8px',
+    border: '1px solid #d1d5db',
+    borderRadius: '4px',
+    resize: 'vertical',
+    fontFamily: 'inherit',
+    lineHeight: '1.4',
+    outline: 'none',
+    boxSizing: 'border-box',
+  },
+  apptNoteSaveBtn: {
+    fontSize: '11px',
+    fontWeight: '600',
+    padding: '3px 10px',
+    background: '#111',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+  },
+  apptNoteCancelBtn: {
+    fontSize: '11px',
+    padding: '3px 10px',
+    background: 'transparent',
+    color: '#6b7280',
+    border: '1px solid #e5e7eb',
+    borderRadius: '4px',
+    cursor: 'pointer',
   },
   // Protocols
   protoCard: {

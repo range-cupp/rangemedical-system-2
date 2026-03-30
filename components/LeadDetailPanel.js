@@ -87,6 +87,9 @@ export default function LeadDetailPanel({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [trialData, setTrialData] = useState(null);
   const [trialSurveys, setTrialSurveys] = useState([]);
+  const [smsText, setSmsText] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState('');
 
   // Fetch details when panel opens
   useEffect(() => {
@@ -159,6 +162,39 @@ export default function LeadDetailPanel({
     onMoveStage(lead.id, newStage);
   };
 
+  const handleSendSms = async () => {
+    const msg = smsText.trim();
+    if (!msg || !lead.phone) return;
+    setSending(true);
+    setSendError('');
+    try {
+      const res = await fetch('/api/twilio/send-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: lead.phone,
+          message: msg,
+          message_type: 'direct_sms',
+          patient_id: patientId || null,
+          patient_name: `${lead.first_name || ''} ${lead.last_name || ''}`.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSmsText('');
+        // Refresh comms by re-fetching details
+        const refreshRes = await fetch(`/api/admin/lead-details?lead_id=${lead.id}`);
+        const refreshData = await refreshRes.json();
+        setDetails(refreshData);
+      } else {
+        setSendError(data.error || 'Failed to send');
+      }
+    } catch (err) {
+      setSendError('Network error');
+    }
+    setSending(false);
+  };
+
   const isTrialLead = lead.lead_type === 'rlt_trial' || lead.lead_type === 'hbot_trial' || !!trialData;
   const TABS = isTrialLead ? TRIAL_TABS : BASE_TABS;
   const sourceConfig = SOURCE_CONFIG[lead.source || lead.lead_type] || SOURCE_CONFIG.other;
@@ -220,6 +256,10 @@ export default function LeadDetailPanel({
         @keyframes leadOverlayFade {
           from { opacity: 0; }
           to { opacity: 1; }
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
       `}</style>
 
@@ -404,7 +444,52 @@ export default function LeadDetailPanel({
 
           {/* Communications Tab */}
           {activeTab === 'comms' && (
-            <div>
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              {/* Send SMS input — always visible at top */}
+              {lead.phone ? (
+                <div style={s.smsComposer}>
+                  <div style={s.smsInputRow}>
+                    <textarea
+                      value={smsText}
+                      onChange={e => setSmsText(e.target.value)}
+                      placeholder={`Text ${lead.first_name || 'lead'}...`}
+                      rows={2}
+                      style={s.smsInput}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendSms();
+                        }
+                      }}
+                    />
+                    <button
+                      onClick={handleSendSms}
+                      disabled={sending || !smsText.trim()}
+                      style={{
+                        ...s.smsSendBtn,
+                        opacity: sending || !smsText.trim() ? 0.5 : 1,
+                      }}
+                    >
+                      {sending ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite' }}>
+                          <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                        </svg>
+                      ) : (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                  {sendError && (
+                    <div style={s.smsError}>{sendError}</div>
+                  )}
+                </div>
+              ) : (
+                <div style={s.smsNoPhone}>No phone number on file</div>
+              )}
+
+              {/* Message history */}
               {comms.length === 0 ? (
                 <div style={s.emptyState}>
                   <div style={s.emptyIcon}>
@@ -412,46 +497,51 @@ export default function LeadDetailPanel({
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                     </svg>
                   </div>
-                  <div style={s.emptyText}>No communications yet</div>
+                  <div style={s.emptyText}>No messages yet</div>
                   <div style={s.emptySubtext}>
-                    {!patientId ? 'This lead is not linked to a patient record' : 'No SMS or email logs found'}
+                    {lead.phone ? 'Send the first text above' : 'This lead has no phone number'}
                   </div>
                 </div>
               ) : (
-                <div style={s.commsList}>
-                  {comms.map(comm => (
-                    <div key={comm.id} style={s.commItem}>
-                      <div style={s.commHeader}>
-                        <span style={{
-                          ...s.commChannel,
-                          background: comm.channel === 'sms' ? '#dcfce7' : '#dbeafe',
-                          color: comm.channel === 'sms' ? '#166534' : '#1e40af',
+                <div style={s.chatList}>
+                  {[...comms].reverse().map(comm => {
+                    const isOutbound = comm.direction !== 'inbound';
+                    const isEmail = comm.channel === 'email';
+                    return (
+                      <div key={comm.id} style={{
+                        ...s.chatBubbleRow,
+                        justifyContent: isOutbound ? 'flex-end' : 'flex-start',
+                      }}>
+                        <div style={{
+                          ...s.chatBubble,
+                          background: isEmail ? '#f0f4ff' : isOutbound ? '#111' : '#f3f4f6',
+                          color: isEmail ? '#1e40af' : isOutbound ? '#fff' : '#111',
+                          borderBottomRightRadius: isOutbound ? '4px' : '16px',
+                          borderBottomLeftRadius: isOutbound ? '16px' : '4px',
                         }}>
-                          {comm.channel === 'sms' ? 'SMS' : 'Email'}
-                        </span>
-                        <span style={s.commType}>
-                          {(comm.message_type || '').replace(/_/g, ' ')}
-                        </span>
-                        <span style={s.commTime}>{timeAgo(comm.created_at)}</span>
+                          {isEmail && comm.subject && (
+                            <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 4, opacity: 0.8 }}>
+                              {comm.subject}
+                            </div>
+                          )}
+                          <div style={s.chatMessage}>
+                            {comm.message || '(no content)'}
+                          </div>
+                          <div style={{
+                            ...s.chatMeta,
+                            color: isOutbound ? 'rgba(255,255,255,0.5)' : '#9ca3af',
+                          }}>
+                            {isEmail ? 'Email' : 'SMS'}
+                            {' \u00b7 '}
+                            {timeAgo(comm.created_at)}
+                            {comm.status === 'failed' && (
+                              <span style={{ color: '#ef4444', marginLeft: 4 }}> Failed</span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      {comm.subject && (
-                        <div style={s.commSubject}>{comm.subject}</div>
-                      )}
-                      <div style={s.commMessage}>
-                        {(comm.message || '').substring(0, 200)}
-                        {(comm.message || '').length > 200 ? '...' : ''}
-                      </div>
-                      <div style={s.commFooter}>
-                        <span style={s.commRecipient}>{comm.recipient}</span>
-                        <span style={{
-                          ...s.commStatus,
-                          color: comm.status === 'sent' ? '#166534' : comm.status === 'failed' ? '#dc2626' : '#6b7280',
-                        }}>
-                          {comm.status}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1078,65 +1168,82 @@ const s = {
     fontSize: '12px',
     color: '#9ca3af',
   },
-  // Communications
-  commsList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0',
-    marginTop: '8px',
-  },
-  commItem: {
+  // SMS Composer
+  smsComposer: {
     padding: '12px 0',
-    borderBottom: '1px solid #f3f4f6',
+    borderBottom: '1px solid #e5e7eb',
+    marginBottom: '8px',
   },
-  commHeader: {
+  smsInputRow: {
+    display: 'flex',
+    gap: '8px',
+    alignItems: 'flex-end',
+  },
+  smsInput: {
+    flex: 1,
+    padding: '8px 12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '8px',
+    fontSize: '13px',
+    fontFamily: 'inherit',
+    outline: 'none',
+    resize: 'none',
+    lineHeight: '1.4',
+    boxSizing: 'border-box',
+    minHeight: '38px',
+    maxHeight: '100px',
+  },
+  smsSendBtn: {
+    width: '38px',
+    height: '38px',
+    borderRadius: '8px',
+    background: '#111',
+    color: '#fff',
+    border: 'none',
+    cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
-    gap: '8px',
-    marginBottom: '6px',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
-  commChannel: {
-    fontSize: '10px',
-    fontWeight: '700',
-    padding: '2px 6px',
-    borderRadius: '3px',
-    textTransform: 'uppercase',
-  },
-  commType: {
-    fontSize: '12px',
-    fontWeight: '600',
-    color: '#374151',
-    textTransform: 'capitalize',
-  },
-  commTime: {
+  smsError: {
     fontSize: '11px',
-    color: '#9ca3af',
-    marginLeft: 'auto',
-  },
-  commSubject: {
-    fontSize: '13px',
-    fontWeight: '600',
-    color: '#111',
-    marginBottom: '4px',
-  },
-  commMessage: {
-    fontSize: '12px',
-    color: '#6b7280',
-    lineHeight: '1.5',
-  },
-  commFooter: {
-    display: 'flex',
-    justifyContent: 'space-between',
+    color: '#dc2626',
     marginTop: '6px',
   },
-  commRecipient: {
-    fontSize: '11px',
+  smsNoPhone: {
+    fontSize: '12px',
     color: '#9ca3af',
+    padding: '10px 0',
+    borderBottom: '1px solid #e5e7eb',
+    marginBottom: '8px',
+    fontStyle: 'italic',
   },
-  commStatus: {
-    fontSize: '11px',
-    fontWeight: '600',
-    textTransform: 'capitalize',
+  // Chat bubbles
+  chatList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '6px',
+    marginTop: '8px',
+    paddingBottom: '8px',
+  },
+  chatBubbleRow: {
+    display: 'flex',
+  },
+  chatBubble: {
+    maxWidth: '85%',
+    padding: '8px 12px',
+    borderRadius: '16px',
+    fontSize: '13px',
+    lineHeight: '1.45',
+  },
+  chatMessage: {
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+  },
+  chatMeta: {
+    fontSize: '10px',
+    marginTop: '4px',
   },
   // Appointments
   apptCard: {

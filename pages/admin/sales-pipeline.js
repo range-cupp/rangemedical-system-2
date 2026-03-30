@@ -8,6 +8,7 @@ import Link from 'next/link';
 import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
 import LeadDetailPanel from '../../components/LeadDetailPanel';
 import LabDetailPanel from '../../components/LabDetailPanel';
+import PeptideDetailPanel from '../../components/PeptideDetailPanel';
 import { supabase } from '../../lib/supabase';
 
 const STAGE_CONFIG = {
@@ -130,6 +131,7 @@ export default function SalesPipeline() {
   const [filterPath, setFilterPath] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLabLead, setSelectedLabLead] = useState(null);
+  const [selectedPeptide, setSelectedPeptide] = useState(null);
   const [viewMode, setViewMode] = useState('standard'); // standard | trial | labs | peptides
   const [peptideFilter, setPeptideFilter] = useState('all'); // all | recovery | gh | other
 
@@ -576,6 +578,7 @@ export default function SalesPipeline() {
                             lead={lead}
                             stageKey={col.key}
                             onDragStart={handleDragStart}
+                            onClick={() => setSelectedPeptide(lead)}
                           />
                         ) : lead._isLab ? (
                           <LabCard
@@ -723,6 +726,12 @@ export default function SalesPipeline() {
         onClose={() => setSelectedLabLead(null)}
         lead={selectedLabLead}
       />
+
+      <PeptideDetailPanel
+        isOpen={!!selectedPeptide}
+        onClose={() => setSelectedPeptide(null)}
+        lead={selectedPeptide}
+      />
     </AdminLayout>
   );
 }
@@ -859,7 +868,7 @@ function LabCard({ lead, stageKey, onDragStart, onClose, onClick }) {
   );
 }
 
-function PeptideCard({ lead, stageKey, onDragStart }) {
+function PeptideCard({ lead, stageKey, onDragStart, onClick }) {
   const [dragging, setDragging] = useState(false);
   const category = PEPTIDE_CATEGORY_CONFIG[lead._peptideCategory] || PEPTIDE_CATEGORY_CONFIG.other;
 
@@ -896,18 +905,17 @@ function PeptideCard({ lead, stageKey, onDragStart }) {
       draggable
       onDragStart={e => { setDragging(true); onDragStart(e, lead, stageKey); }}
       onDragEnd={() => setDragging(false)}
+      onClick={() => { if (!dragging && onClick) onClick(); }}
       style={{
         ...styles.card,
         opacity: dragging ? 0.5 : 1,
-        cursor: 'grab',
+        cursor: 'pointer',
         borderLeft: `3px solid ${category.color || '#6b7280'}`,
       }}
     >
-      <Link href={`/admin/patient/${lead.patient_id}`} style={{ textDecoration: 'none' }}>
-        <div style={{ ...styles.cardName, cursor: 'pointer', borderBottom: '1px dashed #d1d5db' }}>
-          {lead.first_name} {lead.last_name}
-        </div>
-      </Link>
+      <div style={{ ...styles.cardName, borderBottom: '1px dashed #d1d5db' }}>
+        {lead.first_name} {lead.last_name}
+      </div>
       {lead.phone && <div style={styles.cardPhone}>{lead.phone}</div>}
       <div style={styles.cardMeta}>
         <span style={{

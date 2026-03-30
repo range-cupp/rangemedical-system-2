@@ -9552,7 +9552,10 @@ export default function PatientProfile() {
                 {/* Source protocol summary */}
                 <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 0, padding: '10px 14px', marginBottom: 16 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#92400e', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Will be closed (merged away)</div>
-                  <div style={{ fontWeight: 600, fontSize: 14 }}>{mergeSource.program_name || mergeSource.medication}</div>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>
+                    {mergeSource.program_name || mergeSource.medication}
+                    {mergeSource.medication && mergeSource.program_name && mergeSource.medication !== mergeSource.program_name ? ` (${mergeSource.medication})` : ''}
+                  </div>
                   <div style={{ fontSize: 13, color: '#666', marginTop: 2 }}>
                     {mergeSource.selected_dose && <span>{mergeSource.selected_dose} · </span>}
                     Started {mergeSource.start_date ? new Date(mergeSource.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
@@ -9579,6 +9582,7 @@ export default function PatientProfile() {
                     .map(p => (
                       <option key={p.id} value={p.id}>
                         {p.program_name || p.medication}
+                        {p.medication && p.program_name && p.medication !== p.program_name ? ` (${p.medication})` : ''}
                         {p.selected_dose ? ` · ${p.selected_dose}` : ''}
                         {' · '}Started {p.start_date ? new Date(p.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                         {' · '}{p.sessions_used || 0} injections
@@ -9590,7 +9594,10 @@ export default function PatientProfile() {
                 {mergeTarget && (
                   <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 0, padding: '10px 14px', marginBottom: 16 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: '#166534', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Surviving protocol (after merge)</div>
-                    <div style={{ fontWeight: 600, fontSize: 14 }}>{mergeTarget.program_name || mergeTarget.medication}</div>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>
+                      {mergeTarget.program_name || mergeTarget.medication}
+                      {mergeTarget.medication && mergeTarget.program_name && mergeTarget.medication !== mergeTarget.program_name ? ` (${mergeTarget.medication})` : ''}
+                    </div>
                     <div style={{ fontSize: 13, color: '#444', marginTop: 2 }}>
                       Combined injections: <strong>{(mergeSource.sessions_used || 0) + (mergeTarget.sessions_used || 0)}</strong>
                       {' · '}Start date: <strong>

@@ -525,7 +525,10 @@ export default function PatientProfile() {
     templateId: '', peptideId: '', selectedDose: '', frequency: '',
     startDate: new Date().toISOString().split('T')[0], notes: '',
     injectionMedication: '', injectionDose: '', vialDuration: '',
-    medication: '', deliveryMethod: '', injectionDay: '', pickupFrequencyDays: ''
+    medication: '', deliveryMethod: '', injectionDay: '', pickupFrequencyDays: '',
+    // HRT-specific fields
+    hrtGender: '', injectionMethod: '', supplyType: '', dosePerInjection: '',
+    injectionsPerWeek: '', vialSize: '', hrtInitialQuantity: ''
   });
 
   const [editForm, setEditForm] = useState({
@@ -1606,12 +1609,27 @@ export default function PatientProfile() {
       const isInjection = template?.name?.toLowerCase().includes('injection');
       const isPeptide = template?.name?.toLowerCase().includes('peptide');
       const isWeightLoss = template?.name?.toLowerCase().includes('weight');
+      const isHRT = isHRTTemplate();
 
       // For peptide vial templates, pass the vial duration
       const isVialTemplate = template?.name?.toLowerCase().includes('vial');
       const peptideDurationDays = (isPeptide && isVialTemplate && assignForm.vialDuration)
         ? parseInt(assignForm.vialDuration)
         : undefined;
+
+      // Determine medication based on template type
+      let finalMedication = null;
+      if (isHRT) {
+        finalMedication = assignForm.hrtGender === 'female'
+          ? 'Testosterone Cypionate (100mg/ml)'
+          : 'Testosterone Cypionate (200mg/ml)';
+      } else if (isInjection) {
+        finalMedication = assignForm.injectionMedication;
+      } else if (isPeptide) {
+        finalMedication = assignForm.peptideId;
+      } else if (isWeightLoss) {
+        finalMedication = assignForm.medication;
+      }
 
       const res = await fetch('/api/protocols/assign', {
         method: 'POST',
@@ -1621,16 +1639,28 @@ export default function PatientProfile() {
           templateId: assignForm.templateId,
           peptideId: assignForm.peptideId,
           selectedDose: isInjection ? assignForm.injectionDose : assignForm.selectedDose,
-          medication: isInjection ? assignForm.injectionMedication : (isPeptide ? assignForm.peptideId : (isWeightLoss ? assignForm.medication : null)),
-          frequency: assignForm.frequency,
+          medication: finalMedication,
+          frequency: isHRT ? assignForm.frequency : assignForm.frequency,
           startDate: assignForm.startDate,
           notes: assignForm.notes,
           purchaseId: selectedNotification?.id,
           peptideDurationDays,
-          deliveryMethod: isWeightLoss ? assignForm.deliveryMethod : undefined,
+          deliveryMethod: (isWeightLoss || isHRT) ? assignForm.deliveryMethod : undefined,
           injectionDay: isWeightLoss ? assignForm.injectionDay : undefined,
           pickupFrequencyDays: isWeightLoss && assignForm.pickupFrequencyDays ? parseInt(assignForm.pickupFrequencyDays) : undefined,
-          isWeightLoss: isWeightLoss || undefined
+          isWeightLoss: isWeightLoss || undefined,
+          // HRT-specific fields
+          hrtType: isHRT ? (assignForm.hrtGender === 'female' ? 'hrt_female' : 'hrt_male') : undefined,
+          injectionMethod: isHRT ? assignForm.injectionMethod : undefined,
+          dosePerInjection: isHRT && assignForm.selectedDose !== 'custom' ? assignForm.selectedDose : (isHRT ? assignForm.dosePerInjection : undefined),
+          injectionsPerWeek: isHRT ? parseInt(assignForm.injectionsPerWeek || (assignForm.injectionMethod === 'subq' ? '7' : '2')) : undefined,
+          supplyType: isHRT ? assignForm.supplyType : undefined,
+          hrtInitialQuantity: isHRT && assignForm.supplyType ? (() => {
+            const match = assignForm.supplyType.match(/(\d+)/);
+            if (!match) return undefined;
+            const perWeek = assignForm.injectionMethod === 'subq' ? 7 : 2;
+            return parseInt(match[1]) * perWeek;
+          })() : undefined,
         })
       });
 
@@ -2478,6 +2508,10 @@ export default function PatientProfile() {
   const isPeptideTemplate = () => getSelectedTemplate()?.name?.toLowerCase().includes('peptide');
   const isInjectionTemplate = () => getSelectedTemplate()?.name?.toLowerCase().includes('injection');
   const isWeightLossTemplate = () => getSelectedTemplate()?.name?.toLowerCase().includes('weight');
+  const isHRTTemplate = () => {
+    const name = getSelectedTemplate()?.name?.toLowerCase() || '';
+    return name.includes('hrt') || name.includes('hormone') || name.includes('testosterone');
+  };
 
   // Delete patient handler
   const handleDeletePatient = async () => {
@@ -7998,7 +8032,7 @@ export default function PatientProfile() {
                   <>
                     <div className="form-group">
                       <label>Protocol Template *</label>
-                      <select value={assignForm.templateId} onChange={e => setAssignForm({...assignForm, templateId: e.target.value, peptideId: '', selectedDose: '', medication: ''})}>
+                      <select value={assignForm.templateId} onChange={e => setAssignForm({...assignForm, templateId: e.target.value, peptideId: '', selectedDose: '', medication: '', hrtGender: '', injectionMethod: '', supplyType: '', dosePerInjection: '', injectionsPerWeek: '', vialSize: '', hrtInitialQuantity: ''})}>
                         <option value="">Select template...</option>
                         {Object.entries(templates.grouped || {}).map(([category, temps]) => (
                           <optgroup key={category} label={category}>
@@ -8222,7 +8256,120 @@ export default function PatientProfile() {
                       </>
                     )}
 
-                    {!isWeightLossTemplate() && (
+                    {isHRTTemplate() && (
+                      <>
+                        {/* Gender selection — determines testosterone concentration and dosages */}
+                        <div className="form-group">
+                          <label>Patient Sex *</label>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            {['Male', 'Female'].map(g => (
+                              <button
+                                key={g}
+                                type="button"
+                                onClick={() => setAssignForm({...assignForm, hrtGender: g.toLowerCase(), selectedDose: '', dosePerInjection: ''})}
+                                style={{
+                                  flex: 1, padding: '10px 16px', border: '1px solid #d1d5db', borderRadius: 0,
+                                  background: assignForm.hrtGender === g.toLowerCase() ? '#0a0a0a' : '#fff',
+                                  color: assignForm.hrtGender === g.toLowerCase() ? '#fff' : '#374151',
+                                  fontWeight: 600, fontSize: 14, cursor: 'pointer'
+                                }}
+                              >
+                                {g}
+                              </button>
+                            ))}
+                          </div>
+                          {assignForm.hrtGender && (
+                            <div style={{ marginTop: 6, fontSize: 12, color: '#6b7280' }}>
+                              Testosterone Cypionate ({assignForm.hrtGender === 'male' ? '200mg/ml' : '100mg/ml'})
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Dose selection — based on gender */}
+                        {assignForm.hrtGender && (
+                          <div className="form-group">
+                            <label>Dose *</label>
+                            <select value={assignForm.selectedDose} onChange={e => setAssignForm({...assignForm, selectedDose: e.target.value})}>
+                              <option value="">Select dose...</option>
+                              {TESTOSTERONE_DOSES[assignForm.hrtGender]?.map(d => (
+                                <option key={d.value} value={d.value}>{d.label}</option>
+                              ))}
+                              <option value="custom">Custom dose</option>
+                            </select>
+                            {assignForm.selectedDose === 'custom' && (
+                              <input
+                                type="text"
+                                value={assignForm.dosePerInjection}
+                                onChange={e => setAssignForm({...assignForm, dosePerInjection: e.target.value})}
+                                placeholder="e.g. 0.35ml/70mg"
+                                style={{ marginTop: 6 }}
+                              />
+                            )}
+                          </div>
+                        )}
+
+                        {/* Injection Method — IM or SubQ */}
+                        {assignForm.hrtGender && (
+                          <div className="form-group">
+                            <label>Injection Method *</label>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              {INJECTION_METHODS.map(m => (
+                                <button
+                                  key={m.value}
+                                  type="button"
+                                  onClick={() => setAssignForm({
+                                    ...assignForm,
+                                    injectionMethod: m.value,
+                                    frequency: m.value === 'subq' ? 'Daily' : '2x per week',
+                                    injectionsPerWeek: m.value === 'subq' ? '7' : '2'
+                                  })}
+                                  style={{
+                                    flex: 1, padding: '10px 16px', border: '1px solid #d1d5db', borderRadius: 0,
+                                    background: assignForm.injectionMethod === m.value ? '#0a0a0a' : '#fff',
+                                    color: assignForm.injectionMethod === m.value ? '#fff' : '#374151',
+                                    fontWeight: 600, fontSize: 14, cursor: 'pointer'
+                                  }}
+                                >
+                                  {m.label}
+                                </button>
+                              ))}
+                            </div>
+                            {assignForm.injectionMethod && (
+                              <div style={{ marginTop: 6, fontSize: 12, color: '#6b7280' }}>
+                                {assignForm.injectionMethod === 'im' ? '2x per week (IM)' : 'Daily (SubQ)'}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Delivery method */}
+                        {assignForm.injectionMethod && (
+                          <div className="form-group">
+                            <label>Delivery Method *</label>
+                            <select value={assignForm.deliveryMethod} onChange={e => setAssignForm({...assignForm, deliveryMethod: e.target.value})}>
+                              <option value="">Select delivery...</option>
+                              <option value="in_clinic">In Clinic</option>
+                              <option value="take_home">Take Home</option>
+                            </select>
+                          </div>
+                        )}
+
+                        {/* Supply type — only for take-home */}
+                        {assignForm.deliveryMethod === 'take_home' && (
+                          <div className="form-group">
+                            <label>Supply Type</label>
+                            <select value={assignForm.supplyType} onChange={e => setAssignForm({...assignForm, supplyType: e.target.value})}>
+                              <option value="">Select supply...</option>
+                              {HRT_SUPPLY_TYPES.map(st => (
+                                <option key={st.value} value={st.value}>{st.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {!isWeightLossTemplate() && !isHRTTemplate() && (
                       <div className="form-group">
                         <label>Frequency</label>
                         <select value={assignForm.frequency} onChange={e => setAssignForm({...assignForm, frequency: e.target.value})}>

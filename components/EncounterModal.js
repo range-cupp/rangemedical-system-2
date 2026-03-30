@@ -87,6 +87,15 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
   const [noteMode, setNoteMode] = useState('choose'); // 'choose' | 'interactive' | 'freetext' | 'copy_previous'
   const [interactiveFormType, setInteractiveFormType] = useState(null);
 
+  // Multi-service encounter state
+  const [sameDayAppointments, setSameDayAppointments] = useState([]);
+  const [multiServiceQueue, setMultiServiceQueue] = useState([]); // appointments to document after current
+  const [visitGroupId, setVisitGroupId] = useState(null);
+  const [activeAppointment, setActiveAppointment] = useState(appointment); // currently documenting
+  const [multiServicePromptShown, setMultiServicePromptShown] = useState(false);
+  const [showMultiServicePrompt, setShowMultiServicePrompt] = useState(false);
+  const [completedServices, setCompletedServices] = useState([]); // service names already documented
+
   // Copy from previous encounter state
   const [previousNotes, setPreviousNotes] = useState([]);
   const [loadingPrevious, setLoadingPrevious] = useState(false);
@@ -200,7 +209,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
   const [addendumSaving, setAddendumSaving] = useState(false);
 
   // Appointment status
-  const [status, setStatus] = useState(appointment?.status || 'scheduled');
+  const [status, setStatus] = useState(activeAppointment?.status || 'scheduled');
   const [savingStatus, setSavingStatus] = useState(false);
 
   // Prescriptions state (scaffolding)
@@ -242,13 +251,13 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
   // Active section
   const [activeSection, setActiveSection] = useState('notes');
 
-  // Determine template from service name
-  const templateKey = getTemplateForService(appointment?.service_name || appointment?.appointment_title || '');
+  // Determine template from service name (use activeAppointment for multi-service flow)
+  const templateKey = getTemplateForService(activeAppointment?.service_name || activeAppointment?.appointment_title || '');
   const template = ENCOUNTER_TEMPLATES[templateKey] || ENCOUNTER_TEMPLATES.general;
 
   // Determine which interactive forms are available for this appointment type
   const getAvailableInteractiveForms = () => {
-    const name = (appointment?.service_name || appointment?.appointment_title || '').toLowerCase();
+    const name = (activeAppointment?.service_name || activeAppointment?.appointment_title || '').toLowerCase();
     const forms = [];
     // IV Therapy
     if (name.includes('iv') || name.includes('infusion') || name.includes('nad') || name.includes('drip')) {
@@ -285,14 +294,14 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
 
   // Fetch previous encounter notes for this patient (for copy-from-previous)
   const fetchPreviousNotes = async () => {
-    if (!appointment?.patient_id) return;
+    if (!activeAppointment?.patient_id) return;
     setLoadingPrevious(true);
     try {
-      const res = await fetch(`/api/notes/by-patient?patient_id=${appointment.patient_id}`);
+      const res = await fetch(`/api/notes/by-patient?patient_id=${activeAppointment.patient_id}`);
       const data = await res.json();
       const notes = (data.notes || [])
         // Exclude notes from this appointment, exclude addendums
-        .filter(n => n.appointment_id !== appointment.id && n.source !== 'addendum')
+        .filter(n => n.appointment_id !== activeAppointment.id && n.source !== 'addendum')
         // Only include encounter notes (not manual/protocol-generated)
         .filter(n => n.source === 'encounter' || n.encounter_service)
         // Match same service type if possible — show all encounter notes as fallback
@@ -314,33 +323,33 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
     }
   }, [template.defaultNoteType]);
 
-  // Fetch encounter notes
+  // Fetch encounter notes (re-fetch when activeAppointment changes in multi-service flow)
   useEffect(() => {
-    if (!appointment?.id) return;
+    if (!activeAppointment?.id) return;
     setLoadingNotes(true);
-    fetch(`/api/notes/by-appointment?appointment_id=${appointment.id}`)
+    fetch(`/api/notes/by-appointment?appointment_id=${activeAppointment.id}`)
       .then(r => r.json())
       .then(data => {
         setEncounterNotes(data.notes || []);
         setLoadingNotes(false);
       })
       .catch(() => setLoadingNotes(false));
-  }, [appointment?.id]);
+  }, [activeAppointment?.id]);
 
   // Fetch prescriptions for this encounter
   useEffect(() => {
-    if (!appointment?.id || !appointment?.patient_id) return;
-    fetch(`/api/prescriptions?appointment_id=${appointment.id}&patient_id=${appointment.patient_id || ''}`)
+    if (!activeAppointment?.id || !activeAppointment?.patient_id) return;
+    fetch(`/api/prescriptions?appointment_id=${activeAppointment.id}&patient_id=${activeAppointment.patient_id || ''}`)
       .then(r => r.ok ? r.json() : { prescriptions: [] })
       .then(data => setPrescriptions(data.prescriptions || []))
       .catch(() => {});
-  }, [appointment?.id, appointment?.patient_id]);
+  }, [activeAppointment?.id, activeAppointment?.patient_id]);
 
   // Fetch vitals for this encounter + last known height
   useEffect(() => {
-    if (!appointment?.id) { setVitalsLoading(false); return; }
+    if (!activeAppointment?.id) { setVitalsLoading(false); return; }
     setVitalsLoading(true);
-    fetch(`/api/vitals/by-appointment?appointment_id=${appointment.id}&patient_id=${appointment.patient_id || ''}`)
+    fetch(`/api/vitals/by-appointment?appointment_id=${activeAppointment.id}&patient_id=${activeAppointment.patient_id || ''}`)
       .then(r => r.json())
       .then(data => {
         if (data.vitals) {
@@ -361,12 +370,12 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
         setVitalsLoading(false);
       })
       .catch(() => setVitalsLoading(false));
-  }, [appointment?.id, appointment?.patient_id]);
+  }, [activeAppointment?.id, activeAppointment?.patient_id]);
 
   // Fetch active weight loss protocol for this patient
   useEffect(() => {
-    if (!appointment?.patient_id) return;
-    fetch(`/api/protocols/active-wl?patient_id=${appointment.patient_id}`)
+    if (!activeAppointment?.patient_id) return;
+    fetch(`/api/protocols/active-wl?patient_id=${activeAppointment.patient_id}`)
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data?.protocol) {
@@ -375,7 +384,58 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
         }
       })
       .catch(() => {});
-  }, [appointment?.patient_id]);
+  }, [activeAppointment?.patient_id]);
+
+  // Fetch same-day appointments for multi-service encounter flow
+  useEffect(() => {
+    if (!appointment?.patient_id || !appointment?.start_time || !appointment?.id) return;
+    const apptDate = new Date(appointment.start_time).toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+    fetch(`/api/appointments/same-day?patient_id=${appointment.patient_id}&date=${apptDate}&exclude_id=${appointment.id}`)
+      .then(r => r.json())
+      .then(data => {
+        const others = (data.appointments || []).filter(a => a.id !== appointment.id);
+        setSameDayAppointments(others);
+      })
+      .catch(() => {});
+  }, [appointment?.patient_id, appointment?.start_time, appointment?.id]);
+
+  // Generate a UUID for visit grouping (crypto.randomUUID with fallback)
+  const generateVisitGroupId = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = Math.random() * 16 | 0;
+      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+  };
+
+  // Advance to next service in multi-service queue
+  const advanceToNextService = () => {
+    if (multiServiceQueue.length === 0) return;
+    const [next, ...rest] = multiServiceQueue;
+    setMultiServiceQueue(rest);
+    // Ensure patient_id and patient_name carry forward from original appointment
+    setActiveAppointment({ ...next, patient_id: appointment.patient_id, patient_name: appointment.patient_name });
+    // Reset note form state for the new service
+    setShowNoteForm(true);
+    setNoteMode('choose');
+    setNoteIsEmpty(true);
+    setInteractiveFormType(null);
+    setCameFromCopyPrevious(false);
+    setSaveError(null);
+    setEncounterNotes([]);
+    setLoadingNotes(true);
+    if (noteRef.current) noteRef.current.innerHTML = '';
+    // Fetch notes for the next appointment
+    fetch(`/api/notes/by-appointment?appointment_id=${next.id}`)
+      .then(r => r.json())
+      .then(data => {
+        setEncounterNotes(data.notes || []);
+        setLoadingNotes(false);
+      })
+      .catch(() => setLoadingNotes(false));
+  };
 
   // Height helpers: parse "5'10" or "70" → inches, inches → display string
   const parseHeight = (input) => {
@@ -406,15 +466,15 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
       // Only save if at least one field has a value
       const vals = Object.values(updatedVitals);
       const hasData = vals.some(v => v !== '' && v !== null && v !== undefined);
-      if (!hasData || !appointment?.patient_id) return;
+      if (!hasData || !activeAppointment?.patient_id) return;
 
       try {
         const res = await fetch('/api/vitals/save', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            patient_id: appointment.patient_id,
-            appointment_id: appointment.id,
+            patient_id: activeAppointment.patient_id,
+            appointment_id: activeAppointment.id,
             ...updatedVitals,
             recorded_by: currentUser
           })
@@ -527,7 +587,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
     const noteMarkdown = getNoteMarkdown();
     if (!noteMarkdown.trim()) return;
     setSaveError(null);
-    if (!appointment.patient_id) {
+    if (!activeAppointment.patient_id) {
       setSaveError('Unable to save — no patient linked to this appointment.');
       return;
     }
@@ -537,12 +597,13 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          patient_id: appointment.patient_id,
+          patient_id: activeAppointment.patient_id,
           body: noteMarkdown,
           raw_input: noteMarkdown,
           created_by: currentUser,
-          appointment_id: appointment.id,
-          encounter_service: appointment.service_name || appointment.appointment_title || '',
+          appointment_id: activeAppointment.id,
+          encounter_service: activeAppointment.service_name || activeAppointment.appointment_title || '',
+          visit_group_id: visitGroupId || null,
         }),
       });
       const data = await res.json();
@@ -550,11 +611,16 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
         setSaveError(data.error || 'Failed to save note');
       } else if (data.note) {
         setEncounterNotes(prev => [...prev, data.note]);
+        setCompletedServices(prev => [...prev, activeAppointment.service_name || activeAppointment.appointment_title || 'Service']);
         if (noteRef.current) noteRef.current.innerHTML = '';
         setNoteIsEmpty(true);
         setShowNoteForm(false);
         stopDictation();
         if (onRefresh) onRefresh();
+        // If there are more services in queue, advance
+        if (multiServiceQueue.length > 0) {
+          setTimeout(() => advanceToNextService(), 300);
+        }
       }
     } catch (err) {
       console.error('Save note error:', err);
@@ -627,11 +693,11 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           parent_note_id: addendumParentId,
-          patient_id: appointment.patient_id,
+          patient_id: activeAppointment.patient_id,
           body: addendumInput,
           raw_input: addendumInput,
           created_by: currentUser,
-          appointment_id: appointment.id,
+          appointment_id: activeAppointment.id,
         }),
       });
       const data = await res.json();
@@ -658,8 +724,8 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...rxForm,
-          patient_id: appointment.patient_id,
-          appointment_id: appointment.id,
+          patient_id: activeAppointment.patient_id,
+          appointment_id: activeAppointment.id,
           created_by: currentUser,
         }),
       });
@@ -996,7 +1062,12 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
             <div>
               <h3 className="enc-title">Encounter</h3>
               <div className="enc-subtitle">
-                {appointment?.service_name || appointment?.appointment_title || 'Appointment'} — {formatDate(appointment?.start_time)}
+                {activeAppointment?.service_name || activeAppointment?.appointment_title || 'Appointment'} — {formatDate(activeAppointment?.start_time)}
+                {multiServiceQueue.length > 0 && (
+                  <span style={{ marginLeft: 8, fontSize: 11, fontWeight: 600, color: '#6d28d9', background: '#f3e8ff', padding: '2px 8px', borderRadius: 10 }}>
+                    {multiServiceQueue.length} more service{multiServiceQueue.length > 1 ? 's' : ''} after this
+                  </span>
+                )}
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1156,6 +1227,85 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
               </div>
             )}
           </div>
+
+          {/* Multi-Service Prompt — shown when patient has other appointments same day */}
+          {sameDayAppointments.length > 0 && !multiServicePromptShown && (
+            <div style={{
+              padding: '12px 24px', background: '#f5f3ff', borderBottom: '1px solid #e9d5ff',
+              display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+            }}>
+              <span style={{ fontSize: 13, color: '#5b21b6', fontWeight: 600 }}>
+                {appointment?.patient_name || 'This patient'} also has
+              </span>
+              {sameDayAppointments.map(a => (
+                <span key={a.id} style={{
+                  fontSize: 12, padding: '3px 10px', borderRadius: 20, fontWeight: 600,
+                  background: '#ede9fe', color: '#6d28d9',
+                }}>
+                  {a.service_name || a.appointment_title}
+                </span>
+              ))}
+              <span style={{ fontSize: 13, color: '#5b21b6' }}>today.</span>
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, flexShrink: 0 }}>
+                <button
+                  onClick={() => {
+                    const groupId = generateVisitGroupId();
+                    setVisitGroupId(groupId);
+                    setMultiServiceQueue(sameDayAppointments);
+                    setMultiServicePromptShown(true);
+                  }}
+                  style={{
+                    padding: '6px 14px', fontSize: 12, fontWeight: 700, borderRadius: 8,
+                    border: '1.5px solid #7c3aed', background: '#7c3aed', color: '#fff',
+                    cursor: 'pointer', transition: 'all 0.15s',
+                  }}
+                >
+                  Document all in one session
+                </button>
+                <button
+                  onClick={() => setMultiServicePromptShown(true)}
+                  style={{
+                    padding: '6px 14px', fontSize: 12, fontWeight: 600, borderRadius: 8,
+                    border: '1.5px solid #d1d5db', background: '#fff', color: '#6b7280',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Just this one
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Multi-Service Progress Banner — shown during multi-service flow */}
+          {completedServices.length > 0 && visitGroupId && (
+            <div style={{
+              padding: '10px 24px', background: '#ecfdf5', borderBottom: '1px solid #a7f3d0',
+              display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+            }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#059669' }}>Multi-Service Visit</span>
+              {completedServices.map((svc, i) => (
+                <span key={i} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, background: '#d1fae5', color: '#065f46', fontWeight: 600 }}>
+                  ✓ {svc}
+                </span>
+              ))}
+              {multiServiceQueue.length > 0 && (
+                <>
+                  <span style={{ fontSize: 11, color: '#6b7280' }}>→</span>
+                  <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, background: '#ede9fe', color: '#6d28d9', fontWeight: 700 }}>
+                    {activeAppointment?.service_name || activeAppointment?.appointment_title}
+                  </span>
+                  <span style={{ fontSize: 11, color: '#9ca3af', marginLeft: 'auto' }}>
+                    {multiServiceQueue.length} remaining
+                  </span>
+                </>
+              )}
+              {multiServiceQueue.length === 0 && (
+                <span style={{ fontSize: 11, color: '#059669', fontWeight: 600, marginLeft: 'auto' }}>
+                  All services documented
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Section Tabs */}
           <div className="enc-tabs">
@@ -1459,7 +1609,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                     onCancel={() => { setNoteMode('choose'); setInteractiveFormType(null); }}
                     onSave={async ({ markdown, structured_data, note_type, form_type }) => {
                       setSaveError(null);
-                      if (!appointment.patient_id) {
+                      if (!activeAppointment.patient_id) {
                         setSaveError('Unable to save — no patient linked to this appointment.');
                         return;
                       }
@@ -1468,13 +1618,14 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({
-                            patient_id: appointment.patient_id,
+                            patient_id: activeAppointment.patient_id,
                             body: markdown,
                             raw_input: markdown,
                             created_by: currentUser,
-                            appointment_id: appointment.id,
-                            encounter_service: form_type || appointment.service_name || appointment.appointment_title || '',
+                            appointment_id: activeAppointment.id,
+                            encounter_service: form_type || activeAppointment.service_name || activeAppointment.appointment_title || '',
                             structured_data: { ...structured_data, form_type },
+                            visit_group_id: visitGroupId || null,
                           }),
                         });
                         const data = await res.json();
@@ -1484,10 +1635,15 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                         }
                         if (data.note) {
                           setEncounterNotes(prev => [...prev, data.note]);
+                          setCompletedServices(prev => [...prev, activeAppointment.service_name || activeAppointment.appointment_title || 'Service']);
                           setShowNoteForm(false);
                           setNoteMode('choose');
                           setInteractiveFormType(null);
                           if (onRefresh) onRefresh();
+                          // If there are more services in queue, advance
+                          if (multiServiceQueue.length > 0) {
+                            setTimeout(() => advanceToNextService(), 300);
+                          }
                         }
                       } catch (err) {
                         console.error('Save interactive note error:', err);

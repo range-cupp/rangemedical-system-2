@@ -36,6 +36,29 @@ export default async function handler(req, res) {
 
     // Combine and sort
     const allNotes = [...directNotes, ...addendums.filter(a => !directNoteIds.has(a.id))];
+
+    // Also fetch visit-grouped notes (from multi-service encounters)
+    // If any direct note has a visit_group_id, fetch sibling notes from other appointments
+    const visitGroupIds = [...new Set(directNotes.filter(n => n.visit_group_id).map(n => n.visit_group_id))];
+    if (visitGroupIds.length > 0) {
+      for (const groupId of visitGroupIds) {
+        const { data: siblingNotes } = await supabase
+          .from('patient_notes')
+          .select('*')
+          .eq('visit_group_id', groupId)
+          .neq('appointment_id', appointment_id)
+          .order('created_at', { ascending: true });
+
+        if (siblingNotes) {
+          for (const sib of siblingNotes) {
+            if (!allNotes.find(n => n.id === sib.id)) {
+              allNotes.push(sib);
+            }
+          }
+        }
+      }
+    }
+
     allNotes.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
     return res.status(200).json({ success: true, notes: allNotes });

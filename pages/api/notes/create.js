@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { patient_id, raw_input, body, created_by, protocol_id, protocol_name, appointment_id, encounter_service, note_category, structured_data, note_date } = req.body;
+  const { patient_id, raw_input, body, created_by, protocol_id, protocol_name, appointment_id, encounter_service, note_category, structured_data, note_date, visit_group_id } = req.body;
 
   if (!patient_id) {
     return res.status(400).json({ error: 'patient_id is required' });
@@ -76,6 +76,7 @@ export default async function handler(req, res) {
         appointment_id: appointment_id || null,
         encounter_service: encounter_service || null,
         note_category: note_category || (appointment_id ? 'clinical' : (protocol_id ? 'clinical' : 'internal')),
+        visit_group_id: visit_group_id || null,
       })
       .select()
       .single());

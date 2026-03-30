@@ -4,9 +4,9 @@
 // Range Medical System V2
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
 import LeadDetailPanel from '../../components/LeadDetailPanel';
-import LabsPipelineTab from '../../components/LabsPipelineTab';
 import { supabase } from '../../lib/supabase';
 
 const STAGE_CONFIG = {
@@ -53,6 +53,15 @@ const TRIAL_STAGE_CONFIG = {
   lost:       { label: 'Lost',        color: '#ef4444', bg: '#fef2f2' },
 };
 
+const LAB_STAGE_CONFIG = {
+  awaiting_results:    { label: 'Awaiting Results',    color: '#f59e0b', bg: '#fffbeb', owner: 'Primex' },
+  uploaded:            { label: 'Uploaded',             color: '#8b5cf6', bg: '#f5f3ff', owner: 'Chris / Evan' },
+  under_review:        { label: 'Under Review',        color: '#3b82f6', bg: '#eff6ff', owner: 'Damien / Evan' },
+  ready_to_schedule:   { label: 'Ready to Schedule',   color: '#f97316', bg: '#fff7ed', owner: 'Terra' },
+  consult_scheduled:   { label: 'Consult Booked',      color: '#6366f1', bg: '#eef2ff', owner: null },
+  in_treatment:        { label: 'In Treatment',         color: '#10b981', bg: '#ecfdf5', owner: null },
+};
+
 const PATH_LABELS = {
   injury: 'Injury',
   energy: 'Energy',
@@ -90,13 +99,50 @@ export default function SalesPipeline() {
 
   const fetchBoard = useCallback(async () => {
     try {
-      const url = viewMode === 'trial'
-        ? '/api/admin/sales-pipeline?view=trial'
-        : '/api/admin/sales-pipeline';
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data.columns) setColumns(data.columns);
-      if (data.summary) setSummary(data.summary);
+      if (viewMode === 'labs') {
+        const res = await fetch('/api/admin/labs-pipeline');
+        const data = await res.json();
+        if (data.success) {
+          const labColumns = Object.keys(LAB_STAGE_CONFIG).map(key => ({
+            key,
+            leads: (data.stages[key] || []).map(p => {
+              const patient = p.patients;
+              const name = patient?.name || `${patient?.first_name || ''} ${patient?.last_name || ''}`.trim();
+              const nameParts = name.split(' ');
+              return {
+                id: p.id,
+                first_name: nameParts[0] || '',
+                last_name: nameParts.slice(1).join(' ') || '',
+                phone: patient?.phone || null,
+                email: patient?.email || null,
+                patient_id: p.patient_id,
+                source: p.medication || 'Essential',
+                path: p.delivery_method === 'follow_up' ? 'Follow-up' : 'New Patient',
+                notes: p.notes || null,
+                created_at: p.created_at,
+                updated_at: p.updated_at,
+                start_date: p.start_date,
+                stage: p.status,
+                _isLab: true,
+              };
+            }),
+          }));
+          setColumns(labColumns);
+          const total = labColumns.reduce((sum, c) => sum + c.leads.length, 0);
+          const inReview = (data.counts.under_review || 0) + (data.counts.uploaded || 0);
+          const scheduled = data.counts.consult_scheduled || 0;
+          const treated = data.counts.in_treatment || 0;
+          setSummary({ total, active: inReview, converted: treated, lost: scheduled });
+        }
+      } else {
+        const url = viewMode === 'trial'
+          ? '/api/admin/sales-pipeline?view=trial'
+          : '/api/admin/sales-pipeline';
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.columns) setColumns(data.columns);
+        if (data.summary) setSummary(data.summary);
+      }
     } catch (err) {
       console.error('Fetch pipeline error:', err);
     } finally {
@@ -135,7 +181,7 @@ export default function SalesPipeline() {
     if (!data.id || data.fromStage === toStage) return;
 
     // If moving to "lost", open detail panel for reason
-    if (toStage === 'lost') {
+    if (toStage === 'lost' && viewMode !== 'labs') {
       const lead = columns.flatMap(c => c.leads).find(l => l.id === data.id);
       setSelectedLead({ ...lead, stage: toStage });
     }
@@ -149,11 +195,19 @@ export default function SalesPipeline() {
     })));
 
     try {
-      await fetch('/api/admin/sales-pipeline', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: data.id, stage: toStage }),
-      });
+      if (viewMode === 'labs') {
+        await fetch('/api/admin/labs-pipeline', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: data.id, newStage: toStage }),
+        });
+      } else {
+        await fetch('/api/admin/sales-pipeline', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: data.id, stage: toStage }),
+        });
+      }
     } catch {
       fetchBoard();
     }
@@ -270,19 +324,24 @@ export default function SalesPipeline() {
   return (
     <AdminLayout title="Sales Pipeline">
       {/* Summary Stats */}
-      {viewMode !== 'labs' && <div style={styles.statsRow}>
-        {[
+      <div style={styles.statsRow}>
+        {(viewMode === 'labs' ? [
+          { num: summary.total, label: 'In Pipeline', color: '#111' },
+          { num: summary.active, label: 'Needs Action', color: '#f59e0b' },
+          { num: summary.lost, label: 'Scheduled', color: '#6366f1' },
+          { num: summary.converted, label: 'In Treatment', color: '#10b981' },
+        ] : [
           { num: summary.total, label: 'Total Leads', color: '#111' },
           { num: summary.active, label: 'Active', color: '#3b82f6' },
           { num: summary.converted, label: 'Converted', color: '#10b981' },
           { num: summary.lost, label: 'Lost', color: '#ef4444' },
-        ].map(s => (
+        ]).map(s => (
           <div key={s.label} style={styles.stat}>
             <span style={{ ...styles.statNum, color: s.color }}>{s.num}</span>
             <span style={styles.statLabel}>{s.label}</span>
           </div>
         ))}
-      </div>}
+      </div>
 
       {/* View Toggle */}
       <div style={{ display: 'flex', gap: 0, marginBottom: 16 }}>
@@ -293,7 +352,7 @@ export default function SalesPipeline() {
         ].map(v => (
           <button
             key={v.key}
-            onClick={() => { setViewMode(v.key); if (v.key !== 'labs') setLoading(true); }}
+            onClick={() => { setViewMode(v.key); setLoading(true); }}
             style={{
               padding: '8px 20px', fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
               border: '1px solid #d1d5db', cursor: 'pointer',
@@ -308,12 +367,8 @@ export default function SalesPipeline() {
         ))}
       </div>
 
-      {/* Labs Pipeline View */}
-      {viewMode === 'labs' && <LabsPipelineTab />}
-
-      {viewMode !== 'labs' && <>
-      {/* Actions Bar */}
-      <div style={styles.actionsBar}>
+      {/* Actions Bar — hidden for labs view */}
+      {viewMode !== 'labs' && <div style={styles.actionsBar}>
         <div style={styles.actionsLeft}>
           <input
             type="text"
@@ -343,7 +398,7 @@ export default function SalesPipeline() {
             + Add Lead
           </button>
         </div>
-      </div>
+      </div>}
 
       {/* Kanban Board */}
       {loading ? (
@@ -351,7 +406,7 @@ export default function SalesPipeline() {
       ) : (
         <div style={styles.board}>
           {filteredColumns.map(col => {
-            const activeStageConfig = viewMode === 'trial' ? TRIAL_STAGE_CONFIG : STAGE_CONFIG;
+            const activeStageConfig = viewMode === 'labs' ? LAB_STAGE_CONFIG : viewMode === 'trial' ? TRIAL_STAGE_CONFIG : STAGE_CONFIG;
             const config = activeStageConfig[col.key] || { label: col.label || col.key, color: '#6b7280', bg: '#f3f4f6' };
             const isDragOver = dragOverColumn === col.key;
             return (
@@ -368,23 +423,38 @@ export default function SalesPipeline() {
                 <div style={{ ...styles.columnHeader, borderTop: `3px solid ${config.color}` }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={styles.columnTitle}>{config.label}</span>
+                    {config.owner && (
+                      <span style={{
+                        fontSize: '10px', fontWeight: 600, padding: '1px 6px', borderRadius: '3px',
+                        background: `${config.color}15`, color: config.color, border: `1px solid ${config.color}30`,
+                      }}>{config.owner}</span>
+                    )}
                   </div>
                   <span style={styles.columnCount}>{col.leads.length}</span>
                 </div>
                 <div style={styles.columnBody}>
                   {col.leads.length === 0 ? (
                     <div style={styles.emptyCol}>
-                      {isDragOver ? 'Drop here' : 'No leads'}
+                      {isDragOver ? 'Drop here' : viewMode === 'labs' ? 'No patients' : 'No leads'}
                     </div>
                   ) : (
                     col.leads.map(lead => (
-                      <LeadCard
-                        key={lead.id}
-                        lead={lead}
-                        stageKey={col.key}
-                        onDragStart={handleDragStart}
-                        onClick={() => setSelectedLead(lead)}
-                      />
+                      lead._isLab ? (
+                        <LabCard
+                          key={lead.id}
+                          lead={lead}
+                          stageKey={col.key}
+                          onDragStart={handleDragStart}
+                        />
+                      ) : (
+                        <LeadCard
+                          key={lead.id}
+                          lead={lead}
+                          stageKey={col.key}
+                          onDragStart={handleDragStart}
+                          onClick={() => setSelectedLead(lead)}
+                        />
+                      )
                     ))
                   )}
                 </div>
@@ -492,7 +562,6 @@ export default function SalesPipeline() {
           </div>
         </div>
       )}
-      </>}
 
       {/* Lead Detail Slide Panel */}
       <LeadDetailPanel
@@ -559,6 +628,62 @@ function LeadCard({ lead, stageKey, onDragStart, onClick }) {
       <div style={styles.cardFooter}>
         <span style={styles.cardTime}>{timeAgo(lead.created_at)}</span>
         {lead.assigned_to && <span style={styles.cardAssigned}>{lead.assigned_to}</span>}
+      </div>
+      {lead.notes && (
+        <div style={styles.cardNotes}>{lead.notes.substring(0, 80)}{lead.notes.length > 80 ? '...' : ''}</div>
+      )}
+    </div>
+  );
+}
+
+function LabCard({ lead, stageKey, onDragStart }) {
+  const [dragging, setDragging] = useState(false);
+  const panelType = lead.source || 'Essential';
+  const isElite = panelType === 'Elite';
+  const daysInStage = lead.updated_at ? Math.floor((Date.now() - new Date(lead.updated_at).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+  const drawDate = lead.start_date ? new Date(lead.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+
+  return (
+    <div
+      draggable
+      onDragStart={e => { setDragging(true); onDragStart(e, lead, stageKey); }}
+      onDragEnd={() => setDragging(false)}
+      style={{
+        ...styles.card,
+        opacity: dragging ? 0.5 : 1,
+        cursor: 'grab',
+      }}
+    >
+      <div style={styles.cardName}>
+        {lead.patient_id ? (
+          <Link href={`/admin/patient/${lead.patient_id}`} style={{ color: '#111', textDecoration: 'none' }}>
+            {lead.first_name} {lead.last_name}
+          </Link>
+        ) : (
+          <>{lead.first_name} {lead.last_name}</>
+        )}
+      </div>
+      {lead.phone && (
+        <div style={styles.cardPhone}>{lead.phone}</div>
+      )}
+      <div style={styles.cardMeta}>
+        <span style={{
+          fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '3px', whiteSpace: 'nowrap',
+          background: isElite ? '#fdf2f8' : '#f0f9ff',
+          color: isElite ? '#9d174d' : '#0369a1',
+        }}>
+          {panelType}
+        </span>
+        <span style={styles.cardPathTag}>{lead.path}</span>
+      </div>
+      <div style={styles.cardFooter}>
+        <span style={styles.cardTime}>{drawDate ? `Draw: ${drawDate}` : timeAgo(lead.created_at)}</span>
+        <span style={{
+          fontSize: '11px', fontWeight: 600,
+          color: daysInStage > 3 ? '#ef4444' : daysInStage > 1 ? '#f59e0b' : '#9ca3af',
+        }}>
+          {daysInStage === 0 ? 'Today' : `${daysInStage}d`}
+        </span>
       </div>
       {lead.notes && (
         <div style={styles.cardNotes}>{lead.notes.substring(0, 80)}{lead.notes.length > 80 ? '...' : ''}</div>

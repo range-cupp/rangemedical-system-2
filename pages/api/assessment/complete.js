@@ -187,6 +187,24 @@ export default async function handler(req, res) {
       if (updateError) {
         console.error('Supabase update error:', updateError);
       }
+
+      // Auto-advance sales pipeline to "Intake Completed" stage
+      try {
+        const { error: pipelineError } = await supabase
+          .from('sales_pipeline')
+          .update({ stage: 'intake_completed', updated_at: new Date().toISOString() })
+          .eq('lead_id', leadId)
+          .eq('lead_type', 'assessment')
+          .eq('stage', 'new_lead');
+
+        if (pipelineError) {
+          console.error('Pipeline stage update error:', pipelineError);
+        } else {
+          console.log(`Pipeline auto-advanced to intake_completed for lead ${leadId}`);
+        }
+      } catch (pipeErr) {
+        console.error('Pipeline advance error:', pipeErr);
+      }
     }
 
     // --- RESPOND TO PATIENT IMMEDIATELY ---

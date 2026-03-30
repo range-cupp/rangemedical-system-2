@@ -14,6 +14,7 @@ const supabase = createClient(
 
 const STAGES = [
   { key: 'new_lead', label: 'New Lead' },
+  { key: 'intake_completed', label: 'Intake Completed' },
   { key: 'contacted', label: 'Contacted' },
   { key: 'follow_up', label: 'Follow-Up' },
   { key: 'booked', label: 'Booked' },
@@ -251,7 +252,7 @@ async function importLeads(res) {
         phone: a.phone || '',
         source: 'assessment',
         path: a.assessment_path || null,
-        stage: a.intake_status === 'complete' ? 'booked' : 'new_lead',
+        stage: (a.intake_status === 'complete' || a.intake_status === 'completed') ? 'intake_completed' : 'new_lead',
         created_at: a.created_at,
       }));
 

@@ -9,13 +9,14 @@ import LeadDetailPanel from '../../components/LeadDetailPanel';
 import { supabase } from '../../lib/supabase';
 
 const STAGE_CONFIG = {
-  new_lead:   { label: 'New Lead',   color: '#3b82f6', bg: '#eff6ff' },
-  contacted:  { label: 'Contacted',  color: '#8b5cf6', bg: '#f5f3ff' },
-  follow_up:  { label: 'Follow-Up',  color: '#f59e0b', bg: '#fffbeb' },
-  booked:     { label: 'Booked',     color: '#10b981', bg: '#ecfdf5' },
-  showed:     { label: 'Showed',     color: '#06b6d4', bg: '#ecfeff' },
-  started:    { label: 'Started',    color: '#111',    bg: '#f3f4f6' },
-  lost:       { label: 'Lost',       color: '#ef4444', bg: '#fef2f2' },
+  new_lead:          { label: 'New Lead',          color: '#3b82f6', bg: '#eff6ff' },
+  intake_completed:  { label: 'Intake Completed',  color: '#8b5cf6', bg: '#f5f3ff' },
+  contacted:         { label: 'Contacted',         color: '#6366f1', bg: '#eef2ff' },
+  follow_up:         { label: 'Follow-Up',         color: '#f59e0b', bg: '#fffbeb' },
+  booked:            { label: 'Booked',            color: '#10b981', bg: '#ecfdf5' },
+  showed:            { label: 'Showed',            color: '#06b6d4', bg: '#ecfeff' },
+  started:           { label: 'Started',           color: '#111',    bg: '#f3f4f6' },
+  lost:              { label: 'Lost',              color: '#ef4444', bg: '#fef2f2' },
 };
 
 const SOURCE_CONFIG = {

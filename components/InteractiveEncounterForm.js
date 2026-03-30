@@ -273,7 +273,7 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
         section.fields.forEach(field => {
           if (field.required) {
             const val = formData[section.key]?.[field.key];
-            if (!val || (typeof val === 'string' && !val.trim())) {
+            if (!val || (typeof val === 'string' && !val.trim()) || (Array.isArray(val) && val.length === 0)) {
               missing.push(field.label);
             }
           }

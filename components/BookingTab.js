@@ -51,6 +51,9 @@ const SERVICE_CATEGORIES = {
     'glutathione-iv-2g',
     'glutathione-iv-3g',
   ],
+  'Pickups': [
+    'medication-pickup',
+  ],
   'Consultations': [
     'initial-consultation',
     'initial-consultation-peptide',
@@ -66,10 +69,11 @@ const CATEGORY_COLORS = {
   'Therapies': { bg: '#d1fae5', text: '#065f46' },
   'IV Therapy': { bg: '#ede9fe', text: '#5b21b6' },
   'Specialty IVs': { bg: '#fdf2f8', text: '#9d174d' },
+  'Pickups': { bg: '#e0f2fe', text: '#0369a1' },
   'Consultations': { bg: '#fce7f3', text: '#9d174d' },
 };
 
-const CATEGORY_ORDER = ['Lab / Blood Draw', 'Injections', 'Therapies', 'IV Therapy', 'Specialty IVs', 'Consultations'];
+const CATEGORY_ORDER = ['Lab / Blood Draw', 'Injections', 'Therapies', 'Pickups', 'IV Therapy', 'Specialty IVs', 'Consultations'];
 
 // ============================================
 // CASCADING DROPDOWN CONFIGS
@@ -112,6 +116,7 @@ function getServiceCategory(slug) {
   if (slug === 'hbot') return 'hbot';
   if (slug === 'red-light-therapy') return 'rlt';
   if (slug.includes('iv') || slug.includes('vitamin-c')) return 'iv';
+  if (slug === 'medication-pickup') return 'medication_pickup';
   if (slug.includes('consultation')) return 'consultation';
   return 'other';
 }
@@ -145,6 +150,10 @@ export default function BookingTab({ preselectedPatient = null }) {
   const [customTime, setCustomTime] = useState('');
   const [notes, setNotes] = useState('');
   const [booking, setBooking] = useState(false);
+
+  // Additional services (multi-service booking)
+  const [additionalServices, setAdditionalServices] = useState([]); // [{ slug, title, length, category }]
+  const [showAddServiceMenu, setShowAddServiceMenu] = useState(false);
 
   // Cascading dropdown state
   const [injectionTier, setInjectionTier] = useState('');
@@ -289,6 +298,8 @@ export default function BookingTab({ preselectedPatient = null }) {
   const selectService = (service) => {
     setSelectedService(service);
     setSelectedProvider(null);
+    setAdditionalServices([]);
+    setShowAddServiceMenu(false);
     // Reset cascading state
     setInjectionTier('');
     setInjectionType('');
@@ -397,11 +408,25 @@ export default function BookingTab({ preselectedPatient = null }) {
 
       let res;
 
-      if (useCustomTime) {
+      // Build services array for multi-service bookings
+      const servicesPayload = additionalServices.length > 0
+        ? [
+            { name: selectedService.title, category: getServiceCategory(selectedService.slug), duration: selectedService.length || 30 },
+            ...additionalServices.map(s => ({ name: s.title, category: getServiceCategory(s.slug), duration: s.length || 15 })),
+          ]
+        : null;
+      const totalDuration = additionalServices.length > 0
+        ? (selectedService.length || 30) + additionalServices.reduce((sum, s) => sum + (s.length || 15), 0)
+        : (selectedService.length || 30);
+
+      if (useCustomTime || servicesPayload) {
         // Override: bypass Cal.com, book directly in appointments table
-        const duration = selectedService.length || 30;
-        const startDT = new Date(`${selectedDate}T${customTime}:00`);
-        const endDT = new Date(startDT.getTime() + duration * 60000);
+        // Multi-service bookings always use this path (Cal.com doesn't support multi-service)
+        const slotStart = useCustomTime
+          ? `${selectedDate}T${customTime}:00`
+          : selectedSlot.start;
+        const startDT = new Date(slotStart);
+        const endDT = new Date(startDT.getTime() + totalDuration * 60000);
 
         res = await fetch('/api/appointments/create', {
           method: 'POST',
@@ -412,10 +437,11 @@ export default function BookingTab({ preselectedPatient = null }) {
             patient_phone: selectedPatient.phone,
             service_name: selectedService.title,
             service_category: getServiceCategory(selectedService.slug),
+            services: servicesPayload,
             provider: selectedProvider?.userId !== 'any' ? (selectedProvider?.name || null) : null,
             start_time: startDT.toISOString(),
             end_time: endDT.toISOString(),
-            duration_minutes: duration,
+            duration_minutes: totalDuration,
             location: 'Range Medical — Newport Beach',
             notes: fullNotes || null,
             created_by: 'patient_profile',
@@ -423,7 +449,7 @@ export default function BookingTab({ preselectedPatient = null }) {
           })
         });
       } else {
-        // Normal: route through Cal.com
+        // Normal single-service: route through Cal.com
         res = await fetch('/api/bookings/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -460,6 +486,8 @@ export default function BookingTab({ preselectedPatient = null }) {
         setInjectionType('');
         setNadDose('');
         setRangeIvFormula('');
+        setAdditionalServices([]);
+        setShowAddServiceMenu(false);
         fetchUpcomingBookings();
         alert('Booking created successfully!');
       } else {
@@ -868,6 +896,99 @@ export default function BookingTab({ preselectedPatient = null }) {
                   )}
                 </div>
               )}
+
+              {/* Additional Services (multi-service booking) */}
+              {selectedService && (
+                <div style={{ marginTop: '16px', borderTop: '1px solid #e5e7eb', paddingTop: '14px' }}>
+                  {additionalServices.length > 0 && (
+                    <div style={{ marginBottom: '10px' }}>
+                      {additionalServices.map(svc => (
+                        <div key={svc.slug} style={{
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          padding: '8px 10px', background: '#f0f9ff', borderLeft: '3px solid #0369a1',
+                          marginBottom: '6px',
+                        }}>
+                          <div>
+                            <span style={{ fontWeight: '500', fontSize: '13px' }}>+ {svc.title}</span>
+                            <span style={{ fontSize: '11px', color: '#6b7280', marginLeft: '8px' }}>{svc.length} min</span>
+                          </div>
+                          <button
+                            onClick={() => setAdditionalServices(prev => prev.filter(s => s.slug !== svc.slug))}
+                            style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '14px', padding: '0 4px' }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+                        Total duration: {(selectedService.length || 30) + additionalServices.reduce((sum, s) => sum + (s.length || 15), 0)} min
+                      </div>
+                    </div>
+                  )}
+
+                  {showAddServiceMenu ? (
+                    <div style={{ position: 'relative' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>Add another service</label>
+                        <button
+                          onClick={() => setShowAddServiceMenu(false)}
+                          style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: '12px' }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                      {(() => {
+                        const grouped = groupServicesByCategory(eventTypes);
+                        const alreadySelected = [selectedService.slug, ...additionalServices.map(s => s.slug)];
+                        return grouped.map(({ category, services }) => {
+                          const available = services.filter(s => !alreadySelected.includes(s.slug));
+                          if (available.length === 0) return null;
+                          const color = CATEGORY_COLORS[category] || { bg: '#f3f4f6', text: '#374151' };
+                          return (
+                            <div key={category} style={{ marginBottom: '8px' }}>
+                              <div style={{
+                                display: 'inline-block', padding: '2px 8px', fontSize: '10px', fontWeight: '600',
+                                backgroundColor: color.bg, color: color.text, marginBottom: '4px',
+                              }}>
+                                {category}
+                              </div>
+                              {available.map(et => (
+                                <div
+                                  key={et.id}
+                                  style={{
+                                    padding: '6px 10px', cursor: 'pointer', fontSize: '13px',
+                                    borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between',
+                                  }}
+                                  onClick={() => {
+                                    setAdditionalServices(prev => [...prev, et]);
+                                    setShowAddServiceMenu(false);
+                                  }}
+                                  onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
+                                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                >
+                                  <span>{et.title}</span>
+                                  <span style={{ fontSize: '11px', color: '#9ca3af' }}>{et.length} min</span>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setShowAddServiceMenu(true)}
+                      style={{
+                        background: 'none', border: '1px dashed #d1d5db', borderRadius: '0',
+                        padding: '8px 14px', color: '#6b7280', fontSize: '13px', cursor: 'pointer',
+                        width: '100%', textAlign: 'center',
+                      }}
+                    >
+                      + Add another service
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -979,8 +1100,13 @@ export default function BookingTab({ preselectedPatient = null }) {
                   <span style={styles.summaryValue}>{selectedPatient?.name}</span>
                 </div>
                 <div style={styles.summaryRow}>
-                  <span style={styles.summaryLabel}>Service</span>
-                  <span style={styles.summaryValue}>{selectedService?.title}</span>
+                  <span style={styles.summaryLabel}>Service{additionalServices.length > 0 ? 's' : ''}</span>
+                  <span style={styles.summaryValue}>
+                    {selectedService?.title}
+                    {additionalServices.map(s => (
+                      <span key={s.slug} style={{ display: 'block', fontSize: '12px', color: '#0369a1', marginTop: '2px' }}>+ {s.title}</span>
+                    ))}
+                  </span>
                 </div>
                 {getServiceDetailsSummary() && (
                   <div style={styles.summaryRow}>
@@ -996,7 +1122,10 @@ export default function BookingTab({ preselectedPatient = null }) {
                 )}
                 <div style={styles.summaryRow}>
                   <span style={styles.summaryLabel}>Duration</span>
-                  <span style={styles.summaryValue}>{selectedService?.length} min</span>
+                  <span style={styles.summaryValue}>
+                    {(selectedService?.length || 30) + additionalServices.reduce((sum, s) => sum + (s.length || 15), 0)} min
+                    {additionalServices.length > 0 && <span style={{ fontSize: '11px', color: '#888', marginLeft: '4px' }}>(combined)</span>}
+                  </span>
                 </div>
                 <div style={styles.summaryRow}>
                   <span style={styles.summaryLabel}>Date</span>

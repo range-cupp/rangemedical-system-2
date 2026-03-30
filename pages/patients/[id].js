@@ -387,12 +387,27 @@ export default function PatientProfile() {
   const { id } = router.query || {};
   const { session, employee } = useAuth();
 
+  // Staff email → display name mapping
+  const STAFF_DISPLAY_NAMES = {
+    'burgess@range-medical.com': 'Dr. Damien Burgess',
+    'lily@range-medical.com': 'Lily Diaz RN',
+    'evan@range-medical.com': 'Evan',
+    'chris@range-medical.com': 'Chris Cupp',
+    'damon@range-medical.com': 'Damon Durante',
+  };
+  const getStaffDisplayName = (val) => {
+    if (!val) return '';
+    const lower = val.toLowerCase();
+    return STAFF_DISPLAY_NAMES[lower] || val;
+  };
+
   // Check if current user can delete a specific note (author or admin)
   const NOTE_AUTHOR_ALIASES = {
     'burgess@range-medical.com': ['burgess@range-medical.com', 'dr. damien burgess', 'dr. burgess', 'damien burgess'],
-    'lily@range-medical.com': ['lily@range-medical.com', 'lily'],
+    'lily@range-medical.com': ['lily@range-medical.com', 'lily', 'lily diaz rn'],
     'evan@range-medical.com': ['evan@range-medical.com', 'evan'],
     'chris@range-medical.com': ['chris@range-medical.com', 'chris', 'chris cupp'],
+    'damon@range-medical.com': ['damon@range-medical.com', 'damon', 'damon durante'],
   };
   const currentUserEmail = session?.user?.email?.toLowerCase() || '';
   const isAdminUser = currentUserEmail === 'chris@range-medical.com';
@@ -3801,7 +3816,7 @@ export default function PatientProfile() {
                   PINNED NOTE
                   <span style={{ fontWeight: 400, marginLeft: 8 }}>
                     {formatDate(pinnedNote.note_date || pinnedNote.created_at)}
-                    {pinnedNote.created_by && ` · ${pinnedNote.created_by}`}
+                    {pinnedNote.created_by && ` · ${getStaffDisplayName(pinnedNote.created_by)}`}
                   </span>
                 </div>
                 <div ref={pinnedNoteCallbackRef} style={{
@@ -6631,7 +6646,7 @@ export default function PatientProfile() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                           <div className="note-date">
                             {formatDate(note.note_date || note.created_at)}
-                            {note.created_by && <span style={{ fontWeight: 400, marginLeft: 8 }}>by {note.created_by}</span>}
+                            {note.created_by && <span style={{ fontWeight: 400, marginLeft: 8 }}>by {getStaffDisplayName(note.created_by)}</span>}
                             <span style={{
                               marginLeft: 8, fontSize: 11, padding: '2px 8px', borderRadius: 0, fontWeight: 500,
                               background: note.source === 'encounter' ? '#fef3c7' : note.source === 'addendum' ? '#fef3c7' : note.source === 'protocol' ? '#f3e8ff' : note.source === 'manual' ? '#dbeafe' : '#f3f4f6',
@@ -8146,7 +8161,7 @@ export default function PatientProfile() {
               <div className="modal-body">
                 <div style={{ fontSize: 12, color: '#888', marginBottom: 12 }}>
                   {formatDate(editingNote.note_date || editingNote.created_at)}
-                  {editingNote.created_by && ` — by ${editingNote.created_by}`}
+                  {editingNote.created_by && ` — by ${getStaffDisplayName(editingNote.created_by)}`}
                 </div>
                 <div className="form-group">
                   <label>Note Content</label>

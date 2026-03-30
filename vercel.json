@@ -92,6 +92,10 @@
     {
       "path": "/api/cron/staff-prep-alert",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/peptide-reminders",
+      "schedule": "0 16 * * *"
     }
   ]
 }

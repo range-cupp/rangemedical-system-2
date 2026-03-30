@@ -63,6 +63,38 @@ const LAB_STAGE_CONFIG = {
   in_treatment:        { label: 'In Treatment',         color: '#10b981', bg: '#ecfdf5', owner: null },
 };
 
+const PEPTIDE_STAGE_CONFIG = {
+  just_started:   { label: 'Just Started',     color: '#3b82f6', bg: '#eff6ff' },
+  active:         { label: 'Active',           color: '#10b981', bg: '#ecfdf5' },
+  check_in_due:   { label: 'Check-In Due',     color: '#f59e0b', bg: '#fffbeb' },
+  expiring_soon:  { label: 'Expiring Soon',    color: '#f97316', bg: '#fff7ed' },
+  expired:        { label: 'Expired',          color: '#ef4444', bg: '#fef2f2' },
+  paused:         { label: 'Paused',           color: '#6b7280', bg: '#f3f4f6' },
+};
+
+// Categorize peptides for filtering
+function getPeptideCategory(medication, programType) {
+  const med = (medication || '').toLowerCase();
+  // Recovery peptides
+  if (/bpc|tb[-\s]?4|tb[-\s]?500|wolverine/i.test(med)) return 'recovery';
+  // GH peptides
+  if (/tesa|ipam|cjc|serm|mk[-\s]?677|ghrp|hexar|mgf|gh\s*peptide/i.test(med) || programType === 'gh_peptide') return 'gh';
+  // Skin / other
+  if (/ghk|kpv|glow|klow/i.test(med)) return 'skin';
+  // Mitochondrial / other
+  if (/mots|humanin|ss[-\s]?31/i.test(med)) return 'mito';
+  return 'other';
+}
+
+const PEPTIDE_CATEGORY_CONFIG = {
+  all:      { label: 'All Peptides' },
+  recovery: { label: 'Recovery', color: '#16a34a', bg: '#f0fdf4' },
+  gh:       { label: 'Growth Hormone', color: '#7c3aed', bg: '#f5f3ff' },
+  skin:     { label: 'Skin', color: '#ec4899', bg: '#fdf2f8' },
+  mito:     { label: 'Mitochondrial', color: '#0891b2', bg: '#ecfeff' },
+  other:    { label: 'Other', color: '#6b7280', bg: '#f3f4f6' },
+};
+
 const PATH_LABELS = {
   injury: 'Injury',
   energy: 'Energy',
@@ -97,11 +129,52 @@ export default function SalesPipeline() {
   const [filterPath, setFilterPath] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLabLead, setSelectedLabLead] = useState(null);
-  const [viewMode, setViewMode] = useState('standard'); // standard | trial
+  const [viewMode, setViewMode] = useState('standard'); // standard | trial | labs | peptides
+  const [peptideFilter, setPeptideFilter] = useState('all'); // all | recovery | gh | other
 
   const fetchBoard = useCallback(async () => {
     try {
-      if (viewMode === 'labs') {
+      if (viewMode === 'peptides') {
+        const res = await fetch('/api/pipelines/peptide');
+        const data = await res.json();
+        if (data.success) {
+          const peptideColumns = Object.keys(PEPTIDE_STAGE_CONFIG).map(key => ({
+            key,
+            leads: (data.stages[key] || []).map(p => ({
+              id: p.id,
+              first_name: p.first_name || '',
+              last_name: p.last_name || '',
+              phone: p.phone || null,
+              email: p.email || null,
+              patient_id: p.patient_id,
+              medication: p.medication,
+              program_name: p.program_name,
+              program_type: p.program_type,
+              frequency: p.frequency,
+              delivery_method: p.delivery_method,
+              start_date: p.start_date,
+              end_date: p.end_date,
+              days_remaining: p.days_remaining,
+              days_since_start: p.days_since_start,
+              total_days: p.total_days,
+              last_checkin: p.last_checkin,
+              notes: p.notes || null,
+              created_at: p.created_at,
+              updated_at: p.updated_at,
+              stage: p.stage,
+              _isPeptide: true,
+              _peptideCategory: getPeptideCategory(p.medication, p.program_type),
+            })),
+          }));
+          setColumns(peptideColumns);
+          setSummary({
+            total: data.total,
+            active: (data.counts.just_started || 0) + (data.counts.active || 0),
+            converted: data.checkInDue || 0,
+            lost: data.expiringSoon || 0,
+          });
+        }
+      } else if (viewMode === 'labs') {
         const res = await fetch('/api/admin/labs-pipeline');
         const data = await res.json();
         if (data.success) {
@@ -183,7 +256,7 @@ export default function SalesPipeline() {
     if (!data.id || data.fromStage === toStage) return;
 
     // If moving to "lost", open detail panel for reason
-    if (toStage === 'lost' && viewMode !== 'labs') {
+    if (toStage === 'lost' && viewMode !== 'labs' && viewMode !== 'peptides') {
       const lead = columns.flatMap(c => c.leads).find(l => l.id === data.id);
       setSelectedLead({ ...lead, stage: toStage });
     }
@@ -197,7 +270,13 @@ export default function SalesPipeline() {
     })));
 
     try {
-      if (viewMode === 'labs') {
+      if (viewMode === 'peptides') {
+        await fetch('/api/pipelines/peptide', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: data.id, status: toStage === 'paused' ? 'paused' : 'active' }),
+        });
+      } else if (viewMode === 'labs') {
         await fetch('/api/admin/labs-pipeline', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -344,7 +423,12 @@ export default function SalesPipeline() {
     <AdminLayout title="Sales Pipeline">
       {/* Summary Stats */}
       <div style={styles.statsRow}>
-        {(viewMode === 'labs' ? [
+        {(viewMode === 'peptides' ? [
+          { num: summary.total, label: 'Total Protocols', color: '#111' },
+          { num: summary.active, label: 'Active', color: '#10b981' },
+          { num: summary.converted, label: 'Check-In Due', color: '#f59e0b' },
+          { num: summary.lost, label: 'Expiring / Expired', color: '#ef4444' },
+        ] : viewMode === 'labs' ? [
           { num: summary.total, label: 'In Pipeline', color: '#111' },
           { num: summary.active, label: 'Needs Action', color: '#f59e0b' },
           { num: summary.lost, label: 'Scheduled', color: '#6366f1' },
@@ -367,7 +451,8 @@ export default function SalesPipeline() {
         {[
           { key: 'standard', label: 'All Leads', radius: '6px 0 0 6px' },
           { key: 'trial', label: 'RLT Trials', radius: '0' },
-          { key: 'labs', label: 'Labs', radius: '0 6px 6px 0' },
+          { key: 'labs', label: 'Labs', radius: '0' },
+          { key: 'peptides', label: 'Peptides', radius: '0 6px 6px 0' },
         ].map(v => (
           <button
             key={v.key}
@@ -386,8 +471,29 @@ export default function SalesPipeline() {
         ))}
       </div>
 
-      {/* Actions Bar — hidden for labs view */}
-      {viewMode !== 'labs' && <div style={styles.actionsBar}>
+      {/* Peptide Category Filter */}
+      {viewMode === 'peptides' && (
+        <div style={{ display: 'flex', gap: '6px', marginBottom: 16, flexWrap: 'wrap' }}>
+          {Object.entries(PEPTIDE_CATEGORY_CONFIG).map(([key, cfg]) => (
+            <button
+              key={key}
+              onClick={() => setPeptideFilter(key)}
+              style={{
+                padding: '6px 14px', fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
+                border: `1px solid ${peptideFilter === key ? (cfg.color || '#111') : '#d1d5db'}`,
+                borderRadius: '20px', cursor: 'pointer',
+                background: peptideFilter === key ? (cfg.bg || '#f3f4f6') : '#fff',
+                color: peptideFilter === key ? (cfg.color || '#111') : '#6b7280',
+              }}
+            >
+              {cfg.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Actions Bar — hidden for labs/peptides view */}
+      {viewMode !== 'labs' && viewMode !== 'peptides' && <div style={styles.actionsBar}>
         <div style={styles.actionsLeft}>
           <input
             type="text"
@@ -425,7 +531,7 @@ export default function SalesPipeline() {
       ) : (
         <div style={styles.board}>
           {filteredColumns.map(col => {
-            const activeStageConfig = viewMode === 'labs' ? LAB_STAGE_CONFIG : viewMode === 'trial' ? TRIAL_STAGE_CONFIG : STAGE_CONFIG;
+            const activeStageConfig = viewMode === 'peptides' ? PEPTIDE_STAGE_CONFIG : viewMode === 'labs' ? LAB_STAGE_CONFIG : viewMode === 'trial' ? TRIAL_STAGE_CONFIG : STAGE_CONFIG;
             const config = activeStageConfig[col.key] || { label: col.label || col.key, color: '#6b7280', bg: '#f3f4f6' };
             const isDragOver = dragOverColumn === col.key;
             return (
@@ -452,32 +558,45 @@ export default function SalesPipeline() {
                   <span style={styles.columnCount}>{col.leads.length}</span>
                 </div>
                 <div style={styles.columnBody}>
-                  {col.leads.length === 0 ? (
-                    <div style={styles.emptyCol}>
-                      {isDragOver ? 'Drop here' : viewMode === 'labs' ? 'No patients' : 'No leads'}
-                    </div>
-                  ) : (
-                    col.leads.map(lead => (
-                      lead._isLab ? (
-                        <LabCard
-                          key={lead.id}
-                          lead={lead}
-                          stageKey={col.key}
-                          onDragStart={handleDragStart}
-                          onClose={handleCloseLab}
-                          onClick={() => setSelectedLabLead(lead)}
-                        />
-                      ) : (
-                        <LeadCard
-                          key={lead.id}
-                          lead={lead}
-                          stageKey={col.key}
-                          onDragStart={handleDragStart}
-                          onClick={() => setSelectedLead(lead)}
-                        />
-                      )
-                    ))
-                  )}
+                  {(() => {
+                    // Filter peptide cards by category
+                    const visibleLeads = viewMode === 'peptides' && peptideFilter !== 'all'
+                      ? col.leads.filter(l => l._peptideCategory === peptideFilter)
+                      : col.leads;
+                    return visibleLeads.length === 0 ? (
+                      <div style={styles.emptyCol}>
+                        {isDragOver ? 'Drop here' : viewMode === 'labs' || viewMode === 'peptides' ? 'No patients' : 'No leads'}
+                      </div>
+                    ) : (
+                      visibleLeads.map(lead => (
+                        lead._isPeptide ? (
+                          <PeptideCard
+                            key={lead.id}
+                            lead={lead}
+                            stageKey={col.key}
+                            onDragStart={handleDragStart}
+                          />
+                        ) : lead._isLab ? (
+                          <LabCard
+                            key={lead.id}
+                            lead={lead}
+                            stageKey={col.key}
+                            onDragStart={handleDragStart}
+                            onClose={handleCloseLab}
+                            onClick={() => setSelectedLabLead(lead)}
+                          />
+                        ) : (
+                          <LeadCard
+                            key={lead.id}
+                            lead={lead}
+                            stageKey={col.key}
+                            onDragStart={handleDragStart}
+                            onClick={() => setSelectedLead(lead)}
+                          />
+                        )
+                      ))
+                    );
+                  })()}
                 </div>
               </div>
             );
@@ -732,6 +851,85 @@ function LabCard({ lead, stageKey, onDragStart, onClose, onClick }) {
           {daysInStage === 0 ? 'Today' : `${daysInStage}d`}
         </span>
       </div>
+      {lead.notes && (
+        <div style={styles.cardNotes}>{lead.notes.substring(0, 80)}{lead.notes.length > 80 ? '...' : ''}</div>
+      )}
+    </div>
+  );
+}
+
+function PeptideCard({ lead, stageKey, onDragStart }) {
+  const [dragging, setDragging] = useState(false);
+  const category = PEPTIDE_CATEGORY_CONFIG[lead._peptideCategory] || PEPTIDE_CATEGORY_CONFIG.other;
+
+  // Days display
+  let daysLabel = '';
+  let daysColor = '#9ca3af';
+  if (lead.days_remaining !== null && lead.days_remaining !== undefined) {
+    if (lead.days_remaining < 0) {
+      daysLabel = `${Math.abs(lead.days_remaining)}d overdue`;
+      daysColor = '#ef4444';
+    } else if (lead.days_remaining <= 5) {
+      daysLabel = `${lead.days_remaining}d left`;
+      daysColor = '#f97316';
+    } else {
+      daysLabel = `${lead.days_remaining}d left`;
+      daysColor = '#10b981';
+    }
+  } else if (lead.days_since_start !== null) {
+    daysLabel = `Day ${lead.days_since_start}`;
+  }
+
+  const startFormatted = lead.start_date ? new Date(lead.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+  const endFormatted = lead.end_date ? new Date(lead.end_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+
+  // Last check-in info
+  let checkinInfo = '';
+  if (lead.last_checkin) {
+    const daysSince = Math.floor((Date.now() - new Date(lead.last_checkin + 'T12:00:00').getTime()) / (1000 * 60 * 60 * 24));
+    checkinInfo = daysSince === 0 ? 'Checked in today' : `Last check-in ${daysSince}d ago`;
+  }
+
+  return (
+    <div
+      draggable
+      onDragStart={e => { setDragging(true); onDragStart(e, lead, stageKey); }}
+      onDragEnd={() => setDragging(false)}
+      style={{
+        ...styles.card,
+        opacity: dragging ? 0.5 : 1,
+        cursor: 'grab',
+        borderLeft: `3px solid ${category.color || '#6b7280'}`,
+      }}
+    >
+      <Link href={`/admin/patient/${lead.patient_id}`} style={{ textDecoration: 'none' }}>
+        <div style={{ ...styles.cardName, cursor: 'pointer', borderBottom: '1px dashed #d1d5db' }}>
+          {lead.first_name} {lead.last_name}
+        </div>
+      </Link>
+      {lead.phone && <div style={styles.cardPhone}>{lead.phone}</div>}
+      <div style={styles.cardMeta}>
+        <span style={{
+          fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '3px', whiteSpace: 'nowrap',
+          background: category.bg, color: category.color,
+        }}>
+          {lead.medication || 'Peptide'}
+        </span>
+        {lead.total_days && (
+          <span style={styles.cardPathTag}>{lead.total_days}d protocol</span>
+        )}
+      </div>
+      <div style={styles.cardFooter}>
+        <span style={styles.cardTime}>
+          {startFormatted}{endFormatted ? ` — ${endFormatted}` : ''}
+        </span>
+        <span style={{ fontSize: '11px', fontWeight: 600, color: daysColor }}>
+          {daysLabel}
+        </span>
+      </div>
+      {checkinInfo && (
+        <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>{checkinInfo}</div>
+      )}
       {lead.notes && (
         <div style={styles.cardNotes}>{lead.notes.substring(0, 80)}{lead.notes.length > 80 ? '...' : ''}</div>
       )}

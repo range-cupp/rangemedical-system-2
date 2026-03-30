@@ -214,7 +214,21 @@ export default async function handler(req, res) {
           const firstName = patient.first_name || (patient.name || '').split(' ')[0] || 'there';
           console.log(`Lab prep READY reply from ${patient.name} — sending instructions link`);
 
-          const prepMessage = `Here are your lab prep instructions: https://www.range-medical.com/lab-prep \u2014 Fast 10\u201312 hours, water & black coffee OK. Questions? Call (949) 997-3988. See you tomorrow! \u2014 Range Medical`;
+          // Generate a lab prep token for acknowledgment tracking
+          let labPrepUrl = 'https://www.range-medical.com/lab-prep';
+          try {
+            const { createLabPrepToken, buildLabPrepUrl } = await import('../../../lib/lab-prep-token');
+            const token = await createLabPrepToken({
+              patientId: patient.id,
+              patientName: patient.name,
+              patientPhone: From,
+            });
+            labPrepUrl = buildLabPrepUrl(token);
+          } catch (err) {
+            console.error('Lab prep token creation failed, using plain URL:', err);
+          }
+
+          const prepMessage = `Here are your lab prep instructions \u2014 please review and confirm:\n\n${labPrepUrl}\n\nQuestions? Call (949) 997-3988. See you tomorrow! \u2014 Range Medical`;
 
           const prepResult = await sendSMS({ to: From, message: prepMessage }).catch(err => {
             console.error('Lab prep instructions SMS error:', err);

@@ -1,10 +1,21 @@
 import Link from 'next/link';
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 
 export default function LabPrepPage() {
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [visible, setVisible] = useState({});
+  const [ackState, setAckState] = useState('idle'); // idle | confirming | confirmed | already | error
+  const [patientName, setPatientName] = useState('');
+  const [token, setToken] = useState(null);
+
+  useEffect(() => {
+    if (router.isReady && router.query.t) {
+      setToken(router.query.t);
+    }
+  }, [router.isReady, router.query.t]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -20,6 +31,27 @@ export default function LabPrepPage() {
     document.querySelectorAll('.v2-reveal').forEach((el) => observer.observe(el));
     return () => observer.disconnect();
   }, []);
+
+  async function handleAcknowledge() {
+    if (!token || ackState === 'confirming' || ackState === 'confirmed') return;
+    setAckState('confirming');
+    try {
+      const res = await fetch('/api/lab-prep/acknowledge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAckState(data.alreadyAcknowledged ? 'already' : 'confirmed');
+        if (data.name) setPatientName(data.name.split(' ')[0]);
+      } else {
+        setAckState('error');
+      }
+    } catch {
+      setAckState('error');
+    }
+  }
 
   return (
     <>
@@ -268,12 +300,58 @@ export default function LabPrepPage() {
           </div>
         </section>
 
+        {/* ── ACKNOWLEDGE ── */}
+        {token && (
+          <section id="v2-ack" className={`v2-section v2-ack-section v2-reveal ${visible['v2-ack'] ? 'v2-visible' : ''}`}>
+            <div className="v2-container v2-ack-inner">
+              {ackState === 'confirmed' ? (
+                <>
+                  <div className="v2-ack-check">&#10003;</div>
+                  <h2>GOT IT{patientName ? `, ${patientName.toUpperCase()}` : ''}.</h2>
+                  <p>You&apos;re all set. We&apos;ll see you at your appointment.</p>
+                </>
+              ) : ackState === 'already' ? (
+                <>
+                  <div className="v2-ack-check">&#10003;</div>
+                  <h2>ALREADY<br />CONFIRMED.</h2>
+                  <p>You&apos;ve already acknowledged your prep instructions. See you soon.</p>
+                </>
+              ) : (
+                <>
+                  <div className="v2-label"><span className="v2-dot" /> CONFIRMATION</div>
+                  <h2>READY FOR<br />YOUR DRAW?</h2>
+                  <div className="v2-hero-rule" style={{ margin: '0 0 2rem' }} />
+                  <p>By pressing the button below, you confirm that you&apos;ve read and understand the preparation instructions above.</p>
+                  <button
+                    className="v2-ack-btn"
+                    onClick={handleAcknowledge}
+                    disabled={ackState === 'confirming'}
+                  >
+                    {ackState === 'confirming' ? 'CONFIRMING...' : 'I UNDERSTAND'}
+                  </button>
+                  {ackState === 'error' && (
+                    <p className="v2-ack-error">Something went wrong. Please try again or call (949) 997-3988.</p>
+                  )}
+                </>
+              )}
+            </div>
+          </section>
+        )}
+
         {/* ── FINAL CTA ── */}
         <section className="v2-section v2-cta-section">
           <div className="v2-container v2-cta-inner">
-            <h2>READY TO<br />BOOK YOUR<br />LABS?</h2>
+            {token ? (
+              <h2>QUESTIONS?<br />WE&apos;RE HERE.</h2>
+            ) : (
+              <h2>READY TO<br />BOOK YOUR<br />LABS?</h2>
+            )}
             <div className="v2-cta-rule" />
-            <p>If you found this page but haven&apos;t scheduled yet, start with an assessment.</p>
+            {token ? (
+              <p>Call or text anytime if anything is unclear.</p>
+            ) : (
+              <p>If you found this page but haven&apos;t scheduled yet, start with an assessment.</p>
+            )}
             <div className="v2-cta-buttons">
               <Link href="/start" className="v2-btn-white">START HERE</Link>
               <a href="tel:+19499973988" className="v2-btn-outline">CALL (949) 997-3988</a>
@@ -781,6 +859,71 @@ export default function LabPrepPage() {
           font-size: 0.8125rem;
           color: #a0a0a0;
           margin: 1rem 0 0;
+        }
+
+        /* ── ACKNOWLEDGE ── */
+        .v2-ack-section {
+          background: #ffffff;
+          text-align: center;
+          border-top: 1px solid #e0e0e0;
+          border-bottom: 1px solid #e0e0e0;
+        }
+
+        .v2-ack-inner {
+          max-width: 600px;
+          margin: 0 auto;
+        }
+
+        .v2-ack-inner h2 {
+          font-size: clamp(2.25rem, 5vw, 3.5rem);
+          text-align: center;
+        }
+
+        .v2-ack-inner p {
+          font-size: 1.0625rem;
+          line-height: 1.75;
+          color: #737373;
+          margin: 0 0 2.5rem;
+          text-align: center;
+        }
+
+        .v2-ack-inner .v2-label {
+          justify-content: center;
+        }
+
+        .v2-ack-btn {
+          display: inline-block;
+          background: #1a1a1a;
+          color: #ffffff;
+          padding: 1.125rem 3.5rem;
+          font-size: 0.75rem;
+          font-weight: 800;
+          letter-spacing: 0.14em;
+          border: none;
+          cursor: pointer;
+          transition: background 0.2s;
+          font-family: 'Inter', -apple-system, sans-serif;
+        }
+
+        .v2-ack-btn:hover {
+          background: #404040;
+        }
+
+        .v2-ack-btn:disabled {
+          background: #808080;
+          cursor: not-allowed;
+        }
+
+        .v2-ack-check {
+          font-size: 3rem;
+          color: #22c55e;
+          margin-bottom: 1.5rem;
+        }
+
+        .v2-ack-error {
+          color: #ef4444 !important;
+          font-size: 0.875rem !important;
+          margin-top: 1rem !important;
         }
 
         /* ── CTA ── */

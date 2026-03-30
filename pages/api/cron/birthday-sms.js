@@ -1,9 +1,10 @@
 // /pages/api/cron/birthday-sms.js
-// Daily cron — sends happy birthday SMS to patients on their birthday
+// Daily cron — sends happy birthday SMS with free injection gift link
 // Runs at 9:00 AM PST (17:00 UTC) — "0 17 * * *"
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
 import { logComm } from '../../../lib/comms-log';
 import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 
@@ -12,25 +13,26 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// 8 message variations so texts feel personal, not robotic
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://www.range-medical.com';
+
+// 8 message variations — each includes the gift link
 const BIRTHDAY_MESSAGES = [
-  (name) => `Happy Birthday, ${name}! 🎂 From all of us at Range Medical — we hope you have an amazing day. Cheers to another year of feeling your best!`,
-  (name) => `It's your day, ${name}! 🎉 Happy Birthday from the Range Medical team. Here's to your health and happiness — enjoy every moment today!`,
-  (name) => `Happy Birthday, ${name}! 🥳 The whole Range Medical crew is sending you good vibes today. Hope it's a great one!`,
-  (name) => `Hey ${name}, Happy Birthday! 🎂 Wishing you an incredible day from everyone at Range Medical. You deserve it!`,
-  (name) => `Happy Birthday, ${name}! 🎉 From your friends at Range Medical — may this year be your healthiest and happiest yet!`,
-  (name) => `${name}, it's your birthday! 🥳 The Range Medical team is thinking of you today. Hope you're celebrating big!`,
-  (name) => `Wishing you the happiest of birthdays, ${name}! 🎂 From all of us at Range Medical — enjoy your special day!`,
-  (name) => `Happy Birthday, ${name}! 🎉 Here's to another amazing year. The whole Range Medical team is cheering for you today!`,
+  (name, link) => `Happy Birthday, ${name}! 🎂 From all of us at Range Medical — enjoy a FREE injection on us this month! Pick yours here: ${link}`,
+  (name, link) => `It's your day, ${name}! 🎉 Happy Birthday from Range Medical. Your gift: a free injection this month — pick one here: ${link}`,
+  (name, link) => `Happy Birthday, ${name}! 🥳 The Range Medical crew has a gift for you — a free injection! Choose yours: ${link}`,
+  (name, link) => `Hey ${name}, Happy Birthday! 🎂 We want to celebrate you — enjoy a free injection on Range Medical this month: ${link}`,
+  (name, link) => `Happy Birthday, ${name}! 🎉 Your birthday gift from Range Medical: a free injection. Book yours here: ${link}`,
+  (name, link) => `${name}, it's your birthday! 🥳 We have a gift for you — a free injection on us. Pick your time: ${link}`,
+  (name, link) => `Wishing you the happiest birthday, ${name}! 🎂 Your gift from Range Medical — a free injection: ${link}`,
+  (name, link) => `Happy Birthday, ${name}! 🎉 Here's to another amazing year. Your gift: a free injection on us — book here: ${link}`,
 ];
 
-function getBirthdayMessage(firstName) {
+function getBirthdayMessage(firstName, giftLink) {
   const index = Math.floor(Math.random() * BIRTHDAY_MESSAGES.length);
-  return BIRTHDAY_MESSAGES[index](firstName);
+  return BIRTHDAY_MESSAGES[index](firstName, giftLink);
 }
 
-function getTodayMMDD() {
-  // Get today's month and day in Pacific Time
+function getTodayPST() {
   const now = new Date();
   const parts = now.toLocaleDateString('en-US', {
     timeZone: 'America/Los_Angeles',
@@ -38,7 +40,12 @@ function getTodayMMDD() {
     month: '2-digit',
     day: '2-digit',
   }).split('/');
-  return { month: parts[0], day: parts[1], dateStr: `${parts[2]}-${parts[0]}-${parts[1]}` };
+  return {
+    month: parts[0],
+    day: parts[1],
+    year: parts[2],
+    dateStr: `${parts[2]}-${parts[0]}-${parts[1]}`,
+  };
 }
 
 function getTodayStartUTC() {
@@ -56,6 +63,17 @@ function getFirstName(patient) {
   if (patient.first_name) return patient.first_name;
   if (patient.name) return patient.name.split(' ')[0];
   return 'there';
+}
+
+// Get the last day of a given month (for gift expiration)
+function getEndOfMonth(year, month) {
+  // month is 1-12
+  return new Date(parseInt(year), parseInt(month), 0, 23, 59, 59);
+}
+
+// Generate a short, URL-safe token
+function generateToken() {
+  return crypto.randomBytes(16).toString('hex');
 }
 
 export default async function handler(req, res) {
@@ -77,13 +95,12 @@ export default async function handler(req, res) {
   const results = { sent: [], skipped: [], errors: [] };
 
   try {
-    const { month, day, dateStr } = getTodayMMDD();
+    const { month, day, year, dateStr } = getTodayPST();
     const todayStartUTC = getTodayStartUTC();
 
     console.log(`Birthday SMS cron running. Looking for birthdays on ${month}/${day}`);
 
     // Query patients whose date_of_birth matches today's month and day
-    // date_of_birth is stored as a date string (YYYY-MM-DD)
     const { data: patients, error: queryError } = await supabase
       .from('patients')
       .select('id, first_name, name, phone, date_of_birth')
@@ -142,9 +159,47 @@ export default async function handler(req, res) {
         continue;
       }
 
-      // Pick a random message
+      // Create or reuse birthday gift token for this year
+      let giftToken;
+
+      // Check if a gift already exists for this patient this year
+      const { data: existingGift } = await supabase
+        .from('birthday_gifts')
+        .select('id, token')
+        .eq('patient_id', patient.id)
+        .eq('birth_year', parseInt(year))
+        .maybeSingle();
+
+      if (existingGift) {
+        giftToken = existingGift.token;
+      } else {
+        // Create a new gift
+        giftToken = generateToken();
+        const expiresAt = getEndOfMonth(year, month);
+
+        const { error: insertError } = await supabase
+          .from('birthday_gifts')
+          .insert({
+            patient_id: patient.id,
+            token: giftToken,
+            birth_month: parseInt(month),
+            birth_year: parseInt(year),
+            expires_at: expiresAt.toISOString(),
+          });
+
+        if (insertError) {
+          console.error(`Failed to create birthday gift for ${patient.name}:`, insertError);
+          results.errors.push({
+            patient: patient.name || patient.first_name,
+            error: `Gift creation failed: ${insertError.message}`,
+          });
+          continue;
+        }
+      }
+
+      const giftLink = `${BASE_URL}/birthday/${giftToken}`;
       const firstName = getFirstName(patient);
-      const message = getBirthdayMessage(firstName);
+      const message = getBirthdayMessage(firstName, giftLink);
 
       // Send SMS
       const smsResult = await sendSMS({ to: phone, message });
@@ -166,9 +221,10 @@ export default async function handler(req, res) {
         results.sent.push({
           patient: patient.name || patient.first_name,
           dob: patient.date_of_birth,
+          giftToken,
         });
 
-        console.log(`Birthday SMS sent to ${patient.name || patient.first_name} (${phone})`);
+        console.log(`Birthday SMS sent to ${patient.name || patient.first_name} (${phone}) — gift: ${giftLink}`);
       } else {
         results.errors.push({
           patient: patient.name || patient.first_name,

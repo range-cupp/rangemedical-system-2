@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
 import LeadDetailPanel from '../../components/LeadDetailPanel';
+import LabDetailPanel from '../../components/LabDetailPanel';
 import { supabase } from '../../lib/supabase';
 
 const STAGE_CONFIG = {
@@ -95,6 +96,7 @@ export default function SalesPipeline() {
   const [filterSource, setFilterSource] = useState('all');
   const [filterPath, setFilterPath] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedLabLead, setSelectedLabLead] = useState(null);
   const [viewMode, setViewMode] = useState('standard'); // standard | trial
 
   const fetchBoard = useCallback(async () => {
@@ -246,6 +248,23 @@ export default function SalesPipeline() {
       console.error('Import error:', err);
     } finally {
       setImporting(false);
+    }
+  };
+
+  const handleCloseLab = async (protocolId) => {
+    // Optimistic remove
+    setColumns(prev => prev.map(col => ({
+      ...col,
+      leads: col.leads.filter(l => l.id !== protocolId),
+    })));
+    try {
+      await fetch('/api/admin/labs-pipeline', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: protocolId }),
+      });
+    } catch {
+      fetchBoard();
     }
   };
 
@@ -445,6 +464,8 @@ export default function SalesPipeline() {
                           lead={lead}
                           stageKey={col.key}
                           onDragStart={handleDragStart}
+                          onClose={handleCloseLab}
+                          onClick={() => setSelectedLabLead(lead)}
                         />
                       ) : (
                         <LeadCard
@@ -576,6 +597,12 @@ export default function SalesPipeline() {
           setSelectedLead(prev => prev ? { ...prev, stage } : null);
         }}
       />
+
+      <LabDetailPanel
+        isOpen={!!selectedLabLead}
+        onClose={() => setSelectedLabLead(null)}
+        lead={selectedLabLead}
+      />
     </AdminLayout>
   );
 }
@@ -636,8 +663,9 @@ function LeadCard({ lead, stageKey, onDragStart, onClick }) {
   );
 }
 
-function LabCard({ lead, stageKey, onDragStart }) {
+function LabCard({ lead, stageKey, onDragStart, onClose, onClick }) {
   const [dragging, setDragging] = useState(false);
+  const [confirmClose, setConfirmClose] = useState(false);
   const panelType = lead.source || 'Essential';
   const isElite = panelType === 'Elite';
   const daysInStage = lead.updated_at ? Math.floor((Date.now() - new Date(lead.updated_at).getTime()) / (1000 * 60 * 60 * 24)) : 0;
@@ -654,15 +682,34 @@ function LabCard({ lead, stageKey, onDragStart }) {
         cursor: 'grab',
       }}
     >
-      <div style={styles.cardName}>
-        {lead.patient_id ? (
-          <Link href={`/admin/patient/${lead.patient_id}`} style={{ color: '#111', textDecoration: 'none' }}>
-            {lead.first_name} {lead.last_name}
-          </Link>
-        ) : (
-          <>{lead.first_name} {lead.last_name}</>
-        )}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div
+          style={{ ...styles.cardName, cursor: 'pointer', borderBottom: '1px dashed #d1d5db' }}
+          onClick={e => { e.stopPropagation(); onClick && onClick(); }}
+        >
+          {lead.first_name} {lead.last_name}
+        </div>
+        <button
+          onClick={e => { e.stopPropagation(); setConfirmClose(true); }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#d1d5db', padding: '0 2px', lineHeight: 1 }}
+          title="Close"
+        >&times;</button>
       </div>
+      {confirmClose && (
+        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '4px', padding: '8px 10px', margin: '6px 0', fontSize: '12px' }}>
+          <div style={{ color: '#991b1b', fontWeight: 600, marginBottom: '6px' }}>Remove from pipeline?</div>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button
+              onClick={e => { e.stopPropagation(); onClose(lead.id); }}
+              style={{ padding: '4px 10px', fontSize: '11px', fontWeight: 600, background: '#dc2626', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+            >Close</button>
+            <button
+              onClick={e => { e.stopPropagation(); setConfirmClose(false); }}
+              style={{ padding: '4px 10px', fontSize: '11px', fontWeight: 500, background: '#fff', color: '#374151', border: '1px solid #d1d5db', borderRadius: '4px', cursor: 'pointer' }}
+            >Cancel</button>
+          </div>
+        </div>
+      )}
       {lead.phone && (
         <div style={styles.cardPhone}>{lead.phone}</div>
       )}

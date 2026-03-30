@@ -70,6 +70,16 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const [playingCallSid, setPlayingCallSid] = useState(null);
   const [loadingRecording, setLoadingRecording] = useState(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showReschedule, setShowReschedule] = useState(false);
+  const [rescheduleAppts, setRescheduleAppts] = useState([]);
+  const [rescheduleLoading, setRescheduleLoading] = useState(false);
+  const [selectedAppt, setSelectedAppt] = useState(null);
+  const [rescheduleDate, setRescheduleDate] = useState('');
+  const [rescheduleSlots, setRescheduleSlots] = useState([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [rescheduling, setRescheduling] = useState(false);
+  const [rescheduleResult, setRescheduleResult] = useState(null);
   const [imagePreview, setImagePreview] = useState(null); // { file, previewUrl }
   const [uploadingImage, setUploadingImage] = useState(false);
   const imageInputRef = useRef(null);
@@ -366,6 +376,88 @@ export default function ConversationView({ patientId, patientName, patientPhone,
     } finally {
       setTogglingAutomation(null);
     }
+  };
+
+  // ---- Reschedule ----
+  const openReschedule = async () => {
+    const pid = linkedPatientId || patientId;
+    if (!pid) return;
+    setShowReschedule(true);
+    setRescheduleLoading(true);
+    setSelectedAppt(null);
+    setRescheduleDate('');
+    setRescheduleSlots([]);
+    setSelectedSlot(null);
+    setRescheduleResult(null);
+    try {
+      const res = await fetch(`/api/appointments/chat-reschedule?patient_id=${pid}`);
+      const data = await res.json();
+      setRescheduleAppts(data.appointments || []);
+    } catch (err) {
+      console.error('Fetch upcoming appointments error:', err);
+      setRescheduleAppts([]);
+    } finally {
+      setRescheduleLoading(false);
+    }
+  };
+
+  const handleRescheduleDateChange = async (date, appt) => {
+    setRescheduleDate(date);
+    setSelectedSlot(null);
+    setRescheduleSlots([]);
+    const eventTypeId = appt.calcom_event_type_id;
+    if (!eventTypeId) return;
+    setSlotsLoading(true);
+    try {
+      const res = await fetch(`/api/bookings/slots?eventTypeId=${eventTypeId}&date=${date}`);
+      const data = await res.json();
+      // slots comes back as { "YYYY-MM-DD": [{ time: "ISO" }, ...] }
+      const daySlots = data.slots || {};
+      const allSlots = Object.values(daySlots).flat();
+      setRescheduleSlots(allSlots);
+    } catch (err) {
+      console.error('Fetch slots error:', err);
+      setRescheduleSlots([]);
+    } finally {
+      setSlotsLoading(false);
+    }
+  };
+
+  const executeReschedule = async () => {
+    if (!selectedAppt || !selectedSlot) return;
+    setRescheduling(true);
+    setRescheduleResult(null);
+    try {
+      const res = await fetch('/api/appointments/chat-reschedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          appointment_id: selectedAppt.id,
+          new_start_time: selectedSlot.time,
+          rescheduled_by: session?.user?.user_metadata?.name || 'Staff',
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setRescheduleResult({ success: true, newAppt: data.new_appointment });
+      } else {
+        setRescheduleResult({ success: false, message: data.error || 'Failed to reschedule' });
+      }
+    } catch (err) {
+      setRescheduleResult({ success: false, message: 'Network error' });
+    } finally {
+      setRescheduling(false);
+    }
+  };
+
+  const formatApptTime = (isoStr) => {
+    const d = new Date(isoStr);
+    return d.toLocaleString('en-US', { timeZone: 'America/Los_Angeles', weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  };
+
+  const formatSlotTime = (isoStr) => {
+    const d = new Date(isoStr);
+    return d.toLocaleString('en-US', { timeZone: 'America/Los_Angeles', hour: 'numeric', minute: '2-digit' });
   };
 
   const sendMessage = async () => {
@@ -890,6 +982,15 @@ export default function ConversationView({ patientId, patientName, patientPhone,
           >
             📅 Book
           </button>
+          {(linkedPatientId || patientId) && (
+            <button
+              onClick={openReschedule}
+              style={styles.actionBtn}
+              title="Reschedule an upcoming appointment"
+            >
+              🔄 Reschedule
+            </button>
+          )}
           <button
             onClick={openTaskModal}
             style={styles.actionBtn}
@@ -1165,6 +1266,194 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Reschedule Modal */}
+      {showReschedule && (
+        <div style={styles.bookingOverlay} {...overlayClickProps(() => { if (!rescheduling) setShowReschedule(false); })}>
+          <div style={{ ...styles.bookingModal, maxWidth: '480px' }} onClick={e => e.stopPropagation()}>
+            <div style={styles.bookingHeader}>
+              <h3 style={{ margin: 0, fontSize: '16px' }}>
+                {rescheduleResult?.success
+                  ? 'Rescheduled'
+                  : selectedAppt
+                    ? `Reschedule — ${selectedAppt.service_name}`
+                    : `Reschedule — ${(displayName || patientName || '').split(' ')[0]}`}
+              </h3>
+              <button onClick={() => { if (!rescheduling) setShowReschedule(false); }} style={styles.bookingClose}>×</button>
+            </div>
+            <div style={{ padding: '16px 20px', maxHeight: '60vh', overflowY: 'auto' }}>
+              {/* Success state */}
+              {rescheduleResult?.success && (
+                <div>
+                  <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                    <div style={{ fontSize: '36px', marginBottom: '12px' }}>✅</div>
+                    <div style={{ fontSize: '15px', fontWeight: 600, color: '#111', marginBottom: '6px' }}>
+                      Appointment Rescheduled
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '4px' }}>
+                      {rescheduleResult.newAppt.service_name}
+                    </div>
+                    <div style={{ fontSize: '14px', fontWeight: 500, color: '#111' }}>
+                      {formatApptTime(rescheduleResult.newAppt.start_time)}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px' }}>
+                      Patient and provider have been notified.
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowReschedule(false)}
+                    style={{ width: '100%', padding: '12px', background: '#000', color: '#fff', border: 'none', fontSize: '14px', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+                  >
+                    Done
+                  </button>
+                </div>
+              )}
+
+              {/* Error state */}
+              {rescheduleResult && !rescheduleResult.success && (
+                <div style={{ padding: '10px 14px', marginBottom: '12px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', fontSize: '13px' }}>
+                  {rescheduleResult.message}
+                </div>
+              )}
+
+              {/* Step 1: Pick appointment */}
+              {!rescheduleResult?.success && !selectedAppt && (
+                <div>
+                  {rescheduleLoading ? (
+                    <div style={{ textAlign: 'center', padding: '30px', color: '#999', fontSize: '14px' }}>Loading appointments...</div>
+                  ) : rescheduleAppts.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '30px', color: '#999', fontSize: '14px' }}>No upcoming appointments to reschedule.</div>
+                  ) : (
+                    <div>
+                      <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '12px' }}>Select the appointment to reschedule:</div>
+                      {rescheduleAppts.map(appt => (
+                        <button
+                          key={appt.id}
+                          onClick={() => { setSelectedAppt(appt); setRescheduleDate(''); setRescheduleSlots([]); setSelectedSlot(null); setRescheduleResult(null); }}
+                          style={{
+                            display: 'block', width: '100%', textAlign: 'left',
+                            padding: '14px 16px', marginBottom: '8px',
+                            background: '#fff', border: '1px solid #e5e7eb',
+                            cursor: 'pointer', fontFamily: 'inherit',
+                            transition: 'border-color 0.15s',
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.borderColor = '#000'}
+                          onMouseLeave={e => e.currentTarget.style.borderColor = '#e5e7eb'}
+                        >
+                          <div style={{ fontSize: '14px', fontWeight: 600, color: '#111', marginBottom: '4px' }}>
+                            {appt.service_name}
+                          </div>
+                          <div style={{ fontSize: '13px', color: '#6b7280' }}>
+                            {formatApptTime(appt.start_time)}
+                            {appt.provider && <span> — {appt.provider}</span>}
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '2px', textTransform: 'capitalize' }}>
+                            {appt.status} {appt.location ? `• ${appt.location}` : ''}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Step 2: Pick date + time */}
+              {!rescheduleResult?.success && selectedAppt && (
+                <div>
+                  <button
+                    onClick={() => { setSelectedAppt(null); setRescheduleDate(''); setRescheduleSlots([]); setSelectedSlot(null); }}
+                    style={{ background: 'none', border: 'none', fontSize: '13px', color: '#2563eb', cursor: 'pointer', padding: '0', marginBottom: '12px', fontFamily: 'inherit' }}
+                  >
+                    ← Back to appointments
+                  </button>
+
+                  {/* Current appointment info */}
+                  <div style={{ padding: '12px 14px', background: '#f9fafb', border: '1px solid #e5e7eb', marginBottom: '16px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Current</div>
+                    <div style={{ fontSize: '14px', fontWeight: 500, color: '#111' }}>{formatApptTime(selectedAppt.start_time)}</div>
+                  </div>
+
+                  {/* Date picker */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>New Date</label>
+                    <input
+                      type="date"
+                      value={rescheduleDate}
+                      min={new Date().toISOString().split('T')[0]}
+                      onChange={e => handleRescheduleDateChange(e.target.value, selectedAppt)}
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  {/* Time slots */}
+                  {rescheduleDate && (
+                    <div>
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Available Times</label>
+                      {slotsLoading ? (
+                        <div style={{ textAlign: 'center', padding: '20px', color: '#999', fontSize: '13px' }}>Loading available times...</div>
+                      ) : !selectedAppt.calcom_event_type_id ? (
+                        <div>
+                          <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px' }}>Enter new time (no Cal.com event type linked):</div>
+                          <input
+                            type="time"
+                            onChange={e => {
+                              if (e.target.value) {
+                                const iso = `${rescheduleDate}T${e.target.value}:00`;
+                                setSelectedSlot({ time: new Date(iso + '-07:00').toISOString() });
+                              } else {
+                                setSelectedSlot(null);
+                              }
+                            }}
+                            style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                          />
+                        </div>
+                      ) : rescheduleSlots.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '20px', color: '#999', fontSize: '13px' }}>No available slots on this date.</div>
+                      ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                          {rescheduleSlots.map((slot, i) => (
+                            <button
+                              key={i}
+                              onClick={() => setSelectedSlot(slot)}
+                              style={{
+                                padding: '10px 8px',
+                                border: selectedSlot?.time === slot.time ? '2px solid #000' : '1px solid #e5e7eb',
+                                background: selectedSlot?.time === slot.time ? '#f0f0f0' : '#fff',
+                                fontSize: '13px', fontWeight: selectedSlot?.time === slot.time ? 600 : 400,
+                                cursor: 'pointer', fontFamily: 'inherit',
+                                textAlign: 'center',
+                              }}
+                            >
+                              {formatSlotTime(slot.time)}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Confirm button */}
+                  {selectedSlot && (
+                    <button
+                      onClick={executeReschedule}
+                      disabled={rescheduling}
+                      style={{
+                        width: '100%', padding: '12px', marginTop: '16px',
+                        background: rescheduling ? '#666' : '#000',
+                        color: '#fff', border: 'none', fontSize: '14px',
+                        fontWeight: 600, cursor: rescheduling ? 'default' : 'pointer',
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      {rescheduling ? 'Rescheduling...' : `Reschedule to ${formatSlotTime(selectedSlot.time)}`}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -145,6 +145,7 @@ export default async function handler(req, res) {
         entry_date: entryDate,
         medication: protocol.medication || null,
         dosage: dosage_override || protocol.selected_dose || null,
+        quantity: quantity || 1,
         supply_type: supply_type_override || protocol.supply_type || null,
         fulfillment_method: fulfillment_method || 'in_clinic',
         tracking_number: tracking_number || null,

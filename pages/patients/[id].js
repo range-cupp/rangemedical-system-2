@@ -487,6 +487,8 @@ export default function PatientProfile() {
   const [fulfillmentMethod, setFulfillmentMethod] = useState('in_clinic');
   const [trackingNumber, setTrackingNumber] = useState('');
   const [dosingNotes, setDosingNotes] = useState('');
+  const [splitDoseMode, setSplitDoseMode] = useState(false);
+  const [splitDoses, setSplitDoses] = useState([]);
   const [refillOverride, setRefillOverride] = useState('');
   const [dispensing, setDispensing] = useState(false);
   const [dispenseResult, setDispenseResult] = useState(null);
@@ -2192,6 +2194,8 @@ export default function PatientProfile() {
     setFulfillmentMethod('in_clinic');
     setTrackingNumber('');
     setDosingNotes('');
+    setSplitDoseMode(false);
+    setSplitDoses([]);
     setRefillOverride('');
     setDispenseResult(null);
   };
@@ -4859,6 +4863,11 @@ export default function PatientProfile() {
                                   <span>
                                     <span style={{ color: '#6b7280' }}>Last pickup: </span>
                                     <strong>{formatShortDate(lastPickupLog.entry_date)}</strong>
+                                    {(lastPickupLog.quantity || lastPickupLog.medication || lastPickupLog.dosage) && (
+                                      <span style={{ color: '#6b7280' }}>
+                                        {' '}({lastPickupLog.quantity && lastPickupLog.quantity > 1 ? `${lastPickupLog.quantity}x ` : ''}{lastPickupLog.medication || protocol.medication}{lastPickupLog.dosage ? ` ${lastPickupLog.dosage}` : ''}{lastPickupLog.notes ? ` — ${lastPickupLog.notes}` : ''})
+                                      </span>
+                                    )}
                                   </span>
                                 )}
                                 {nextRefillDate && (
@@ -4875,7 +4884,7 @@ export default function PatientProfile() {
                                   <span>
                                     <span style={{ color: '#6b7280' }}>Last charge: </span>
                                     <strong>{formatShortDate(lastPurchase.purchase_date)}</strong>
-                                    <span style={{ color: '#6b7280' }}> — ${lastPurchase.amount}</span>
+                                    <span style={{ color: '#6b7280' }}> — ${lastPurchase.amount}{lastPurchase.item_name ? ` (${lastPurchase.item_name})` : lastPurchase.description ? ` (${lastPurchase.description})` : ''}</span>
                                   </span>
                                 )}
                                 {nextChargeDate && (
@@ -12309,7 +12318,7 @@ export default function PatientProfile() {
                         {options.map(opt => (
                           <button
                             key={opt.value}
-                            onClick={() => setSelectedSupplyType(opt.value)}
+                            onClick={() => { setSelectedSupplyType(opt.value); setSplitDoseMode(false); setSplitDoses([]); setDosingNotes(''); }}
                             style={{
                               padding: '8px 16px', borderRadius: 0, fontSize: '13px', fontWeight: 600,
                               fontFamily: 'inherit', cursor: 'pointer',
@@ -12350,18 +12359,82 @@ export default function PatientProfile() {
               </div>
 
               {/* Dosing Notes — weight loss only */}
-              {['weight_loss'].includes((dispensingProtocol.program_type || dispensingProtocol.category || '').toLowerCase()) && (
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>Dosing Schedule (optional)</div>
-                  <input
-                    type="text"
-                    placeholder="e.g. 2mg x 2wks → 4mg x 2wks"
-                    value={dosingNotes}
-                    onChange={e => setDosingNotes(e.target.value)}
-                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 0, fontSize: '13px', boxSizing: 'border-box', fontFamily: 'inherit', color: '#111' }}
-                  />
-                </div>
-              )}
+              {['weight_loss'].includes((dispensingProtocol.program_type || dispensingProtocol.category || '').toLowerCase()) && (() => {
+                const supplyCount = selectedSupplyType.startsWith('wl_') ? parseInt(selectedSupplyType.split('_')[1]) : 1;
+                const med = dispensingProtocol.medication || dispensingProtocol.program_name || '';
+                const doseOptions = WEIGHT_LOSS_DOSAGES[med] || [];
+                const currentDose = dispenseDosage || dispensingProtocol.selected_dose || dispensingProtocol.dosage || '';
+
+                return supplyCount > 1 ? (
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Dosing Schedule</div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!splitDoseMode) {
+                            setSplitDoseMode(true);
+                            setSplitDoses(Array.from({ length: supplyCount }, () => currentDose));
+                          } else {
+                            setSplitDoseMode(false);
+                            setSplitDoses([]);
+                            setDosingNotes('');
+                          }
+                        }}
+                        style={{
+                          padding: '4px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                          border: splitDoseMode ? '1px solid #dc2626' : '1px solid #2563eb',
+                          background: splitDoseMode ? '#fef2f2' : '#eff6ff',
+                          color: splitDoseMode ? '#dc2626' : '#2563eb',
+                          borderRadius: 0, fontFamily: 'inherit',
+                        }}
+                      >
+                        {splitDoseMode ? 'Cancel Split' : `Split ${supplyCount} Doses`}
+                      </button>
+                    </div>
+                    {splitDoseMode ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {splitDoses.map((dose, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: '#374151', minWidth: 60 }}>Wk {i + 1}</span>
+                            <select
+                              value={dose}
+                              onChange={e => {
+                                const updated = [...splitDoses];
+                                updated[i] = e.target.value;
+                                setSplitDoses(updated);
+                                setDosingNotes(updated.map((d, idx) => `${d} wk${idx + 1}`).join(' → '));
+                              }}
+                              style={{
+                                flex: 1, padding: '8px 12px', fontSize: 13, fontWeight: 600,
+                                border: dose !== currentDose ? '2px solid #f59e0b' : '1px solid #e5e7eb',
+                                background: dose !== currentDose ? '#fffbeb' : '#fff',
+                                borderRadius: 0, fontFamily: 'inherit', color: '#111', cursor: 'pointer',
+                                appearance: 'none',
+                                backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath d=\'M6 8L1 3h10z\' fill=\'%236b7280\'/%3E%3C/svg%3E")',
+                                backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', paddingRight: '32px',
+                              }}
+                            >
+                              {doseOptions.map(d => (
+                                <option key={d} value={d}>{d}</option>
+                              ))}
+                            </select>
+                          </div>
+                        ))}
+                        {splitDoses.length > 0 && !splitDoses.every(d => d === splitDoses[0]) && (
+                          <div style={{ fontSize: 11, color: '#2563eb', fontWeight: 600, marginTop: 2 }}>
+                            Schedule: {splitDoses.map((d, i) => `${d} wk${i + 1}`).join(' → ')}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 12, color: '#9ca3af', padding: '8px 12px', background: '#f9fafb', border: '1px solid #e5e7eb' }}>
+                        All {supplyCount} injections at {currentDose}
+                      </div>
+                    )}
+                  </div>
+                ) : null;
+              })()}
 
               {/* Refill Cycle Override */}
               <div style={{ marginBottom: 14 }}>

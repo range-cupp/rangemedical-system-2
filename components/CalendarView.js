@@ -137,6 +137,9 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   // Prep checklist state (inline in appointment card)
   const [prepSaving, setPrepSaving] = useState({});
   const [prepNotes, setPrepNotes] = useState('');
+
+  // Medical intake panel toggle
+  const [showIntakePanel, setShowIntakePanel] = useState(false);
   const [prepNotesSaved, setPrepNotesSaved] = useState(false);
   const [prepNotesTimer, setPrepNotesTimer] = useState(null);
 
@@ -306,6 +309,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
       setPrepNotes(selectedAppt.prep_notes || '');
       setPrepNotesSaved(false);
       setPrepSaving({});
+      setShowIntakePanel(false);
     }
   }, [selectedAppt?.id]);
 
@@ -1681,7 +1685,9 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
 
     return (
       <div style={styles.popoverOverlay} {...overlayClickProps(() => { setSelectedAppt(null); setRescheduleAppt(null); })}>
-        <div ref={popoverRef} style={styles.popover} onClick={e => e.stopPropagation()}>
+        <div ref={popoverRef} style={{ ...styles.popover, ...(showIntakePanel ? { width: '820px', display: 'flex' } : {}) }} onClick={e => e.stopPropagation()}>
+          {/* Main appointment column */}
+          <div style={showIntakePanel ? { width: '420px', flexShrink: 0, overflow: 'auto', maxHeight: '80vh' } : {}}>
           <div style={styles.popoverHeader}>
             <h3 style={{ margin: 0, fontSize: '16px' }}>Appointment Details</h3>
             <button onClick={() => { setSelectedAppt(null); setRescheduleAppt(null); }} style={styles.closeBtn}>&times;</button>
@@ -1820,6 +1826,23 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 </div>
               );
             })()}
+
+            {/* Medical Intake toggle button */}
+            {appt.patient_id && apptPatientInfo && (apptPatientInfo.intakes || []).length > 0 && (
+              <button
+                onClick={() => setShowIntakePanel(!showIntakePanel)}
+                style={{
+                  width: '100%', margin: '10px 0 0', padding: '8px 12px',
+                  background: showIntakePanel ? '#f0f9ff' : '#fff',
+                  border: `1px solid ${showIntakePanel ? '#bae6fd' : '#e5e5e5'}`,
+                  fontSize: '12px', fontWeight: '600', color: showIntakePanel ? '#0369a1' : '#374151',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                }}
+              >
+                <span>Medical Intake</span>
+                <span style={{ fontSize: '11px', color: '#999' }}>{showIntakePanel ? '← Hide' : 'View →'}</span>
+              </button>
+            )}
 
             {/* Renewal alerts */}
             {renewalMap[appt.patient_id]?.length > 0 && (
@@ -2096,6 +2119,164 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               <button onClick={() => deleteAppointment(appt.id)} style={{ ...styles.actionBtn, background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca', fontSize: '12px' }}>Delete (No Notification)</button>
             </div>
           </div>
+          </div>{/* end main appointment column */}
+
+          {/* ── Medical Intake Side Panel ── */}
+          {showIntakePanel && (() => {
+            const intake = (apptPatientInfo?.intakes || [])[0];
+            if (!intake) return (
+              <div style={{ width: '400px', borderLeft: '1px solid #e5e5e5', padding: '16px 20px', overflow: 'auto', maxHeight: '80vh', background: '#fafafa' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '600' }}>Medical Intake</h3>
+                  <button onClick={() => setShowIntakePanel(false)} style={{ border: 'none', background: 'none', fontSize: '18px', cursor: 'pointer', color: '#888' }}>&times;</button>
+                </div>
+                <p style={{ fontSize: '13px', color: '#999', fontStyle: 'italic' }}>No intake form on file for this patient.</p>
+              </div>
+            );
+
+            const sectionStyle = { marginBottom: '14px' };
+            const sectionLabelStyle = { fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#888', marginBottom: '6px' };
+            const valueStyle = { fontSize: '13px', color: '#1a1a1a', lineHeight: '1.5' };
+            const chipStyle = { display: 'inline-block', padding: '2px 8px', background: '#f3f4f6', fontSize: '12px', color: '#374151', marginRight: '4px', marginBottom: '4px' };
+            const alertChipStyle = { ...chipStyle, background: '#fef2f2', color: '#991b1b' };
+
+            // Parse medications
+            const meds = intake.current_medications || [];
+            const medsText = intake.medication_notes || (typeof intake.current_medications === 'string' ? intake.current_medications : '');
+            const hasMeds = intake.on_medications || meds.length > 0 || medsText;
+
+            // Parse allergies
+            const allergies = intake.allergies || [];
+            const allergyReactions = intake.allergy_reactions || '';
+            const hasAllergies = intake.has_allergies || allergies.length > 0;
+
+            // Medical conditions
+            const conditions = intake.medical_conditions || [];
+            const hasConditions = conditions.length > 0;
+
+            // HRT info
+            const onHrt = intake.on_hrt;
+            const hrtDetails = intake.hrt_details || '';
+
+            return (
+              <div style={{ width: '400px', borderLeft: '1px solid #e5e5e5', overflow: 'auto', maxHeight: '80vh', background: '#fafafa' }}>
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e5e5', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: '#fafafa', zIndex: 1 }}>
+                  <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '600' }}>Medical Intake</h3>
+                  <button onClick={() => setShowIntakePanel(false)} style={{ border: 'none', background: 'none', fontSize: '18px', cursor: 'pointer', color: '#888' }}>&times;</button>
+                </div>
+                <div style={{ padding: '16px 20px' }}>
+                  {/* Submitted date */}
+                  {intake.submitted_at && (
+                    <div style={{ fontSize: '11px', color: '#999', marginBottom: '14px' }}>
+                      Submitted {new Date(intake.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </div>
+                  )}
+
+                  {/* Allergies — prominent if present */}
+                  <div style={sectionStyle}>
+                    <div style={sectionLabelStyle}>Allergies</div>
+                    {hasAllergies ? (
+                      <div>
+                        {(Array.isArray(allergies) ? allergies : [allergies]).map((a, i) => (
+                          <span key={i} style={alertChipStyle}>{typeof a === 'object' ? (a.name || a.allergen || JSON.stringify(a)) : a}</span>
+                        ))}
+                        {allergyReactions && <div style={{ fontSize: '12px', color: '#991b1b', marginTop: '4px' }}>Reactions: {allergyReactions}</div>}
+                      </div>
+                    ) : (
+                      <div style={{ ...valueStyle, color: '#22c55e', fontSize: '12px' }}>No known allergies</div>
+                    )}
+                  </div>
+
+                  {/* Medications */}
+                  <div style={sectionStyle}>
+                    <div style={sectionLabelStyle}>Current Medications</div>
+                    {hasMeds ? (
+                      <div>
+                        {Array.isArray(meds) && meds.length > 0 ? meds.map((m, i) => (
+                          <span key={i} style={chipStyle}>{typeof m === 'object' ? (m.name || JSON.stringify(m)) : m}</span>
+                        )) : null}
+                        {medsText && <div style={{ ...valueStyle, fontSize: '12px' }}>{medsText}</div>}
+                      </div>
+                    ) : (
+                      <div style={{ ...valueStyle, color: '#999', fontSize: '12px', fontStyle: 'italic' }}>None reported</div>
+                    )}
+                  </div>
+
+                  {/* Medical conditions */}
+                  <div style={sectionStyle}>
+                    <div style={sectionLabelStyle}>Medical Conditions</div>
+                    {hasConditions ? (
+                      <div>
+                        {(Array.isArray(conditions) ? conditions : [conditions]).map((c, i) => (
+                          <span key={i} style={chipStyle}>{typeof c === 'object' ? (c.name || JSON.stringify(c)) : c}</span>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ ...valueStyle, color: '#999', fontSize: '12px', fontStyle: 'italic' }}>None reported</div>
+                    )}
+                  </div>
+
+                  {/* HRT status */}
+                  {onHrt && (
+                    <div style={sectionStyle}>
+                      <div style={sectionLabelStyle}>Current HRT</div>
+                      <div style={{ ...valueStyle, fontSize: '12px' }}>{hrtDetails || 'Yes (no details provided)'}</div>
+                    </div>
+                  )}
+
+                  {/* Symptoms */}
+                  {intake.symptoms && (
+                    <div style={sectionStyle}>
+                      <div style={sectionLabelStyle}>Reported Symptoms</div>
+                      <div style={{ ...valueStyle, fontSize: '12px' }}>
+                        {Array.isArray(intake.symptoms) ? intake.symptoms.join(', ') : intake.symptoms}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Additional notes from intake */}
+                  {intake.additional_notes && (
+                    <div style={sectionStyle}>
+                      <div style={sectionLabelStyle}>Additional Notes</div>
+                      <div style={{ ...valueStyle, fontSize: '12px' }}>{intake.additional_notes}</div>
+                    </div>
+                  )}
+
+                  {/* Demographics from intake */}
+                  <div style={{ borderTop: '1px solid #e5e5e5', paddingTop: '12px', marginTop: '12px' }}>
+                    <div style={sectionLabelStyle}>Demographics</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                      {intake.date_of_birth && (
+                        <div>
+                          <span style={{ fontSize: '11px', color: '#888' }}>DOB</span>
+                          <div style={{ fontSize: '12px', color: '#1a1a1a' }}>{new Date(intake.date_of_birth + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                        </div>
+                      )}
+                      {intake.gender && (
+                        <div>
+                          <span style={{ fontSize: '11px', color: '#888' }}>Gender</span>
+                          <div style={{ fontSize: '12px', color: '#1a1a1a', textTransform: 'capitalize' }}>{intake.gender}</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* View full profile link */}
+                  {appt.patient_id && (
+                    <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #e5e5e5' }}>
+                      <button
+                        onClick={() => openPatientDrawer(appt.patient_id)}
+                        style={{ width: '100%', padding: '8px', background: '#f9fafb', border: '1px solid #e5e5e5', fontSize: '12px', color: '#374151', cursor: 'pointer', fontWeight: '500' }}
+                      >
+                        View Full Patient Profile
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
         </div>
       </div>
     );

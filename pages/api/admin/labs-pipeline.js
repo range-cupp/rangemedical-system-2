@@ -16,7 +16,7 @@ const supabase = createClient(
 // Lab pipeline stages (6-column Kanban with staff ownership)
 // awaiting_results = Primex processing | uploaded = Chris/Evan | under_review = Damien/Evan
 // ready_to_schedule = Tara | consult_scheduled = booked | in_treatment = converted
-const LAB_STAGES = ['awaiting_results', 'uploaded', 'under_review', 'ready_to_schedule', 'consult_scheduled', 'in_treatment'];
+const LAB_STAGES = ['awaiting_results', 'uploaded', 'under_review', 'ready_to_schedule', 'consult_scheduled', 'follow_up', 'in_treatment'];
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
@@ -178,9 +178,9 @@ async function getLabsPipeline(req, res) {
           const duePatientIds = dueForLabs.map(d => d.patientId).filter(Boolean);
           const { data: scheduledBookings } = await supabase
             .from('calcom_bookings')
-            .select('patient_id, start_time, event_slug, status')
+            .select('patient_id, start_time, service_slug, status')
             .in('patient_id', duePatientIds)
-            .in('event_slug', ['new-patient-blood-draw', 'follow-up-blood-draw'])
+            .in('service_slug', ['new-patient-blood-draw', 'follow-up-blood-draw'])
             .in('status', ['scheduled', 'confirmed', 'accepted'])
             .gte('start_time', new Date().toISOString());
 

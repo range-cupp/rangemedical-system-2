@@ -69,13 +69,13 @@ export default async function handler(req, res) {
         raw_input: raw_input || null,
         created_by: created_by || null,
         note_date: note_date || new Date().toISOString(),
-        source: appointment_id ? 'encounter' : (protocol_id ? 'protocol' : 'manual'),
+        source: (appointment_id || encounter_service) ? 'encounter' : (protocol_id ? 'protocol' : 'manual'),
         status: 'draft',
         protocol_id: protocol_id || null,
         protocol_name: protocol_name || null,
         appointment_id: appointment_id || null,
         encounter_service: encounter_service || null,
-        note_category: note_category || (appointment_id ? 'clinical' : (protocol_id ? 'clinical' : 'internal')),
+        note_category: note_category || ((appointment_id || encounter_service || protocol_id) ? 'clinical' : 'internal'),
         visit_group_id: visit_group_id || null,
       })
       .select()

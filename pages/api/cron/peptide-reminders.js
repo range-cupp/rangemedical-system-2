@@ -81,6 +81,8 @@ Rules:
 - Vary your opener every time (don't always start with "Hey" or "Hi")
 - Ask how they're feeling or how things are going
 - You can reference their peptide protocol casually but don't name the specific medication
+- Do NOT mention how many weeks they've been on the protocol or how far along they are
+- Do NOT reference any specific timeframe like "two weeks in" or "halfway through"
 - Do NOT ask if they want to continue, renew, reorder, or schedule anything
 - Do NOT mention pricing, appointments, or next steps
 - Do NOT use emojis, markdown, or formatting — plain SMS only
@@ -89,7 +91,7 @@ Rules:
 - Make each message feel genuinely different from the last`,
       messages: [{
         role: 'user',
-        content: `Generate a check-in text for ${firstName}. They are on week ${weekNum} of ${totalWeeks} of their peptide protocol (${medication}). This is check-in number ${weekNum} so make it feel fresh and different from previous ones. Vary the tone — sometimes warmer, sometimes more casual, sometimes brief.`
+        content: `Generate a check-in text for ${firstName}. They are on a peptide protocol (${medication}). This is check-in number ${weekNum} so make it feel fresh and different from previous ones. Vary the tone — sometimes warmer, sometimes more casual, sometimes brief.`
       }],
     });
 

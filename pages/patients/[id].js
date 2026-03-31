@@ -47,6 +47,7 @@ const CalendarView = dynamic(() => import('../../components/CalendarView'), { ss
 const LabDashboard = dynamic(() => import('../../components/labs/LabDashboard'), { ssr: false });
 const ConversationView = dynamic(() => import('../../components/ConversationView'), { ssr: false });
 const POSChargeModal = dynamic(() => import('../../components/POSChargeModal'), { ssr: false });
+const MedicationCheckoutModal = dynamic(() => import('../../components/MedicationCheckoutModal'), { ssr: false });
 const EncounterModal = dynamic(() => import('../../components/EncounterModal'), { ssr: false });
 const StandaloneEncounterModal = dynamic(() => import('../../components/StandaloneEncounterModal'), { ssr: false });
 const EncounterQuickView = dynamic(() => import('../../components/EncounterQuickView'), { ssr: false });
@@ -565,6 +566,7 @@ export default function PatientProfile() {
   const [showIntakeModal, setShowIntakeModal] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [showChargeModal, setShowChargeModal] = useState(false);
+  const [showMedCheckout, setShowMedCheckout] = useState(false);
   const [generatingChart, setGeneratingChart] = useState(false);
   const [showQuickView, setShowQuickView] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -3477,6 +3479,7 @@ export default function PatientProfile() {
             <div className="toolbar-divider" />
             <div className="toolbar-group">
 <button onClick={() => setShowBookingModal(true)} className="toolbar-btn toolbar-btn-blue" title="Book appointment">📅 <span className="toolbar-label">Book</span></button>
+              <button onClick={() => setShowMedCheckout(true)} className="toolbar-btn toolbar-btn-green" title="Checkout / Dispense">📦 <span className="toolbar-label">Checkout</span></button>
               <button onClick={() => setShowChargeModal(true)} className="toolbar-btn toolbar-btn-green" title="Charge patient">💳 <span className="toolbar-label">Charge</span></button>
               <button onClick={() => setShowAddCreditModal(true)} className="toolbar-btn toolbar-btn-credit" title="Add account credit">🎁 <span className="toolbar-label">Credit</span></button>
               <button
@@ -9319,6 +9322,13 @@ export default function PatientProfile() {
           </div>
         )}
 
+
+        {/* Medication Checkout Modal */}
+        <MedicationCheckoutModal
+          isOpen={showMedCheckout}
+          onClose={() => setShowMedCheckout(false)}
+          preselectedPatient={patient ? { id: patient.id, name: patient.name || `${patient.first_name} ${patient.last_name}`, email: patient.email, phone: patient.phone } : null}
+        />
 
         {/* POS Charge Modal */}
         <POSChargeModal

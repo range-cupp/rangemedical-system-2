@@ -87,9 +87,21 @@ export default async function handler(req, res) {
 
     // Check subscription coverage (only for categories that CAN be covered)
     const subCategories = CATEGORY_TO_SUB_CATEGORY[category] || [];
-    const matchingSub = NEVER_COVERED_CATEGORIES.includes(category)
-      ? null
-      : (subscriptions || []).find(s => subCategories.includes(s.service_category));
+    let matchingSub = null;
+    if (!NEVER_COVERED_CATEGORIES.includes(category)) {
+      // First try: match by service_category
+      matchingSub = (subscriptions || []).find(s => s.service_category && subCategories.includes(s.service_category));
+
+      // Fallback: if subscription has null service_category, infer from active protocols
+      // e.g., patient has active HRT protocol + active subscription with no category → it's the HRT membership
+      if (!matchingSub && (subscriptions || []).some(s => !s.service_category && s.status === 'active')) {
+        const protoTypes = CATEGORY_TO_PROTOCOL_TYPE[category] || [];
+        const hasMatchingProtocol = validProtocols.some(p => protoTypes.includes(p.program_type));
+        if (hasMatchingProtocol) {
+          matchingSub = (subscriptions || []).find(s => !s.service_category && s.status === 'active');
+        }
+      }
+    }
 
     // Get matching protocols for this category
     const protoTypes = CATEGORY_TO_PROTOCOL_TYPE[category] || [];
@@ -115,7 +127,10 @@ export default async function handler(req, res) {
     else if (matchingSub) {
       covered = true;
       coverage_type = 'subscription';
-      coverage_source = formatSubName(matchingSub);
+      // If subscription has no service_category, use the checkout category to label it
+      coverage_source = matchingSub.service_category
+        ? formatSubName(matchingSub)
+        : formatSubNameFromCategory(category);
       coverage_id = matchingSub.id;
     }
     // Rule 3: Session pack coverage (HBOT/RLT/IV/injection packs with sessions remaining)
@@ -195,6 +210,18 @@ export default async function handler(req, res) {
     console.error('[medication-checkout/coverage] Error:', err);
     return res.status(500).json({ error: err.message });
   }
+}
+
+function formatSubNameFromCategory(checkoutCategory) {
+  const labels = {
+    testosterone: 'HRT Membership',
+    weight_loss: 'Weight Loss Program',
+    hbot: 'HBOT Membership',
+    red_light: 'Red Light Membership',
+    iv_therapy: 'IV Therapy Membership',
+    vitamin: 'Membership',
+  };
+  return labels[checkoutCategory] || 'Active Membership';
 }
 
 function formatSubName(sub) {

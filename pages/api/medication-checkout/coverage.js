@@ -1,8 +1,17 @@
 // /pages/api/medication-checkout/coverage.js
 // Returns coverage analysis for a patient + category combination
 // Checks active subscriptions and protocols to determine if item is covered
+//
+// COVERAGE RULES:
+// 1. Subscriptions (HRT membership, WL program) → cover items at $0
+// 2. Session packs (HBOT 5-pack, RLT 10-pack, IV packs, injection packs) → cover remaining sessions
+// 3. Peptides → NEVER covered. Always a new purchase. Protocols shown for linking only.
+// 4. Supplements → NEVER covered.
+// 5. Protocols past their end_date → do NOT count as coverage
+// 6. Weight loss protocols → cover in-clinic injections if sessions remain
 
 import { createClient } from '@supabase/supabase-js';
+import { todayPacific } from '../../../lib/date-utils';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -13,12 +22,12 @@ const supabase = createClient(
 const CATEGORY_TO_SUB_CATEGORY = {
   testosterone: ['hrt'],
   weight_loss: ['weight_loss'],
-  peptide: ['peptide'],
   iv_therapy: ['iv_therapy', 'iv', 'combo_membership'],
   hbot: ['hbot', 'combo_membership'],
   red_light: ['red_light', 'rlt', 'combo_membership'],
   vitamin: ['hrt', 'weight_loss'], // B12 etc often included in programs
-  supplement: [],
+  // peptide: intentionally omitted — never covered by subscription
+  // supplement: intentionally omitted — never covered
 };
 
 // Map checkout categories to protocol program_type values
@@ -33,6 +42,14 @@ const CATEGORY_TO_PROTOCOL_TYPE = {
   supplement: ['supplement'],
 };
 
+// Categories that are NEVER covered — always a new paid purchase
+// Protocols exist for tracking/linking but don't grant zero-balance coverage
+const NEVER_COVERED_CATEGORIES = ['peptide', 'supplement'];
+
+// Categories where only session-based protocols with remaining sessions provide coverage
+// (not subscriptions, which are handled separately)
+const SESSION_COVERAGE_CATEGORIES = ['hbot', 'red_light', 'iv_therapy', 'vitamin'];
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -43,6 +60,8 @@ export default async function handler(req, res) {
   if (!patient_id || !category) {
     return res.status(400).json({ error: 'Missing patient_id or category' });
   }
+
+  const today = todayPacific();
 
   try {
     // Fetch active subscriptions for this patient
@@ -60,15 +79,21 @@ export default async function handler(req, res) {
       .eq('status', 'active')
       .order('created_at', { ascending: false });
 
-    // Check subscription coverage
-    const subCategories = CATEGORY_TO_SUB_CATEGORY[category] || [];
-    const matchingSub = (subscriptions || []).find(s =>
-      subCategories.includes(s.service_category)
-    );
+    // Filter protocols: exclude those past their end_date
+    const validProtocols = (protocols || []).filter(p => {
+      if (p.end_date && p.end_date < today) return false;
+      return true;
+    });
 
-    // Check protocol coverage (has sessions remaining)
+    // Check subscription coverage (only for categories that CAN be covered)
+    const subCategories = CATEGORY_TO_SUB_CATEGORY[category] || [];
+    const matchingSub = NEVER_COVERED_CATEGORIES.includes(category)
+      ? null
+      : (subscriptions || []).find(s => subCategories.includes(s.service_category));
+
+    // Get matching protocols for this category
     const protoTypes = CATEGORY_TO_PROTOCOL_TYPE[category] || [];
-    const matchingProtocols = (protocols || []).filter(p => {
+    const matchingProtocols = validProtocols.filter(p => {
       if (!protoTypes.includes(p.program_type)) return false;
       // For session-based protocols, check if sessions remain
       if (p.total_sessions && p.sessions_used >= p.total_sessions) return false;
@@ -81,23 +106,47 @@ export default async function handler(req, res) {
     let coverage_source = null;
     let coverage_id = null;
 
-    if (matchingSub) {
+    // Rule 1: Never-covered categories — skip coverage entirely
+    if (NEVER_COVERED_CATEGORIES.includes(category)) {
+      // No coverage — protocols shown for linking only
+      covered = false;
+    }
+    // Rule 2: Subscription coverage (HRT membership, etc.)
+    else if (matchingSub) {
       covered = true;
       coverage_type = 'subscription';
       coverage_source = formatSubName(matchingSub);
       coverage_id = matchingSub.id;
-    } else if (matchingProtocols.length > 0) {
+    }
+    // Rule 3: Session pack coverage (HBOT/RLT/IV/injection packs with sessions remaining)
+    else if (matchingProtocols.length > 0) {
       const proto = matchingProtocols[0];
-      // Only mark as covered if it's a session-based protocol with sessions remaining
-      if (proto.total_sessions && proto.sessions_used < proto.total_sessions) {
-        covered = true;
-        coverage_type = 'protocol';
-        coverage_source = proto.program_name || proto.medication || 'Active Protocol';
-        coverage_id = proto.id;
+
+      if (category === 'weight_loss') {
+        // Weight loss: covered if protocol has sessions (injections) remaining
+        if (proto.total_sessions && proto.sessions_used < proto.total_sessions) {
+          covered = true;
+          coverage_type = 'protocol';
+          coverage_source = `${proto.program_name || 'Weight Loss Program'} (${proto.sessions_used || 0}/${proto.total_sessions} used)`;
+          coverage_id = proto.id;
+        }
+      } else if (SESSION_COVERAGE_CATEGORIES.includes(category)) {
+        // Session packs: covered only if sessions remain
+        if (proto.total_sessions && proto.sessions_used < proto.total_sessions) {
+          covered = true;
+          coverage_type = 'protocol';
+          coverage_source = `${proto.program_name || 'Session Pack'} (${proto.sessions_used || 0}/${proto.total_sessions} used)`;
+          coverage_id = proto.id;
+        }
+      } else if (category === 'testosterone') {
+        // HRT: if there's a matching protocol (even without session tracking),
+        // it means they're on the program. But coverage comes from subscription, not protocol.
+        // Protocol alone does NOT grant coverage — subscription must be active.
+        covered = false;
       }
     }
 
-    // Get matching protocols for the dropdown (even if not "covered" — staff can link to them)
+    // Get matching protocols for the dropdown (for linking, even if not "covered")
     const availableProtocols = matchingProtocols.map(p => ({
       id: p.id,
       program_name: p.program_name,
@@ -108,13 +157,14 @@ export default async function handler(req, res) {
       total_sessions: p.total_sessions,
       sessions_used: p.sessions_used,
       start_date: p.start_date,
+      end_date: p.end_date,
       delivery_method: p.delivery_method,
       supply_type: p.supply_type,
       hrt_type: p.hrt_type,
     }));
 
     // Get all active protocols (for cross-category items like B12 in WL programs)
-    const allActiveProtocols = (protocols || []).map(p => ({
+    const allActiveProtocols = validProtocols.map(p => ({
       id: p.id,
       program_name: p.program_name,
       program_type: p.program_type,

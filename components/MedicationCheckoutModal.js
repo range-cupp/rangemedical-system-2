@@ -396,11 +396,11 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                   ) : (
                     <>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <AlertTriangle size={16} color="#ea580c" />
-                        <span style={{ fontWeight: 600, color: '#ea580c' }}>Not Covered</span>
+                        <Package size={16} color="#666" />
+                        <span style={{ fontWeight: 600, color: '#333' }}>New Purchase</span>
                       </div>
                       <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>
-                        No active membership or protocol covers this. Process payment via POS first, then check out here.
+                        Not covered by a membership or existing pack. Charge via POS Checkout tab, then log the dispensing here — or mark as complimentary below.
                       </div>
                     </>
                   )}

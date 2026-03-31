@@ -484,6 +484,58 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                 </div>
               )}
 
+              {/* Current protocol summary — so staff can see what patient is on */}
+              {selectedProtocol && (
+                <div style={{
+                  padding: '14px 16px',
+                  background: '#f8f9fa',
+                  border: '1px solid #e5e5e5',
+                  marginBottom: '16px',
+                }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+                    Current Protocol
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px' }}>
+                    {selectedProtocol.medication && (
+                      <div>
+                        <span style={{ fontSize: '11px', color: '#888' }}>Medication</span>
+                        <div style={{ fontSize: '14px', fontWeight: 600 }}>{selectedProtocol.medication}</div>
+                      </div>
+                    )}
+                    {selectedProtocol.selected_dose && (
+                      <div>
+                        <span style={{ fontSize: '11px', color: '#888' }}>Dosage</span>
+                        <div style={{ fontSize: '14px', fontWeight: 600 }}>{selectedProtocol.selected_dose}</div>
+                      </div>
+                    )}
+                    {selectedProtocol.frequency && (
+                      <div>
+                        <span style={{ fontSize: '11px', color: '#888' }}>Frequency</span>
+                        <div style={{ fontSize: '14px', fontWeight: 500 }}>{selectedProtocol.frequency}</div>
+                      </div>
+                    )}
+                    {selectedProtocol.delivery_method && (
+                      <div>
+                        <span style={{ fontSize: '11px', color: '#888' }}>Delivery</span>
+                        <div style={{ fontSize: '14px', fontWeight: 500 }}>{selectedProtocol.delivery_method === 'take_home' ? 'Take-Home' : selectedProtocol.delivery_method === 'in_clinic' ? 'In-Clinic' : selectedProtocol.delivery_method}</div>
+                      </div>
+                    )}
+                    {selectedProtocol.supply_type && (
+                      <div>
+                        <span style={{ fontSize: '11px', color: '#888' }}>Supply</span>
+                        <div style={{ fontSize: '14px', fontWeight: 500 }}>{formatSupplyType(selectedProtocol.supply_type)}</div>
+                      </div>
+                    )}
+                    {selectedProtocol.total_sessions != null && (
+                      <div>
+                        <span style={{ fontSize: '11px', color: '#888' }}>Sessions</span>
+                        <div style={{ fontSize: '14px', fontWeight: 500 }}>{selectedProtocol.sessions_used || 0}/{selectedProtocol.total_sessions} used</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Peptide cycle tracker */}
               {coverage?.peptide_cycle && (
                 <div style={{

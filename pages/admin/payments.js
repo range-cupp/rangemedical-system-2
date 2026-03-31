@@ -85,6 +85,12 @@ export default function PaymentsPage() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
 
+  // Charge Card on File state
+  const [chargeCardInvoice, setChargeCardInvoice] = useState(null);
+  const [chargeCardCards, setChargeCardCards] = useState([]);
+  const [chargeCardLoading, setChargeCardLoading] = useState(false);
+  const [chargingCard, setChargingCard] = useState(false);
+
   // Medication Checkout state
   const [showMedCheckout, setShowMedCheckout] = useState(false);
   const [medCheckoutPatient, setMedCheckoutPatient] = useState(null);
@@ -525,6 +531,50 @@ export default function PaymentsPage() {
       alert('Mark paid failed: ' + err.message);
     } finally {
       setMarkingPaidId(null);
+    }
+  };
+
+  // Charge card on file for an invoice
+  const openChargeCardModal = async (inv) => {
+    setShowPayDropdown(null);
+    if (!inv.patient_id) {
+      alert('This invoice has no linked patient — cannot look up saved cards.');
+      return;
+    }
+    setChargeCardInvoice(inv);
+    setChargeCardCards([]);
+    setChargeCardLoading(true);
+    try {
+      const res = await fetch(`/api/stripe/saved-cards?patient_id=${inv.patient_id}`);
+      const data = await res.json();
+      setChargeCardCards(data.cards || []);
+    } catch {
+      setChargeCardCards([]);
+    }
+    setChargeCardLoading(false);
+  };
+
+  const handleChargeCard = async (paymentMethodId) => {
+    if (!chargeCardInvoice) return;
+    const inv = chargeCardInvoice;
+    if (!confirm(`Charge ${formatCents(inv.total_cents)} to this card for ${inv.patient_name}?`)) return;
+    setChargingCard(true);
+    try {
+      const res = await fetch(`/api/invoices/${inv.id}/charge-card`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ payment_method_id: paymentMethodId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setActionMsg('Card charged successfully');
+      setTimeout(() => setActionMsg(''), 3000);
+      setChargeCardInvoice(null);
+      fetchInvoices();
+    } catch (err) {
+      alert('Charge failed: ' + err.message);
+    } finally {
+      setChargingCard(false);
     }
   };
 
@@ -1129,9 +1179,10 @@ export default function PaymentsPage() {
                                   </button>
                                   {showPayDropdown === inv.id && (
                                     <div style={styles.payDropdown}>
+                                      <div style={styles.payDropdownItem} onClick={() => openChargeCardModal(inv)}>Charge Card on File</div>
                                       <div style={styles.payDropdownItem} onClick={() => handleMarkPaid(inv, 'comp')}>Comp (no charge)</div>
                                       <div style={styles.payDropdownItem} onClick={() => handleMarkPaid(inv, 'cash')}>Cash</div>
-                                      <div style={styles.payDropdownItem} onClick={() => handleMarkPaid(inv, 'card')}>Card (over phone)</div>
+                                      <div style={styles.payDropdownItem} onClick={() => handleMarkPaid(inv, 'card')}>Card (manual)</div>
                                       <div style={styles.payDropdownItem} onClick={() => handleMarkPaid(inv, 'other')}>Other</div>
                                       <label
                                         style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '12px', color: '#64748b', cursor: 'pointer', borderTop: '1px solid #e2e8f0' }}
@@ -2158,6 +2209,74 @@ export default function PaymentsPage() {
                   {savingEdit ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Charge Card on File Modal */}
+      {chargeCardInvoice && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 0, width: 420, maxWidth: '90vw', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px 12px', borderBottom: '1px solid #f1f5f9' }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Charge Card on File</h3>
+              <button onClick={() => setChargeCardInvoice(null)} style={{ background: 'none', border: 'none', fontSize: 18, color: '#94a3b8', cursor: 'pointer', padding: '4px 8px' }}>✕</button>
+            </div>
+            <div style={{ padding: '16px 24px 24px' }}>
+              <div style={{ marginBottom: 16, fontSize: 13, color: '#475569' }}>
+                <strong>{chargeCardInvoice.patient_name}</strong> — {formatCents(chargeCardInvoice.total_cents)}
+              </div>
+
+              {chargeCardLoading ? (
+                <div style={{ padding: '20px 0', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>Loading saved cards...</div>
+              ) : chargeCardCards.length === 0 ? (
+                <div style={{ padding: '20px 0', textAlign: 'center', color: '#dc2626', fontSize: 13 }}>
+                  No saved cards on file for this patient.
+                  <div style={{ marginTop: 8, color: '#64748b', fontSize: 12 }}>
+                    The patient needs to complete a payment first, or you can use POS to save a card.
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 8 }}>Select a card to charge:</div>
+                  {chargeCardCards.map(card => (
+                    <button
+                      key={card.id}
+                      onClick={() => handleChargeCard(card.id)}
+                      disabled={chargingCard}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
+                        width: '100%',
+                        padding: '12px 16px',
+                        marginBottom: 8,
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 0,
+                        background: chargingCard ? '#f8fafc' : '#fff',
+                        cursor: chargingCard ? 'not-allowed' : 'pointer',
+                        fontSize: 14,
+                        fontFamily: 'inherit',
+                        color: '#1e293b',
+                        textAlign: 'left',
+                        transition: 'background 0.1s',
+                      }}
+                      onMouseEnter={e => { if (!chargingCard) e.target.style.background = '#f0f9ff'; }}
+                      onMouseLeave={e => { if (!chargingCard) e.target.style.background = '#fff'; }}
+                    >
+                      <CreditCard size={18} style={{ color: '#64748b', flexShrink: 0 }} />
+                      <span style={{ fontWeight: 600, textTransform: 'capitalize' }}>{card.brand}</span>
+                      <span>•••• {card.last4}</span>
+                      <span style={{ fontSize: 12, color: '#94a3b8', marginLeft: 'auto' }}>{card.exp_month}/{card.exp_year}</span>
+                    </button>
+                  ))}
+                  {chargingCard && (
+                    <div style={{ textAlign: 'center', padding: '8px 0', fontSize: 13, color: '#2563eb', fontWeight: 500 }}>
+                      Processing charge...
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

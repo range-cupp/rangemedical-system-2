@@ -73,6 +73,11 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
   // Employees
   const [employees, setEmployees] = useState([]);
 
+  // Payment (for non-covered items)
+  const [selectedService, setSelectedService] = useState(null); // pos_service item
+  const [paymentMethod, setPaymentMethod] = useState(''); // saved_card, cash, comp
+  const [selectedCardId, setSelectedCardId] = useState('');
+
   // Step 5: Result
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
@@ -113,6 +118,9 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     setTrackingNumber('');
     setSelectedProtocol(null);
     setCoverageType(null);
+    setSelectedService(null);
+    setPaymentMethod('');
+    setSelectedCardId('');
     setSubmitting(false);
     setResult(null);
     setError('');
@@ -203,6 +211,74 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     setError('');
 
     try {
+      let purchaseId = null;
+
+      // If this is a paid checkout, process payment first
+      if (coverageType === 'paid' && selectedService) {
+        const amountCents = selectedService.price_cents;
+        const description = selectedService.name;
+
+        if (paymentMethod === 'cash') {
+          // Cash: just record the purchase
+          const purchaseRes = await fetch('/api/stripe/record-purchase', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              patient_id: selectedPatient.id,
+              amount: amountCents,
+              description,
+              payment_method: 'cash',
+              service_category: selectedService.category,
+              service_name: selectedService.name,
+            }),
+          });
+          const purchaseData = await purchaseRes.json();
+          if (!purchaseRes.ok) throw new Error(purchaseData.error || 'Cash recording failed');
+          purchaseId = purchaseData.purchase?.id;
+        } else if (paymentMethod === 'saved_card' && selectedCardId) {
+          // Saved card: create PaymentIntent with payment_method_id
+          const piRes = await fetch('/api/stripe/payment-intent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              patient_id: selectedPatient.id,
+              amount: amountCents,
+              description,
+              payment_method_id: selectedCardId,
+            }),
+          });
+          const piData = await piRes.json();
+          if (!piRes.ok) throw new Error(piData.error || 'Payment failed');
+
+          if (piData.status === 'succeeded') {
+            // Record the purchase
+            const purchaseRes = await fetch('/api/stripe/record-purchase', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                patient_id: selectedPatient.id,
+                amount: amountCents,
+                description,
+                payment_method: 'stripe',
+                stripe_payment_intent_id: piData.payment_intent_id,
+                service_category: selectedService.category,
+                service_name: selectedService.name,
+              }),
+            });
+            const purchaseData = await purchaseRes.json();
+            if (!purchaseRes.ok) throw new Error(purchaseData.error || 'Purchase recording failed');
+            purchaseId = purchaseData.purchase?.id;
+          } else if (piData.status === 'requires_action') {
+            throw new Error('This card requires additional verification. Please use the POS Checkout for 3D Secure cards.');
+          } else {
+            throw new Error(`Payment status: ${piData.status}. Please try again.`);
+          }
+        } else if (paymentMethod !== 'comp') {
+          throw new Error('Please select a payment method');
+        }
+      }
+
+      // Now log the dispensing
       const body = {
         patient_id: selectedPatient.id,
         category: selectedCategory.id,
@@ -229,6 +305,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
         expiration_date: expirationDate || null,
         fulfillment_method: fulfillmentMethod,
         tracking_number: trackingNumber || null,
+        purchase_id: purchaseId,
       };
 
       const res = await fetch('/api/medication-checkout', {
@@ -243,7 +320,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
         throw new Error(data.error || 'Checkout failed');
       }
 
-      setResult(data);
+      setResult({ ...data, paid: coverageType === 'paid', amount: selectedService?.price_cents });
       setStep(5);
       if (onCheckoutComplete) onCheckoutComplete(data);
     } catch (err) {
@@ -400,7 +477,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                         <span style={{ fontWeight: 600, color: '#333' }}>New Purchase</span>
                       </div>
                       <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>
-                        Not covered by a membership or existing pack. Charge via POS Checkout tab, then log the dispensing here — or mark as complimentary below.
+                        Not covered by a membership or existing pack. Select pricing and payment method on the next step.
                       </div>
                     </>
                   )}
@@ -647,7 +724,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                   <div style={styles.radioGroup}>
                     <label style={styles.radioLabel}>
                       <input type="radio" name="coverage" value="paid" checked={coverageType === 'paid'} onChange={() => setCoverageType('paid')} />
-                      <span>Paid (process via POS)</span>
+                      <span>Paid</span>
                     </label>
                     <label style={styles.radioLabel}>
                       <input type="radio" name="coverage" value="comp" checked={coverageType === 'comp'} onChange={() => setCoverageType('comp')} />
@@ -742,25 +819,129 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                   </div>
                 )}
 
-                <div style={{
-                  ...styles.confirmRow,
-                  borderTop: '2px solid #000',
-                  marginTop: '12px',
-                  paddingTop: '12px',
-                }}>
-                  <span style={{ ...styles.confirmLabel, fontWeight: 700, fontSize: '15px' }}>Balance</span>
-                  <span style={{
-                    fontWeight: 700,
-                    fontSize: '20px',
-                    color: isCovered ? '#16a34a' : '#000',
-                  }}>
-                    {isCovered ? '$0.00' : 'See POS'}
-                  </span>
-                </div>
-                {isCovered && (
-                  <div style={{ fontSize: '13px', color: '#16a34a', textAlign: 'right', marginTop: '4px' }}>
-                    Covered by {coverageType === 'subscription' ? coverage?.coverage_source : coverageType === 'comp' ? 'Complimentary' : (selectedProtocol?.program_name || 'Active Protocol')}
-                  </div>
+                {/* BALANCE + PAYMENT */}
+                {isCovered ? (
+                  <>
+                    <div style={{
+                      ...styles.confirmRow,
+                      borderTop: '2px solid #16a34a',
+                      marginTop: '12px',
+                      paddingTop: '12px',
+                    }}>
+                      <span style={{ ...styles.confirmLabel, fontWeight: 700, fontSize: '15px' }}>Balance</span>
+                      <span style={{ fontWeight: 700, fontSize: '20px', color: '#16a34a' }}>$0.00</span>
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#16a34a', textAlign: 'right', marginTop: '4px' }}>
+                      Covered by {coverageType === 'subscription' ? coverage?.coverage_source : coverageType === 'comp' ? 'Complimentary' : (selectedProtocol?.program_name || 'Active Protocol')}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Service/Pricing selection */}
+                    <div style={{ borderTop: '2px solid #000', marginTop: '12px', paddingTop: '16px' }}>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>
+                        Payment
+                      </div>
+
+                      {coverage?.suggested_services?.length > 0 ? (
+                        <div style={styles.fieldGroup}>
+                          <label style={styles.label}>Select Service & Price</label>
+                          <select
+                            value={selectedService?.id || ''}
+                            onChange={e => {
+                              const svc = coverage.suggested_services.find(s => s.id === e.target.value);
+                              setSelectedService(svc || null);
+                            }}
+                            style={styles.select}
+                          >
+                            <option value="">Select pricing...</option>
+                            {coverage.suggested_services.map(s => (
+                              <option key={s.id} value={s.id}>
+                                {s.name} — {s.price_display}{s.recurring ? '/mo' : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '13px', color: '#999', marginBottom: '12px' }}>
+                          No matching services found in catalog. Use Complimentary or POS Checkout.
+                        </div>
+                      )}
+
+                      {/* Payment method */}
+                      <div style={styles.fieldGroup}>
+                        <label style={styles.label}>Payment Method</label>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {/* Saved cards */}
+                          {coverage?.saved_cards?.length > 0 && coverage.saved_cards.map(card => (
+                            <label key={card.id} style={{
+                              ...styles.paymentOption,
+                              borderColor: paymentMethod === 'saved_card' && selectedCardId === card.id ? '#000' : '#e5e5e5',
+                              background: paymentMethod === 'saved_card' && selectedCardId === card.id ? '#f5f5f5' : '#fff',
+                            }}>
+                              <input
+                                type="radio"
+                                name="payMethod"
+                                checked={paymentMethod === 'saved_card' && selectedCardId === card.id}
+                                onChange={() => { setPaymentMethod('saved_card'); setSelectedCardId(card.id); }}
+                              />
+                              <span style={{ fontWeight: 500 }}>
+                                {card.brand.charAt(0).toUpperCase() + card.brand.slice(1)} ····{card.last4}
+                              </span>
+                              <span style={{ fontSize: '12px', color: '#888', marginLeft: 'auto' }}>
+                                {card.exp_month}/{card.exp_year}
+                              </span>
+                            </label>
+                          ))}
+
+                          {/* Cash */}
+                          <label style={{
+                            ...styles.paymentOption,
+                            borderColor: paymentMethod === 'cash' ? '#000' : '#e5e5e5',
+                            background: paymentMethod === 'cash' ? '#f5f5f5' : '#fff',
+                          }}>
+                            <input
+                              type="radio"
+                              name="payMethod"
+                              checked={paymentMethod === 'cash'}
+                              onChange={() => { setPaymentMethod('cash'); setSelectedCardId(''); }}
+                            />
+                            <span style={{ fontWeight: 500 }}>Cash</span>
+                          </label>
+
+                          {/* Comp */}
+                          <label style={{
+                            ...styles.paymentOption,
+                            borderColor: paymentMethod === 'comp' ? '#000' : '#e5e5e5',
+                            background: paymentMethod === 'comp' ? '#f5f5f5' : '#fff',
+                          }}>
+                            <input
+                              type="radio"
+                              name="payMethod"
+                              checked={paymentMethod === 'comp'}
+                              onChange={() => { setPaymentMethod('comp'); setSelectedCardId(''); setCoverageType('comp'); }}
+                            />
+                            <span style={{ fontWeight: 500 }}>Complimentary ($0)</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Amount display */}
+                      {selectedService && paymentMethod && paymentMethod !== 'comp' && (
+                        <div style={{
+                          ...styles.confirmRow,
+                          borderTop: '1px solid #e5e5e5',
+                          marginTop: '8px',
+                          paddingTop: '12px',
+                        }}>
+                          <span style={{ ...styles.confirmLabel, fontWeight: 700, fontSize: '15px' }}>Total</span>
+                          <span style={{ fontWeight: 700, fontSize: '20px', color: '#000' }}>
+                            {selectedService.price_display}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
 
@@ -768,14 +949,23 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
 
               <button
                 onClick={handleSubmit}
-                disabled={submitting}
+                disabled={submitting || (!isCovered && coverageType !== 'comp' && (!selectedService || !paymentMethod))}
                 style={{
                   ...styles.primaryBtn,
                   background: isCovered ? '#16a34a' : '#000',
-                  opacity: submitting ? 0.6 : 1,
+                  opacity: submitting || (!isCovered && coverageType !== 'comp' && (!selectedService || !paymentMethod)) ? 0.5 : 1,
                 }}
               >
-                {submitting ? 'Processing...' : isCovered ? 'Complete Checkout — $0.00' : 'Complete Checkout'}
+                {submitting
+                  ? 'Processing...'
+                  : isCovered
+                    ? 'Complete Checkout — $0.00'
+                    : coverageType === 'comp'
+                      ? 'Complete Checkout — Complimentary'
+                      : selectedService
+                        ? `Pay ${selectedService.price_display} & Complete`
+                        : 'Complete Checkout'
+                }
               </button>
             </div>
           )}
@@ -802,7 +992,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                 </div>
               )}
 
-              {isCovered && (
+              {isCovered ? (
                 <div style={{
                   display: 'inline-block', padding: '8px 16px',
                   background: '#f0fdf4', border: '1px solid #bbf7d0',
@@ -811,7 +1001,16 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                 }}>
                   $0.00 — {coverageType === 'subscription' ? coverage?.coverage_source : coverageType === 'comp' ? 'Complimentary' : 'Covered by Protocol'}
                 </div>
-              )}
+              ) : result?.paid && result?.amount ? (
+                <div style={{
+                  display: 'inline-block', padding: '8px 16px',
+                  background: '#f5f5f5', border: '1px solid #e5e5e5',
+                  fontSize: '14px', color: '#000', fontWeight: 600,
+                  marginBottom: '24px',
+                }}>
+                  ${(result.amount / 100).toFixed(2)} — Paid
+                </div>
+              ) : null}
 
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
                 <button
@@ -1301,6 +1500,18 @@ const styles = {
     fontSize: '14px',
     fontWeight: 500,
     cursor: 'pointer',
+  },
+
+  // Payment option
+  paymentOption: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '12px 14px',
+    border: '1px solid #e5e5e5',
+    cursor: 'pointer',
+    fontSize: '14px',
+    transition: 'all 0.1s',
   },
 
   // Error

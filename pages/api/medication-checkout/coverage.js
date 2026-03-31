@@ -25,7 +25,7 @@ const CATEGORY_TO_SUB_CATEGORY = {
   iv_therapy: ['iv_therapy', 'iv', 'combo_membership'],
   hbot: ['hbot', 'combo_membership'],
   red_light: ['red_light', 'rlt', 'combo_membership'],
-  vitamin: ['hrt', 'weight_loss'], // B12 etc often included in programs
+  vitamin: ['weight_loss'], // B12/vitamin injections included in WL program only, not HRT
   // peptide: intentionally omitted — never covered by subscription
   // supplement: intentionally omitted — never covered
 };
@@ -197,6 +197,69 @@ export default async function handler(req, res) {
       plan_name: formatSubName(s),
     }));
 
+    // Fetch pricing from pos_services for non-covered items
+    let suggested_services = [];
+    if (!covered) {
+      const posCategoryMap = {
+        testosterone: 'hrt',
+        weight_loss: 'weight_loss',
+        peptide: 'peptide',
+        iv_therapy: 'iv_therapy',
+        hbot: 'hbot',
+        red_light: 'red_light',
+        vitamin: 'injections',
+        supplement: 'supplements',
+      };
+      const posCategory = posCategoryMap[category];
+      if (posCategory) {
+        const { data: services } = await supabase
+          .from('pos_services')
+          .select('id, name, category, price, recurring, interval')
+          .eq('active', true)
+          .or(`category.eq.${posCategory},category.eq.${category}`)
+          .order('sort_order', { ascending: true });
+
+        suggested_services = (services || []).map(s => ({
+          id: s.id,
+          name: s.name,
+          category: s.category,
+          price_cents: s.price,
+          price_display: `$${(s.price / 100).toFixed(2)}`,
+          recurring: s.recurring,
+          interval: s.interval,
+        }));
+      }
+    }
+
+    // Fetch patient's saved cards for payment
+    let saved_cards = [];
+    if (!covered) {
+      const { data: patientData } = await supabase
+        .from('patients')
+        .select('stripe_customer_id')
+        .eq('id', patient_id)
+        .single();
+
+      if (patientData?.stripe_customer_id) {
+        try {
+          const stripe = (await import('../../../lib/stripe')).default;
+          const paymentMethods = await stripe.paymentMethods.list({
+            customer: patientData.stripe_customer_id,
+            type: 'card',
+          });
+          saved_cards = (paymentMethods.data || []).map(pm => ({
+            id: pm.id,
+            brand: pm.card.brand,
+            last4: pm.card.last4,
+            exp_month: pm.card.exp_month,
+            exp_year: pm.card.exp_year,
+          }));
+        } catch (err) {
+          console.error('[coverage] Stripe cards error:', err.message);
+        }
+      }
+    }
+
     return res.status(200).json({
       covered,
       coverage_type,
@@ -205,6 +268,8 @@ export default async function handler(req, res) {
       available_protocols: availableProtocols,
       all_protocols: allActiveProtocols,
       active_subscriptions: activeSubscriptions,
+      suggested_services,
+      saved_cards,
     });
   } catch (err) {
     console.error('[medication-checkout/coverage] Error:', err);

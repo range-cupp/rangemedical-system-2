@@ -119,7 +119,10 @@ export default async function handler(req, res) {
       if (!protoTypes.includes(p.program_type)) return false;
       // For peptides, include even if sessions are used up — we need to show cycle status
       if (category === 'peptide') return true;
-      // For session-based protocols, check if sessions remain
+      // For weight loss, include active protocols even if all sessions are used —
+      // patient is still on the program, sessions track dispensed inventory not eligibility
+      if (category === 'weight_loss' && p.status === 'active') return true;
+      // For session-based protocols (HBOT, RLT, IV), check if sessions remain
       if (p.total_sessions && p.sessions_used >= p.total_sessions) return false;
       return true;
     });
@@ -164,11 +167,13 @@ export default async function handler(req, res) {
       const proto = matchingProtocols[0];
 
       if (category === 'weight_loss') {
-        // Weight loss: covered if protocol has sessions (injections) remaining
-        if (proto.total_sessions && proto.sessions_used < proto.total_sessions) {
+        // Weight loss: covered if protocol is active (status='active', end_date in future)
+        // Session count tracks dispensed inventory, not program eligibility
+        if (proto.status === 'active') {
           covered = true;
           coverage_type = 'protocol';
-          coverage_source = `${proto.program_name || 'Weight Loss Program'} (${proto.sessions_used || 0}/${proto.total_sessions} used)`;
+          const sessionInfo = proto.total_sessions ? ` (${proto.sessions_used || 0}/${proto.total_sessions} dispensed)` : '';
+          coverage_source = `${proto.program_name || 'Weight Loss Program'}${sessionInfo}`;
           coverage_id = proto.id;
         }
       } else if (SESSION_COVERAGE_CATEGORIES.includes(category)) {

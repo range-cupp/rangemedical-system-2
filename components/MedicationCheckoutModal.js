@@ -73,6 +73,9 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
   // Employees
   const [employees, setEmployees] = useState([]);
 
+  // Email receipt
+  const [sendReceipt, setSendReceipt] = useState(true);
+
   // Payment (for non-covered items)
   const [selectedService, setSelectedService] = useState(null); // pos_service item
   const [paymentMethod, setPaymentMethod] = useState(''); // saved_card, cash, comp
@@ -118,6 +121,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     setTrackingNumber('');
     setSelectedProtocol(null);
     setCoverageType(null);
+    setSendReceipt(true);
     setSelectedService(null);
     setPaymentMethod('');
     setSelectedCardId('');
@@ -306,6 +310,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
         fulfillment_method: fulfillmentMethod,
         tracking_number: trackingNumber || null,
         purchase_id: purchaseId,
+        send_receipt: sendReceipt,
       };
 
       const res = await fetch('/api/medication-checkout', {
@@ -1049,6 +1054,18 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                   </>
                 )}
               </div>
+
+              {/* Send receipt toggle */}
+              {selectedPatient?.email && (
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#666', cursor: 'pointer', marginBottom: '12px' }}>
+                  <input
+                    type="checkbox"
+                    checked={sendReceipt}
+                    onChange={e => setSendReceipt(e.target.checked)}
+                  />
+                  Send receipt email to {selectedPatient.email}
+                </label>
+              )}
 
               {error && <div style={styles.errorMsg}>{error}</div>}
 

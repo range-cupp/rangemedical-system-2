@@ -55,6 +55,9 @@ export default async function handler(req, res) {
     // Weight loss multi-injection
     injection_method,
     injection_frequency,
+
+    // Email control
+    send_receipt = true,   // default true; front desk can toggle off for multi-checkout visits
   } = req.body;
 
   if (!patient_id || !category) {
@@ -175,9 +178,9 @@ export default async function handler(req, res) {
       await syncWeightToVitals(patient_id, weight, logDate, administered_by);
     }
 
-    // 6. Send receipt/confirmation email
+    // 6. Send receipt/confirmation email (if enabled)
     const isCovered = coverage_type === 'subscription' || coverage_type === 'protocol' || coverage_type === 'comp';
-    await sendCheckoutReceipt({
+    if (send_receipt) await sendCheckoutReceipt({
       patient,
       patientName,
       medication,
@@ -194,7 +197,7 @@ export default async function handler(req, res) {
       success: true,
       service_log: finalLog,
       protocol_update: protocolUpdate,
-      receipt_sent: !!patient.email,
+      receipt_sent: send_receipt && !!patient.email,
     });
   } catch (err) {
     console.error('[medication-checkout] Error:', err);

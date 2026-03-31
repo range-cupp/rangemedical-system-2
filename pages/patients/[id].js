@@ -529,6 +529,16 @@ export default function PatientProfile() {
     }
   };
 
+  // AI Patient Synopsis
+  const [aiSynopsis, setAiSynopsis] = useState(null);
+  const [aiSynopsisLoading, setAiSynopsisLoading] = useState(false);
+  const [aiSynopsisExpanded, setAiSynopsisExpanded] = useState(true);
+
+  // Quick staff note from top section
+  const [quickNoteInput, setQuickNoteInput] = useState('');
+  const [quickNoteSaving, setQuickNoteSaving] = useState(false);
+  const [staffNotesExpanded, setStaffNotesExpanded] = useState(true);
+
   // Protocol PDF modal
   const [showProtocolPdfModal, setShowProtocolPdfModal] = useState(false);
   const [protocolPdfSelections, setProtocolPdfSelections] = useState({});
@@ -947,6 +957,20 @@ export default function PatientProfile() {
             .then(r => r.json())
             .then(d => setHrtRangeIVStatus({ protocolId: activeHrt.id, ...d }))
             .catch(() => {});
+        }
+
+        // Fetch AI synopsis (non-blocking)
+        if (!aiSynopsis) {
+          setAiSynopsisLoading(true);
+          fetch('/api/patients/synopsis', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ patient_id: id }),
+          })
+            .then(r => r.json())
+            .then(d => { if (d.synopsis) setAiSynopsis(d.synopsis); })
+            .catch(() => {})
+            .finally(() => setAiSynopsisLoading(false));
         }
       }
     } catch (error) {
@@ -2990,6 +3014,50 @@ export default function PatientProfile() {
     }
   };
 
+  const handleQuickNote = async () => {
+    if (!quickNoteInput.trim()) return;
+    setQuickNoteSaving(true);
+    try {
+      const res = await fetch('/api/notes/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: id,
+          raw_input: quickNoteInput,
+          body: quickNoteInput,
+          created_by: employee?.name || 'Staff',
+          note_category: 'internal',
+        }),
+      });
+      const data = await res.json();
+      if (data.note) {
+        setNotes(prev => [data.note, ...prev]);
+        setQuickNoteInput('');
+      }
+    } catch (error) {
+      console.error('Quick note save error:', error);
+    } finally {
+      setQuickNoteSaving(false);
+    }
+  };
+
+  const handleRefreshSynopsis = async () => {
+    setAiSynopsisLoading(true);
+    try {
+      const res = await fetch('/api/patients/synopsis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patient_id: id, force: true }),
+      });
+      const data = await res.json();
+      if (data.synopsis) setAiSynopsis(data.synopsis);
+    } catch (error) {
+      console.error('Synopsis refresh error:', error);
+    } finally {
+      setAiSynopsisLoading(false);
+    }
+  };
+
   const handleDeleteNote = async (noteId) => {
     if (!confirm('Delete this note? This cannot be undone.')) return;
     try {
@@ -3884,6 +3952,123 @@ export default function PatientProfile() {
               </button>
             )}
           </section>
+        )}
+
+        {/* AI Synopsis + Staff Notes Bar */}
+        {!loading && patient && (
+          <div className="staff-briefing-bar">
+            {/* AI Synopsis */}
+            <div className="briefing-section">
+              <button
+                className="briefing-header"
+                onClick={() => setAiSynopsisExpanded(!aiSynopsisExpanded)}
+              >
+                <span className="briefing-header-left">
+                  <span style={{ fontSize: 15 }}>🤖</span>
+                  <span className="briefing-title">AI SYNOPSIS</span>
+                  {aiSynopsisLoading && <span className="briefing-loading">Generating...</span>}
+                </span>
+                <span className="briefing-header-right">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleRefreshSynopsis(); }}
+                    className="briefing-refresh-btn"
+                    title="Refresh synopsis"
+                    disabled={aiSynopsisLoading}
+                  >↻</button>
+                  <span className="briefing-chevron">{aiSynopsisExpanded ? '▲' : '▼'}</span>
+                </span>
+              </button>
+              {aiSynopsisExpanded && (
+                <div className="briefing-body">
+                  {aiSynopsisLoading && !aiSynopsis ? (
+                    <div className="briefing-placeholder">Analyzing patient history...</div>
+                  ) : aiSynopsis ? (
+                    <div className="briefing-synopsis-text">{aiSynopsis}</div>
+                  ) : (
+                    <div className="briefing-placeholder">No synopsis available — click refresh to generate</div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Staff Internal Notes */}
+            <div className="briefing-section briefing-notes-section">
+              <button
+                className="briefing-header"
+                onClick={() => setStaffNotesExpanded(!staffNotesExpanded)}
+              >
+                <span className="briefing-header-left">
+                  <span style={{ fontSize: 15 }}>📝</span>
+                  <span className="briefing-title">STAFF NOTES</span>
+                  <span className="briefing-count">
+                    {notes.filter(n => n.note_category === 'internal' || (!n.note_category && !['encounter', 'addendum', 'protocol'].includes(n.source))).length}
+                  </span>
+                </span>
+                <span className="briefing-header-right">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setAddNoteCategory('internal'); setShowAddNoteModal(true); }}
+                    className="briefing-add-btn"
+                    title="Add staff note"
+                  >+ Add Note</button>
+                  <span className="briefing-chevron">{staffNotesExpanded ? '▲' : '▼'}</span>
+                </span>
+              </button>
+              {staffNotesExpanded && (
+                <div className="briefing-body">
+                  {/* Quick note input */}
+                  <div className="quick-note-row">
+                    <input
+                      type="text"
+                      value={quickNoteInput}
+                      onChange={e => setQuickNoteInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter' && quickNoteInput.trim()) handleQuickNote(); }}
+                      placeholder="Quick note... (press Enter to save)"
+                      className="quick-note-input"
+                    />
+                    <button
+                      onClick={handleQuickNote}
+                      disabled={!quickNoteInput.trim() || quickNoteSaving}
+                      className="quick-note-save-btn"
+                    >
+                      {quickNoteSaving ? '...' : 'Save'}
+                    </button>
+                  </div>
+
+                  {/* Recent internal notes */}
+                  {(() => {
+                    const internalNotes = notes.filter(n =>
+                      n.note_category === 'internal' || (!n.note_category && !['encounter', 'addendum', 'protocol'].includes(n.source))
+                    );
+                    if (internalNotes.length === 0) {
+                      return <div className="briefing-placeholder">No staff notes yet — add one above</div>;
+                    }
+                    return (
+                      <div className="briefing-notes-list">
+                        {internalNotes.slice(0, 5).map(note => (
+                          <div key={note.id} className="briefing-note-item">
+                            <div className="briefing-note-meta">
+                              {formatDate(note.note_date || note.created_at)}
+                              {note.created_by && ` · ${getStaffDisplayName(note.created_by)}`}
+                              {note.pinned && <span className="briefing-note-pin">📌</span>}
+                            </div>
+                            <div className="briefing-note-body">{note.body}</div>
+                          </div>
+                        ))}
+                        {internalNotes.length > 5 && (
+                          <button
+                            onClick={() => { setActiveTab('notes'); setNoteFilter('internal'); }}
+                            className="briefing-view-all"
+                          >
+                            View all {internalNotes.length} staff notes →
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+          </div>
         )}
 
         {/* Patient Synopsis Card */}
@@ -10488,6 +10673,193 @@ export default function PatientProfile() {
           max-width: 480px;
           width: 90%;
         }
+
+        /* Staff Briefing Bar (AI Synopsis + Staff Notes) */
+        .staff-briefing-bar {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 0;
+          margin: 0 0 16px;
+          border: 1px solid #e5e7eb;
+          border-radius: 10px;
+          background: #fff;
+          overflow: hidden;
+        }
+        @media (max-width: 768px) {
+          .staff-briefing-bar { grid-template-columns: 1fr; }
+        }
+        .briefing-section {
+          min-width: 0;
+        }
+        .briefing-notes-section {
+          border-left: 1px solid #e5e7eb;
+        }
+        @media (max-width: 768px) {
+          .briefing-notes-section {
+            border-left: none;
+            border-top: 1px solid #e5e7eb;
+          }
+        }
+        .briefing-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          width: 100%;
+          padding: 10px 14px;
+          background: #f9fafb;
+          border: none;
+          border-bottom: 1px solid #f3f4f6;
+          cursor: pointer;
+          transition: background 0.15s;
+        }
+        .briefing-header:hover { background: #f3f4f6; }
+        .briefing-header-left {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .briefing-header-right {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .briefing-title {
+          font-size: 10px;
+          font-weight: 700;
+          color: #9ca3af;
+          letter-spacing: 0.5px;
+        }
+        .briefing-loading {
+          font-size: 11px;
+          color: #9ca3af;
+          font-weight: 400;
+          font-style: italic;
+        }
+        .briefing-count {
+          font-size: 11px;
+          font-weight: 600;
+          color: #6b7280;
+          background: #f3f4f6;
+          padding: 1px 7px;
+          border-radius: 10px;
+        }
+        .briefing-chevron {
+          font-size: 10px;
+          color: #9ca3af;
+        }
+        .briefing-refresh-btn {
+          background: none;
+          border: 1px solid #e5e7eb;
+          color: #6b7280;
+          font-size: 14px;
+          width: 26px;
+          height: 26px;
+          border-radius: 6px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.15s;
+        }
+        .briefing-refresh-btn:hover { background: #f3f4f6; color: #374151; }
+        .briefing-refresh-btn:disabled { opacity: 0.4; cursor: default; }
+        .briefing-add-btn {
+          background: #111827;
+          color: #fff;
+          border: none;
+          font-size: 11px;
+          font-weight: 600;
+          padding: 4px 10px;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: opacity 0.15s;
+        }
+        .briefing-add-btn:hover { opacity: 0.85; }
+        .briefing-body {
+          padding: 12px 14px;
+        }
+        .briefing-placeholder {
+          font-size: 13px;
+          color: #9ca3af;
+          font-style: italic;
+        }
+        .briefing-synopsis-text {
+          font-size: 13px;
+          color: #374151;
+          line-height: 1.65;
+          white-space: pre-wrap;
+        }
+        .quick-note-row {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+        .quick-note-input {
+          flex: 1;
+          padding: 7px 10px;
+          border: 1px solid #e5e7eb;
+          border-radius: 6px;
+          font-size: 13px;
+          font-family: inherit;
+          outline: none;
+          transition: border-color 0.15s;
+        }
+        .quick-note-input:focus { border-color: #111827; }
+        .quick-note-save-btn {
+          background: #111827;
+          color: #fff;
+          border: none;
+          font-size: 12px;
+          font-weight: 600;
+          padding: 7px 14px;
+          border-radius: 6px;
+          cursor: pointer;
+          transition: opacity 0.15s;
+          white-space: nowrap;
+        }
+        .quick-note-save-btn:hover { opacity: 0.85; }
+        .quick-note-save-btn:disabled { opacity: 0.4; cursor: default; }
+        .briefing-notes-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .briefing-note-item {
+          padding: 8px 10px;
+          background: #f9fafb;
+          border-radius: 6px;
+          border: 1px solid #f3f4f6;
+        }
+        .briefing-note-meta {
+          font-size: 11px;
+          color: #9ca3af;
+          margin-bottom: 3px;
+        }
+        .briefing-note-pin {
+          margin-left: 4px;
+          font-size: 11px;
+        }
+        .briefing-note-body {
+          font-size: 13px;
+          color: #374151;
+          line-height: 1.5;
+          white-space: pre-wrap;
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+        .briefing-view-all {
+          background: none;
+          border: none;
+          color: #2563eb;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          padding: 4px 0;
+          text-align: left;
+        }
+        .briefing-view-all:hover { text-decoration: underline; }
 
         /* Patient Synopsis Card */
         .synopsis-card {

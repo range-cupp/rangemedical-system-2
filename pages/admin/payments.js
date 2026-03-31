@@ -8,6 +8,7 @@ import Link from 'next/link';
 import AdminLayout from '../../components/AdminLayout';
 import InvoiceModal from '../../components/InvoiceModal';
 import POSChargeModal from '../../components/POSChargeModal';
+import MedicationCheckoutModal from '../../components/MedicationCheckoutModal';
 import PaymentCalendar from '../../components/PaymentCalendar';
 import { loadStripe } from '@stripe/stripe-js';
 import { List, Calendar, CreditCard, AlertTriangle, CheckCircle, XCircle, Clock, RefreshCw, X } from 'lucide-react';
@@ -22,7 +23,7 @@ const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   : null;
 
 export default function PaymentsPage() {
-  const [tab, setTab] = useState('invoices');
+  const [tab, setTab] = useState('checkout');
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
@@ -83,6 +84,12 @@ export default function PaymentsPage() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
+
+  // Medication Checkout state
+  const [showMedCheckout, setShowMedCheckout] = useState(false);
+  const [medCheckoutPatient, setMedCheckoutPatient] = useState(null);
+  const [recentCheckouts, setRecentCheckouts] = useState([]);
+  const [loadingCheckouts, setLoadingCheckouts] = useState(false);
 
   // POS state
   const [showChargeModal, setShowChargeModal] = useState(false);
@@ -673,7 +680,7 @@ export default function PaymentsPage() {
       {/* Tab bar + Create button */}
       <div style={styles.topBar}>
         <div style={styles.tabBar}>
-          {['invoices', 'pos', 'subscriptions', 'purchases', 'products', 'gift_cards'].map(t => (
+          {['checkout', 'invoices', 'pos', 'subscriptions', 'purchases', 'products', 'gift_cards'].map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -682,10 +689,18 @@ export default function PaymentsPage() {
                 ...(tab === t ? styles.tabActive : {})
               }}
             >
-              {t === 'invoices' ? 'Invoices' : t === 'pos' ? 'POS Checkout' : t === 'subscriptions' ? 'Subscriptions' : t === 'purchases' ? 'Purchases' : t === 'products' ? 'Products & Services' : 'Gift Cards'}
+              {t === 'checkout' ? 'Checkout' : t === 'invoices' ? 'Invoices' : t === 'pos' ? 'POS Checkout' : t === 'subscriptions' ? 'Subscriptions' : t === 'purchases' ? 'Purchases' : t === 'products' ? 'Products & Services' : 'Gift Cards'}
             </button>
           ))}
         </div>
+        {tab === 'checkout' && (
+          <button
+            onClick={() => setShowMedCheckout(true)}
+            style={{ padding: '10px 20px', background: '#000', color: '#fff', border: 'none', fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}
+          >
+            + New Checkout
+          </button>
+        )}
         {tab === 'invoices' && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             {/* View toggle */}
@@ -776,6 +791,27 @@ export default function PaymentsPage() {
             </table>
           )}
         </div>
+      )}
+
+      {/* === CHECKOUT TAB === */}
+      {tab === 'checkout' && (
+        <>
+          <CheckoutTab
+            onStartCheckout={(patient) => {
+              setMedCheckoutPatient(patient || null);
+              setShowMedCheckout(true);
+            }}
+          />
+          <MedicationCheckoutModal
+            isOpen={showMedCheckout}
+            onClose={() => { setShowMedCheckout(false); setMedCheckoutPatient(null); }}
+            preselectedPatient={medCheckoutPatient}
+            onCheckoutComplete={() => {
+              setActionMsg('Checkout completed successfully');
+              setTimeout(() => setActionMsg(''), 3000);
+            }}
+          />
+        </>
       )}
 
       {tab === 'invoices' && viewMode === 'calendar' && (
@@ -2138,6 +2174,192 @@ export default function PaymentsPage() {
 }
 
 import React from 'react';
+
+// ================================================================
+// CHECKOUT TAB — Recent checkouts + quick patient search
+// ================================================================
+function CheckoutTab({ onStartCheckout }) {
+  const [search, setSearch] = useState('');
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [recentCheckouts, setRecentCheckouts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const searchRef = useRef(null);
+
+  useEffect(() => {
+    loadRecentCheckouts();
+  }, []);
+
+  useEffect(() => {
+    if (search.length < 2) { setResults([]); setShowDropdown(false); return; }
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(`/api/patients/search?q=${encodeURIComponent(search)}`);
+        const data = await res.json();
+        setResults(data.patients || []);
+        setShowDropdown(true);
+      } catch (err) { console.error(err); }
+      setSearching(false);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  async function loadRecentCheckouts() {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/service-log?limit=50');
+      const data = await res.json();
+      setRecentCheckouts((data.logs || []).slice(0, 30));
+    } catch (err) { console.error(err); }
+    setLoading(false);
+  }
+
+  const catLabels = {
+    testosterone: 'HRT', weight_loss: 'Weight Loss', peptide: 'Peptide',
+    iv_therapy: 'IV', hbot: 'HBOT', red_light: 'Red Light',
+    vitamin: 'Vitamin', supplement: 'Supplement',
+  };
+  const catColors = {
+    testosterone: '#7c3aed', weight_loss: '#ea580c', peptide: '#0891b2',
+    iv_therapy: '#2563eb', hbot: '#059669', red_light: '#dc2626',
+    vitamin: '#ca8a04', supplement: '#64748b',
+  };
+
+  return (
+    <div>
+      {/* Quick patient search */}
+      <div style={{ ...checkoutStyles.section, marginBottom: '24px' }}>
+        <h3 style={checkoutStyles.sectionTitle}>New Checkout</h3>
+        <div style={{ position: 'relative' }}>
+          <input
+            ref={searchRef}
+            type="text"
+            placeholder="Search patient by name to start checkout..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            onFocus={() => { if (results.length > 0) setShowDropdown(true); }}
+            onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+            style={{
+              width: '100%', padding: '14px 16px', border: '1px solid #ddd',
+              fontSize: '15px', boxSizing: 'border-box',
+            }}
+          />
+          {searching && (
+            <span style={{ position: 'absolute', right: '14px', top: '15px', color: '#999', fontSize: '13px' }}>
+              Searching...
+            </span>
+          )}
+          {showDropdown && results.length > 0 && (
+            <div style={{
+              position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
+              background: '#fff', border: '1px solid #ddd', borderTop: 'none',
+              maxHeight: '240px', overflowY: 'auto',
+            }}>
+              {results.map(p => (
+                <div
+                  key={p.id}
+                  style={{
+                    padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0',
+                  }}
+                  onMouseDown={() => {
+                    setSearch('');
+                    setShowDropdown(false);
+                    onStartCheckout(p);
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
+                  onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                >
+                  <div style={{ fontWeight: 500 }}>{p.name}</div>
+                  {p.email && <div style={{ fontSize: '12px', color: '#888' }}>{p.email}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <button
+          onClick={() => onStartCheckout(null)}
+          style={{
+            marginTop: '10px', padding: '10px 20px', background: '#fff',
+            border: '1px solid #ddd', fontSize: '14px', cursor: 'pointer',
+          }}
+        >
+          Open Checkout (search in modal)
+        </button>
+      </div>
+
+      {/* Recent checkouts */}
+      <div style={checkoutStyles.section}>
+        <h3 style={checkoutStyles.sectionTitle}>Recent Activity</h3>
+        <div style={{ background: '#fff', border: '1px solid #e5e5e5', overflow: 'hidden' }}>
+          {loading ? (
+            <div style={{ padding: '20px', textAlign: 'center', color: '#999' }}>Loading...</div>
+          ) : recentCheckouts.length === 0 ? (
+            <div style={{ padding: '20px', textAlign: 'center', color: '#999' }}>No recent activity</div>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={checkoutStyles.th}>Patient</th>
+                  <th style={checkoutStyles.th}>Service</th>
+                  <th style={checkoutStyles.th}>Medication</th>
+                  <th style={checkoutStyles.th}>Type</th>
+                  <th style={checkoutStyles.th}>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentCheckouts.map(log => (
+                  <tr key={log.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                    <td style={checkoutStyles.td}>
+                      <span style={{ fontWeight: 500 }}>{log.patient_name || '—'}</span>
+                    </td>
+                    <td style={checkoutStyles.td}>
+                      <span style={{
+                        display: 'inline-block', padding: '3px 8px',
+                        fontSize: '11px', fontWeight: 600, textTransform: 'uppercase',
+                        color: '#fff', background: catColors[log.category] || '#64748b',
+                      }}>
+                        {catLabels[log.category] || log.category}
+                      </span>
+                    </td>
+                    <td style={checkoutStyles.td}>
+                      <span style={{ fontSize: '13px' }}>{log.medication || '—'}</span>
+                      {log.dosage && <span style={{ fontSize: '12px', color: '#888', marginLeft: '4px' }}>({log.dosage})</span>}
+                    </td>
+                    <td style={checkoutStyles.td}>
+                      <span style={{ fontSize: '13px', color: '#666' }}>
+                        {log.entry_type === 'injection' ? 'Injection' : log.entry_type === 'pickup' ? 'Pickup' : log.entry_type === 'session' ? 'Session' : log.entry_type || '—'}
+                      </span>
+                    </td>
+                    <td style={checkoutStyles.td}>
+                      <span style={{ fontSize: '13px', color: '#888' }}>
+                        {log.entry_date ? new Date(log.entry_date + 'T12:00:00').toLocaleDateString() : '—'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const checkoutStyles = {
+  section: { marginBottom: '20px' },
+  sectionTitle: { margin: '0 0 12px', fontSize: '16px', fontWeight: 600 },
+  th: {
+    padding: '10px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 600,
+    textTransform: 'uppercase', letterSpacing: '0.5px', color: '#666',
+    borderBottom: '1px solid #e5e5e5', background: '#fafafa',
+  },
+  td: {
+    padding: '10px 16px', fontSize: '14px', verticalAlign: 'middle',
+  },
+};
 
 const styles = {
   topBar: {

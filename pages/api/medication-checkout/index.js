@@ -226,7 +226,12 @@ async function updateProtocol(protocolId, opts) {
     };
 
     // Increment sessions_used for session/injection-based protocols
-    if ((entryType === 'injection' || entryType === 'session') && protocol.total_sessions) {
+    // Skip session counting if the checkout item's category doesn't match the protocol's category
+    // (e.g., B12 vitamin add-ons linked to a weight_loss protocol shouldn't count as WL sessions)
+    const protocolCategory = protocol.program_type || category;
+    const categoryMatchesProtocol = category === protocolCategory || isWeightLossType(category) === isWeightLossType(protocolCategory);
+
+    if ((entryType === 'injection' || entryType === 'session') && protocol.total_sessions && categoryMatchesProtocol) {
       const increment = (isWeightLossType(category) && quantity && parseInt(quantity) > 1) ? parseInt(quantity) : 1;
       updates.sessions_used = (protocol.sessions_used || 0) + increment;
 
@@ -248,7 +253,7 @@ async function updateProtocol(protocolId, opts) {
 
       // Check if protocol is now complete
       // Weight loss protocols stay active — total_sessions is per billing period, not lifetime
-      if (updates.sessions_used >= protocol.total_sessions && !isWeightLossType(category)) {
+      if (updates.sessions_used >= protocol.total_sessions && !isWeightLossType(protocolCategory)) {
         updates.status = 'completed';
         updates.end_date = logDate;
       }
@@ -292,9 +297,12 @@ async function updateProtocol(protocolId, opts) {
         updates.next_expected_date = nextDate.toISOString().split('T')[0];
       }
 
-      // Update medication details if provided
-      if (medication) updates.medication = medication;
-      if (dosage) updates.selected_dose = dosage;
+      // Update medication details only if the checkout item matches the protocol's category
+      // (prevents B12 add-ons from overwriting the protocol's actual medication)
+      if (categoryMatchesProtocol) {
+        if (medication) updates.medication = medication;
+        if (dosage) updates.selected_dose = dosage;
+      }
 
       // Extend end_date if protocol is at or past its end_date (e.g., HRT refill a day late)
       if (protocol.end_date && protocol.end_date <= logDate && updates.next_expected_date) {

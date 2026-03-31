@@ -236,7 +236,8 @@ async function updateProtocol(protocolId, opts) {
       updates.next_expected_date = nextDate.toISOString().split('T')[0];
 
       // Check if protocol is now complete
-      if (updates.sessions_used >= protocol.total_sessions) {
+      // Weight loss protocols stay active — total_sessions is per billing period, not lifetime
+      if (updates.sessions_used >= protocol.total_sessions && !isWeightLossType(category)) {
         updates.status = 'completed';
         updates.end_date = logDate;
       }

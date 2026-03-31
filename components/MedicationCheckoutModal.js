@@ -60,6 +60,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
   const [entryType, setEntryType] = useState(''); // injection, pickup, session, med_pickup
   const [notes, setNotes] = useState('');
   const [administeredBy, setAdministeredBy] = useState('');
+  const [verifiedBy, setVerifiedBy] = useState('');
   const [lotNumber, setLotNumber] = useState('');
   const [expirationDate, setExpirationDate] = useState('');
   const [fulfillmentMethod, setFulfillmentMethod] = useState('in_clinic');
@@ -105,6 +106,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     setEntryType('');
     setNotes('');
     setAdministeredBy('');
+    setVerifiedBy('');
     setLotNumber('');
     setExpirationDate('');
     setFulfillmentMethod('in_clinic');
@@ -222,6 +224,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
               ? 'Complimentary'
               : 'Paid at checkout',
         administered_by: administeredBy || null,
+        verified_by: verifiedBy || null,
         lot_number: lotNumber || null,
         expiration_date: expirationDate || null,
         fulfillment_method: fulfillmentMethod,
@@ -565,17 +568,49 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
               )}
 
               {/* Staff / dispensing details */}
-              <div style={styles.fieldGroup}>
-                <label style={styles.label}>Checked Out By</label>
-                <select value={administeredBy} onChange={e => setAdministeredBy(e.target.value)} style={styles.select}>
-                  <option value="">Select staff member...</option>
-                  {employees.map(emp => (
-                    <option key={emp.id || emp.name} value={emp.name || `${emp.first_name} ${emp.last_name}`}>
-                      {emp.name || `${emp.first_name} ${emp.last_name}`}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {['testosterone', 'weight_loss'].includes(selectedCategory?.id) ? (
+                <>
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <div style={{ ...styles.fieldGroup, flex: 1 }}>
+                      <label style={styles.label}>Dispensed By</label>
+                      <select value={administeredBy} onChange={e => setAdministeredBy(e.target.value)} style={styles.select}>
+                        <option value="">Select staff...</option>
+                        {employees.map(emp => (
+                          <option key={emp.id || emp.name} value={emp.name || `${emp.first_name} ${emp.last_name}`}>
+                            {emp.name || `${emp.first_name} ${emp.last_name}`}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div style={{ ...styles.fieldGroup, flex: 1 }}>
+                      <label style={styles.label}>Verified By (2nd eyes)</label>
+                      <select value={verifiedBy} onChange={e => setVerifiedBy(e.target.value)} style={styles.select}>
+                        <option value="">Select staff...</option>
+                        {employees.filter(emp => {
+                          const name = emp.name || `${emp.first_name} ${emp.last_name}`;
+                          return name !== administeredBy;
+                        }).map(emp => (
+                          <option key={emp.id || emp.name} value={emp.name || `${emp.first_name} ${emp.last_name}`}>
+                            {emp.name || `${emp.first_name} ${emp.last_name}`}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div style={styles.fieldGroup}>
+                  <label style={styles.label}>Checked Out By</label>
+                  <select value={administeredBy} onChange={e => setAdministeredBy(e.target.value)} style={styles.select}>
+                    <option value="">Select staff member...</option>
+                    {employees.map(emp => (
+                      <option key={emp.id || emp.name} value={emp.name || `${emp.first_name} ${emp.last_name}`}>
+                        {emp.name || `${emp.first_name} ${emp.last_name}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Lot / Expiration (collapsible) */}
               <details style={{ marginBottom: '16px' }}>
@@ -696,8 +731,14 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                 )}
                 {administeredBy && (
                   <div style={styles.confirmRow}>
-                    <span style={styles.confirmLabel}>Staff</span>
+                    <span style={styles.confirmLabel}>{verifiedBy ? 'Dispensed By' : 'Staff'}</span>
                     <span style={styles.confirmValue}>{administeredBy}</span>
+                  </div>
+                )}
+                {verifiedBy && (
+                  <div style={styles.confirmRow}>
+                    <span style={styles.confirmLabel}>Verified By</span>
+                    <span style={styles.confirmValue}>{verifiedBy}</span>
                   </div>
                 )}
 

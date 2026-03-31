@@ -45,6 +45,9 @@ export default async function handler(req, res) {
     fulfillment_method, // in_clinic, overnight
     tracking_number,
 
+    // Verification (testosterone + weight loss dual-sign-off)
+    verified_by,
+
     // For paid checkouts (when coverage_type === 'paid')
     // Payment is handled by POSChargeModal — this just records the dispensing
     purchase_id,       // if created via POS payment flow
@@ -91,6 +94,7 @@ export default async function handler(req, res) {
       notes: notes || null,
       protocol_id: protocol_id || null,
       administered_by: administered_by || null,
+      verified_by: verified_by || null,
       lot_number: lot_number || null,
       expiration_date: expiration_date || null,
       fulfillment_method: fulfillment_method || 'in_clinic',
@@ -104,19 +108,23 @@ export default async function handler(req, res) {
       .select()
       .single();
 
-    // If checkout_type column doesn't exist yet, retry without it
+    // If new columns don't exist yet, retry without them
     let finalLog = serviceLog;
-    if (logError && logError.message?.includes('checkout_type')) {
-      delete logData.checkout_type;
-      const { data: retryLog, error: retryError } = await supabase
-        .from('service_logs')
-        .insert([logData])
-        .select()
-        .single();
-      if (retryError) throw retryError;
-      finalLog = retryLog;
-    } else if (logError) {
-      throw logError;
+    if (logError) {
+      const msg = logError.message || '';
+      if (msg.includes('checkout_type') || msg.includes('verified_by')) {
+        delete logData.checkout_type;
+        delete logData.verified_by;
+        const { data: retryLog, error: retryError } = await supabase
+          .from('service_logs')
+          .insert([logData])
+          .select()
+          .single();
+        if (retryError) throw retryError;
+        finalLog = retryLog;
+      } else {
+        throw logError;
+      }
     }
 
     // 3. Update protocol if linked

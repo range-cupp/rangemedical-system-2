@@ -189,6 +189,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
 
   // Cart — multiple items per checkout
   const [cartItems, setCartItems] = useState([]);
+  const [editingItemId, setEditingItemId] = useState(null); // null = adding new, id = editing existing
 
   // Step 5: Result
   const [submitting, setSubmitting] = useState(false);
@@ -243,6 +244,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     setShippingAmount('');
     setAddingCard(false);
     setCartItems([]);
+    setEditingItemId(null);
     setSubmitting(false);
     setResult(null);
     setResults([]);
@@ -278,12 +280,13 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     setItemQty(1);
     setShippingAmount('');
     setAddingCard(false);
+    setEditingItemId(null);
     setError('');
   }
 
   function addToCart() {
     const item = {
-      id: Date.now(), // temp id for key/removal
+      id: editingItemId || Date.now(), // keep same id when editing
       category: selectedCategory,
       medication, dosage, supplyType, quantity, duration, weight,
       entryType, notes, administeredBy, verifiedBy,
@@ -295,9 +298,49 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
       shippingAmount: shippingAmount || '',
       wlAddons: [...wlAddons],
     };
-    setCartItems(prev => [...prev, item]);
+    if (editingItemId) {
+      // Replace existing item in place
+      setCartItems(prev => prev.map(i => i.id === editingItemId ? item : i));
+      setEditingItemId(null);
+    } else {
+      setCartItems(prev => [...prev, item]);
+    }
     resetItemFields();
     setStep(2);
+  }
+
+  function editCartItem(itemId) {
+    const item = cartItems.find(i => i.id === itemId);
+    if (!item) return;
+    setEditingItemId(itemId);
+    setSelectedCategory(item.category);
+    setMedication(item.medication || '');
+    setDosage(item.dosage || '');
+    setSupplyType(item.supplyType || '');
+    setQuantity(item.quantity || '');
+    setDuration(item.duration || '');
+    setWeight(item.weight || '');
+    setEntryType(item.entryType || '');
+    setNotes(item.notes || '');
+    setAdministeredBy(item.administeredBy || '');
+    setVerifiedBy(item.verifiedBy || '');
+    setLotNumber(item.lotNumber || '');
+    setExpirationDate(item.expirationDate || '');
+    setFulfillmentMethod(item.fulfillmentMethod || 'in_clinic');
+    setTrackingNumber(item.trackingNumber || '');
+    setWlAddons(item.wlAddons ? [...item.wlAddons] : []);
+    setSelectedProtocol(item.selectedProtocol || null);
+    setCoverageType(item.coverageType || null);
+    setCoverageOverride(item.coverageOverride || false);
+    setCoverage(item.coverage || null);
+    setSelectedService(item.selectedService || null);
+    setPaymentMethod(item.paymentMethod || '');
+    setSelectedCardId(item.selectedCardId || '');
+    setDiscountType(item.discountType || 'dollar');
+    setDiscountValue(item.discountValue || '');
+    setItemQty(item.itemQty || 1);
+    setShippingAmount(item.shippingAmount || '');
+    setStep(3);
   }
 
   function removeFromCart(itemId) {
@@ -802,7 +845,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                     Cart ({cartItems.length} {cartItems.length === 1 ? 'item' : 'items'})
                   </div>
                   {cartItems.map(item => (
-                    <div key={item.id} style={{ padding: '8px 12px', background: '#f8f9fa', border: '1px solid #e5e5e5', marginBottom: '6px' }}>
+                    <div key={item.id} style={{ padding: '8px 12px', background: '#f8f9fa', border: '1px solid #e5e5e5', marginBottom: '6px', borderRadius: '6px', cursor: 'pointer' }} onClick={() => editCartItem(item.id)}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span>{item.category.icon}</span>
@@ -820,7 +863,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                                 : 'Paid'
                             }
                           </span>
-                          <button onClick={() => removeFromCart(item.id)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '16px', padding: '0 4px' }}>×</button>
+                          <button onClick={(e) => { e.stopPropagation(); removeFromCart(item.id); }} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '16px', padding: '0 4px' }}>×</button>
                         </div>
                       </div>
                       {item.wlAddons?.filter(a => (a.inClinic || 0) + (a.takeHome || 0) > 0).map(a => (
@@ -1643,7 +1686,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                       opacity: (!medication && !['hbot', 'red_light'].includes(selectedCategory?.id)) ? 0.5 : 1,
                     }}
                   >
-                    + Add to Cart{cartItems.length > 0 ? ` (${cartItems.length})` : ''}
+                    {editingItemId ? 'Update Item' : `+ Add to Cart${cartItems.length > 0 ? ` (${cartItems.length})` : ''}`}
                   </button>
                   <button
                     onClick={() => { addToCart(); setStep(4); }}

@@ -7,6 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { isWeightLossType } from '../../../lib/protocol-config';
 import { todayPacific } from '../../../lib/date-utils';
+import { buildAdaptiveHRTSchedule, isHRTProtocol } from '../../../lib/hrt-lab-schedule';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -397,6 +398,126 @@ export default async function handler(req, res) {
       } catch (syncErr) {
         // Don't fail the note save if sync fails
         console.error('Weight loss sync error (non-fatal):', syncErr.message);
+      }
+    }
+
+    // ── Blood Draw: Auto-log follow-up lab on HRT protocol ──
+    const isBloodDrawEncounter = esLower.includes('blood draw') ||
+      esLower.includes('blood_draw') ||
+      esLower.includes('venipuncture') ||
+      esLower.includes('phlebotomy') ||
+      esLower.includes('lab draw');
+
+    if (isBloodDrawEncounter && patient_id) {
+      try {
+        const logDate = note_date
+          ? new Date(note_date).toISOString().split('T')[0]
+          : todayPacific();
+
+        // Find active HRT protocols for this patient
+        const { data: hrtProtocols } = await supabase
+          .from('protocols')
+          .select('id, patient_id, program_type, start_date, first_followup_weeks')
+          .eq('patient_id', patient_id)
+          .in('status', ['active', 'in_progress'])
+          .order('created_at', { ascending: false });
+
+        const activeHRT = (hrtProtocols || []).filter(p => isHRTProtocol(p.program_type));
+
+        for (const protocol of activeHRT) {
+          // Get existing blood draw logs for this protocol
+          const { data: existingLogs } = await supabase
+            .from('protocol_logs')
+            .select('*')
+            .eq('protocol_id', protocol.id)
+            .eq('log_type', 'blood_draw');
+
+          // Get labs and lab protocols for adaptive schedule
+          const { data: labs } = await supabase
+            .from('labs')
+            .select('id, test_date, completed_date')
+            .eq('patient_id', patient_id);
+
+          const { data: labProtocols } = await supabase
+            .from('protocols')
+            .select('id, start_date, status, program_name, notes')
+            .eq('patient_id', patient_id)
+            .eq('program_type', 'labs');
+
+          // Build the adaptive schedule
+          const schedule = buildAdaptiveHRTSchedule(
+            protocol.start_date,
+            protocol.first_followup_weeks || 8,
+            existingLogs || [],
+            labs || [],
+            labProtocols || []
+          );
+
+          // Find the next due draw (overdue first, then upcoming)
+          const nextDraw = schedule.find(d => d.status === 'overdue') ||
+            schedule.find(d => d.status === 'upcoming');
+
+          if (nextDraw) {
+            // Check if this draw label already has a log
+            const alreadyLogged = (existingLogs || []).some(l => l.notes === nextDraw.label);
+            if (!alreadyLogged) {
+              // Log the blood draw
+              await supabase
+                .from('protocol_logs')
+                .insert({
+                  protocol_id: protocol.id,
+                  patient_id,
+                  log_type: 'blood_draw',
+                  log_date: logDate,
+                  notes: nextDraw.label,
+                });
+
+              // Sync matching lab protocol to awaiting_results
+              const windowDays = 28;
+              const logDateMs = new Date(logDate + 'T00:00:00').getTime();
+              const windowMs = windowDays * 24 * 60 * 60 * 1000;
+
+              const { data: labProtos } = await supabase
+                .from('protocols')
+                .select('id, start_date, program_name, notes')
+                .eq('patient_id', patient_id)
+                .eq('program_type', 'labs')
+                .eq('status', 'draw_scheduled');
+
+              if (labProtos && labProtos.length > 0) {
+                let matchId = null;
+                for (const lp of labProtos) {
+                  if ((lp.program_name || '').includes(nextDraw.label) || (lp.notes || '').includes(nextDraw.label)) {
+                    matchId = lp.id;
+                    break;
+                  }
+                }
+                if (!matchId) {
+                  for (const lp of labProtos) {
+                    if (lp.start_date) {
+                      const lpMs = new Date(lp.start_date + 'T00:00:00').getTime();
+                      if (Math.abs(lpMs - logDateMs) <= windowMs) {
+                        matchId = lp.id;
+                        break;
+                      }
+                    }
+                  }
+                }
+                if (matchId) {
+                  await supabase
+                    .from('protocols')
+                    .update({ status: 'awaiting_results', updated_at: new Date().toISOString() })
+                    .eq('id', matchId);
+                  console.log(`Blood draw encounter: synced lab protocol ${matchId} to awaiting_results`);
+                }
+              }
+
+              console.log(`Blood draw encounter: logged ${nextDraw.label} for HRT protocol ${protocol.id}`);
+            }
+          }
+        }
+      } catch (bloodDrawErr) {
+        console.error('Blood draw HRT sync error (non-fatal):', bloodDrawErr.message);
       }
     }
 

@@ -405,14 +405,14 @@ export default function CellularEnergyReset() {
             <div className="cer-pricing-grid">
               <div className="cer-pricing-card cer-pricing-main">
                 <h3>6-Week Cellular Energy Reset</h3>
-                <div className="cer-price">$3,999</div>
+                <div className="cer-price"><span className="cer-price-original">$3,999</span> $2,999</div>
                 <ul className="cer-pricing-features">
                   <li>18 Hyperbaric Oxygen sessions (60 min each at 2.0 ATA)</li>
                   <li>18 Red Light Therapy sessions (660–850nm full-body)</li>
                   <li>Structured 6-week schedule — 3 sessions per week</li>
                   <li>Weekly automated check-ins to track progress</li>
                 </ul>
-                <button onClick={openCheckout} className="btn-primary" style={{ display: 'block', textAlign: 'center', width: '100%', cursor: 'pointer' }}>Get Started — $3,999</button>
+                <button onClick={openCheckout} className="btn-primary" style={{ display: 'block', textAlign: 'center', width: '100%', cursor: 'pointer' }}>Get Started — $2,999</button>
                 <p className="cer-pricing-note">Financing available through Affirm and Afterpay</p>
                 <div className="cer-guarantee">
                   <div className="cer-guarantee-icon">&#10003;</div>
@@ -424,8 +424,8 @@ export default function CellularEnergyReset() {
               </div>
 
               <div className="cer-pricing-card cer-pricing-value">
-                <h3>Why $3,999?</h3>
-                <p>If you tried to piece this together with individual packs, you'd be over four thousand dollars anyway — without the structure, the tracking, or the guarantee.</p>
+                <h3>Why $2,999?</h3>
+                <p>Normally $3,999 — right now you save $1,000. If you tried to piece this together with individual packs, you'd be well over three thousand anyway — without the structure, the tracking, or the guarantee.</p>
                 <div className="cer-pricing-value-divider"></div>
                 <h4>Best For</h4>
                 <ul className="cer-bestfor-list">
@@ -537,7 +537,7 @@ export default function CellularEnergyReset() {
             <h2>Stop Guessing.<br />Start Fixing.</h2>
             <div className="cta-rule" />
             <p>Book the 6-Week Cellular Energy Reset and we'll build your schedule.</p>
-            <button onClick={openCheckout} className="btn-white" style={{ cursor: 'pointer' }}>Get Started — $3,999</button>
+            <button onClick={openCheckout} className="btn-white" style={{ cursor: 'pointer' }}>Get Started — $2,999</button>
             <p className="cta-location">
               Range Medical &bull; 1901 Westcliff Dr, Newport Beach &bull; <a href="tel:9499973988">(949) 997-3988</a>
             </p>
@@ -813,6 +813,14 @@ export default function CellularEnergyReset() {
             font-weight: 900;
             color: #1a1a1a;
             margin-bottom: 1.5rem;
+          }
+
+          .cer-price-original {
+            text-decoration: line-through;
+            color: #a0a0a0;
+            font-size: 1.5rem;
+            font-weight: 500;
+            margin-right: 0.25rem;
           }
 
           .cer-pricing-features {
@@ -1192,8 +1200,8 @@ export default function CellularEnergyReset() {
         isOpen={checkoutOpen}
         onClose={() => setCheckoutOpen(false)}
         productName="6-Week Cellular Energy Reset"
-        amountCents={399900}
-        amountLabel="$3,999"
+        amountCents={299900}
+        amountLabel="$2,999"
         description="Six-Week Cellular Energy Reset"
         serviceCategory="hbot"
         serviceName="Six-Week Cellular Energy Reset"

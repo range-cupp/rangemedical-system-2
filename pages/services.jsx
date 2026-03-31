@@ -19,7 +19,8 @@ const SERVICES = [
   {
     id: 'cellular-reset',
     name: 'Six-Week Cellular Energy Reset',
-    price: '$3,999',
+    price: '$2,999',
+    originalPrice: '$3,999',
     priceNote: 'Money-back guarantee',
     description: '18 Hyperbaric Oxygen + 18 Red Light Therapy sessions over 6 weeks (3x/week each). The most powerful recovery and energy protocol we offer.',
     highlights: ['Structured 6-week protocol', 'Weekly provider check-ins', 'Money-back guarantee', 'Most powerful recovery + energy option'],
@@ -323,7 +324,7 @@ export default function Services() {
           <div className="svc-kicker">Newport Beach Regenerative Medicine</div>
           <h1>Services & Treatments</h1>
           <p className="svc-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
-            Every patient starts with a Range Assessment — a conversation with your provider about your symptoms and goals. From there, your provider recommends the right plan.
+            Every patient starts with a Range Assessment — a quick interactive process to understand your symptoms and goals. From there, we recommend the right plan.
           </p>
           <Link href="/start" className="svc-btn-primary svc-btn-dark">
             Start Now
@@ -342,7 +343,7 @@ export default function Services() {
               <h2>The Range Assessment</h2>
               <div className="svc-divider"></div>
               <p className="svc-body-text">
-                Your journey starts with a free assessment — a conversation about your symptoms, goals, and medical history. Your provider recommends the right path for you.
+                Your journey starts with a free assessment — a quick interactive process where you tell us about your symptoms and goals. From there, we recommend the right path for you.
               </p>
 
               <div className="svc-doors-grid">
@@ -400,7 +401,12 @@ export default function Services() {
                     })}
                   </div>
                   <h3 className="svc-card-name">{service.name}</h3>
-                  <div className="svc-card-price">{service.price}</div>
+                  <div className="svc-card-price">
+                    {service.originalPrice && (
+                      <span className="svc-card-original-price">{service.originalPrice}</span>
+                    )}
+                    {service.price}
+                  </div>
                   {service.priceNote && (
                     <div className="svc-card-price-note">{service.priceNote}</div>
                   )}
@@ -791,6 +797,16 @@ export default function Services() {
           font-weight: 700;
           color: #171717;
           margin-bottom: 0.25rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .svc-card-original-price {
+          text-decoration: line-through;
+          color: #a0a0a0;
+          font-size: 1rem;
+          font-weight: 500;
         }
 
         .svc-card-price-note {

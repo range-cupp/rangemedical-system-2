@@ -170,6 +170,22 @@ export default function LabSingleView({ results, biomarkerLibrary, previousResul
               )}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {synopsis && labId && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(`/api/labs/synopsis-pdf?lab_id=${labId}`, '_blank');
+                  }}
+                  style={{
+                    padding: '4px 10px', borderRadius: '0', border: '1px solid #C7D2FE',
+                    background: colors.white, cursor: 'pointer',
+                    fontSize: '0.75rem', fontWeight: 500, color: '#4338CA',
+                    display: 'flex', alignItems: 'center', gap: '4px'
+                  }}
+                >
+                  Download PDF
+                </button>
+              )}
               {onRegenerateSynopsis && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onRegenerateSynopsis(); }}

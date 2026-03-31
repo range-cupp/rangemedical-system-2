@@ -66,6 +66,9 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
   const [fulfillmentMethod, setFulfillmentMethod] = useState('in_clinic');
   const [trackingNumber, setTrackingNumber] = useState('');
 
+  // Weight loss included add-ons (B12, vitamins)
+  const [wlAddons, setWlAddons] = useState([]); // [{type:'b12', inClinic:0, takeHome:0}]
+
   // Protocol linking
   const [selectedProtocol, setSelectedProtocol] = useState(null);
   const [coverageType, setCoverageType] = useState(null); // subscription, protocol, paid, comp
@@ -124,6 +127,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     setExpirationDate('');
     setFulfillmentMethod('in_clinic');
     setTrackingNumber('');
+    setWlAddons([]);
     setSelectedProtocol(null);
     setCoverageType(null);
     setCoverageOverride(false);
@@ -155,6 +159,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     setExpirationDate('');
     setFulfillmentMethod('in_clinic');
     setTrackingNumber('');
+    setWlAddons([]);
     setSelectedProtocol(null);
     setCoverageType(null);
     setCoverageOverride(false);
@@ -173,6 +178,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
       lotNumber, expirationDate, fulfillmentMethod, trackingNumber,
       selectedProtocol, coverageType, coverageOverride, coverage,
       selectedService, paymentMethod, selectedCardId,
+      wlAddons: [...wlAddons],
     };
     setCartItems(prev => [...prev, item]);
     resetItemFields();
@@ -400,6 +406,86 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
           coverageType: itemCovType,
           amount: item.selectedService?.price_cents || 0,
         });
+
+        // Process WL included add-ons (B12, Lipo-C, etc.)
+        if (item.wlAddons?.length > 0) {
+          for (const addon of item.wlAddons) {
+            const totalQty = (addon.inClinic || 0) + (addon.takeHome || 0);
+            if (totalQty === 0) continue;
+
+            // In-clinic injections
+            if (addon.inClinic > 0) {
+              const addonBody = {
+                patient_id: selectedPatient.id,
+                category: 'vitamin',
+                entry_type: 'injection',
+                medication: addon.label,
+                quantity: addon.inClinic,
+                notes: `Included with WL program — ${addon.inClinic} administered in clinic`,
+                protocol_id: item.selectedProtocol?.id || null,
+                coverage_type: 'protocol',
+                coverage_source: 'Weight Loss Program (included)',
+                administered_by: item.administeredBy || null,
+                fulfillment_method: 'in_clinic',
+                send_receipt: false,
+              };
+              const addonRes = await fetch('/api/medication-checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(addonBody),
+              });
+              if (!addonRes.ok) {
+                const addonErr = await addonRes.json().catch(() => ({}));
+                console.error(`WL addon (${addon.label} in-clinic) error:`, addonErr);
+              } else {
+                const addonData = await addonRes.json();
+                allResults.push({
+                  ...addonData,
+                  category: { id: 'vitamin', label: addon.label, icon: '💊' },
+                  medication: `${addon.label} (in-clinic)`,
+                  coverageType: 'protocol',
+                  amount: 0,
+                });
+              }
+            }
+
+            // Take-home
+            if (addon.takeHome > 0) {
+              const addonBody = {
+                patient_id: selectedPatient.id,
+                category: 'vitamin',
+                entry_type: 'pickup',
+                medication: addon.label,
+                quantity: addon.takeHome,
+                notes: `Included with WL program — ${addon.takeHome} take-home`,
+                protocol_id: item.selectedProtocol?.id || null,
+                coverage_type: 'protocol',
+                coverage_source: 'Weight Loss Program (included)',
+                administered_by: item.administeredBy || null,
+                fulfillment_method: 'in_clinic',
+                send_receipt: false,
+              };
+              const addonRes = await fetch('/api/medication-checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(addonBody),
+              });
+              if (!addonRes.ok) {
+                const addonErr = await addonRes.json().catch(() => ({}));
+                console.error(`WL addon (${addon.label} take-home) error:`, addonErr);
+              } else {
+                const addonData = await addonRes.json();
+                allResults.push({
+                  ...addonData,
+                  category: { id: 'vitamin', label: addon.label, icon: '💊' },
+                  medication: `${addon.label} (${addon.takeHome} take-home)`,
+                  coverageType: 'protocol',
+                  amount: 0,
+                });
+              }
+            }
+          }
+        }
       }
 
       setResults(allResults);
@@ -531,18 +617,29 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                     Cart ({cartItems.length} {cartItems.length === 1 ? 'item' : 'items'})
                   </div>
                   {cartItems.map(item => (
-                    <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#f8f9fa', border: '1px solid #e5e5e5', marginBottom: '6px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span>{item.category.icon}</span>
-                        <span style={{ fontSize: '14px', fontWeight: 500 }}>{item.medication || item.category.label}</span>
-                        {item.dosage && <span style={{ fontSize: '12px', color: '#666' }}>({item.dosage})</span>}
+                    <div key={item.id} style={{ padding: '8px 12px', background: '#f8f9fa', border: '1px solid #e5e5e5', marginBottom: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span>{item.category.icon}</span>
+                          <span style={{ fontSize: '14px', fontWeight: 500 }}>{item.medication || item.category.label}</span>
+                          {item.dosage && <span style={{ fontSize: '12px', color: '#666' }}>({item.dosage})</span>}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontSize: '13px', fontWeight: 600, color: (item.coverageType === 'subscription' || item.coverageType === 'protocol' || item.paymentMethod === 'comp') ? '#16a34a' : '#000' }}>
+                            {(item.coverageType === 'subscription' || item.coverageType === 'protocol' || item.paymentMethod === 'comp') ? '$0' : item.selectedService ? item.selectedService.price_display : 'Paid'}
+                          </span>
+                          <button onClick={() => removeFromCart(item.id)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '16px', padding: '0 4px' }}>×</button>
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '13px', fontWeight: 600, color: (item.coverageType === 'subscription' || item.coverageType === 'protocol' || item.paymentMethod === 'comp') ? '#16a34a' : '#000' }}>
-                          {(item.coverageType === 'subscription' || item.coverageType === 'protocol' || item.paymentMethod === 'comp') ? '$0' : item.selectedService ? item.selectedService.price_display : 'Paid'}
-                        </span>
-                        <button onClick={() => removeFromCart(item.id)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '16px', padding: '0 4px' }}>×</button>
-                      </div>
+                      {item.wlAddons?.filter(a => (a.inClinic || 0) + (a.takeHome || 0) > 0).map(a => (
+                        <div key={a.type} style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingLeft: '32px', marginTop: '4px' }}>
+                          <span style={{ fontSize: '12px', color: '#16a34a' }}>＋</span>
+                          <span style={{ fontSize: '12px', color: '#555' }}>
+                            {a.label}: {a.inClinic > 0 ? `${a.inClinic} in-clinic` : ''}{a.inClinic > 0 && a.takeHome > 0 ? ', ' : ''}{a.takeHome > 0 ? `${a.takeHome} take-home` : ''}
+                          </span>
+                          <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 600 }}>Included</span>
+                        </div>
+                      ))}
                     </div>
                   ))}
                   <button
@@ -866,6 +963,81 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                 </div>
               )}
 
+              {/* Weight Loss included add-ons (B12, vitamins — bundled in WL program) */}
+              {selectedCategory?.id === 'weight_loss' && (
+                <div style={{
+                  borderTop: '1px solid #e5e5e5',
+                  paddingTop: '14px',
+                  marginTop: '8px',
+                  marginBottom: '8px',
+                }}>
+                  <div style={{ fontSize: '11px', fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>
+                    Included Items (WL Program)
+                  </div>
+                  {[
+                    { type: 'b12', label: 'B12 Injection' },
+                    { type: 'lipo', label: 'Lipo-C Injection' },
+                  ].map(addon => {
+                    const existing = wlAddons.find(a => a.type === addon.type);
+                    const isActive = !!existing;
+                    return (
+                      <div key={addon.type} style={{
+                        border: `1px solid ${isActive ? '#86efac' : '#e5e5e5'}`,
+                        background: isActive ? '#f0fdf4' : '#fff',
+                        padding: '10px 14px',
+                        marginBottom: '8px',
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', flex: 1 }}>
+                            <input
+                              type="checkbox"
+                              checked={isActive}
+                              onChange={e => {
+                                if (e.target.checked) {
+                                  setWlAddons(prev => [...prev, { type: addon.type, label: addon.label, inClinic: 1, takeHome: 0 }]);
+                                } else {
+                                  setWlAddons(prev => prev.filter(a => a.type !== addon.type));
+                                }
+                              }}
+                            />
+                            <span style={{ fontWeight: 500, fontSize: '14px' }}>{addon.label}</span>
+                            <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 600 }}>Included</span>
+                          </label>
+                        </div>
+                        {isActive && (
+                          <div style={{ display: 'flex', gap: '16px', marginTop: '10px', paddingLeft: '26px' }}>
+                            <div style={{ flex: 1 }}>
+                              <label style={{ fontSize: '11px', color: '#666', display: 'block', marginBottom: '4px' }}>In-Clinic</label>
+                              <select
+                                value={existing.inClinic}
+                                onChange={e => setWlAddons(prev => prev.map(a => a.type === addon.type ? { ...a, inClinic: parseInt(e.target.value) } : a))}
+                                style={{ ...styles.select, padding: '6px 10px', fontSize: '13px' }}
+                              >
+                                {[0, 1, 2, 3, 4].map(n => (
+                                  <option key={n} value={n}>{n}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <label style={{ fontSize: '11px', color: '#666', display: 'block', marginBottom: '4px' }}>Take-Home</label>
+                              <select
+                                value={existing.takeHome}
+                                onChange={e => setWlAddons(prev => prev.map(a => a.type === addon.type ? { ...a, takeHome: parseInt(e.target.value) } : a))}
+                                style={{ ...styles.select, padding: '6px 10px', fontSize: '13px' }}
+                              >
+                                {[0, 1, 2, 3, 4, 5, 6, 7, 8].map(n => (
+                                  <option key={n} value={n}>{n}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               {/* Session duration (HBOT, RLT) */}
               {['hbot', 'red_light'].includes(selectedCategory?.id) && (
                 <div style={styles.fieldGroup}>
@@ -1128,6 +1300,15 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                               {item.verifiedBy ? `Dispensed: ${item.administeredBy} · Verified: ${item.verifiedBy}` : `Staff: ${item.administeredBy}`}
                             </div>
                           )}
+                          {item.wlAddons?.filter(a => (a.inClinic || 0) + (a.takeHome || 0) > 0).map(a => (
+                            <div key={a.type} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                              <span style={{ fontSize: '12px', color: '#16a34a' }}>＋</span>
+                              <span style={{ fontSize: '12px', color: '#555' }}>
+                                {a.label}: {a.inClinic > 0 ? `${a.inClinic} in-clinic` : ''}{a.inClinic > 0 && a.takeHome > 0 ? ', ' : ''}{a.takeHome > 0 ? `${a.takeHome} take-home` : ''}
+                              </span>
+                              <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 600 }}>Included</span>
+                            </div>
+                          ))}
                         </div>
                         <div style={{ textAlign: 'right' }}>
                           <div style={{ fontWeight: 600, fontSize: '14px', color: itemIsCovered ? '#16a34a' : '#000' }}>

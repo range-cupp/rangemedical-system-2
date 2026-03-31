@@ -65,6 +65,14 @@ export default async function handler(req, res) {
   const today = todayPacific();
 
   try {
+    // Fetch patient gender for HRT dose filtering
+    const { data: patientInfo } = await supabase
+      .from('patients')
+      .select('gender')
+      .eq('id', patient_id)
+      .single();
+    const patient_gender = patientInfo?.gender || null;
+
     // Fetch active subscriptions for this patient
     const { data: subscriptions } = await supabase
       .from('subscriptions')
@@ -232,26 +240,38 @@ export default async function handler(req, res) {
     // override coverage and charge for add-on items even when the category is "covered"
     let suggested_services = [];
     {
+      // Map checkout categories to POS service categories
+      // Some categories need multiple POS categories (e.g. peptide also shows vials)
       const posCategoryMap = {
-        testosterone: 'hrt',
-        weight_loss: 'weight_loss',
-        peptide: 'peptide',
-        iv_therapy: 'iv_therapy',
-        hbot: 'hbot',
-        red_light: 'red_light',
-        vitamin: 'injections',
-        supplement: 'supplements',
+        testosterone: ['hrt'],
+        weight_loss: ['weight_loss'],
+        peptide: ['peptide', 'vials'],
+        iv_therapy: ['iv_therapy'],
+        hbot: ['hbot'],
+        red_light: ['red_light'],
+        vitamin: ['injections'],
+        supplement: ['supplements'],
       };
-      const posCategory = posCategoryMap[category];
-      if (posCategory) {
+      const posCategories = posCategoryMap[category] || [];
+      // Also include the raw category name if not already present
+      if (!posCategories.includes(category)) posCategories.push(category);
+
+      if (posCategories.length > 0) {
+        const orFilter = posCategories.map(c => `category.eq.${c}`).join(',');
         const { data: services } = await supabase
           .from('pos_services')
           .select('id, name, category, price_cents, recurring, interval')
           .eq('active', true)
-          .or(`category.eq.${posCategory},category.eq.${category}`)
+          .or(orFilter)
           .order('sort_order', { ascending: true });
 
-        suggested_services = (services || []).map(s => ({
+        // Deduplicate by id (in case category overlaps produce duplicates)
+        const seen = new Set();
+        suggested_services = (services || []).filter(s => {
+          if (seen.has(s.id)) return false;
+          seen.add(s.id);
+          return true;
+        }).map(s => ({
           id: s.id,
           name: s.name,
           category: s.category,
@@ -348,6 +368,7 @@ export default async function handler(req, res) {
       suggested_services,
       saved_cards,
       peptide_cycle,
+      patient_gender,
     });
   } catch (err) {
     console.error('[medication-checkout/coverage] Error:', err);

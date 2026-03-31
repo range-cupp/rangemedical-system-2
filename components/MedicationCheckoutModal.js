@@ -184,6 +184,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
   const [discountType, setDiscountType] = useState('dollar'); // dollar or percent
   const [discountValue, setDiscountValue] = useState(''); // raw input value
   const [itemQty, setItemQty] = useState(1); // universal item quantity (1-10)
+  const [shippingAmount, setShippingAmount] = useState(''); // shipping cost in dollars
   const [addingCard, setAddingCard] = useState(false); // show inline add-card form
 
   // Cart — multiple items per checkout
@@ -239,6 +240,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     setDiscountType('dollar');
     setDiscountValue('');
     setItemQty(1);
+    setShippingAmount('');
     setAddingCard(false);
     setCartItems([]);
     setSubmitting(false);
@@ -274,6 +276,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     setDiscountType('dollar');
     setDiscountValue('');
     setItemQty(1);
+    setShippingAmount('');
     setAddingCard(false);
     setError('');
   }
@@ -289,6 +292,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
       selectedService, paymentMethod, selectedCardId,
       discountType, discountValue,
       itemQty: itemQty || 1,
+      shippingAmount: shippingAmount || '',
       wlAddons: [...wlAddons],
     };
     setCartItems(prev => [...prev, item]);
@@ -408,9 +412,16 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
   }
 
   // Calculate discounted price in cents for a cart item
-  // Returns TOTAL price in cents for an item (unit price after discount × quantity)
+  // Returns shipping in cents for an item
+  function getShippingCents(item) {
+    if (!item.shippingAmount) return 0;
+    const val = parseFloat(item.shippingAmount);
+    return isNaN(val) || val <= 0 ? 0 : Math.round(val * 100);
+  }
+
+  // Returns TOTAL price in cents for an item (unit price after discount × quantity + shipping)
   function getItemPriceCents(item) {
-    if (!item.selectedService) return 0;
+    if (!item.selectedService) return getShippingCents(item);
     const baseCents = item.selectedService.price_cents || 0;
     let unitCents = baseCents;
     if (item.discountValue && parseFloat(item.discountValue) > 0) {
@@ -423,7 +434,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
       }
     }
     const qty = item.itemQty || 1;
-    return unitCents * qty;
+    return (unitCents * qty) + getShippingCents(item);
   }
 
   // Returns per-unit price in cents (before quantity multiplication)
@@ -444,11 +455,13 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     if (item.coverageType !== 'paid' || !item.selectedService) return null;
     const amountCents = getItemPriceCents(item);
     const qty = item.itemQty || 1;
-    const baseTotal = (item.selectedService.price_cents || 0) * qty;
+    const shippingCents = getShippingCents(item);
+    const baseTotal = ((item.selectedService.price_cents || 0) * qty) + shippingCents;
     const hasDiscount = amountCents < baseTotal;
     let description = item.selectedService.name;
     if (qty > 1) description = `${qty}× ${description}`;
     if (hasDiscount) description += ' (discounted)';
+    if (shippingCents > 0) description += ` + $${(shippingCents / 100).toFixed(2)} shipping`;
 
     if (item.paymentMethod === 'cash') {
       const purchaseRes = await fetch('/api/stripe/record-purchase', {
@@ -538,6 +551,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
           dosage: item.dosage || null,
           quantity: item.quantity ? parseInt(item.quantity) : null,
           item_qty: item.itemQty || 1,
+          shipping_cents: getShippingCents(item) || null,
           supply_type: item.supplyType || null,
           duration: item.duration ? parseInt(item.duration) : null,
           weight: item.weight || null,
@@ -1410,14 +1424,64 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                         style={styles.select}
                       >
                         <option value="">Select pricing...</option>
-                        {coverage.suggested_services.map(s => (
-                          <option key={s.id} value={s.id}>
-                            {s.name} — {s.price_display}{s.recurring ? '/mo' : ''}
-                          </option>
-                        ))}
+                        {(() => {
+                          // Group services by category for cleaner display
+                          const groups = {};
+                          coverage.suggested_services.forEach(s => {
+                            const cat = s.category || 'other';
+                            if (!groups[cat]) groups[cat] = [];
+                            groups[cat].push(s);
+                          });
+                          const categoryLabels = {
+                            peptide: 'Peptide Programs', vials: 'Vials', hrt: 'HRT',
+                            weight_loss: 'Weight Loss', iv_therapy: 'IV Therapy',
+                            hbot: 'HBOT', red_light: 'Red Light', injections: 'Injections',
+                            supplements: 'Supplements',
+                          };
+                          const groupKeys = Object.keys(groups);
+                          // If only one group, skip optgroup wrapper
+                          if (groupKeys.length <= 1) {
+                            return coverage.suggested_services.map(s => (
+                              <option key={s.id} value={s.id}>
+                                {s.name} — {s.price_display}{s.recurring ? '/mo' : ''}
+                              </option>
+                            ));
+                          }
+                          return groupKeys.map(cat => (
+                            <optgroup key={cat} label={categoryLabels[cat] || cat.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}>
+                              {groups[cat].map(s => (
+                                <option key={s.id} value={s.id}>
+                                  {s.name} — {s.price_display}{s.recurring ? '/mo' : ''}
+                                </option>
+                              ))}
+                            </optgroup>
+                          ));
+                        })()}
                       </select>
                     </div>
                   )}
+
+                  {/* Shipping */}
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.label}>Shipping (optional)</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '14px', color: '#666', fontWeight: 500 }}>$</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={shippingAmount}
+                        onChange={e => setShippingAmount(e.target.value)}
+                        placeholder="0.00"
+                        style={{ ...styles.input, width: '120px', flex: 'none' }}
+                      />
+                      {shippingAmount && parseFloat(shippingAmount) > 0 && (
+                        <span style={{ fontSize: '13px', color: '#666' }}>
+                          + ${parseFloat(shippingAmount).toFixed(2)} shipping
+                        </span>
+                      )}
+                    </div>
+                  </div>
 
                   {/* Discount */}
                   {selectedService && coverageType !== 'comp' && (
@@ -1633,6 +1697,11 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                               <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 600 }}>Included</span>
                             </div>
                           ))}
+                          {getShippingCents(item) > 0 && (
+                            <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>
+                              📦 Shipping: ${(getShippingCents(item) / 100).toFixed(2)}
+                            </div>
+                          )}
                         </div>
                         <div style={{ textAlign: 'right' }}>
                           <div style={{ fontWeight: 600, fontSize: '14px', color: itemIsCovered ? '#16a34a' : '#000' }}>

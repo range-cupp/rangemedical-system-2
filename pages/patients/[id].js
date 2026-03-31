@@ -3889,40 +3889,59 @@ export default function PatientProfile() {
         {/* Patient Synopsis Card */}
         {!loading && patient && (
           <section className="synopsis-card">
-            {/* Blood Draw Alerts — top priority */}
+            {/* Blood Draw / HRT Status */}
             {(() => {
               const alerts = [];
-              // Check HRT lab schedules for overdue/upcoming draws
+              // Check all HRT protocols for blood draw status
               const allProtos = [...activeProtocols, ...completedProtocols];
               for (const proto of allProtos) {
                 if (!isHRTProtocol(proto.program_type)) continue;
+                const isActive = proto.status === 'active';
+                const protoName = proto.program_name || proto.medication || proto.program_type;
                 const schedule = hrtLabSchedules[proto.id];
-                if (!schedule?.length) continue;
-                const summary = getLabStatusSummary(schedule);
-                if (summary.nextDraw) {
+                const summary = schedule?.length ? getLabStatusSummary(schedule) : null;
+                if (summary?.nextDraw) {
                   const targetDate = new Date(summary.nextDraw.targetDate + 'T00:00:00');
                   const today = new Date(); today.setHours(0,0,0,0);
                   const daysUntil = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
-                  const protoName = proto.program_name || proto.medication || proto.program_type;
                   if (summary.nextDraw.status === 'overdue') {
-                    alerts.push({ urgent: true, label: `Blood draw overdue: ${summary.nextDraw.label} for ${protoName} (was due ${summary.nextDraw.weekLabel})` });
+                    alerts.push({ type: 'urgent', label: `Blood draw overdue: ${summary.nextDraw.label} for ${protoName} (was due ${summary.nextDraw.weekLabel})` });
                   } else if (daysUntil <= 14) {
-                    alerts.push({ urgent: false, label: `Blood draw coming up: ${summary.nextDraw.label} for ${protoName} — ${summary.nextDraw.weekLabel}` });
+                    alerts.push({ type: 'soon', label: `Blood draw coming up: ${summary.nextDraw.label} for ${protoName} — ${summary.nextDraw.weekLabel}` });
+                  } else {
+                    alerts.push({ type: 'scheduled', label: `Next blood draw: ${summary.nextDraw.label} — ${summary.nextDraw.weekLabel}` });
                   }
+                  if (isActive && summary.completedCount > 0) {
+                    alerts.push({ type: 'hrt', label: `${protoName} — ${summary.completedCount}/${summary.totalCount} draws complete` });
+                  }
+                } else if (isActive) {
+                  // Active HRT but no schedule yet or all draws complete
+                  const allComplete = summary?.completedCount === summary?.totalCount && summary?.totalCount > 0;
+                  alerts.push({ type: 'hrt', label: `${protoName}${allComplete ? ' — all blood draws complete' : ''}` });
                 }
               }
               // Check for labs with pending/awaiting status
               const pendingLabs = labs.filter(l => l.status === 'pending' || l.status === 'awaiting_results');
               if (pendingLabs.length > 0) {
-                alerts.push({ urgent: false, label: `${pendingLabs.length} lab result${pendingLabs.length > 1 ? 's' : ''} pending` });
+                alerts.push({ type: 'pending', label: `${pendingLabs.length} lab result${pendingLabs.length > 1 ? 's' : ''} pending` });
               }
               if (alerts.length === 0) return null;
               return (
                 <div className="synopsis-alerts">
                   {alerts.map((a, i) => (
-                    <div key={i} className={`synopsis-alert ${a.urgent ? 'synopsis-alert-urgent' : 'synopsis-alert-info'}`}
+                    <div key={i} className={`synopsis-alert ${
+                      a.type === 'urgent' ? 'synopsis-alert-urgent' :
+                      a.type === 'soon' ? 'synopsis-alert-soon' :
+                      a.type === 'hrt' ? 'synopsis-alert-hrt' :
+                      'synopsis-alert-info'
+                    }`}
                       onClick={() => setActiveTab('labs')}>
-                      <span className="synopsis-alert-icon">{a.urgent ? '🩸' : '🧪'}</span>
+                      <span className="synopsis-alert-icon">{
+                        a.type === 'urgent' ? '🩸' :
+                        a.type === 'soon' ? '🩸' :
+                        a.type === 'hrt' ? '💉' :
+                        a.type === 'scheduled' ? '📅' : '🧪'
+                      }</span>
                       <span>{a.label}</span>
                     </div>
                   ))}
@@ -10459,6 +10478,16 @@ export default function PatientProfile() {
           background: #fef2f2;
           color: #991b1b;
           border-bottom: 1px solid #fecaca;
+        }
+        .synopsis-alert-soon {
+          background: #fffbeb;
+          color: #92400e;
+          border-bottom: 1px solid #fde68a;
+        }
+        .synopsis-alert-hrt {
+          background: #faf5ff;
+          color: #6b21a8;
+          border-bottom: 1px solid #e9d5ff;
         }
         .synopsis-alert-info {
           background: #eff6ff;

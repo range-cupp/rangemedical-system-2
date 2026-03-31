@@ -54,9 +54,12 @@ export default function Layout({ children, title, description }) {
                   <Link href="/prp-therapy">PRP Therapy</Link>
                   <Link href="/exosome-therapy">Exosome Therapy</Link>
                   <Link href="/methylene-blue">Methylene Blue</Link>
+                  <div className="rm-dropdown-divider"></div>
+                  <Link href="/services" className="rm-dropdown-all">View All Services →</Link>
                 </div>
               </div>
 
+              <Link href="/services" className="rm-nav-link">Services</Link>
               <Link href="/lab-panels" className="rm-nav-link">Labs</Link>
               <Link href="/grand-opening" className="rm-nav-link">Grand Opening</Link>
             </div>
@@ -108,6 +111,7 @@ export default function Layout({ children, title, description }) {
               <Link href="/methylene-blue" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Methylene Blue</Link>
             </div>
           )}
+          <Link href="/services" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>All Services</Link>
           <Link href="/lab-panels" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Labs & Testing</Link>
           <Link href="/grand-opening" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Grand Opening</Link>
           <Link href="/start" className="rm-mobile-cta" onClick={() => setMobileMenuOpen(false)}>START HERE</Link>
@@ -297,6 +301,17 @@ export default function Layout({ children, title, description }) {
 
         .rm-dropdown-menu :global(a:hover) {
           background: #fafafa;
+          color: #1a1a1a;
+        }
+
+        .rm-dropdown-divider {
+          height: 1px;
+          background: #e8e8e8;
+          margin: 0.375rem 0;
+        }
+
+        .rm-dropdown-menu :global(.rm-dropdown-all) {
+          font-weight: 600;
           color: #1a1a1a;
         }
 

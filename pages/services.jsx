@@ -150,6 +150,16 @@ const SERVICES = [
     link: '/exosome-therapy',
   },
   {
+    id: 'methylene-blue',
+    name: 'Methylene Blue',
+    price: 'Consultation-based',
+    priceNote: 'IV or oral protocols available',
+    description: 'A pharmaceutical-grade compound used for mitochondrial support, cognitive enhancement, and cellular energy. Administered via IV infusion or oral protocol under provider supervision.',
+    highlights: ['Mitochondrial energy support', 'Cognitive clarity and neuroprotection', 'IV infusion or oral dosing', 'Provider-supervised protocol'],
+    categories: ['optimization'],
+    link: '/methylene-blue',
+  },
+  {
     id: 'essential-panel',
     name: 'Essential Blood Panel',
     price: '$350',

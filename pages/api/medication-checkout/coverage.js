@@ -119,8 +119,8 @@ export default async function handler(req, res) {
       if (!protoTypes.includes(p.program_type)) return false;
       // For peptides, include even if sessions are used up — we need to show cycle status
       if (category === 'peptide') return true;
-      // For weight loss, include active protocols even if all sessions are used —
-      // patient is still on the program, sessions track dispensed inventory not eligibility
+      // For weight loss, include active protocols even if all sessions are used
+      // (for protocol linking) — but coverage check below will require sessions remaining
       if (category === 'weight_loss' && p.status === 'active') return true;
       // For session-based protocols (HBOT, RLT, IV), check if sessions remain
       if (p.total_sessions && p.sessions_used >= p.total_sessions) return false;
@@ -167,15 +167,15 @@ export default async function handler(req, res) {
       const proto = matchingProtocols[0];
 
       if (category === 'weight_loss') {
-        // Weight loss: covered if protocol is active (status='active', end_date in future)
-        // Session count tracks dispensed inventory, not program eligibility
-        if (proto.status === 'active') {
+        // Weight loss: covered only if sessions remain in the current period
+        // 8/8 used = renewal due, patient needs to pay for next month
+        if (proto.status === 'active' && proto.total_sessions && proto.sessions_used < proto.total_sessions) {
           covered = true;
           coverage_type = 'protocol';
-          const sessionInfo = proto.total_sessions ? ` (${proto.sessions_used || 0}/${proto.total_sessions} dispensed)` : '';
-          coverage_source = `${proto.program_name || 'Weight Loss Program'}${sessionInfo}`;
+          coverage_source = `${proto.program_name || 'Weight Loss Protocol'} (${proto.sessions_used || 0}/${proto.total_sessions} used)`;
           coverage_id = proto.id;
         }
+        // If all sessions used: NOT covered (renewal due) but protocol still linked for continuity
       } else if (SESSION_COVERAGE_CATEGORIES.includes(category)) {
         // Session packs: covered only if sessions remain
         if (proto.total_sessions && proto.sessions_used < proto.total_sessions) {

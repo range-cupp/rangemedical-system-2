@@ -80,9 +80,18 @@ export default async function handler(req, res) {
       .eq('status', 'active')
       .order('created_at', { ascending: false });
 
-    // Filter protocols: exclude those past their end_date
+    // Filter protocols: exclude those well past their end_date
+    // For take-home meds (HRT, WL, peptide), allow a 30-day grace period
+    // so a patient one day late on a refill can still check out against their protocol
+    const TAKE_HOME_CATEGORIES = ['testosterone', 'weight_loss', 'peptide'];
+    const graceDays = TAKE_HOME_CATEGORIES.includes(category) ? 30 : 0;
+    const graceDate = (() => {
+      const d = new Date(today + 'T12:00:00');
+      d.setDate(d.getDate() - graceDays);
+      return d.toISOString().split('T')[0];
+    })();
     const validProtocols = (protocols || []).filter(p => {
-      if (p.end_date && p.end_date < today) return false;
+      if (p.end_date && p.end_date < graceDate) return false;
       return true;
     });
 

@@ -271,6 +271,11 @@ async function updateProtocol(protocolId, opts) {
       // Update medication details if provided
       if (medication) updates.medication = medication;
       if (dosage) updates.selected_dose = dosage;
+
+      // Extend end_date if protocol is at or past its end_date (e.g., HRT refill a day late)
+      if (protocol.end_date && protocol.end_date <= logDate && updates.next_expected_date) {
+        updates.end_date = updates.next_expected_date;
+      }
     }
 
     // Update injection method/frequency if provided

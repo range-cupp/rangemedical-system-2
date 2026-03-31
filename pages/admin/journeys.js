@@ -15,7 +15,7 @@ const PROTOCOL_TYPES = [
   { key: 'iv', label: 'IV Therapy' },
   { key: 'hbot', label: 'HBOT' },
   { key: 'rlt', label: 'Red Light' },
-  { key: 'injection', label: 'Injection' },
+  { key: 'injection', label: 'Range Injection' },
   { key: 'combo_membership', label: 'Combo Membership' }
 ];
 

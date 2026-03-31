@@ -1133,7 +1133,7 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
                 <div>
                   <label style={slcStyles.editLabel}>Type</label>
                   <select value={editingLog.entry_type || 'injection'} onChange={e => setEditingLog({ ...editingLog, entry_type: e.target.value })} style={slcStyles.editInput}>
-                    <option value="injection">Injection</option>
+                    <option value="injection">Range Injection</option>
                     <option value="pickup">Pickup</option>
                     <option value="session">Session</option>
                     <option value="purchase">Purchase</option>

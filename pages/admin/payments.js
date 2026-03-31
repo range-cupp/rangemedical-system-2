@@ -2454,7 +2454,7 @@ function CheckoutTab({ onStartCheckout }) {
                     </td>
                     <td style={checkoutStyles.td}>
                       <span style={{ fontSize: '13px', color: '#666' }}>
-                        {log.entry_type === 'injection' ? 'Injection' : log.entry_type === 'pickup' ? 'Pickup' : log.entry_type === 'session' ? 'Session' : log.entry_type === 'weight_check' ? 'Weigh-in' : log.entry_type || '—'}
+                        {log.entry_type === 'injection' ? 'Range Injection' : log.entry_type === 'pickup' ? 'Pickup' : log.entry_type === 'session' ? 'Session' : log.entry_type === 'weight_check' ? 'Weigh-in' : log.entry_type || '—'}
                       </span>
                     </td>
                     <td style={checkoutStyles.td}>

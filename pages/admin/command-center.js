@@ -75,8 +75,8 @@ const CATEGORY_LABELS = {
   rlt: 'Red Light',
   red_light_sessions: 'Red Light',
   combo_membership: 'Combo Membership',
-  injection: 'Injection',
-  single_injection: 'Injection',
+  injection: 'Range Injection',
+  single_injection: 'Range Injection',
   injection_pack: 'Injection Pack',
   labs: 'Labs',
 };
@@ -2969,7 +2969,7 @@ export default function CommandCenter() {
                               <div style={styles.activityType}>
                                 {log.log_type === 'renewal' ? 'Protocol Renewed' :
                                  log.log_type === 'dose_change' ? 'Dose Changed' :
-                                 log.log_type === 'injection' ? 'Injection' :
+                                 log.log_type === 'injection' ? 'Range Injection' :
                                  log.log_type}
                               </div>
                               {log.notes && <div style={styles.activityNotes}>{log.notes}</div>}
@@ -4274,7 +4274,7 @@ export default function CommandCenter() {
                               {['injection', 'pickup'].map(t => (
                                 <button key={t} type="button" onClick={() => setFirstVisitData(d => ({ ...d, entryType: t }))}
                                   style={{ ...fvStyles.toggleBtn, ...(firstVisitData.entryType === t ? fvStyles.toggleBtnActive : {}) }}
-                                >{t === 'injection' ? 'Injection' : 'Pickup'}</button>
+                                >{t === 'injection' ? 'Range Injection' : 'Pickup'}</button>
                               ))}
                             </div>
                           </div>
@@ -4342,7 +4342,7 @@ export default function CommandCenter() {
                               {['injection', 'pickup'].map(t => (
                                 <button key={t} type="button" onClick={() => setFirstVisitData(d => ({ ...d, entryType: t }))}
                                   style={{ ...fvStyles.toggleBtn, ...(firstVisitData.entryType === t ? fvStyles.toggleBtnActive : {}) }}
-                                >{t === 'injection' ? 'Injection' : 'Pickup'}</button>
+                                >{t === 'injection' ? 'Range Injection' : 'Pickup'}</button>
                               ))}
                             </div>
                           </div>
@@ -4419,7 +4419,7 @@ export default function CommandCenter() {
                               {['injection', 'pickup', 'med_pickup'].map(t => (
                                 <button key={t} type="button" onClick={() => setFirstVisitData(d => ({ ...d, entryType: t }))}
                                   style={{ ...fvStyles.toggleBtn, ...(firstVisitData.entryType === t ? fvStyles.toggleBtnActive : {}) }}
-                                >{t === 'injection' ? 'Injection' : t === 'pickup' ? 'Vial Pickup' : 'Med Pickup'}</button>
+                                >{t === 'injection' ? 'Range Injection' : t === 'pickup' ? 'Vial Pickup' : 'Med Pickup'}</button>
                               ))}
                             </div>
                           </div>

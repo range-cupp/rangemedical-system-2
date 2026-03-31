@@ -153,7 +153,7 @@ export default function PatientsList() {
     iv: { bg: '#ffedd5', text: '#c2410c', label: 'IV' },
     hbot: { bg: '#e0e7ff', text: '#3730a3', label: 'HBOT' },
     rlt: { bg: '#fee2e2', text: '#dc2626', label: 'RLT' },
-    injection: { bg: '#fef3c7', text: '#92400e', label: 'Injection' },
+    injection: { bg: '#fef3c7', text: '#92400e', label: 'Range Injection' },
   };
 
   const CONDITION_LABELS = {

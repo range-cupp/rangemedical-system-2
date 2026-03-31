@@ -396,7 +396,7 @@ export default function ProtocolsPage() {
       return [
         { key: 'active', label: 'Active', count: summary.active || 0 },
         { key: 'iv', label: 'IV', count: summary.ivs || 0 },
-        { key: 'injection', label: 'Injection', count: summary.injections || 0 },
+        { key: 'injection', label: 'Range Injection', count: summary.injections || 0 },
         { key: 'nad', label: 'NAD', count: summary.nad || 0 },
         { key: 'completed', label: 'Completed', count: summary.completed || 0 },
         { key: 'all', label: 'All', count: summary.total || 0 },

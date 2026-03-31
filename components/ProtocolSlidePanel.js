@@ -124,7 +124,7 @@ export default function ProtocolSlidePanel({ isOpen, onClose, protocolId, cardDa
       take_home: 'Take Home',
       in_clinic: 'In Clinic',
       delivery: 'Delivery (Shipped)',
-      injection: 'Injection'
+      injection: 'Range Injection'
     };
     return map[method] || method;
   };

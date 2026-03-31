@@ -316,7 +316,7 @@ export default function UnifiedPipeline() {
       iv: { emoji: '💧', color: '#bfdbfe', text: 'IV' },
       hbot: { emoji: '🫁', color: '#fecaca', text: 'HBOT' },
       rlt: { emoji: '🔴', color: '#fecdd3', text: 'RLT' },
-      injection: { emoji: '💉', color: '#e9d5ff', text: 'Injection' },
+      injection: { emoji: '💉', color: '#e9d5ff', text: 'Range Injection' },
       other: { emoji: '📁', color: '#e5e7eb', text: 'Other' }
     };
     return badges[category] || { emoji: '📋', color: '#e5e7eb', text: 'Other' };
@@ -1031,7 +1031,7 @@ export default function UnifiedPipeline() {
           <div style={styles.formGroup}>
             <label style={styles.formLabel}>Log Type *</label>
             <select value={logForm.log_type || 'injection'} onChange={(e) => setLogForm({ ...logForm, log_type: e.target.value })} style={styles.formSelect}>
-              <option value="injection">💉 In-Clinic Injection</option>
+              <option value="injection">💉 Range Injection</option>
               <option value="pickup">📦 Medication Pickup</option>
               <option value="blood_draw">🩸 Blood Draw</option>
             </select>
@@ -1374,7 +1374,7 @@ export default function UnifiedPipeline() {
                   <option value="iv">💧 IV Therapy</option>
                   <option value="hbot">🫁 HBOT (Hyperbaric)</option>
                   <option value="rlt">🔴 Red Light Therapy</option>
-                  <option value="injection">💉 Injection Pack</option>
+                  <option value="injection">💉 Range Injection Pack</option>
                 </select>
               </div>
               {renderProtocolFields()}

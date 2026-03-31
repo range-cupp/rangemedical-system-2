@@ -101,7 +101,7 @@ export default async function handler(req, res) {
 
     const serviceName = slug === 'injection-testosterone' ? 'Testosterone Injection'
       : slug === 'injection-weight-loss' ? 'Weight Loss Injection'
-      : 'Injection';
+      : 'Range Injection';
 
     const dateTime = formatDateTimePST(slotStart);
 

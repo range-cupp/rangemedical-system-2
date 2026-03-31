@@ -1703,7 +1703,7 @@ export default function PatientProfile() {
       }
 
       // Build descriptive label
-      const typeLabel = lastType === 'pickup' ? 'Pickup' : lastType === 'injection' ? 'Injection' : lastType === 'session' ? 'Session' : null;
+      const typeLabel = lastType === 'pickup' ? 'Pickup' : lastType === 'injection' ? 'Range Injection' : lastType === 'session' ? 'Session' : null;
 
       // Renewal / supply status
       let renewalTag = null;
@@ -6908,7 +6908,7 @@ export default function PatientProfile() {
                           : new Date(rawDate);
                         const categoryLabels = {
                           hbot: 'HBOT', red_light: 'Red Light', iv_therapy: 'IV Therapy',
-                          vitamin: 'Injection', testosterone: 'HRT', weight_loss: 'Weight Loss',
+                          vitamin: 'Range Injection', testosterone: 'HRT', weight_loss: 'Weight Loss',
                           peptide: 'Peptide', supplement: 'Supplement'
                         };
                         const categoryColors = {

@@ -1,261 +1,166 @@
 // pages/services.jsx
-// Services & Treatments - Full menu of Range Medical services
-// Filterable card grid with sticky category navigation
+// Services & Treatments — V2 design, full menu of Range Medical services
 
-import Layout from '../components/Layout';
 import Link from 'next/link';
 import Head from 'next/head';
-import { useEffect, useState, useRef } from 'react';
+import { useState, useEffect } from 'react';
 
 const CATEGORIES = [
-  { id: 'all', label: 'All Services' },
-  { id: 'recovery', label: 'Recovery & Healing' },
-  { id: 'optimization', label: 'Optimization' },
-  { id: 'labs', label: 'Labs & Testing' },
-  { id: 'iv-injections', label: 'IV & Injections' },
-];
-
-const SERVICES = [
   {
-    id: 'cellular-reset',
-    name: 'Six-Week Cellular Energy Reset',
-    price: '$2,999',
-    originalPrice: '$3,999',
-    priceNote: 'Money-back guarantee',
-    description: '18 Hyperbaric Oxygen + 18 Red Light Therapy sessions over 6 weeks (3x/week each). The most powerful recovery and energy protocol we offer.',
-    highlights: ['Structured 6-week protocol', 'Weekly provider check-ins', 'Money-back guarantee', 'Most powerful recovery + energy option'],
-    categories: ['recovery'],
-    link: '/cellular-energy-reset',
-    featured: true,
+    id: 'recovery',
+    label: 'RECOVERY & HEALING',
+    services: [
+      {
+        name: 'Six-Week Cellular Energy Reset',
+        price: '$2,999',
+        originalPrice: '$3,999',
+        desc: '18 HBOT + 18 Red Light sessions over 6 weeks. The most powerful recovery protocol we offer.',
+        href: '/cellular-energy-reset',
+        featured: true,
+      },
+      {
+        name: 'Hyperbaric + Red Light Combo',
+        price: 'From $899/mo',
+        desc: 'Back-to-back HBOT and Red Light at a flexible weekly frequency.',
+        href: '/hyperbaric-oxygen-therapy',
+      },
+      {
+        name: 'Hyperbaric Oxygen Therapy',
+        price: 'From $185/session',
+        desc: '60 minutes at 2.0 ATA. Pressurized oxygen for healing and inflammation.',
+        href: '/hyperbaric-oxygen-therapy',
+      },
+      {
+        name: 'Red Light Therapy',
+        price: 'From $85/session',
+        desc: 'Full-body 660\u2013850nm wavelengths for cellular recovery and tissue repair.',
+        href: '/red-light-therapy',
+      },
+      {
+        name: 'PRP Therapy',
+        price: '$750/injection',
+        desc: 'Platelet-Rich Plasma from your own blood for joints, tendons, and tissue repair.',
+        href: '/prp-therapy',
+      },
+      {
+        name: 'Exosome Therapy',
+        price: 'Consultation-based',
+        desc: 'Cellular messengers delivered via IV for systemic regeneration.',
+        href: '/exosome-therapy',
+      },
+    ],
   },
   {
-    id: 'combo-membership',
-    name: 'Hyperbaric + Red Light Combo Membership',
-    price: 'From $899/mo',
-    priceNote: '3-month minimum, then month-to-month',
-    description: 'Back-to-back HBOT and Red Light sessions at a flexible weekly frequency. Ideal after completing the 6-Week Reset or as a standalone recovery membership.',
-    highlights: ['1x/week: $899/mo (4 HBOT + 4 RLT)', '2x/week: $1,499/mo (8 HBOT + 8 RLT) — Most Popular', '3x/week: $1,999/mo (12 HBOT + 12 RLT)', 'Back-to-back sessions, flexible frequency'],
-    categories: ['recovery'],
-    link: '/hyperbaric-oxygen-therapy',
+    id: 'optimization',
+    label: 'OPTIMIZATION & WELLNESS',
+    services: [
+      {
+        name: 'Hormone Optimization',
+        price: '$250/month',
+        desc: 'All-inclusive HRT membership \u2014 medications, labs, and monthly IV included.',
+        href: '/hormone-optimization',
+      },
+      {
+        name: 'Medical Weight Loss',
+        price: 'From $399/month',
+        desc: 'Tirzepatide, Semaglutide, or Retatrutide with provider monitoring.',
+        href: '/weight-loss',
+      },
+      {
+        name: 'Peptide Therapy',
+        price: '$150\u2013400/month',
+        desc: 'Targeted protocols for recovery, growth hormone support, immune function, and more.',
+        href: '/peptide-therapy',
+      },
+      {
+        name: 'NAD+ Therapy',
+        price: 'From $25',
+        desc: 'Restore cellular energy and brain function via IV infusion or injection.',
+        href: '/nad-therapy',
+      },
+      {
+        name: 'Methylene Blue',
+        price: 'Consultation-based',
+        desc: 'Mitochondrial support, cognitive enhancement, and cellular energy.',
+        href: '/methylene-blue',
+      },
+    ],
   },
   {
-    id: 'hbot',
-    name: 'Hyperbaric Oxygen Therapy',
-    price: 'From $185/session',
-    priceNote: 'Packs and memberships available',
-    description: '60 minutes at 2.0 ATA. Pressurized oxygen supports healing, reduces inflammation, and boosts cellular energy production.',
-    highlights: ['Single: $185 · 5-pack: $850 · 10-pack: $1,600', 'Membership: $549/mo (4 sessions, 3-month min)', 'Additional sessions at $150 each', '60 min at 2.0 ATA'],
-    categories: ['recovery'],
-    link: '/hyperbaric-oxygen-therapy',
+    id: 'iv-injections',
+    label: 'IV & INJECTIONS',
+    services: [
+      {
+        name: 'The Range IV',
+        price: '$225/session',
+        desc: 'Choose 5 vitamins and minerals tailored to your goals. 100% absorption.',
+        href: '/iv-therapy',
+      },
+      {
+        name: 'Vitamin & Nutrient Injections',
+        price: 'From $35',
+        desc: 'Quick nutrient shots \u2014 B12, Glutathione, MIC-B12, NAD+, and more. In and out in 5 minutes.',
+        href: '/injection-therapy',
+      },
+    ],
   },
   {
-    id: 'rlt',
-    name: 'Red Light Therapy',
-    price: 'From $85/session',
-    priceNote: 'Packs and memberships available',
-    description: 'Full-body 660–850nm wavelengths that support cellular recovery, reduce pain, and promote tissue repair.',
-    highlights: ['Single: $85 · 5-pack: $375 · 10-pack: $600', 'Membership: $399/mo (up to 12 sessions, 3-month min)', 'Additional sessions at $50 each', 'Full-body red + near-infrared wavelengths'],
-    categories: ['recovery'],
-    link: '/red-light-therapy',
-  },
-  {
-    id: 'hrt',
-    name: 'Hormone Optimization',
-    price: '$250/month',
-    priceNote: 'All-inclusive HRT membership',
-    description: 'Testosterone, estrogen, and progesterone optimization as needed. Feel better in 4–8 weeks with a fully managed membership that includes everything.',
-    highlights: ['All hormone medications included', 'Quarterly lab monitoring included', 'Direct messaging with your provider', 'Bonus: 1 Range IV/month ($225 value)'],
-    categories: ['optimization'],
-    link: '/hormone-optimization',
-    note: 'Requires baseline lab panel (Essential $350 / Elite $750)',
-  },
-  {
-    id: 'weight-loss',
-    name: 'Medical Weight Loss',
-    price: 'Starting at $399/month',
-    priceNote: 'All-inclusive — medication included',
-    description: 'A provider-managed weight loss program with medication included, monthly check-ins, dose adjustments, and nutrition guidance. 15–25% average body weight loss over 6–12 months.',
-    highlights: ['Medication included', 'Monthly provider check-ins + dose adjustments', 'Direct messaging with your provider', 'Nutrition guidance included'],
-    categories: ['optimization'],
-    link: '/weight-loss',
-    note: 'Requires baseline lab panel (Essential $350 / Elite $750)',
-  },
-  {
-    id: 'peptides',
-    name: 'Peptide Therapy',
-    price: '$150–400/month',
-    priceNote: 'Varies by protocol — discussed at assessment',
-    description: 'Targeted peptide protocols for recovery, growth hormone support, immune function, sexual wellness, mitochondrial health, and gut health. Pre-filled syringes, prescription required.',
-    highlights: ['Recovery & Healing protocols', 'Growth Hormone Support (labs required)', 'Immune, Sexual Wellness, Gut Health', 'Can combine with other therapies'],
-    categories: ['recovery', 'optimization'],
-    link: '/peptide-therapy',
-  },
-  {
-    id: 'bpc-tb4',
-    name: 'BPC-157 + Thymosin Beta-4',
-    price: 'From $250',
-    priceNote: 'Recovery peptide protocol',
-    description: 'BPC-157 for tissue repair paired with TB-4 for new blood vessel growth. Pre-filled syringes, one injection per day. First injection done together at the clinic.',
-    highlights: ['10-Day Protocol: $250', '20-Day Protocol: $450', '30-Day Protocol: $675', 'Extended protocols available up to 90 days'],
-    categories: ['recovery'],
-    link: '/peptide-therapy',
-  },
-  {
-    id: 'nad',
-    name: 'NAD+ Therapy',
-    price: 'From $25',
-    priceNote: 'IV infusions and injections available',
-    description: 'NAD+ declines ~50% by age 50. Restore levels to support cellular energy, DNA repair, brain function, and healthy aging via IV infusion or quick injection.',
-    highlights: ['IV: 225mg $375 / 500mg $525 / 750mg $650 / 1000mg $775', 'Injections: $0.50/mg (50mg $25 – 150mg $75)', 'Supports cellular energy and DNA repair', 'Brain function and healthy aging'],
-    categories: ['optimization'],
-    link: '/nad-therapy',
-  },
-  {
-    id: 'iv',
-    name: 'IV Therapy — The Range IV',
-    price: '$225/session',
-    priceNote: 'Choose 5 vitamins/minerals, +$35 per add-on',
-    description: 'Choose 5 vitamins and minerals tailored to your symptoms and goals, delivered directly to your bloodstream for 100% absorption. Walk-ins welcome for established patients.',
-    highlights: ['Vitamin C, B-Complex, B12, Magnesium, Zinc, Glutathione & more', '100% absorption — bypasses the gut', '45–90 minutes, customized every visit', 'Walk-ins welcome for established patients'],
-    categories: ['iv-injections'],
-    link: '/iv-therapy',
-  },
-  {
-    id: 'injections',
-    name: 'Vitamin & Nutrient Injections',
-    price: 'From $35',
-    priceNote: 'In and out in 5 minutes',
-    description: 'Quick nutrient injections — no IV needed. B12, B-Complex, Vitamin D3, Biotin, Amino Blend, Glutathione, L-Carnitine, MIC-B12 (Skinny Shot), and NAD+.',
-    highlights: ['Standard ($35): B12, B-Complex, D3, Biotin, Aminos, NAC, BCAA', 'Premium ($50): L-Carnitine, Glutathione, MIC-B12', 'NAD+ Injections: $0.50/mg (50mg–150mg)', 'Packages available'],
-    categories: ['iv-injections'],
-    link: '/iv-therapy',
-  },
-  {
-    id: 'prp',
-    name: 'PRP Therapy',
-    price: '$750/injection',
-    priceNote: '3-pack: $1,800 (save $450)',
-    description: 'Platelet-Rich Plasma concentrated 3–5x from your own blood, injected into the treatment area. Common for knee pain, rotator cuff, tennis elbow, sports injuries, hair restoration, and facial rejuvenation.',
-    highlights: ['Single injection: $750', '3-Injection Pack: $1,800 (save $450)', 'Uses your own blood — no synthetic materials', 'Minimally invasive, no downtime'],
-    categories: ['recovery'],
-    link: '/prp-therapy',
-  },
-  {
-    id: 'exosome',
-    name: 'Exosome Therapy',
-    price: 'Consultation-based',
-    priceNote: 'Pricing discussed at assessment',
-    description: 'Tiny cellular messengers (30–150nm) delivered via 30–60 minute IV infusion. Anti-inflammatory with systemic regenerative effects.',
-    highlights: ['IV delivery for systemic effects', 'Anti-inflammatory properties', 'Supports tissue regeneration', 'Consultation required'],
-    categories: ['recovery'],
-    link: '/exosome-therapy',
-  },
-  {
-    id: 'methylene-blue',
-    name: 'Methylene Blue',
-    price: 'Consultation-based',
-    priceNote: 'IV or oral protocols available',
-    description: 'A pharmaceutical-grade compound used for mitochondrial support, cognitive enhancement, and cellular energy. Administered via IV infusion or oral protocol under provider supervision.',
-    highlights: ['Mitochondrial energy support', 'Cognitive clarity and neuroprotection', 'IV infusion or oral dosing', 'Provider-supervised protocol'],
-    categories: ['optimization'],
-    link: '/methylene-blue',
-  },
-  {
-    id: 'essential-panel',
-    name: 'Essential Blood Panel',
-    price: '$350',
-    priceNote: 'Includes provider visit to review results',
-    description: 'Comprehensive baseline blood work covering basic health, hormones, thyroid, metabolism, and vitamins. Available in Male and Female versions. The starting point for optimization.',
-    highlights: ['CMP, Lipid Panel, CBC', 'Hormones (gender-specific) + Thyroid panel', 'Fasting Insulin, HgbA1c, Vitamin D', 'Best for first-time labs or general health check'],
-    categories: ['labs'],
-    link: '/lab-panels',
-  },
-  {
-    id: 'elite-panel',
-    name: 'Elite Blood Panel',
-    price: '$750',
-    priceNote: 'Includes provider visit to review results',
-    description: 'Everything in the Essential panel plus advanced heart health markers, inflammation, expanded hormones, and a full vitamin and mineral profile. The complete picture.',
-    highlights: ['Everything in Essential PLUS:', 'Heart: ApoA-1, ApoB, Lp(a), Homocysteine', 'Inflammation: CRP-HS, Sed Rate · Hormones: DHEA-S, FSH, LH, IGF-1, Cortisol', 'Best for full health picture or unexplained symptoms'],
-    categories: ['labs'],
-    link: '/lab-panels',
-    featured: true,
+    id: 'labs',
+    label: 'LABS & TESTING',
+    services: [
+      {
+        name: 'Essential Blood Panel',
+        price: '$350',
+        desc: 'Comprehensive baseline \u2014 hormones, thyroid, metabolism, vitamins. Includes provider review.',
+        href: '/lab-panels',
+      },
+      {
+        name: 'Elite Blood Panel',
+        price: '$750',
+        desc: 'Everything in Essential plus advanced heart, inflammation, and expanded hormone markers.',
+        href: '/lab-panels',
+        featured: true,
+      },
+    ],
   },
 ];
 
 export default function Services() {
-  const [activeFilter, setActiveFilter] = useState('all');
-  const [isSticky, setIsSticky] = useState(false);
-  const filterBarRef = useRef(null);
-  const filterBarTopRef = useRef(0);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [visible, setVisible] = useState({});
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            entry.target.classList.add('visible');
-            observer.unobserve(entry.target);
+            setVisible((prev) => ({ ...prev, [entry.target.id]: true }));
           }
         });
       },
-      { threshold: 0.12 }
+      { threshold: 0.1 }
     );
-
-    const elements = document.querySelectorAll('.svc-page .svc-animate');
-    elements.forEach((el) => observer.observe(el));
-
-    return () => {
-      elements.forEach((el) => observer.unobserve(el));
-    };
+    document.querySelectorAll('.v2-reveal').forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
   }, []);
-
-  // Sticky filter bar
-  useEffect(() => {
-    if (!filterBarRef.current) return;
-    // Get header height for sticky offset
-    const header = document.querySelector('.rm-header');
-    const headerHeight = header ? header.offsetHeight : 0;
-
-    const handleScroll = () => {
-      if (!filterBarRef.current) return;
-      const rect = filterBarRef.current.getBoundingClientRect();
-      setIsSticky(rect.top <= headerHeight);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const filteredServices = activeFilter === 'all'
-    ? SERVICES
-    : SERVICES.filter(s => s.categories.includes(activeFilter));
 
   return (
-    <Layout
-      title="Services & Treatments | Range Medical | Newport Beach"
-      description="Explore all regenerative medicine services at Range Medical in Newport Beach. Hormone optimization, weight loss, HBOT, red light therapy, peptides, IV therapy, PRP, exosomes, and lab panels."
-    >
+    <>
       <Head>
+        <title>Services & Treatments | Range Medical | Newport Beach</title>
+        <meta name="description" content="Explore all regenerative medicine services at Range Medical in Newport Beach. Hormone optimization, weight loss, HBOT, red light therapy, peptides, IV therapy, PRP, exosomes, and lab panels." />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="keywords" content="regenerative medicine Newport Beach, HRT Orange County, weight loss clinic, HBOT, red light therapy, peptide therapy, IV therapy, PRP, exosome therapy, lab panels, Range Medical" />
         <link rel="canonical" href="https://www.range-medical.com/services" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
         <meta property="og:title" content="Services & Treatments | Range Medical | Newport Beach" />
         <meta property="og:description" content="Explore all regenerative medicine services at Range Medical. Hormone optimization, weight loss, HBOT, red light, peptides, IV therapy, and more." />
         <meta property="og:url" content="https://www.range-medical.com/services" />
-        <meta property="og:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="Range Medical" />
-
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Services & Treatments | Range Medical | Newport Beach" />
-        <meta name="twitter:description" content="Explore all regenerative medicine services at Range Medical in Newport Beach." />
-        <meta name="twitter:image" content="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" />
-
-        <meta name="geo.region" content="US-CA" />
-        <meta name="geo.placename" content="Newport Beach" />
-        <meta name="geo.position" content="33.6189;-117.9298" />
-        <meta name="ICBM" content="33.6189, -117.9298" />
 
         <script
           type="application/ld+json"
@@ -266,7 +171,6 @@ export default function Services() {
               "name": "Range Medical",
               "url": "https://www.range-medical.com",
               "telephone": "(949) 997-3988",
-              "image": "https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png",
               "address": {
                 "@type": "PostalAddress",
                 "streetAddress": "1901 Westcliff Dr. Suite 10",
@@ -286,683 +190,691 @@ export default function Services() {
                 { "@type": "City", "name": "Irvine" },
                 { "@type": "City", "name": "Huntington Beach" },
                 { "@type": "City", "name": "Laguna Beach" },
-                { "@type": "City", "name": "Corona del Mar" },
                 { "@type": "AdministrativeArea", "name": "Orange County" }
               ],
-              "priceRange": "$–$$$$",
-              "aggregateRating": {
-                "@type": "AggregateRating",
-                "ratingValue": "5.0",
-                "reviewCount": "10",
-                "bestRating": "5"
-              },
-              "openingHoursSpecification": {
-                "@type": "OpeningHoursSpecification",
-                "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-                "opens": "09:00",
-                "closes": "17:00"
-              }
+              "priceRange": "$\u2013$$$$"
             })
           }}
         />
       </Head>
 
-      {/* Trust Bar */}
-      <div className="trust-bar">
-        <div className="trust-inner">
-          <span className="trust-item">
-            <span className="trust-rating">★★★★★</span> 5.0 on Google
-          </span>
-          <span className="trust-item">📍 Newport Beach, CA</span>
-          <span className="trust-item">✓ Walk-ins Welcome</span>
+      {/* ── NAV ── */}
+      <header className="v2-header">
+        <div className="v2-header-inner">
+          <Link href="/" className="v2-wordmark">RANGE MEDICAL</Link>
+          <nav className="v2-nav-desktop">
+            <Link href="/injury-recovery">Recovery</Link>
+            <Link href="/hormone-optimization">Hormones</Link>
+            <Link href="/weight-loss">Weight Loss</Link>
+            <Link href="/lab-panels">Labs</Link>
+          </nav>
+          <Link href="/start" className="v2-nav-cta">START HERE</Link>
+          <button className="v2-hamburger" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">
+            <span /><span />
+          </button>
         </div>
-      </div>
+        {menuOpen && (
+          <div className="v2-mobile-menu">
+            <Link href="/injury-recovery" onClick={() => setMenuOpen(false)}>Recovery</Link>
+            <Link href="/hormone-optimization" onClick={() => setMenuOpen(false)}>Hormones</Link>
+            <Link href="/weight-loss" onClick={() => setMenuOpen(false)}>Weight Loss</Link>
+            <Link href="/peptide-therapy" onClick={() => setMenuOpen(false)}>Peptide Therapy</Link>
+            <Link href="/iv-therapy" onClick={() => setMenuOpen(false)}>IV Therapy</Link>
+            <Link href="/hyperbaric-oxygen-therapy" onClick={() => setMenuOpen(false)}>Hyperbaric Oxygen</Link>
+            <Link href="/red-light-therapy" onClick={() => setMenuOpen(false)}>Red Light Therapy</Link>
+            <Link href="/lab-panels" onClick={() => setMenuOpen(false)}>Labs & Testing</Link>
+            <Link href="/start" className="v2-mobile-cta" onClick={() => setMenuOpen(false)}>START HERE</Link>
+          </div>
+        )}
+      </header>
 
-      <div className="svc-page">
-        {/* Hero */}
-        <section className="svc-hero">
-          <div className="svc-kicker">Newport Beach Regenerative Medicine</div>
-          <h1>Services & Treatments</h1>
-          <p className="svc-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
-            Every patient starts with a Range Assessment — a quick interactive process to understand your symptoms and goals. From there, we recommend the right plan.
-          </p>
-          <Link href="/start" className="svc-btn-primary svc-btn-dark">
-            Start Now
-          </Link>
-          <div className="svc-hero-scroll">
-            Scroll to explore
-            <span>↓</span>
+      <main>
+        {/* ── HERO ── */}
+        <section className="v2-hero">
+          <div className="v2-hero-inner">
+            <div className="v2-label"><span className="v2-dot" /> SERVICES & TREATMENTS</div>
+            <h1>EVERYTHING<br />WE OFFER.<br />ONE PAGE.</h1>
+            <div className="v2-hero-rule" />
+            <p className="v2-hero-body">
+              Every patient starts with a Range Assessment &mdash; a quick interactive
+              process to understand your symptoms and goals. From there, we recommend the right plan.
+            </p>
           </div>
         </section>
 
-        {/* Assessment Feature Card */}
-        <section className="svc-section svc-section-alt">
-          <div className="svc-container">
-            <div className="svc-animate">
-              <div className="svc-kicker">Where to Start</div>
-              <h2>The Range Assessment</h2>
-              <div className="svc-divider"></div>
-              <p className="svc-body-text">
-                Your journey starts with a free assessment — a quick interactive process where you tell us about your symptoms and goals. From there, we recommend the right path for you.
-              </p>
-
-              <div className="svc-doors-grid">
-                <div className="svc-door-card">
-                  <div className="svc-door-number">Door 1</div>
-                  <h3>Injury & Recovery</h3>
-                  <p className="svc-door-desc">No labs required. Peptide therapy, PRP, exosomes, IV therapy, HBOT, and red light therapy.</p>
-                </div>
-                <div className="svc-door-card">
-                  <div className="svc-door-number">Door 2</div>
-                  <h3>Optimization & Wellness</h3>
-                  <p className="svc-door-desc">Labs required. Hormone optimization, weight loss, NAD+, cellular energy reset, IV therapy, and peptide protocols.</p>
-                </div>
-              </div>
-
-              <div style={{ textAlign: 'center', marginTop: '2.5rem' }}>
-                <Link href="/start" className="svc-btn-primary svc-btn-dark">
-                  Start Now
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Sticky Filter Bar */}
-        <div className={`svc-filter-bar ${isSticky ? 'svc-filter-sticky' : ''}`} ref={filterBarRef}>
-          <div className="svc-filter-inner">
-            {CATEGORIES.map(cat => (
-              <button
-                key={cat.id}
-                className={`svc-filter-pill ${activeFilter === cat.id ? 'svc-filter-active' : ''}`}
-                onClick={() => setActiveFilter(cat.id)}
-              >
+        {/* ── JUMP NAV ── */}
+        <div className="svc-jump-bar">
+          <div className="svc-jump-inner">
+            {CATEGORIES.map((cat) => (
+              <a key={cat.id} href={`#${cat.id}`} className="svc-jump-link">
                 {cat.label}
-              </button>
+              </a>
             ))}
           </div>
         </div>
 
-        {/* Service Cards Grid */}
-        <section className="svc-section">
-          <div className="svc-container">
-            <div className="svc-cards-grid">
-              {filteredServices.map(service => (
-                <div key={service.id} className={`svc-card ${service.featured ? 'svc-card-featured' : ''}`}>
-                  {service.featured && (
-                    <div className="svc-card-badge">Featured</div>
-                  )}
-                  <div className="svc-card-categories">
-                    {service.categories.map(cat => {
-                      const catObj = CATEGORIES.find(c => c.id === cat);
-                      return catObj ? (
-                        <span key={cat} className="svc-card-tag">{catObj.label}</span>
-                      ) : null;
-                    })}
-                  </div>
-                  <h3 className="svc-card-name">{service.name}</h3>
-                  <div className="svc-card-price">
-                    {service.originalPrice && (
-                      <span className="svc-card-original-price">{service.originalPrice}</span>
-                    )}
-                    {service.price}
-                  </div>
-                  {service.priceNote && (
-                    <div className="svc-card-price-note">{service.priceNote}</div>
-                  )}
-                  <p className="svc-card-desc">{service.description}</p>
-                  {service.note && (
-                    <p className="svc-card-note">{service.note}</p>
-                  )}
-                  <ul className="svc-card-highlights">
-                    {service.highlights.map((h, i) => (
-                      <li key={i}>{h}</li>
-                    ))}
-                  </ul>
-                  <Link href={service.link} className="svc-card-cta">
-                    Learn More →
-                  </Link>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        {/* ── CATEGORY SECTIONS ── */}
+        {CATEGORIES.map((cat, catIdx) => (
+          <section
+            key={cat.id}
+            id={cat.id}
+            className={`v2-section v2-reveal ${catIdx % 2 === 1 ? 'v2-bg-light' : ''} ${visible[cat.id] ? 'v2-visible' : ''}`}
+          >
+            <div className="v2-container">
+              <div className="v2-label"><span className="v2-dot" /> {cat.label}</div>
 
-        {/* CTA Section */}
-        <section className="svc-section svc-section-inverted">
-          <div className="svc-cta-section">
-            <div className="svc-animate">
-              <div className="svc-kicker">Ready to Get Started?</div>
-              <h2 className="svc-cta-title">Every journey starts with<br />a conversation.</h2>
-              <p className="svc-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
-                Connect with a provider and find the right plan for your goals.
-              </p>
-              <div className="svc-cta-buttons">
-                <Link href="/start" className="svc-btn-primary">
-                  Start Now
-                </Link>
-                <span className="svc-cta-or">or</span>
-                <a href="tel:9499973988" className="svc-cta-phone">(949) 997-3988</a>
+              <div className="svc-list">
+                {cat.services.map((svc, i) => (
+                  <Link key={i} href={svc.href} className="svc-row">
+                    <div className="svc-row-left">
+                      <span className="svc-row-num">{String(i + 1).padStart(2, '0')}</span>
+                      <div className="svc-row-info">
+                        <div className="svc-row-name-line">
+                          <span className="svc-row-name">{svc.name}</span>
+                          {svc.featured && <span className="svc-row-tag">POPULAR</span>}
+                        </div>
+                        <span className="svc-row-desc">{svc.desc}</span>
+                      </div>
+                    </div>
+                    <div className="svc-row-right">
+                      <span className="svc-row-price">
+                        {svc.originalPrice && (
+                          <span className="svc-row-original">{svc.originalPrice}</span>
+                        )}
+                        {svc.price}
+                      </span>
+                      <span className="svc-row-arrow">&rarr;</span>
+                    </div>
+                  </Link>
+                ))}
               </div>
             </div>
+          </section>
+        ))}
+
+        {/* ── CTA ── */}
+        <section className="v2-section v2-cta-section">
+          <div className="v2-container v2-cta-inner">
+            <h2>READY TO<br />GET STARTED?</h2>
+            <div className="v2-cta-rule" />
+            <p>Pick the path that fits your situation.</p>
+            <div className="v2-cta-buttons">
+              <Link href="/range-assessment?path=injury&from=start" className="v2-btn-white">INJURY & RECOVERY</Link>
+              <Link href="/start/energy" className="v2-btn-outline">ENERGY & HORMONES</Link>
+            </div>
+            <div className="v2-cta-location">
+              Range Medical &bull; 1901 Westcliff Dr, Newport Beach &bull; (949) 997-3988
+            </div>
           </div>
         </section>
-      </div>
+      </main>
+
+      {/* ── FOOTER ── */}
+      <footer className="v2-footer">
+        <div className="v2-footer-inner">
+          <div className="v2-footer-brand">
+            <span className="v2-wordmark-sm">RANGE MEDICAL</span>
+            <p>Feel like yourself again.</p>
+          </div>
+          <div className="v2-footer-links">
+            <div className="v2-footer-col">
+              <h4>START</h4>
+              <Link href="/start">Start Here</Link>
+              <Link href="/injury-recovery">Injury Recovery</Link>
+              <Link href="/lab-panels">Labs & Testing</Link>
+            </div>
+            <div className="v2-footer-col">
+              <h4>TREATMENTS</h4>
+              <Link href="/hormone-optimization">Hormones</Link>
+              <Link href="/weight-loss">Weight Loss</Link>
+              <Link href="/peptide-therapy">Peptides</Link>
+              <Link href="/iv-therapy">IV Therapy</Link>
+              <Link href="/hyperbaric-oxygen-therapy">Hyperbaric Oxygen</Link>
+              <Link href="/red-light-therapy">Red Light</Link>
+            </div>
+            <div className="v2-footer-col">
+              <h4>MORE</h4>
+              <Link href="/prp-therapy">PRP Therapy</Link>
+              <Link href="/exosome-therapy">Exosomes</Link>
+              <Link href="/nad-therapy">NAD+</Link>
+              <Link href="/methylene-blue">Methylene Blue</Link>
+              <Link href="/reviews">Reviews</Link>
+              <Link href="/gift-cards">Gift Cards</Link>
+            </div>
+          </div>
+        </div>
+        <div className="v2-footer-bottom">
+          <p>&copy; {new Date().getFullYear()} Range Medical. All rights reserved.</p>
+          <div className="v2-footer-legal">
+            <Link href="/terms-of-use">Terms</Link>
+            <Link href="/privacy-policy">Privacy</Link>
+            <Link href="/refund-policy">Refunds</Link>
+          </div>
+        </div>
+      </footer>
 
       <style jsx>{`
-        /* Page Wrapper */
-        .svc-page {
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          color: #171717;
+        /* ── RESET ── */
+        :global(body) {
+          margin: 0;
+          font-family: 'Inter', -apple-system, sans-serif;
+          -webkit-font-smoothing: antialiased;
+          background: #ffffff;
+          color: #1a1a1a;
         }
 
-        /* Animations */
-        .svc-animate {
+        /* ── HEADER ── */
+        .v2-header {
+          position: sticky;
+          top: 0;
+          z-index: 100;
+          background: #ffffff;
+          border-bottom: 1px solid #e8e8e8;
+        }
+
+        .v2-header-inner {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 0 2rem;
+          height: 56px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        :global(.v2-wordmark) {
+          font-size: 13px !important;
+          font-weight: 800;
+          letter-spacing: 0.15em;
+          color: #1a1a1a;
+          text-decoration: none;
+          line-height: 1;
+        }
+
+        .v2-nav-desktop {
+          display: flex;
+          gap: 28px;
+          align-items: center;
+        }
+
+        .v2-nav-desktop :global(a) {
+          font-size: 12px !important;
+          font-weight: 500;
+          color: #737373;
+          text-decoration: none;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          transition: color 0.2s;
+          line-height: 1;
+        }
+
+        .v2-nav-desktop :global(a:hover) { color: #1a1a1a; }
+
+        :global(.v2-nav-cta) {
+          font-size: 11px !important;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          background: #1a1a1a;
+          color: #ffffff;
+          padding: 10px 20px;
+          text-decoration: none;
+          transition: background 0.2s;
+          line-height: 1;
+        }
+
+        :global(.v2-nav-cta:hover) { background: #404040; }
+
+        .v2-hamburger {
+          display: none;
+          flex-direction: column;
+          gap: 6px;
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 8px;
+        }
+
+        .v2-hamburger span {
+          display: block;
+          width: 24px;
+          height: 1.5px;
+          background: #1a1a1a;
+        }
+
+        .v2-mobile-menu {
+          display: none;
+          padding: 1rem 2rem 1.5rem;
+          border-bottom: 1px solid #e8e8e8;
+        }
+
+        .v2-mobile-menu :global(a) {
+          display: block;
+          padding: 0.75rem 0;
+          font-size: 0.875rem;
+          font-weight: 500;
+          color: #404040;
+          text-decoration: none;
+          border-bottom: 1px solid #f0f0f0;
+        }
+
+        :global(.v2-mobile-cta) {
+          display: block;
+          background: #1a1a1a;
+          color: #ffffff !important;
+          text-align: center;
+          padding: 0.875rem !important;
+          font-weight: 700 !important;
+          letter-spacing: 0.08em;
+          margin-top: 1rem;
+          border: none !important;
+        }
+
+        /* ── HERO ── */
+        .v2-hero {
+          padding: 6rem 2rem 5rem;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        .v2-hero-inner { max-width: 800px; }
+
+        .v2-label {
+          display: flex;
+          align-items: center;
+          gap: 0.625rem;
+          font-size: 0.6875rem;
+          font-weight: 700;
+          letter-spacing: 0.14em;
+          color: #737373;
+          text-transform: uppercase;
+          margin-bottom: 2rem;
+        }
+
+        .v2-dot {
+          display: inline-block;
+          width: 8px;
+          height: 8px;
+          background: #808080;
+        }
+
+        .v2-hero h1 {
+          font-size: clamp(3rem, 8vw, 5.5rem);
+          font-weight: 900;
+          line-height: 0.95;
+          letter-spacing: -0.03em;
+          color: #1a1a1a;
+          margin: 0 0 2.5rem;
+        }
+
+        .v2-hero-rule {
+          width: 100%;
+          max-width: 700px;
+          height: 1px;
+          background: #e0e0e0;
+          margin-bottom: 2rem;
+        }
+
+        .v2-hero-body {
+          font-size: 1.0625rem;
+          line-height: 1.75;
+          color: #737373;
+          max-width: 520px;
+          margin: 0;
+        }
+
+        /* ── JUMP NAV ── */
+        .svc-jump-bar {
+          position: sticky;
+          top: 56px;
+          z-index: 90;
+          background: #ffffff;
+          border-top: 1px solid #e0e0e0;
+          border-bottom: 1px solid #e0e0e0;
+        }
+
+        .svc-jump-inner {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 0 2rem;
+          display: flex;
+          gap: 0;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+        }
+
+        .svc-jump-inner::-webkit-scrollbar { display: none; }
+
+        .svc-jump-link {
+          flex-shrink: 0;
+          font-size: 0.6875rem;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          color: #737373;
+          text-decoration: none;
+          padding: 1rem 1.5rem;
+          border-bottom: 2px solid transparent;
+          transition: all 0.2s;
+          white-space: nowrap;
+        }
+
+        .svc-jump-link:hover {
+          color: #1a1a1a;
+          border-bottom-color: #1a1a1a;
+        }
+
+        /* ── SECTIONS ── */
+        .v2-section {
+          padding: 5rem 2rem;
+        }
+
+        .v2-bg-light { background: #fafafa; }
+
+        .v2-container {
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        /* ── SERVICE ROWS ── */
+        .svc-list {
+          border-top: 1px solid #e0e0e0;
+          margin-top: 2rem;
+        }
+
+        :global(.svc-row) {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 1.5rem 0;
+          border-bottom: 1px solid #e0e0e0;
+          text-decoration: none;
+          transition: all 0.2s;
+          gap: 2rem;
+        }
+
+        :global(.svc-row:hover) {
+          padding-left: 1rem;
+          padding-right: 1rem;
+          background: #ffffff;
+        }
+
+        .svc-row-left {
+          display: flex;
+          align-items: flex-start;
+          gap: 1.5rem;
+          flex: 1;
+          min-width: 0;
+        }
+
+        .svc-row-num {
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: #808080;
+          letter-spacing: 0.05em;
+          flex-shrink: 0;
+          padding-top: 0.125rem;
+        }
+
+        .svc-row-info {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .svc-row-name-line {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          margin-bottom: 0.375rem;
+          flex-wrap: wrap;
+        }
+
+        .svc-row-name {
+          font-size: 1rem;
+          font-weight: 800;
+          color: #1a1a1a;
+          letter-spacing: -0.01em;
+          text-transform: uppercase;
+        }
+
+        .svc-row-tag {
+          font-size: 0.5625rem;
+          font-weight: 800;
+          letter-spacing: 0.14em;
+          color: #ffffff;
+          background: #1a1a1a;
+          padding: 0.25rem 0.625rem;
+          flex-shrink: 0;
+        }
+
+        .svc-row-desc {
+          font-size: 0.875rem;
+          color: #737373;
+          line-height: 1.5;
+        }
+
+        .svc-row-right {
+          display: flex;
+          align-items: center;
+          gap: 1.5rem;
+          flex-shrink: 0;
+        }
+
+        .svc-row-price {
+          font-size: 0.9375rem;
+          font-weight: 700;
+          color: #1a1a1a;
+          text-align: right;
+          white-space: nowrap;
+        }
+
+        .svc-row-original {
+          text-decoration: line-through;
+          color: #a0a0a0;
+          font-weight: 500;
+          margin-right: 0.375rem;
+        }
+
+        .svc-row-arrow {
+          font-size: 1rem;
+          color: #d0d0d0;
+          transition: color 0.2s;
+        }
+
+        :global(.svc-row:hover) .svc-row-arrow { color: #1a1a1a; }
+
+        /* ── CTA ── */
+        .v2-cta-section { background: #1a1a1a; text-align: center; }
+
+        .v2-cta-inner h2 {
+          font-size: clamp(2.25rem, 5vw, 3.5rem);
+          font-weight: 900;
+          line-height: 0.95;
+          letter-spacing: -0.02em;
+          color: #ffffff;
+          margin: 0 0 1.5rem;
+        }
+
+        .v2-cta-rule {
+          width: 60px;
+          height: 1px;
+          background: #404040;
+          margin: 0 auto 2rem;
+        }
+
+        .v2-cta-inner p {
+          font-size: 1rem;
+          color: #737373;
+          margin: 0 0 2.5rem;
+        }
+
+        .v2-cta-buttons {
+          display: flex;
+          justify-content: center;
+          gap: 1rem;
+          margin-bottom: 3rem;
+          flex-wrap: wrap;
+        }
+
+        :global(.v2-btn-white) {
+          display: inline-block;
+          background: #ffffff;
+          color: #1a1a1a;
+          padding: 0.875rem 2rem;
+          font-size: 0.6875rem;
+          font-weight: 800;
+          letter-spacing: 0.12em;
+          text-decoration: none;
+          transition: all 0.2s;
+        }
+
+        :global(.v2-btn-white:hover) { background: #f0f0f0; }
+
+        :global(.v2-btn-outline) {
+          display: inline-block;
+          background: transparent;
+          color: #ffffff;
+          padding: 0.875rem 2rem;
+          font-size: 0.6875rem;
+          font-weight: 800;
+          letter-spacing: 0.12em;
+          text-decoration: none;
+          border: 1px solid #404040;
+          transition: all 0.2s;
+        }
+
+        :global(.v2-btn-outline:hover) { border-color: #ffffff; }
+
+        .v2-cta-location {
+          font-size: 0.8125rem;
+          color: #525252;
+          letter-spacing: 0.03em;
+        }
+
+        /* ── FOOTER ── */
+        .v2-footer {
+          background: #fafafa;
+          border-top: 1px solid #e0e0e0;
+          padding: 4rem 2rem 2rem;
+        }
+
+        .v2-footer-inner {
+          max-width: 1200px;
+          margin: 0 auto;
+          display: flex;
+          justify-content: space-between;
+          gap: 4rem;
+          margin-bottom: 3rem;
+        }
+
+        .v2-wordmark-sm {
+          font-size: 0.75rem;
+          font-weight: 800;
+          letter-spacing: 0.15em;
+          color: #1a1a1a;
+        }
+
+        .v2-footer-brand p {
+          font-size: 0.875rem;
+          color: #737373;
+          margin: 0.75rem 0 0;
+          line-height: 1.6;
+        }
+
+        .v2-footer-links { display: flex; gap: 4rem; }
+
+        .v2-footer-col h4 {
+          font-size: 0.625rem;
+          font-weight: 800;
+          letter-spacing: 0.14em;
+          color: #1a1a1a;
+          margin: 0 0 1rem;
+        }
+
+        .v2-footer-col :global(a) {
+          display: block;
+          font-size: 0.8125rem;
+          color: #737373;
+          text-decoration: none;
+          padding: 0.375rem 0;
+          transition: color 0.2s;
+        }
+
+        .v2-footer-col :global(a:hover) { color: #1a1a1a; }
+
+        .v2-footer-bottom {
+          max-width: 1200px;
+          margin: 0 auto;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border-top: 1px solid #e0e0e0;
+          padding-top: 1.5rem;
+        }
+
+        .v2-footer-bottom p {
+          font-size: 0.75rem;
+          color: #a0a0a0;
+          margin: 0;
+        }
+
+        .v2-footer-legal { display: flex; gap: 1.5rem; }
+
+        .v2-footer-legal :global(a) {
+          font-size: 0.75rem;
+          color: #a0a0a0;
+          text-decoration: none;
+        }
+
+        .v2-footer-legal :global(a:hover) { color: #1a1a1a; }
+
+        /* ── ANIMATIONS ── */
+        .v2-reveal {
           opacity: 0;
-          transform: translateY(24px);
-          transition: opacity 0.7s ease, transform 0.7s ease;
+          transform: translateY(40px);
+          transition: opacity 0.8s ease, transform 0.8s ease;
         }
 
-        :global(.svc-animate.visible) {
+        .v2-visible {
           opacity: 1;
           transform: translateY(0);
         }
 
-        /* Kicker */
-        .svc-kicker {
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #737373;
-          margin-bottom: 1rem;
-        }
+        /* ── RESPONSIVE ── */
+        @media (max-width: 900px) {
+          .v2-nav-desktop { display: none; }
+          :global(.v2-nav-cta) { display: none; }
+          .v2-hamburger { display: flex; }
+          .v2-mobile-menu { display: block; }
 
-        .svc-section-inverted .svc-kicker {
-          color: rgba(255, 255, 255, 0.4);
-        }
+          .v2-hero { padding: 4rem 1.5rem 3rem; }
 
-        /* Headlines */
-        .svc-page h1 {
-          font-size: clamp(2.5rem, 6vw, 4rem);
-          font-weight: 700;
-          line-height: 1.15;
-          letter-spacing: -0.03em;
-          color: #171717;
-          margin-bottom: 1.5rem;
-        }
+          .v2-hero h1 { font-size: clamp(2.25rem, 10vw, 3.5rem); }
 
-        .svc-page h2 {
-          font-size: 2rem;
-          font-weight: 700;
-          letter-spacing: -0.02em;
-          color: #171717;
-          margin-bottom: 1rem;
-        }
+          .v2-section { padding: 3.5rem 1.5rem; }
 
-        .svc-page h3 {
-          font-size: 1.125rem;
-          font-weight: 700;
-          color: #171717;
-        }
+          .svc-jump-link { padding: 0.875rem 1rem; font-size: 0.625rem; }
 
-        .svc-section-inverted h1,
-        .svc-section-inverted h2,
-        .svc-section-inverted h3 {
-          color: #ffffff;
-        }
-
-        /* Body Text */
-        .svc-body-text {
-          font-size: 1.0625rem;
-          font-weight: 400;
-          line-height: 1.7;
-          color: #525252;
-          max-width: 600px;
-        }
-
-        .svc-section-inverted .svc-body-text {
-          color: rgba(255, 255, 255, 0.55);
-        }
-
-        /* Divider */
-        .svc-divider {
-          width: 48px;
-          height: 2px;
-          background: #e5e5e5;
-          margin: 1.25rem 0;
-        }
-
-        /* Buttons */
-        .svc-btn-primary {
-          display: inline-block;
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          font-size: 0.875rem;
-          font-weight: 600;
-          padding: 0.875rem 2rem;
-          background: #ffffff;
-          color: #000000;
-          border: none;
-          border-radius: 0;
-          cursor: pointer;
-          text-decoration: none;
-          transition: background 0.2s ease, transform 0.2s ease;
-        }
-
-        .svc-btn-primary:hover {
-          background: #e5e5e5;
-          transform: translateY(-1px);
-        }
-
-        .svc-btn-dark {
-          background: #000000;
-          color: #ffffff;
-        }
-
-        .svc-btn-dark:hover {
-          background: #1a1a1a;
-        }
-
-        /* Container */
-        .svc-container {
-          max-width: 1100px;
-          margin: 0 auto;
-        }
-
-        /* Sections */
-        .svc-section {
-          padding: 4rem 1.5rem;
-        }
-
-        .svc-section-alt {
-          background: #fafafa;
-          padding: 5rem 1.5rem;
-        }
-
-        .svc-section-inverted {
-          background: #000000;
-          color: #ffffff;
-          padding: 5rem 1.5rem;
-        }
-
-        /* Hero */
-        .svc-hero {
-          padding: 4rem 1.5rem 5rem;
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-
-        .svc-hero h1 {
-          max-width: 680px;
-        }
-
-        .svc-hero-scroll {
-          font-size: 0.75rem;
-          font-weight: 700;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: #737373;
-          margin-top: 2rem;
-        }
-
-        .svc-hero-scroll span {
-          display: block;
-          margin-top: 0.75rem;
-          font-size: 1.125rem;
-          animation: svc-bounce 2s ease-in-out infinite;
-        }
-
-        @keyframes svc-bounce {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(6px); }
-        }
-
-        /* Two-Door Cards */
-        .svc-doors-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1.25rem;
-          margin-top: 2.5rem;
-        }
-
-        .svc-door-card {
-          padding: 2rem;
-          border-radius: 0;
-          border: 1px solid #e5e5e5;
-          background: #ffffff;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .svc-door-card:hover {
-          border-color: #000000;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-        }
-
-        .svc-door-number {
-          font-size: 0.6875rem;
-          font-weight: 700;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          color: #737373;
-          margin-bottom: 0.75rem;
-        }
-
-        .svc-door-card h3 {
-          margin-bottom: 0.75rem;
-        }
-
-        .svc-door-desc {
-          font-size: 0.875rem;
-          line-height: 1.7;
-          color: #525252;
-          margin: 0;
-        }
-
-        /* Sticky Filter Bar */
-        .svc-filter-bar {
-          position: sticky;
-          top: 0;
-          z-index: 90;
-          background: #ffffff;
-          border-bottom: 1px solid #e5e5e5;
-          padding: 1rem 1.5rem;
-          transition: box-shadow 0.2s ease;
-        }
-
-        .svc-filter-sticky {
-          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-        }
-
-        .svc-filter-inner {
-          max-width: 1100px;
-          margin: 0 auto;
-          display: flex;
-          gap: 0.5rem;
-          overflow-x: auto;
-          -webkit-overflow-scrolling: touch;
-          scrollbar-width: none;
-          -ms-overflow-style: none;
-        }
-
-        .svc-filter-inner::-webkit-scrollbar {
-          display: none;
-        }
-
-        .svc-filter-pill {
-          flex-shrink: 0;
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          font-size: 0.8125rem;
-          font-weight: 600;
-          padding: 0.5rem 1.25rem;
-          border-radius: 0;
-          border: 1.5px solid #e5e5e5;
-          background: #ffffff;
-          color: #525252;
-          cursor: pointer;
-          transition: all 0.15s ease;
-          white-space: nowrap;
-        }
-
-        .svc-filter-pill:hover {
-          border-color: #171717;
-          color: #171717;
-        }
-
-        .svc-filter-active {
-          background: #000000;
-          color: #ffffff;
-          border-color: #000000;
-        }
-
-        .svc-filter-active:hover {
-          background: #1a1a1a;
-          border-color: #1a1a1a;
-          color: #ffffff;
-        }
-
-        /* Cards Grid */
-        .svc-cards-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1.5rem;
-        }
-
-        .svc-card {
-          position: relative;
-          padding: 2rem;
-          border-radius: 0;
-          border: 1px solid #e5e5e5;
-          background: #ffffff;
-          display: flex;
-          flex-direction: column;
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .svc-card:hover {
-          border-color: #c0c0c0;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-        }
-
-        .svc-card-featured {
-          border: 2px solid #000000;
-        }
-
-        .svc-card-featured:hover {
-          border-color: #000000;
-        }
-
-        .svc-card-badge {
-          position: absolute;
-          top: -10px;
-          left: 1.5rem;
-          font-size: 0.6875rem;
-          font-weight: 700;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          padding: 0.25rem 0.75rem;
-          background: #000000;
-          color: #ffffff;
-          border-radius: 0;
-        }
-
-        .svc-card-categories {
-          display: flex;
-          gap: 0.375rem;
-          flex-wrap: wrap;
-          margin-bottom: 1rem;
-        }
-
-        .svc-card-tag {
-          font-size: 0.6875rem;
-          font-weight: 600;
-          letter-spacing: 0.03em;
-          color: #737373;
-          padding: 0.25rem 0.625rem;
-          background: #f5f5f5;
-          border-radius: 0;
-        }
-
-        .svc-card-name {
-          font-size: 1.125rem;
-          font-weight: 700;
-          color: #171717;
-          margin-bottom: 0.625rem;
-          line-height: 1.3;
-        }
-
-        .svc-card-price {
-          font-size: 1.25rem;
-          font-weight: 700;
-          color: #171717;
-          margin-bottom: 0.25rem;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-
-        .svc-card-original-price {
-          text-decoration: line-through;
-          color: #a0a0a0;
-          font-size: 1rem;
-          font-weight: 500;
-        }
-
-        .svc-card-price-note {
-          font-size: 0.8125rem;
-          color: #737373;
-          margin-bottom: 1rem;
-        }
-
-        .svc-card-desc {
-          font-size: 0.875rem;
-          line-height: 1.7;
-          color: #525252;
-          margin: 0 0 1rem;
-        }
-
-        .svc-card-note {
-          font-size: 0.8125rem;
-          color: #737373;
-          font-style: italic;
-          margin: 0 0 1rem;
-          padding: 0.625rem 0.875rem;
-          background: #fafafa;
-          border-radius: 0;
-          border-left: 3px solid #e5e5e5;
-        }
-
-        .svc-card-highlights {
-          list-style: none;
-          padding: 0;
-          margin: 0 0 1.5rem;
-          flex: 1;
-        }
-
-        .svc-card-highlights li {
-          font-size: 0.8125rem;
-          color: #525252;
-          line-height: 1.6;
-          padding: 0.25rem 0 0.25rem 1.25rem;
-          position: relative;
-        }
-
-        .svc-card-highlights li::before {
-          content: '✓';
-          position: absolute;
-          left: 0;
-          color: #171717;
-          font-weight: 700;
-          font-size: 0.75rem;
-        }
-
-        .svc-card-cta {
-          font-size: 0.875rem;
-          font-weight: 600;
-          color: #171717;
-          text-decoration: none;
-          padding-top: 1rem;
-          border-top: 1px solid #e5e5e5;
-          transition: color 0.15s ease;
-          margin-top: auto;
-        }
-
-        .svc-card-cta:hover {
-          color: #525252;
-        }
-
-        /* CTA Section */
-        .svc-cta-section {
-          max-width: 700px;
-          margin: 0 auto;
-          text-align: center;
-        }
-
-        .svc-cta-title {
-          font-size: 2.75rem;
-          letter-spacing: -0.02em;
-          color: #ffffff;
-          margin-bottom: 1.25rem;
-        }
-
-        .svc-cta-buttons {
-          display: flex;
-          gap: 1rem;
-          justify-content: center;
-          align-items: center;
-          flex-wrap: wrap;
-        }
-
-        .svc-cta-or {
-          font-size: 0.75rem;
-          font-weight: 700;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: rgba(255, 255, 255, 0.25);
-        }
-
-        .svc-cta-phone {
-          font-size: 1.0625rem;
-          font-weight: 600;
-          color: #ffffff;
-          text-decoration: none;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-          padding-bottom: 2px;
-          transition: border-color 0.2s ease;
-        }
-
-        .svc-cta-phone:hover {
-          border-color: rgba(255, 255, 255, 0.6);
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-          .svc-page h1 {
-            font-size: 2rem;
-          }
-
-          .svc-page h2 {
-            font-size: 1.5rem;
-          }
-
-          .svc-hero {
-            padding: 3rem 1.5rem;
-          }
-
-          .svc-section {
-            padding: 3rem 1.5rem;
-          }
-
-          .svc-section-alt {
-            padding: 3rem 1.5rem;
-          }
-
-          .svc-section-inverted {
-            padding: 3rem 1.5rem;
-          }
-
-          .svc-doors-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .svc-cards-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .svc-cta-title {
-            font-size: 2rem;
-          }
-
-          .svc-cta-buttons {
+          :global(.svc-row) {
             flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
           }
 
-          .svc-filter-bar {
-            padding: 0.75rem 1rem;
+          .svc-row-right {
+            padding-left: 2.25rem;
+            width: 100%;
+            justify-content: space-between;
           }
+
+          .svc-row-desc { display: none; }
+
+          .v2-cta-inner h2 { font-size: clamp(2rem, 8vw, 3rem); }
+
+          .v2-footer-inner { flex-direction: column; gap: 2.5rem; }
+          .v2-footer-links { flex-direction: column; gap: 2rem; }
+          .v2-footer-bottom { flex-direction: column; gap: 1rem; text-align: center; }
         }
       `}</style>
-    </Layout>
+    </>
   );
 }

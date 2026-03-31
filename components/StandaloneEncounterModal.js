@@ -9,10 +9,55 @@ import { ENCOUNTER_FORMS } from '../lib/encounter-form-config';
 import InteractiveEncounterForm from './InteractiveEncounterForm';
 import { overlayClickProps } from './AdminLayout';
 
-const SERVICE_OPTIONS = Object.entries(ENCOUNTER_TEMPLATES).map(([key, val]) => ({
-  value: key,
-  label: val.label,
-}));
+// Group service options for the dropdown — organized by category
+const SERVICE_GROUPS = [
+  {
+    label: 'IV Therapy',
+    options: [
+      { value: 'iv_therapy', label: 'Range IV (Full Vitamin/Mineral)' },
+      { value: 'nad_iv', label: 'NAD+ IV' },
+      { value: 'glutathione_iv', label: 'Glutathione IV' },
+      { value: 'vitamin_c_iv', label: 'High-Dose Vitamin C IV' },
+      { value: 'methylene_blue_iv', label: 'Methylene Blue IV' },
+      { value: 'hydration_iv', label: 'Hydration IV' },
+    ],
+  },
+  {
+    label: 'Injections',
+    options: [
+      { value: 'injection', label: 'Range Injection' },
+      { value: 'peptide_injection', label: 'Peptide Injection' },
+      { value: 'blood_draw_encounter', label: 'Blood Draw / Phlebotomy' },
+    ],
+  },
+  {
+    label: 'Protocols',
+    options: [
+      { value: 'hrt_followup', label: 'Testosterone / HRT' },
+      { value: 'weight_loss', label: 'Weight Loss' },
+    ],
+  },
+  {
+    label: 'Sessions',
+    options: [
+      { value: 'hbot_session', label: 'HBOT' },
+      { value: 'rlt_session', label: 'Red Light Therapy' },
+    ],
+  },
+  {
+    label: 'Other',
+    options: [
+      { value: 'supplement', label: 'Supplement / Product' },
+      { value: 'consultation', label: 'Consultation' },
+      { value: 'general', label: 'General' },
+    ],
+  },
+];
+
+// Helper: resolve parentType for form/template lookups (e.g., nad_iv → iv_therapy)
+function getEffectiveType(serviceType) {
+  return ENCOUNTER_TEMPLATES[serviceType]?.parentType || serviceType;
+}
 
 // ── Markdown ↔ HTML helpers ───────────────────────────────────────────────────
 
@@ -338,8 +383,12 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
                 onChange={e => { setForm(prev => ({ ...prev, serviceType: e.target.value })); setShowTemplateMenu(false); }}
                 style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, fontFamily: 'inherit', background: '#fff', boxSizing: 'border-box' }}
               >
-                {SERVICE_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                {SERVICE_GROUPS.map(group => (
+                  <optgroup key={group.label} label={group.label}>
+                    {group.options.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </div>
@@ -360,7 +409,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
           </div>
 
           {/* Interactive form mode toggle — show when service type has an interactive form */}
-          {ENCOUNTER_FORMS[form.serviceType] && step === 'form' && (
+          {ENCOUNTER_FORMS[getEffectiveType(form.serviceType)] && step === 'form' && (
             <div style={{ marginBottom: 16, display: 'flex', gap: 8 }}>
               <button
                 type="button"
@@ -372,7 +421,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
                   display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'inherit',
                 }}
               >
-                <span style={{ fontSize: 20 }}>{ENCOUNTER_FORMS[form.serviceType].icon}</span>
+                <span style={{ fontSize: 20 }}>{ENCOUNTER_FORMS[getEffectiveType(form.serviceType)].icon}</span>
                 <div style={{ textAlign: 'left' }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#111' }}>Interactive Form</div>
                   <div style={{ fontSize: 11, color: '#6d28d9' }}>Guided fields — fastest</div>
@@ -398,10 +447,10 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
           )}
 
           {/* Interactive form — replaces template/note/footer when active */}
-          {noteMode === 'interactive' && ENCOUNTER_FORMS[form.serviceType] && (
+          {noteMode === 'interactive' && ENCOUNTER_FORMS[getEffectiveType(form.serviceType)] && (
             <div style={{ margin: '0 -24px -20px' }}>
               <InteractiveEncounterForm
-                formType={form.serviceType}
+                formType={getEffectiveType(form.serviceType)}
                 vitals={{}}
                 currentUser={form.provider || currentUser}
                 onCancel={() => setNoteMode('freetext')}
@@ -419,10 +468,10 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
                         body: markdown,
                         created_by: form.provider || currentUser || 'Staff',
                         source: 'encounter',
-                        encounter_service: form_type || form.serviceType,
+                        encounter_service: form.serviceType,
                         appointment_id: null,
                         note_date: visitDateTime,
-                        structured_data: { ...structured_data, form_type: form_type || form.serviceType },
+                        structured_data: { ...structured_data, form_type: form_type || getEffectiveType(form.serviceType) },
                       }),
                     });
                     const data = await res.json();

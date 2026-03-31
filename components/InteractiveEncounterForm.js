@@ -244,7 +244,7 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
           const doses = {};
           presetNames.forEach(name => {
             const item = vitField.items.find(it => it.name === name);
-            if (item) doses[name] = { cc: 1, mg: item.mgPerMl || null };
+            if (item) doses[name] = { cc: 1, mg: item.mgPerMl || null, mcg: item.mcgPerMl || null, iu: item.iuPerMl || null };
           });
           next.infusion.vitamin_doses = doses;
         }
@@ -719,7 +719,9 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
                           delete updatedDoses[item.name];
                         } else {
                           const mg = item.mgPerMl ? item.mgPerMl : null;
-                          updatedDoses[item.name] = { cc: 1, mg };
+                          const mcg = item.mcgPerMl ? item.mcgPerMl : null;
+                          const iu = item.iuPerMl ? item.iuPerMl : null;
+                          updatedDoses[item.name] = { cc: 1, mg, mcg, iu };
                         }
                         setFormData(prev => ({
                           ...prev,
@@ -729,6 +731,7 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
                       style={{ marginRight: 10, width: 18, height: 18, accentColor: '#111' }}
                     />
                     <span style={{ fontSize: 14, color: checked ? '#111' : '#6b7280' }}>{item.name}</span>
+                    {item.strengthLabel && <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 400, marginLeft: 6 }}>{item.strengthLabel}</span>}
                   </label>
                   {checked && (
                     <div style={{ marginLeft: 28, marginTop: 4, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -740,11 +743,13 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
                             type="button"
                             onClick={() => {
                               const mg = item.mgPerMl ? Math.round(cc * item.mgPerMl * 100) / 100 : null;
+                              const mcg = item.mcgPerMl ? Math.round(cc * item.mcgPerMl) : null;
+                              const iu = item.iuPerMl ? Math.round(cc * item.iuPerMl) : null;
                               setFormData(prev => ({
                                 ...prev,
                                 [sectionKey]: {
                                   ...prev[sectionKey],
-                                  vitamin_doses: { ...prev[sectionKey].vitamin_doses, [item.name]: { cc, mg } },
+                                  vitamin_doses: { ...prev[sectionKey].vitamin_doses, [item.name]: { cc, mg, mcg, iu } },
                                 },
                               }));
                             }}
@@ -759,8 +764,14 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
                           </button>
                         );
                       })}
-                      {item.mgPerMl && <span style={{ fontSize: 12, color: '#059669', fontWeight: 600, marginLeft: 4 }}>
+                      {item.mgPerMl && !item.mcgPerMl && !item.iuPerMl && <span style={{ fontSize: 12, color: '#059669', fontWeight: 600, marginLeft: 4 }}>
                         = {doseInfo.mg || item.mgPerMl} mg
+                      </span>}
+                      {item.mcgPerMl && <span style={{ fontSize: 12, color: '#059669', fontWeight: 600, marginLeft: 4 }}>
+                        = {doseInfo.mcg || item.mcgPerMl} mcg
+                      </span>}
+                      {item.iuPerMl && <span style={{ fontSize: 12, color: '#059669', fontWeight: 600, marginLeft: 4 }}>
+                        = {(doseInfo.iu || item.iuPerMl).toLocaleString()} IU
                       </span>}
                     </div>
                   )}

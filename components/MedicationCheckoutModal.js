@@ -69,6 +69,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
   // Protocol linking
   const [selectedProtocol, setSelectedProtocol] = useState(null);
   const [coverageType, setCoverageType] = useState(null); // subscription, protocol, paid, comp
+  const [coverageOverride, setCoverageOverride] = useState(false); // true = treat covered item as paid
 
   // Employees
   const [employees, setEmployees] = useState([]);
@@ -125,6 +126,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     setTrackingNumber('');
     setSelectedProtocol(null);
     setCoverageType(null);
+    setCoverageOverride(false);
     setSendReceipt(true);
     setSelectedService(null);
     setPaymentMethod('');
@@ -155,6 +157,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     setTrackingNumber('');
     setSelectedProtocol(null);
     setCoverageType(null);
+    setCoverageOverride(false);
     setSelectedService(null);
     setPaymentMethod('');
     setSelectedCardId('');
@@ -168,7 +171,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
       medication, dosage, supplyType, quantity, duration, weight,
       entryType, notes, administeredBy, verifiedBy,
       lotNumber, expirationDate, fulfillmentMethod, trackingNumber,
-      selectedProtocol, coverageType, coverage,
+      selectedProtocol, coverageType, coverageOverride, coverage,
       selectedService, paymentMethod, selectedCardId,
     };
     setCartItems(prev => [...prev, item]);
@@ -209,7 +212,8 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
       const data = await res.json();
       setCoverage(data);
 
-      // Auto-select coverage type
+      // Auto-select coverage type (reset override on new category selection)
+      setCoverageOverride(false);
       if (data.covered) {
         setCoverageType(data.coverage_type);
       } else {
@@ -569,17 +573,75 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
               ) : coverage && (
                 <div style={{
                   ...styles.coverageCard,
-                  borderColor: coverage.covered ? '#16a34a' : '#e5e5e5',
-                  background: coverage.covered ? '#f0fdf4' : '#fff',
+                  borderColor: (coverage.covered && !coverageOverride) ? '#16a34a' : '#e5e5e5',
+                  background: (coverage.covered && !coverageOverride) ? '#f0fdf4' : '#fff',
                 }}>
-                  {coverage.covered ? (
+                  {coverage.covered && !coverageOverride ? (
                     <>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Check size={16} color="#16a34a" />
-                        <span style={{ fontWeight: 600, color: '#16a34a' }}>Covered</span>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Check size={16} color="#16a34a" />
+                          <span style={{ fontWeight: 600, color: '#16a34a' }}>Covered</span>
+                        </div>
+                        {/* Override toggle — switch to "Charge" mode */}
+                        <button
+                          onClick={() => {
+                            setCoverageOverride(true);
+                            setCoverageType('paid');
+                            setPaymentMethod('');
+                            setSelectedService(null);
+                            setSelectedCardId('');
+                          }}
+                          style={{
+                            background: '#fff',
+                            border: '1px solid #d1d5db',
+                            padding: '4px 12px',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            color: '#666',
+                            cursor: 'pointer',
+                          }}
+                          title="Override coverage — charge patient for this item"
+                        >
+                          Charge Instead
+                        </button>
                       </div>
                       <div style={{ fontSize: '13px', color: '#333', marginTop: '4px' }}>
                         {coverage.coverage_source} — $0.00 balance
+                      </div>
+                    </>
+                  ) : coverage.covered && coverageOverride ? (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Package size={16} color="#ea580c" />
+                          <span style={{ fontWeight: 600, color: '#ea580c' }}>Charging — Override Active</span>
+                        </div>
+                        {/* Revert to covered */}
+                        <button
+                          onClick={() => {
+                            setCoverageOverride(false);
+                            setCoverageType(coverage.coverage_type);
+                            setPaymentMethod('');
+                            setSelectedService(null);
+                            setSelectedCardId('');
+                          }}
+                          style={{
+                            background: '#f0fdf4',
+                            border: '1px solid #86efac',
+                            padding: '4px 12px',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            color: '#16a34a',
+                            cursor: 'pointer',
+                          }}
+                          title="Revert to covered ($0)"
+                        >
+                          Use Coverage
+                        </button>
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>
+                        Coverage available ({coverage.coverage_source}) but charging as add-on.
                       </div>
                     </>
                   ) : (
@@ -589,7 +651,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                         <span style={{ fontWeight: 600, color: '#333' }}>New Purchase</span>
                       </div>
                       <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>
-                        Not covered by a membership or existing pack. Select pricing and payment method on the next step.
+                        Not covered by a membership or existing pack. Select pricing and payment method below.
                       </div>
                     </>
                   )}
@@ -928,8 +990,8 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                 />
               </div>
 
-              {/* Payment section for non-covered items */}
-              {!coverage?.covered && (
+              {/* Payment section for non-covered items OR when coverage is overridden */}
+              {(!coverage?.covered || coverageOverride) && (
                 <div style={{ borderTop: '1px solid #e5e5e5', paddingTop: '16px', marginTop: '8px' }}>
                   <div style={{ fontSize: '13px', fontWeight: 600, color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '10px' }}>
                     Payment

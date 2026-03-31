@@ -228,9 +228,10 @@ export default async function handler(req, res) {
       plan_name: formatSubName(s),
     }));
 
-    // Fetch pricing from pos_services for non-covered items
+    // Fetch pricing from pos_services — always return these so front desk can
+    // override coverage and charge for add-on items even when the category is "covered"
     let suggested_services = [];
-    if (!covered) {
+    {
       const posCategoryMap = {
         testosterone: 'hrt',
         weight_loss: 'weight_loss',
@@ -262,9 +263,9 @@ export default async function handler(req, res) {
       }
     }
 
-    // Fetch patient's saved cards for payment
+    // Fetch patient's saved cards for payment — always return so override works
     let saved_cards = [];
-    if (!covered) {
+    {
       const { data: patientData } = await supabase
         .from('patients')
         .select('stripe_customer_id')

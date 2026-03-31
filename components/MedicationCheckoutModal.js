@@ -484,6 +484,53 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                 </div>
               )}
 
+              {/* Peptide cycle tracker */}
+              {coverage?.peptide_cycle && (
+                <div style={{
+                  ...styles.coverageCard,
+                  borderColor: coverage.peptide_cycle.cycle_blocked ? '#dc2626' : '#0891b2',
+                  background: coverage.peptide_cycle.cycle_blocked ? '#fef2f2' : '#f0fdfa',
+                  marginBottom: '16px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontWeight: 600, fontSize: '13px', color: coverage.peptide_cycle.cycle_blocked ? '#dc2626' : '#0891b2' }}>
+                      {coverage.peptide_cycle.cycle_label}
+                    </span>
+                    <span style={{ fontSize: '13px', fontWeight: 600 }}>
+                      {coverage.peptide_cycle.days_dispensed}/{coverage.peptide_cycle.max_days} days
+                    </span>
+                  </div>
+                  {/* Progress bar */}
+                  <div style={{ height: '6px', background: '#e5e5e5', borderRadius: '3px', overflow: 'hidden', marginBottom: '8px' }}>
+                    <div style={{
+                      height: '100%',
+                      width: `${Math.min(100, (coverage.peptide_cycle.days_dispensed / coverage.peptide_cycle.max_days) * 100)}%`,
+                      background: coverage.peptide_cycle.cycle_blocked ? '#dc2626' : '#0891b2',
+                      borderRadius: '3px',
+                      transition: 'width 0.3s',
+                    }} />
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#666' }}>
+                    {coverage.peptide_cycle.medication}
+                    {coverage.peptide_cycle.days_remaining > 0 && !coverage.peptide_cycle.cycle_blocked
+                      ? ` — ${coverage.peptide_cycle.days_remaining} days remaining in cycle`
+                      : ''
+                    }
+                  </div>
+                  {coverage.peptide_cycle.cycle_blocked && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', fontSize: '13px', color: '#dc2626', fontWeight: 500 }}>
+                      <AlertTriangle size={14} />
+                      Cycle complete — {coverage.peptide_cycle.off_days}-day break required. Can restart {coverage.peptide_cycle.off_period_end}
+                    </div>
+                  )}
+                  {coverage.peptide_cycle.can_extend && (
+                    <div style={{ fontSize: '12px', color: '#0891b2', marginTop: '4px' }}>
+                      Extending existing protocol — purchase adds 30 days
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Protocol selector (if multiple) */}
               {coverage?.available_protocols?.length > 1 && (
                 <div style={styles.fieldGroup}>
@@ -740,13 +787,19 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
 
               <button
                 onClick={() => setStep(4)}
-                disabled={!medication && !['hbot', 'red_light'].includes(selectedCategory?.id)}
+                disabled={
+                  coverage?.peptide_cycle?.cycle_blocked ||
+                  (!medication && !['hbot', 'red_light'].includes(selectedCategory?.id))
+                }
                 style={{
                   ...styles.primaryBtn,
-                  opacity: (!medication && !['hbot', 'red_light'].includes(selectedCategory?.id)) ? 0.5 : 1,
+                  opacity: (coverage?.peptide_cycle?.cycle_blocked || (!medication && !['hbot', 'red_light'].includes(selectedCategory?.id))) ? 0.5 : 1,
                 }}
               >
-                Review Checkout →
+                {coverage?.peptide_cycle?.cycle_blocked
+                  ? 'Cycle Complete — Cannot Checkout'
+                  : 'Review Checkout →'
+                }
               </button>
             </div>
           )}

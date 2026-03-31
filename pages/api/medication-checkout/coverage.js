@@ -12,6 +12,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { todayPacific } from '../../../lib/date-utils';
+import { getCycleConfig } from '../../../lib/protocol-config';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -107,10 +108,26 @@ export default async function handler(req, res) {
     const protoTypes = CATEGORY_TO_PROTOCOL_TYPE[category] || [];
     const matchingProtocols = validProtocols.filter(p => {
       if (!protoTypes.includes(p.program_type)) return false;
+      // For peptides, include even if sessions are used up — we need to show cycle status
+      if (category === 'peptide') return true;
       // For session-based protocols, check if sessions remain
       if (p.total_sessions && p.sessions_used >= p.total_sessions) return false;
       return true;
     });
+
+    // Also check recently completed peptide protocols (within 90+14 days)
+    // so we can enforce the 2-week off period after a completed cycle
+    let allPeptideProtocols = [];
+    if (category === 'peptide') {
+      const { data: pepProtos } = await supabase
+        .from('protocols')
+        .select('*')
+        .eq('patient_id', patient_id)
+        .eq('program_type', 'peptide')
+        .in('status', ['active', 'completed', 'expired'])
+        .order('created_at', { ascending: false });
+      allPeptideProtocols = pepProtos || [];
+    }
 
     // Build coverage result
     let covered = false;
@@ -260,6 +277,51 @@ export default async function handler(req, res) {
       }
     }
 
+    // Peptide cycle tracking — compute days used across the active protocol
+    // and determine if the patient is at/past the cycle max (90 days for recovery, etc.)
+    let peptide_cycle = null;
+    if (category === 'peptide' && allPeptideProtocols.length > 0) {
+      // Find the most recent active protocol for this medication
+      const activeProto = allPeptideProtocols.find(p => p.status === 'active');
+      const recentCompleted = allPeptideProtocols.find(p => p.status === 'completed' || p.status === 'expired');
+      const cycleProto = activeProto || recentCompleted;
+
+      if (cycleProto) {
+        const cycleConfig = getCycleConfig(cycleProto.medication);
+        const maxDays = cycleConfig?.maxDays || 90;
+        const offDays = cycleConfig?.offDays || 14;
+        // total_sessions for peptides = total days in protocol
+        const daysDispensed = cycleProto.total_sessions || 0;
+        const daysRemaining = Math.max(0, maxDays - daysDispensed);
+
+        // Check if cycle is maxed out and still in the off period
+        let cycleBlocked = false;
+        let offPeriodEnd = null;
+        if (daysDispensed >= maxDays && cycleProto.end_date) {
+          const endDate = new Date(cycleProto.end_date + 'T12:00:00');
+          const offEnd = new Date(endDate);
+          offEnd.setDate(offEnd.getDate() + offDays);
+          offPeriodEnd = offEnd.toISOString().split('T')[0];
+          if (today < offPeriodEnd) {
+            cycleBlocked = true;
+          }
+        }
+
+        peptide_cycle = {
+          protocol_id: cycleProto.id,
+          medication: cycleProto.medication,
+          days_dispensed: daysDispensed,
+          max_days: maxDays,
+          days_remaining: daysRemaining,
+          off_days: offDays,
+          cycle_blocked: cycleBlocked,
+          off_period_end: offPeriodEnd,
+          cycle_label: cycleConfig?.label || 'Peptide Cycle',
+          can_extend: daysDispensed < maxDays && cycleProto.status === 'active',
+        };
+      }
+    }
+
     return res.status(200).json({
       covered,
       coverage_type,
@@ -270,6 +332,7 @@ export default async function handler(req, res) {
       active_subscriptions: activeSubscriptions,
       suggested_services,
       saved_cards,
+      peptide_cycle,
     });
   } catch (err) {
     console.error('[medication-checkout/coverage] Error:', err);

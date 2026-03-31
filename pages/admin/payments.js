@@ -2304,8 +2304,10 @@ function CheckoutTab({ onStartCheckout }) {
                   <th style={checkoutStyles.th}>Patient</th>
                   <th style={checkoutStyles.th}>Service</th>
                   <th style={checkoutStyles.th}>Medication</th>
+                  <th style={checkoutStyles.th}>Staff</th>
                   <th style={checkoutStyles.th}>Type</th>
                   <th style={checkoutStyles.th}>Date</th>
+                  <th style={checkoutStyles.th}></th>
                 </tr>
               </thead>
               <tbody>
@@ -2328,14 +2330,37 @@ function CheckoutTab({ onStartCheckout }) {
                       {log.dosage && <span style={{ fontSize: '12px', color: '#888', marginLeft: '4px' }}>({log.dosage})</span>}
                     </td>
                     <td style={checkoutStyles.td}>
+                      <span style={{ fontSize: '13px', color: '#444' }}>{log.administered_by || '—'}</span>
+                      {log.verified_by && <span style={{ fontSize: '11px', color: '#888', display: 'block' }}>✓ {log.verified_by}</span>}
+                    </td>
+                    <td style={checkoutStyles.td}>
                       <span style={{ fontSize: '13px', color: '#666' }}>
-                        {log.entry_type === 'injection' ? 'Injection' : log.entry_type === 'pickup' ? 'Pickup' : log.entry_type === 'session' ? 'Session' : log.entry_type || '—'}
+                        {log.entry_type === 'injection' ? 'Injection' : log.entry_type === 'pickup' ? 'Pickup' : log.entry_type === 'session' ? 'Session' : log.entry_type === 'weight_check' ? 'Weigh-in' : log.entry_type || '—'}
                       </span>
                     </td>
                     <td style={checkoutStyles.td}>
                       <span style={{ fontSize: '13px', color: '#888' }}>
                         {log.entry_date ? new Date(log.entry_date + 'T12:00:00').toLocaleDateString() : '—'}
                       </span>
+                    </td>
+                    <td style={checkoutStyles.td}>
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`Delete this checkout entry for ${log.patient_name}?\n\n${log.medication || log.category} — ${log.entry_date}\n\nThis cannot be undone.`)) return;
+                          try {
+                            const res = await fetch(`/api/service-log/${log.id}`, { method: 'DELETE' });
+                            if (res.ok) {
+                              setRecentCheckouts(prev => prev.filter(l => l.id !== log.id));
+                            } else {
+                              alert('Failed to delete entry');
+                            }
+                          } catch (err) { alert('Error: ' + err.message); }
+                        }}
+                        style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '12px', padding: '2px 6px' }}
+                        title="Delete this checkout entry"
+                      >
+                        ✕
+                      </button>
                     </td>
                   </tr>
                 ))}

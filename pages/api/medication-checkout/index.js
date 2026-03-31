@@ -230,9 +230,14 @@ async function updateProtocol(protocolId, opts) {
       const increment = (isWeightLossType(category) && quantity && parseInt(quantity) > 1) ? parseInt(quantity) : 1;
       updates.sessions_used = (protocol.sessions_used || 0) + increment;
 
-      // Calculate next expected date (7 days for weekly services)
+      // Calculate next expected date
+      // For WL multi-injection pickups, use quantity * 7 days (e.g., 4 injections = 28 days)
+      // For single sessions/injections, use 7 days
+      const nextDays = (isWeightLossType(category) && quantity && parseInt(quantity) > 1)
+        ? parseInt(quantity) * 7
+        : 7;
       const nextDate = new Date(logDate + 'T12:00:00');
-      nextDate.setDate(nextDate.getDate() + 7);
+      nextDate.setDate(nextDate.getDate() + nextDays);
       updates.next_expected_date = nextDate.toISOString().split('T')[0];
 
       // Check if protocol is now complete

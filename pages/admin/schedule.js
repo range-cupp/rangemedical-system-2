@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import AdminLayout from '../../components/AdminLayout';
 import EncounterModal from '../../components/EncounterModal';
+import MedicationCheckoutModal from '../../components/MedicationCheckoutModal';
 import { useAuth } from '../../components/AuthProvider';
 
 // Dynamic import CalendarView (it uses browser APIs)
@@ -19,6 +20,8 @@ export default function SchedulePage() {
   const [loading, setLoading] = useState(true);
   const [renewalMap, setRenewalMap] = useState({}); // patient_id -> [renewals]
   const [encounterAppt, setEncounterAppt] = useState(null);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [checkoutPatient, setCheckoutPatient] = useState(null);
 
   useEffect(() => {
     fetchAppointments();
@@ -259,6 +262,32 @@ export default function SchedulePage() {
                       >
                         Encounter Note
                       </button>
+                      {apt.patient_id && (
+                        <button
+                          onClick={() => {
+                            setCheckoutPatient({
+                              id: apt.patient_id,
+                              name: apt.patient_name || apt.attendee_name,
+                              email: apt.attendee_email || null,
+                              phone: apt.attendee_phone || null,
+                            });
+                            setShowCheckout(true);
+                          }}
+                          style={{
+                            background: '#f0fdf4',
+                            border: '1px solid #86efac',
+                            borderRadius: 0,
+                            cursor: 'pointer',
+                            color: '#16a34a',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            padding: '4px 10px',
+                          }}
+                          title="Checkout patient"
+                        >
+                          📦 Checkout
+                        </button>
+                      )}
                       <button
                         onClick={() => deleteAppointment(apt.id)}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999', fontSize: '13px', padding: '4px' }}
@@ -318,6 +347,14 @@ export default function SchedulePage() {
           onRefresh={fetchAppointments}
         />
       )}
+
+      {/* Medication Checkout Modal */}
+      <MedicationCheckoutModal
+        isOpen={showCheckout}
+        onClose={() => { setShowCheckout(false); setCheckoutPatient(null); }}
+        preselectedPatient={checkoutPatient}
+        onCheckoutComplete={() => {}}
+      />
     </AdminLayout>
   );
 }

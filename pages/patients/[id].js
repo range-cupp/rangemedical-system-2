@@ -8908,8 +8908,44 @@ export default function PatientProfile() {
                       <option value="">Select peptide...</option>
                       {PEPTIDE_OPTIONS.flatMap(g => g.options).map(o => <option key={o.value} value={o.value}>{o.value}</option>)}
                     </select>
+                  ) : selectedProtocol.category === 'hrt' ? (
+                    <select value={editForm.medication} onChange={e => setEditForm({...editForm, medication: e.target.value, selectedDose: ''})}>
+                      <option value="">Select medication...</option>
+                      {selectedProtocol.hrt_type === 'female' ? (
+                        <>
+                          <optgroup label="Female HRT">
+                            <option value="Testosterone Cypionate (100mg/ml)">Testosterone Cypionate (100mg/ml)</option>
+                            <option value="Estradiol">Estradiol</option>
+                            <option value="Progesterone">Progesterone</option>
+                            <option value="Thyroid (T3/T4/Armour)">Thyroid (T3/T4/Armour)</option>
+                            <option value="DHEA">DHEA</option>
+                            <option value="Pregnenolone">Pregnenolone</option>
+                          </optgroup>
+                          <optgroup label="Other">
+                            {HRT_MEDICATIONS.filter(m => !['Estradiol','Progesterone','Thyroid (T3/T4/Armour)','DHEA','Pregnenolone'].includes(m)).map(m => (
+                              <option key={m} value={m}>{m}</option>
+                            ))}
+                          </optgroup>
+                        </>
+                      ) : (
+                        <>
+                          <optgroup label="Male HRT">
+                            <option value="Testosterone Cypionate (200mg/ml)">Testosterone Cypionate (200mg/ml)</option>
+                            <option value="Testosterone Enanthate">Testosterone Enanthate</option>
+                            <option value="Nandrolone">Nandrolone</option>
+                            <option value="HCG">HCG</option>
+                            <option value="Testosterone Booster (Oral)">Testosterone Booster (Oral)</option>
+                          </optgroup>
+                          <optgroup label="Other">
+                            {['Estradiol','Progesterone','Thyroid (T3/T4/Armour)','DHEA','Pregnenolone'].map(m => (
+                              <option key={m} value={m}>{m}</option>
+                            ))}
+                          </optgroup>
+                        </>
+                      )}
+                    </select>
                   ) : (
-                    <input type="text" value={editForm.medication} onChange={e => setEditForm({...editForm, medication: e.target.value})} placeholder="e.g. Testosterone Cypionate (200mg/ml)" />
+                    <input type="text" value={editForm.medication} onChange={e => setEditForm({...editForm, medication: e.target.value})} placeholder="Medication name" />
                   )}
                 </div>
 

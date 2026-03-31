@@ -1662,6 +1662,12 @@ export default function PatientProfile() {
 
   const getCategoryStyle = (category) => CATEGORY_COLORS[category] || CATEGORY_COLORS.other;
 
+  // For peptide protocols, show the actual peptide name (medication) instead of the Stripe product name (program_name)
+  const getProtocolDisplayName = (p) => {
+    if (p.category === 'peptide' && p.medication) return p.medication;
+    return p.program_name || p.medication || p.program_type || '';
+  };
+
   // Compute last activity date per active protocol from service logs + sessions
   const getProtocolLastActivity = () => {
     if (!activeProtocols.length) return [];
@@ -1731,7 +1737,7 @@ export default function PatientProfile() {
       const catStyle = getCategoryStyle(protocol.category);
       return {
         id: protocol.id,
-        name: protocol.program_name || protocol.medication || protocol.program_type,
+        name: getProtocolDisplayName(protocol),
         category: protocol.category,
         catStyle,
         lastDate,
@@ -4082,7 +4088,7 @@ export default function PatientProfile() {
               for (const proto of allProtos) {
                 if (!isHRTProtocol(proto.program_type)) continue;
                 const isActive = proto.status === 'active';
-                const protoName = proto.program_name || proto.medication || proto.program_type;
+                const protoName = getProtocolDisplayName(proto);
                 const schedule = hrtLabSchedules[proto.id];
                 const summary = schedule?.length ? getLabStatusSummary(schedule) : null;
                 if (summary?.nextDraw) {
@@ -4144,7 +4150,7 @@ export default function PatientProfile() {
                   <div className="synopsis-protocols">
                     {activeProtocols.map(proto => {
                       const cat = getCategoryStyle(proto.category);
-                      const name = proto.program_name || proto.medication || proto.program_type;
+                      const name = getProtocolDisplayName(proto);
                       const dose = proto.selected_dose || proto.current_dose || '';
                       const statusText = proto.status_text || '';
                       const daysLeft = proto.days_remaining;
@@ -4288,7 +4294,7 @@ export default function PatientProfile() {
                             </span>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <span style={{ fontSize: '13px', fontWeight: 600, color: '#1e293b' }}>
-                                {protocol.medication || protocol.program_name}
+                                {getProtocolDisplayName(protocol)}
                               </span>
                               {parts.length > 0 && (
                                 <span style={{ fontSize: '12px', color: '#64748b', marginLeft: '8px' }}>
@@ -4639,14 +4645,11 @@ export default function PatientProfile() {
                           <div className="protocol-main">
                             <span className="protocol-badge" style={{ background: cat.bg, color: cat.text }}>{cat.label}</span>
                             <span className="protocol-name">
-                              {protocol.program_name || protocol.medication}
+                              {getProtocolDisplayName(protocol)}
                               {protocol.category === 'hrt' && protocol.hrt_type && (
                                 <span style={{ fontSize: 12, color: '#7C3AED', marginLeft: 4 }}>({protocol.hrt_type === 'female' ? 'F' : 'M'})</span>
                               )}
                             </span>
-                            {protocol.medication && protocol.program_name && protocol.medication !== protocol.program_name && (
-                              <span className="protocol-dose" style={{ fontWeight: 500 }}>({protocol.medication})</span>
-                            )}
                             {protocol.selected_dose && <span className="protocol-dose">{protocol.selected_dose}</span>}
                           </div>
                           <div className="protocol-status">
@@ -5092,7 +5095,7 @@ export default function PatientProfile() {
                           <div className="protocol-card-header">
                             <span className="protocol-badge" style={{ background: cat.bg, color: cat.text }}>{cat.label}</span>
                             <span className="protocol-name">
-                              {protocol.program_name || protocol.medication}
+                              {getProtocolDisplayName(protocol)}
                               {protocol.category === 'hrt' && protocol.hrt_type && (
                                 <span style={{ fontSize: 12, color: '#7C3AED', marginLeft: 6 }}>({protocol.hrt_type === 'female' ? 'Female' : 'Male'})</span>
                               )}
@@ -5119,7 +5122,7 @@ export default function PatientProfile() {
                             )}
                           </div>
                           <div className="protocol-details">
-                            {protocol.medication && protocol.program_name && protocol.medication !== protocol.program_name && (
+                            {protocol.medication && protocol.program_name && protocol.medication !== protocol.program_name && protocol.category !== 'peptide' && (
                               <span style={{ fontWeight: 500 }}>{protocol.medication}</span>
                             )}
                             {protocol.selected_dose && <span>{protocol.selected_dose}</span>}
@@ -8613,7 +8616,7 @@ export default function PatientProfile() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                       {activeProtocols.map(p => (
                         <div key={p.id} style={{ fontSize: 12, color: '#78350f' }}>
-                          • <strong>{p.program_name}</strong>{p.medication && p.medication !== p.program_name ? ` — ${p.medication}` : ''}
+                          • <strong>{getProtocolDisplayName(p)}</strong>
                           <span style={{ color: '#a16207' }}> (started {new Date(p.start_date).toLocaleDateString()})</span>
                         </div>
                       ))}
@@ -8644,7 +8647,7 @@ export default function PatientProfile() {
                       <option value="">Choose protocol...</option>
                       {activeProtocols.map(p => (
                         <option key={p.id} value={p.id}>
-                          {p.program_name}{p.medication && p.medication !== p.program_name ? ` — ${p.medication}` : ''} (started {new Date(p.start_date).toLocaleDateString()})
+                          {getProtocolDisplayName(p)} (started {new Date(p.start_date).toLocaleDateString()})
                         </option>
                       ))}
                     </select>
@@ -9929,7 +9932,7 @@ export default function PatientProfile() {
               </div>
               <div style={{ padding: '20px' }}>
                 <p style={{ marginBottom: 16, fontSize: 14, color: '#374151' }}>
-                  Merge <strong>{mergeSource.program_name || mergeSource.medication}</strong> into another protocol.
+                  Merge <strong>{getProtocolDisplayName(mergeSource)}</strong> into another protocol.
                   The injection count will roll over, and the surviving protocol will use the earliest start date.
                 </p>
 
@@ -9937,8 +9940,7 @@ export default function PatientProfile() {
                 <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 0, padding: '10px 14px', marginBottom: 16 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#92400e', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Will be closed (merged away)</div>
                   <div style={{ fontWeight: 600, fontSize: 14 }}>
-                    {mergeSource.program_name || mergeSource.medication}
-                    {mergeSource.medication && mergeSource.program_name && mergeSource.medication !== mergeSource.program_name ? ` (${mergeSource.medication})` : ''}
+                    {getProtocolDisplayName(mergeSource)}
                   </div>
                   <div style={{ fontSize: 13, color: '#666', marginTop: 2 }}>
                     {mergeSource.selected_dose && <span>{mergeSource.selected_dose} · </span>}
@@ -9965,8 +9967,7 @@ export default function PatientProfile() {
                     .filter(p => p.id !== mergeSource.id && p.category === mergeSource.category && p.status !== 'merged' && p.status !== 'cancelled')
                     .map(p => (
                       <option key={p.id} value={p.id}>
-                        {p.program_name || p.medication}
-                        {p.medication && p.program_name && p.medication !== p.program_name ? ` (${p.medication})` : ''}
+                        {getProtocolDisplayName(p)}
                         {p.selected_dose ? ` · ${p.selected_dose}` : ''}
                         {' · '}Started {p.start_date ? new Date(p.start_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                         {' · '}{p.sessions_used || 0} injections
@@ -9979,8 +9980,7 @@ export default function PatientProfile() {
                   <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 0, padding: '10px 14px', marginBottom: 16 }}>
                     <div style={{ fontSize: 12, fontWeight: 700, color: '#166534', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Surviving protocol (after merge)</div>
                     <div style={{ fontWeight: 600, fontSize: 14 }}>
-                      {mergeTarget.program_name || mergeTarget.medication}
-                      {mergeTarget.medication && mergeTarget.program_name && mergeTarget.medication !== mergeTarget.program_name ? ` (${mergeTarget.medication})` : ''}
+                      {getProtocolDisplayName(mergeTarget)}
                     </div>
                     <div style={{ fontSize: 13, color: '#444', marginTop: 2 }}>
                       Combined injections: <strong>{(mergeSource.sessions_used || 0) + (mergeTarget.sessions_used || 0)}</strong>
@@ -12963,7 +12963,7 @@ export default function PatientProfile() {
               {/* Medication */}
               <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Medication</span>
-                <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{dispensingProtocol.medication || dispensingProtocol.program_name}</span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: '#111' }}>{getProtocolDisplayName(dispensingProtocol)}</span>
               </div>
 
               {/* Dosage */}

@@ -230,6 +230,12 @@ async function updateProtocol(protocolId, opts) {
       const increment = (isWeightLossType(category) && quantity && parseInt(quantity) > 1) ? parseInt(quantity) : 1;
       updates.sessions_used = (protocol.sessions_used || 0) + increment;
 
+      // For WL: also extend total_sessions when dispensing a new batch
+      // e.g., had 8/8, dispensing 4 more → 12/12
+      if (isWeightLossType(category) && increment > 1) {
+        updates.total_sessions = (protocol.total_sessions || 0) + increment;
+      }
+
       // Calculate next expected date
       // For WL multi-injection pickups, use quantity * 7 days (e.g., 4 injections = 28 days)
       // For single sessions/injections, use 7 days
@@ -251,6 +257,15 @@ async function updateProtocol(protocolId, opts) {
     // For pickups (HRT, peptide, WL take-home), update refill tracking
     if (entryType === 'pickup' || entryType === 'med_pickup') {
       updates.last_refill_date = logDate;
+
+      // For WL take-home pickups: increment sessions (both used and total)
+      // e.g., patient had 8/8, buys 4 more → becomes 12/12 (all dispensed as take-home)
+      if (isWeightLossType(category) && quantity && parseInt(quantity) > 0) {
+        const pickupQty = parseInt(quantity);
+        updates.sessions_used = (protocol.sessions_used || 0) + pickupQty;
+        // Extend total_sessions so it stays in sync (8 + 4 = 12)
+        updates.total_sessions = (protocol.total_sessions || 0) + pickupQty;
+      }
 
       // Calculate next expected date based on supply type
       if (supply_type) {

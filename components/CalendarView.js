@@ -9,6 +9,7 @@ import { getCategoryStyle, CATEGORY_COLORS } from '../lib/protocol-config';
 import { overlayClickProps } from './AdminLayout';
 import { APPOINTMENT_SERVICES, getAllServices, PROVIDERS, LOCATIONS, DEFAULT_LOCATION, LOCATION_ENABLED_CATEGORIES, REQUIRED_FORMS } from '../lib/appointment-services';
 import EncounterModal from './EncounterModal';
+import MedicationCheckoutModal from './MedicationCheckoutModal';
 import { useAuth } from './AuthProvider';
 
 // Form display names + consent_type normalization (inlined to avoid importing server-only form-bundles.js)
@@ -69,6 +70,8 @@ const HOUR_HEIGHT = 80; // pixels per hour in day view
 export default function CalendarView({ preselectedPatient = null, wizardOnly = false }) {
   const { session, employee } = useAuth();
   const [encounterAppt, setEncounterAppt] = useState(null);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [checkoutPatient, setCheckoutPatient] = useState(null);
 
   // Calendar state
   const [viewMode, setViewMode] = useState('day');
@@ -2159,6 +2162,22 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                   : 'Write Encounter Note'
                 }
               </button>
+              {appt.patient_id && (
+                <button
+                  onClick={() => {
+                    setCheckoutPatient({
+                      id: appt.patient_id,
+                      name: appt.patient_name || appt.attendee_name,
+                      email: appt.attendee_email || null,
+                      phone: appt.attendee_phone || null,
+                    });
+                    setShowCheckout(true);
+                  }}
+                  style={{ ...styles.actionBtn, width: '100%', marginTop: '6px', background: '#f0fdf4', color: '#16a34a', border: '1px solid #86efac', fontWeight: '600', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                >
+                  📦 Checkout
+                </button>
+              )}
             </div>
 
             {/* Inline Prep Checklist */}
@@ -4183,6 +4202,14 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
           onRefresh={() => fetchAppointments()}
         />
       )}
+
+      {/* Medication Checkout Modal */}
+      <MedicationCheckoutModal
+        isOpen={showCheckout}
+        onClose={() => { setShowCheckout(false); setCheckoutPatient(null); }}
+        preselectedPatient={checkoutPatient}
+        onCheckoutComplete={() => {}}
+      />
     </div>
   );
 }

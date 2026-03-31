@@ -84,6 +84,8 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
   const [selectedService, setSelectedService] = useState(null); // pos_service item
   const [paymentMethod, setPaymentMethod] = useState(''); // saved_card, cash, comp
   const [selectedCardId, setSelectedCardId] = useState('');
+  const [discountType, setDiscountType] = useState('dollar'); // dollar or percent
+  const [discountValue, setDiscountValue] = useState(''); // raw input value
 
   // Cart — multiple items per checkout
   const [cartItems, setCartItems] = useState([]);
@@ -135,6 +137,8 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     setSelectedService(null);
     setPaymentMethod('');
     setSelectedCardId('');
+    setDiscountType('dollar');
+    setDiscountValue('');
     setCartItems([]);
     setSubmitting(false);
     setResult(null);
@@ -166,6 +170,8 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     setSelectedService(null);
     setPaymentMethod('');
     setSelectedCardId('');
+    setDiscountType('dollar');
+    setDiscountValue('');
     setError('');
   }
 
@@ -178,6 +184,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
       lotNumber, expirationDate, fulfillmentMethod, trackingNumber,
       selectedProtocol, coverageType, coverageOverride, coverage,
       selectedService, paymentMethod, selectedCardId,
+      discountType, discountValue,
       wlAddons: [...wlAddons],
     };
     setCartItems(prev => [...prev, item]);
@@ -274,11 +281,28 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     return [...cartItems];
   }
 
+  // Calculate discounted price in cents for a cart item
+  function getItemPriceCents(item) {
+    if (!item.selectedService) return 0;
+    const baseCents = item.selectedService.price_cents || 0;
+    if (!item.discountValue || parseFloat(item.discountValue) <= 0) return baseCents;
+    if (item.discountType === 'percent') {
+      const pct = Math.min(100, parseFloat(item.discountValue));
+      return Math.round(baseCents * (1 - pct / 100));
+    }
+    // Dollar discount
+    const discountCents = Math.round(parseFloat(item.discountValue) * 100);
+    return Math.max(0, baseCents - discountCents);
+  }
+
   // Process payment for a single item
   async function processPayment(item) {
     if (item.coverageType !== 'paid' || !item.selectedService) return null;
-    const amountCents = item.selectedService.price_cents;
-    const description = item.selectedService.name;
+    const amountCents = getItemPriceCents(item);
+    const hasDiscount = amountCents < (item.selectedService.price_cents || 0);
+    const description = hasDiscount
+      ? `${item.selectedService.name} (discounted)`
+      : item.selectedService.name;
 
     if (item.paymentMethod === 'cash') {
       const purchaseRes = await fetch('/api/stripe/record-purchase', {
@@ -354,7 +378,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
         let purchaseId = null;
         if (item.coverageType === 'paid' && item.selectedService && item.paymentMethod !== 'comp') {
           purchaseId = await processPayment(item);
-          totalPaid += item.selectedService.price_cents;
+          totalPaid += getItemPriceCents(item);
         }
 
         const itemCovType = item.paymentMethod === 'comp' ? 'comp' : item.coverageType;
@@ -404,7 +428,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
           category: item.category,
           medication: item.medication,
           coverageType: itemCovType,
-          amount: item.selectedService?.price_cents || 0,
+          amount: getItemPriceCents(item),
         });
 
         // Process WL included add-ons (B12, Lipo-C, etc.)
@@ -503,7 +527,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
   const isCovered = coverageType === 'subscription' || coverageType === 'protocol' || coverageType === 'comp';
   const allCartItems = getAllCheckoutItems();
   const cartHasPaidItems = allCartItems.some(i => i.coverageType === 'paid' && i.paymentMethod !== 'comp');
-  const cartTotal = allCartItems.reduce((sum, i) => sum + (i.coverageType === 'paid' && i.paymentMethod !== 'comp' ? (i.selectedService?.price_cents || 0) : 0), 0);
+  const cartTotal = allCartItems.reduce((sum, i) => sum + (i.coverageType === 'paid' && i.paymentMethod !== 'comp' ? getItemPriceCents(i) : 0), 0);
 
   return (
     <div style={styles.overlay} onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
@@ -626,7 +650,12 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <span style={{ fontSize: '13px', fontWeight: 600, color: (item.coverageType === 'subscription' || item.coverageType === 'protocol' || item.paymentMethod === 'comp') ? '#16a34a' : '#000' }}>
-                            {(item.coverageType === 'subscription' || item.coverageType === 'protocol' || item.paymentMethod === 'comp') ? '$0' : item.selectedService ? item.selectedService.price_display : 'Paid'}
+                            {(item.coverageType === 'subscription' || item.coverageType === 'protocol' || item.paymentMethod === 'comp')
+                              ? '$0'
+                              : item.selectedService
+                                ? `$${(getItemPriceCents(item) / 100).toFixed(2)}`
+                                : 'Paid'
+                            }
                           </span>
                           <button onClick={() => removeFromCart(item.id)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '16px', padding: '0 4px' }}>×</button>
                         </div>
@@ -1191,6 +1220,47 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                     </div>
                   )}
 
+                  {/* Discount */}
+                  {selectedService && coverageType !== 'comp' && (
+                    <div style={styles.fieldGroup}>
+                      <label style={styles.label}>Discount (optional)</label>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <select
+                          value={discountType}
+                          onChange={e => { setDiscountType(e.target.value); setDiscountValue(''); }}
+                          style={{ ...styles.select, width: '100px', flex: 'none' }}
+                        >
+                          <option value="dollar">$</option>
+                          <option value="percent">%</option>
+                        </select>
+                        <input
+                          type="number"
+                          value={discountValue}
+                          onChange={e => setDiscountValue(e.target.value)}
+                          placeholder={discountType === 'dollar' ? '0.00' : '0'}
+                          min="0"
+                          max={discountType === 'percent' ? '100' : undefined}
+                          step={discountType === 'dollar' ? '0.01' : '1'}
+                          style={{ ...styles.input, flex: 1 }}
+                        />
+                        {discountValue && parseFloat(discountValue) > 0 && (
+                          <div style={{ fontSize: '13px', fontWeight: 600, color: '#16a34a', whiteSpace: 'nowrap' }}>
+                            {(() => {
+                              const base = selectedService.price_cents;
+                              let final;
+                              if (discountType === 'percent') {
+                                final = Math.round(base * (1 - Math.min(100, parseFloat(discountValue)) / 100));
+                              } else {
+                                final = Math.max(0, base - Math.round(parseFloat(discountValue) * 100));
+                              }
+                              return `→ $${(final / 100).toFixed(2)}`;
+                            })()}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Payment method */}
                   <div style={styles.fieldGroup}>
                     <label style={styles.label}>Payment Method</label>
@@ -1227,8 +1297,25 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
 
                   {/* Price display */}
                   {selectedService && paymentMethod && paymentMethod !== 'comp' && (
-                    <div style={{ fontSize: '14px', fontWeight: 600, textAlign: 'right', color: '#000' }}>
-                      {selectedService.price_display}
+                    <div style={{ textAlign: 'right' }}>
+                      {discountValue && parseFloat(discountValue) > 0 ? (
+                        <>
+                          <span style={{ fontSize: '13px', color: '#999', textDecoration: 'line-through', marginRight: '8px' }}>
+                            {selectedService.price_display}
+                          </span>
+                          <span style={{ fontSize: '16px', fontWeight: 700, color: '#16a34a' }}>
+                            ${((() => {
+                              const base = selectedService.price_cents;
+                              if (discountType === 'percent') return Math.round(base * (1 - Math.min(100, parseFloat(discountValue)) / 100));
+                              return Math.max(0, base - Math.round(parseFloat(discountValue) * 100));
+                            })() / 100).toFixed(2)}
+                          </span>
+                        </>
+                      ) : (
+                        <span style={{ fontSize: '14px', fontWeight: 600, color: '#000' }}>
+                          {selectedService.price_display}
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1312,7 +1399,19 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                         </div>
                         <div style={{ textAlign: 'right' }}>
                           <div style={{ fontWeight: 600, fontSize: '14px', color: itemIsCovered ? '#16a34a' : '#000' }}>
-                            {itemIsCovered ? '$0.00' : item.selectedService ? item.selectedService.price_display : '—'}
+                            {itemIsCovered
+                              ? '$0.00'
+                              : item.selectedService
+                                ? (() => {
+                                    const final = getItemPriceCents(item);
+                                    const base = item.selectedService.price_cents;
+                                    if (final < base) {
+                                      return (<><span style={{ textDecoration: 'line-through', color: '#999', fontSize: '12px', marginRight: '6px' }}>{item.selectedService.price_display}</span>${(final / 100).toFixed(2)}</>);
+                                    }
+                                    return item.selectedService.price_display;
+                                  })()
+                                : '—'
+                            }
                           </div>
                           <div style={{ fontSize: '11px', color: itemIsCovered ? '#16a34a' : '#888' }}>
                             {itemIsCovered

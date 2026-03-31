@@ -36,7 +36,7 @@ import {
   getDoseOptions,
   getPeptideVialSupply
 } from '../../lib/protocol-config';
-import { getHRTLabSchedule, matchDrawsToLogs, buildAdaptiveHRTSchedule, isHRTProtocol } from '../../lib/hrt-lab-schedule';
+import { getHRTLabSchedule, matchDrawsToLogs, buildAdaptiveHRTSchedule, isHRTProtocol, getLabStatusSummary } from '../../lib/hrt-lab-schedule';
 import { isRecoveryPeptide, isGHPeptide } from '../../lib/protocol-config';
 import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
@@ -3883,6 +3883,128 @@ export default function PatientProfile() {
                 {pinnedNoteExpanded ? '▲ Show less' : '▼ Show more'}
               </button>
             )}
+          </section>
+        )}
+
+        {/* Patient Synopsis Card */}
+        {!loading && patient && (
+          <section className="synopsis-card">
+            {/* Blood Draw Alerts — top priority */}
+            {(() => {
+              const alerts = [];
+              // Check HRT lab schedules for overdue/upcoming draws
+              const allProtos = [...activeProtocols, ...completedProtocols];
+              for (const proto of allProtos) {
+                if (!isHRTProtocol(proto.program_type)) continue;
+                const schedule = hrtLabSchedules[proto.id];
+                if (!schedule?.length) continue;
+                const summary = getLabStatusSummary(schedule);
+                if (summary.nextDraw) {
+                  const targetDate = new Date(summary.nextDraw.targetDate + 'T00:00:00');
+                  const today = new Date(); today.setHours(0,0,0,0);
+                  const daysUntil = Math.ceil((targetDate - today) / (1000 * 60 * 60 * 24));
+                  const protoName = proto.program_name || proto.medication || proto.program_type;
+                  if (summary.nextDraw.status === 'overdue') {
+                    alerts.push({ urgent: true, label: `Blood draw overdue: ${summary.nextDraw.label} for ${protoName} (was due ${summary.nextDraw.weekLabel})` });
+                  } else if (daysUntil <= 14) {
+                    alerts.push({ urgent: false, label: `Blood draw coming up: ${summary.nextDraw.label} for ${protoName} — ${summary.nextDraw.weekLabel}` });
+                  }
+                }
+              }
+              // Check for labs with pending/awaiting status
+              const pendingLabs = labs.filter(l => l.status === 'pending' || l.status === 'awaiting_results');
+              if (pendingLabs.length > 0) {
+                alerts.push({ urgent: false, label: `${pendingLabs.length} lab result${pendingLabs.length > 1 ? 's' : ''} pending` });
+              }
+              if (alerts.length === 0) return null;
+              return (
+                <div className="synopsis-alerts">
+                  {alerts.map((a, i) => (
+                    <div key={i} className={`synopsis-alert ${a.urgent ? 'synopsis-alert-urgent' : 'synopsis-alert-info'}`}
+                      onClick={() => setActiveTab('labs')}>
+                      <span className="synopsis-alert-icon">{a.urgent ? '🩸' : '🧪'}</span>
+                      <span>{a.label}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+
+            <div className="synopsis-grid">
+              {/* Active Protocols */}
+              <div className="synopsis-section">
+                <div className="synopsis-section-label">ACTIVE PROTOCOLS</div>
+                {activeProtocols.length === 0 ? (
+                  <div className="synopsis-empty">No active protocols</div>
+                ) : (
+                  <div className="synopsis-protocols">
+                    {activeProtocols.map(proto => {
+                      const cat = getCategoryStyle(proto.category);
+                      const name = proto.program_name || proto.medication || proto.program_type;
+                      const dose = proto.selected_dose || proto.current_dose || '';
+                      const statusText = proto.status_text || '';
+                      const daysLeft = proto.days_remaining;
+                      const sessLeft = proto.sessions_remaining;
+                      const totalSess = proto.total_sessions;
+                      let supplyInfo = statusText;
+                      if (!supplyInfo) {
+                        if (daysLeft !== null && daysLeft !== undefined) {
+                          supplyInfo = daysLeft <= 0 ? 'Refill overdue' : `${daysLeft}d until refill`;
+                        } else if (sessLeft !== null && sessLeft !== undefined && totalSess > 0) {
+                          supplyInfo = `${totalSess - sessLeft}/${totalSess} sessions`;
+                        }
+                      }
+                      return (
+                        <div key={proto.id} className="synopsis-protocol-row" onClick={() => setActiveTab('protocols')}>
+                          <span className="synopsis-protocol-dot" style={{ background: cat.text }} />
+                          <span className="synopsis-protocol-name">{name}</span>
+                          {dose && <span className="synopsis-protocol-dose">{dose}</span>}
+                          {supplyInfo && (
+                            <span className="synopsis-protocol-supply" style={{
+                              color: (daysLeft !== null && daysLeft <= 0) || (sessLeft !== null && sessLeft <= 0) ? '#dc2626' : '#6b7280'
+                            }}>{supplyInfo}</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Recent Payments */}
+              <div className="synopsis-section">
+                <div className="synopsis-section-label">RECENT PAYMENTS</div>
+                {allPurchases.length === 0 && subscriptions.length === 0 ? (
+                  <div className="synopsis-empty">No payments on file</div>
+                ) : (
+                  <div className="synopsis-payments">
+                    {/* Active subscriptions first */}
+                    {subscriptions.filter(s => s.status === 'active').map(sub => (
+                      <div key={sub.id} className="synopsis-payment-row" onClick={() => { setActiveTab('payments'); }}>
+                        <span className="synopsis-payment-icon">🔄</span>
+                        <span className="synopsis-payment-desc">{sub.description || 'Subscription'}</span>
+                        <span className="synopsis-payment-amount">${((sub.amount_cents || 0) / 100).toFixed(0)}/{sub.interval || 'mo'}</span>
+                        <span className="synopsis-payment-badge synopsis-payment-active">Active</span>
+                      </div>
+                    ))}
+                    {/* Last 3 purchases */}
+                    {allPurchases.slice(0, 3).map(p => {
+                      const date = p.purchase_date || p.created_at;
+                      const dateStr = date ? new Date(date + (date.includes('T') ? '' : 'T00:00:00')).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+                      const amount = p.amount_cents ? `$${(p.amount_cents / 100).toFixed(0)}` : '';
+                      return (
+                        <div key={p.id} className="synopsis-payment-row" onClick={() => { setActiveTab('payments'); }}>
+                          <span className="synopsis-payment-icon">💳</span>
+                          <span className="synopsis-payment-desc">{p.description || 'Payment'}</span>
+                          {amount && <span className="synopsis-payment-amount">{amount}</span>}
+                          <span className="synopsis-payment-date">{dateStr}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
           </section>
         )}
 
@@ -10307,6 +10429,157 @@ export default function PatientProfile() {
           z-index: 10001;
           max-width: 480px;
           width: 90%;
+        }
+
+        /* Patient Synopsis Card */
+        .synopsis-card {
+          margin: 0 0 16px;
+          border: 1px solid #e5e7eb;
+          border-radius: 10px;
+          background: #fff;
+          overflow: hidden;
+        }
+        .synopsis-alerts {
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+        }
+        .synopsis-alert {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 16px;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: opacity 0.15s;
+        }
+        .synopsis-alert:hover { opacity: 0.85; }
+        .synopsis-alert-urgent {
+          background: #fef2f2;
+          color: #991b1b;
+          border-bottom: 1px solid #fecaca;
+        }
+        .synopsis-alert-info {
+          background: #eff6ff;
+          color: #1e40af;
+          border-bottom: 1px solid #bfdbfe;
+        }
+        .synopsis-alert-icon { font-size: 15px; flex-shrink: 0; }
+        .synopsis-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 0;
+        }
+        @media (max-width: 640px) {
+          .synopsis-grid { grid-template-columns: 1fr; }
+        }
+        .synopsis-section {
+          padding: 12px 16px;
+        }
+        .synopsis-section + .synopsis-section {
+          border-left: 1px solid #f3f4f6;
+        }
+        @media (max-width: 640px) {
+          .synopsis-section + .synopsis-section {
+            border-left: none;
+            border-top: 1px solid #f3f4f6;
+          }
+        }
+        .synopsis-section-label {
+          font-size: 10px;
+          font-weight: 700;
+          color: #9ca3af;
+          letter-spacing: 0.5px;
+          margin-bottom: 8px;
+        }
+        .synopsis-empty {
+          font-size: 13px;
+          color: #9ca3af;
+        }
+        .synopsis-protocols {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .synopsis-protocol-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 13px;
+          cursor: pointer;
+          padding: 2px 0;
+        }
+        .synopsis-protocol-row:hover { opacity: 0.8; }
+        .synopsis-protocol-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .synopsis-protocol-name {
+          font-weight: 600;
+          color: #1a1a1a;
+          white-space: nowrap;
+        }
+        .synopsis-protocol-dose {
+          color: #6b7280;
+          font-size: 12px;
+          white-space: nowrap;
+        }
+        .synopsis-protocol-supply {
+          font-size: 12px;
+          margin-left: auto;
+          white-space: nowrap;
+          font-weight: 500;
+        }
+        .synopsis-payments {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .synopsis-payment-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 13px;
+          cursor: pointer;
+          padding: 2px 0;
+        }
+        .synopsis-payment-row:hover { opacity: 0.8; }
+        .synopsis-payment-icon {
+          font-size: 13px;
+          flex-shrink: 0;
+        }
+        .synopsis-payment-desc {
+          color: #1a1a1a;
+          font-weight: 500;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          min-width: 0;
+        }
+        .synopsis-payment-amount {
+          font-weight: 700;
+          color: #1a1a1a;
+          white-space: nowrap;
+          margin-left: auto;
+        }
+        .synopsis-payment-date {
+          color: #9ca3af;
+          font-size: 12px;
+          white-space: nowrap;
+        }
+        .synopsis-payment-badge {
+          font-size: 10px;
+          font-weight: 600;
+          padding: 1px 6px;
+          border-radius: 4px;
+          white-space: nowrap;
+        }
+        .synopsis-payment-active {
+          background: #dcfce7;
+          color: #166534;
         }
 
         /* Demographics Toggle */

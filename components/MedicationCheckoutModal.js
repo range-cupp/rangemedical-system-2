@@ -3,8 +3,10 @@
 // Patient-first checkout flow for ALL dispensing events
 // Handles zero-balance (membership/protocol covered) and paid checkouts
 
-import { useState, useEffect, useRef } from 'react';
-import { X, Search, ChevronRight, Check, Package, Syringe, Clock, User, AlertTriangle } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { X, Search, ChevronRight, Check, Package, Syringe, Clock, User, AlertTriangle, CreditCard, Plus } from 'lucide-react';
+import { loadStripe } from '@stripe/stripe-js';
+import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
 import {
   TESTOSTERONE_DOSES,
   WEIGHT_LOSS_MEDICATIONS,
@@ -32,6 +34,100 @@ const SERVICE_CATEGORIES = [
   { id: 'vitamin', label: 'Vitamin Injection', icon: '💊', color: '#ca8a04' },
   { id: 'supplement', label: 'Supplement / Product', icon: '🧴', color: '#64748b' },
 ];
+
+const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+  : null;
+
+const CARD_ELEMENT_OPTIONS = {
+  style: {
+    base: {
+      fontSize: '15px',
+      color: '#1a1a1a',
+      '::placeholder': { color: '#999' },
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    },
+    invalid: { color: '#dc2626' },
+  },
+};
+
+// Inline "Add Card" form — must be inside <Elements> provider
+function AddCardFormInner({ patientId, onCardSaved, onCancel }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [saving, setSaving] = useState(false);
+  const [cardError, setCardError] = useState('');
+
+  async function handleSaveCard() {
+    if (!stripe || !elements) return;
+    setSaving(true);
+    setCardError('');
+
+    try {
+      // Create SetupIntent on backend
+      const siRes = await fetch('/api/stripe/saved-cards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patient_id: patientId }),
+      });
+      const siData = await siRes.json();
+      if (!siRes.ok) throw new Error(siData.error || 'Failed to create setup intent');
+
+      // Confirm the SetupIntent with the card element
+      const cardElement = elements.getElement(CardElement);
+      const { error, setupIntent } = await stripe.confirmCardSetup(siData.client_secret, {
+        payment_method: { card: cardElement },
+      });
+
+      if (error) throw new Error(error.message);
+      if (setupIntent.status === 'succeeded') {
+        onCardSaved(setupIntent.payment_method);
+      } else {
+        throw new Error('Card setup did not succeed');
+      }
+    } catch (err) {
+      setCardError(err.message);
+    }
+    setSaving(false);
+  }
+
+  return (
+    <div style={{ border: '1px solid #e5e5e5', borderRadius: '8px', padding: '12px', marginTop: '8px', background: '#fafafa' }}>
+      <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <CreditCard size={14} /> Add New Card
+      </div>
+      <div style={{ border: '1px solid #ddd', borderRadius: '6px', padding: '10px 12px', background: '#fff', marginBottom: '8px' }}>
+        <CardElement options={CARD_ELEMENT_OPTIONS} />
+      </div>
+      {cardError && <div style={{ fontSize: '12px', color: '#dc2626', marginBottom: '8px' }}>{cardError}</div>}
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <button
+          onClick={handleSaveCard}
+          disabled={saving || !stripe}
+          style={{ fontSize: '13px', fontWeight: 600, padding: '6px 16px', borderRadius: '6px', border: 'none', background: '#000', color: '#fff', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}
+        >
+          {saving ? 'Saving...' : 'Save Card'}
+        </button>
+        <button
+          onClick={onCancel}
+          style={{ fontSize: '13px', padding: '6px 16px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff', cursor: 'pointer' }}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Wrapper that provides Elements context
+function AddCardForm({ patientId, onCardSaved, onCancel }) {
+  if (!stripePromise) return <div style={{ fontSize: '13px', color: '#dc2626' }}>Stripe not configured</div>;
+  return (
+    <Elements stripe={stripePromise}>
+      <AddCardFormInner patientId={patientId} onCardSaved={onCardSaved} onCancel={onCancel} />
+    </Elements>
+  );
+}
 
 export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPatient, onCheckoutComplete }) {
   // Step management
@@ -87,6 +183,8 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
   const [selectedCardId, setSelectedCardId] = useState('');
   const [discountType, setDiscountType] = useState('dollar'); // dollar or percent
   const [discountValue, setDiscountValue] = useState(''); // raw input value
+  const [itemQty, setItemQty] = useState(1); // universal item quantity (1-10)
+  const [addingCard, setAddingCard] = useState(false); // show inline add-card form
 
   // Cart — multiple items per checkout
   const [cartItems, setCartItems] = useState([]);
@@ -140,6 +238,8 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     setSelectedCardId('');
     setDiscountType('dollar');
     setDiscountValue('');
+    setItemQty(1);
+    setAddingCard(false);
     setCartItems([]);
     setSubmitting(false);
     setResult(null);
@@ -173,6 +273,8 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     setSelectedCardId('');
     setDiscountType('dollar');
     setDiscountValue('');
+    setItemQty(1);
+    setAddingCard(false);
     setError('');
   }
 
@@ -186,6 +288,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
       selectedProtocol, coverageType, coverageOverride, coverage,
       selectedService, paymentMethod, selectedCardId,
       discountType, discountValue,
+      itemQty: itemQty || 1,
       wlAddons: [...wlAddons],
     };
     setCartItems(prev => [...prev, item]);
@@ -195,6 +298,28 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
 
   function removeFromCart(itemId) {
     setCartItems(prev => prev.filter(i => i.id !== itemId));
+  }
+
+  // Called when a new card is saved via the inline form
+  async function handleCardSaved(paymentMethodId) {
+    setAddingCard(false);
+    // Refresh saved cards by re-fetching coverage
+    if (selectedPatient?.id && selectedCategory?.id) {
+      try {
+        const res = await fetch(`/api/medication-checkout/coverage?patient_id=${selectedPatient.id}&category=${selectedCategory.id}`);
+        const data = await res.json();
+        setCoverage(prev => ({ ...prev, saved_cards: data.saved_cards || [] }));
+        // Auto-select the new card
+        const newCard = (data.saved_cards || []).find(c => c.id === paymentMethodId);
+        if (newCard) {
+          setPaymentMethod('saved_card');
+          setSelectedCardId(newCard.id);
+          setCoverageType('paid');
+        }
+      } catch (err) {
+        console.error('Refresh cards error:', err);
+      }
+    }
   }
 
   // Patient search
@@ -283,7 +408,26 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
   }
 
   // Calculate discounted price in cents for a cart item
+  // Returns TOTAL price in cents for an item (unit price after discount × quantity)
   function getItemPriceCents(item) {
+    if (!item.selectedService) return 0;
+    const baseCents = item.selectedService.price_cents || 0;
+    let unitCents = baseCents;
+    if (item.discountValue && parseFloat(item.discountValue) > 0) {
+      if (item.discountType === 'percent') {
+        const pct = Math.min(100, parseFloat(item.discountValue));
+        unitCents = Math.round(baseCents * (1 - pct / 100));
+      } else {
+        const discountCents = Math.round(parseFloat(item.discountValue) * 100);
+        unitCents = Math.max(0, baseCents - discountCents);
+      }
+    }
+    const qty = item.itemQty || 1;
+    return unitCents * qty;
+  }
+
+  // Returns per-unit price in cents (before quantity multiplication)
+  function getUnitPriceCents(item) {
     if (!item.selectedService) return 0;
     const baseCents = item.selectedService.price_cents || 0;
     if (!item.discountValue || parseFloat(item.discountValue) <= 0) return baseCents;
@@ -291,7 +435,6 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
       const pct = Math.min(100, parseFloat(item.discountValue));
       return Math.round(baseCents * (1 - pct / 100));
     }
-    // Dollar discount
     const discountCents = Math.round(parseFloat(item.discountValue) * 100);
     return Math.max(0, baseCents - discountCents);
   }
@@ -300,10 +443,12 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
   async function processPayment(item) {
     if (item.coverageType !== 'paid' || !item.selectedService) return null;
     const amountCents = getItemPriceCents(item);
-    const hasDiscount = amountCents < (item.selectedService.price_cents || 0);
-    const description = hasDiscount
-      ? `${item.selectedService.name} (discounted)`
-      : item.selectedService.name;
+    const qty = item.itemQty || 1;
+    const baseTotal = (item.selectedService.price_cents || 0) * qty;
+    const hasDiscount = amountCents < baseTotal;
+    let description = item.selectedService.name;
+    if (qty > 1) description = `${qty}× ${description}`;
+    if (hasDiscount) description += ' (discounted)';
 
     if (item.paymentMethod === 'cash') {
       const purchaseRes = await fetch('/api/stripe/record-purchase', {
@@ -392,6 +537,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
           medication: item.medication || null,
           dosage: item.dosage || null,
           quantity: item.quantity ? parseInt(item.quantity) : null,
+          item_qty: item.itemQty || 1,
           supply_type: item.supplyType || null,
           duration: item.duration ? parseInt(item.duration) : null,
           weight: item.weight || null,
@@ -646,7 +792,9 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span>{item.category.icon}</span>
-                          <span style={{ fontSize: '14px', fontWeight: 500 }}>{item.medication || item.category.label}</span>
+                          <span style={{ fontSize: '14px', fontWeight: 500 }}>
+                            {(item.itemQty || 1) > 1 ? `${item.itemQty}× ` : ''}{item.medication || item.category.label}
+                          </span>
                           {item.dosage && <span style={{ fontSize: '12px', color: '#666' }}>({item.dosage})</span>}
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1093,6 +1241,56 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                 </div>
               )}
 
+              {/* Universal item quantity — how many units */}
+              <div style={styles.fieldGroup}>
+                <label style={styles.label}>Quantity</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    onClick={() => setItemQty(Math.max(1, itemQty - 1))}
+                    disabled={itemQty <= 1}
+                    style={{
+                      width: '36px', height: '36px', borderRadius: '8px',
+                      border: '1px solid #ddd', background: '#fff', cursor: 'pointer',
+                      fontSize: '18px', fontWeight: 600, display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', opacity: itemQty <= 1 ? 0.3 : 1,
+                    }}
+                  >
+                    −
+                  </button>
+                  <input
+                    type="number"
+                    value={itemQty}
+                    onChange={e => {
+                      const v = parseInt(e.target.value);
+                      if (!isNaN(v) && v >= 1 && v <= 10) setItemQty(v);
+                    }}
+                    min="1"
+                    max="10"
+                    style={{
+                      ...styles.input, width: '60px', textAlign: 'center',
+                      fontWeight: 600, fontSize: '16px', padding: '6px',
+                    }}
+                  />
+                  <button
+                    onClick={() => setItemQty(Math.min(10, itemQty + 1))}
+                    disabled={itemQty >= 10}
+                    style={{
+                      width: '36px', height: '36px', borderRadius: '8px',
+                      border: '1px solid #ddd', background: '#fff', cursor: 'pointer',
+                      fontSize: '18px', fontWeight: 600, display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', opacity: itemQty >= 10 ? 0.3 : 1,
+                    }}
+                  >
+                    +
+                  </button>
+                  {itemQty > 1 && selectedService && (
+                    <span style={{ fontSize: '13px', color: '#666', marginLeft: '8px' }}>
+                      {itemQty} × {selectedService.price_display} = ${((getUnitPriceCents({ selectedService, discountType, discountValue }) * itemQty) / 100).toFixed(2)}
+                    </span>
+                  )}
+                </div>
+              </div>
+
               {/* Fulfillment method */}
               {(entryType === 'pickup' || entryType === 'med_pickup') && (
                 <div style={styles.fieldGroup}>
@@ -1293,30 +1491,66 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                         <input type="radio" name="payMethod" checked={paymentMethod === 'comp'} onChange={() => { setPaymentMethod('comp'); setSelectedCardId(''); setCoverageType('comp'); }} />
                         <span style={{ fontWeight: 500 }}>Complimentary ($0)</span>
                       </label>
+
+                      {/* Add New Card */}
+                      {!addingCard ? (
+                        <button
+                          onClick={() => setAddingCard(true)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            padding: '10px 14px', border: '1px dashed #ccc', borderRadius: '8px',
+                            background: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: 500,
+                            color: '#555', width: '100%', justifyContent: 'center',
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.borderColor = '#999'; e.currentTarget.style.background = '#fafafa'; }}
+                          onMouseLeave={e => { e.currentTarget.style.borderColor = '#ccc'; e.currentTarget.style.background = '#fff'; }}
+                        >
+                          <Plus size={14} /> Add New Card
+                        </button>
+                      ) : (
+                        <AddCardForm
+                          patientId={selectedPatient?.id}
+                          onCardSaved={handleCardSaved}
+                          onCancel={() => setAddingCard(false)}
+                        />
+                      )}
                     </div>
                   </div>
 
                   {/* Price display */}
                   {selectedService && paymentMethod && paymentMethod !== 'comp' && (
                     <div style={{ textAlign: 'right' }}>
-                      {discountValue && parseFloat(discountValue) > 0 ? (
-                        <>
-                          <span style={{ fontSize: '13px', color: '#999', textDecoration: 'line-through', marginRight: '8px' }}>
-                            {selectedService.price_display}
-                          </span>
-                          <span style={{ fontSize: '16px', fontWeight: 700, color: '#16a34a' }}>
-                            ${((() => {
-                              const base = selectedService.price_cents;
-                              if (discountType === 'percent') return Math.round(base * (1 - Math.min(100, parseFloat(discountValue)) / 100));
-                              return Math.max(0, base - Math.round(parseFloat(discountValue) * 100));
-                            })() / 100).toFixed(2)}
-                          </span>
-                        </>
-                      ) : (
-                        <span style={{ fontSize: '14px', fontWeight: 600, color: '#000' }}>
-                          {selectedService.price_display}
-                        </span>
-                      )}
+                      {(() => {
+                        const unitBase = selectedService.price_cents;
+                        const hasDiscount = discountValue && parseFloat(discountValue) > 0;
+                        let unitFinal = unitBase;
+                        if (hasDiscount) {
+                          if (discountType === 'percent') {
+                            unitFinal = Math.round(unitBase * (1 - Math.min(100, parseFloat(discountValue)) / 100));
+                          } else {
+                            unitFinal = Math.max(0, unitBase - Math.round(parseFloat(discountValue) * 100));
+                          }
+                        }
+                        const qty = itemQty || 1;
+                        const totalCents = unitFinal * qty;
+                        return (
+                          <>
+                            {hasDiscount && (
+                              <span style={{ fontSize: '13px', color: '#999', textDecoration: 'line-through', marginRight: '8px' }}>
+                                {selectedService.price_display}
+                              </span>
+                            )}
+                            <span style={{ fontSize: '16px', fontWeight: 700, color: hasDiscount ? '#16a34a' : '#000' }}>
+                              ${(totalCents / 100).toFixed(2)}
+                            </span>
+                            {qty > 1 && (
+                              <div style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>
+                                {qty} × ${(unitFinal / 100).toFixed(2)} each
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
@@ -1379,7 +1613,9 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
                             <span style={{ fontSize: '16px' }}>{item.category.icon}</span>
-                            <span style={{ fontWeight: 600, fontSize: '14px' }}>{item.medication || item.category.label}</span>
+                            <span style={{ fontWeight: 600, fontSize: '14px' }}>
+                              {(item.itemQty || 1) > 1 ? `${item.itemQty}× ` : ''}{item.medication || item.category.label}
+                            </span>
                           </div>
                           {item.dosage && <div style={{ fontSize: '13px', color: '#666' }}>Dose: {item.dosage}</div>}
                           {item.supplyType && <div style={{ fontSize: '13px', color: '#666' }}>Supply: {formatSupplyType(item.supplyType)}</div>}
@@ -1404,16 +1640,26 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                               ? '$0.00'
                               : item.selectedService
                                 ? (() => {
-                                    const final = getItemPriceCents(item);
+                                    const totalCents = getItemPriceCents(item);
+                                    const unitCents = getUnitPriceCents(item);
                                     const base = item.selectedService.price_cents;
-                                    if (final < base) {
-                                      return (<><span style={{ textDecoration: 'line-through', color: '#999', fontSize: '12px', marginRight: '6px' }}>{item.selectedService.price_display}</span>${(final / 100).toFixed(2)}</>);
-                                    }
-                                    return item.selectedService.price_display;
+                                    const qty = item.itemQty || 1;
+                                    const hasDiscount = unitCents < base;
+                                    return (
+                                      <>
+                                        {hasDiscount && <span style={{ textDecoration: 'line-through', color: '#999', fontSize: '12px', marginRight: '6px' }}>{item.selectedService.price_display}</span>}
+                                        ${(totalCents / 100).toFixed(2)}
+                                      </>
+                                    );
                                   })()
                                 : '—'
                             }
                           </div>
+                          {!itemIsCovered && (item.itemQty || 1) > 1 && item.selectedService && (
+                            <div style={{ fontSize: '11px', color: '#888' }}>
+                              {item.itemQty} × ${(getUnitPriceCents(item) / 100).toFixed(2)}
+                            </div>
+                          )}
                           <div style={{ fontSize: '11px', color: itemIsCovered ? '#16a34a' : '#888' }}>
                             {itemIsCovered
                               ? (item.coverageType === 'subscription' ? 'Membership' : item.paymentMethod === 'comp' ? 'Comp' : 'Protocol')

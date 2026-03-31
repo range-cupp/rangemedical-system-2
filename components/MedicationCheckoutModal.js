@@ -19,6 +19,7 @@ import {
   PEPTIDE_DURATIONS,
   IV_THERAPY_TYPES,
   CATEGORY_COLORS,
+  getDoseOptions,
 } from '../lib/protocol-config';
 
 const SERVICE_CATEGORIES = [
@@ -1546,17 +1547,17 @@ function getEntryTypeOptions(categoryId) {
     case 'testosterone':
       return [
         { value: 'pickup', label: 'Medication Pickup (take-home)' },
-        { value: 'injection', label: 'In-Clinic Injection' },
+        { value: 'injection', label: 'Range Injection' },
       ];
     case 'weight_loss':
       return [
-        { value: 'injection', label: 'In-Clinic Injection' },
+        { value: 'injection', label: 'Range Injection' },
         { value: 'pickup', label: 'Medication Pickup (take-home)' },
       ];
     case 'peptide':
       return [
         { value: 'pickup', label: 'Medication Pickup' },
-        { value: 'injection', label: 'In-Clinic Injection' },
+        { value: 'injection', label: 'Range Injection' },
       ];
     case 'iv_therapy':
       return [{ value: 'session', label: 'IV Session' }];
@@ -1566,14 +1567,14 @@ function getEntryTypeOptions(categoryId) {
       return [{ value: 'session', label: 'Red Light Session' }];
     case 'vitamin':
       return [
-        { value: 'injection', label: 'Injection' },
+        { value: 'injection', label: 'Range Injection' },
         { value: 'pickup', label: 'Product Pickup' },
       ];
     case 'supplement':
       return [{ value: 'pickup', label: 'Product Pickup' }];
     default:
       return [
-        { value: 'injection', label: 'Injection' },
+        { value: 'injection', label: 'Range Injection' },
         { value: 'pickup', label: 'Pickup' },
         { value: 'session', label: 'Session' },
       ];
@@ -1708,6 +1709,22 @@ function renderDosagePicker(categoryId, medication, dosage, setDosage, selectedP
   if (categoryId === 'weight_loss' && medication) {
     const doses = WEIGHT_LOSS_DOSAGES[medication];
     if (doses) {
+      return (
+        <div style={styles.fieldGroup}>
+          <label style={styles.label}>Dosage</label>
+          <select value={dosage} onChange={e => setDosage(e.target.value)} style={styles.select}>
+            <option value="">Select dose...</option>
+            {doses.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+        </div>
+      );
+    }
+  }
+
+  // For peptides, show a dropdown if dose options exist
+  if (categoryId === 'peptide' && medication) {
+    const doses = getDoseOptions('peptide', medication);
+    if (doses && doses.length > 0) {
       return (
         <div style={styles.fieldGroup}>
           <label style={styles.label}>Dosage</label>

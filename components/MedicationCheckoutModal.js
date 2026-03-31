@@ -933,7 +933,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
               </div>
 
               {/* Dosage */}
-              {renderDosagePicker(selectedCategory?.id, medication, dosage, setDosage, selectedProtocol)}
+              {renderDosagePicker(selectedCategory?.id, medication, dosage, setDosage, selectedProtocol, coverage?.patient_gender)}
 
               {/* Supply type (HRT) */}
               {selectedCategory?.id === 'testosterone' && entryType === 'pickup' && (
@@ -1662,7 +1662,7 @@ function renderMedicationPicker(categoryId, value, onChange) {
 // ================================================================
 // HELPER: Dosage picker by category + medication
 // ================================================================
-function renderDosagePicker(categoryId, medication, dosage, setDosage, selectedProtocol) {
+function renderDosagePicker(categoryId, medication, dosage, setDosage, selectedProtocol, patientGender) {
   if (categoryId === 'testosterone' && medication) {
     // Check if it's a secondary med
     const secDosages = HRT_SECONDARY_DOSAGES[medication];
@@ -1677,8 +1677,10 @@ function renderDosagePicker(categoryId, medication, dosage, setDosage, selectedP
         </div>
       );
     }
-    // Primary testosterone doses — use hrt_type from protocol to show correct gender doses
-    const hrtType = selectedProtocol?.hrt_type;
+    // Primary testosterone doses — use hrt_type from protocol, fall back to patient gender
+    const hrtType = selectedProtocol?.hrt_type
+      || (patientGender === 'Female' || patientGender === 'female' ? 'female' : null)
+      || (patientGender === 'Male' || patientGender === 'male' ? 'male' : null);
     const showMale = !hrtType || hrtType === 'male';
     const showFemale = !hrtType || hrtType === 'female';
     return (
@@ -1690,12 +1692,12 @@ function renderDosagePicker(categoryId, medication, dosage, setDosage, selectedP
           <option value="">Select dose...</option>
           {showFemale && (
             <optgroup label="Female">
-              {TESTOSTERONE_DOSES.female?.map(d => <option key={d.value || d.label} value={d.label}>{d.label}</option>)}
+              {TESTOSTERONE_DOSES.female?.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
             </optgroup>
           )}
           {showMale && (
             <optgroup label="Male">
-              {TESTOSTERONE_DOSES.male?.map(d => <option key={d.value || d.label} value={d.label}>{d.label}</option>)}
+              {TESTOSTERONE_DOSES.male?.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
             </optgroup>
           )}
         </select>

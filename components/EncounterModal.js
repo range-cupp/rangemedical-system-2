@@ -260,7 +260,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
     const name = (activeAppointment?.service_name || activeAppointment?.appointment_title || '').toLowerCase();
     const forms = [];
     // IV Therapy
-    if (name.includes('iv') || name.includes('infusion') || name.includes('nad') || name.includes('drip')) {
+    if (name.includes('iv') || name.includes('infusion') || name.includes('nad') || name.includes('drip') || name.includes('glutathione') || name.includes('vitamin c') || name.includes('methylene') || name.startsWith('mb ')) {
       forms.push('iv_therapy');
     }
     // HRT
@@ -1918,7 +1918,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                         <label>Form</label>
                         <select value={rxForm.form} onChange={e => setRxForm(p => ({ ...p, form: e.target.value }))}>
                           <option value="">Select...</option>
-                          <option value="injection">Injection</option>
+                          <option value="injection">Range Injection</option>
                           <option value="tablet">Tablet</option>
                           <option value="capsule">Capsule</option>
                           <option value="cream">Cream</option>

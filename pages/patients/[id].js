@@ -4914,12 +4914,20 @@ export default function PatientProfile() {
                             </span>
                             {protocol.status === 'completed' && <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', background: '#f3f4f6', padding: '2px 8px', borderRadius: 0 }}>✓ Completed</span>}
                             {protocol.delivery_method === 'in_clinic' && <span className="clinic-badge">In-Clinic</span>}
-                            {isWeightLoss && protocol.status === 'active' && sessionsTotal > 0 && sessionsCompleted >= sessionsTotal && (
-                              <span style={{ fontSize: '11px', fontWeight: 700, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', padding: '2px 8px', borderRadius: 0, marginLeft: 4 }}>
-                                ⚠ Renewal Due
-                              </span>
-                            )}
-                            {isWeightLoss && protocol.status === 'active' && sessionsTotal > 0 && sessionsCompleted > sessionsTotal && (
+                            {isWeightLoss && protocol.status === 'active' && (() => {
+                              // WL renewal is based on next_expected_date, not session count
+                              // Sessions can exceed total (9/8) when a new month is paid but total hasn't reset
+                              const nextDate = protocol.next_expected_date;
+                              const today = new Date(); today.setHours(0,0,0,0);
+                              const isOverdue = nextDate && new Date(nextDate + 'T00:00:00') <= today;
+                              const noDateSet = !nextDate && sessionsTotal > 0 && sessionsCompleted >= sessionsTotal;
+                              return (isOverdue || noDateSet) ? (
+                                <span style={{ fontSize: '11px', fontWeight: 700, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', padding: '2px 8px', borderRadius: 0, marginLeft: 4 }}>
+                                  ⚠ Renewal Due
+                                </span>
+                              ) : null;
+                            })()}
+                            {isWeightLoss && protocol.status === 'active' && sessionsTotal > 0 && (
                               <span style={{ fontSize: '11px', fontWeight: 700, color: '#9333ea', background: '#faf5ff', border: '1px solid #e9d5ff', padding: '2px 8px', borderRadius: 0, marginLeft: 4 }}>
                                 {sessionsCompleted}/{sessionsTotal} sessions
                               </span>
@@ -5120,12 +5128,7 @@ export default function PatientProfile() {
                                   style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: 0, padding: '4px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
                                 >+ Log Entry</button>
                               )}
-                              {protocol.status === 'active' && ['hrt', 'weight_loss', 'peptide'].includes(protocol.category) && (
-                                <button
-                                  onClick={() => openDispenseModal(protocol)}
-                                  style={{ background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 0, padding: '4px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
-                                >Dispense</button>
-                              )}
+                              {/* Dispense button removed — use Checkout (📦) instead */}
                               {protocol.status === 'active' && (
                                 <button
                                   onClick={() => setExpandedProtocols(prev => ({ ...prev, [protocol.id]: !prev[protocol.id] }))}

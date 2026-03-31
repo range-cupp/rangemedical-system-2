@@ -246,7 +246,7 @@ export default async function handler(req, res) {
       if (posCategory) {
         const { data: services } = await supabase
           .from('pos_services')
-          .select('id, name, category, price, recurring, interval')
+          .select('id, name, category, price_cents, recurring, interval')
           .eq('active', true)
           .or(`category.eq.${posCategory},category.eq.${category}`)
           .order('sort_order', { ascending: true });
@@ -255,8 +255,8 @@ export default async function handler(req, res) {
           id: s.id,
           name: s.name,
           category: s.category,
-          price_cents: s.price,
-          price_display: `$${(s.price / 100).toFixed(2)}`,
+          price_cents: s.price_cents,
+          price_display: `$${(s.price_cents / 100).toFixed(2)}`,
           recurring: s.recurring,
           interval: s.interval,
         }));

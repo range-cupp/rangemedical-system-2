@@ -1404,6 +1404,32 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                 />
               </div>
 
+              {/* Shipping — always visible regardless of coverage */}
+              {(entryType === 'pickup' || entryType === 'med_pickup') && (
+                <div style={{ borderTop: '1px solid #e5e5e5', paddingTop: '16px', marginTop: '8px' }}>
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.label}>Shipping (optional)</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '14px', color: '#666', fontWeight: 500 }}>$</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={shippingAmount}
+                        onChange={e => setShippingAmount(e.target.value)}
+                        placeholder="0.00"
+                        style={{ ...styles.input, width: '120px', flex: 'none' }}
+                      />
+                      {shippingAmount && parseFloat(shippingAmount) > 0 && (
+                        <span style={{ fontSize: '13px', color: '#666' }}>
+                          + ${parseFloat(shippingAmount).toFixed(2)} shipping
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Payment section for non-covered items OR when coverage is overridden */}
               {(!coverage?.covered || coverageOverride) && (
                 <div style={{ borderTop: '1px solid #e5e5e5', paddingTop: '16px', marginTop: '8px' }}>
@@ -1460,28 +1486,6 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                       </select>
                     </div>
                   )}
-
-                  {/* Shipping */}
-                  <div style={styles.fieldGroup}>
-                    <label style={styles.label}>Shipping (optional)</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '14px', color: '#666', fontWeight: 500 }}>$</span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={shippingAmount}
-                        onChange={e => setShippingAmount(e.target.value)}
-                        placeholder="0.00"
-                        style={{ ...styles.input, width: '120px', flex: 'none' }}
-                      />
-                      {shippingAmount && parseFloat(shippingAmount) > 0 && (
-                        <span style={{ fontSize: '13px', color: '#666' }}>
-                          + ${parseFloat(shippingAmount).toFixed(2)} shipping
-                        </span>
-                      )}
-                    </div>
-                  </div>
 
                   {/* Discount */}
                   {selectedService && coverageType !== 'comp' && (

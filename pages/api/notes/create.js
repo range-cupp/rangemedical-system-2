@@ -402,11 +402,11 @@ export default async function handler(req, res) {
     }
 
     // ── Blood Draw: Auto-log follow-up lab on HRT protocol ──
-    const isBloodDrawEncounter = esLower.includes('blood draw') ||
-      esLower.includes('blood_draw') ||
-      esLower.includes('venipuncture') ||
-      esLower.includes('phlebotomy') ||
-      esLower.includes('lab draw');
+    // Check both encounter_service AND note body for blood draw keywords
+    const bodyLower = (noteBody || '').toLowerCase();
+    const bloodDrawKeywords = ['blood draw', 'blood_draw', 'venipuncture', 'phlebotomy', 'lab draw'];
+    const isBloodDrawEncounter = bloodDrawKeywords.some(kw => esLower.includes(kw)) ||
+      bloodDrawKeywords.some(kw => bodyLower.includes(kw));
 
     if (isBloodDrawEncounter && patient_id) {
       try {

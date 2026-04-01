@@ -422,15 +422,16 @@ function CheckoutInner() {
       setCartItems([{ ...item, quantity: 1, itemDiscountType: 'none', itemDiscountValue: '' }]);
       return;
     }
-    if (cartItems.some(i => i.category === 'gift_card')) {
+    const nonDispenseItems = cartItems.filter(i => i.type !== 'dispense');
+    if (nonDispenseItems.some(i => i.category === 'gift_card')) {
       showWarning('Cannot add items when a gift card is in cart');
       return;
     }
-    if (item.recurring && cartItems.length > 0) {
+    if (item.recurring && nonDispenseItems.length > 0) {
       showWarning('Recurring items must be checked out alone');
       return;
     }
-    if (!item.recurring && cartItems.some(i => i.recurring)) {
+    if (!item.recurring && nonDispenseItems.some(i => i.recurring)) {
       showWarning('Cannot add items when a recurring item is in cart');
       return;
     }
@@ -474,7 +475,8 @@ function CheckoutInner() {
       const dollars = parseFloat(customAmount);
       return isNaN(dollars) ? 0 : Math.round(dollars * 100);
     }
-    return cartItems.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
+    // Exclude dispense items (they're $0)
+    return cartItems.filter(i => i.type !== 'dispense').reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
   }
 
   function getItemDiscountTotal() {
@@ -513,8 +515,9 @@ function CheckoutInner() {
 
   function getChargeDescription() {
     if (activeSubCategory === 'custom') return customDescription || 'Custom charge';
-    if (cartItems.length === 0) return '';
-    return cartItems.map(i => (i.quantity || 1) > 1 ? `${i.name} x${i.quantity}` : i.name).join(', ');
+    const paidItems = cartItems.filter(i => i.type !== 'dispense');
+    if (paidItems.length === 0) return '';
+    return paidItems.map(i => (i.quantity || 1) > 1 ? `${i.name} x${i.quantity}` : i.name).join(', ');
   }
 
   function isRecurring() {
@@ -523,6 +526,18 @@ function CheckoutInner() {
 
   function isGiftCardPurchase() {
     return cartItems.length > 0 && cartItems[0]?.category === 'gift_card';
+  }
+
+  function getDispenseItems() {
+    return cartItems.filter(i => i.type === 'dispense');
+  }
+
+  function getPaidCartItems() {
+    return cartItems.filter(i => i.type !== 'dispense');
+  }
+
+  function hasOnlyDispenseItems() {
+    return cartItems.length > 0 && cartItems.every(i => i.type === 'dispense');
   }
 
   function canProceedToPayment() {
@@ -607,7 +622,8 @@ function CheckoutInner() {
     let firstPurchase = null;
     let shippingApplied = false;
     const purchaseIds = [];
-    for (const item of cartItems) {
+    const paidItems = cartItems.filter(i => i.type !== 'dispense');
+    for (const item of paidItems) {
       const qty = item.quantity || 1;
       const itemBase = (item.price || 0) * qty;
       const itemDiscountAmt = getItemDiscountCents(item);
@@ -704,22 +720,49 @@ function CheckoutInner() {
       const code = await createGiftCardAfterPurchase(purchaseData.purchase.id, amount);
       if (code) message = `Payment successful: ${formatPrice(amount)}\nGift Card Created: ${code}`;
     }
+    // Also process any dispense items in the cart
+    message = await processDispenseAndAppend(message);
     setResultStatus('success');
     setResultMessage(message);
     setStep('result');
+  }
+
+  // Helper: process dispense items and build result suffix
+  async function processDispenseAndAppend(baseMessage) {
+    let message = baseMessage;
+    const dispItems = getDispenseItems();
+    if (dispItems.length > 0) {
+      const dispResults = await processDispenseItems();
+      const dispensedNames = dispResults.filter(r => r.success).map(r => r.name).join(', ');
+      if (dispensedNames) message += `\n\nDispensed: ${dispensedNames}`;
+      const failures = dispResults.filter(r => !r.success);
+      if (failures.length > 0) message += `\n\nDispense errors: ${failures.map(f => `${f.name}: ${f.error}`).join(', ')}`;
+      fetch(`/api/protocols?patient_id=${patient.id}&status=active`)
+        .then(r => r.json())
+        .then(d => setActiveProtocols(d.protocols || d || []))
+        .catch(() => {});
+    }
+    return message;
   }
 
   async function handlePay() {
     const amount = getChargeAmount();
     const description = getChargeDescription();
 
-    // $0 comp
+    // $0 comp (or $0 with only dispense items)
     if (amount === 0) {
       setStep('processing');
       try {
-        await recordPurchasesWithReturn({ payment_method: 'comp' });
+        const paidItems = getPaidCartItems();
+        if (paidItems.length > 0) {
+          await recordPurchasesWithReturn({ payment_method: 'comp' });
+        }
+        let message = paidItems.length > 0
+          ? `Comped ${description} for ${patient.name}`
+          : `Checkout complete for ${patient.name}`;
+        message = await processDispenseAndAppend(message);
         setResultStatus('success');
-        setResultMessage(`Comped ${description} for ${patient.name}`);
+        setResultMessage(message);
         setStep('result');
       } catch (error) {
         setResultStatus('error');
@@ -734,16 +777,18 @@ function CheckoutInner() {
       setStep('processing');
       try {
         const purchaseData = await recordPurchasesWithReturn({ payment_method: 'cash' });
+        let message;
         if (isGiftCardPurchase() && purchaseData?.purchase?.id) {
           const code = await createGiftCardAfterPurchase(purchaseData.purchase.id, amount);
-          setResultStatus('success');
-          setResultMessage(code
+          message = code
             ? `Cash payment: ${formatPrice(amount)}\nGift Card Created: ${code}`
-            : `Cash payment: ${description} — ${formatPrice(amount)}`);
+            : `Cash payment: ${description} — ${formatPrice(amount)}`;
         } else {
-          setResultStatus('success');
-          setResultMessage(`Cash payment recorded: ${description} — ${formatPrice(amount)}`);
+          message = `Cash payment recorded: ${description} — ${formatPrice(amount)}`;
         }
+        message = await processDispenseAndAppend(message);
+        setResultStatus('success');
+        setResultMessage(message);
         setStep('result');
       } catch (error) {
         setResultStatus('error');
@@ -1176,57 +1221,128 @@ function CheckoutInner() {
     setDispLoadingCoverage(false);
   }
 
-  async function handleDispenseSubmit() {
+  function handleAddDispenseToCart() {
     const protocol = activeProtocols.find(p => p.id === dispensingProtocolId);
     if (!protocol) return;
     const cat = protocolToCategory(protocol.program_type);
+    const covSource = dispCoverageType === 'subscription'
+      ? (dispCoverage?.coverage_source || 'Active Membership')
+      : dispCoverageType === 'protocol'
+        ? (protocol.program_name || dispCoverage?.coverage_source || 'Active Protocol')
+        : dispCoverageType === 'comp'
+          ? 'Complimentary'
+          : null;
 
-    setDispSubmitting(true);
-    try {
-      const body = {
-        patient_id: patient.id,
+    const dispenseItem = {
+      id: `disp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      type: 'dispense',
+      name: dispMedication || protocol.program_name || protocol.medication || cat,
+      price: 0,
+      quantity: 1,
+      category: cat,
+      itemDiscountType: 'none',
+      itemDiscountValue: '',
+      coverageBadge: covSource || (dispCoverage?.covered ? 'Covered' : null),
+      dispenseDetails: {
+        protocolId: protocol.id,
+        protocolName: protocol.program_name,
         category: cat,
-        entry_type: dispEntryType,
+        entryType: dispEntryType,
         medication: dispMedication || null,
         dosage: dispDosage || null,
+        supplyType: dispSupplyType || null,
         quantity: dispQuantity ? parseInt(dispQuantity) : null,
-        supply_type: dispSupplyType || null,
+        administeredBy: dispAdministeredBy || null,
+        verifiedBy: dispVerifiedBy || null,
+        fulfillmentMethod: dispFulfillment,
+        trackingNumber: dispTrackingNumber || null,
         notes: dispNotes || null,
-        protocol_id: protocol.id,
-        coverage_type: dispCoverageType === 'comp' ? 'comp' : dispCoverageType || 'paid',
-        coverage_source: dispCoverageType === 'subscription'
-          ? (dispCoverage?.coverage_source || 'Active Membership')
-          : dispCoverageType === 'protocol'
-            ? (protocol.program_name || dispCoverage?.coverage_source || 'Active Protocol')
-            : dispCoverageType === 'comp'
-              ? 'Complimentary'
-              : 'Paid at checkout',
-        administered_by: dispAdministeredBy || null,
-        verified_by: dispVerifiedBy || null,
-        fulfillment_method: dispFulfillment,
-        tracking_number: dispTrackingNumber || null,
-        send_receipt: true,
-      };
+        coverageType: dispCoverageType === 'comp' ? 'comp' : dispCoverageType || 'paid',
+        coverageSource: covSource || 'Paid at checkout',
+      },
+    };
 
-      const res = await fetch('/api/medication-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Dispensing failed');
+    // Build display name with details
+    const parts = [dispMedication || protocol.medication || cat];
+    if (dispDosage) parts.push(dispDosage);
+    if (dispSupplyType) {
+      const supplyLabel = (HRT_SUPPLY_TYPES || []).find(s => s.value === dispSupplyType)?.label || dispSupplyType;
+      parts.push(supplyLabel);
+    }
+    if (dispQuantity && parseInt(dispQuantity) > 1) parts.push(`x${dispQuantity}`);
+    dispenseItem.name = parts.join(' — ');
 
-      setDispResult({ success: true, message: `${dispMedication || protocol.program_name || cat} dispensed for ${patient.name}` });
+    setCartItems(prev => [...prev, dispenseItem]);
+    setCartOpen(true);
+    resetDispensing();
+  }
 
-      // Refresh protocols to show updated session counts
+  // Process all dispense items in the cart via /api/medication-checkout
+  async function processDispenseItems() {
+    const dispItems = getDispenseItems();
+    const results = [];
+    for (const item of dispItems) {
+      const d = item.dispenseDetails;
+      if (!d) continue;
+      try {
+        const body = {
+          patient_id: patient.id,
+          category: d.category,
+          entry_type: d.entryType,
+          medication: d.medication,
+          dosage: d.dosage,
+          quantity: d.quantity,
+          supply_type: d.supplyType,
+          notes: d.notes,
+          protocol_id: d.protocolId,
+          coverage_type: d.coverageType,
+          coverage_source: d.coverageSource,
+          administered_by: d.administeredBy,
+          verified_by: d.verifiedBy,
+          fulfillment_method: d.fulfillmentMethod,
+          tracking_number: d.trackingNumber,
+          send_receipt: false, // will send consolidated at end
+        };
+        const res = await fetch('/api/medication-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || `Failed to dispense ${d.medication}`);
+        results.push({ success: true, name: item.name, data });
+      } catch (err) {
+        results.push({ success: false, name: item.name, error: err.message });
+      }
+    }
+    return results;
+  }
+
+  // Dispense-only checkout (no payment needed)
+  async function processDispenseOnly() {
+    setStep('processing');
+    try {
+      const results = await processDispenseItems();
+      const failures = results.filter(r => !r.success);
+      if (failures.length > 0) {
+        setResultStatus('error');
+        setResultMessage(`Some items failed:\n${failures.map(f => `${f.name}: ${f.error}`).join('\n')}`);
+      } else {
+        setResultStatus('success');
+        const dispensedNames = results.map(r => r.name).join(', ');
+        setResultMessage(`Dispensed for ${patient.name}:\n${dispensedNames}`);
+      }
+      // Refresh protocols
       fetch(`/api/protocols?patient_id=${patient.id}&status=active`)
         .then(r => r.json())
         .then(d => setActiveProtocols(d.protocols || d || []))
         .catch(() => {});
+      setStep('result');
     } catch (err) {
-      setDispResult({ success: false, message: err.message });
+      setResultStatus('error');
+      setResultMessage(err.message);
+      setStep('result');
     }
-    setDispSubmitting(false);
   }
 
   function getDispenseEntryLabel(type) {
@@ -1238,7 +1354,7 @@ function CheckoutInner() {
   // RENDER
   // ══════════════════════════════════════════════════════════════════
 
-  const totalItems = cartItems.reduce((sum, i) => sum + (i.quantity || 1), 0);
+  const totalItems = cartItems.filter(i => i.type !== 'dispense').reduce((sum, i) => sum + (i.quantity || 1), 0) + getDispenseItems().length;
   const chargeAmount = getChargeAmount();
   const baseAmount = getBaseAmount();
   const totalDiscount = getTotalDiscountCents();
@@ -1533,11 +1649,14 @@ function CheckoutInner() {
                                 </div>
                               </div>
                               <div style={{
-                                fontSize: '13px', fontWeight: 700, color: '#1e40af',
-                                padding: '6px 14px', border: '1px solid #bfdbfe', background: '#f0f9ff',
+                                fontSize: '13px', fontWeight: 700,
+                                color: isExpanded ? '#666' : '#1e40af',
+                                padding: '6px 14px',
+                                border: `1px solid ${isExpanded ? '#e0e0e0' : '#bfdbfe'}`,
+                                background: isExpanded ? '#fff' : '#f0f9ff',
                                 whiteSpace: 'nowrap',
                               }}>
-                                {isExpanded ? 'Close' : 'Dispense'}
+                                {isExpanded ? '✕ Close' : 'Dispense →'}
                               </div>
                             </button>
 
@@ -1792,17 +1911,18 @@ function CheckoutInner() {
                                       />
                                     </div>
 
-                                    {/* Submit */}
+                                    {/* Add to Cart */}
                                     <button
-                                      onClick={handleDispenseSubmit}
-                                      disabled={dispSubmitting || !dispEntryType}
+                                      onClick={handleAddDispenseToCart}
+                                      disabled={!dispEntryType || !dispMedication}
                                       style={{
                                         ...styles.primaryBtn,
                                         marginTop: '8px',
-                                        opacity: (dispSubmitting || !dispEntryType) ? 0.5 : 1,
+                                        opacity: (!dispEntryType || !dispMedication) ? 0.5 : 1,
                                       }}
                                     >
-                                      {dispSubmitting ? 'Dispensing...' : `Dispense ${dispMedication || proto.program_name || ''}`}
+                                      Add to Cart — {dispMedication || proto.program_name || 'Medication'}
+                                      {dispCoverage?.covered ? ' ($0 Covered)' : ''}
                                     </button>
                                   </>
                                 )}
@@ -2043,8 +2163,44 @@ function CheckoutInner() {
                 </div>
               ) : (
                 <div style={styles.cartBody}>
-                  {/* Cart items */}
+                  {/* Cart items — dispense items + service items */}
                   {cartItems.map(item => {
+                    // Dispense items: $0 with coverage badge
+                    if (item.type === 'dispense') {
+                      const d = item.dispenseDetails;
+                      return (
+                        <div key={item.id} style={{ ...styles.cartItem, background: '#f0fdf4', padding: '10px', marginLeft: '-10px', marginRight: '-10px', borderRadius: '0' }}>
+                          <div style={styles.cartItemHeader}>
+                            <span style={styles.cartItemName}>{item.name}</span>
+                            <button
+                              style={styles.cartRemoveBtn}
+                              onClick={() => setCartItems(cartItems.filter(i => i.id !== item.id))}
+                            >×</button>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ fontSize: '11px', color: '#888' }}>
+                              {getDispenseEntryLabel(d?.entryType || 'pickup')}
+                              {d?.quantity ? ` · Qty: ${d.quantity}` : ''}
+                              {d?.fulfillmentMethod === 'overnight' ? ' · Overnighted' : ''}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              {item.coverageBadge && (
+                                <span style={{
+                                  fontSize: '10px', fontWeight: 700, color: '#166534',
+                                  background: '#dcfce7', border: '1px solid #86efac',
+                                  padding: '2px 8px', textTransform: 'uppercase', letterSpacing: '0.05em',
+                                }}>
+                                  {item.coverageBadge}
+                                </span>
+                              )}
+                              <span style={{ fontSize: '14px', fontWeight: 700, color: '#166534' }}>$0.00</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // Regular service items
                     const qty = item.quantity || 1;
                     const lineBase = (item.price || 0) * qty;
                     const lineDiscount = getItemDiscountCents(item);
@@ -2240,9 +2396,18 @@ function CheckoutInner() {
                     <div style={styles.cartActions}>
                       <button
                         style={styles.primaryBtn}
-                        onClick={() => setStep('payment')}
+                        onClick={() => {
+                          if (hasOnlyDispenseItems()) {
+                            processDispenseOnly();
+                          } else {
+                            setStep('payment');
+                          }
+                        }}
                       >
-                        Continue to Payment — {formatPrice(chargeAmount)}
+                        {hasOnlyDispenseItems()
+                          ? 'Complete Checkout — Dispense Only'
+                          : `Continue to Payment — ${formatPrice(chargeAmount)}`
+                        }
                       </button>
                       <button
                         style={styles.invoiceBtn}
@@ -2323,7 +2488,23 @@ function CheckoutInner() {
               {/* Order summary */}
               <div style={styles.orderSummary}>
                 <div style={styles.orderSummaryLabel}>ORDER SUMMARY</div>
-                {cartItems.map(item => {
+                {/* Dispense items first */}
+                {getDispenseItems().map(item => (
+                  <div key={item.id} style={{ ...styles.orderItem, color: '#166534' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {item.name}
+                      <span style={{
+                        fontSize: '9px', fontWeight: 700, background: '#dcfce7', border: '1px solid #86efac',
+                        padding: '1px 6px', textTransform: 'uppercase', letterSpacing: '0.05em',
+                      }}>
+                        {item.coverageBadge || 'Covered'}
+                      </span>
+                    </span>
+                    <span>$0.00</span>
+                  </div>
+                ))}
+                {/* Paid items */}
+                {getPaidCartItems().map(item => {
                   const qty = item.quantity || 1;
                   const lineBase = (item.price || 0) * qty;
                   const lineDisc = getItemDiscountCents(item);

@@ -232,9 +232,9 @@ export default function JoinReferralProgram() {
             <section className="join-hero">
               <div className="join-container">
                 <div className="v2-label"><span className="v2-dot" /> YOUR REFERRAL LINK</div>
-                <h1>Welcome back, {result.name}.</h1>
+                <h1>Here's your link, {result.name}.</h1>
                 <div className="join-rule" />
-                <p className="join-body">Here's your link. Send it to anyone you think should check out Range Medical — our team will reach out to them within 24 hours.</p>
+                <p className="join-body">This is your personal referral link. Send it to anyone you want to refer to Range Medical. When they fill out the form, our team will reach out to them within 24 hours.</p>
               </div>
             </section>
 
@@ -253,7 +253,7 @@ export default function JoinReferralProgram() {
                   Text This Link to Someone
                 </button>
 
-                <p className="join-share-note">Opens your messages with a pre-written text. Just pick who to send it to.</p>
+                <p className="join-share-note">This opens your text messages with a pre-written message. Just pick who to send it to.</p>
 
                 {/* Stats */}
                 {result.lead_count > 0 && (
@@ -263,15 +263,16 @@ export default function JoinReferralProgram() {
                   </div>
                 )}
 
-                {/* Re-send + bookmark tip */}
+                {/* How to find your link later */}
                 <div className="join-tip">
-                  <div className="join-tip-title">Can't find the text we sent?</div>
-                  <p>
+                  <div className="join-tip-title">How to find this link later</div>
+                  <p>We texted this link to you. To find it, search your text messages for "Range Medical."</p>
+                  <p style={{ marginTop: '0.75rem' }}>You can also come back to <strong>range-medical.com/refer/join</strong> anytime, enter your email, and your link will come right up.</p>
+                  <p style={{ marginTop: '0.75rem' }}>
                     <button onClick={resendLink} className="join-resend-btn">
                       {resent ? '✓ Sent — check your texts' : 'Text me my link again'}
                     </button>
                   </p>
-                  <p style={{ marginTop: '0.75rem' }}>You can also bookmark this page. Come back to <strong>range-medical.com/refer/join</strong> anytime and enter your email to get right back here.</p>
                 </div>
               </div>
             </section>

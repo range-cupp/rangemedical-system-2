@@ -78,7 +78,7 @@ export default function ReferralsAdmin() {
     setInviteSending(true);
     try {
       const firstName = inviteSelected.first_name || inviteSelected.name?.split(' ')[0] || '';
-      const message = `Hey ${firstName} — thanks for being a Range Medical patient. Here's a quick link to set up your personal referral page. Takes 15 seconds, then you can text it to anyone you think should check us out: https://range-medical.com/refer/join`;
+      const message = `Hey ${firstName} — we set up a way for you to refer people to Range Medical. Tap the link below, enter your info, and you'll get your own personal referral link you can text to anyone:\n\nhttps://range-medical.com/refer/join\n\nTakes about 15 seconds. After that, we'll text you your link so you always have it.`;
 
       await fetch('/api/twilio/send-sms', {
         method: 'POST',

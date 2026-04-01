@@ -90,7 +90,7 @@ export default async function handler(req, res) {
       if (normalizedPhone) {
         await sendSMS({
           to: normalizedPhone,
-          message: `Hey ${displayName} — here's your personal Range Medical referral link. Save this text so you always have it:\n\n${link}\n\nAnyone who uses this link gets priority attention from our team. Just forward this text or copy the link above.`,
+          message: `Hey ${displayName} — your Range Medical referral link is ready:\n\n${link}\n\nHere's how to use it:\n1. Copy the link above or forward this text to anyone you want to refer\n2. When they fill out the form, our team reaches out to them within 24 hours\n\nTo find this link later, just search your texts for "Range Medical" or go to range-medical.com/refer/join and enter your email.`,
         });
       }
     } catch (smsErr) {

@@ -65,53 +65,60 @@ export default function RetatrutideSideEffectsGuide() {
               <span className="nav-icon">1</span>
               <div>
                 <strong>Nausea & Stomach Issues</strong>
-                <p>The most common. Nausea, vomiting, diarrhea.</p>
+                <p>The most common. Stomach upset and vomiting.</p>
+              </div>
+            </a>
+            <a href="#diarrhea" className="nav-card">
+              <span className="nav-icon">2</span>
+              <div>
+                <strong>Diarrhea</strong>
+                <p>Loose, frequent, or urgent bowel movements.</p>
               </div>
             </a>
             <a href="#constipation" className="nav-card">
-              <span className="nav-icon">2</span>
+              <span className="nav-icon">3</span>
               <div>
                 <strong>Constipation</strong>
                 <p>Slowed digestion can slow things down too much.</p>
               </div>
             </a>
             <a href="#skin" className="nav-card">
-              <span className="nav-icon">3</span>
+              <span className="nav-icon">4</span>
               <div>
                 <strong>Skin Sensitivity</strong>
                 <p>Tingling, burning, pain from normal touch.</p>
               </div>
             </a>
             <a href="#appetite" className="nav-card">
-              <span className="nav-icon">4</span>
+              <span className="nav-icon">5</span>
               <div>
                 <strong>Too Little Appetite</strong>
                 <p>When the appetite reduction goes too far.</p>
               </div>
             </a>
             <a href="#injection" className="nav-card">
-              <span className="nav-icon">5</span>
+              <span className="nav-icon">6</span>
               <div>
                 <strong>Injection Site Reactions</strong>
                 <p>Redness, swelling, or itching where you inject.</p>
               </div>
             </a>
             <a href="#fatigue" className="nav-card">
-              <span className="nav-icon">6</span>
+              <span className="nav-icon">7</span>
               <div>
                 <strong>Fatigue</strong>
                 <p>Feeling tired or low energy, especially early on.</p>
               </div>
             </a>
             <a href="#hair" className="nav-card">
-              <span className="nav-icon">7</span>
+              <span className="nav-icon">8</span>
               <div>
                 <strong>Hair Thinning</strong>
                 <p>Temporary shedding from rapid weight loss.</p>
               </div>
             </a>
             <a href="#dizziness" className="nav-card">
-              <span className="nav-icon">8</span>
+              <span className="nav-icon">9</span>
               <div>
                 <strong>Dizziness</strong>
                 <p>Lightheadedness, especially when standing up.</p>
@@ -128,14 +135,14 @@ export default function RetatrutideSideEffectsGuide() {
             <span className="se-number">1</span>
             <div>
               <div className="v2-label"><span className="v2-dot" /> MOST COMMON</div>
-              <h2 className="section-title">Nausea, Vomiting & Diarrhea</h2>
+              <h2 className="section-title">Nausea & Vomiting</h2>
             </div>
           </div>
           <div className="se-freq">Affects roughly 4 out of 10 people, mostly during the first few weeks at each new dose level</div>
 
           <div className="what-box">
             <h3>What It Feels Like</h3>
-            <p>Stomach upset that can range from mild queasiness to feeling like you might throw up. Some people get diarrhea instead of — or along with — nausea. It is usually worst in the first 1-2 weeks after starting or increasing your dose, then gets better.</p>
+            <p>Stomach upset that can range from mild queasiness to feeling like you might throw up. Some people just feel "off" after eating. Others experience waves of nausea throughout the day. It is usually worst in the first 1-2 weeks after starting or increasing your dose, then gets better.</p>
           </div>
 
           <div className="why-box">
@@ -157,7 +164,7 @@ export default function RetatrutideSideEffectsGuide() {
                 <strong>Eat slowly.</strong> Take 20-30 minutes for a meal. Rushing makes nausea worse.
               </div>
               <div className="action-item">
-                <strong>Stay hydrated.</strong> Sip water throughout the day. Dehydration makes nausea worse, and if you are having diarrhea, you are losing extra fluid.
+                <strong>Stay hydrated.</strong> Sip water throughout the day. Dehydration makes nausea worse.
               </div>
               <div className="action-item">
                 <strong>Try ginger.</strong> Ginger tea, ginger chews, or ginger capsules can settle nausea. This has been studied and it works for many people.
@@ -185,7 +192,7 @@ export default function RetatrutideSideEffectsGuide() {
                 <strong>Contact us.</strong> We can prescribe anti-nausea medication (ondansetron/Zofran) to take as needed during the adjustment period. We may also temporarily lower your dose.
               </div>
               <div className="action-item">
-                <strong>Watch for dehydration.</strong> If you are vomiting frequently or having persistent diarrhea, make sure you are replacing fluids and electrolytes. Pedialyte, Liquid IV, or coconut water can help. If you cannot keep fluids down, call us right away.
+                <strong>Watch for dehydration.</strong> If you are vomiting frequently, make sure you are replacing fluids and electrolytes. Pedialyte, Liquid IV, or coconut water can help. If you cannot keep fluids down for more than 24 hours, call us right away.
               </div>
             </div>
           </div>
@@ -197,11 +204,99 @@ export default function RetatrutideSideEffectsGuide() {
         </div>
       </section>
 
-      {/* ===================== CONSTIPATION ===================== */}
-      <section className="section" id="constipation">
+      {/* ===================== DIARRHEA ===================== */}
+      <section className="section" id="diarrhea">
         <div className="container">
           <div className="se-header">
             <span className="se-number">2</span>
+            <div>
+              <div className="v2-label"><span className="v2-dot" /> COMMON</div>
+              <h2 className="section-title">Diarrhea</h2>
+            </div>
+          </div>
+          <div className="se-freq">Affects roughly 2 out of 10 people, especially during dose increases</div>
+
+          <div className="what-box">
+            <h3>What It Feels Like</h3>
+            <p>Loose, watery bowel movements that happen more often than normal. You might feel urgency — needing to get to a bathroom quickly. Some people also get cramping or bloating along with it. It can range from mild (just looser than usual) to severe (multiple watery episodes per day). Like nausea, it is usually worst during the first 1-2 weeks at a new dose level.</p>
+          </div>
+
+          <div className="why-box">
+            <h3>Why It Happens</h3>
+            <p>Retatrutide activates GLP-1 receptors throughout your digestive system. This changes how your gut moves food and absorbs water. When your body is first adjusting, the gut can speed up in some areas while slowing down in others — this mismatch causes diarrhea. Eating fatty or greasy food makes it worse because your body is now processing fats differently. High doses cause more GI disruption than low doses.</p>
+          </div>
+
+          <h3 className="steps-header">What to Do</h3>
+          <div className="tier-card">
+            <div className="tier-label green">Try First</div>
+            <div className="tier-body">
+              <div className="action-item">
+                <strong>Cut back on greasy, fried, and high-fat foods.</strong> These are the number one trigger. Your gut cannot handle high-fat meals the way it used to. Stick to lean protein, rice, bananas, toast, and cooked vegetables during flare-ups.
+              </div>
+              <div className="action-item">
+                <strong>Eat smaller, more frequent meals.</strong> Large meals overwhelm your digestive system right now. Smaller portions are much easier for your gut to process.
+              </div>
+              <div className="action-item">
+                <strong>Avoid dairy if it makes things worse.</strong> Many people on GLP-1 medications develop temporary sensitivity to dairy. Try cutting it out for a week and see if things improve.
+              </div>
+              <div className="action-item">
+                <strong>Stay hydrated — this is critical.</strong> Diarrhea pulls water out of your body fast. Drink water, electrolyte drinks (Pedialyte, Liquid IV, LMNT), or broth throughout the day. If your urine is dark yellow, you are not drinking enough.
+              </div>
+              <div className="action-item">
+                <strong>Replace your electrolytes.</strong> You are losing sodium, potassium, and magnesium every time you have a loose bowel movement. An electrolyte supplement is not optional here — it is necessary to prevent weakness, dizziness, and cramping.
+              </div>
+              <div className="action-item">
+                <strong>Try a probiotic.</strong> A daily probiotic supplement can help restore balance to your gut bacteria, which gets disrupted by the changes in digestion. Look for one with Lactobacillus and Bifidobacterium strains. Give it 1-2 weeks to take effect.
+              </div>
+            </div>
+          </div>
+          <div className="tier-card">
+            <div className="tier-label yellow">If It Continues (2+ weeks)</div>
+            <div className="tier-body">
+              <div className="action-item">
+                <strong>Pause your dose increase.</strong> If you just went up, stay at your current dose for 2-4 extra weeks. Your gut may just need more time to adjust.
+              </div>
+              <div className="action-item">
+                <strong>Split your weekly dose.</strong> Instead of one injection per week, split the same total amount into two smaller injections. Lower peak drug levels mean less GI disruption.
+              </div>
+              <div className="action-item">
+                <strong>Take Imodium (loperamide) as needed.</strong> This over-the-counter medication slows down your gut and is safe to use short-term. Take it when symptoms flare — especially before work, travel, or events where you need to be comfortable. Follow the package directions.
+              </div>
+              <div className="action-item">
+                <strong>Try psyllium fiber (Metamucil).</strong> It sounds counterintuitive, but soluble fiber absorbs excess water in your intestines and can firm up loose stools. Start with a small dose and increase slowly.
+              </div>
+            </div>
+          </div>
+          <div className="tier-card">
+            <div className="tier-label orange">Call Us If</div>
+            <div className="tier-body">
+              <div className="action-item">
+                <strong>Diarrhea lasts more than 3-4 weeks</strong> despite trying the steps above. We may need to reduce your dose or investigate other causes.
+              </div>
+              <div className="action-item">
+                <strong>You see blood in your stool</strong> or your stool is black and tarry. This needs immediate evaluation.
+              </div>
+              <div className="action-item">
+                <strong>You are having more than 6 watery episodes per day</strong> or you feel dizzy, weak, or lightheaded. You may be getting dehydrated and need medical support.
+              </div>
+              <div className="action-item">
+                <strong>You cannot keep up with fluid replacement.</strong> If you feel like you are losing more than you can drink, call us. Severe dehydration can be dangerous and may need IV fluids.
+              </div>
+            </div>
+          </div>
+
+          <div className="reassure-box">
+            <strong>Your Gut Will Adjust</strong>
+            <p>Like nausea, diarrhea is usually a temporary adjustment symptom. It is your gut getting used to new signals. Most people see significant improvement within 2-4 weeks at a stable dose. The key is managing hydration and electrolytes while your body adapts.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* ===================== CONSTIPATION ===================== */}
+      <section className="section section-gray" id="constipation">
+        <div className="container">
+          <div className="se-header">
+            <span className="se-number">3</span>
             <div>
               <div className="v2-label"><span className="v2-dot" /> COMMON</div>
               <h2 className="section-title">Constipation</h2>
@@ -265,10 +360,10 @@ export default function RetatrutideSideEffectsGuide() {
       </section>
 
       {/* ===================== SKIN SENSITIVITY ===================== */}
-      <section className="section section-gray" id="skin">
+      <section className="section" id="skin">
         <div className="container">
           <div className="se-header">
-            <span className="se-number">3</span>
+            <span className="se-number">4</span>
             <div>
               <div className="v2-label"><span className="v2-dot" /> UNIQUE TO RETATRUTIDE</div>
               <h2 className="section-title">Skin Sensitivity</h2>
@@ -350,10 +445,10 @@ export default function RetatrutideSideEffectsGuide() {
       </section>
 
       {/* ===================== APPETITE ===================== */}
-      <section className="section" id="appetite">
+      <section className="section section-gray" id="appetite">
         <div className="container">
           <div className="se-header">
-            <span className="se-number">4</span>
+            <span className="se-number">5</span>
             <div>
               <div className="v2-label"><span className="v2-dot" /> WATCH FOR THIS</div>
               <h2 className="section-title">Too Little Appetite</h2>
@@ -409,10 +504,10 @@ export default function RetatrutideSideEffectsGuide() {
       </section>
 
       {/* ===================== INJECTION SITE ===================== */}
-      <section className="section section-gray" id="injection">
+      <section className="section" id="injection">
         <div className="container">
           <div className="se-header">
-            <span className="se-number">5</span>
+            <span className="se-number">6</span>
             <div>
               <div className="v2-label"><span className="v2-dot" /> COMMON</div>
               <h2 className="section-title">Injection Site Reactions</h2>
@@ -466,10 +561,10 @@ export default function RetatrutideSideEffectsGuide() {
       </section>
 
       {/* ===================== FATIGUE ===================== */}
-      <section className="section" id="fatigue">
+      <section className="section section-gray" id="fatigue">
         <div className="container">
           <div className="se-header">
-            <span className="se-number">6</span>
+            <span className="se-number">7</span>
             <div>
               <div className="v2-label"><span className="v2-dot" /> COMMON EARLY ON</div>
               <h2 className="section-title">Fatigue</h2>
@@ -525,10 +620,10 @@ export default function RetatrutideSideEffectsGuide() {
       </section>
 
       {/* ===================== HAIR THINNING ===================== */}
-      <section className="section section-gray" id="hair">
+      <section className="section" id="hair">
         <div className="container">
           <div className="se-header">
-            <span className="se-number">7</span>
+            <span className="se-number">8</span>
             <div>
               <div className="v2-label"><span className="v2-dot" /> LESS COMMON</div>
               <h2 className="section-title">Hair Thinning</h2>
@@ -588,10 +683,10 @@ export default function RetatrutideSideEffectsGuide() {
       </section>
 
       {/* ===================== DIZZINESS ===================== */}
-      <section className="section" id="dizziness">
+      <section className="section section-gray" id="dizziness">
         <div className="container">
           <div className="se-header">
-            <span className="se-number">8</span>
+            <span className="se-number">9</span>
             <div>
               <div className="v2-label"><span className="v2-dot" /> LESS COMMON</div>
               <h2 className="section-title">Dizziness</h2>
@@ -1010,7 +1105,7 @@ export default function RetatrutideSideEffectsGuide() {
           line-height: 1.6;
         }
         .nutrient-list li::before {
-          content: "\\2713";
+          content: "✓";
           position: absolute;
           left: 0;
           color: #2E6B35;
@@ -1062,7 +1157,7 @@ export default function RetatrutideSideEffectsGuide() {
           font-weight: 700;
         }
         .contact-card.routine li::before {
-          content: "\\2713";
+          content: "✓";
           position: absolute;
           left: 0;
           color: #22c55e;

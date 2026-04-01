@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
 import { useAuth } from '../../components/AuthProvider';
-import { Mail, Users, Send, ChevronLeft, Eye, Save, Filter, Trash2, Plus } from 'lucide-react';
+import { Mail, Users, Send, ChevronLeft, Eye, Save, Filter, Trash2, Plus, Sparkles } from 'lucide-react';
 
 const PROTOCOL_TYPES = [
   { value: 'peptide', label: 'Peptide' },
@@ -57,6 +57,10 @@ export default function EmailCampaignsPage() {
   const [showPreview, setShowPreview] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState(null);
+
+  // AI compose state
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiGenerating, setAiGenerating] = useState(false);
 
   // Edit mode
   const [editingCampaign, setEditingCampaign] = useState(null);
@@ -170,6 +174,33 @@ export default function EmailCampaignsPage() {
       alert('Error sending campaign');
     } finally {
       setSending(false);
+    }
+  };
+
+  const generateEmail = async () => {
+    if (!aiPrompt.trim()) return;
+    setAiGenerating(true);
+    try {
+      const res = await fetch('/api/admin/generate-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: aiPrompt, subject: emailSubject || undefined }),
+      });
+      const data = await res.json();
+      if (data.html) {
+        setEmailHtml(data.html);
+        if (data.subject && !emailSubject) {
+          setEmailSubject(data.subject);
+        }
+        setShowPreview(true);
+      } else {
+        alert(data.error || 'Failed to generate email');
+      }
+    } catch (err) {
+      console.error('AI generate error:', err);
+      alert('Error generating email');
+    } finally {
+      setAiGenerating(false);
     }
   };
 
@@ -522,6 +553,53 @@ export default function EmailCampaignsPage() {
                     style={sharedStyles.input}
                   />
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* AI Email Generator */}
+          <div style={{ ...sharedStyles.card, marginBottom: '20px' }}>
+            <div style={sharedStyles.cardHeader}>
+              <h3 style={sharedStyles.cardTitle}>
+                <Sparkles size={16} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+                AI Compose
+              </h3>
+            </div>
+            <div style={sharedStyles.cardBody}>
+              <p style={{ fontSize: '13px', color: '#666', margin: '0 0 12px' }}>
+                Describe your email concept and AI will generate a branded HTML email
+              </p>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <textarea
+                  value={aiPrompt}
+                  onChange={e => setAiPrompt(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey && !aiGenerating) {
+                      e.preventDefault();
+                      generateEmail();
+                    }
+                  }}
+                  placeholder="e.g. Promote our new BPC-157 peptide protocol for recovery. Mention spring pricing special at $299/month. Target active patients."
+                  style={{
+                    ...sharedStyles.input,
+                    flex: 1,
+                    minHeight: '80px',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                  }}
+                />
+                <button
+                  onClick={generateEmail}
+                  disabled={aiGenerating || !aiPrompt.trim()}
+                  style={{
+                    ...sharedStyles.btnPrimary,
+                    alignSelf: 'flex-end',
+                    opacity: aiGenerating || !aiPrompt.trim() ? 0.5 : 1,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <Sparkles size={14} /> {aiGenerating ? 'Generating...' : 'Generate'}
+                </button>
               </div>
             </div>
           </div>

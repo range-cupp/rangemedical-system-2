@@ -10,6 +10,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import AdminLayout, { overlayClickProps } from '../../components/AdminLayout';
 import { useAuth } from '../../components/AuthProvider';
+import EnergyPackBalance from '../../components/EnergyPackBalance';
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
@@ -46,8 +47,6 @@ import CycleProgressCard from '../../components/CycleProgressCard';
 const CalendarView = dynamic(() => import('../../components/CalendarView'), { ssr: false });
 const LabDashboard = dynamic(() => import('../../components/labs/LabDashboard'), { ssr: false });
 const ConversationView = dynamic(() => import('../../components/ConversationView'), { ssr: false });
-const POSChargeModal = dynamic(() => import('../../components/POSChargeModal'), { ssr: false });
-const MedicationCheckoutModal = dynamic(() => import('../../components/MedicationCheckoutModal'), { ssr: false });
 const EncounterModal = dynamic(() => import('../../components/EncounterModal'), { ssr: false });
 const StandaloneEncounterModal = dynamic(() => import('../../components/StandaloneEncounterModal'), { ssr: false });
 const EncounterQuickView = dynamic(() => import('../../components/EncounterQuickView'), { ssr: false });
@@ -576,8 +575,6 @@ export default function PatientProfile() {
   const [showSymptomsModal, setShowSymptomsModal] = useState(false);
   const [showIntakeModal, setShowIntakeModal] = useState(false);
   const [showBookingModal, setShowBookingModal] = useState(false);
-  const [showChargeModal, setShowChargeModal] = useState(false);
-  const [showMedCheckout, setShowMedCheckout] = useState(false);
   const [generatingChart, setGeneratingChart] = useState(false);
   const [showQuickView, setShowQuickView] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -3554,8 +3551,7 @@ export default function PatientProfile() {
             <div className="toolbar-divider" />
             <div className="toolbar-group">
 <button onClick={() => setShowBookingModal(true)} className="toolbar-btn toolbar-btn-blue" title="Book appointment">📅 <span className="toolbar-label">Book</span></button>
-              <button onClick={() => setShowMedCheckout(true)} className="toolbar-btn toolbar-btn-green" title="Checkout / Dispense">📦 <span className="toolbar-label">Checkout</span></button>
-              <button onClick={() => setShowChargeModal(true)} className="toolbar-btn toolbar-btn-green" title="Charge patient">💳 <span className="toolbar-label">Charge</span></button>
+              <button onClick={() => router.push(`/admin/checkout?patient_id=${patient.id}&patient_name=${encodeURIComponent(patient.name || `${patient.first_name} ${patient.last_name}`)}`)} className="toolbar-btn toolbar-btn-green" title="Checkout / Dispense / Charge">💳 <span className="toolbar-label">Checkout</span></button>
               <button onClick={() => setShowAddCreditModal(true)} className="toolbar-btn toolbar-btn-credit" title="Add account credit">🎁 <span className="toolbar-label">Credit</span></button>
               <button
                 onClick={async () => {
@@ -4389,6 +4385,9 @@ export default function PatientProfile() {
                   </div>
                 </section>
               )}
+
+              {/* Energy & Recovery Balance */}
+              <EnergyPackBalance patientId={patient?.id} />
 
               {/* Recent Messages Preview */}
               <section className="card" style={{ marginBottom: '16px' }}>
@@ -8070,184 +8069,69 @@ export default function PatientProfile() {
 
               {/* Purchases Sub-tab — Stripe-powered payment history */}
               {paymentsSubTab === 'purchases' && (() => {
-                // Build a lookup of purchases by payment_intent_id
-                const purchasesByPI = {};
-                allPurchases.forEach(p => {
-                  if (p.stripe_payment_intent_id) {
-                    if (!purchasesByPI[p.stripe_payment_intent_id]) purchasesByPI[p.stripe_payment_intent_id] = [];
-                    purchasesByPI[p.stripe_payment_intent_id].push(p);
-                  }
-                });
-
-                // Track which purchases are matched to a Stripe charge
-                const matchedPurchaseIds = new Set();
-
                 // Build charge rows from Stripe data (actual amounts)
                 const chargeRows = stripeCharges
                   .filter(c => c.status === 'succeeded')
-                  .map(charge => {
-                    const matchedPurchases = purchasesByPI[charge.payment_intent_id] || [];
-                    matchedPurchases.forEach(p => matchedPurchaseIds.add(p.id));
-                    return {
-                      key: charge.id,
-                      type: 'stripe',
-                      amount: charge.amount / 100, // actual amount charged
-                      amountRefunded: charge.amount_refunded / 100,
-                      refunded: charge.refunded,
-                      date: new Date(charge.created * 1000),
-                      card_brand: charge.card_brand,
-                      card_last4: charge.card_last4,
-                      description: charge.description,
-                      items: matchedPurchases,
-                    };
-                  });
-
-                // Unmatched purchases (legacy — no Stripe charge found)
-                const unmatchedPurchases = allPurchases.filter(p => !matchedPurchaseIds.has(p.id));
-
-                const showStripeSection = hasStripeCustomer && stripeChargesFetched;
-                const showLegacySection = unmatchedPurchases.length > 0;
+                  .map(charge => ({
+                    key: charge.id,
+                    amount: charge.amount / 100,
+                    amountRefunded: charge.amount_refunded / 100,
+                    refunded: charge.refunded,
+                    date: new Date(charge.created * 1000),
+                    card_brand: charge.card_brand,
+                    card_last4: charge.card_last4,
+                    description: charge.description,
+                    receipt_url: charge.receipt_url,
+                  }));
 
                 return (
                 <div>
-                  {/* Stripe-verified payments */}
-                  {showStripeSection && (
-                    <div className="pay-section" style={{ marginBottom: showLegacySection ? 16 : 0 }}>
-                      <div className="pay-section-header">
-                        <h3>Payments ({chargeRows.length})</h3>
-                        <button onClick={() => { setStripeChargesFetched(false); fetchStripeCharges(); }} className="pay-btn-secondary" style={{ fontSize: 11 }}>
-                          {loadingStripeCharges ? 'Loading...' : 'Refresh'}
-                        </button>
-                      </div>
-                      {loadingStripeCharges && chargeRows.length === 0 ? (
-                        <div className="pay-empty">Loading payments from Stripe...</div>
-                      ) : chargeRows.length === 0 ? (
-                        <div className="pay-empty">No Stripe payments found</div>
-                      ) : (
-                        <div className="pay-list">
-                          {chargeRows.map(charge => {
-                            const isExpanded = expandedTransactions[charge.key];
-                            const hasItems = charge.items.length > 0;
-                            const dateStr = charge.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-
-                            return (
-                            <div key={charge.key} style={{ marginBottom: 6 }}>
-                              <div
-                                className="pay-item"
-                                style={{ cursor: hasItems ? 'pointer' : 'default', marginBottom: 0 }}
-                                onClick={() => hasItems && setExpandedTransactions(prev => ({ ...prev, [charge.key]: !prev[charge.key] }))}
-                              >
-                                {hasItems && (
-                                  <span style={{ fontSize: 11, color: '#94a3b8', flexShrink: 0, width: 16, textAlign: 'center', transition: 'transform 0.15s', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}>&#9654;</span>
-                                )}
-                                <div className="pay-item-info">
-                                  <div className="pay-item-title">
-                                    {hasItems
-                                      ? (charge.items.length === 1
-                                        ? (charge.items[0].item_name || charge.items[0].product_name || charge.description || 'Payment')
-                                        : `${charge.items.length} items`)
-                                      : (charge.description || 'Stripe Payment')}
-                                  </div>
-                                  <div className="pay-item-sub">
-                                    {dateStr}
-                                    {charge.card_last4 && (
-                                      <span style={{ marginLeft: 8, color: '#888' }}>
-                                        {charge.card_brand ? charge.card_brand.charAt(0).toUpperCase() + charge.card_brand.slice(1) : ''} ····{charge.card_last4}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="pay-item-amount" style={charge.refunded ? { textDecoration: 'line-through', color: '#94a3b8' } : {}}>
-                                  ${charge.amount.toFixed(2)}
-                                </div>
-                                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
-                                  {charge.refunded && <span className="pay-badge pay-badge-red">refunded</span>}
-                                  {charge.items.length > 0 && (
-                                    <a href={`/api/receipt/${charge.items[0].id}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-                                      style={{ fontSize: 10, color: '#3b82f6', textDecoration: 'none', fontWeight: 600 }}>
-                                      Receipt
-                                    </a>
-                                  )}
-                                </div>
-                              </div>
-                              {/* Expanded: show what was purchased */}
-                              {hasItems && isExpanded && (
-                                <div style={{ marginLeft: 28, borderLeft: '2px solid #e2e8f0', paddingLeft: 12, marginTop: 2 }}>
-                                  {charge.items.map(item => (
-                                    <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', fontSize: 12, color: '#475569', borderBottom: '1px solid #f1f5f9' }}>
-                                      <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ fontWeight: 600, fontSize: 12, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                          {item.item_name || item.description || item.product_name || 'Item'}
-                                        </div>
-                                        {item.category && <span style={{ fontSize: 10, color: '#94a3b8' }}>{item.category}</span>}
-                                      </div>
-                                      <div style={{ fontWeight: 600, fontSize: 12, color: '#64748b', flexShrink: 0 }}>${(item.amount_paid || item.amount || 0).toFixed(2)}</div>
-                                      <span className={`pay-badge ${item.protocol_created ? 'pay-badge-green' : 'pay-badge-yellow'}`} style={{ fontSize: 9 }}>
-                                        {item.protocol_created ? (() => {
-                                          const linked = [...activeProtocols, ...completedProtocols].find(p => p.id === item.protocol_id);
-                                          return linked ? `✓ ${linked.program_name}` : '✓ protocol';
-                                        })() : 'no protocol'}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                  <div className="pay-section">
+                    <div className="pay-section-header">
+                      <h3>Payments ({chargeRows.length})</h3>
+                      <button onClick={() => { setStripeChargesFetched(false); fetchStripeCharges(); }} className="pay-btn-secondary" style={{ fontSize: 11 }}>
+                        {loadingStripeCharges ? 'Loading...' : 'Refresh'}
+                      </button>
                     </div>
-                  )}
-
-                  {/* Loading state when no Stripe data yet */}
-                  {!stripeChargesFetched && loadingStripeCharges && (
-                    <div className="pay-section" style={{ marginBottom: showLegacySection ? 16 : 0 }}>
+                    {loadingStripeCharges && chargeRows.length === 0 ? (
                       <div className="pay-empty">Loading payments from Stripe...</div>
-                    </div>
-                  )}
-
-                  {/* Legacy / unmatched purchases */}
-                  {showLegacySection && (
-                    <div className="pay-section">
-                      <div className="pay-section-header">
-                        <h3>{showStripeSection ? 'Imported Records' : 'Purchases'} ({unmatchedPurchases.length})</h3>
-                      </div>
+                    ) : chargeRows.length === 0 ? (
+                      <div className="pay-empty">No payments found</div>
+                    ) : (
                       <div className="pay-list">
-                        {unmatchedPurchases.map(purchase => (
-                          <div key={purchase.id} className="pay-item" style={{ cursor: 'pointer' }} onClick={() => openEditPurchase(purchase)}>
+                        {chargeRows.map(charge => {
+                          const dateStr = charge.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                          return (
+                          <div key={charge.key} className="pay-item">
                             <div className="pay-item-info">
-                              <div className="pay-item-title">{purchase.item_name || purchase.description || purchase.product_name || 'Purchase'}</div>
+                              <div className="pay-item-title">{charge.description || 'Payment'}</div>
                               <div className="pay-item-sub">
-                                {formatDate(purchase.purchased_at || purchase.purchase_date || purchase.created_at)}
-                                {purchase.source && !['stripe_pos', 'payment_link'].includes(purchase.source) && (
-                                  <span style={{ marginLeft: 8, color: '#c084fc', fontSize: 10, fontWeight: 600 }}>
-                                    {purchase.source === 'ghl_webhook' || purchase.source === 'GoHighLevel' ? 'GHL' : purchase.source === 'Mangomint' || purchase.source === 'mango_mint' ? 'Mangomint' : purchase.source === 'Zenoti' || purchase.source === 'zenoti' ? 'Zenoti' : purchase.source}
+                                {dateStr}
+                                {charge.card_last4 && (
+                                  <span style={{ marginLeft: 8, color: '#888' }}>
+                                    {charge.card_brand ? charge.card_brand.charAt(0).toUpperCase() + charge.card_brand.slice(1) : ''} ····{charge.card_last4}
                                   </span>
                                 )}
                               </div>
                             </div>
-                            <div className="pay-item-amount">${(purchase.amount_paid || purchase.amount || 0).toFixed(2)}</div>
-                            <div style={{ display: 'flex', gap: 4 }}>
-                              <span className={`pay-badge ${purchase.protocol_created ? 'pay-badge-green' : 'pay-badge-yellow'}`}>
-                                {purchase.protocol_created ? (() => {
-                                  const linked = [...activeProtocols, ...completedProtocols].find(p => p.id === purchase.protocol_id);
-                                  return linked ? `✓ ${linked.program_name}` : '✓ protocol set';
-                                })() : 'no protocol'}
-                              </span>
+                            <div className="pay-item-amount" style={charge.refunded ? { textDecoration: 'line-through', color: '#94a3b8' } : {}}>
+                              ${charge.amount.toFixed(2)}
+                            </div>
+                            <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                              {charge.refunded && <span className="pay-badge pay-badge-red">refunded</span>}
+                              {charge.receipt_url && (
+                                <a href={charge.receipt_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                                  style={{ fontSize: 10, color: '#3b82f6', textDecoration: 'none', fontWeight: 600 }}>
+                                  Receipt
+                                </a>
+                              )}
                             </div>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
-                    </div>
-                  )}
-
-                  {/* No data at all */}
-                  {!loadingStripeCharges && chargeRows.length === 0 && unmatchedPurchases.length === 0 && (
-                    <div className="pay-section">
-                      <div className="pay-empty">No payments found</div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
                 );
               })()}
@@ -9702,20 +9586,6 @@ export default function PatientProfile() {
         )}
 
 
-        {/* Medication Checkout Modal */}
-        <MedicationCheckoutModal
-          isOpen={showMedCheckout}
-          onClose={() => setShowMedCheckout(false)}
-          preselectedPatient={patient ? { id: patient.id, name: patient.name || `${patient.first_name} ${patient.last_name}`, email: patient.email, phone: patient.phone } : null}
-        />
-
-        {/* POS Charge Modal */}
-        <POSChargeModal
-          isOpen={showChargeModal}
-          onClose={() => setShowChargeModal(false)}
-          patient={patient}
-          stripePromise={stripePromise}
-        />
 
         {/* ==================== ADD CREDIT MODAL ==================== */}
         {showAddCreditModal && (

@@ -228,16 +228,19 @@ export default async function handler(req, res) {
   // Send itemized receipt email
   if (patient.email) {
     try {
-      await resend.emails.send({
+      const emailResult = await resend.emails.send({
         from: 'Range Medical <noreply@range-medical.com>',
         to: patient.email,
         bcc: 'info@range-medical.com',
         subject: `Your Range Medical Order — ${orderNumber}`,
         html: buildReceiptEmail(patient, { ...order, shipping_address: addressData }, orderItems),
       });
+      console.log('Receipt email sent:', patient.email, emailResult);
     } catch (emailErr) {
       console.error('Receipt email error:', emailErr);
     }
+  } else {
+    console.log('No patient email — skipping receipt');
   }
 
   // SMS notify staff

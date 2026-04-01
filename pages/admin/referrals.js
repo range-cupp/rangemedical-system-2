@@ -32,6 +32,13 @@ export default function ReferralsAdmin() {
   const [leadStatusFilter, setLeadStatusFilter] = useState('all');
   const [expandedLead, setExpandedLead] = useState(null);
   const [copied, setCopied] = useState(null);
+  // Invite modal
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteSearch, setInviteSearch] = useState('');
+  const [invitePatients, setInvitePatients] = useState([]);
+  const [inviteSelected, setInviteSelected] = useState(null);
+  const [inviteSending, setInviteSending] = useState(false);
+  const [inviteSent, setInviteSent] = useState(false);
 
   useEffect(() => { loadData(); }, []);
 
@@ -46,6 +53,57 @@ export default function ReferralsAdmin() {
       console.error('Load referral data error:', err);
     }
     setLoading(false);
+  }
+
+  // Patient search for invite modal
+  useEffect(() => {
+    if (!inviteSearch || inviteSearch.length < 2) {
+      setInvitePatients([]);
+      return;
+    }
+    const timeout = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/admin/patients?search=${encodeURIComponent(inviteSearch)}`);
+        const data = await res.json();
+        setInvitePatients(Array.isArray(data) ? data.slice(0, 8) : []);
+      } catch (err) {
+        console.error('Patient search error:', err);
+      }
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [inviteSearch]);
+
+  async function sendInviteText() {
+    if (!inviteSelected?.phone) return;
+    setInviteSending(true);
+    try {
+      const firstName = inviteSelected.first_name || inviteSelected.name?.split(' ')[0] || '';
+      const message = `Hey ${firstName} — thanks for being a Range Medical patient. Here's a quick link to set up your personal referral page. Takes 15 seconds, then you can text it to anyone you think should check us out: https://range-medical.com/refer/join`;
+
+      await fetch('/api/twilio/send-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: inviteSelected.id,
+          to: inviteSelected.phone,
+          message,
+          message_type: 'referral_invite',
+        }),
+      });
+      setInviteSent(true);
+    } catch (err) {
+      console.error('Send invite error:', err);
+      alert('Failed to send. Try again.');
+    }
+    setInviteSending(false);
+  }
+
+  function closeInviteModal() {
+    setShowInviteModal(false);
+    setInviteSearch('');
+    setInvitePatients([]);
+    setInviteSelected(null);
+    setInviteSent(false);
   }
 
   async function toggleActive(partner) {
@@ -155,6 +213,7 @@ export default function ReferralsAdmin() {
         <h1 style={s.title}>Referral Partners</h1>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button onClick={loadData} style={s.refreshBtn}>Refresh</button>
+          <button onClick={() => setShowInviteModal(true)} style={{ ...s.addBtn, background: '#059669' }}>Send Invite</button>
           <button onClick={() => setShowAddModal(true)} style={s.addBtn}>+ Add Partner</button>
         </div>
       </div>
@@ -361,6 +420,87 @@ export default function ReferralsAdmin() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Invite Patient Modal */}
+      {showInviteModal && (
+        <div style={s.modalOverlay} onClick={closeInviteModal}>
+          <div style={{ ...s.modal, maxWidth: '460px' }} onClick={e => e.stopPropagation()}>
+            {inviteSent ? (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <div style={{ fontSize: '40px', marginBottom: '12px' }}>✓</div>
+                <h3 style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px' }}>Invite Sent</h3>
+                <p style={{ fontSize: '14px', color: '#666', marginBottom: '24px' }}>
+                  {inviteSelected.first_name || inviteSelected.name?.split(' ')[0]} will get a text with their referral signup link.
+                </p>
+                <button onClick={closeInviteModal} style={s.addBtn}>Done</button>
+              </div>
+            ) : !inviteSelected ? (
+              <>
+                <h3 style={s.modalTitle}>Send Referral Invite</h3>
+                <p style={{ fontSize: '13px', color: '#888', marginBottom: '16px', marginTop: '-16px' }}>
+                  Search for a patient to text them the referral signup link.
+                </p>
+                <div style={s.formField}>
+                  <label style={s.formLabel}>Search Patient</label>
+                  <input
+                    style={s.formInput}
+                    value={inviteSearch}
+                    onChange={e => setInviteSearch(e.target.value)}
+                    placeholder="Type a name..."
+                    autoFocus
+                  />
+                </div>
+                {invitePatients.length > 0 && (
+                  <div style={{ border: '1px solid #e5e5e5', maxHeight: '280px', overflowY: 'auto' }}>
+                    {invitePatients.map(p => {
+                      const name = p.first_name ? `${p.first_name} ${p.last_name || ''}`.trim() : p.name;
+                      return (
+                        <div
+                          key={p.id}
+                          onClick={() => setInviteSelected(p)}
+                          style={{ padding: '12px 14px', cursor: 'pointer', borderBottom: '1px solid #f5f5f5', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#fafafa'}
+                          onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                        >
+                          <span style={{ fontWeight: '600', fontSize: '14px' }}>{name}</span>
+                          <span style={{ fontSize: '12px', color: '#888' }}>{p.phone || 'No phone'}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                <div style={{ ...s.formBtnRow, marginTop: '16px' }}>
+                  <button onClick={closeInviteModal} style={s.cancelBtn}>Cancel</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 style={s.modalTitle}>Confirm Invite</h3>
+                <div style={{ background: '#fafafa', border: '1px solid #e5e5e5', padding: '16px', marginBottom: '20px' }}>
+                  <div style={{ fontWeight: '700', fontSize: '15px', marginBottom: '4px' }}>
+                    {inviteSelected.first_name ? `${inviteSelected.first_name} ${inviteSelected.last_name || ''}`.trim() : inviteSelected.name}
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#666' }}>{inviteSelected.phone}</div>
+                </div>
+                <div style={{ background: '#f8f9fa', border: '1px solid #e5e5e5', padding: '14px', marginBottom: '20px', fontSize: '13px', color: '#444', lineHeight: '1.6' }}>
+                  <div style={{ fontSize: '11px', fontWeight: '700', color: '#888', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>Text Preview</div>
+                  Hey {inviteSelected.first_name || inviteSelected.name?.split(' ')[0]} — thanks for being a Range Medical patient. Here's a quick link to set up your personal referral page. Takes 15 seconds, then you can text it to anyone you think should check us out: range-medical.com/refer/join
+                </div>
+                <div style={s.formBtnRow}>
+                  <button onClick={() => setInviteSelected(null)} style={s.cancelBtn}>Back</button>
+                  <button
+                    onClick={sendInviteText}
+                    disabled={inviteSending || !inviteSelected.phone}
+                    style={{ ...s.submitBtn, opacity: inviteSending ? 0.5 : 1 }}
+                  >
+                    {inviteSending ? 'Sending...' : 'Send Text'}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

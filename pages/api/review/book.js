@@ -3,6 +3,7 @@
 // Same host preference logic as birthday bookings
 
 import { createClient } from '@supabase/supabase-js';
+import { Resend } from 'resend';
 import { createBooking, reassignBooking } from '../../../lib/calcom';
 
 const supabase = createClient(
@@ -57,7 +58,7 @@ export default async function handler(req, res) {
       name: patientName,
       email: patientEmail || `patient-${gift.patient_id}@range-medical.com`,
       phoneNumber: patientPhone || undefined,
-      notes: 'Google review gift - free injection from Range Medical',
+      notes: '[GOOGLE REVIEW GIFT] Free injection - do not charge',
     });
 
     if (booking.error) {
@@ -90,6 +91,41 @@ export default async function handler(req, res) {
         booked_at: new Date().toISOString(),
       })
       .eq('id', gift.id);
+
+    // Notify Chris via email
+    try {
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      const injectionLabel = injectionType === 'nad-injection' ? 'NAD+ Injection' : 'Range Injection';
+      const bookingTime = new Date(slotStart).toLocaleString('en-US', {
+        timeZone: 'America/Los_Angeles',
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+
+      await resend.emails.send({
+        from: 'Range Medical <noreply@range-medical.com>',
+        to: 'cupp@range-medical.com',
+        subject: `Google Review Gift Booked: ${patientName}`,
+        html: `
+          <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
+            <h2 style="font-size: 18px; margin: 0 0 16px;">Google Review Gift Booked</h2>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr><td style="padding: 8px 0; color: #888; font-size: 14px;">Patient</td><td style="padding: 8px 0; font-size: 14px; font-weight: 600;">${patientName}</td></tr>
+              <tr><td style="padding: 8px 0; color: #888; font-size: 14px;">Injection</td><td style="padding: 8px 0; font-size: 14px;">${injectionLabel}</td></tr>
+              <tr><td style="padding: 8px 0; color: #888; font-size: 14px;">Time</td><td style="padding: 8px 0; font-size: 14px;">${bookingTime}</td></tr>
+            </table>
+            <p style="font-size: 13px; color: #888; margin-top: 20px;">This is a free injection from a Google review gift.</p>
+          </div>
+        `,
+      });
+    } catch (emailErr) {
+      console.error('Failed to send review gift notification email:', emailErr);
+      // Non-fatal — booking still succeeded
+    }
 
     return res.status(200).json({
       success: true,

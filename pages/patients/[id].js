@@ -4208,11 +4208,12 @@ export default function PatientProfile() {
                     {allPurchases.slice(0, 3).map(p => {
                       const date = p.purchase_date || p.created_at;
                       const dateStr = date ? new Date(date + (date.includes('T') ? '' : 'T00:00:00')).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
-                      const amount = p.amount_cents ? `$${(p.amount_cents / 100).toFixed(0)}` : '';
+                      const amount = p.amount_cents ? `$${(p.amount_cents / 100).toFixed(0)}` : (p.original_amount ? `$${Number(p.original_amount).toFixed(0)}` : '');
+                      const itemName = p.service_name || p.description || 'Payment';
                       return (
                         <div key={p.id} className="synopsis-payment-row" onClick={() => { setActiveTab('payments'); }}>
                           <span className="synopsis-payment-icon">💳</span>
-                          <span className="synopsis-payment-desc">{p.description || 'Payment'}</span>
+                          <span className="synopsis-payment-desc">{itemName}</span>
                           {amount && <span className="synopsis-payment-amount">{amount}</span>}
                           <span className="synopsis-payment-date">{dateStr}</span>
                         </div>

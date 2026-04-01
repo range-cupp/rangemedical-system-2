@@ -258,6 +258,8 @@ function CheckoutInner() {
   const [dispTrackingNumber, setDispTrackingNumber] = useState('');
   const [dispNotes, setDispNotes] = useState('');
   const [dispCoverageType, setDispCoverageType] = useState(null);
+  const [dispSelectedService, setDispSelectedService] = useState(null); // POS service for paid dispensing
+  const [dispItemQty, setDispItemQty] = useState(1);
   const [dispSubmitting, setDispSubmitting] = useState(false);
   const [dispResult, setDispResult] = useState(null);
 
@@ -422,16 +424,16 @@ function CheckoutInner() {
       setCartItems([{ ...item, quantity: 1, itemDiscountType: 'none', itemDiscountValue: '' }]);
       return;
     }
-    const nonDispenseItems = cartItems.filter(i => i.type !== 'dispense');
-    if (nonDispenseItems.some(i => i.category === 'gift_card')) {
+    const serviceItems = cartItems.filter(i => i.type !== 'dispense');
+    if (serviceItems.some(i => i.category === 'gift_card')) {
       showWarning('Cannot add items when a gift card is in cart');
       return;
     }
-    if (item.recurring && nonDispenseItems.length > 0) {
+    if (item.recurring && serviceItems.length > 0) {
       showWarning('Recurring items must be checked out alone');
       return;
     }
-    if (!item.recurring && nonDispenseItems.some(i => i.recurring)) {
+    if (!item.recurring && serviceItems.some(i => i.recurring)) {
       showWarning('Cannot add items when a recurring item is in cart');
       return;
     }
@@ -475,8 +477,8 @@ function CheckoutInner() {
       const dollars = parseFloat(customAmount);
       return isNaN(dollars) ? 0 : Math.round(dollars * 100);
     }
-    // Exclude dispense items (they're $0)
-    return cartItems.filter(i => i.type !== 'dispense').reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
+    // Include all items with a price (paid dispense items have price > 0)
+    return cartItems.filter(i => i.type !== 'dispense' || (i.price || 0) > 0).reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
   }
 
   function getItemDiscountTotal() {
@@ -515,7 +517,7 @@ function CheckoutInner() {
 
   function getChargeDescription() {
     if (activeSubCategory === 'custom') return customDescription || 'Custom charge';
-    const paidItems = cartItems.filter(i => i.type !== 'dispense');
+    const paidItems = getPaidCartItems();
     if (paidItems.length === 0) return '';
     return paidItems.map(i => (i.quantity || 1) > 1 ? `${i.name} x${i.quantity}` : i.name).join(', ');
   }
@@ -532,12 +534,22 @@ function CheckoutInner() {
     return cartItems.filter(i => i.type === 'dispense');
   }
 
-  function getPaidCartItems() {
-    return cartItems.filter(i => i.type !== 'dispense');
+  function getFreeDispenseItems() {
+    return cartItems.filter(i => i.type === 'dispense' && (i.price || 0) === 0);
   }
 
-  function hasOnlyDispenseItems() {
-    return cartItems.length > 0 && cartItems.every(i => i.type === 'dispense');
+  function getPaidDispenseItems() {
+    return cartItems.filter(i => i.type === 'dispense' && (i.price || 0) > 0);
+  }
+
+  function getPaidCartItems() {
+    // Regular service items + paid dispense items (renewals, etc.)
+    return cartItems.filter(i => i.type !== 'dispense' || (i.price || 0) > 0);
+  }
+
+  function hasOnlyFreeDispenseItems() {
+    // True only when ALL items are $0 dispense — no payment needed
+    return cartItems.length > 0 && cartItems.every(i => i.type === 'dispense' && (i.price || 0) === 0);
   }
 
   function canProceedToPayment() {
@@ -622,7 +634,7 @@ function CheckoutInner() {
     let firstPurchase = null;
     let shippingApplied = false;
     const purchaseIds = [];
-    const paidItems = cartItems.filter(i => i.type !== 'dispense');
+    const paidItems = getPaidCartItems();
     for (const item of paidItems) {
       const qty = item.quantity || 1;
       const itemBase = (item.price || 0) * qty;
@@ -1156,6 +1168,8 @@ function CheckoutInner() {
     setDispTrackingNumber('');
     setDispNotes('');
     setDispCoverageType(null);
+    setDispSelectedService(null);
+    setDispItemQty(1);
     setDispSubmitting(false);
     setDispResult(null);
   }
@@ -1225,6 +1239,7 @@ function CheckoutInner() {
     const protocol = activeProtocols.find(p => p.id === dispensingProtocolId);
     if (!protocol) return;
     const cat = protocolToCategory(protocol.program_type);
+    const isCovered = dispCoverageType === 'subscription' || dispCoverageType === 'protocol' || dispCoverageType === 'comp';
     const covSource = dispCoverageType === 'subscription'
       ? (dispCoverage?.coverage_source || 'Active Membership')
       : dispCoverageType === 'protocol'
@@ -1233,16 +1248,22 @@ function CheckoutInner() {
           ? 'Complimentary'
           : null;
 
+    // For paid dispense items, use the selected POS service price
+    const isPaid = !isCovered && dispSelectedService;
+    const itemPrice = isPaid ? (dispSelectedService.price_cents || 0) : 0;
+    const qty = isPaid ? (dispItemQty || 1) : 1;
+
     const dispenseItem = {
       id: `disp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       type: 'dispense',
       name: dispMedication || protocol.program_name || protocol.medication || cat,
-      price: 0,
-      quantity: 1,
+      price: itemPrice,
+      quantity: qty,
       category: cat,
       itemDiscountType: 'none',
       itemDiscountValue: '',
-      coverageBadge: covSource || (dispCoverage?.covered ? 'Covered' : null),
+      recurring: isPaid ? dispSelectedService.recurring : false,
+      coverageBadge: isCovered ? (covSource || 'Covered') : null,
       dispenseDetails: {
         protocolId: protocol.id,
         protocolName: protocol.program_name,
@@ -1257,8 +1278,11 @@ function CheckoutInner() {
         fulfillmentMethod: dispFulfillment,
         trackingNumber: dispTrackingNumber || null,
         notes: dispNotes || null,
-        coverageType: dispCoverageType === 'comp' ? 'comp' : dispCoverageType || 'paid',
+        coverageType: isCovered ? dispCoverageType : 'paid',
         coverageSource: covSource || 'Paid at checkout',
+        // For paid items, store service info for purchase recording
+        selectedService: isPaid ? dispSelectedService : null,
+        itemQty: qty,
       },
     };
 
@@ -1354,7 +1378,7 @@ function CheckoutInner() {
   // RENDER
   // ══════════════════════════════════════════════════════════════════
 
-  const totalItems = cartItems.filter(i => i.type !== 'dispense').reduce((sum, i) => sum + (i.quantity || 1), 0) + getDispenseItems().length;
+  const totalItems = cartItems.filter(i => i.type !== 'dispense').reduce((sum, i) => sum + (i.quantity || 1), 0) + getFreeDispenseItems().length + getPaidDispenseItems().reduce((sum, i) => sum + (i.quantity || 1), 0);
   const chargeAmount = getChargeAmount();
   const baseAmount = getBaseAmount();
   const totalDiscount = getTotalDiscountCents();
@@ -1899,6 +1923,55 @@ function CheckoutInner() {
                                       )}
                                     </div>
 
+                                    {/* POS service selector — shown when NOT covered (paid renewals, etc.) */}
+                                    {dispCoverage && !dispCoverage.covered && (dispCoverage.suggested_services || []).length > 0 && (
+                                      <div style={styles.dispenseFieldGroup}>
+                                        <label style={styles.fieldLabel}>Charge Service (Renewal / Add-On)</label>
+                                        <div style={{
+                                          fontSize: '11px', color: '#92400e', marginBottom: '8px',
+                                        }}>
+                                          Select a service to charge for this dispensing, or leave blank to log without charging.
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                          <button
+                                            style={{
+                                              ...styles.posServiceOption,
+                                              ...(dispSelectedService === null ? { border: '2px solid #1a1a1a', background: '#f9fafb' } : {}),
+                                            }}
+                                            onClick={() => setDispSelectedService(null)}
+                                          >
+                                            <span style={{ fontWeight: 600 }}>No charge — log to protocol only</span>
+                                            <span style={{ color: '#166534', fontWeight: 700 }}>$0.00</span>
+                                          </button>
+                                          {(dispCoverage.suggested_services || []).map(svc => (
+                                            <button
+                                              key={svc.id}
+                                              style={{
+                                                ...styles.posServiceOption,
+                                                ...(dispSelectedService?.id === svc.id ? { border: '2px solid #1e40af', background: '#eff6ff' } : {}),
+                                              }}
+                                              onClick={() => setDispSelectedService(svc)}
+                                            >
+                                              <span style={{ fontWeight: 500 }}>{svc.name}</span>
+                                              <span style={{ fontWeight: 700 }}>{svc.price_display}{svc.recurring ? '/mo' : ''}</span>
+                                            </button>
+                                          ))}
+                                        </div>
+                                        {dispSelectedService && (
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+                                            <label style={{ fontSize: '12px', color: '#666' }}>Qty:</label>
+                                            <input
+                                              type="number"
+                                              min="1"
+                                              value={dispItemQty}
+                                              onChange={e => setDispItemQty(Math.max(1, parseInt(e.target.value) || 1))}
+                                              style={{ ...styles.fieldInput, width: '70px' }}
+                                            />
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+
                                     {/* Notes */}
                                     <div style={styles.dispenseFieldGroup}>
                                       <label style={styles.fieldLabel}>Notes (optional)</label>
@@ -1922,7 +1995,12 @@ function CheckoutInner() {
                                       }}
                                     >
                                       Add to Cart — {dispMedication || proto.program_name || 'Medication'}
-                                      {dispCoverage?.covered ? ' ($0 Covered)' : ''}
+                                      {dispCoverage?.covered
+                                        ? ' ($0 Covered)'
+                                        : dispSelectedService
+                                          ? ` (${dispSelectedService.price_display})`
+                                          : ' ($0 Log Only)'
+                                      }
                                     </button>
                                   </>
                                 )}
@@ -2165,11 +2243,17 @@ function CheckoutInner() {
                 <div style={styles.cartBody}>
                   {/* Cart items — dispense items + service items */}
                   {cartItems.map(item => {
-                    // Dispense items: $0 with coverage badge
+                    // Dispense items
                     if (item.type === 'dispense') {
                       const d = item.dispenseDetails;
+                      const isPaidDispense = (item.price || 0) > 0;
+                      const lineTotal = isPaidDispense ? (item.price || 0) * (item.quantity || 1) : 0;
                       return (
-                        <div key={item.id} style={{ ...styles.cartItem, background: '#f0fdf4', padding: '10px', marginLeft: '-10px', marginRight: '-10px', borderRadius: '0' }}>
+                        <div key={item.id} style={{
+                          ...styles.cartItem,
+                          background: isPaidDispense ? '#eff6ff' : '#f0fdf4',
+                          padding: '10px', marginLeft: '-10px', marginRight: '-10px', borderRadius: '0',
+                        }}>
                           <div style={styles.cartItemHeader}>
                             <span style={styles.cartItemName}>{item.name}</span>
                             <button
@@ -2184,7 +2268,7 @@ function CheckoutInner() {
                               {d?.fulfillmentMethod === 'overnight' ? ' · Overnighted' : ''}
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              {item.coverageBadge && (
+                              {item.coverageBadge ? (
                                 <span style={{
                                   fontSize: '10px', fontWeight: 700, color: '#166534',
                                   background: '#dcfce7', border: '1px solid #86efac',
@@ -2192,10 +2276,31 @@ function CheckoutInner() {
                                 }}>
                                   {item.coverageBadge}
                                 </span>
-                              )}
-                              <span style={{ fontSize: '14px', fontWeight: 700, color: '#166534' }}>$0.00</span>
+                              ) : isPaidDispense && d?.protocolName ? (
+                                <span style={{
+                                  fontSize: '10px', fontWeight: 700, color: '#1e40af',
+                                  background: '#dbeafe', border: '1px solid #93c5fd',
+                                  padding: '2px 8px', textTransform: 'uppercase', letterSpacing: '0.05em',
+                                }}>
+                                  Linked to {d.protocolName}
+                                </span>
+                              ) : null}
+                              <span style={{ fontSize: '14px', fontWeight: 700, color: isPaidDispense ? '#1a1a1a' : '#166534' }}>
+                                {isPaidDispense ? formatPrice(lineTotal) : '$0.00'}
+                              </span>
                             </div>
                           </div>
+                          {/* Quantity controls for paid dispense items */}
+                          {isPaidDispense && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+                              <div style={styles.qtyControls}>
+                                <button style={styles.qtyBtn} onClick={() => updateItemQuantity(item.id, (item.quantity || 1) - 1)}>−</button>
+                                <span style={styles.qtyValue}>{item.quantity || 1}</span>
+                                <button style={styles.qtyBtn} onClick={() => updateItemQuantity(item.id, (item.quantity || 1) + 1)}>+</button>
+                              </div>
+                              {item.recurring && <span style={{ fontSize: '11px', color: '#888' }}>/mo</span>}
+                            </div>
+                          )}
                         </div>
                       );
                     }
@@ -2397,14 +2502,14 @@ function CheckoutInner() {
                       <button
                         style={styles.primaryBtn}
                         onClick={() => {
-                          if (hasOnlyDispenseItems()) {
+                          if (hasOnlyFreeDispenseItems()) {
                             processDispenseOnly();
                           } else {
                             setStep('payment');
                           }
                         }}
                       >
-                        {hasOnlyDispenseItems()
+                        {hasOnlyFreeDispenseItems()
                           ? 'Complete Checkout — Dispense Only'
                           : `Continue to Payment — ${formatPrice(chargeAmount)}`
                         }
@@ -2488,8 +2593,8 @@ function CheckoutInner() {
               {/* Order summary */}
               <div style={styles.orderSummary}>
                 <div style={styles.orderSummaryLabel}>ORDER SUMMARY</div>
-                {/* Dispense items first */}
-                {getDispenseItems().map(item => (
+                {/* Free dispense items first */}
+                {getFreeDispenseItems().map(item => (
                   <div key={item.id} style={{ ...styles.orderItem, color: '#166534' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       {item.name}
@@ -2503,7 +2608,7 @@ function CheckoutInner() {
                     <span>$0.00</span>
                   </div>
                 ))}
-                {/* Paid items */}
+                {/* Paid items (including paid dispense items) */}
                 {getPaidCartItems().map(item => {
                   const qty = item.quantity || 1;
                   const lineBase = (item.price || 0) * qty;
@@ -3830,5 +3935,18 @@ const styles = {
   },
   dispenseFieldGroup: {
     marginBottom: '14px',
+  },
+  posServiceOption: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '10px 14px',
+    border: '1px solid #e5e7eb',
+    background: '#fff',
+    cursor: 'pointer',
+    fontSize: '13px',
+    transition: 'all 0.15s',
+    width: '100%',
+    textAlign: 'left',
   },
 };

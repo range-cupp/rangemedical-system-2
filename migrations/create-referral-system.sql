@@ -46,7 +46,7 @@ VALUES (
   'greg',
   'Greg',
   'trainer',
-  'damien@range-medical.com',
+  'damon@range-medical.com',
   'Greg sent you here for a reason.',
   'Here''s what we actually do for people who want to perform at a higher level.',
   true

@@ -111,9 +111,22 @@ export default async function handler(req, res) {
       </div>
     `;
 
+    // Tag in CRM — if patient exists by email or phone, set referral_source
+    const referralTag = `Referral: ${partner.name}`;
+    const { data: existingPatient } = await supabase
+      .from('patients')
+      .select('id')
+      .or(`email.eq.${email},phone.ilike.%${phone.replace(/\D/g, '').slice(-10)}`)
+      .maybeSingle();
+
+    if (existingPatient) {
+      await supabase.from('patients').update({ referral_source: referralTag }).eq('id', existingPatient.id);
+    }
+
     await resend.emails.send({
       from: 'Range Medical <noreply@range-medical.com>',
       to: partner.assigned_to,
+      cc: 'cupp@range-medical.com',
       subject: `New Referral from ${partner.name} — ${first_name} ${last_name}`,
       html,
     });

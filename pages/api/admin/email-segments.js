@@ -42,66 +42,77 @@ async function listSegments(req, res) {
   }
 }
 
+// Fetch all rows from a query, paginating past Supabase's 1000-row default
+async function fetchAll(queryBuilder) {
+  const PAGE = 1000;
+  let all = [];
+  let offset = 0;
+  while (true) {
+    const { data, error } = await queryBuilder.range(offset, offset + PAGE - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    all = all.concat(data);
+    if (data.length < PAGE) break;
+    offset += PAGE;
+  }
+  return all;
+}
+
 // Core segment query — builds dynamic Supabase query from filters
 export async function querySegment(filters = {}) {
-  const { protocolTypes, purchaseCategories, status, dateFrom, dateTo, hasEmail } = filters;
+  const { protocolTypes, purchaseCategories, status, dateFrom, dateTo } = filters;
 
   // Start with patients who have email addresses
   let query = supabase
     .from('patients')
     .select('id, name, email, phone, created_at')
     .not('email', 'is', null)
-    .neq('email', '');
+    .neq('email', '')
+    .order('name');
 
   // Filter by date range (patient created_at)
   if (dateFrom) query = query.gte('created_at', dateFrom);
   if (dateTo) query = query.lte('created_at', dateTo);
 
-  const { data: allPatients, error } = await query.order('name');
-  if (error) throw error;
-  if (!allPatients || allPatients.length === 0) return [];
+  const allPatients = await fetchAll(query);
+  if (allPatients.length === 0) return [];
 
-  const patientIds = allPatients.map(p => p.id);
-
-  // If no protocol/purchase filters, return all patients with emails
-  if ((!protocolTypes || protocolTypes.length === 0) && (!purchaseCategories || purchaseCategories.length === 0) && !status) {
+  // If no filters at all, return all patients with emails
+  if ((!protocolTypes || protocolTypes.length === 0) &&
+      (!purchaseCategories || purchaseCategories.length === 0) &&
+      (!status || status === 'all')) {
     return allPatients;
   }
 
-  let matchingIds = new Set(patientIds);
+  let matchingIds = null;
 
-  // Filter by protocol types
+  // Filter by protocol types (uses program_type column)
   if (protocolTypes && protocolTypes.length > 0) {
     let protocolQuery = supabase
       .from('protocols')
-      .select('patient_id, type, status')
-      .in('patient_id', patientIds)
-      .in('type', protocolTypes);
+      .select('patient_id')
+      .in('program_type', protocolTypes);
 
     if (status && status !== 'all') {
       protocolQuery = protocolQuery.eq('status', status);
     }
 
-    const { data: protocols, error: pErr } = await protocolQuery;
-    if (pErr) throw pErr;
-
-    const protocolPatientIds = new Set((protocols || []).map(p => p.patient_id));
-    matchingIds = protocolPatientIds;
+    const protocols = await fetchAll(protocolQuery);
+    matchingIds = new Set(protocols.map(p => p.patient_id));
   }
 
-  // Filter by purchase/service log categories
+  // Filter by service log categories
   if (purchaseCategories && purchaseCategories.length > 0) {
-    const { data: logs, error: lErr } = await supabase
-      .from('service_logs')
-      .select('patient_id, category')
-      .in('patient_id', patientIds)
-      .in('category', purchaseCategories);
-    if (lErr) throw lErr;
+    const logs = await fetchAll(
+      supabase
+        .from('service_logs')
+        .select('patient_id')
+        .in('category', purchaseCategories)
+    );
+    const logPatientIds = new Set(logs.map(l => l.patient_id));
 
-    const logPatientIds = new Set((logs || []).map(l => l.patient_id));
-
-    // If we also have protocol filters, intersect; otherwise use log results
-    if (protocolTypes && protocolTypes.length > 0) {
+    if (matchingIds) {
+      // Intersect with protocol filter results
       matchingIds = new Set([...matchingIds].filter(id => logPatientIds.has(id)));
     } else {
       matchingIds = logPatientIds;
@@ -110,16 +121,22 @@ export async function querySegment(filters = {}) {
 
   // Filter by protocol status only (no type filter)
   if (status && status !== 'all' && (!protocolTypes || protocolTypes.length === 0)) {
-    const { data: statusProtos, error: sErr } = await supabase
-      .from('protocols')
-      .select('patient_id')
-      .in('patient_id', patientIds)
-      .eq('status', status);
-    if (sErr) throw sErr;
+    const statusProtos = await fetchAll(
+      supabase
+        .from('protocols')
+        .select('patient_id')
+        .eq('status', status)
+    );
+    const statusIds = new Set(statusProtos.map(p => p.patient_id));
 
-    const statusIds = new Set((statusProtos || []).map(p => p.patient_id));
-    matchingIds = new Set([...matchingIds].filter(id => statusIds.has(id)));
+    if (matchingIds) {
+      matchingIds = new Set([...matchingIds].filter(id => statusIds.has(id)));
+    } else {
+      matchingIds = statusIds;
+    }
   }
 
+  // Intersect with patients who have emails
+  const patientIdSet = new Set(allPatients.map(p => p.id));
   return allPatients.filter(p => matchingIds.has(p.id));
 }

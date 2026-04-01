@@ -13,6 +13,8 @@ const INTEREST_LABELS = {
   hormone_optimization: 'Hormone Optimization',
   weight_loss: 'Weight Loss & Body Composition',
   energy_performance: 'Energy & Performance',
+  red_light: 'Red Light Therapy',
+  hyperbaric_oxygen: 'Hyperbaric Oxygen Therapy',
   not_sure: 'Not sure yet — just wants to learn more',
 };
 

@@ -75,7 +75,7 @@ export default async function handler(req, res) {
         phone,
         full_name: `${first_name} ${last_name}`,
         headline: `${displayName} thinks you should check this out.`,
-        subheadline: "Here's what we actually do for people who want to perform at a higher level.",
+        subheadline: "Here's what we actually do for people who want to perform at a higher level and feel better.",
         active: true,
       });
 

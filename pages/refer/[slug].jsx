@@ -8,6 +8,8 @@ const INTERESTS = [
   { id: 'hormone_optimization', label: 'Hormone Optimization', desc: 'Restore energy, drive, and metabolic balance' },
   { id: 'weight_loss', label: 'Weight Loss & Body Composition', desc: 'Medical-grade protocols for sustainable results' },
   { id: 'energy_performance', label: 'Energy & Performance', desc: 'IV therapy, NAD+, and cellular optimization' },
+  { id: 'red_light', label: 'Red Light Therapy', desc: 'Reduce pain, speed recovery, and support skin and tissue health' },
+  { id: 'hyperbaric_oxygen', label: 'Hyperbaric Oxygen Therapy', desc: 'Pressurized oxygen to accelerate healing and reduce inflammation' },
   { id: 'not_sure', label: 'Not sure yet', desc: 'Just want to learn more about what\'s available' },
 ];
 

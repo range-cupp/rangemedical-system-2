@@ -538,6 +538,7 @@ export default function PatientProfile() {
   const [quickNoteInput, setQuickNoteInput] = useState('');
   const [quickNoteSaving, setQuickNoteSaving] = useState(false);
   const [staffNotesExpanded, setStaffNotesExpanded] = useState(true);
+  const [expandedNoteIds, setExpandedNoteIds] = useState({});
 
   // Protocol PDF modal
   const [showProtocolPdfModal, setShowProtocolPdfModal] = useState(false);
@@ -4051,13 +4052,19 @@ export default function PatientProfile() {
                     return (
                       <div className="briefing-notes-list">
                         {internalNotes.slice(0, 5).map(note => (
-                          <div key={note.id} className="briefing-note-item">
+                          <div
+                            key={note.id}
+                            className="briefing-note-item"
+                            onClick={() => setExpandedNoteIds(prev => ({ ...prev, [note.id]: !prev[note.id] }))}
+                            style={{ cursor: 'pointer' }}
+                            title="Click to expand/collapse"
+                          >
                             <div className="briefing-note-meta">
                               {formatDate(note.note_date || note.created_at)}
                               {note.created_by && ` · ${getStaffDisplayName(note.created_by)}`}
                               {note.pinned && <span className="briefing-note-pin">📌</span>}
                             </div>
-                            <div className="briefing-note-body">{note.body}</div>
+                            <div className={expandedNoteIds[note.id] ? 'briefing-note-body briefing-note-body-expanded' : 'briefing-note-body'}>{note.body}</div>
                           </div>
                         ))}
                         {internalNotes.length > 5 && (
@@ -10848,9 +10855,14 @@ export default function PatientProfile() {
           line-height: 1.5;
           white-space: pre-wrap;
           display: -webkit-box;
-          -webkit-line-clamp: 3;
+          -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
+        }
+        .briefing-note-body-expanded {
+          display: block;
+          -webkit-line-clamp: unset;
+          overflow: visible;
         }
         .briefing-view-all {
           background: none;

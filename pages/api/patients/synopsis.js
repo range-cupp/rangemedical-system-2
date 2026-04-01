@@ -54,8 +54,9 @@ export default async function handler(req, res) {
 
   if (!patient) return res.status(404).json({ error: 'Patient not found' });
 
-  // Build context string
-  const today = new Date().toISOString().split('T')[0];
+  // Build context string — use Pacific time for all date/time formatting
+  const TZ = 'America/Los_Angeles';
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: TZ });
   const patientAge = patient.date_of_birth
     ? Math.floor((Date.now() - new Date(patient.date_of_birth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
     : null;
@@ -91,8 +92,8 @@ export default async function handler(req, res) {
   if (appointments?.length > 0) {
     context += `\nRECENT APPOINTMENTS (last 20):\n`;
     appointments.forEach(a => {
-      const date = a.start_time ? new Date(a.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Unknown';
-      const time = a.start_time ? new Date(a.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
+      const date = a.start_time ? new Date(a.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: TZ }) : 'Unknown';
+      const time = a.start_time ? new Date(a.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: TZ }) : '';
       context += `- ${date} ${time}: ${a.service_name || a.service_category || 'Appointment'} — Status: ${a.status || 'unknown'}`;
       if (a.notes) context += ` — Notes: ${a.notes}`;
       context += '\n';

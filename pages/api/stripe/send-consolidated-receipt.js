@@ -61,9 +61,10 @@ export default async function handler(req, res) {
 
     const firstName = (patient.name || '').split(' ')[0] || 'there';
 
-    // Get card details from the first purchase's Stripe PaymentIntent
+    // Get card details and actual charged amount from Stripe PaymentIntent
     let cardBrand = null;
     let cardLast4 = null;
+    let stripeChargedCents = null;
     const piId = purchases.find(p => p.stripe_payment_intent_id)?.stripe_payment_intent_id;
     if (piId) {
       try {
@@ -73,6 +74,10 @@ export default async function handler(req, res) {
         if (pi.payment_method?.card) {
           cardBrand = pi.payment_method.card.brand;
           cardLast4 = pi.payment_method.card.last4;
+        }
+        // Use the actual amount Stripe charged as source of truth
+        if (pi.amount_received) {
+          stripeChargedCents = pi.amount_received;
         }
       } catch (err) {
         console.error('Failed to retrieve PaymentIntent for consolidated receipt:', err.message);
@@ -103,8 +108,9 @@ export default async function handler(req, res) {
       };
     });
 
-    // Calculate total paid
-    const totalAmountCents = purchases.reduce((sum, p) => sum + Math.round(p.amount * 100), 0);
+    // Use Stripe's actual charged amount when available, otherwise sum from DB
+    const dbTotalCents = purchases.reduce((sum, p) => sum + Math.round(p.amount * 100), 0);
+    const totalAmountCents = stripeChargedCents || dbTotalCents;
     const isComp = totalAmountCents === 0;
 
     // Build patient address

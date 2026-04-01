@@ -33,9 +33,10 @@ async function sendReceiptEmail(purchase) {
     const firstName = (patient.name || '').split(' ')[0] || 'there';
     const patientName = patient.name || firstName;
 
-    // Get card details from Stripe PaymentIntent
+    // Get card details and actual charged amount from Stripe PaymentIntent
     let cardBrand = null;
     let cardLast4 = null;
+    let stripeChargedCents = null;
     if (purchase.stripe_payment_intent_id) {
       try {
         const pi = await stripe.paymentIntents.retrieve(purchase.stripe_payment_intent_id, {
@@ -45,10 +46,18 @@ async function sendReceiptEmail(purchase) {
           cardBrand = pi.payment_method.card.brand;
           cardLast4 = pi.payment_method.card.last4;
         }
+        // Use the actual amount Stripe charged as source of truth
+        if (pi.amount_received) {
+          stripeChargedCents = pi.amount_received;
+        }
       } catch (err) {
         console.error('Failed to retrieve PaymentIntent for receipt:', err.message);
       }
     }
+
+    // Use Stripe's actual charged amount when available, otherwise fall back to DB amount
+    const actualPaidCents = stripeChargedCents || Math.round(purchase.amount * 100);
+    const catalogPriceCents = Math.round(purchase.amount * 100);
 
     // Build discount label
     let discountLabel = null;
@@ -73,9 +82,9 @@ async function sendReceiptEmail(purchase) {
         day: 'numeric',
       }),
       description: purchase.description || purchase.item_name,
-      originalAmountCents: purchase.original_amount ? Math.round(purchase.original_amount * 100) : Math.round(purchase.amount * 100),
+      originalAmountCents: purchase.original_amount ? Math.round(purchase.original_amount * 100) : catalogPriceCents,
       discountLabel,
-      amountPaidCents: Math.round(purchase.amount * 100),
+      amountPaidCents: actualPaidCents,
       cardBrand,
       cardLast4,
     };
@@ -91,22 +100,23 @@ async function sendReceiptEmail(purchase) {
       console.error('Receipt PDF generation failed:', pdfErr.message);
     }
 
+    const actualPaidDollars = actualPaidCents / 100;
     const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
       from: 'Range Medical <noreply@range-medical.com>',
       to: patient.email,
       bcc: 'info@range-medical.com',
-      subject: purchase.amount === 0
+      subject: actualPaidCents === 0
         ? 'Your Receipt from Range Medical — Complimentary'
-        : `Your Receipt from Range Medical — $${purchase.amount.toFixed(2)}`,
+        : `Your Receipt from Range Medical — $${actualPaidDollars.toFixed(2)}`,
       html,
       attachments,
     });
 
-    const subjectLine = purchase.amount === 0
+    const subjectLine = actualPaidCents === 0
       ? 'Your Receipt from Range Medical — Complimentary'
-      : `Your Receipt from Range Medical — $${purchase.amount.toFixed(2)}`;
-    const amountLabel = purchase.amount === 0 ? 'Complimentary' : `$${purchase.amount.toFixed(2)}`;
+      : `Your Receipt from Range Medical — $${actualPaidDollars.toFixed(2)}`;
+    const amountLabel = actualPaidCents === 0 ? 'Complimentary' : `$${actualPaidDollars.toFixed(2)}`;
     console.log(`Receipt email sent to ${patient.email} for purchase ${purchase.id}`);
     await logComm({ channel: 'email', messageType: 'receipt', message: `Receipt for ${amountLabel} — ${purchase.item_name}`, source: 'record-purchase', patientId: purchase.patient_id, patientName: patient.name, recipient: patient.email, subject: subjectLine });
   } catch (err) {

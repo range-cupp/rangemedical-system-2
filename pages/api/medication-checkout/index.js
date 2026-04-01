@@ -310,10 +310,20 @@ async function updateProtocol(protocolId, opts) {
       }
 
       // Update medication details only if the checkout item matches the protocol's category
-      // (prevents B12 add-ons from overwriting the protocol's actual medication)
+      // AND it's the primary medication (prevents secondary meds like HCG from overwriting
+      // the protocol's primary medication, e.g. Testosterone Cypionate)
       if (categoryMatchesProtocol) {
-        if (medication) updates.medication = medication;
-        if (dosage) updates.selected_dose = dosage;
+        let isSecondaryMed = false;
+        try {
+          const secMeds = protocol.secondary_medications
+            ? (typeof protocol.secondary_medications === 'string' ? JSON.parse(protocol.secondary_medications) : protocol.secondary_medications)
+            : [];
+          isSecondaryMed = secMeds.includes(medication);
+        } catch {}
+        if (!isSecondaryMed) {
+          if (medication) updates.medication = medication;
+          if (dosage) updates.selected_dose = dosage;
+        }
       }
 
       // Extend end_date if protocol is at or past its end_date (e.g., HRT refill a day late)

@@ -268,6 +268,7 @@ function CheckoutInner() {
   const [dispCoverageType, setDispCoverageType] = useState(null);
   const [dispSelectedService, setDispSelectedService] = useState(null); // POS service for paid dispensing
   const [dispItemQty, setDispItemQty] = useState(1);
+  const [dispSecondaryDetails, setDispSecondaryDetails] = useState([]); // parsed secondary_medication_details for current protocol
   const [dispSubmitting, setDispSubmitting] = useState(false);
   const [dispResult, setDispResult] = useState(null);
 
@@ -1297,6 +1298,7 @@ function CheckoutInner() {
     setDispCoverageType(null);
     setDispSelectedService(null);
     setDispItemQty(1);
+    setDispSecondaryDetails([]);
     setDispSubmitting(false);
     setDispResult(null);
   }
@@ -1324,14 +1326,28 @@ function CheckoutInner() {
     return map[programType] || programType;
   }
 
-  async function openDispensing(protocol) {
+  async function openDispensing(protocol, secondaryMed) {
     resetDispensing();
     setDispensingProtocolId(protocol.id);
 
-    // Pre-fill from protocol
-    if (protocol.medication) setDispMedication(protocol.medication);
-    if (protocol.selected_dose) setDispDosage(protocol.selected_dose);
-    if (protocol.supply_type) setDispSupplyType(protocol.supply_type);
+    // Parse secondary medication details from protocol
+    let secDetails = [];
+    try {
+      const raw = protocol.secondary_medication_details;
+      secDetails = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : [];
+    } catch { secDetails = []; }
+    setDispSecondaryDetails(secDetails);
+
+    // Pre-fill from protocol (or specific secondary med)
+    if (secondaryMed) {
+      setDispMedication(secondaryMed);
+      const detail = secDetails.find(d => d.medication === secondaryMed);
+      if (detail?.dosage) setDispDosage(detail.dosage);
+    } else {
+      if (protocol.medication) setDispMedication(protocol.medication);
+      if (protocol.selected_dose) setDispDosage(protocol.selected_dose);
+      if (protocol.supply_type) setDispSupplyType(protocol.supply_type);
+    }
 
     // Auto-set entry type based on category
     const cat = protocolToCategory(protocol.program_type);
@@ -1806,6 +1822,18 @@ function CheckoutInner() {
                         const sessionsRemaining = hasSessions ? Math.max(0, proto.total_sessions - (proto.sessions_used || 0)) : null;
                         const cat = protocolToCategory(proto.program_type);
 
+                        // Parse secondary medications for HRT protocols
+                        let secondaryMeds = [];
+                        try {
+                          const raw = proto.secondary_medications;
+                          secondaryMeds = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : [];
+                        } catch { secondaryMeds = []; }
+                        let secDetails = [];
+                        try {
+                          const raw = proto.secondary_medication_details;
+                          secDetails = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : [];
+                        } catch { secDetails = []; }
+
                         return (
                           <div key={proto.id} style={styles.dispenseCard}>
                             {/* Protocol header — always visible */}
@@ -1828,6 +1856,15 @@ function CheckoutInner() {
                                   {proto.selected_dose ? ` · ${proto.selected_dose}` : ''}
                                   {proto.frequency ? ` · ${proto.frequency}` : ''}
                                 </div>
+                                {/* Secondary medications on the protocol */}
+                                {secondaryMeds.length > 0 && (
+                                  <div style={{ fontSize: '12px', color: '#7c3aed', marginTop: '2px' }}>
+                                    + {secondaryMeds.map(m => {
+                                      const detail = secDetails.find(d => d.medication === m);
+                                      return detail?.dosage ? `${m} (${detail.dosage})` : m;
+                                    }).join(', ')}
+                                  </div>
+                                )}
                                 <div style={styles.dispenseCardMeta}>
                                   {hasSessions && (
                                     <span style={{ color: sessionsRemaining > 0 ? '#166534' : '#dc2626', fontWeight: 600 }}>
@@ -1857,6 +1894,25 @@ function CheckoutInner() {
                                 {isExpanded ? '✕ Close' : 'Dispense →'}
                               </div>
                             </button>
+
+                            {/* Quick-dispense buttons for secondary meds */}
+                            {!isExpanded && secondaryMeds.length > 0 && (
+                              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', padding: '8px 14px', borderTop: '1px solid #f0f0f0' }}>
+                                {secondaryMeds.map(med => (
+                                  <button
+                                    key={med}
+                                    style={{
+                                      fontSize: '12px', fontWeight: 600, color: '#7c3aed',
+                                      background: '#f5f3ff', border: '1px solid #ddd6fe',
+                                      padding: '4px 12px', cursor: 'pointer',
+                                    }}
+                                    onClick={() => openDispensing(proto, med)}
+                                  >
+                                    Dispense {med} →
+                                  </button>
+                                ))}
+                              </div>
+                            )}
 
                             {/* Expanded dispensing form */}
                             {isExpanded && (
@@ -1912,7 +1968,14 @@ function CheckoutInner() {
                                       {cat === 'testosterone' ? (
                                         <select
                                           value={dispMedication}
-                                          onChange={e => { setDispMedication(e.target.value); setDispDosage(''); }}
+                                          onChange={e => {
+                                            const med = e.target.value;
+                                            setDispMedication(med);
+                                            // Auto-fill dosage from secondary medication details if available
+                                            const secDetail = dispSecondaryDetails.find(d => d.medication === med);
+                                            setDispDosage(secDetail?.dosage || '');
+                                            setDispSupplyType('');
+                                          }}
                                           style={styles.fieldInput}
                                         >
                                           <option value="">Select medication...</option>

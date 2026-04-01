@@ -7,7 +7,7 @@ import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
 
 const GOOGLE_REVIEW_URL = 'https://g.page/r/CR-a12vKevOkEAI/review';
 
-const DEFAULT_MESSAGE = `Hey {first_name}, it's Chris from Range Medical. If you have a sec, would you mind leaving us a quick Google review? It really helps us out and I'd appreciate it.\n\n{review_link}`;
+const DEFAULT_MESSAGE = `Hey {first_name}, it's Chris from Range Medical. If you have a sec, would you mind leaving us an honest Google review? It really helps us out and I'd appreciate it.\n\n{review_link}\n\nAs a thank you, here's a free injection on us. Pick the one you want and book a time:\n\n{gift_link}`;
 
 export default function GoogleReviewsPage() {
   const [patients, setPatients] = useState([]);
@@ -125,7 +125,7 @@ export default function GoogleReviewsPage() {
           <textarea
             value={messageTemplate}
             onChange={e => setMessageTemplate(e.target.value)}
-            rows={5}
+            rows={7}
             style={{
               width: '100%',
               padding: 12,
@@ -139,7 +139,7 @@ export default function GoogleReviewsPage() {
             }}
           />
           <div style={{ fontSize: 12, color: '#999', marginTop: 6 }}>
-            Use <code style={{ background: '#f3f4f6', padding: '1px 4px', borderRadius: 3 }}>{'{first_name}'}</code> and <code style={{ background: '#f3f4f6', padding: '1px 4px', borderRadius: 3 }}>{'{review_link}'}</code> as placeholders.
+            Use <code style={{ background: '#f3f4f6', padding: '1px 4px', borderRadius: 3 }}>{'{first_name}'}</code>, <code style={{ background: '#f3f4f6', padding: '1px 4px', borderRadius: 3 }}>{'{review_link}'}</code>, and <code style={{ background: '#f3f4f6', padding: '1px 4px', borderRadius: 3 }}>{'{gift_link}'}</code> as placeholders. Gift link is generated automatically per patient.
           </div>
 
         </div>

@@ -55,12 +55,14 @@ export default async function handler(req, res) {
     // Gather ALL active peptide protocols for this patient
     const { data: allProtocols } = await supabase
       .from('protocols')
-      .select('id, medication, program_name, category, status, total_sessions, delivery_method, supply_type')
+      .select('id, medication, program_name, category, status, total_sessions, delivery_method, supply_type, num_vials')
       .eq('patient_id', protocol.patient_id)
       .eq('status', 'active')
       .in('category', ['peptide', 'recovery', 'longevity', 'gh_blend', 'skin', 'neuro', 'immune', 'sexual_health']);
 
     // Build enhanced vial entries: vialId.days.delivery
+    // num_vials > 0 = patient got a whole vial (needs reconstitution)
+    // num_vials null/0 with total_sessions = pre-filled day-count protocol
     const vialEntries = [];
     const protocolIds = [];
     const seenVialIds = new Set();
@@ -69,8 +71,8 @@ export default async function handler(req, res) {
       if (vialId && !seenVialIds.has(vialId)) {
         seenVialIds.add(vialId);
         const days = p.total_sessions || null;
-        const isPrefilled = p.supply_type === 'prefilled' || p.supply_type === 'prefilled_2week' || p.delivery_method === 'prefilled';
-        const delivery = isPrefilled ? 'prefilled' : 'vial';
+        const isVialPurchase = p.num_vials && p.num_vials > 0;
+        const delivery = isVialPurchase ? 'vial' : 'prefilled';
         vialEntries.push({ vialId, days, delivery });
       }
       protocolIds.push(p.id);

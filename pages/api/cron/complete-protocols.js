@@ -88,15 +88,19 @@ export default async function handler(req, res) {
       }
     }
 
-    // Peptide protocols: create follow-up tasks when end_date passes, but do NOT auto-complete
-    // They stay active so staff can follow up on renewals (GH peptides are 90-day processes)
+    // Peptide protocols: 14-day grace period after end_date before creating renewal tasks or completing
+    // They stay active for 14 days so staff can follow up on renewals
     if (peptideTaskStaff.length > 0) {
+      const fourteenDaysAgo = new Date(today);
+      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+      const fourteenDaysAgoStr = fourteenDaysAgo.toISOString().split('T')[0];
+
       const { data: expiredPeptides } = await supabase
         .from('protocols')
         .select('id, program_name, program_type, end_date, patient_id')
         .eq('status', 'active')
         .eq('program_type', 'peptide')
-        .lte('end_date', yesterdayStr);
+        .lte('end_date', fourteenDaysAgoStr);
 
       if (expiredPeptides && expiredPeptides.length > 0) {
         for (const protocol of expiredPeptides) {

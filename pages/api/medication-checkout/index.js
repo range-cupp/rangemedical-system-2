@@ -253,9 +253,21 @@ async function updateProtocol(protocolId, opts) {
 
       // Check if protocol is now complete
       // Weight loss protocols stay active — total_sessions is per billing period, not lifetime
+      // Peptide protocols get a 14-day grace period after end_date before auto-completing
       if (updates.sessions_used >= protocol.total_sessions && !isWeightLossType(protocolCategory)) {
-        updates.status = 'completed';
-        updates.end_date = logDate;
+        const isPeptide = protocolCategory === 'peptide';
+        if (isPeptide) {
+          const endDate = protocol.end_date ? new Date(protocol.end_date + 'T12:00:00') : null;
+          const now = new Date(logDate + 'T12:00:00');
+          const daysPastEnd = endDate ? Math.floor((now - endDate) / (1000 * 60 * 60 * 24)) : 0;
+          if (daysPastEnd >= 14) {
+            updates.status = 'completed';
+            updates.end_date = logDate;
+          }
+        } else {
+          updates.status = 'completed';
+          updates.end_date = logDate;
+        }
       }
     }
 

@@ -13,6 +13,7 @@ import {
   WEIGHT_LOSS_DOSAGES,
   WEIGHT_LOSS_DURATIONS,
   INJECTION_MEDICATIONS,
+  NAD_INJECTION_DOSAGES,
   HRT_MEDICATIONS,
   HRT_SUPPLY_TYPES,
   HRT_SECONDARY_MEDICATIONS,
@@ -28,9 +29,15 @@ const SERVICE_CATEGORIES = [
   { id: 'testosterone', label: 'HRT / Testosterone', icon: '💉', color: '#7c3aed' },
   { id: 'weight_loss', label: 'Weight Loss', icon: '📉', color: '#ea580c' },
   { id: 'peptide', label: 'Peptide', icon: '🧬', color: '#0891b2' },
+  { id: 'nad_injection', label: 'NAD+ Injection', icon: '⚡', color: '#8b5cf6' },
+  { id: 'injection', label: 'Injection (Standard/Premium)', icon: '💊', color: '#ca8a04' },
   { id: 'iv_therapy', label: 'IV Therapy', icon: '💧', color: '#2563eb' },
   { id: 'hbot', label: 'HBOT', icon: '🫁', color: '#059669' },
   { id: 'red_light', label: 'Red Light Therapy', icon: '🔴', color: '#dc2626' },
+  { id: 'labs', label: 'Lab Panels', icon: '🔬', color: '#0d9488' },
+  { id: 'prp', label: 'PRP Therapy', icon: '🩸', color: '#be123c' },
+  { id: 'packages', label: 'Packages', icon: '📦', color: '#4f46e5' },
+  { id: 'combo_membership', label: 'Combo Memberships', icon: '🏥', color: '#0369a1' },
   { id: 'vitamin', label: 'Vitamin Injection', icon: '💊', color: '#ca8a04' },
   { id: 'supplement', label: 'Supplement / Product', icon: '🧴', color: '#64748b' },
 ];
@@ -186,6 +193,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
   const [itemQty, setItemQty] = useState(1); // universal item quantity (1-10)
   const [shippingAmount, setShippingAmount] = useState(''); // shipping cost in dollars
   const [addingCard, setAddingCard] = useState(false); // show inline add-card form
+  const [invoiceSendMenu, setInvoiceSendMenu] = useState(false); // toggle send-via options
 
   // Cart — multiple items per checkout
   const [cartItems, setCartItems] = useState([]);
@@ -243,6 +251,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
     setItemQty(1);
     setShippingAmount('');
     setAddingCard(false);
+    setInvoiceSendMenu(false);
     setCartItems([]);
     setEditingItemId(null);
     setSubmitting(false);
@@ -417,11 +426,11 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
       }
 
       // Auto-set entry type based on category
-      if (['hbot', 'iv_therapy', 'red_light'].includes(category)) {
+      if (['hbot', 'iv_therapy', 'red_light', 'labs', 'prp', 'packages', 'combo_membership'].includes(category)) {
         setEntryType('session');
       } else if (['testosterone', 'peptide'].includes(category)) {
         setEntryType('pickup');
-      } else if (['weight_loss', 'vitamin'].includes(category)) {
+      } else if (['weight_loss', 'vitamin', 'nad_injection', 'injection'].includes(category)) {
         setEntryType('injection');
       } else {
         setEntryType('pickup');
@@ -560,6 +569,106 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
       }
     }
     return null;
+  }
+
+  // Send invoice instead of charging directly
+  async function handleSendInvoice(sendVia = 'both') {
+    setSubmitting(true);
+    setError('');
+    const allItems = getAllCheckoutItems();
+
+    try {
+      // Build invoice line items from cart
+      const invoiceItems = [];
+      let subtotalCents = 0;
+      let totalDiscountCents = 0;
+
+      for (const item of allItems) {
+        const isPaid = item.coverageType === 'paid' && item.paymentMethod !== 'comp';
+        if (!isPaid || !item.selectedService) continue;
+
+        const qty = item.itemQty || 1;
+        const unitBase = item.selectedService.price_cents || 0;
+        const unitFinal = getUnitPriceCents(item);
+        const unitDiscount = unitBase - unitFinal;
+        const shippingCents = getShippingCents(item);
+
+        invoiceItems.push({
+          name: item.selectedService.name,
+          category: item.selectedService.category || item.category?.id,
+          price_cents: unitBase,
+          quantity: qty,
+        });
+
+        subtotalCents += unitBase * qty;
+        totalDiscountCents += unitDiscount * qty;
+
+        // Add shipping as a separate line item if present
+        if (shippingCents > 0) {
+          invoiceItems.push({
+            name: 'Shipping',
+            category: 'shipping',
+            price_cents: shippingCents,
+            quantity: 1,
+          });
+          subtotalCents += shippingCents;
+        }
+      }
+
+      if (invoiceItems.length === 0) {
+        setError('No paid items to invoice');
+        setSubmitting(false);
+        return;
+      }
+
+      const totalCents = subtotalCents - totalDiscountCents;
+
+      // Create the invoice
+      const createRes = await fetch('/api/invoices/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: selectedPatient.id,
+          patient_name: selectedPatient.name,
+          patient_email: selectedPatient.email || null,
+          patient_phone: selectedPatient.phone || null,
+          items: invoiceItems,
+          subtotal_cents: subtotalCents,
+          discount_cents: totalDiscountCents > 0 ? totalDiscountCents : 0,
+          discount_description: totalDiscountCents > 0 ? 'Checkout discount' : null,
+          total_cents: totalCents,
+          notes: cartItems.map(i => i.notes).filter(Boolean).join('; ') || null,
+          created_by: 'front_desk',
+        }),
+      });
+
+      const createData = await createRes.json();
+      if (!createRes.ok) throw new Error(createData.error || 'Failed to create invoice');
+
+      // Send the invoice
+      const invoiceId = createData.invoice.id;
+      const sendRes = await fetch(`/api/invoices/${invoiceId}/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ via: sendVia }),
+      });
+
+      const sendData = await sendRes.json();
+      if (!sendRes.ok) throw new Error(sendData.error || 'Invoice created but failed to send');
+
+      // Show success
+      setResults([{
+        category: { icon: '📧', label: 'Invoice Sent' },
+        medication: `Invoice #${invoiceId.slice(0, 8)}`,
+        coverageType: 'invoice',
+        amount: totalCents,
+      }]);
+      setStep(5);
+    } catch (err) {
+      console.error('Send invoice error:', err);
+      setError(err.message);
+    }
+    setSubmitting(false);
   }
 
   // Submit all cart items
@@ -1133,10 +1242,13 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
               </div>
 
               {/* Medication */}
-              <div style={styles.fieldGroup}>
-                <label style={styles.label}>Medication / Service</label>
-                {renderMedicationPicker(selectedCategory?.id, medication, setMedication)}
-              </div>
+              {/* Medication — skip for service-only categories (labs, prp, packages, combo) */}
+              {!['labs', 'prp', 'packages', 'combo_membership'].includes(selectedCategory?.id) && (
+                <div style={styles.fieldGroup}>
+                  <label style={styles.label}>Medication / Service</label>
+                  {renderMedicationPicker(selectedCategory?.id, medication, setMedication)}
+                </div>
+              )}
 
               {/* Dosage */}
               {renderDosagePicker(selectedCategory?.id, medication, dosage, setDosage, selectedProtocol, coverage?.patient_gender)}
@@ -1505,7 +1617,10 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                             peptide: 'Peptide Programs', vials: 'Vials', hrt: 'HRT',
                             weight_loss: 'Weight Loss', iv_therapy: 'IV Therapy',
                             hbot: 'HBOT', red_light: 'Red Light', injections: 'Injections',
-                            supplements: 'Supplements',
+                            nad_injection: 'NAD+ Injections', labs: 'Lab Panels',
+                            prp: 'PRP Therapy', packages: 'Packages',
+                            combo_membership: 'Combo Memberships',
+                            supplements: 'Supplements', longevity: 'Longevity',
                           };
                           const groupKeys = Object.keys(groups);
                           // If only one group, skip optgroup wrapper
@@ -1679,22 +1794,22 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button
                     onClick={addToCart}
-                    disabled={!medication && !['hbot', 'red_light'].includes(selectedCategory?.id)}
+                    disabled={!medication && !['hbot', 'red_light', 'labs', 'prp', 'packages', 'combo_membership'].includes(selectedCategory?.id)}
                     style={{
                       ...styles.secondaryBtn,
                       flex: 1,
-                      opacity: (!medication && !['hbot', 'red_light'].includes(selectedCategory?.id)) ? 0.5 : 1,
+                      opacity: (!medication && !['hbot', 'red_light', 'labs', 'prp', 'packages', 'combo_membership'].includes(selectedCategory?.id)) ? 0.5 : 1,
                     }}
                   >
                     {editingItemId ? 'Update Item' : `+ Add to Cart${cartItems.length > 0 ? ` (${cartItems.length})` : ''}`}
                   </button>
                   <button
                     onClick={() => { addToCart(); setStep(4); }}
-                    disabled={!medication && !['hbot', 'red_light'].includes(selectedCategory?.id)}
+                    disabled={!medication && !['hbot', 'red_light', 'labs', 'prp', 'packages', 'combo_membership'].includes(selectedCategory?.id)}
                     style={{
                       ...styles.primaryBtn,
                       flex: 1,
-                      opacity: (!medication && !['hbot', 'red_light'].includes(selectedCategory?.id)) ? 0.5 : 1,
+                      opacity: (!medication && !['hbot', 'red_light', 'labs', 'prp', 'packages', 'combo_membership'].includes(selectedCategory?.id)) ? 0.5 : 1,
                     }}
                   >
                     Review Checkout →
@@ -1816,22 +1931,76 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
 
               {error && <div style={styles.errorMsg}>{error}</div>}
 
-              <button
-                onClick={handleSubmit}
-                disabled={submitting || cartItems.length === 0}
-                style={{
-                  ...styles.primaryBtn,
-                  background: cartTotal > 0 ? '#000' : '#16a34a',
-                  opacity: submitting || cartItems.length === 0 ? 0.5 : 1,
-                }}
-              >
-                {submitting
-                  ? `Processing (${cartItems.length} items)...`
-                  : cartTotal > 0
-                    ? `Pay $${(cartTotal / 100).toFixed(2)} & Complete Checkout`
-                    : `Complete Checkout — $0.00`
-                }
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitting || cartItems.length === 0}
+                  style={{
+                    ...styles.primaryBtn,
+                    background: cartTotal > 0 ? '#000' : '#16a34a',
+                    opacity: submitting || cartItems.length === 0 ? 0.5 : 1,
+                  }}
+                >
+                  {submitting
+                    ? `Processing (${cartItems.length} items)...`
+                    : cartTotal > 0
+                      ? `Pay $${(cartTotal / 100).toFixed(2)} & Complete Checkout`
+                      : `Complete Checkout — $0.00`
+                  }
+                </button>
+
+                {/* Send Invoice button — only show when there are paid items */}
+                {cartTotal > 0 && !submitting && (
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={() => handleSendInvoice('both')}
+                      disabled={submitting}
+                      style={{
+                        ...styles.secondaryBtn,
+                        flex: 1,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                      }}
+                    >
+                      📧 Send Invoice — ${(cartTotal / 100).toFixed(2)}
+                    </button>
+                    <button
+                      onClick={() => {
+                        const opts = ['email', 'sms', 'both'];
+                        const labels = { email: 'Email Only', sms: 'SMS Only', both: 'Email + SMS' };
+                        // Simple dropdown via a select-like approach
+                        setInvoiceSendMenu(prev => !prev);
+                      }}
+                      style={{
+                        ...styles.secondaryBtn,
+                        width: '40px', padding: '0', display: 'flex',
+                        alignItems: 'center', justifyContent: 'center',
+                      }}
+                    >
+                      ▾
+                    </button>
+                  </div>
+                )}
+                {invoiceSendMenu && cartTotal > 0 && (
+                  <div style={{ display: 'flex', gap: '8px', paddingLeft: '4px' }}>
+                    {[
+                      { via: 'email', label: '📧 Email Only' },
+                      { via: 'sms', label: '💬 SMS Only' },
+                    ].map(opt => (
+                      <button
+                        key={opt.via}
+                        onClick={() => { setInvoiceSendMenu(false); handleSendInvoice(opt.via); }}
+                        style={{
+                          flex: 1, padding: '8px 12px', fontSize: '13px', fontWeight: 500,
+                          border: '1px solid #ddd', borderRadius: '8px', background: '#fafafa',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -1932,6 +2101,21 @@ function getEntryTypeOptions(categoryId) {
         { value: 'injection', label: 'Range Injection' },
         { value: 'pickup', label: 'Product Pickup' },
       ];
+    case 'nad_injection':
+      return [
+        { value: 'injection', label: 'Range Injection' },
+        { value: 'pickup', label: 'Take-Home Pack' },
+      ];
+    case 'injection':
+      return [{ value: 'injection', label: 'Range Injection' }];
+    case 'labs':
+      return [{ value: 'session', label: 'Lab Draw' }];
+    case 'prp':
+      return [{ value: 'session', label: 'PRP Session' }];
+    case 'packages':
+      return [{ value: 'session', label: 'Package Purchase' }];
+    case 'combo_membership':
+      return [{ value: 'session', label: 'Membership Purchase' }];
     case 'supplement':
       return [{ value: 'pickup', label: 'Product Pickup' }];
     default:
@@ -1981,6 +2165,25 @@ function renderMedicationPicker(categoryId, value, onChange) {
           ))}
         </select>
       );
+    case 'nad_injection':
+      return (
+        <select value={value} onChange={e => onChange(e.target.value)} style={styles.select}>
+          <option value="">Select NAD+ dosage...</option>
+          {NAD_INJECTION_DOSAGES.map(d => <option key={d} value={`NAD+ ${d}`}>NAD+ {d}</option>)}
+        </select>
+      );
+    case 'injection':
+      return (
+        <select value={value} onChange={e => onChange(e.target.value)} style={styles.select}>
+          <option value="">Select injection...</option>
+          {INJECTION_MEDICATIONS.filter(m => m !== 'NAD+').map(m => <option key={m} value={m}>{m}</option>)}
+        </select>
+      );
+    case 'labs':
+    case 'prp':
+    case 'packages':
+    case 'combo_membership':
+      return null; // Service selector handles these
     case 'iv_therapy':
       return null; // IV type is handled separately above
     case 'hbot':
@@ -2098,6 +2301,12 @@ function renderDosagePicker(categoryId, medication, dosage, setDosage, selectedP
       );
     }
   }
+
+  // NAD+ injection — dosage is embedded in medication name (e.g., "NAD+ 100mg"), no separate picker
+  if (categoryId === 'nad_injection') return null;
+
+  // Service-only categories — no dosage needed
+  if (['labs', 'prp', 'packages', 'combo_membership'].includes(categoryId)) return null;
 
   // For other categories, just show a text input if medication is selected
   if (medication && !['hbot', 'red_light', 'iv_therapy'].includes(categoryId)) {

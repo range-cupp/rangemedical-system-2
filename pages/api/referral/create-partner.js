@@ -1,0 +1,94 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+function generateSlug(firstName, lastName) {
+  // "Greg Smith" → "greg-s", if taken → "greg-s2", etc.
+  const base = firstName.toLowerCase().replace(/[^a-z]/g, '');
+  const lastInitial = lastName ? lastName.charAt(0).toLowerCase() : '';
+  return lastInitial ? `${base}-${lastInitial}` : base;
+}
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { first_name, last_name, phone, email } = req.body;
+
+  if (!first_name || !last_name || !phone || !email) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+
+  try {
+    // Check if this person is already a partner (by email)
+    const { data: existing } = await supabase
+      .from('referral_partners')
+      .select('slug')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (existing) {
+      return res.status(200).json({
+        success: true,
+        slug: existing.slug,
+        link: `https://range-medical.com/refer/${existing.slug}`,
+        already_exists: true,
+      });
+    }
+
+    // Generate unique slug
+    let slug = generateSlug(first_name, last_name);
+    let attempt = 0;
+    let unique = false;
+
+    while (!unique) {
+      const testSlug = attempt === 0 ? slug : `${slug}${attempt + 1}`;
+      const { data: collision } = await supabase
+        .from('referral_partners')
+        .select('id')
+        .eq('slug', testSlug)
+        .maybeSingle();
+
+      if (!collision) {
+        slug = testSlug;
+        unique = true;
+      } else {
+        attempt++;
+      }
+    }
+
+    const displayName = first_name.charAt(0).toUpperCase() + first_name.slice(1);
+
+    // Create partner
+    const { error: insertError } = await supabase
+      .from('referral_partners')
+      .insert({
+        slug,
+        name: displayName,
+        partner_type: 'patient',
+        assigned_to: 'damon@range-medical.com',
+        email,
+        phone,
+        full_name: `${first_name} ${last_name}`,
+        headline: `${displayName} thinks you should check this out.`,
+        subheadline: "Here's what we actually do for people who want to perform at a higher level.",
+        active: true,
+      });
+
+    if (insertError) throw insertError;
+
+    return res.status(200).json({
+      success: true,
+      slug,
+      link: `https://range-medical.com/refer/${slug}`,
+      name: displayName,
+    });
+  } catch (err) {
+    console.error('Create partner error:', err);
+    return res.status(500).json({ error: 'Something went wrong. Please try again.' });
+  }
+}

@@ -232,6 +232,10 @@ function CheckoutInner() {
   // ── Account credit ──
   const [creditBalanceCents, setCreditBalanceCents] = useState(0);
 
+  // ── Energy & Recovery Pack ──
+  const [energyPacks, setEnergyPacks] = useState([]);
+  const [energyPackApply, setEnergyPackApply] = useState(false);
+
   // ── Misc ──
   const [skipNotification, setSkipNotification] = useState(false);
   const [resultStatus, setResultStatus] = useState(null);
@@ -241,6 +245,10 @@ function CheckoutInner() {
   const [showInvoiceSend, setShowInvoiceSend] = useState(false);
   const [invoiceSending, setInvoiceSending] = useState(false);
   const [invoiceResult, setInvoiceResult] = useState(null);
+
+  // ── Recent charges ──
+  const [recentCharges, setRecentCharges] = useState([]);
+  const [recentChargesOpen, setRecentChargesOpen] = useState(false);
 
   // ── Medication Dispensing ──
   const [employees, setEmployees] = useState([]);
@@ -318,7 +326,7 @@ function CheckoutInner() {
     return () => { if (searchTimeout.current) clearTimeout(searchTimeout.current); };
   }, [patientSearch]);
 
-  // ── Load protocols + employees when patient is selected ──
+  // ── Load protocols + employees + recent charges when patient is selected ──
   useEffect(() => {
     if (!patient?.id) return;
     fetch(`/api/protocols?patient_id=${patient.id}&status=active`)
@@ -330,6 +338,11 @@ function CheckoutInner() {
       .then(r => r.json())
       .then(data => setEmployees(data.employees || data || []))
       .catch(() => setEmployees([]));
+    // Load recent charges
+    fetch(`/api/admin/purchases?patient_id=${patient.id}&limit=15`)
+      .then(r => r.json())
+      .then(data => setRecentCharges(data.purchases || []))
+      .catch(() => setRecentCharges([]));
   }, [patient?.id]);
 
   // ── Load saved cards + credit when entering payment ──
@@ -1146,6 +1159,8 @@ function CheckoutInner() {
     setPatientSearch('');
     setPatientResults([]);
     setActiveProtocols([]);
+    setRecentCharges([]);
+    setRecentChargesOpen(false);
     handleNewCheckout();
     setStep('patient');
   }
@@ -1500,6 +1515,55 @@ function CheckoutInner() {
                       <div style={{ ...styles.protocolChip, background: '#f3f4f6', color: '#888' }}>+{activeProtocols.length - 5} more</div>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* Recent charges — collapsible */}
+              {recentCharges.length > 0 && !activeSegment && (
+                <div style={styles.recentChargesBar}>
+                  <button
+                    style={styles.recentChargesToggle}
+                    onClick={() => setRecentChargesOpen(!recentChargesOpen)}
+                  >
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '14px', transition: 'transform 0.2s', transform: recentChargesOpen ? 'rotate(90deg)' : 'rotate(0deg)', display: 'inline-block' }}>▶</span>
+                      <span style={{ fontSize: '11px', fontWeight: 700, color: '#888', letterSpacing: '0.05em' }}>RECENT CHARGES</span>
+                      <span style={{ fontSize: '11px', color: '#aaa' }}>({recentCharges.length})</span>
+                    </span>
+                  </button>
+                  {recentChargesOpen && (
+                    <div style={styles.recentChargesList}>
+                      {recentCharges.map(p => {
+                        const date = p.purchase_date || p.created_at;
+                        const dateStr = date
+                          ? new Date(date + (date.includes('T') ? '' : 'T00:00:00')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                          : '';
+                        const amount = p.amount_cents
+                          ? formatPrice(p.amount_cents)
+                          : p.original_amount
+                            ? `$${Number(p.original_amount).toFixed(2)}`
+                            : p.amount
+                              ? `$${Number(p.amount).toFixed(2)}`
+                              : '';
+                        const itemName = p.service_name || p.description || p.item_name || 'Payment';
+                        const method = p.payment_method === 'cash' ? 'Cash'
+                          : p.payment_method === 'comp' ? 'Comp'
+                            : p.card_brand ? `${p.card_brand} ···${p.card_last4}`
+                              : p.payment_method || '';
+                        return (
+                          <div key={p.id} style={styles.recentChargeRow}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: '13px', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{itemName}</div>
+                              <div style={{ fontSize: '11px', color: '#999' }}>
+                                {dateStr}{method ? ` · ${method}` : ''}
+                              </div>
+                            </div>
+                            <div style={{ fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap' }}>{amount}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -3935,6 +3999,35 @@ const styles = {
   },
   dispenseFieldGroup: {
     marginBottom: '14px',
+  },
+  recentChargesBar: {
+    background: '#fff',
+    border: '1px solid #e5e7eb',
+    marginBottom: '16px',
+  },
+  recentChargesToggle: {
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '10px 14px',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    textAlign: 'left',
+  },
+  recentChargesList: {
+    borderTop: '1px solid #f0f0f0',
+    maxHeight: '280px',
+    overflowY: 'auto',
+  },
+  recentChargeRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '8px 14px',
+    gap: '12px',
+    borderBottom: '1px solid #f5f5f5',
   },
   posServiceOption: {
     display: 'flex',

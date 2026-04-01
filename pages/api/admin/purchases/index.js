@@ -13,7 +13,7 @@ const supabase = createClient(
 export default async function handler(req, res) {
   // GET - List purchases
   if (req.method === 'GET') {
-    const { category, search, days, limit, source } = req.query;
+    const { category, search, days, limit, source, patient_id } = req.query;
 
     try {
       // Helper to build query with all filters
@@ -23,6 +23,7 @@ export default async function handler(req, res) {
           .select('*', { count: 'exact' })
           .order('created_at', { ascending: false });
 
+        if (patient_id) q = q.eq('patient_id', patient_id);
         if (category && category !== 'All') q = q.eq('category', category);
         if (source) q = q.eq('source', source);
         if (days && days !== 'all') {

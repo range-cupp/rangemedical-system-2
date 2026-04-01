@@ -161,7 +161,7 @@ export default function JoinReferralProgram() {
                 <div className="v2-label"><span className="v2-dot" /> YOU'RE ALL SET</div>
                 <h1>Here's your link, {result.name}.</h1>
                 <div className="join-rule" />
-                <p className="join-body">Send this to anyone you think should check out Range Medical. When they fill out the form, our team will reach out to them within 24 hours — and they'll be connected to your name.</p>
+                <p className="join-body">We just texted this link to you so you'll always have it. Send it to anyone you think should check out Range Medical — our team will reach out to them within 24 hours.</p>
               </div>
             </section>
 
@@ -181,6 +181,12 @@ export default function JoinReferralProgram() {
                 </button>
 
                 <p className="join-share-note">Opens your messages with a pre-written text. Just pick who to send it to.</p>
+
+                {/* Bookmark tip */}
+                <div className="join-tip">
+                  <div className="join-tip-title">Keep it handy</div>
+                  <p>We texted you this link so it's saved in your messages. You can also bookmark this page or forward that text anytime you want to refer someone.</p>
+                </div>
               </div>
             </section>
 
@@ -238,7 +244,10 @@ export default function JoinReferralProgram() {
 
         .join-share-btn { display: block; width: 100%; padding: 1.125rem; background: #1a1a1a; color: #fff; border: none; font-family: inherit; font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; transition: background 0.15s; margin-bottom: 1rem; }
         .join-share-btn:hover { background: #333; }
-        .join-share-note { font-size: 0.8125rem; color: #999; text-align: center; }
+        .join-share-note { font-size: 0.8125rem; color: #999; text-align: center; margin-bottom: 2rem; }
+        .join-tip { background: #fafafa; border: 1px solid #e0e0e0; padding: 1.25rem 1.5rem; }
+        .join-tip-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #171717; margin-bottom: 0.5rem; }
+        .join-tip p { font-size: 0.875rem; color: #737373; line-height: 1.6; margin: 0; }
 
         /* Footer CTA */
         .join-cta-buttons { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; margin: 1.5rem 0; }

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { sendSMS, normalizePhone } from '../../../lib/send-sms';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -81,10 +82,26 @@ export default async function handler(req, res) {
 
     if (insertError) throw insertError;
 
+    const link = `https://range-medical.com/refer/${slug}`;
+
+    // Auto-text them their link so it's always in their messages
+    try {
+      const normalizedPhone = normalizePhone(phone);
+      if (normalizedPhone) {
+        await sendSMS({
+          to: normalizedPhone,
+          message: `Hey ${displayName} — here's your personal Range Medical referral link. Save this text so you always have it:\n\n${link}\n\nAnyone who uses this link gets priority attention from our team. Just forward this text or copy the link above.`,
+        });
+      }
+    } catch (smsErr) {
+      // Don't fail the signup if SMS fails
+      console.error('Failed to text referral link:', smsErr);
+    }
+
     return res.status(200).json({
       success: true,
       slug,
-      link: `https://range-medical.com/refer/${slug}`,
+      link,
       name: displayName,
     });
   } catch (err) {

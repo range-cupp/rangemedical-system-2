@@ -9,6 +9,7 @@ import { sendBlooioMessage } from '../../../lib/blooio';
 import { getPendingMessages, markPendingMessageSent } from '../../../lib/blooio-optin';
 import { identifyStaff, handleStaffMessage } from '../../../lib/staff-bot';
 import { shouldAutoReply, generateReply } from '../../../lib/patient-bot';
+import { logComm } from '../../../lib/comms-log';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -375,6 +376,82 @@ async function handleInboundMessage(body) {
 
         if (linkResult.success) {
           console.log(`HRT IV scheduling link sent to ${patient.name} (${senderPhone}) via Blooio`);
+        }
+      }
+    }
+  }
+
+  // ================================================================
+  // AUTO-REPLY: Lab Prep Reminder
+  // If patient replies READY/YES to a recent lab prep reminder, send instructions link
+  // ================================================================
+  if (patient?.id && messageText) {
+    const LAB_PREP_REPLIES = ['ready', 'got it', 'yes', 'y', 'yeah', 'sure', 'yep', 'yea', 'ok', 'okay'];
+    const normalizedBody = messageText.trim().toLowerCase();
+
+    if (LAB_PREP_REPLIES.includes(normalizedBody)) {
+      const threeDaysAgo = new Date();
+      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+      const { data: pendingReminder } = await supabase
+        .from('comms_log')
+        .select('id, created_at')
+        .eq('patient_id', patient.id)
+        .eq('message_type', 'lab_prep_reminder')
+        .eq('direction', 'outbound')
+        .neq('status', 'replied')
+        .gte('created_at', threeDaysAgo.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (pendingReminder) {
+        const firstName = patient.first_name || (patient.name || '').split(' ')[0] || 'there';
+        console.log(`Lab prep READY reply from ${patient.name} via Blooio — sending instructions link`);
+
+        // Generate a lab prep token for acknowledgment tracking
+        let labPrepUrl = 'https://www.range-medical.com/lab-prep';
+        try {
+          const { createLabPrepToken, buildLabPrepUrl } = await import('../../../lib/lab-prep-token');
+          const token = await createLabPrepToken({
+            patientId: patient.id,
+            patientName: patient.name,
+            patientPhone: senderPhone,
+          });
+          labPrepUrl = buildLabPrepUrl(token);
+        } catch (err) {
+          console.error('Lab prep token creation failed, using plain URL:', err);
+        }
+
+        const prepMessage = `Here are your lab prep instructions \u2014 please review and confirm:\n\n${labPrepUrl}\n\nQuestions? Call (949) 997-3988. See you tomorrow! \u2014 Range Medical`;
+
+        const prepResult = await sendBlooioMessage({ to: senderPhone, message: prepMessage });
+
+        // Log the instructions link SMS
+        await logComm({
+          channel: 'sms',
+          messageType: 'lab_prep_instructions_sent',
+          message: prepMessage,
+          source: 'blooio/webhook',
+          patientId: patient.id,
+          patientName: patient.name,
+          recipient: senderPhone,
+          status: prepResult.success ? 'sent' : 'error',
+          errorMessage: prepResult.error || null,
+          twilioMessageSid: prepResult.messageSid || null,
+          provider: 'blooio',
+          direction: 'outbound',
+        }).catch(() => {});
+
+        // Mark the original reminder as replied (prevents duplicate sends)
+        await supabase
+          .from('comms_log')
+          .update({ status: 'replied' })
+          .eq('id', pendingReminder.id)
+          .catch(() => {});
+
+        if (prepResult.success) {
+          console.log(`Lab prep instructions sent to ${patient.name} (${senderPhone}) via Blooio`);
         }
       }
     }

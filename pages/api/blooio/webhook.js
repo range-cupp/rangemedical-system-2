@@ -55,10 +55,12 @@ export default async function handler(req, res) {
     // KEY: Status updates may include `text` (original message content) but have NO `from`/`sender`.
     // Real inbound messages ALWAYS have a sender phone number.
     const hasSender = !!(body.from || body.sender || body.chat_id);
+    const hasMedia = !!(body.attachments?.length || body.media?.length || body.mediaUrls?.length || body.files?.length || body.images?.length || body.media_url || body.image_url || body.mediaUrl || body.imageUrl);
+    const hasContent = !!(body.text || body.body || hasMedia);
     const hasExplicitType = body.type || body.event_type;
-    const eventType = hasExplicitType || (hasSender && body.text ? 'message' : 'status');
+    const eventType = hasExplicitType || (hasSender && hasContent ? 'message' : 'status');
 
-    if ((eventType === 'message' || body.text) && hasSender) {
+    if ((eventType === 'message' || hasContent) && hasSender) {
       // INBOUND MESSAGE — must have a sender phone
       await handleInboundMessage(body);
     } else if (eventType === 'status' || body.message_id || !hasSender) {

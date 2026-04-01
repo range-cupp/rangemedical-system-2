@@ -5505,7 +5505,7 @@ export default function PatientProfile() {
                           })()}
 
                           {/* ===== Weight Loss: Section 3 — Expanded Details ===== */}
-                          {isWeightLoss && isExpanded && wlLogs.length > 0 && (
+                          {isWeightLoss && isExpanded && (wlLogs.length > 0 || (protocol.total_sessions > 0 && protocol.start_date)) && (
                             <div className="wl-progress">
                               {/* Weight Chart */}
                               {chartData.length >= 2 && (() => {
@@ -5648,7 +5648,8 @@ export default function PatientProfile() {
                                       }
 
                                       // Check if all injections were dispensed at once (bulk shipment)
-                                      const bulkPickup = allWlLogs.find(l => l.quantity && l.quantity >= totalSlots);
+                                      // In-clinic protocols are never "all dispensed" — each injection is logged per visit
+                                      const bulkPickup = !isTakeHome ? null : allWlLogs.find(l => l.quantity && l.quantity >= totalSlots);
                                       const allDispensed = !!bulkPickup;
 
                                       // Build full slot schedule

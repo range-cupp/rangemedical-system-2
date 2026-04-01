@@ -184,43 +184,7 @@ Taking Injections as Scheduled: ${adherence === 'yes' ? 'Yes ✓' : 'No ⚠️'}
       }
     }
 
-    // Send thank-you SMS to patient
-    if (ghlApiKey && contact_id) {
-      try {
-        let thankYouMsg = `Thanks for checking in, ${firstName}! 🎉 Your feedback has been recorded.`;
-
-        if (feelingNum >= 4) {
-          thankYouMsg += `\n\nGlad to hear you're doing well! Keep up the great work with your recovery.`;
-        } else if (feelingNum === 3) {
-          thankYouMsg += `\n\nThanks for the update. If anything changes, don't hesitate to reach out.`;
-        } else {
-          thankYouMsg += `\n\nWe see you're not feeling your best — someone from our team will follow up with you shortly.`;
-        }
-
-        if (adherence !== 'yes') {
-          thankYouMsg += `\n\nConsistency is key for best results. If you're having trouble with your injection schedule, we can help.`;
-        }
-
-        thankYouMsg += `\n\n- Range Medical`;
-
-        await fetch('https://services.leadconnectorhq.com/conversations/messages', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${ghlApiKey}`,
-            'Version': '2021-04-15',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            type: 'SMS',
-            contactId: contact_id,
-            message: thankYouMsg
-          })
-        });
-        console.log('✓ Thank-you SMS sent to patient');
-      } catch (thankYouError) {
-        console.error('Thank-you SMS error:', thankYouError);
-      }
-    }
+    // Patient thank-you SMS disabled — only the weekly check-in cron sends texts now
 
     console.log('✓ Peptide check-in logged:', patient.name, `Feeling: ${feelingNum}/5`, `Adherence: ${adherence}`);
 

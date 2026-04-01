@@ -136,44 +136,7 @@ export default async function handler(req, res) {
       patientName: patient.name
     });
 
-    // Send confirmation SMS
-    if (GHL_API_KEY && contact_id) {
-      let confirmMsg;
-      if (opt_in) {
-        confirmMsg = `Thanks ${firstName}! You're signed up for weekly check-ins on your recovery peptide protocol. You'll get your first one around day 7. Quick & easy — just 30 seconds each week. 💪\n\n- Range Medical`;
-      } else {
-        confirmMsg = `Got it, ${firstName}. You won't receive weekly check-in texts. If you ever have questions about your protocol, just text us or call (949) 997-3988.\n\n- Range Medical`;
-      }
-
-      try {
-        await fetch('https://services.leadconnectorhq.com/conversations/messages', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${GHL_API_KEY}`,
-            'Version': '2021-04-15',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            type: 'SMS',
-            contactId: contact_id,
-            message: confirmMsg
-          })
-        });
-
-        await logComm({
-          channel: 'sms',
-          messageType: `${logType}_confirmation`,
-          message: confirmMsg,
-          source: 'peptide-checkin-optin',
-          patientId: patient.id,
-          protocolId: protocol.id,
-          ghlContactId: contact_id,
-          patientName: patient.name
-        });
-      } catch (smsError) {
-        console.error('Confirmation SMS error:', smsError);
-      }
-    }
+    // Confirmation SMS disabled — only the weekly check-in cron sends texts now
 
     console.log(`✓ Patient ${patient.name} opted ${opt_in ? 'IN' : 'OUT'} of peptide check-in texts (protocol ${protocol.id})`);
 

@@ -14,7 +14,9 @@ import {
   WEIGHT_LOSS_MEDICATIONS,
   WEIGHT_LOSS_DOSAGES,
   HRT_SUPPLY_TYPES,
+  HRT_MEDICATIONS,
   HRT_SECONDARY_MEDICATIONS,
+  HRT_SECONDARY_DOSAGES,
   INJECTION_MEDICATIONS,
   PEPTIDE_OPTIONS,
   IV_THERAPY_TYPES,
@@ -1587,24 +1589,24 @@ function CheckoutInner() {
                                       </div>
                                     </div>
 
-                                    {/* Medication */}
+                                    {/* Medication — HRT shows full med list including HCG */}
                                     <div style={styles.dispenseFieldGroup}>
                                       <label style={styles.fieldLabel}>Medication</label>
                                       {cat === 'testosterone' ? (
                                         <select
                                           value={dispMedication}
-                                          onChange={e => setDispMedication(e.target.value)}
+                                          onChange={e => { setDispMedication(e.target.value); setDispDosage(''); }}
                                           style={styles.fieldInput}
                                         >
                                           <option value="">Select medication...</option>
-                                          {(TESTOSTERONE_DOSES || []).map(d => (
-                                            <option key={d.value || d} value={d.value || d}>{d.label || d}</option>
+                                          {(HRT_MEDICATIONS || []).map(m => (
+                                            <option key={m} value={m}>{m}</option>
                                           ))}
                                         </select>
                                       ) : cat === 'weight_loss' ? (
                                         <select
                                           value={dispMedication}
-                                          onChange={e => setDispMedication(e.target.value)}
+                                          onChange={e => { setDispMedication(e.target.value); setDispDosage(''); }}
                                           style={styles.fieldInput}
                                         >
                                           <option value="">Select medication...</option>
@@ -1623,36 +1625,62 @@ function CheckoutInner() {
                                       )}
                                     </div>
 
-                                    {/* Dosage */}
-                                    {cat === 'weight_loss' && dispMedication ? (
-                                      <div style={styles.dispenseFieldGroup}>
-                                        <label style={styles.fieldLabel}>Dosage</label>
-                                        <select
-                                          value={dispDosage}
-                                          onChange={e => setDispDosage(e.target.value)}
-                                          style={styles.fieldInput}
-                                        >
-                                          <option value="">Select dosage...</option>
-                                          {(getDoseOptions(dispMedication) || WEIGHT_LOSS_DOSAGES || []).map(d => (
-                                            <option key={d.value || d} value={d.value || d}>{d.label || d}</option>
-                                          ))}
-                                        </select>
-                                      </div>
-                                    ) : (
-                                      <div style={styles.dispenseFieldGroup}>
-                                        <label style={styles.fieldLabel}>Dosage</label>
-                                        <input
-                                          type="text"
-                                          value={dispDosage}
-                                          onChange={e => setDispDosage(e.target.value)}
-                                          placeholder="e.g. 200mg/ml"
-                                          style={styles.fieldInput}
-                                        />
-                                      </div>
-                                    )}
+                                    {/* Dosage — context-aware based on medication */}
+                                    <div style={styles.dispenseFieldGroup}>
+                                      <label style={styles.fieldLabel}>Dosage</label>
+                                      {(() => {
+                                        // HRT: testosterone doses are gender-specific
+                                        if (cat === 'testosterone' && (dispMedication === 'Testosterone Cypionate' || dispMedication === 'Testosterone Enanthate')) {
+                                          const gender = dispCoverage?.patient_gender || 'male';
+                                          const doses = TESTOSTERONE_DOSES[gender] || TESTOSTERONE_DOSES.male || [];
+                                          return (
+                                            <select value={dispDosage} onChange={e => setDispDosage(e.target.value)} style={styles.fieldInput}>
+                                              <option value="">Select dose...</option>
+                                              {doses.map(d => (
+                                                <option key={d.value} value={d.value}>{d.label}</option>
+                                              ))}
+                                            </select>
+                                          );
+                                        }
+                                        // HRT: secondary meds (HCG, Gonadorelin, Nandrolone)
+                                        if (cat === 'testosterone' && HRT_SECONDARY_DOSAGES[dispMedication]) {
+                                          const secDoses = HRT_SECONDARY_DOSAGES[dispMedication].doses || [];
+                                          return (
+                                            <select value={dispDosage} onChange={e => setDispDosage(e.target.value)} style={styles.fieldInput}>
+                                              <option value="">Select dose...</option>
+                                              {secDoses.map(d => (
+                                                <option key={d} value={d}>{d}</option>
+                                              ))}
+                                            </select>
+                                          );
+                                        }
+                                        // Weight loss doses
+                                        if (cat === 'weight_loss' && dispMedication) {
+                                          const wlDoses = getDoseOptions('weight_loss', dispMedication) || [];
+                                          return (
+                                            <select value={dispDosage} onChange={e => setDispDosage(e.target.value)} style={styles.fieldInput}>
+                                              <option value="">Select dose...</option>
+                                              {wlDoses.map(d => (
+                                                <option key={d} value={d}>{d}</option>
+                                              ))}
+                                            </select>
+                                          );
+                                        }
+                                        // Default: free text
+                                        return (
+                                          <input
+                                            type="text"
+                                            value={dispDosage}
+                                            onChange={e => setDispDosage(e.target.value)}
+                                            placeholder="e.g. 200mg/ml"
+                                            style={styles.fieldInput}
+                                          />
+                                        );
+                                      })()}
+                                    </div>
 
-                                    {/* Supply type for HRT */}
-                                    {cat === 'testosterone' && (
+                                    {/* Supply type for HRT testosterone */}
+                                    {cat === 'testosterone' && (dispMedication === 'Testosterone Cypionate' || dispMedication === 'Testosterone Enanthate') && (
                                       <div style={styles.dispenseFieldGroup}>
                                         <label style={styles.fieldLabel}>Supply Type</label>
                                         <select
@@ -1662,7 +1690,7 @@ function CheckoutInner() {
                                         >
                                           <option value="">Select supply type...</option>
                                           {(HRT_SUPPLY_TYPES || []).map(s => (
-                                            <option key={s.value || s} value={s.value || s}>{s.label || s}</option>
+                                            <option key={s.value} value={s.value}>{s.label}</option>
                                           ))}
                                         </select>
                                       </div>

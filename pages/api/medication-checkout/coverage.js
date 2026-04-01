@@ -41,11 +41,17 @@ const CATEGORY_TO_PROTOCOL_TYPE = {
   red_light: ['rlt', 'red_light'],
   vitamin: ['vitamin', 'injection'],
   supplement: ['supplement'],
+  nad_injection: ['nad_injection', 'injection'],
+  injection: ['injection'],
+  labs: ['labs'],
+  prp: ['prp'],
+  packages: ['packages'],
+  combo_membership: ['combo_membership'],
 };
 
 // Categories that are NEVER covered — always a new paid purchase
 // Protocols exist for tracking/linking but don't grant zero-balance coverage
-const NEVER_COVERED_CATEGORIES = ['peptide', 'supplement'];
+const NEVER_COVERED_CATEGORIES = ['peptide', 'supplement', 'nad_injection', 'injection', 'labs', 'prp', 'packages'];
 
 // Categories where only session-based protocols with remaining sessions provide coverage
 // (not subscriptions, which are handled separately)
@@ -248,9 +254,15 @@ export default async function handler(req, res) {
         peptide: ['peptide', 'vials'],
         iv_therapy: ['iv_therapy'],
         hbot: ['hbot'],
-        red_light: ['red_light'],
+        red_light: ['red_light', 'regenerative'],
         vitamin: ['injections'],
         supplement: ['supplements'],
+        nad_injection: ['nad_injection'],
+        injection: ['injections'],
+        labs: ['labs'],
+        prp: ['prp'],
+        packages: ['packages'],
+        combo_membership: ['combo_membership'],
       };
       const posCategories = posCategoryMap[category] || [];
       // Also include the raw category name if not already present
@@ -260,7 +272,7 @@ export default async function handler(req, res) {
         const orFilter = posCategories.map(c => `category.eq.${c}`).join(',');
         const { data: services } = await supabase
           .from('pos_services')
-          .select('id, name, category, price_cents, recurring, interval')
+          .select('id, name, category, price_cents, recurring, interval, peptide_identifier')
           .eq('active', true)
           .or(orFilter)
           .order('sort_order', { ascending: true });
@@ -271,15 +283,21 @@ export default async function handler(req, res) {
           if (seen.has(s.id)) return false;
           seen.add(s.id);
           return true;
-        }).map(s => ({
-          id: s.id,
-          name: s.name,
-          category: s.category,
-          price_cents: s.price_cents,
-          price_display: `$${(s.price_cents / 100).toFixed(2)}`,
-          recurring: s.recurring,
-          interval: s.interval,
-        }));
+        }).map(s => {
+          // For peptides, show the actual peptide name instead of generic Stripe product name
+          const displayName = s.peptide_identifier
+            ? `${s.peptide_identifier} — ${s.name}`
+            : s.name;
+          return {
+            id: s.id,
+            name: displayName,
+            category: s.category,
+            price_cents: s.price_cents,
+            price_display: `$${(s.price_cents / 100).toFixed(2)}`,
+            recurring: s.recurring,
+            interval: s.interval,
+          };
+        });
       }
     }
 

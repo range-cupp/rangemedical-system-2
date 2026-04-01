@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     });
 
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250514',
+      model: 'claude-sonnet-4-20250514',
       max_tokens: 4096,
       system: `You are an email designer for Range Medical, a regenerative medicine and wellness clinic in Newport Beach, CA. You generate complete, production-ready HTML marketing emails.
 

@@ -77,7 +77,8 @@ export default async function handler(req, res) {
       .select('gender')
       .eq('id', patient_id)
       .single();
-    const patient_gender = patientInfo?.gender || null;
+    const rawGender = (patientInfo?.gender || '').toLowerCase().trim();
+    const patient_gender = rawGender.startsWith('f') ? 'female' : rawGender.startsWith('m') ? 'male' : null;
 
     // Fetch active subscriptions for this patient
     const { data: subscriptions } = await supabase

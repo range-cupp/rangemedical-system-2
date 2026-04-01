@@ -83,14 +83,37 @@ async function handleInboundMessage(body) {
   const messageText = body.text || body.body || '';
   const messageId = body.message_id || body.id || null;
 
-  // Extract media/attachments (images, files)
-  const attachments = body.attachments || body.media || [];
+  // Log full payload keys + any media-related fields for debugging
+  const bodyKeys = Object.keys(body);
+  const mediaFields = bodyKeys.filter(k =>
+    /media|attach|image|file|url|asset|content/i.test(k)
+  );
+  if (mediaFields.length > 0 || !messageText) {
+    console.log(`Blooio payload keys: ${JSON.stringify(bodyKeys)}`);
+    const mediaSnapshot = {};
+    for (const k of mediaFields) {
+      mediaSnapshot[k] = body[k];
+    }
+    if (Object.keys(mediaSnapshot).length > 0) {
+      console.log(`Blooio media fields: ${JSON.stringify(mediaSnapshot).substring(0, 500)}`);
+    }
+  }
+
+  // Extract media/attachments — check all known Blooio field names
+  const attachments = body.attachments || body.media || body.mediaUrls || body.files || body.images || [];
   const mediaUrls = Array.isArray(attachments)
-    ? attachments.map(a => a.url || a.media_url || a).filter(Boolean)
+    ? attachments.map(a => typeof a === 'string' ? a : (a.url || a.media_url || a.payload?.url || a.src || a.link || '')).filter(Boolean)
     : [];
+
+  // Also check for single media_url or image_url field
+  if (mediaUrls.length === 0) {
+    const singleUrl = body.media_url || body.image_url || body.mediaUrl || body.imageUrl || body.file_url || body.fileUrl || '';
+    if (singleUrl) mediaUrls.push(singleUrl);
+  }
+
   const mediaUrlJson = mediaUrls.length > 0 ? JSON.stringify(mediaUrls) : null;
 
-  console.log(`Inbound iMessage/SMS from ${senderPhone}: ${messageText}`);
+  console.log(`Inbound iMessage/SMS from ${senderPhone}: ${messageText}${mediaUrlJson ? ` [media: ${mediaUrlJson}]` : ''}`);
 
   // ================================================================
   // STAFF BOT: Check if sender is a staff member — route to bot if so

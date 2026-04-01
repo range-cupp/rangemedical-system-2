@@ -59,7 +59,6 @@ export default function Layout({ children, title, description }) {
                 </div>
               </div>
 
-              <Link href="/services" className="rm-nav-link">Services</Link>
               <Link href="/lab-panels" className="rm-nav-link">Labs</Link>
               <Link href="/grand-opening" className="rm-nav-link">Grand Opening</Link>
             </div>
@@ -109,9 +108,9 @@ export default function Layout({ children, title, description }) {
               <Link href="/prp-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>PRP Therapy</Link>
               <Link href="/exosome-therapy" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Exosome Therapy</Link>
               <Link href="/methylene-blue" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Methylene Blue</Link>
+              <Link href="/services" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)} style={{ fontWeight: 600, color: '#1a1a1a', marginTop: '0.25rem' }}>View All Services →</Link>
             </div>
           )}
-          <Link href="/services" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>All Services</Link>
           <Link href="/lab-panels" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Labs & Testing</Link>
           <Link href="/grand-opening" className="rm-mobile-link" onClick={() => setMobileMenuOpen(false)}>Grand Opening</Link>
           <Link href="/start" className="rm-mobile-cta" onClick={() => setMobileMenuOpen(false)}>START HERE</Link>

@@ -4236,7 +4236,7 @@ export default function PatientProfile() {
                     {allPurchases.slice(0, 3).map(p => {
                       const date = p.purchase_date || p.created_at;
                       const dateStr = date ? new Date(date + (date.includes('T') ? '' : 'T00:00:00')).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
-                      const amount = p.amount_cents ? `$${(p.amount_cents / 100).toFixed(0)}` : (p.original_amount ? `$${Number(p.original_amount).toFixed(0)}` : '');
+                      const amount = p.amount_paid ? `$${Number(p.amount_paid).toFixed(0)}` : '';
                       const itemName = p.service_name || p.description || 'Payment';
                       return (
                         <div key={p.id} className="synopsis-payment-row" onClick={() => { setActiveTab('payments'); }}>
@@ -5306,6 +5306,20 @@ export default function PatientProfile() {
                               ) : (
                                 <span style={{ color: '#9ca3af' }}>No weight data yet</span>
                               )}
+                              {protocol.goal_weight && (
+                                <>
+                                  <span style={{ color: '#d1d5db' }}>|</span>
+                                  <span>
+                                    <span style={{ color: '#6b7280' }}>Goal: </span>
+                                    <strong style={{ color: '#3b82f6' }}>{protocol.goal_weight} lbs</strong>
+                                    {currentWeight && (
+                                      <span style={{ color: currentWeight <= protocol.goal_weight ? '#16a34a' : '#6b7280', fontWeight: 600, marginLeft: 4 }}>
+                                        {currentWeight <= protocol.goal_weight ? '(reached!)' : `(${(currentWeight - protocol.goal_weight).toFixed(1)} to go)`}
+                                      </span>
+                                    )}
+                                  </span>
+                                </>
+                              )}
                               {(startingDose || currentDose) && (
                                 <>
                                   <span style={{ color: '#d1d5db' }}>|</span>
@@ -5635,7 +5649,8 @@ export default function PatientProfile() {
                                       <th>Date</th>
                                       <th>Dose</th>
                                       <th>Weight</th>
-                                      <th>Change</th>
+                                      <th>Weekly</th>
+                                      <th>Total</th>
                                       <th style={{ width: 40 }}></th>
                                     </tr>
                                   </thead>
@@ -5649,7 +5664,15 @@ export default function PatientProfile() {
 
                                       // Ongoing protocols (no total_sessions) — just show actual logs
                                       if (!totalSlots || !startStr) {
-                                        return wlLogs.flatMap((log, i) => {
+                                        // Get first weight for "Total" column
+                                      const firstOngoingWeight = (() => {
+                                        for (const l of wlLogs) {
+                                          const w = l.weight ? parseFloat(l.weight) : findVitalsWeight(l.entry_date);
+                                          if (w) return w;
+                                        }
+                                        return null;
+                                      })();
+                                      return wlLogs.flatMap((log, i) => {
                                           const logW = log.weight ? parseFloat(log.weight) : null;
                                           const vitW = !logW ? findVitalsWeight(log.entry_date) : null;
                                           const curWeight = logW || vitW;
@@ -5660,16 +5683,21 @@ export default function PatientProfile() {
                                             if (pw) { prevWeight = pw; break; }
                                           }
                                           const delta = prevWeight && curWeight ? (curWeight - prevWeight).toFixed(1) : null;
+                                          const totalDelta = firstOngoingWeight && curWeight && i > 0 ? (curWeight - firstOngoingWeight).toFixed(1) : null;
+                                          const isFirstRow = i === 0;
                                           const logSideEffects = parseSideEffects(log.notes);
                                           const elements = [
-                                            <tr key={log.id} className="wl-editable-row" onClick={() => openEditInjection(log)} title="Click to edit">
+                                            <tr key={log.id} className="wl-editable-row" onClick={() => openEditInjection(log)} title="Click to edit" style={isFirstRow ? { background: '#f0f9ff', borderLeft: '3px solid #3b82f6' } : {}}>
                                               <td style={{ color: '#9ca3af', fontSize: 12 }}>{i + 1}</td>
                                               <td>{formatShortDate(log.entry_date)}</td>
                                               <td>{log.dosage || '\u2014'}</td>
-                                              <td>{curWeight ? <>{curWeight} lbs{vitW && <span style={{ color: '#3b82f6', fontSize: 9, marginLeft: 4 }} title="From vitals flowsheet">V</span>}</> : '\u2014'}</td>
+                                              <td style={isFirstRow ? { fontWeight: 700 } : {}}>{curWeight ? <>{curWeight} lbs{isFirstRow && <span style={{ fontSize: 9, color: '#3b82f6', marginLeft: 4, fontWeight: 600 }}>START</span>}{vitW && <span style={{ color: '#3b82f6', fontSize: 9, marginLeft: 4 }} title="From vitals flowsheet">V</span>}</> : '\u2014'}</td>
                                               <td style={{ color: delta && parseFloat(delta) < 0 ? '#16a34a' : delta && parseFloat(delta) > 0 ? '#dc2626' : '#666' }}>
                                                 {delta ? (parseFloat(delta) > 0 ? `+${delta}` : delta) + ' lbs' : '\u2014'}
                                                 {logSideEffects && <span style={{ marginLeft: 6, color: '#dc2626', fontSize: 11 }}>{'\u26A0\uFE0F'}</span>}
+                                              </td>
+                                              <td style={{ color: totalDelta && parseFloat(totalDelta) < 0 ? '#16a34a' : totalDelta && parseFloat(totalDelta) > 0 ? '#dc2626' : '#666', fontWeight: totalDelta ? 600 : 400 }}>
+                                                {isFirstRow ? '\u2014' : totalDelta ? (parseFloat(totalDelta) > 0 ? `+${totalDelta}` : totalDelta) + ' lbs' : '\u2014'}
                                               </td>
                                               <td style={{ textAlign: 'center' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></td>
                                             </tr>
@@ -5678,7 +5706,7 @@ export default function PatientProfile() {
                                             elements.push(
                                               <tr key={log.id + '-se'} style={{ background: '#fef2f2' }}>
                                                 <td></td>
-                                                <td colSpan={5} style={{ color: '#dc2626', fontSize: 11, padding: '2px 8px 6px', fontStyle: 'italic' }}>
+                                                <td colSpan={6} style={{ color: '#dc2626', fontSize: 11, padding: '2px 8px 6px', fontStyle: 'italic' }}>
                                                   Side effects: {logSideEffects}
                                                 </td>
                                               </tr>
@@ -5731,6 +5759,16 @@ export default function PatientProfile() {
                                       });
                                       const slots = slotsRaw;
 
+                                      // Get starting weight for "Total" column
+                                      const firstSlotWeight = (() => {
+                                        for (const s of slots) {
+                                          if (!s.log) continue;
+                                          const w = s.log.weight ? parseFloat(s.log.weight) : findVitalsWeight(s.log.entry_date);
+                                          if (w) return w;
+                                        }
+                                        return null;
+                                      })();
+
                                       const rows = slots.flatMap(slot => {
                                         // Bulk dispensed slot without a log
                                         if (allDispensed && !slot.log) {
@@ -5743,7 +5781,7 @@ export default function PatientProfile() {
                                               <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
                                               <td>{formatShortDate(slot.expStr)}</td>
                                               <td>{doseLabel}</td>
-                                              <td colSpan={2} style={{ color: '#16a34a', fontSize: 12 }}>
+                                              <td colSpan={3} style={{ color: '#16a34a', fontSize: 12 }}>
                                                 {'\u2713'} Dispensed {shipDate}{fulfillment === 'overnight' ? ' \u00B7 📦 Shipped' : fulfillment === 'in_clinic' ? ' \u00B7 🏥 Pickup' : ''}
                                               </td>
                                               <td></td>
@@ -5756,6 +5794,7 @@ export default function PatientProfile() {
                                           const logWeight = slot.log.weight ? parseFloat(slot.log.weight) : null;
                                           const vitalsWeight = !logWeight ? findVitalsWeight(slot.log.entry_date) : null;
                                           const effectiveWeight = logWeight || vitalsWeight;
+                                          const isFirstSlot = slot.num === 1;
                                           // Find previous effective weight for change calculation
                                           const prevSlot = slots.slice(0, slot.num - 1).reverse().find(s => {
                                             if (!s.log) return false;
@@ -5765,17 +5804,21 @@ export default function PatientProfile() {
                                             ? parseFloat(prevSlot.log.weight)
                                             : (prevSlot?.log ? findVitalsWeight(prevSlot.log.entry_date) : null);
                                           const delta = prevWeight && effectiveWeight ? (effectiveWeight - prevWeight).toFixed(1) : null;
+                                          const totalDelta = firstSlotWeight && effectiveWeight && !isFirstSlot ? (effectiveWeight - firstSlotWeight).toFixed(1) : null;
                                           const fulfillment = slot.log.fulfillment_method;
                                           const slotSideEffects = parseSideEffects(slot.log.notes);
                                           const rowElements = [
-                                            <tr key={slot.log.id} className="wl-editable-row" onClick={() => openEditInjection(slot.log)} title="Click to edit or delete">
+                                            <tr key={slot.log.id} className="wl-editable-row" onClick={() => openEditInjection(slot.log)} title="Click to edit or delete" style={isFirstSlot ? { background: '#f0f9ff', borderLeft: '3px solid #3b82f6' } : {}}>
                                               <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
                                               <td>{formatShortDate(slot.log.entry_date)}{fulfillment === 'overnight' ? <span style={{ marginLeft: 4, fontSize: 11 }}>📦</span> : fulfillment === 'in_clinic' ? <span style={{ marginLeft: 4, fontSize: 11 }}>🏥</span> : ''}</td>
                                               <td>{parseDose(slot.log.dosage) || slot.log.dosage || '\u2014'}</td>
-                                              <td>{effectiveWeight ? <>{effectiveWeight} lbs{vitalsWeight && <span style={{ color: '#3b82f6', fontSize: 9, marginLeft: 4 }} title="From vitals flowsheet">V</span>}</> : '\u2014'}</td>
+                                              <td style={isFirstSlot ? { fontWeight: 700 } : {}}>{effectiveWeight ? <>{effectiveWeight} lbs{isFirstSlot && <span style={{ fontSize: 9, color: '#3b82f6', marginLeft: 4, fontWeight: 600 }}>START</span>}{vitalsWeight && <span style={{ color: '#3b82f6', fontSize: 9, marginLeft: 4 }} title="From vitals flowsheet">V</span>}</> : '\u2014'}</td>
                                               <td style={{ color: delta && parseFloat(delta) < 0 ? '#16a34a' : delta && parseFloat(delta) > 0 ? '#dc2626' : '#666' }}>
                                                 {delta ? (parseFloat(delta) > 0 ? `+${delta}` : delta) + ' lbs' : '\u2014'}
                                                 {slotSideEffects && <span style={{ marginLeft: 6, color: '#dc2626', fontSize: 11 }}>{'\u26A0\uFE0F'}</span>}
+                                              </td>
+                                              <td style={{ color: totalDelta && parseFloat(totalDelta) < 0 ? '#16a34a' : totalDelta && parseFloat(totalDelta) > 0 ? '#dc2626' : '#666', fontWeight: totalDelta ? 600 : 400 }}>
+                                                {isFirstSlot ? '\u2014' : totalDelta ? (parseFloat(totalDelta) > 0 ? `+${totalDelta}` : totalDelta) + ' lbs' : '\u2014'}
                                               </td>
                                               <td style={{ textAlign: 'center' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></td>
                                             </tr>
@@ -5784,7 +5827,7 @@ export default function PatientProfile() {
                                             rowElements.push(
                                               <tr key={slot.log.id + '-se'} style={{ background: '#fef2f2' }}>
                                                 <td></td>
-                                                <td colSpan={5} style={{ color: '#dc2626', fontSize: 11, padding: '2px 8px 6px', fontStyle: 'italic' }}>
+                                                <td colSpan={6} style={{ color: '#dc2626', fontSize: 11, padding: '2px 8px 6px', fontStyle: 'italic' }}>
                                                   Side effects: {slotSideEffects}
                                                 </td>
                                               </tr>
@@ -5806,6 +5849,7 @@ export default function PatientProfile() {
                                                 <td style={{ color: '#9ca3af' }}>{currentDose || '\u2014'}</td>
                                                 <td>{emptyVitalsWeight ? <span style={{ color: '#3b82f6' }}>{emptyVitalsWeight} lbs <span style={{ fontSize: 9 }} title="From vitals flowsheet">V</span></span> : <span style={{ color: '#9ca3af' }}>{'\u2014'}</span>}</td>
                                                 <td style={{ color: '#9ca3af', fontStyle: 'italic', fontSize: 11 }}>Click to add weight</td>
+                                                <td></td>
                                                 <td style={{ textAlign: 'center', color: '#9ca3af', fontWeight: 700, fontSize: 14 }}>+</td>
                                               </tr>
                                             );
@@ -5820,6 +5864,7 @@ export default function PatientProfile() {
                                                 <td style={{ color: '#1e40af' }}>{currentDose || '\u2014'}</td>
                                                 <td>{emptyVitalsWeight ? <span style={{ color: '#3b82f6' }}>{emptyVitalsWeight} lbs <span style={{ fontSize: 9 }} title="From vitals flowsheet">V</span></span> : <span style={{ color: '#6b7280' }}>{'\u2014'}</span>}</td>
                                                 <td style={{ color: '#3b82f6', fontStyle: 'italic', fontSize: 11 }}>Log injection</td>
+                                                <td></td>
                                                 <td style={{ textAlign: 'center', color: '#3b82f6', fontWeight: 700, fontSize: 14 }}>+</td>
                                               </tr>
                                             );
@@ -5830,7 +5875,7 @@ export default function PatientProfile() {
                                           <tr key={'future-' + slot.num} style={{ opacity: 0.35 }}>
                                             <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
                                             <td style={{ color: '#9ca3af' }}>{formatShortDate(slot.expStr)}</td>
-                                            <td colSpan={3} style={{ color: '#9ca3af', fontStyle: 'italic' }}>Upcoming</td>
+                                            <td colSpan={4} style={{ color: '#9ca3af', fontStyle: 'italic' }}>Upcoming</td>
                                             <td></td>
                                           </tr>
                                         );
@@ -5844,6 +5889,7 @@ export default function PatientProfile() {
                                         const vitW = !logW ? findVitalsWeight(log.entry_date) : null;
                                         const curWeight = logW || vitW;
                                         const delta = pW && curWeight ? (curWeight - pW).toFixed(1) : null;
+                                        const extraTotalDelta = firstSlotWeight && curWeight ? (curWeight - firstSlotWeight).toFixed(1) : null;
                                         rows.push(
                                           <tr key={'extra-' + log.id} className="wl-editable-row" onClick={() => openEditInjection(log)} title="Click to edit or delete">
                                             <td style={{ color: '#9ca3af', fontSize: 12 }}>+</td>
@@ -5851,6 +5897,7 @@ export default function PatientProfile() {
                                             <td>{log.dosage || '\u2014'}</td>
                                             <td>{curWeight ? <>{curWeight} lbs{vitW && <span style={{ color: '#3b82f6', fontSize: 9, marginLeft: 4 }} title="From vitals flowsheet">V</span>}</> : '\u2014'}</td>
                                             <td style={{ color: delta && parseFloat(delta) < 0 ? '#16a34a' : delta && parseFloat(delta) > 0 ? '#dc2626' : '#666' }}>{delta ? (parseFloat(delta) > 0 ? `+${delta}` : delta) + ' lbs' : '\u2014'}</td>
+                                            <td style={{ color: extraTotalDelta && parseFloat(extraTotalDelta) < 0 ? '#16a34a' : extraTotalDelta && parseFloat(extraTotalDelta) > 0 ? '#dc2626' : '#666', fontWeight: extraTotalDelta ? 600 : 400 }}>{extraTotalDelta ? (parseFloat(extraTotalDelta) > 0 ? `+${extraTotalDelta}` : extraTotalDelta) + ' lbs' : '\u2014'}</td>
                                             <td style={{ textAlign: 'center' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></td>
                                           </tr>
                                         );

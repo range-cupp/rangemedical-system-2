@@ -49,7 +49,7 @@ export default async function handler(req, res) {
     supabase.from('patient_notes').select('body, note_date, created_by, source, note_category, created_at').eq('patient_id', patient_id).order('note_date', { ascending: false }).limit(15),
     supabase.from('protocols').select('program_name, program_type, medication, status, start_date, selected_dose, delivery_method, total_sessions, sessions_used, next_expected_date').eq('patient_id', patient_id).order('created_at', { ascending: false }).limit(20),
     supabase.from('service_logs').select('service_type, service_date, notes, employee_name').eq('patient_id', patient_id).order('service_date', { ascending: false }).limit(15),
-    supabase.from('purchases').select('description, amount_cents, purchase_date, status').eq('patient_id', patient_id).order('purchase_date', { ascending: false }).limit(10),
+    supabase.from('purchases').select('description, amount_paid, purchase_date, status').eq('patient_id', patient_id).order('purchase_date', { ascending: false }).limit(10),
   ]);
 
   if (!patient) return res.status(404).json({ error: 'Patient not found' });
@@ -126,7 +126,7 @@ export default async function handler(req, res) {
   if (purchases?.length > 0) {
     context += `\nRECENT PURCHASES:\n`;
     purchases.forEach(p => {
-      const amount = p.amount_cents ? `$${(p.amount_cents / 100).toFixed(0)}` : '';
+      const amount = p.amount_paid ? `$${Number(p.amount_paid).toFixed(0)}` : '';
       context += `- ${p.purchase_date || 'Unknown'}: ${p.description || 'Purchase'} ${amount}\n`;
     });
   }

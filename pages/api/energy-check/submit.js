@@ -28,6 +28,9 @@ function capitalizeName(name) {
 }
 
 export default async function handler(req, res) {
+  // DISABLED — energy check funnel turned off 2026-04-01
+  return res.status(200).json({ disabled: true, reason: 'Energy check funnel disabled' });
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

@@ -70,10 +70,6 @@
       "schedule": "0 16 * * *"
     },
     {
-      "path": "/api/cron/energy-check-nurture",
-      "schedule": "0 15 * * *"
-    },
-    {
       "path": "/api/cron/daily-sales-report",
       "schedule": "0 3 * * *"
     },

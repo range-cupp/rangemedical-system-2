@@ -50,6 +50,9 @@ const STEPS = [
 ];
 
 export default async function handler(req, res) {
+  // DISABLED — energy check funnel turned off 2026-04-01
+  return res.status(200).json({ disabled: true, reason: 'Energy check nurture disabled' });
+
   // Auth
   const cronSecret = req.headers['x-cron-secret'];
   const authHeader = req.headers.authorization;

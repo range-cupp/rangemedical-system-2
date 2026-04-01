@@ -5129,7 +5129,11 @@ export default function PatientProfile() {
                       const lastActivity = protoServiceLogs[0]; // most recent of any type
                       const lastInClinic = protoServiceLogs.find(l => l.fulfillment_method === 'in_clinic' || l.entry_type === 'session' || (l.entry_type === 'injection' && l.fulfillment_method !== 'overnight'));
                       const lastTakeHome = protoServiceLogs.find(l => l.entry_type === 'pickup' || l.fulfillment_method === 'overnight');
-                      const sessionsCompleted = protocol.sessions_used || protocol.sessions_completed || protoServiceLogs.filter(l => ['injection', 'session'].includes(l.entry_type)).length;
+                      // For weight loss: always count from actual logs (service_logs is source of truth)
+                      // For other protocols: use DB counter with log count fallback
+                      const sessionsCompleted = isWeightLoss
+                        ? wlLogs.length
+                        : (protocol.sessions_used || protocol.sessions_completed || protoServiceLogs.filter(l => ['injection', 'session'].includes(l.entry_type)).length);
                       const sessionsTotal = protocol.total_sessions || protocol.sessions_total;
                       // Aggregate side effects from all service logs
                       const logsWithSideEffects = protoServiceLogs
@@ -5344,7 +5348,7 @@ export default function PatientProfile() {
                               )}
                               <span style={{ color: '#d1d5db' }}>|</span>
                               <span>
-                                <strong>{protocol.sessions_used ?? wlLogs.filter(l => l.entry_type === 'injection').length}</strong>
+                                <strong>{wlLogs.length}</strong>
                                 {protocol.total_sessions ? <span style={{ color: '#6b7280' }}> of {protocol.total_sessions}</span> : ''}
                                 <span style={{ color: '#6b7280' }}> injections</span>
                               </span>

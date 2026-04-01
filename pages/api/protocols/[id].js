@@ -136,6 +136,7 @@ async function getProtocol(id, res) {
       weightProgress = {
         startingWeight,
         currentWeight,
+        goalWeight: data.goal_weight ? parseFloat(data.goal_weight) : null,
         change: change.toFixed(1),
         changePercent: ((change / startingWeight) * 100).toFixed(1),
         isLoss: change < 0
@@ -171,6 +172,7 @@ async function updateProtocol(id, updates, res) {
     'program_name',
     'program_type',
     'starting_weight',
+    'goal_weight',
     // Peptide vial fields
     'num_vials',
     'doses_per_vial',

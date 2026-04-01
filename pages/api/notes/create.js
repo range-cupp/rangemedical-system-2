@@ -322,6 +322,14 @@ export default async function handler(req, res) {
               }
             }
 
+            // Sync goal weight from encounter note (always update to latest)
+            if (structured_data.weight_vitals.goal_weight) {
+              const goalWeight = parseFloat(structured_data.weight_vitals.goal_weight);
+              if (!isNaN(goalWeight)) {
+                protocolUpdates.goal_weight = goalWeight;
+              }
+            }
+
             await supabase
               .from('protocols')
               .update(protocolUpdates)

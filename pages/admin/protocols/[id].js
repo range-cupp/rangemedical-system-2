@@ -1058,9 +1058,13 @@ export default function ProtocolDetail() {
   const sessionsCompleted = protocol?.sessions_completed || protocol?.sessions_used || 0;
   const sessionsRemaining = totalSessions - sessionsCompleted;
 
-  // Weight loss: sessions_used is the source of truth (actual logged injections)
+  // Weight loss: derive count from actual injection logs, not the DB counter
+  // The DB counter (sessions_used) drifts when entries are created via encounter notes,
+  // backfills, or manual edits. injectionLogs is the real source of truth.
   const wlTotalInjections = protocol?.total_sessions || 4;
-  const wlSessionsUsed = protocol?.sessions_used || 0;
+  const wlSessionsUsed = isWeightLoss && injectionLogs.length > 0
+    ? injectionLogs.filter(l => l.log_type !== 'missed').length
+    : (protocol?.sessions_used || 0);
   const wlInjectionsRemaining = wlTotalInjections - wlSessionsUsed;
 
   // HRT ongoing calculations
@@ -1668,6 +1672,21 @@ export default function ProtocolDetail() {
                     </div>
                     <div style={{ fontSize: '11px', color: '#9ca3af' }}>lbs ({weightProgress.changePercent}%)</div>
                   </div>
+                  {weightProgress.goalWeight && (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', fontSize: '24px', color: '#d1d5db' }}>→</div>
+                      <div>
+                        <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Goal</div>
+                        <div style={{ fontSize: '24px', fontWeight: '700', color: '#3b82f6' }}>{weightProgress.goalWeight}</div>
+                        <div style={{ fontSize: '11px', color: '#9ca3af' }}>
+                          {parseFloat(weightProgress.currentWeight) > weightProgress.goalWeight
+                            ? `${(parseFloat(weightProgress.currentWeight) - weightProgress.goalWeight).toFixed(1)} to go`
+                            : 'reached!'
+                          }
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             )}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
 import Head from 'next/head';
 
@@ -12,6 +12,11 @@ export default function JoinReferralProgram() {
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
   const [resent, setResent] = useState(false);
+
+  // Scroll to top on mode change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [mode]);
 
   // Try to look up existing partner by email
   const handleLookup = async (e) => {

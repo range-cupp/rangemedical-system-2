@@ -1,5 +1,5 @@
 // /pages/admin/google-reviews.js
-// Google Review request sender — send personalized review link one-by-one
+// Google Review request sender — two-step: ask for review, then send gift after verified
 // Range Medical System V2
 
 import { useState, useEffect, useRef } from 'react';
@@ -7,20 +7,25 @@ import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
 
 const GOOGLE_REVIEW_URL = 'https://g.page/r/CR-a12vKevOkEAI/review';
 
-const DEFAULT_MESSAGE = `Hey {first_name}, it's Chris from Range Medical. If you have a sec, would you mind leaving us an honest Google review? It really helps us out and I'd appreciate it.\n\n{review_link}\n\nAs a thank you, here's a free injection on us. Pick the one you want and book a time:\n\n{gift_link}`;
+const REVIEW_MESSAGE = `Hey {first_name}, it's Chris from Range Medical. If you have a sec, would you mind leaving us an honest Google review? It really helps us out and I'd appreciate it. Leave us a review and I'll send you a free injection as a thank you.\n\n{review_link}`;
+
+const GIFT_MESSAGE = `Hey {first_name}, thanks for leaving us a review! As promised, here's your free injection. Pick the one you want and book a time:\n\n{gift_link}`;
 
 export default function GoogleReviewsPage() {
   const [patients, setPatients] = useState([]);
-  const [sentMap, setSentMap] = useState({});
+  const [sentMap, setSentMap] = useState({}); // patient_id -> { reviewSent, giftSent }
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState('not_sent'); // 'all' | 'not_sent' | 'sent'
-  const [messageTemplate, setMessageTemplate] = useState(DEFAULT_MESSAGE);
+  const [filter, setFilter] = useState('not_sent'); // 'all' | 'not_sent' | 'review_sent' | 'gift_sent'
+  const [reviewTemplate, setReviewTemplate] = useState(REVIEW_MESSAGE);
+  const [giftTemplate, setGiftTemplate] = useState(GIFT_MESSAGE);
   const [sendingId, setSendingId] = useState(null);
   const [previewPatient, setPreviewPatient] = useState(null);
+  const [previewMode, setPreviewMode] = useState('review'); // 'review' | 'gift'
   const [editedMessage, setEditedMessage] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [templateTab, setTemplateTab] = useState('review'); // which template to show
   const searchRef = useRef(null);
 
   useEffect(() => {
@@ -40,20 +45,23 @@ export default function GoogleReviewsPage() {
     }
   };
 
-  const buildMessage = (patient) => {
+  const buildMessage = (patient, mode) => {
     const firstName = patient.first_name || 'there';
-    let msg = messageTemplate.replace(/{first_name}/g, firstName);
+    const template = mode === 'gift' ? giftTemplate : reviewTemplate;
+    let msg = template.replace(/{first_name}/g, firstName);
     msg = msg.replace(/{review_link}/g, GOOGLE_REVIEW_URL);
+    // {gift_link} stays as-is — replaced server-side
     return msg;
   };
 
-  const openPreview = (patient) => {
+  const openPreview = (patient, mode) => {
     setPreviewPatient(patient);
-    setEditedMessage(buildMessage(patient));
+    setPreviewMode(mode);
+    setEditedMessage(buildMessage(patient, mode));
     setErrorMsg('');
   };
 
-  const sendReview = async () => {
+  const sendMessage = async () => {
     if (!previewPatient) return;
     setSendingId(previewPatient.id);
     setErrorMsg('');
@@ -67,6 +75,7 @@ export default function GoogleReviewsPage() {
           patient_name: `${previewPatient.first_name} ${previewPatient.last_name}`.trim(),
           phone: previewPatient.phone,
           message: editedMessage,
+          message_type: previewMode, // 'review' or 'gift'
           provider: 'blooio',
         }),
       });
@@ -74,8 +83,19 @@ export default function GoogleReviewsPage() {
       const data = await res.json();
 
       if (data.success) {
-        setSentMap(prev => ({ ...prev, [previewPatient.id]: new Date().toISOString() }));
-        setSuccessMsg(`Sent to ${previewPatient.first_name}!`);
+        setSentMap(prev => ({
+          ...prev,
+          [previewPatient.id]: {
+            ...(prev[previewPatient.id] || {}),
+            ...(previewMode === 'review'
+              ? { reviewSent: new Date().toISOString() }
+              : { giftSent: new Date().toISOString() }),
+          },
+        }));
+        setSuccessMsg(previewMode === 'gift'
+          ? `Gift sent to ${previewPatient.first_name}!`
+          : `Review request sent to ${previewPatient.first_name}!`
+        );
         setPreviewPatient(null);
         setTimeout(() => setSuccessMsg(''), 3000);
       } else {
@@ -92,13 +112,16 @@ export default function GoogleReviewsPage() {
   const filtered = patients.filter(p => {
     const name = `${p.first_name} ${p.last_name}`.toLowerCase();
     if (search && !name.includes(search.toLowerCase())) return false;
-    if (filter === 'not_sent' && sentMap[p.id]) return false;
-    if (filter === 'sent' && !sentMap[p.id]) return false;
+    const status = sentMap[p.id];
+    if (filter === 'not_sent' && status) return false;
+    if (filter === 'review_sent' && (!status || !status.reviewSent || status.giftSent)) return false;
+    if (filter === 'gift_sent' && (!status || !status.giftSent)) return false;
     return true;
   });
 
-  const sentCount = patients.filter(p => sentMap[p.id]).length;
-  const notSentCount = patients.length - sentCount;
+  const notSentCount = patients.filter(p => !sentMap[p.id]).length;
+  const reviewSentCount = patients.filter(p => sentMap[p.id]?.reviewSent && !sentMap[p.id]?.giftSent).length;
+  const giftSentCount = patients.filter(p => sentMap[p.id]?.giftSent).length;
 
   return (
     <AdminLayout title="Google Reviews">
@@ -106,54 +129,83 @@ export default function GoogleReviewsPage() {
         {/* Header stats */}
         <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
           <div style={{ ...sharedStyles.card, flex: 1, textAlign: 'center', padding: 20 }}>
-            <div style={{ fontSize: 28, fontWeight: 700, color: '#111' }}>{patients.length}</div>
-            <div style={{ fontSize: 13, color: '#666', marginTop: 4 }}>Total Patients</div>
-          </div>
-          <div style={{ ...sharedStyles.card, flex: 1, textAlign: 'center', padding: 20 }}>
-            <div style={{ fontSize: 28, fontWeight: 700, color: '#22c55e' }}>{sentCount}</div>
-            <div style={{ fontSize: 13, color: '#666', marginTop: 4 }}>Sent</div>
-          </div>
-          <div style={{ ...sharedStyles.card, flex: 1, textAlign: 'center', padding: 20 }}>
             <div style={{ fontSize: 28, fontWeight: 700, color: '#f59e0b' }}>{notSentCount}</div>
-            <div style={{ fontSize: 13, color: '#666', marginTop: 4 }}>Remaining</div>
+            <div style={{ fontSize: 13, color: '#666', marginTop: 4 }}>Not Sent</div>
+          </div>
+          <div style={{ ...sharedStyles.card, flex: 1, textAlign: 'center', padding: 20 }}>
+            <div style={{ fontSize: 28, fontWeight: 700, color: '#3b82f6' }}>{reviewSentCount}</div>
+            <div style={{ fontSize: 13, color: '#666', marginTop: 4 }}>Awaiting Review</div>
+          </div>
+          <div style={{ ...sharedStyles.card, flex: 1, textAlign: 'center', padding: 20 }}>
+            <div style={{ fontSize: 28, fontWeight: 700, color: '#22c55e' }}>{giftSentCount}</div>
+            <div style={{ fontSize: 13, color: '#666', marginTop: 4 }}>Gift Sent</div>
           </div>
         </div>
 
-        {/* Message template card */}
+        {/* Message templates card */}
         <div style={{ ...sharedStyles.card, padding: 20, marginBottom: 20 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Message Template</div>
-          <textarea
-            value={messageTemplate}
-            onChange={e => setMessageTemplate(e.target.value)}
-            rows={7}
-            style={{
-              width: '100%',
-              padding: 12,
-              borderRadius: 8,
-              border: '1px solid #ddd',
-              fontSize: 14,
-              lineHeight: 1.5,
-              fontFamily: 'inherit',
-              resize: 'vertical',
-              boxSizing: 'border-box',
-            }}
-          />
-          <div style={{ fontSize: 12, color: '#999', marginTop: 6 }}>
-            Use <code style={{ background: '#f3f4f6', padding: '1px 4px', borderRadius: 3 }}>{'{first_name}'}</code>, <code style={{ background: '#f3f4f6', padding: '1px 4px', borderRadius: 3 }}>{'{review_link}'}</code>, and <code style={{ background: '#f3f4f6', padding: '1px 4px', borderRadius: 3 }}>{'{gift_link}'}</code> as placeholders. Gift link is generated automatically per patient.
+          <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
+            {[
+              { key: 'review', label: 'Step 1: Review Request' },
+              { key: 'gift', label: 'Step 2: Gift Message' },
+            ].map(t => (
+              <button
+                key={t.key}
+                onClick={() => setTemplateTab(t.key)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 6,
+                  border: 'none',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  background: templateTab === t.key ? '#111' : '#f3f4f6',
+                  color: templateTab === t.key ? '#fff' : '#555',
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
 
+          {templateTab === 'review' ? (
+            <>
+              <textarea
+                value={reviewTemplate}
+                onChange={e => setReviewTemplate(e.target.value)}
+                rows={5}
+                style={{
+                  width: '100%', padding: 12, borderRadius: 8, border: '1px solid #ddd',
+                  fontSize: 14, lineHeight: 1.5, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box',
+                }}
+              />
+              <div style={{ fontSize: 12, color: '#999', marginTop: 6 }}>
+                Use <code style={{ background: '#f3f4f6', padding: '1px 4px', borderRadius: 3 }}>{'{first_name}'}</code> and <code style={{ background: '#f3f4f6', padding: '1px 4px', borderRadius: 3 }}>{'{review_link}'}</code> as placeholders.
+              </div>
+            </>
+          ) : (
+            <>
+              <textarea
+                value={giftTemplate}
+                onChange={e => setGiftTemplate(e.target.value)}
+                rows={4}
+                style={{
+                  width: '100%', padding: 12, borderRadius: 8, border: '1px solid #ddd',
+                  fontSize: 14, lineHeight: 1.5, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box',
+                }}
+              />
+              <div style={{ fontSize: 12, color: '#999', marginTop: 6 }}>
+                Use <code style={{ background: '#f3f4f6', padding: '1px 4px', borderRadius: 3 }}>{'{first_name}'}</code> and <code style={{ background: '#f3f4f6', padding: '1px 4px', borderRadius: 3 }}>{'{gift_link}'}</code> as placeholders. Gift link is generated automatically.
+              </div>
+            </>
+          )}
         </div>
 
         {/* Success toast */}
         {successMsg && (
           <div style={{
-            padding: '10px 16px',
-            background: '#dcfce7',
-            color: '#166534',
-            borderRadius: 8,
-            marginBottom: 16,
-            fontSize: 14,
-            fontWeight: 500,
+            padding: '10px 16px', background: '#dcfce7', color: '#166534',
+            borderRadius: 8, marginBottom: 16, fontSize: 14, fontWeight: 500,
           }}>
             {successMsg}
           </div>
@@ -169,30 +221,23 @@ export default function GoogleReviewsPage() {
               onChange={e => setSearch(e.target.value)}
               placeholder="Search patients..."
               style={{
-                flex: 1,
-                minWidth: 200,
-                padding: 10,
-                borderRadius: 8,
-                border: '1px solid #ddd',
-                fontSize: 14,
+                flex: 1, minWidth: 200, padding: 10, borderRadius: 8,
+                border: '1px solid #ddd', fontSize: 14,
               }}
             />
             <div style={{ display: 'flex', gap: 4 }}>
               {[
                 { key: 'not_sent', label: 'Not Sent' },
+                { key: 'review_sent', label: 'Awaiting Review' },
+                { key: 'gift_sent', label: 'Gift Sent' },
                 { key: 'all', label: 'All' },
-                { key: 'sent', label: 'Sent' },
               ].map(f => (
                 <button
                   key={f.key}
                   onClick={() => setFilter(f.key)}
                   style={{
-                    padding: '8px 14px',
-                    borderRadius: 6,
-                    border: 'none',
-                    fontSize: 13,
-                    fontWeight: 500,
-                    cursor: 'pointer',
+                    padding: '8px 14px', borderRadius: 6, border: 'none',
+                    fontSize: 13, fontWeight: 500, cursor: 'pointer',
                     background: filter === f.key ? '#111' : '#f3f4f6',
                     color: filter === f.key ? '#fff' : '#555',
                   }}
@@ -210,7 +255,7 @@ export default function GoogleReviewsPage() {
             <div style={{ padding: 40, textAlign: 'center', color: '#999' }}>Loading patients...</div>
           ) : filtered.length === 0 ? (
             <div style={{ padding: 40, textAlign: 'center', color: '#999' }}>
-              {filter === 'sent' ? 'No review requests sent yet.' : 'All patients have been sent a review request!'}
+              No patients match this filter.
             </div>
           ) : (
             <table style={{ ...sharedStyles.table, marginBottom: 0 }}>
@@ -224,8 +269,18 @@ export default function GoogleReviewsPage() {
               </thead>
               <tbody>
                 {filtered.map(patient => {
-                  const wasSent = sentMap[patient.id];
-                  const sentDate = wasSent ? new Date(wasSent).toLocaleDateString() : null;
+                  const status = sentMap[patient.id];
+                  const giftSent = status?.giftSent;
+                  const reviewSent = status?.reviewSent;
+
+                  let badge;
+                  if (giftSent) {
+                    badge = { label: `Gift sent ${new Date(giftSent).toLocaleDateString()}`, bg: '#dcfce7', color: '#166534' };
+                  } else if (reviewSent) {
+                    badge = { label: `Review sent ${new Date(reviewSent).toLocaleDateString()}`, bg: '#dbeafe', color: '#1e40af' };
+                  } else {
+                    badge = { label: 'Not sent', bg: '#fef3c7', color: '#92400e' };
+                  }
 
                   return (
                     <tr key={patient.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
@@ -238,49 +293,54 @@ export default function GoogleReviewsPage() {
                         {patient.phone}
                       </td>
                       <td style={{ ...sharedStyles.td, textAlign: 'center' }}>
-                        {wasSent ? (
-                          <span style={{
-                            display: 'inline-block',
-                            padding: '3px 10px',
-                            borderRadius: 12,
-                            fontSize: 12,
-                            fontWeight: 500,
-                            background: '#dcfce7',
-                            color: '#166534',
-                          }}>
-                            Sent {sentDate}
-                          </span>
-                        ) : (
-                          <span style={{
-                            display: 'inline-block',
-                            padding: '3px 10px',
-                            borderRadius: 12,
-                            fontSize: 12,
-                            fontWeight: 500,
-                            background: '#fef3c7',
-                            color: '#92400e',
-                          }}>
-                            Not sent
-                          </span>
-                        )}
+                        <span style={{
+                          display: 'inline-block', padding: '3px 10px', borderRadius: 12,
+                          fontSize: 12, fontWeight: 500, background: badge.bg, color: badge.color,
+                        }}>
+                          {badge.label}
+                        </span>
                       </td>
                       <td style={{ ...sharedStyles.td, textAlign: 'right' }}>
-                        <button
-                          onClick={() => openPreview(patient)}
-                          disabled={sendingId === patient.id}
-                          style={{
-                            padding: '6px 14px',
-                            borderRadius: 6,
-                            border: 'none',
-                            fontSize: 13,
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            background: wasSent ? '#f3f4f6' : '#111',
-                            color: wasSent ? '#555' : '#fff',
-                          }}
-                        >
-                          {wasSent ? 'Resend' : 'Send'}
-                        </button>
+                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                          {!reviewSent && (
+                            <button
+                              onClick={() => openPreview(patient, 'review')}
+                              disabled={sendingId === patient.id}
+                              style={{
+                                padding: '6px 14px', borderRadius: 6, border: 'none',
+                                fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                                background: '#111', color: '#fff',
+                              }}
+                            >
+                              Ask for Review
+                            </button>
+                          )}
+                          {reviewSent && !giftSent && (
+                            <button
+                              onClick={() => openPreview(patient, 'gift')}
+                              disabled={sendingId === patient.id}
+                              style={{
+                                padding: '6px 14px', borderRadius: 6, border: 'none',
+                                fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                                background: '#22c55e', color: '#fff',
+                              }}
+                            >
+                              Send Gift
+                            </button>
+                          )}
+                          {giftSent && (
+                            <button
+                              onClick={() => openPreview(patient, 'review')}
+                              style={{
+                                padding: '6px 14px', borderRadius: 6, border: 'none',
+                                fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                                background: '#f3f4f6', color: '#555',
+                              }}
+                            >
+                              Resend
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -298,7 +358,7 @@ export default function GoogleReviewsPage() {
             <div style={{ ...sharedStyles.modal, maxWidth: 520 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <h3 style={{ margin: 0, fontSize: 16 }}>
-                  Send to {previewPatient.first_name} {previewPatient.last_name}
+                  {previewMode === 'gift' ? 'Send Gift to' : 'Review Request for'} {previewPatient.first_name} {previewPatient.last_name}
                 </h3>
                 <button
                   onClick={() => setPreviewPatient(null)}
@@ -312,31 +372,29 @@ export default function GoogleReviewsPage() {
                 To: {previewPatient.phone}
               </div>
 
+              {previewMode === 'gift' && (
+                <div style={{
+                  padding: '8px 12px', background: '#f0fdf4', borderRadius: 6,
+                  marginBottom: 12, fontSize: 13, color: '#166534',
+                }}>
+                  This will create a gift link and send it to the patient. Make sure you have verified their Google review first.
+                </div>
+              )}
+
               <textarea
                 value={editedMessage}
                 onChange={e => setEditedMessage(e.target.value)}
-                rows={6}
+                rows={previewMode === 'gift' ? 5 : 7}
                 style={{
-                  width: '100%',
-                  padding: 12,
-                  borderRadius: 8,
-                  border: '1px solid #ddd',
-                  fontSize: 14,
-                  lineHeight: 1.5,
-                  fontFamily: 'inherit',
-                  resize: 'vertical',
-                  boxSizing: 'border-box',
+                  width: '100%', padding: 12, borderRadius: 8, border: '1px solid #ddd',
+                  fontSize: 14, lineHeight: 1.5, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box',
                 }}
               />
 
               {errorMsg && (
                 <div style={{
-                  padding: '8px 12px',
-                  background: '#fef2f2',
-                  color: '#991b1b',
-                  borderRadius: 6,
-                  marginTop: 12,
-                  fontSize: 13,
+                  padding: '8px 12px', background: '#fef2f2', color: '#991b1b',
+                  borderRadius: 6, marginTop: 12, fontSize: 13,
                 }}>
                   {errorMsg}
                 </div>
@@ -346,32 +404,24 @@ export default function GoogleReviewsPage() {
                 <button
                   onClick={() => setPreviewPatient(null)}
                   style={{
-                    padding: '8px 16px',
-                    borderRadius: 6,
-                    border: '1px solid #ddd',
-                    background: '#fff',
-                    fontSize: 13,
-                    cursor: 'pointer',
+                    padding: '8px 16px', borderRadius: 6, border: '1px solid #ddd',
+                    background: '#fff', fontSize: 13, cursor: 'pointer',
                   }}
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={sendReview}
+                  onClick={sendMessage}
                   disabled={sendingId}
                   style={{
-                    padding: '8px 20px',
-                    borderRadius: 6,
-                    border: 'none',
-                    background: '#111',
-                    color: '#fff',
-                    fontSize: 13,
-                    fontWeight: 500,
+                    padding: '8px 20px', borderRadius: 6, border: 'none',
+                    background: previewMode === 'gift' ? '#22c55e' : '#111',
+                    color: '#fff', fontSize: 13, fontWeight: 500,
                     cursor: sendingId ? 'not-allowed' : 'pointer',
                     opacity: sendingId ? 0.6 : 1,
                   }}
                 >
-                  {sendingId ? 'Sending...' : 'Send via iMessage'}
+                  {sendingId ? 'Sending...' : previewMode === 'gift' ? 'Send Gift' : 'Send Review Request'}
                 </button>
               </div>
             </div>

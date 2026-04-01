@@ -1,5 +1,5 @@
 // /pages/api/admin/google-reviews.js
-// API for Google Review request — creates review gift token, sends SMS, logs to comms_log
+// API for Google Review requests — two-step: review request first, gift after verified
 // Range Medical System V2
 
 import crypto from 'crypto';
@@ -19,7 +19,7 @@ function generateToken() {
 }
 
 export default async function handler(req, res) {
-  // GET — fetch all active patients + who's already been sent a review request
+  // GET — fetch all active patients + sent status (review and gift separately)
   if (req.method === 'GET') {
     try {
       const { data: patients, error: pErr } = await supabase
@@ -31,20 +31,25 @@ export default async function handler(req, res) {
 
       if (pErr) throw pErr;
 
-      // Fetch who's already been sent a google_review_request
-      const { data: sent, error: sErr } = await supabase
+      // Fetch review requests and gift sends separately
+      const { data: comms, error: sErr } = await supabase
         .from('comms_log')
-        .select('patient_id, created_at')
-        .eq('message_type', 'google_review_request')
+        .select('patient_id, message_type, created_at')
+        .in('message_type', ['google_review_request', 'google_review_gift'])
         .eq('status', 'sent')
         .eq('direction', 'outbound');
 
       if (sErr) throw sErr;
 
+      // Build a map of patient_id -> { reviewSent, giftSent }
       const sentMap = {};
-      for (const s of (sent || [])) {
-        if (s.patient_id) {
-          sentMap[s.patient_id] = s.created_at;
+      for (const c of (comms || [])) {
+        if (!c.patient_id) continue;
+        if (!sentMap[c.patient_id]) sentMap[c.patient_id] = {};
+        if (c.message_type === 'google_review_request') {
+          sentMap[c.patient_id].reviewSent = c.created_at;
+        } else if (c.message_type === 'google_review_gift') {
+          sentMap[c.patient_id].giftSent = c.created_at;
         }
       }
 
@@ -55,9 +60,9 @@ export default async function handler(req, res) {
     }
   }
 
-  // POST — create review gift + send SMS
+  // POST — send review request OR gift
   if (req.method === 'POST') {
-    const { patient_id, patient_name, phone, message, provider } = req.body;
+    const { patient_id, patient_name, phone, message, message_type, provider } = req.body;
 
     if (!phone || !message || !patient_id) {
       return res.status(400).json({ error: 'patient_id, phone, and message are required' });
@@ -68,50 +73,53 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid phone number' });
     }
 
+    const isGift = message_type === 'gift';
+
     try {
-      // Create or reuse a review gift token for this patient
-      let giftToken;
+      let finalMessage = message;
 
-      const { data: existingGift } = await supabase
-        .from('review_gifts')
-        .select('id, token, status')
-        .eq('patient_id', patient_id)
-        .maybeSingle();
+      // If sending a gift, create/reuse the review gift token
+      if (isGift) {
+        let giftToken;
 
-      if (existingGift) {
-        giftToken = existingGift.token;
-        // If it was expired, reactivate it with a new expiration
-        if (existingGift.status === 'expired') {
+        const { data: existingGift } = await supabase
+          .from('review_gifts')
+          .select('id, token, status')
+          .eq('patient_id', patient_id)
+          .maybeSingle();
+
+        if (existingGift) {
+          giftToken = existingGift.token;
+          if (existingGift.status === 'expired') {
+            const expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + 30);
+            await supabase
+              .from('review_gifts')
+              .update({ status: 'active', expires_at: expiresAt.toISOString() })
+              .eq('id', existingGift.id);
+          }
+        } else {
+          giftToken = generateToken();
           const expiresAt = new Date();
           expiresAt.setDate(expiresAt.getDate() + 30);
-          await supabase
+
+          const { error: insertError } = await supabase
             .from('review_gifts')
-            .update({ status: 'active', expires_at: expiresAt.toISOString() })
-            .eq('id', existingGift.id);
-        }
-      } else {
-        giftToken = generateToken();
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 30);
+            .insert({
+              patient_id,
+              token: giftToken,
+              expires_at: expiresAt.toISOString(),
+            });
 
-        const { error: insertError } = await supabase
-          .from('review_gifts')
-          .insert({
-            patient_id,
-            token: giftToken,
-            expires_at: expiresAt.toISOString(),
-          });
-
-        if (insertError) {
-          console.error('Failed to create review gift:', insertError);
-          return res.status(500).json({ error: 'Failed to create gift token' });
+          if (insertError) {
+            console.error('Failed to create review gift:', insertError);
+            return res.status(500).json({ error: 'Failed to create gift token' });
+          }
         }
+
+        const giftLink = `${BASE_URL}/review/${giftToken}`;
+        finalMessage = finalMessage.replace(/{gift_link}/g, giftLink);
       }
-
-      const giftLink = `${BASE_URL}/review/${giftToken}`;
-
-      // Replace {gift_link} in message
-      const finalMessage = message.replace(/{gift_link}/g, giftLink);
 
       const result = await sendSMS({
         to: normalizedPhone,
@@ -122,7 +130,7 @@ export default async function handler(req, res) {
       if (result.success) {
         await logComm({
           channel: 'sms',
-          messageType: 'google_review_request',
+          messageType: isGift ? 'google_review_gift' : 'google_review_request',
           message: finalMessage,
           source: `google-reviews(${result.provider || 'sms'})`,
           provider: result.provider || null,
@@ -133,7 +141,7 @@ export default async function handler(req, res) {
           direction: 'outbound',
         });
 
-        return res.status(200).json({ success: true, provider: result.provider, giftLink });
+        return res.status(200).json({ success: true, provider: result.provider });
       }
 
       return res.status(500).json({ error: 'SMS send failed', details: result.error });

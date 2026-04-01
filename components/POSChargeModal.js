@@ -12,7 +12,7 @@ import { overlayClickProps } from './AdminLayout';
 const CATEGORY_ORDER = [
   'programs', 'combo_membership', 'hbot', 'red_light', 'hrt', 'weight_loss',
   'iv_therapy', 'specialty_iv', 'injection_standard', 'injection_premium',
-  'injection_pack', 'nad_injection', 'peptide', 'vials', 'supplements', 'labs', 'assessment', 'other', 'gift_card', 'custom',
+  'injection_pack', 'nad_injection', 'injections', 'peptide', 'vials', 'supplements', 'labs', 'assessment', 'longevity', 'packages', 'prp', 'other', 'gift_card', 'custom',
 ];
 const CATEGORY_LABELS = {
   programs: 'Programs',
@@ -27,11 +27,15 @@ const CATEGORY_LABELS = {
   injection_premium: 'Premium Injections',
   injection_pack: 'Injection Packs',
   nad_injection: 'NAD+ Injections',
+  injections: 'Injections',
   peptide: 'Peptides',
   vials: 'Vials',
   supplements: 'Supplements',
   labs: 'Lab Panels',
   assessment: 'Assessment',
+  longevity: 'Longevity',
+  packages: 'Packages',
+  prp: 'PRP Therapy',
   other: 'Other',
   gift_card: 'Gift Cards',
   custom: 'Custom',
@@ -258,6 +262,10 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       ],
       injection_pack: [
         { label: 'Injection Packs', match: () => true },
+      ],
+      nad_injection: [
+        { label: 'Individual Injections', match: i => !i.name.toLowerCase().includes('12-pack') },
+        { label: '12-Packs (Pay for 10)', match: i => i.name.toLowerCase().includes('12-pack') },
       ],
       labs: [
         { label: "Men's Panels", match: i => i.name.toLowerCase().includes("men's") || i.name.toLowerCase().includes('male') },

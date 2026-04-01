@@ -1496,9 +1496,9 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                         onMouseLeave={e => { e.currentTarget.style.borderColor = '#d1fae5'; e.currentTarget.style.background = '#f0fdf4'; }}
                       >
                         <span style={{ fontSize: 32 }}>📋</span>
-                        <span style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>Copy from Previous</span>
-                        <span style={{ fontSize: 12, color: '#059669', fontWeight: 600 }}>Use a past encounter</span>
-                        <span style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>Edit & save as new</span>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: '#111' }}>Previous Encounters</span>
+                        <span style={{ fontSize: 12, color: '#059669', fontWeight: 600 }}>View & use past notes</span>
+                        <span style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>Select, edit & save as new</span>
                       </button>
                       <button
                         onClick={() => setNoteMode('freetext')}

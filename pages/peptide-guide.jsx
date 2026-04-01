@@ -3,18 +3,40 @@ import Layout from '../components/Layout';
 import Head from 'next/head';
 import { VIAL_CATALOG } from '../lib/vial-catalog';
 
+// Parse enhanced format: v=motsc.20.vial,ghk_cu.30.prefilled
+// Also supports legacy: vials=motsc,ghk_cu
+function parseVialParams(query) {
+  // Enhanced format
+  if (query.v) {
+    return query.v.split(',').map(entry => {
+      const parts = entry.trim().split('.');
+      const vialId = parts[0];
+      const days = parts[1] && parseInt(parts[1]) > 0 ? parseInt(parts[1]) : null;
+      const delivery = parts[2] || 'vial'; // 'vial' or 'prefilled'
+      const catalog = VIAL_CATALOG.find(v => v.id === vialId);
+      if (!catalog) return null;
+      return { ...catalog, protocolDays: days, delivery };
+    }).filter(Boolean);
+  }
+  // Legacy format
+  if (query.vials) {
+    return query.vials.split(',').map(id => {
+      const catalog = VIAL_CATALOG.find(v => v.id === id.trim());
+      if (!catalog) return null;
+      return { ...catalog, protocolDays: null, delivery: 'vial' };
+    }).filter(Boolean);
+  }
+  return [];
+}
+
 export default function PeptideGuide() {
   const router = useRouter();
-  const { vials: vialParam } = router.query;
-
-  const vialIds = vialParam ? vialParam.split(',').map(v => v.trim()) : [];
-  const selectedVials = vialIds
-    .map(id => VIAL_CATALOG.find(v => v.id === id))
-    .filter(Boolean);
 
   if (!router.isReady) return null;
 
-  if (selectedVials.length === 0) {
+  const items = parseVialParams(router.query);
+
+  if (items.length === 0) {
     return (
       <Layout title="Peptide Guide | Range Medical" description="Your personalized peptide reconstitution and injection guide from Range Medical.">
         <div className="pg-page">
@@ -35,15 +57,19 @@ export default function PeptideGuide() {
     );
   }
 
-  const vialNames = selectedVials.map(v => v.name).join(' + ');
-  const hasMultiple = selectedVials.length > 1;
-  const needsReconstitution = selectedVials.filter(v => v.reconstitution !== 'Pre-reconstituted');
-  const preReconstituted = selectedVials.filter(v => v.reconstitution === 'Pre-reconstituted');
+  const vialNames = items.map(v => v.name).join(' + ');
+  const hasMultiple = items.length > 1;
+  const vialItems = items.filter(v => v.delivery === 'vial' && v.reconstitution !== 'Pre-reconstituted');
+  const prefilledItems = items.filter(v => v.delivery === 'prefilled');
+  const preReconstitutedItems = items.filter(v => v.reconstitution === 'Pre-reconstituted');
+  const needsReconstitution = vialItems.length > 0;
+  const allPrefilled = prefilledItems.length === items.length;
+  const hasMixedDelivery = vialItems.length > 0 && prefilledItems.length > 0;
 
   return (
     <Layout
       title={`${vialNames} — Peptide Guide | Range Medical`}
-      description={`Your personalized reconstitution and injection guide for ${vialNames}. Range Medical, Newport Beach. (949) 997-3988`}
+      description={`Your personalized peptide guide for ${vialNames}. Range Medical, Newport Beach. (949) 997-3988`}
     >
       <Head>
         <script
@@ -53,7 +79,7 @@ export default function PeptideGuide() {
               "@context": "https://schema.org",
               "@type": "MedicalWebPage",
               "name": `${vialNames} — Peptide Injection Guide`,
-              "description": `Patient guide for reconstituting and injecting ${vialNames}.`,
+              "description": `Patient guide for ${vialNames}.`,
               "url": "https://www.range-medical.com/peptide-guide",
               "provider": {
                 "@type": "MedicalBusiness",
@@ -78,14 +104,20 @@ export default function PeptideGuide() {
         <section className="pg-hero">
           <div className="pg-container">
             <div className="v2-label"><span className="v2-dot" /> YOUR PEPTIDE GUIDE</div>
-            <h1>RECONSTITUTION &amp; INJECTION INSTRUCTIONS</h1>
+            <h1>{allPrefilled ? 'INJECTION INSTRUCTIONS' : 'RECONSTITUTION & INJECTION INSTRUCTIONS'}</h1>
             <div className="pg-hero-rule"></div>
-            <p className="pg-body-text">Everything you need to prepare and inject your peptide{hasMultiple ? 's' : ''} safely and correctly at home.</p>
+            <p className="pg-body-text">
+              Everything you need to {allPrefilled ? 'inject' : 'prepare and inject'} your peptide{hasMultiple ? 's' : ''} safely and correctly at home.
+            </p>
             <div className="pg-hero-vials">
-              {selectedVials.map(v => (
-                <div key={v.id} className="pg-hero-vial-tag">
+              {items.map((v, i) => (
+                <div key={`${v.id}-${i}`} className="pg-hero-vial-tag">
                   <span className="pg-vial-name">{v.name}</span>
-                  <span className="pg-vial-detail">{v.reconstitution === 'Pre-reconstituted' ? 'Pre-reconstituted' : v.reconstitution}</span>
+                  <span className="pg-vial-detail">
+                    {v.protocolDays ? `${v.protocolDays}-day protocol` : ''}
+                    {v.protocolDays && ' · '}
+                    {v.delivery === 'prefilled' ? 'Pre-filled syringes' : v.reconstitution === 'Pre-reconstituted' ? 'Pre-reconstituted' : v.reconstitution}
+                  </span>
                 </div>
               ))}
             </div>
@@ -95,27 +127,40 @@ export default function PeptideGuide() {
         {/* Your Peptides */}
         <section className="pg-section pg-section-alt">
           <div className="pg-container">
-            <div className="v2-label"><span className="v2-dot" /> YOUR PEPTIDE{hasMultiple ? 'S' : ''}</div>
+            <div className="v2-label"><span className="v2-dot" /> YOUR PROTOCOL{hasMultiple ? 'S' : ''}</div>
             <h2>WHAT YOU RECEIVED</h2>
             <div className="pg-divider"></div>
-            <p className="pg-body-text">Here{hasMultiple ? ' are the peptides' : ' is the peptide'} in your order with dosing details from your provider.</p>
+            <p className="pg-body-text">Here{hasMultiple ? ' are the peptides' : ' is the peptide'} in your protocol with dosing details from your provider.</p>
 
             <div className="pg-vial-cards">
-              {selectedVials.map(v => (
-                <div key={v.id} className="pg-vial-card">
+              {items.map((v, i) => (
+                <div key={`${v.id}-${i}`} className="pg-vial-card">
                   <div className="pg-vial-card-header">
                     <h3>{v.name}</h3>
                     {v.subtitle && <span className="pg-vial-subtitle">{v.subtitle}</span>}
                   </div>
                   <div className="pg-vial-card-body">
-                    <div className="pg-vial-row"><span>Vial Size</span><span>{v.vialSize}</span></div>
+                    {v.protocolDays && (
+                      <div className="pg-vial-row pg-vial-row-highlight"><span>Protocol</span><span>{v.protocolDays}-Day</span></div>
+                    )}
+                    <div className="pg-vial-row">
+                      <span>Format</span>
+                      <span>{v.delivery === 'prefilled' ? 'Pre-filled syringes' : v.reconstitution === 'Pre-reconstituted' ? 'Pre-reconstituted vial' : 'Lyophilized vial (requires mixing)'}</span>
+                    </div>
                     <div className="pg-vial-row"><span>Dose</span><span>{v.dosage}</span></div>
                     <div className="pg-vial-row"><span>Frequency</span><span>{v.frequency}</span></div>
-                    <div className="pg-vial-row"><span>Injections Per Vial</span><span>{v.injectionsPerVial}</span></div>
-                    <div className="pg-vial-row pg-vial-row-highlight">
-                      <span>Reconstitution</span>
-                      <span>{v.reconstitution === 'Pre-reconstituted' ? 'Pre-reconstituted (ready to use)' : v.reconstitution}</span>
-                    </div>
+                    {v.delivery !== 'prefilled' && (
+                      <div className="pg-vial-row"><span>Injections Per Vial</span><span>{v.injectionsPerVial}</span></div>
+                    )}
+                    {v.delivery === 'prefilled' && v.protocolDays && (
+                      <div className="pg-vial-row"><span>Syringes Included</span><span>{v.protocolDays}</span></div>
+                    )}
+                    {v.delivery !== 'prefilled' && v.reconstitution !== 'Pre-reconstituted' && (
+                      <div className="pg-vial-row pg-vial-row-highlight">
+                        <span>Reconstitution</span>
+                        <span>{v.reconstitution}</span>
+                      </div>
+                    )}
                   </div>
                   <p className="pg-vial-card-desc">{v.description}</p>
                 </div>
@@ -130,51 +175,69 @@ export default function PeptideGuide() {
             <div className="v2-label"><span className="v2-dot" /> BEFORE YOU START</div>
             <h2>SUPPLIES YOU&apos;LL NEED</h2>
             <div className="pg-divider"></div>
-            <p className="pg-body-text">Gather everything before you begin. All supplies were included with your order or are available at the clinic.</p>
+            <p className="pg-body-text">
+              {allPrefilled
+                ? 'Your syringes are pre-filled and ready to inject. Here\'s what else you need.'
+                : 'Gather everything before you begin. All supplies were included with your order or are available at the clinic.'}
+            </p>
 
             <div className="pg-info-grid">
               <div className="pg-info-card">
                 <h3>Alcohol Swabs</h3>
-                <p>For sterilizing the vial top and your injection site before each use.</p>
+                <p>For sterilizing {allPrefilled ? 'your injection site' : 'the vial top and your injection site'} before each use.</p>
               </div>
-              {needsReconstitution.length > 0 && (
+              {needsReconstitution && (
                 <div className="pg-info-card">
                   <h3>Bacteriostatic Water</h3>
                   <p>Sterile water with 0.9% benzyl alcohol for reconstituting your lyophilized (freeze-dried) peptide.</p>
                 </div>
               )}
-              <div className="pg-info-card">
-                <h3>Insulin Syringes</h3>
-                <p>1mL insulin syringes with 29–31 gauge needles. Small gauge = less discomfort.</p>
-              </div>
-              {needsReconstitution.length > 0 && (
+              {!allPrefilled && (
+                <div className="pg-info-card">
+                  <h3>Insulin Syringes</h3>
+                  <p>1mL insulin syringes with 29–31 gauge needles. Small gauge = less discomfort.</p>
+                </div>
+              )}
+              {needsReconstitution && (
                 <div className="pg-info-card">
                   <h3>Mixing Syringe</h3>
                   <p>A separate 3mL syringe with an 18–21 gauge needle for drawing bacteriostatic water during reconstitution.</p>
+                </div>
+              )}
+              {allPrefilled && (
+                <div className="pg-info-card">
+                  <h3>Sharps Container</h3>
+                  <p>For safe disposal of used syringes after each injection. Never throw needles in regular trash.</p>
                 </div>
               )}
             </div>
           </div>
         </section>
 
-        {/* Reconstitution */}
-        {needsReconstitution.length > 0 && (
+        {/* Reconstitution — only for vial items */}
+        {needsReconstitution && (
           <section className="pg-section pg-section-inverted">
             <div className="pg-container">
               <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> RECONSTITUTION</div>
-              <h2>MIXING YOUR PEPTIDE{needsReconstitution.length > 1 ? 'S' : ''}</h2>
+              <h2>MIXING YOUR PEPTIDE{vialItems.length > 1 ? 'S' : ''}</h2>
               <div className="pg-divider"></div>
               <p className="pg-body-text">Reconstitution means adding bacteriostatic water to the freeze-dried peptide powder in the vial. You only do this once per vial.</p>
 
-              {needsReconstitution.length > 1 && (
+              {(vialItems.length > 1 || hasMixedDelivery) && (
                 <div className="pg-recon-volumes">
                   <h4>YOUR RECONSTITUTION VOLUMES</h4>
-                  {needsReconstitution.map(v => (
-                    <div key={v.id} className="pg-recon-row">
+                  {vialItems.map((v, i) => (
+                    <div key={`${v.id}-${i}`} className="pg-recon-row">
                       <span>{v.name}</span>
                       <span>{v.reconstitution}</span>
                     </div>
                   ))}
+                  {prefilledItems.length > 0 && (
+                    <div className="pg-recon-row" style={{ opacity: 0.5 }}>
+                      <span>{prefilledItems.map(v => v.name).join(', ')}</span>
+                      <span>Pre-filled (no mixing needed)</span>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -192,8 +255,8 @@ export default function PeptideGuide() {
                     <h4>Draw the Bacteriostatic Water</h4>
                     <p>
                       Using your mixing syringe (3mL), draw{' '}
-                      {needsReconstitution.length === 1
-                        ? <strong>{needsReconstitution[0].reconstitution.replace(' BAC water', '')}</strong>
+                      {vialItems.length === 1
+                        ? <strong>{vialItems[0].reconstitution.replace(' BAC water', '')}</strong>
                         : <>the correct amount (see volumes above)</>
                       }
                       {' '}of bacteriostatic water from the BAC water vial.
@@ -223,7 +286,7 @@ export default function PeptideGuide() {
                 </div>
               </div>
 
-              {needsReconstitution.length > 1 && (
+              {vialItems.length > 1 && (
                 <div className="pg-recon-note">
                   <strong>Multiple vials?</strong> Repeat the reconstitution process for each vial with the correct amount of bacteriostatic water.
                 </div>
@@ -233,76 +296,97 @@ export default function PeptideGuide() {
         )}
 
         {/* Injection Instructions */}
-        <section className={`pg-section ${needsReconstitution.length === 0 ? 'pg-section-inverted' : ''}`}>
+        <section className={`pg-section ${!needsReconstitution ? 'pg-section-inverted' : ''}`}>
           <div className="pg-container">
-            <div className="v2-label" style={needsReconstitution.length === 0 ? { color: 'rgba(255,255,255,0.4)' } : undefined}><span className="v2-dot" /> INJECTION</div>
+            <div className="v2-label" style={!needsReconstitution ? { color: 'rgba(255,255,255,0.4)' } : undefined}><span className="v2-dot" /> INJECTION</div>
             <h2>HOW TO INJECT</h2>
             <div className="pg-divider"></div>
             <p className="pg-body-text">Subcutaneous injection — just under the skin. This is the same type of injection used for insulin.</p>
 
-            <div className="pg-steps-list">
-              <div className="pg-step-item">
-                <div className="pg-step-number" style={needsReconstitution.length === 0 ? { background: '#ffffff', color: '#1a1a1a' } : undefined}>1</div>
-                <div className="pg-step-content">
-                  <h4>Wash Your Hands</h4>
-                  <p>Thoroughly wash your hands with soap and water before handling any supplies.</p>
+            {allPrefilled ? (
+              /* Pre-filled syringe instructions */
+              <div className="pg-steps-list">
+                <div className="pg-step-item">
+                  <div className="pg-step-number" style={{ background: '#ffffff', color: '#1a1a1a' }}>1</div>
+                  <div className="pg-step-content">
+                    <h4>Wash Your Hands</h4>
+                    <p>Thoroughly wash your hands with soap and water before handling any supplies.</p>
+                  </div>
+                </div>
+                <div className="pg-step-item">
+                  <div className="pg-step-number" style={{ background: '#ffffff', color: '#1a1a1a' }}>2</div>
+                  <div className="pg-step-content">
+                    <h4>Remove the Syringe Cap</h4>
+                    <p>Take your pre-filled syringe from the refrigerator. Remove the needle cap by pulling it straight off — do not twist. Your dose is already measured.</p>
+                    {items.length === 1 && (
+                      <div className="pg-dose-callout"><strong>Your dose:</strong> {items[0].dosage}</div>
+                    )}
+                    {items.length > 1 && (
+                      <div className="pg-dose-callout">
+                        {items.map((v, i) => <div key={`${v.id}-${i}`}><strong>{v.name}:</strong> {v.dosage}</div>)}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="pg-step-item">
+                  <div className="pg-step-number" style={{ background: '#ffffff', color: '#1a1a1a' }}>3</div>
+                  <div className="pg-step-content">
+                    <h4>Choose Your Injection Site</h4>
+                    <p>Best sites for subcutaneous injection: the belly (2 inches away from the navel), the front of the thigh, or the back of the upper arm. Rotate sites to prevent irritation.</p>
+                  </div>
+                </div>
+                <div className="pg-step-item">
+                  <div className="pg-step-number" style={{ background: '#ffffff', color: '#1a1a1a' }}>4</div>
+                  <div className="pg-step-content">
+                    <h4>Clean the Injection Site</h4>
+                    <p>Wipe the area with an alcohol swab and let it air dry completely.</p>
+                  </div>
+                </div>
+                <div className="pg-step-item">
+                  <div className="pg-step-number" style={{ background: '#ffffff', color: '#1a1a1a' }}>5</div>
+                  <div className="pg-step-content">
+                    <h4>Inject</h4>
+                    <p>Pinch the skin at your injection site. Insert the needle at a 45-degree angle (or 90 degrees if using a short needle). Push the plunger slowly and steadily until the syringe is empty. Release the pinch, then withdraw the needle.</p>
+                  </div>
+                </div>
+                <div className="pg-step-item">
+                  <div className="pg-step-number" style={{ background: '#ffffff', color: '#1a1a1a' }}>6</div>
+                  <div className="pg-step-content">
+                    <h4>Dispose Safely</h4>
+                    <p>Place the used syringe immediately into a sharps container. Never recap, bend, or reuse needles. Each pre-filled syringe is single-use.</p>
+                  </div>
                 </div>
               </div>
-              <div className="pg-step-item">
-                <div className="pg-step-number" style={needsReconstitution.length === 0 ? { background: '#ffffff', color: '#1a1a1a' } : undefined}>2</div>
-                <div className="pg-step-content">
-                  <h4>Clean the Vial Top</h4>
-                  <p>Wipe the top of the peptide vial with a fresh alcohol swab.</p>
-                </div>
-              </div>
-              <div className="pg-step-item">
-                <div className="pg-step-number" style={needsReconstitution.length === 0 ? { background: '#ffffff', color: '#1a1a1a' } : undefined}>3</div>
-                <div className="pg-step-content">
-                  <h4>Draw Your Dose</h4>
-                  <p>Using an insulin syringe, insert the needle into the vial and slowly draw your prescribed dose. Pull back slightly past your dose line, then push forward to remove any air bubbles.</p>
-                  {selectedVials.length === 1 && (
-                    <div className="pg-dose-callout">
-                      <strong>Your dose:</strong> {selectedVials[0].dosage}
+            ) : (
+              /* Standard vial injection instructions */
+              <div className="pg-steps-list">
+                {[
+                  { title: 'Wash Your Hands', desc: 'Thoroughly wash your hands with soap and water before handling any supplies.' },
+                  { title: 'Clean the Vial Top', desc: 'Wipe the top of the peptide vial with a fresh alcohol swab.' },
+                  { title: 'Draw Your Dose', desc: 'Using an insulin syringe, insert the needle into the vial and slowly draw your prescribed dose. Pull back slightly past your dose line, then push forward to remove any air bubbles.', showDose: true },
+                  { title: 'Choose Your Injection Site', desc: 'Best sites for subcutaneous injection: the belly (2 inches away from the navel), the front of the thigh, or the back of the upper arm. Rotate sites to prevent irritation.' },
+                  { title: 'Clean the Injection Site', desc: 'Wipe the area with an alcohol swab and let it air dry completely.' },
+                  { title: 'Inject', desc: 'Pinch the skin at your injection site. Insert the needle at a 45-degree angle (or 90 degrees if using a short insulin needle). Push the plunger slowly and steadily. Release the pinch, then withdraw the needle.' },
+                  { title: 'Dispose Safely', desc: 'Place the used syringe immediately into a sharps container. Never recap, bend, or reuse needles.' },
+                ].map((step, idx) => (
+                  <div key={idx} className="pg-step-item">
+                    <div className="pg-step-number">{idx + 1}</div>
+                    <div className="pg-step-content">
+                      <h4>{step.title}</h4>
+                      <p>{step.desc}</p>
+                      {step.showDose && items.length === 1 && (
+                        <div className="pg-dose-callout"><strong>Your dose:</strong> {items[0].dosage}</div>
+                      )}
+                      {step.showDose && items.length > 1 && (
+                        <div className="pg-dose-callout">
+                          {items.map((v, i) => <div key={`${v.id}-${i}`}><strong>{v.name}:</strong> {v.dosage}</div>)}
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {selectedVials.length > 1 && (
-                    <div className="pg-dose-callout">
-                      {selectedVials.map(v => (
-                        <div key={v.id}><strong>{v.name}:</strong> {v.dosage}</div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                  </div>
+                ))}
               </div>
-              <div className="pg-step-item">
-                <div className="pg-step-number" style={needsReconstitution.length === 0 ? { background: '#ffffff', color: '#1a1a1a' } : undefined}>4</div>
-                <div className="pg-step-content">
-                  <h4>Choose Your Injection Site</h4>
-                  <p>Best sites for subcutaneous injection: the belly (2 inches away from the navel), the front of the thigh, or the back of the upper arm. Rotate sites to prevent irritation.</p>
-                </div>
-              </div>
-              <div className="pg-step-item">
-                <div className="pg-step-number" style={needsReconstitution.length === 0 ? { background: '#ffffff', color: '#1a1a1a' } : undefined}>5</div>
-                <div className="pg-step-content">
-                  <h4>Clean the Injection Site</h4>
-                  <p>Wipe the area with an alcohol swab and let it air dry completely.</p>
-                </div>
-              </div>
-              <div className="pg-step-item">
-                <div className="pg-step-number" style={needsReconstitution.length === 0 ? { background: '#ffffff', color: '#1a1a1a' } : undefined}>6</div>
-                <div className="pg-step-content">
-                  <h4>Inject</h4>
-                  <p>Pinch the skin at your injection site. Insert the needle at a 45-degree angle (or 90 degrees if using a short insulin needle). Push the plunger slowly and steadily. Release the pinch, then withdraw the needle.</p>
-                </div>
-              </div>
-              <div className="pg-step-item">
-                <div className="pg-step-number" style={needsReconstitution.length === 0 ? { background: '#ffffff', color: '#1a1a1a' } : undefined}>7</div>
-                <div className="pg-step-content">
-                  <h4>Dispose Safely</h4>
-                  <p>Place the used syringe immediately into a sharps container. Never recap, bend, or reuse needles.</p>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </section>
 
@@ -314,22 +398,45 @@ export default function PeptideGuide() {
             <div className="pg-divider"></div>
 
             <div className="pg-info-grid">
-              <div className="pg-info-card">
-                <h3>Before Reconstitution</h3>
-                <p>Unreconstituted (powder) vials can be stored at room temperature or in the refrigerator. Avoid direct sunlight and heat.</p>
-              </div>
-              <div className="pg-info-card">
-                <h3>After Reconstitution</h3>
-                <p>Once mixed with bacteriostatic water, always store in the refrigerator (36–46°F). Most peptides are good for 4–6 weeks once reconstituted.</p>
-              </div>
-              <div className="pg-info-card">
-                <h3>Never Freeze</h3>
-                <p>Do not freeze reconstituted peptides. Freezing can damage the peptide structure and make it ineffective.</p>
-              </div>
-              <div className="pg-info-card">
-                <h3>Keep It Clean</h3>
-                <p>Always swab the vial top with alcohol before each use. Use a new syringe for every injection. Never touch the needle.</p>
-              </div>
+              {allPrefilled ? (
+                <>
+                  <div className="pg-info-card">
+                    <h3>Refrigerate</h3>
+                    <p>Store all pre-filled syringes in the refrigerator (36–46°F). Keep them in the container they came in to protect from light.</p>
+                  </div>
+                  <div className="pg-info-card">
+                    <h3>Never Freeze</h3>
+                    <p>Do not freeze pre-filled syringes. Freezing can damage the peptide and compromise the syringe.</p>
+                  </div>
+                  <div className="pg-info-card">
+                    <h3>Use in Order</h3>
+                    <p>Use one syringe per injection. Each syringe contains exactly one dose — do not split or combine doses.</p>
+                  </div>
+                  <div className="pg-info-card">
+                    <h3>Handle with Care</h3>
+                    <p>Do not touch the needle. If the cap falls off, do not reuse. Contact us for a replacement.</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="pg-info-card">
+                    <h3>Before Reconstitution</h3>
+                    <p>Unreconstituted (powder) vials can be stored at room temperature or in the refrigerator. Avoid direct sunlight and heat.</p>
+                  </div>
+                  <div className="pg-info-card">
+                    <h3>After Reconstitution</h3>
+                    <p>Once mixed with bacteriostatic water, always store in the refrigerator (36–46°F). Most peptides are good for 4–6 weeks once reconstituted.</p>
+                  </div>
+                  <div className="pg-info-card">
+                    <h3>Never Freeze</h3>
+                    <p>Do not freeze reconstituted peptides. Freezing can damage the peptide structure and make it ineffective.</p>
+                  </div>
+                  <div className="pg-info-card">
+                    <h3>Keep It Clean</h3>
+                    <p>Always swab the vial top with alcohol before each use. Use a new syringe for every injection. Never touch the needle.</p>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </section>
@@ -343,13 +450,17 @@ export default function PeptideGuide() {
             <p className="pg-body-text">Follow your prescribed frequency. Consistency is key for results.</p>
 
             <div className="pg-schedule-cards">
-              {selectedVials.map(v => (
-                <div key={v.id} className="pg-schedule-card">
+              {items.map((v, i) => (
+                <div key={`${v.id}-${i}`} className="pg-schedule-card">
                   <div className="pg-schedule-name">{v.name}</div>
                   <div className="pg-schedule-details">
+                    {v.protocolDays && <div><span>Protocol:</span> {v.protocolDays} days</div>}
                     <div><span>Dose:</span> {v.dosage}</div>
                     <div><span>Frequency:</span> {v.frequency}</div>
-                    <div><span>Injections in Vial:</span> {v.injectionsPerVial}</div>
+                    {v.delivery === 'prefilled'
+                      ? v.protocolDays && <div><span>Syringes:</span> {v.protocolDays} pre-filled</div>
+                      : <div><span>Injections in Vial:</span> {v.injectionsPerVial}</div>
+                    }
                   </div>
                 </div>
               ))}
@@ -401,7 +512,7 @@ export default function PeptideGuide() {
           <div className="pg-container">
             <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '1.5rem' }}><span className="v2-dot" /> SUPPORT</div>
             <h2>QUESTIONS? WE&apos;RE HERE.</h2>
-            <p className="pg-body-text" style={{ textAlign: 'center', margin: '0 auto 2rem' }}>If anything is unclear about reconstitution, injection technique, or your dosing schedule — reach out. We&apos;re happy to walk you through it.</p>
+            <p className="pg-body-text" style={{ textAlign: 'center', margin: '0 auto 2rem' }}>If anything is unclear about {allPrefilled ? 'injection technique' : 'reconstitution, injection technique,'} or your dosing schedule — reach out. We&apos;re happy to walk you through it.</p>
             <div className="pg-cta-buttons">
               <a href="tel:+19499973988" className="pg-btn-primary">CALL (949) 997-3988</a>
               <a href="sms:+19499973988" className="pg-btn-outline">TEXT US</a>

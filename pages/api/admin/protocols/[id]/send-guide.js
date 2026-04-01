@@ -55,35 +55,47 @@ export default async function handler(req, res) {
     // Gather ALL active peptide protocols for this patient
     const { data: allProtocols } = await supabase
       .from('protocols')
-      .select('id, medication, program_name, category, status')
+      .select('id, medication, program_name, category, status, total_sessions, delivery_method, supply_type')
       .eq('patient_id', protocol.patient_id)
       .eq('status', 'active')
       .in('category', ['peptide', 'recovery', 'longevity', 'gh_blend', 'skin', 'neuro', 'immune', 'sexual_health']);
 
-    // Map each protocol to a vial catalog ID and deduplicate
-    const vialIds = [];
+    // Build enhanced vial entries: vialId.days.delivery
+    const vialEntries = [];
     const protocolIds = [];
+    const seenVialIds = new Set();
     for (const p of (allProtocols || [])) {
       const vialId = getVialIdForMedication(p.medication, p.program_name);
-      if (vialId && !vialIds.includes(vialId)) {
-        vialIds.push(vialId);
+      if (vialId && !seenVialIds.has(vialId)) {
+        seenVialIds.add(vialId);
+        const days = p.total_sessions || null;
+        const isPrefilled = p.supply_type === 'prefilled' || p.supply_type === 'prefilled_2week' || p.delivery_method === 'prefilled';
+        const delivery = isPrefilled ? 'prefilled' : 'vial';
+        vialEntries.push({ vialId, days, delivery });
       }
       protocolIds.push(p.id);
     }
 
-    // Fallback: if no vial IDs matched, try just the clicked protocol
-    if (vialIds.length === 0) {
+    // Fallback: if nothing matched, try just the clicked protocol
+    if (vialEntries.length === 0) {
       const fallbackId = getVialIdForMedication(protocol.medication, protocol.program_name);
-      if (fallbackId) vialIds.push(fallbackId);
+      if (fallbackId) vialEntries.push({ vialId: fallbackId, days: null, delivery: 'vial' });
     }
 
-    if (vialIds.length === 0) {
+    if (vialEntries.length === 0) {
       return res.status(400).json({ error: 'Could not determine vial type for this protocol' });
     }
 
-    // Build consolidated guide URL
-    const guideUrl = `https://www.range-medical.com/peptide-guide?vials=${vialIds.join(',')}`;
-    const guideMessage = `Hi ${firstName}! Here's your personalized peptide guide with reconstitution and injection instructions: ${guideUrl} - Range Medical`;
+    // Build consolidated guide URL with enhanced format: v=motsc.20.vial,ghk_cu.30.vial
+    const vParam = vialEntries.map(e => {
+      const parts = [e.vialId];
+      if (e.days) parts.push(e.days);
+      else parts.push('0');
+      parts.push(e.delivery);
+      return parts.join('.');
+    }).join(',');
+    const guideUrl = `https://www.range-medical.com/peptide-guide?v=${vParam}`;
+    const guideMessage = `Hi ${firstName}! Here's your personalized peptide guide with ${vialEntries.some(e => e.delivery === 'vial') ? 'reconstitution and ' : ''}injection instructions: ${guideUrl} - Range Medical`;
 
     // Blooio two-step: first contact cannot include links
     if (isBlooioProvider()) {
@@ -130,7 +142,7 @@ export default async function handler(req, res) {
           patient_id: protocol.patient_id,
           log_type: 'peptide_guide_sent',
           log_date: todayPacific(),
-          notes: `Blooio two-step: opt-in request sent, guide link queued (${vialIds.join(', ')})`
+          notes: `Blooio two-step: opt-in request sent, guide link queued (${vialEntries.map(e => e.vialId).join(', ')})`
         });
 
         return res.status(200).json({
@@ -176,7 +188,7 @@ export default async function handler(req, res) {
       provider: result.provider || null,
     });
 
-    return res.status(200).json({ success: true, message: 'Peptide guide SMS sent', vials: vialIds });
+    return res.status(200).json({ success: true, message: 'Peptide guide SMS sent', vials: vialEntries.map(e => e.vialId) });
 
   } catch (error) {
     console.error('Send guide error:', error);

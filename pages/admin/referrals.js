@@ -2,6 +2,14 @@ import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import AdminLayout from '../../components/AdminLayout';
 
+const STAFF_OPTIONS = [
+  { value: 'damon@range-medical.com', label: 'Damon Durante' },
+  { value: 'cupp@range-medical.com', label: 'Chris Cupp' },
+  { value: 'damien@range-medical.com', label: 'Dr. Damien Burgess' },
+  { value: 'lily@range-medical.com', label: 'Lily Diaz' },
+  { value: 'evan@range-medical.com', label: 'Evan' },
+];
+
 const INTEREST_LABELS = {
   peptides_recovery: 'Peptides & Recovery',
   hormone_optimization: 'Hormone Optimization',
@@ -198,7 +206,7 @@ export default function ReferralsAdmin() {
                       <td style={{ ...s.td, fontWeight: '600' }}>{p.name}</td>
                       <td style={{ ...s.td, color: '#888', fontFamily: 'monospace', fontSize: '13px' }}>/refer/{p.slug}</td>
                       <td style={s.td}>{p.partner_type || '—'}</td>
-                      <td style={{ ...s.td, fontSize: '13px' }}>{p.assigned_to || '—'}</td>
+                      <td style={{ ...s.td, fontSize: '13px' }}>{STAFF_OPTIONS.find(o => o.value === p.assigned_to)?.label || p.assigned_to || '—'}</td>
                       <td style={{ ...s.td, fontWeight: '600' }}>{leadCountByPartner[p.slug] || 0}</td>
                       <td style={s.td}>
                         <button onClick={() => toggleActive(p)} style={{ ...s.badge(p.active), cursor: 'pointer', border: 'none' }}>
@@ -330,7 +338,10 @@ export default function ReferralsAdmin() {
                 </div>
                 <div style={s.formField}>
                   <label style={s.formLabel}>Assigned To (email)</label>
-                  <input style={s.formInput} value={addForm.assigned_to} onChange={e => setAddForm(f => ({ ...f, assigned_to: e.target.value }))} placeholder="damon@range-medical.com" />
+                  <select style={s.formInput} value={addForm.assigned_to} onChange={e => setAddForm(f => ({ ...f, assigned_to: e.target.value }))}>
+                    <option value="">Select staff member</option>
+                    {STAFF_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                  </select>
                 </div>
               </div>
               <div style={s.formField}>

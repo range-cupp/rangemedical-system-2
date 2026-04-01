@@ -5,9 +5,9 @@ import Link from 'next/link';
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import CheckoutModal from '../components/CheckoutModal';
+import Layout from '../components/Layout';
 
 export default function Services() {
-  const [menuOpen, setMenuOpen] = useState(false);
   const [visible, setVisible] = useState({});
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [checkoutProduct, setCheckoutProduct] = useState(null);
@@ -33,16 +33,13 @@ export default function Services() {
   }, []);
 
   return (
-    <>
+    <Layout
+      title="Services & Pricing | Range Medical | Newport Beach"
+      description="Full pricing menu for Range Medical in Newport Beach. IV therapy, injections, HBOT, red light, hormone optimization, weight loss, peptides, NAD+, PRP, exosomes, and lab panels."
+    >
       <Head>
-        <title>Services & Pricing | Range Medical | Newport Beach</title>
-        <meta name="description" content="Full pricing menu for Range Medical in Newport Beach. IV therapy, injections, HBOT, red light, hormone optimization, weight loss, peptides, NAD+, PRP, exosomes, and lab panels." />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="keywords" content="regenerative medicine Newport Beach, IV therapy pricing, HBOT pricing, red light therapy cost, hormone optimization, weight loss clinic, NAD+ IV, glutathione IV, Range Medical" />
         <link rel="canonical" href="https://www.range-medical.com/services" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
         <meta property="og:title" content="Services & Pricing | Range Medical | Newport Beach" />
         <meta property="og:description" content="Full pricing for all regenerative medicine services at Range Medical. Book and pay online." />
@@ -67,37 +64,7 @@ export default function Services() {
         />
       </Head>
 
-      {/* ── NAV ── */}
-      <header className="v2-header">
-        <div className="v2-header-inner">
-          <Link href="/" className="v2-wordmark">RANGE MEDICAL</Link>
-          <nav className="v2-nav-desktop">
-            <Link href="/injury-recovery">Recovery</Link>
-            <Link href="/hormone-optimization">Hormones</Link>
-            <Link href="/weight-loss">Weight Loss</Link>
-            <Link href="/lab-panels">Labs</Link>
-          </nav>
-          <Link href="/start" className="v2-nav-cta">START HERE</Link>
-          <button className="v2-hamburger" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">
-            <span /><span />
-          </button>
-        </div>
-        {menuOpen && (
-          <div className="v2-mobile-menu">
-            <Link href="/injury-recovery" onClick={() => setMenuOpen(false)}>Recovery</Link>
-            <Link href="/hormone-optimization" onClick={() => setMenuOpen(false)}>Hormones</Link>
-            <Link href="/weight-loss" onClick={() => setMenuOpen(false)}>Weight Loss</Link>
-            <Link href="/peptide-therapy" onClick={() => setMenuOpen(false)}>Peptide Therapy</Link>
-            <Link href="/iv-therapy" onClick={() => setMenuOpen(false)}>IV Therapy</Link>
-            <Link href="/hyperbaric-oxygen-therapy" onClick={() => setMenuOpen(false)}>Hyperbaric Oxygen</Link>
-            <Link href="/red-light-therapy" onClick={() => setMenuOpen(false)}>Red Light Therapy</Link>
-            <Link href="/lab-panels" onClick={() => setMenuOpen(false)}>Labs & Testing</Link>
-            <Link href="/start" className="v2-mobile-cta" onClick={() => setMenuOpen(false)}>START HERE</Link>
-          </div>
-        )}
-      </header>
-
-      <main>
+      <div>
         {/* ── HERO ── */}
         <section className="v2-hero">
           <div className="v2-hero-inner">
@@ -644,51 +611,7 @@ export default function Services() {
             </div>
           </div>
         </section>
-      </main>
-
-      {/* ── FOOTER ── */}
-      <footer className="v2-footer">
-        <div className="v2-footer-inner">
-          <div className="v2-footer-brand">
-            <span className="v2-wordmark-sm">RANGE MEDICAL</span>
-            <p>Feel like yourself again.</p>
-          </div>
-          <div className="v2-footer-links">
-            <div className="v2-footer-col">
-              <h4>START</h4>
-              <Link href="/start">Start Here</Link>
-              <Link href="/injury-recovery">Injury Recovery</Link>
-              <Link href="/lab-panels">Labs & Testing</Link>
-            </div>
-            <div className="v2-footer-col">
-              <h4>TREATMENTS</h4>
-              <Link href="/hormone-optimization">Hormones</Link>
-              <Link href="/weight-loss">Weight Loss</Link>
-              <Link href="/peptide-therapy">Peptides</Link>
-              <Link href="/iv-therapy">IV Therapy</Link>
-              <Link href="/hyperbaric-oxygen-therapy">Hyperbaric Oxygen</Link>
-              <Link href="/red-light-therapy">Red Light</Link>
-            </div>
-            <div className="v2-footer-col">
-              <h4>MORE</h4>
-              <Link href="/prp-therapy">PRP Therapy</Link>
-              <Link href="/exosome-therapy">Exosomes</Link>
-              <Link href="/nad-therapy">NAD+</Link>
-              <Link href="/methylene-blue">Methylene Blue</Link>
-              <Link href="/reviews">Reviews</Link>
-              <Link href="/gift-cards">Gift Cards</Link>
-            </div>
-          </div>
-        </div>
-        <div className="v2-footer-bottom">
-          <p>&copy; {new Date().getFullYear()} Range Medical. All rights reserved.</p>
-          <div className="v2-footer-legal">
-            <Link href="/terms-of-use">Terms</Link>
-            <Link href="/privacy-policy">Privacy</Link>
-            <Link href="/refund-policy">Refunds</Link>
-          </div>
-        </div>
-      </footer>
+      </div>
 
       {/* ── CHECKOUT MODAL ── */}
       {checkoutProduct && (
@@ -708,21 +631,6 @@ export default function Services() {
         /* ── RESET ── */
         :global(body) { margin: 0; font-family: 'Inter', -apple-system, sans-serif; -webkit-font-smoothing: antialiased; background: #ffffff; color: #1a1a1a; }
 
-        /* ── HEADER ── */
-        .v2-header { position: sticky; top: 0; z-index: 100; background: #ffffff; border-bottom: 1px solid #e8e8e8; }
-        .v2-header-inner { max-width: 1200px; margin: 0 auto; padding: 0 2rem; height: 56px; display: flex; align-items: center; justify-content: space-between; }
-        :global(.v2-wordmark) { font-size: 13px !important; font-weight: 800; letter-spacing: 0.15em; color: #1a1a1a; text-decoration: none; line-height: 1; }
-        .v2-nav-desktop { display: flex; gap: 28px; align-items: center; }
-        .v2-nav-desktop :global(a) { font-size: 12px !important; font-weight: 500; color: #737373; text-decoration: none; text-transform: uppercase; letter-spacing: 0.06em; transition: color 0.2s; line-height: 1; }
-        .v2-nav-desktop :global(a:hover) { color: #1a1a1a; }
-        :global(.v2-nav-cta) { font-size: 11px !important; font-weight: 700; letter-spacing: 0.12em; background: #1a1a1a; color: #ffffff; padding: 10px 20px; text-decoration: none; transition: background 0.2s; line-height: 1; }
-        :global(.v2-nav-cta:hover) { background: #404040; }
-        .v2-hamburger { display: none; flex-direction: column; gap: 6px; background: none; border: none; cursor: pointer; padding: 8px; }
-        .v2-hamburger span { display: block; width: 24px; height: 1.5px; background: #1a1a1a; }
-        .v2-mobile-menu { display: none; padding: 1rem 2rem 1.5rem; border-bottom: 1px solid #e8e8e8; }
-        .v2-mobile-menu :global(a) { display: block; padding: 0.75rem 0; font-size: 0.875rem; font-weight: 500; color: #404040; text-decoration: none; border-bottom: 1px solid #f0f0f0; }
-        :global(.v2-mobile-cta) { display: block; background: #1a1a1a; color: #ffffff !important; text-align: center; padding: 0.875rem !important; font-weight: 700 !important; letter-spacing: 0.08em; margin-top: 1rem; border: none !important; }
-
         /* ── HERO ── */
         .v2-hero { padding: 6rem 2rem 5rem; max-width: 1200px; margin: 0 auto; }
         .v2-hero-inner { max-width: 800px; }
@@ -735,7 +643,7 @@ export default function Services() {
         .svc-phone-link:hover { border-color: #1a1a1a; }
 
         /* ── JUMP NAV ── */
-        .svc-jump-bar { position: sticky; top: 56px; z-index: 90; background: #ffffff; border-top: 1px solid #e0e0e0; border-bottom: 1px solid #e0e0e0; }
+        .svc-jump-bar { position: sticky; top: 64px; z-index: 90; background: #ffffff; border-top: 1px solid #e0e0e0; border-bottom: 1px solid #e0e0e0; }
         .svc-jump-inner { max-width: 1200px; margin: 0 auto; padding: 0 2rem; display: flex; gap: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
         .svc-jump-inner::-webkit-scrollbar { display: none; }
         .svc-jump-link { flex-shrink: 0; font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.1em; color: #737373; text-decoration: none; padding: 1rem 1.5rem; border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; }
@@ -798,31 +706,12 @@ export default function Services() {
         :global(.v2-btn-outline:hover) { border-color: #ffffff; }
         .v2-cta-location { font-size: 0.8125rem; color: #525252; letter-spacing: 0.03em; }
 
-        /* ── FOOTER ── */
-        .v2-footer { background: #fafafa; border-top: 1px solid #e0e0e0; padding: 4rem 2rem 2rem; }
-        .v2-footer-inner { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; gap: 4rem; margin-bottom: 3rem; }
-        .v2-wordmark-sm { font-size: 0.75rem; font-weight: 800; letter-spacing: 0.15em; color: #1a1a1a; }
-        .v2-footer-brand p { font-size: 0.875rem; color: #737373; margin: 0.75rem 0 0; line-height: 1.6; }
-        .v2-footer-links { display: flex; gap: 4rem; }
-        .v2-footer-col h4 { font-size: 0.625rem; font-weight: 800; letter-spacing: 0.14em; color: #1a1a1a; margin: 0 0 1rem; }
-        .v2-footer-col :global(a) { display: block; font-size: 0.8125rem; color: #737373; text-decoration: none; padding: 0.375rem 0; transition: color 0.2s; }
-        .v2-footer-col :global(a:hover) { color: #1a1a1a; }
-        .v2-footer-bottom { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e0e0e0; padding-top: 1.5rem; }
-        .v2-footer-bottom p { font-size: 0.75rem; color: #a0a0a0; margin: 0; }
-        .v2-footer-legal { display: flex; gap: 1.5rem; }
-        .v2-footer-legal :global(a) { font-size: 0.75rem; color: #a0a0a0; text-decoration: none; }
-        .v2-footer-legal :global(a:hover) { color: #1a1a1a; }
-
         /* ── ANIMATIONS ── */
         .v2-reveal { opacity: 0; transform: translateY(40px); transition: opacity 0.8s ease, transform 0.8s ease; }
         .v2-visible { opacity: 1; transform: translateY(0); }
 
         /* ── RESPONSIVE ── */
         @media (max-width: 900px) {
-          .v2-nav-desktop { display: none; }
-          :global(.v2-nav-cta) { display: none; }
-          .v2-hamburger { display: flex; }
-          .v2-mobile-menu { display: block; }
           .v2-hero { padding: 4rem 1.5rem 3rem; }
           .v2-hero h1 { font-size: clamp(2.25rem, 10vw, 3.5rem); }
           .v2-section { padding: 3.5rem 1.5rem; }
@@ -830,15 +719,12 @@ export default function Services() {
           .svc-price-grid-2, .svc-price-grid-3, .svc-price-grid-4 { grid-template-columns: 1fr 1fr; }
           .svc-mt { margin-top: 3rem; }
           .v2-cta-inner h2 { font-size: clamp(2rem, 8vw, 3rem); }
-          .v2-footer-inner { flex-direction: column; gap: 2.5rem; }
-          .v2-footer-links { flex-direction: column; gap: 2rem; }
-          .v2-footer-bottom { flex-direction: column; gap: 1rem; text-align: center; }
         }
 
         @media (max-width: 600px) {
           .svc-price-grid-2, .svc-price-grid-3, .svc-price-grid-4 { grid-template-columns: 1fr; }
         }
       `}</style>
-    </>
+    </Layout>
   );
 }

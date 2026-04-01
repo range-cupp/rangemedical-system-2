@@ -36,7 +36,7 @@ export default async function handler(req, res) {
         .from('comms_log')
         .select('patient_id, message_type, created_at')
         .in('message_type', ['google_review_request', 'google_review_gift'])
-        .eq('status', 'sent')
+        .in('status', ['sent', 'delivered'])
         .eq('direction', 'outbound');
 
       if (sErr) throw sErr;

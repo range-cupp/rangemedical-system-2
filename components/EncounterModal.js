@@ -101,6 +101,26 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
   const [loadingPrevious, setLoadingPrevious] = useState(false);
   const [cameFromCopyPrevious, setCameFromCopyPrevious] = useState(false);
 
+  // Undo history for free text editor (snapshots before programmatic changes)
+  const undoStackRef = useRef([]);
+  const saveUndoSnapshot = () => {
+    if (noteRef.current) {
+      undoStackRef.current.push(noteRef.current.innerHTML);
+      if (undoStackRef.current.length > 30) undoStackRef.current.shift();
+    }
+  };
+  const handleUndo = () => {
+    if (!noteRef.current) return;
+    if (undoStackRef.current.length > 0) {
+      noteRef.current.innerHTML = undoStackRef.current.pop();
+      setNoteIsEmpty(!noteRef.current.innerText?.trim());
+    } else {
+      noteRef.current.focus();
+      document.execCommand('undo', false, null);
+      setNoteIsEmpty(!noteRef.current.innerText?.trim());
+    }
+  };
+
   // Get markdown from contentEditable div
   const getNoteMarkdown = () => htmlToMd(noteRef.current?.innerHTML || '');
 
@@ -171,6 +191,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
   // Load template into contentEditable (appends to existing content)
   const loadTemplate = (body, defaultNoteType) => {
     if (noteRef.current) {
+      saveUndoSnapshot();
       const existing = noteRef.current.innerHTML.trim();
       const separator = existing ? '<br><br><hr><br>' : '';
       noteRef.current.innerHTML = (existing ? existing + separator : '') + mdToHtml(body);
@@ -573,6 +594,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
       });
       const data = await res.json();
       if (data.formatted && noteRef.current) {
+        saveUndoSnapshot();
         noteRef.current.innerHTML = mdToHtml(data.formatted);
       }
     } catch (err) {
@@ -1562,6 +1584,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                                 // Load previous note body into the free text editor after it renders
                                 setTimeout(() => {
                                   if (noteRef.current) {
+                                    saveUndoSnapshot();
                                     noteRef.current.innerHTML = mdToHtml(note.body || '');
                                     setNoteIsEmpty(false);
                                   }
@@ -1766,6 +1789,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
                           {template.quickNotes.map((qn, i) => (
                             <button key={i} onClick={() => {
                               if (noteRef.current) {
+                                saveUndoSnapshot();
                                 const current = noteRef.current.innerHTML;
                                 noteRef.current.innerHTML = current.trim() ? current + '<br>' + qn : qn;
                                 setNoteIsEmpty(false);
@@ -1780,6 +1804,19 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
 
                     {/* Formatting toolbar */}
                     <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+                      <button
+                        type="button"
+                        onClick={handleUndo}
+                        title="Undo last change"
+                        style={{
+                          padding: '4px 10px', fontSize: 13, fontWeight: 600, border: '1px solid #d1d5db',
+                          borderRadius: 0, background: '#f9fafb', color: '#374151', cursor: 'pointer',
+                          lineHeight: 1, display: 'flex', alignItems: 'center', gap: 4,
+                        }}
+                      >
+                        ↩ Undo
+                      </button>
+                      <div style={{ width: 1, height: 20, background: '#e5e7eb', margin: '0 4px' }} />
                       <button
                         type="button"
                         onClick={handleBoldToggle}

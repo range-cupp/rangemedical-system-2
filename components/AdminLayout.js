@@ -570,6 +570,7 @@ const NAV_ITEMS = [
   { href: '/admin/protocols', label: 'Protocols', icon: 'activity' },
   { href: '/admin/schedule', label: 'Schedule', icon: 'calendar' },
   { href: '/admin/medications', label: 'Medications', icon: 'pill' },
+  { href: '/admin/checkout', label: 'Checkout', icon: 'shopping-bag' },
   { href: '/admin/payments', label: 'Payments', icon: 'credit-card' },
   { href: '/admin/communications', label: 'Communications', icon: 'message' },
   { href: '/admin/email-campaigns', label: 'Email Campaigns', icon: 'mail', adminOnly: true },

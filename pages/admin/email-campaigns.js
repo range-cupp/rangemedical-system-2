@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
+import { useAuth } from '../../components/AuthProvider';
 import { Mail, Users, Send, ChevronLeft, Eye, Save, Filter, Trash2, Plus } from 'lucide-react';
 
 const PROTOCOL_TYPES = [
@@ -34,6 +35,7 @@ const STATUS_OPTIONS = [
 ];
 
 export default function EmailCampaignsPage() {
+  const { isAdmin } = useAuth();
   const [view, setView] = useState('list'); // list, compose
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -218,6 +220,18 @@ export default function EmailCampaignsPage() {
     setSendResult(null);
     setView('compose');
   };
+
+  // ─── ADMIN-ONLY GATE ───────────────────────────────────────────────
+  if (!isAdmin) {
+    return (
+      <AdminLayout title="Email Campaigns">
+        <div style={sharedStyles.emptyState}>
+          <p style={sharedStyles.emptyText}>Admin access required</p>
+          <p style={{ fontSize: '14px', color: '#999' }}>Only admins can manage email campaigns</p>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   // ─── CAMPAIGN LIST VIEW ───────────────────────────────────────────
   if (view === 'list') {

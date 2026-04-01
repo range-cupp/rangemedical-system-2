@@ -1,5 +1,5 @@
 // /pages/admin/google-reviews.js
-// Google Review request sender — send personalized video + review link one-by-one
+// Google Review request sender — send personalized review link one-by-one
 // Range Medical System V2
 
 import { useState, useEffect, useRef } from 'react';
@@ -7,7 +7,7 @@ import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
 
 const GOOGLE_REVIEW_URL = 'https://g.page/r/CR-a12vKevOkEAI/review';
 
-const DEFAULT_MESSAGE = `Hey {first_name}, it's Chris from Range Medical! I put together a quick video for you — would love if you could take a sec to leave us a Google review. It really helps us out.\n\n{review_link}`;
+const DEFAULT_MESSAGE = `Hey {first_name}, it's Chris from Range Medical. If you have a sec, would you mind leaving us a quick Google review? It really helps us out and I'd appreciate it.\n\n{review_link}`;
 
 export default function GoogleReviewsPage() {
   const [patients, setPatients] = useState([]);
@@ -16,7 +16,6 @@ export default function GoogleReviewsPage() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('not_sent'); // 'all' | 'not_sent' | 'sent'
   const [messageTemplate, setMessageTemplate] = useState(DEFAULT_MESSAGE);
-  const [videoUrl, setVideoUrl] = useState('');
   const [sendingId, setSendingId] = useState(null);
   const [previewPatient, setPreviewPatient] = useState(null);
   const [editedMessage, setEditedMessage] = useState('');
@@ -68,7 +67,6 @@ export default function GoogleReviewsPage() {
           patient_name: `${previewPatient.first_name} ${previewPatient.last_name}`.trim(),
           phone: previewPatient.phone,
           message: editedMessage,
-          media_url: videoUrl || undefined,
           provider: 'blooio',
         }),
       });
@@ -144,27 +142,6 @@ export default function GoogleReviewsPage() {
             Use <code style={{ background: '#f3f4f6', padding: '1px 4px', borderRadius: 3 }}>{'{first_name}'}</code> and <code style={{ background: '#f3f4f6', padding: '1px 4px', borderRadius: 3 }}>{'{review_link}'}</code> as placeholders.
           </div>
 
-          <div style={{ marginTop: 12 }}>
-            <label style={{ fontSize: 13, fontWeight: 500, color: '#555' }}>Video URL (optional — sends as iMessage attachment)</label>
-            <input
-              type="text"
-              value={videoUrl}
-              onChange={e => setVideoUrl(e.target.value)}
-              placeholder="https://your-video-url.com/review-video.mp4"
-              style={{
-                width: '100%',
-                padding: 10,
-                borderRadius: 8,
-                border: '1px solid #ddd',
-                fontSize: 14,
-                marginTop: 4,
-                boxSizing: 'border-box',
-              }}
-            />
-            <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>
-              Paste a public URL to a video file. It will be sent as a media attachment via iMessage/Blooio.
-            </div>
-          </div>
         </div>
 
         {/* Success toast */}
@@ -334,19 +311,6 @@ export default function GoogleReviewsPage() {
               <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>
                 To: {previewPatient.phone}
               </div>
-
-              {videoUrl && (
-                <div style={{
-                  padding: '8px 12px',
-                  background: '#eff6ff',
-                  borderRadius: 6,
-                  marginBottom: 12,
-                  fontSize: 13,
-                  color: '#1e40af',
-                }}>
-                  Video attachment: {videoUrl.substring(0, 60)}{videoUrl.length > 60 ? '...' : ''}
-                </div>
-              )}
 
               <textarea
                 value={editedMessage}

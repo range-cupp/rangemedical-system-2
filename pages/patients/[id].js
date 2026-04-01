@@ -5187,7 +5187,9 @@ export default function PatientProfile() {
                             const chargeOverdue = daysUntilCharge !== null && daysUntilCharge < 0;
                             const chargeSoon = daysUntilCharge !== null && daysUntilCharge >= 0 && daysUntilCharge <= 5;
 
-                            const lastPickupLog = wlDeliveryLogs.length > 0 ? wlDeliveryLogs[wlDeliveryLogs.length - 1] : null;
+                            const isInClinicWL = protocol.delivery_method === 'in_clinic';
+                            // In-clinic protocols don't have pickups/refills — only show payment info
+                            const lastPickupLog = !isInClinicWL && wlDeliveryLogs.length > 0 ? wlDeliveryLogs[wlDeliveryLogs.length - 1] : null;
                             const lastPickupDate = lastPickupLog ? new Date(lastPickupLog.entry_date + 'T12:00:00') : null;
                             const pickupSupplyDays = lastPickupLog && lastPickupLog.quantity ? lastPickupLog.quantity * 7 : 28;
                             const nextRefillDate = lastPickupDate ? new Date(lastPickupDate.getTime() + pickupSupplyDays * 86400000) : null;
@@ -5769,17 +5771,17 @@ export default function PatientProfile() {
                                               </tr>
                                             );
                                           } else {
-                                            // In-clinic: amber "No show"
+                                            // In-clinic: clickable "Log injection" row
                                             return (
-                                              <tr key={'noshow-' + slot.num} style={{ background: '#fffbeb', cursor: 'pointer' }}
+                                              <tr key={'noshow-' + slot.num} style={{ background: '#f0f9ff', cursor: 'pointer' }}
                                                 onClick={() => openQuickWeightModal(protocol, slot.expStr)}
-                                                title="Click to log weight for this session">
+                                                title="Click to log injection for this session">
                                                 <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
-                                                <td style={{ color: '#92400e' }}>{formatShortDate(slot.expStr)}</td>
-                                                <td style={{ color: '#b45309' }}>{currentDose || '\u2014'}</td>
-                                                <td>{emptyVitalsWeight ? <span style={{ color: '#3b82f6' }}>{emptyVitalsWeight} lbs <span style={{ fontSize: 9 }} title="From vitals flowsheet">V</span></span> : <span style={{ color: '#b45309' }}>{'\u2014'}</span>}</td>
-                                                <td style={{ color: '#b45309', fontStyle: 'italic', fontSize: 11 }}>No show</td>
-                                                <td style={{ textAlign: 'center', color: '#b45309', fontWeight: 700, fontSize: 14 }}>+</td>
+                                                <td style={{ color: '#1e40af' }}>{formatShortDate(slot.expStr)}</td>
+                                                <td style={{ color: '#1e40af' }}>{currentDose || '\u2014'}</td>
+                                                <td>{emptyVitalsWeight ? <span style={{ color: '#3b82f6' }}>{emptyVitalsWeight} lbs <span style={{ fontSize: 9 }} title="From vitals flowsheet">V</span></span> : <span style={{ color: '#6b7280' }}>{'\u2014'}</span>}</td>
+                                                <td style={{ color: '#3b82f6', fontStyle: 'italic', fontSize: 11 }}>Log injection</td>
+                                                <td style={{ textAlign: 'center', color: '#3b82f6', fontWeight: 700, fontSize: 14 }}>+</td>
                                               </tr>
                                             );
                                           }
@@ -5821,8 +5823,8 @@ export default function PatientProfile() {
                                 </table>
                               </div>
 
-                              {/* Medication Deliveries */}
-                              {wlDeliveryLogs.length > 0 && (
+                              {/* Medication Deliveries — only for take-home protocols */}
+                              {wlDeliveryLogs.length > 0 && protocol.delivery_method !== 'in_clinic' && (
                                 <div style={{ marginTop: 12 }}>
                                   <div style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
                                     Medication Deliveries

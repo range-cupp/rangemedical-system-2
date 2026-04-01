@@ -6115,8 +6115,8 @@ export default function PatientProfile() {
                                   <span><span className="px-legend-dot next" /> Today</span>
                                   <span><span className="px-legend-dot future" /> Future</span>
                                 </div>
-                                {/* Action buttons for recovery peptides */}
-                                {isRecovery && protocol.status === 'active' && (
+                                {/* Action buttons for peptide protocols */}
+                                {protocol.status === 'active' && (
                                   <div className="px-actions">
                                     {!protocol.peptide_guide_sent && (
                                       <button

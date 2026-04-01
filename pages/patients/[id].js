@@ -654,6 +654,16 @@ export default function PatientProfile() {
   const [redeemingPerkId, setRedeemingPerkId] = useState(null);
   const [hrtRangeIVStatus, setHrtRangeIVStatus] = useState(null); // { protocolId, used, service_date, cycle_start, cycle_end }
 
+  // Extend WL Protocol modal state
+  const [showExtendWLModal, setShowExtendWLModal] = useState(false);
+  const [extendWLProtocol, setExtendWLProtocol] = useState(null);
+  const [extendWLDays, setExtendWLDays] = useState(28);
+  const [extendWLDose, setExtendWLDose] = useState('');
+  const [extendWLPurchaseId, setExtendWLPurchaseId] = useState('');
+  const [extendWLNotes, setExtendWLNotes] = useState('');
+  const [extendingWL, setExtendingWL] = useState(false);
+  const [extendWLError, setExtendWLError] = useState('');
+
   // Payments sub-tab state
   const [paymentsSubTab, setPaymentsSubTab] = useState('subscriptions');
 
@@ -5380,11 +5390,25 @@ export default function PatientProfile() {
                               )}
                               <button onClick={() => openEditModal(protocol)} className="btn-secondary-sm">Edit</button>
                               {protocol.category === 'weight_loss' && protocol.status === 'active' && (
-                                <button
-                                  onClick={() => handleSendWlLink(protocol.id)}
-                                  disabled={sendingWlLink === protocol.id}
-                                  style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 0, padding: '4px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', opacity: sendingWlLink === protocol.id ? 0.6 : 1 }}
-                                >{sendingWlLink === protocol.id ? 'Sending...' : 'Send WL Link'}</button>
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setExtendWLProtocol(protocol);
+                                      setExtendWLDays(28);
+                                      setExtendWLDose(protocol.selected_dose || '');
+                                      setExtendWLPurchaseId('');
+                                      setExtendWLNotes('');
+                                      setExtendWLError('');
+                                      setShowExtendWLModal(true);
+                                    }}
+                                    style={{ background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 0, padding: '4px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+                                  >Extend</button>
+                                  <button
+                                    onClick={() => handleSendWlLink(protocol.id)}
+                                    disabled={sendingWlLink === protocol.id}
+                                    style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 0, padding: '4px 12px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', opacity: sendingWlLink === protocol.id ? 0.6 : 1 }}
+                                  >{sendingWlLink === protocol.id ? 'Sending...' : 'Send WL Link'}</button>
+                                </>
                               )}
                               {/* Merge button — only show when there are other protocols of the same category */}
                               {protocol.status === 'active' && (() => {
@@ -9973,6 +9997,154 @@ export default function PatientProfile() {
                     disabled={merging || !mergeTarget}
                     style={{ padding: '8px 20px', background: merging ? '#9ca3af' : '#f59e0b', color: '#fff', border: 'none', borderRadius: 0, cursor: merging ? 'not-allowed' : 'pointer', fontSize: 14, fontWeight: 600 }}
                   >{merging ? 'Merging...' : 'Merge Protocol'}</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ==================== EXTEND WL PROTOCOL MODAL ==================== */}
+        {showExtendWLModal && extendWLProtocol && (
+          <div className="modal-overlay" {...overlayClickProps(() => { if (!extendingWL) { setShowExtendWLModal(false); } })}>
+            <div className="modal" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Extend Weight Loss Protocol</h3>
+                <button onClick={() => setShowExtendWLModal(false)} className="close-btn" disabled={extendingWL}>&times;</button>
+              </div>
+              <div style={{ padding: '20px' }}>
+                {/* Current protocol summary */}
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 0, padding: '10px 14px', marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#166534', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Current Protocol</div>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>{extendWLProtocol.medication || 'Weight Loss'} · {extendWLProtocol.selected_dose || '—'}</div>
+                  <div style={{ fontSize: 13, color: '#444', marginTop: 2 }}>
+                    {extendWLProtocol.sessions_used || 0}/{extendWLProtocol.total_sessions || 0} sessions used
+                  </div>
+                </div>
+
+                {/* Duration */}
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                  Extend by
+                </label>
+                <select
+                  value={extendWLDays}
+                  onChange={e => setExtendWLDays(Number(e.target.value))}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, marginBottom: 16, background: '#fff' }}
+                  disabled={extendingWL}
+                >
+                  <option value={7}>1 week (1 session)</option>
+                  <option value={14}>2 weeks (2 sessions)</option>
+                  <option value={28}>4 weeks (4 sessions)</option>
+                  <option value={56}>8 weeks (8 sessions)</option>
+                </select>
+
+                {/* Dose change */}
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                  Dose (change if titrating)
+                </label>
+                <select
+                  value={extendWLDose}
+                  onChange={e => setExtendWLDose(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, marginBottom: 16, background: '#fff' }}
+                  disabled={extendingWL}
+                >
+                  <option value="">— Keep current —</option>
+                  {(WEIGHT_LOSS_DOSAGES[extendWLProtocol.medication] || []).map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+
+                {/* Link purchase */}
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                  Link purchase (optional)
+                </label>
+                <select
+                  value={extendWLPurchaseId}
+                  onChange={e => setExtendWLPurchaseId(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, marginBottom: 16, background: '#fff' }}
+                  disabled={extendingWL}
+                >
+                  <option value="">— None —</option>
+                  {(allPurchases || [])
+                    .filter(p => p.category === 'weight_loss' && !p.protocol_id)
+                    .map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.item_name || p.description || 'Weight Loss'} — ${Number(p.amount_paid || 0).toFixed(0)} — {p.purchase_date ? new Date(p.purchase_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+                      </option>
+                    ))}
+                </select>
+
+                {/* Notes */}
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                  Notes (optional)
+                </label>
+                <textarea
+                  value={extendWLNotes}
+                  onChange={e => setExtendWLNotes(e.target.value)}
+                  placeholder="e.g. Patient tolerating well, no side effects"
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, marginBottom: 16, resize: 'vertical', minHeight: 60 }}
+                  disabled={extendingWL}
+                />
+
+                {/* Preview */}
+                <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 0, padding: '10px 14px', marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#1e40af', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.4px' }}>After extension</div>
+                  <div style={{ fontSize: 13, color: '#1e3a5f' }}>
+                    Sessions: {extendWLProtocol.sessions_used || 0}/{(extendWLProtocol.total_sessions || 0) + Math.floor(extendWLDays / 7)}
+                    {' · '}<strong>{Math.floor(extendWLDays / 7)} new sessions</strong> added
+                    {extendWLDose && extendWLDose !== extendWLProtocol.selected_dose && (
+                      <span> · Dose: {extendWLProtocol.selected_dose} → <strong>{extendWLDose}</strong></span>
+                    )}
+                  </div>
+                </div>
+
+                {extendWLError && (
+                  <div style={{ background: '#fee2e2', color: '#dc2626', borderRadius: 0, padding: '8px 12px', fontSize: 13, marginBottom: 12 }}>
+                    {extendWLError}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => setShowExtendWLModal(false)}
+                    disabled={extendingWL}
+                    style={{ padding: '8px 20px', border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', cursor: 'pointer', fontSize: 14 }}
+                  >Cancel</button>
+                  <button
+                    onClick={async () => {
+                      setExtendingWL(true);
+                      setExtendWLError('');
+                      try {
+                        const body = {
+                          extensionDays: extendWLDays,
+                          pickupFrequency: extendWLDays,
+                        };
+                        if (extendWLDose && extendWLDose !== extendWLProtocol.selected_dose) {
+                          body.newDose = extendWLDose;
+                        }
+                        if (extendWLPurchaseId) {
+                          body.purchaseId = extendWLPurchaseId;
+                        }
+                        if (extendWLNotes) {
+                          body.notes = extendWLNotes;
+                        }
+                        const res = await fetch(`/api/protocols/${extendWLProtocol.id}/extend-wl`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(body),
+                        });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.error || 'Failed to extend protocol');
+                        setShowExtendWLModal(false);
+                        fetchPatient();
+                      } catch (err) {
+                        setExtendWLError(err.message);
+                      } finally {
+                        setExtendingWL(false);
+                      }
+                    }}
+                    disabled={extendingWL}
+                    style={{ padding: '8px 20px', background: extendingWL ? '#9ca3af' : '#7c3aed', color: '#fff', border: 'none', borderRadius: 0, cursor: extendingWL ? 'not-allowed' : 'pointer', fontSize: 14, fontWeight: 600 }}
+                  >{extendingWL ? 'Extending...' : 'Extend Protocol'}</button>
                 </div>
               </div>
             </div>

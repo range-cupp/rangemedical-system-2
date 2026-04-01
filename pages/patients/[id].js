@@ -577,6 +577,8 @@ export default function PatientProfile() {
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [generatingChart, setGeneratingChart] = useState(false);
   const [showQuickView, setShowQuickView] = useState(false);
+  const [referralInviteSending, setReferralInviteSending] = useState(false);
+  const [referralInviteSent, setReferralInviteSent] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletePreview, setDeletePreview] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -3574,6 +3576,36 @@ export default function PatientProfile() {
                 title="Print full patient chart"
               >
                 🖨️ <span className="toolbar-label">{generatingChart ? 'Generating...' : 'Print'}</span>
+              </button>
+              <button
+                onClick={async () => {
+                  if (!patient?.phone) { alert('No phone number on file for this patient.'); return; }
+                  setReferralInviteSending(true);
+                  try {
+                    const firstName = patient.first_name || patient.name?.split(' ')[0] || '';
+                    await fetch('/api/twilio/send-sms', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        patient_id: patient.id,
+                        to: patient.phone,
+                        message: `Hey ${firstName} — thanks for being a Range Medical patient. Here's a quick link to set up your personal referral page. Takes 15 seconds, then you can text it to anyone you think should check us out: https://range-medical.com/refer/join`,
+                        message_type: 'referral_invite',
+                      }),
+                    });
+                    setReferralInviteSent(true);
+                    setTimeout(() => setReferralInviteSent(false), 3000);
+                  } catch (err) {
+                    console.error('Referral invite error:', err);
+                    alert('Failed to send. Try again.');
+                  }
+                  setReferralInviteSending(false);
+                }}
+                disabled={referralInviteSending}
+                className="toolbar-btn toolbar-btn-orange"
+                title="Send referral invite text"
+              >
+                🤝 <span className="toolbar-label">{referralInviteSent ? '✓ Sent' : referralInviteSending ? 'Sending...' : 'Referral'}</span>
               </button>
             </div>
             {(() => {
@@ -10489,6 +10521,8 @@ export default function PatientProfile() {
         .toolbar-btn-credit:hover { background: #dcfce7; }
         .toolbar-btn-dark { background: #1e293b; color: #fff; font-weight: 600; }
         .toolbar-btn-dark:hover { background: #334155; }
+        .toolbar-btn-orange { background: #fff7ed; color: #c2410c; font-weight: 600; }
+        .toolbar-btn-orange:hover { background: #ffedd5; }
         .toolbar-btn-purple { background: #f5f3ff; color: #6d28d9; font-weight: 600; }
         .toolbar-btn-purple:hover { background: #ede9fe; }
         .toolbar-btn-more { padding: 6px 8px; font-size: 16px; font-weight: 700; color: #94a3b8; letter-spacing: 1px; }

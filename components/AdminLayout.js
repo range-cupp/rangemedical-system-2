@@ -571,6 +571,7 @@ const NAV_ITEMS = [
   { href: '/admin/medications', label: 'Medications', icon: 'pill' },
   { href: '/admin/payments', label: 'Payments', icon: 'credit-card' },
   { href: '/admin/communications', label: 'Communications', icon: 'message' },
+  { href: '/admin/email-campaigns', label: 'Email Campaigns', icon: 'mail' },
   { href: '/admin/tasks', label: 'Tasks', icon: 'check-square' },
   { href: '/staff-chat', label: 'Assistant', icon: 'message' },
   { href: '/admin/send-forms', label: 'Send Forms', icon: 'file-text' },

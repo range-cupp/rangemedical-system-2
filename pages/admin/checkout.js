@@ -338,10 +338,10 @@ function CheckoutInner() {
       .then(r => r.json())
       .then(data => setEmployees(data.employees || data || []))
       .catch(() => setEmployees([]));
-    // Load recent charges
-    fetch(`/api/admin/purchases?patient_id=${patient.id}&limit=15`)
+    // Load recent Stripe charges (actual amounts paid, not line items)
+    fetch(`/api/patients/${patient.id}/stripe-charges`)
       .then(r => r.json())
-      .then(data => setRecentCharges(data.purchases || []))
+      .then(data => setRecentCharges(data.charges || []))
       .catch(() => setRecentCharges([]));
   }, [patient?.id]);
 
@@ -350,6 +350,7 @@ function CheckoutInner() {
     if (step === 'payment' && patient?.id) {
       loadSavedCards();
       loadCreditBalance();
+      loadEnergyPacks();
     }
   }, [step]);
 
@@ -380,6 +381,28 @@ function CheckoutInner() {
         setCreditBalanceCents(data.balance_cents || 0);
       }
     } catch (err) {}
+  }
+
+  async function loadEnergyPacks() {
+    try {
+      const res = await fetch(`/api/energy-packs?patient_id=${patient.id}&status=active`);
+      if (res.ok) {
+        const data = await res.json();
+        setEnergyPacks(data.packs || []);
+      }
+    } catch (err) {}
+  }
+
+  function getEnergyPackBalance() {
+    const now = new Date();
+    return energyPacks.reduce((sum, p) => {
+      const bonus = new Date(p.bonus_expires_at) < now ? 0 : p.remaining_bonus_cents;
+      return sum + p.remaining_base_cents + bonus;
+    }, 0);
+  }
+
+  function cartHasEnergyEligible() {
+    return cartItems.some(i => ['red_light', 'hbot'].includes(i.category));
   }
 
   // ══════════════════════════════════════════════════════════════════
@@ -541,6 +564,28 @@ function CheckoutInner() {
 
   function isGiftCardPurchase() {
     return cartItems.length > 0 && cartItems[0]?.category === 'gift_card';
+  }
+
+  function isEnergyPackPurchase() {
+    return cartItems.some(i => i.name?.toLowerCase().includes('energy') && i.name?.toLowerCase().includes('recovery'));
+  }
+
+  async function createEnergyPackAfterPurchase(purchaseId) {
+    try {
+      const res = await fetch('/api/energy-packs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: patient.id,
+          purchase_id: purchaseId,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.pack) return data.pack;
+    } catch (err) {
+      console.error('Failed to create energy pack:', err);
+    }
+    return null;
   }
 
   function getDispenseItems() {
@@ -745,6 +790,10 @@ function CheckoutInner() {
       const code = await createGiftCardAfterPurchase(purchaseData.purchase.id, amount);
       if (code) message = `Payment successful: ${formatPrice(amount)}\nGift Card Created: ${code}`;
     }
+    if (isEnergyPackPurchase() && purchaseData?.purchase?.id) {
+      const pack = await createEnergyPackAfterPurchase(purchaseData.purchase.id);
+      if (pack) message = `Payment successful: ${formatPrice(amount)}\nEnergy & Recovery Pack activated — $750 balance`;
+    }
     // Also process any dispense items in the cart
     message = await processDispenseAndAppend(message);
     setResultStatus('success');
@@ -768,6 +817,42 @@ function CheckoutInner() {
         .catch(() => {});
     }
     return message;
+  }
+
+  async function redeemEnergyPack(amountCents, purchaseId) {
+    // Redeem from active packs in order (oldest first, bonus-first within each)
+    let remaining = amountCents;
+    let totalApplied = 0;
+    const eligibleCategory = cartItems.find(i => ['red_light', 'hbot'].includes(i.category))?.category || 'red_light';
+    const serviceType = eligibleCategory === 'hbot' ? 'hyperbaric' : 'red_light';
+    const serviceName = cartItems.find(i => ['red_light', 'hbot'].includes(i.category))?.name || serviceType;
+
+    for (const pack of energyPacks) {
+      if (remaining <= 0) break;
+      const now = new Date();
+      const bonus = new Date(pack.bonus_expires_at) < now ? 0 : pack.remaining_bonus_cents;
+      const available = pack.remaining_base_cents + bonus;
+      if (available <= 0) continue;
+
+      const toRedeem = Math.min(remaining, available);
+      const res = await fetch('/api/energy-packs/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pack_id: pack.id,
+          patient_id: patient.id,
+          service_type: serviceType,
+          service_name: serviceName,
+          amount_cents: toRedeem,
+          purchase_id: purchaseId || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to apply Energy & Recovery balance');
+      totalApplied += data.applied_cents;
+      remaining -= data.applied_cents;
+    }
+    return { totalApplied, remaining };
   }
 
   async function handlePay() {
@@ -797,6 +882,28 @@ function CheckoutInner() {
       return;
     }
 
+    // Energy & Recovery Pack — full coverage (balance >= charge)
+    if (energyPackApply && cartHasEnergyEligible() && getEnergyPackBalance() >= amount) {
+      setStep('processing');
+      try {
+        const purchaseData = await recordPurchasesWithReturn({ payment_method: 'energy_pack' });
+        const { totalApplied } = await redeemEnergyPack(amount, purchaseData?.purchase?.id);
+        let message = `Applied ${formatPrice(totalApplied)} from Energy & Recovery balance for ${patient.name}`;
+        message = await processDispenseAndAppend(message);
+        setResultStatus('success');
+        setResultMessage(message);
+        setStep('result');
+      } catch (error) {
+        setResultStatus('error');
+        setResultMessage(error.message || 'Failed to apply Energy & Recovery balance');
+        setStep('result');
+      }
+      return;
+    }
+
+    // Energy & Recovery Pack — partial (balance < charge, remainder to selected payment method)
+    // Handled inline below: if energyPackApply is on, we deduct what we can and charge the rest
+
     // Cash
     if (selectedCard === 'cash') {
       setStep('processing');
@@ -807,6 +914,11 @@ function CheckoutInner() {
           const code = await createGiftCardAfterPurchase(purchaseData.purchase.id, amount);
           message = code
             ? `Cash payment: ${formatPrice(amount)}\nGift Card Created: ${code}`
+            : `Cash payment: ${description} — ${formatPrice(amount)}`;
+        } else if (isEnergyPackPurchase() && purchaseData?.purchase?.id) {
+          const pack = await createEnergyPackAfterPurchase(purchaseData.purchase.id);
+          message = pack
+            ? `Cash payment: ${formatPrice(amount)}\nEnergy & Recovery Pack activated — $750 balance`
             : `Cash payment: ${description} — ${formatPrice(amount)}`;
         } else {
           message = `Cash payment recorded: ${description} — ${formatPrice(amount)}`;
@@ -1533,29 +1645,27 @@ function CheckoutInner() {
                   </button>
                   {recentChargesOpen && (
                     <div style={styles.recentChargesList}>
-                      {recentCharges.map(p => {
-                        const date = p.purchase_date || p.created_at;
-                        const dateStr = date
-                          ? new Date(date + (date.includes('T') ? '' : 'T00:00:00')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                      {recentCharges.map(c => {
+                        const dateStr = c.created
+                          ? new Date(c.created * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                           : '';
-                        const amount = p.amount_cents
-                          ? formatPrice(p.amount_cents)
-                          : p.original_amount
-                            ? `$${Number(p.original_amount).toFixed(2)}`
-                            : p.amount
-                              ? `$${Number(p.amount).toFixed(2)}`
-                              : '';
-                        const itemName = p.service_name || p.description || p.item_name || 'Payment';
-                        const method = p.payment_method === 'cash' ? 'Cash'
-                          : p.payment_method === 'comp' ? 'Comp'
-                            : p.card_brand ? `${p.card_brand} ···${p.card_last4}`
-                              : p.payment_method || '';
+                        const amount = formatPrice(c.amount || 0);
+                        const desc = c.description || 'Payment';
+                        const card = c.card_brand
+                          ? `${c.card_brand} ···${c.card_last4}`
+                          : '';
+                        const isRefunded = c.refunded;
+                        const partialRefund = !c.refunded && c.amount_refunded > 0;
                         return (
-                          <div key={p.id} style={styles.recentChargeRow}>
+                          <div key={c.id} style={{ ...styles.recentChargeRow, ...(isRefunded ? { opacity: 0.5 } : {}) }}>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: '13px', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{itemName}</div>
+                              <div style={{ fontSize: '13px', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {desc}
+                                {isRefunded && <span style={{ fontSize: '10px', color: '#dc2626', fontWeight: 700, marginLeft: '6px' }}>REFUNDED</span>}
+                                {partialRefund && <span style={{ fontSize: '10px', color: '#d97706', fontWeight: 700, marginLeft: '6px' }}>PARTIAL REFUND</span>}
+                              </div>
                               <div style={{ fontSize: '11px', color: '#999' }}>
-                                {dateStr}{method ? ` · ${method}` : ''}
+                                {dateStr}{card ? ` · ${card}` : ''}
                               </div>
                             </div>
                             <div style={{ fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap' }}>{amount}</div>
@@ -2915,6 +3025,22 @@ function CheckoutInner() {
                           </div>
                         )}
                       </>
+                    )}
+
+                    {/* Energy & Recovery Pack balance */}
+                    {!isGiftCardPurchase() && cartHasEnergyEligible() && energyPacks.length > 0 && (
+                      <div style={{ marginTop: '12px', padding: '12px 16px', background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginBottom: '4px' }}>
+                          <input type="checkbox" checked={energyPackApply} onChange={e => setEnergyPackApply(e.target.checked)} style={{ width: '16px', height: '16px' }} />
+                          <span style={{ fontWeight: 600, fontSize: '14px', color: '#166534' }}>Apply Energy & Recovery balance</span>
+                        </label>
+                        <div style={{ fontSize: '13px', color: '#166534', paddingLeft: '24px' }}>
+                          Available: {formatPrice(getEnergyPackBalance())}
+                          {getEnergyPackBalance() < chargeAmount && (
+                            <span style={{ color: '#92400e' }}> — remaining {formatPrice(chargeAmount - getEnergyPackBalance())} charged to selected payment method</span>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </>
                 )}

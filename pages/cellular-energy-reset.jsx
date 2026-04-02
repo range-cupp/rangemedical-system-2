@@ -142,12 +142,20 @@ export default function CellularEnergyReset() {
                 "latitude": 33.6189,
                 "longitude": -117.9298
               },
-              "openingHoursSpecification": {
-                "@type": "OpeningHoursSpecification",
-                "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-                "opens": "09:00",
-                "closes": "17:00"
-              },
+              "openingHoursSpecification": [
+                {
+                  "@type": "OpeningHoursSpecification",
+                  "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+                  "opens": "07:00",
+                  "closes": "18:00"
+                },
+                {
+                  "@type": "OpeningHoursSpecification",
+                  "dayOfWeek": ["Saturday"],
+                  "opens": "09:00",
+                  "closes": "14:00"
+                }
+              ],
               "priceRange": "$$",
               "aggregateRating": {
                 "@type": "AggregateRating",

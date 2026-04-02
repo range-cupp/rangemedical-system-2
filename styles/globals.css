@@ -972,6 +972,51 @@ p {
 }
 
 /* ========================================
+   CASH-PAY MODEL — V2
+   ======================================== */
+
+.cashpay-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 2.5rem;
+}
+
+.cashpay-item {
+  padding: 2rem;
+  border: 1px solid #e8e8e8;
+}
+
+.cashpay-num {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #a0a0a0;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.cashpay-item h4 {
+  font-size: 1.125rem;
+  font-weight: 800;
+  margin: 0 0 0.75rem;
+  color: #1a1a1a;
+}
+
+.cashpay-item p {
+  font-size: 0.9375rem;
+  color: #525252;
+  line-height: 1.7;
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .cashpay-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ========================================
    FINAL CTA — V2
    ======================================== */
 

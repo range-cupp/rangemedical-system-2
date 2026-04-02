@@ -131,7 +131,7 @@ export default function Layout({ children, title, description }) {
               1901 Westcliff Dr. Suite 10<br />
               Newport Beach, CA 92660
             </p>
-            <p className="rm-footer-hours">Mon – Fri: 9:00 AM – 5:00 PM<br />Sat – Sun: Closed</p>
+            <p className="rm-footer-hours">Mon – Fri: 7:00 AM – 6:00 PM<br />Saturday: 9:00 AM – 2:00 PM<br />Sunday: Closed</p>
           </div>
           <div className="rm-footer-links">
             <div className="rm-footer-col">

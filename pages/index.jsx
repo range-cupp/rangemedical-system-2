@@ -74,12 +74,20 @@ export default function Home() {
                 "latitude": 33.6189,
                 "longitude": -117.9298
               },
-              "openingHoursSpecification": {
-                "@type": "OpeningHoursSpecification",
-                "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-                "opens": "09:00",
-                "closes": "17:00"
-              },
+              "openingHoursSpecification": [
+                {
+                  "@type": "OpeningHoursSpecification",
+                  "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+                  "opens": "07:00",
+                  "closes": "18:00"
+                },
+                {
+                  "@type": "OpeningHoursSpecification",
+                  "dayOfWeek": ["Saturday"],
+                  "opens": "09:00",
+                  "closes": "14:00"
+                }
+              ],
               "priceRange": "$$",
               "aggregateRating": {
                 "@type": "AggregateRating",
@@ -238,6 +246,45 @@ export default function Home() {
 
             <div style={{ textAlign: 'center', marginTop: '2.5rem' }}>
               <Link href="/reviews" className="btn-outline">Read More Reviews</Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Cash-Pay Model Section */}
+        <section id="home-cashpay" className={`home-section home-animate ${isVisible['home-cashpay'] ? 'home-visible' : ''}`}>
+          <div className="home-container">
+            <div className="v2-label"><span className="v2-dot" /> How We Work</div>
+            <h2>No Insurance.<br />On Purpose.</h2>
+            <p className="home-section-intro">
+              We&apos;re a cash-pay clinic &mdash; and that&apos;s by design. It means more time with your provider,
+              transparent pricing, and zero insurance red tape.
+            </p>
+
+            <div className="cashpay-grid">
+              <div className="cashpay-item">
+                <span className="cashpay-num">01</span>
+                <h4>More Time With You</h4>
+                <p>Insurance-based clinics move fast because they have to. We don&apos;t. Your visits are longer, your provider actually listens, and your plan is built around you &mdash; not a billing code.</p>
+              </div>
+              <div className="cashpay-item">
+                <span className="cashpay-num">02</span>
+                <h4>Transparent Pricing</h4>
+                <p>You know what everything costs before you commit. No surprise bills, no co-pay confusion, no &ldquo;we&apos;ll see what insurance covers.&rdquo; The price we quote is the price you pay.</p>
+              </div>
+              <div className="cashpay-item">
+                <span className="cashpay-num">03</span>
+                <h4>Better Treatment Options</h4>
+                <p>Many of the therapies we offer &mdash; peptides, hyperbaric oxygen, advanced labs &mdash; aren&apos;t covered by insurance anyway. Going cash-pay means we can offer what actually works, not just what gets approved.</p>
+              </div>
+              <div className="cashpay-item">
+                <span className="cashpay-num">04</span>
+                <h4>HSA & FSA Accepted</h4>
+                <p>You can use your Health Savings Account or Flexible Spending Account for any of our services. Same card, same process &mdash; just swipe it like a credit card.</p>
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+              <Link href="/cash-pay" className="btn-outline">Learn More About Our Model</Link>
             </div>
           </div>
         </section>

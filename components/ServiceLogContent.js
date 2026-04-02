@@ -47,7 +47,8 @@ const _injectionMeds = PROTOCOL_TYPES.single_injection.medications;
 const VITAMIN_OPTIONS = [
   ..._injectionMeds.map(m => ({ value: m, label: m })),
   // Service-log extras not sold as standalone protocols
-  { value: 'Lipo-C', label: 'Lipo-C' },
+  { value: 'Super Skinny Shot', label: 'Super Skinny Shot' },
+  { value: 'Skinny Shot', label: 'Skinny Shot' },
   { value: 'Taurine', label: 'Taurine' },
   { value: 'Toradol', label: 'Toradol' }
 ];
@@ -526,6 +527,18 @@ export default function ServiceLogContent({ preselectedPatient = null, autoOpen 
         }
         setProtocolData(prev => ({ ...prev, frequency: 'daily', duration: '30' }));
       } else if (serviceType.id === 'testosterone') {
+        // Auto-detect hrt_type from protocol — normalize variants, infer from medication if missing
+        const rawHrtType = protocol?.hrt_type;
+        const inferredHrtType = (rawHrtType === 'female' || rawHrtType === 'hrt_female' ? 'female' : null)
+          || (rawHrtType === 'male' || rawHrtType === 'hrt_male' ? 'male' : null)
+          || (protocol?.medication?.includes('100mg/ml') ? 'female' : null)
+          || (protocol?.medication?.includes('200mg/ml') ? 'male' : null)
+          || 'male';
+        setFormData(prev => ({
+          ...prev,
+          hrt_type: inferredHrtType,
+          dosage: protocol?.selected_dose || '',
+        }));
         setEntryType(protocol?.delivery_method === 'take_home' ? 'pickup' : 'injection');
         setProtocolData(prev => ({ ...prev, frequency: '2x_weekly', supplyType: 'prefilled' }));
       }

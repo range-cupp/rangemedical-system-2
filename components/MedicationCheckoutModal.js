@@ -419,8 +419,11 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
       if (data.available_protocols?.length === 1) {
         const proto = data.available_protocols[0];
         setSelectedProtocol(proto);
-        // Pre-fill from protocol
-        if (proto.medication) setMedication(proto.medication);
+        // Pre-fill from protocol — strip concentration suffix (e.g. "(100mg/ml)") for dropdown matching
+        if (proto.medication) {
+          const normalizedMed = proto.medication.replace(/\s*\(\d+mg\/ml\)/, '');
+          setMedication(normalizedMed);
+        }
         if (proto.selected_dose) setDosage(proto.selected_dose);
         if (proto.supply_type) setSupplyType(proto.supply_type);
       }
@@ -744,7 +747,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
           amount: getItemPriceCents(item),
         });
 
-        // Process WL included add-ons (B12, Lipo-C, etc.)
+        // Process WL included add-ons (B12, Super Skinny Shot, Skinny Shot, etc.)
         if (item.wlAddons?.length > 0) {
           for (const addon of item.wlAddons) {
             const totalQty = (addon.inClinic || 0) + (addon.takeHome || 0);
@@ -1207,7 +1210,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                     onChange={e => {
                       const proto = coverage.available_protocols.find(p => p.id === e.target.value);
                       setSelectedProtocol(proto || null);
-                      if (proto?.medication) setMedication(proto.medication);
+                      if (proto?.medication) setMedication(proto.medication.replace(/\s*\(\d+mg\/ml\)/, ''));
                       if (proto?.selected_dose) setDosage(proto.selected_dose);
                     }}
                     style={styles.select}
@@ -1323,7 +1326,7 @@ export default function MedicationCheckoutModal({ isOpen, onClose, preselectedPa
                   </div>
                   {[
                     { type: 'b12', label: 'B12 Injection' },
-                    { type: 'lipo', label: 'Lipo-C Injection' },
+                    { type: 'lipo', label: 'Super Skinny Shot' },
                   ].map(addon => {
                     const existing = wlAddons.find(a => a.type === addon.type);
                     const isActive = !!existing;
@@ -2148,7 +2151,8 @@ function renderMedicationPicker(categoryId, value, onChange) {
           <option value="">Select medication...</option>
           {WEIGHT_LOSS_MEDICATIONS.map(m => <option key={m} value={m}>{m}</option>)}
           <option value="B12">B12 (add-on)</option>
-          <option value="Lipo-C">Lipo-C (add-on)</option>
+          <option value="Super Skinny Shot">Super Skinny Shot (add-on)</option>
+          <option value="Skinny Shot">Skinny Shot (add-on)</option>
         </select>
       );
     case 'peptide':
@@ -2243,8 +2247,12 @@ function renderDosagePicker(categoryId, medication, dosage, setDosage, selectedP
         </div>
       );
     }
-    // Primary testosterone doses — use hrt_type from protocol, fall back to patient gender
-    const hrtType = selectedProtocol?.hrt_type
+    // Primary testosterone doses — normalize hrt_type variants, infer from medication, fall back to patient gender
+    const rawType = selectedProtocol?.hrt_type;
+    const hrtType = (rawType === 'female' || rawType === 'hrt_female' ? 'female' : null)
+      || (rawType === 'male' || rawType === 'hrt_male' ? 'male' : null)
+      || (selectedProtocol?.medication?.includes('100mg/ml') ? 'female' : null)
+      || (selectedProtocol?.medication?.includes('200mg/ml') ? 'male' : null)
       || (patientGender === 'Female' || patientGender === 'female' ? 'female' : null)
       || (patientGender === 'Male' || patientGender === 'male' ? 'male' : null);
     const showMale = !hrtType || hrtType === 'male';

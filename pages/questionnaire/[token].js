@@ -239,11 +239,11 @@ export default function BaselineQuestionnaire({ pageError, initialData, token })
   if (pageError) {
     return (
       <Page title="Error">
-        <div style={styles.errorContainer}>
-          <div style={styles.errorIcon}>!</div>
-          <h1 style={styles.errorTitle}>Unable to Load</h1>
-          <p style={styles.errorText}>{pageError}</p>
-          <p style={styles.errorHint}>
+        <div style={styles.successCard}>
+          <div style={{ ...styles.successIcon, background: '#fef2f2', color: '#dc2626' }}>!</div>
+          <h1 style={styles.successTitle}>Unable to Load</h1>
+          <p style={styles.successText}>{pageError}</p>
+          <p style={{ ...styles.successText, color: '#a0a0a0', fontSize: '14px', marginTop: '12px' }}>
             If you believe this is a mistake, please contact Range Medical at (949) 997-3988.
           </p>
         </div>
@@ -255,13 +255,13 @@ export default function BaselineQuestionnaire({ pageError, initialData, token })
   if (complete) {
     return (
       <Page title="Complete">
-        <div style={styles.successContainer}>
+        <div style={styles.successCard}>
           <div style={styles.successIcon}>✓</div>
-          <h1 style={styles.successTitle}>All done{firstName ? `, ${firstName}` : ''}!</h1>
+          <h1 style={styles.successTitle}>All done{firstName ? `, ${firstName}` : ''}</h1>
           <p style={styles.successText}>
             Your responses have been submitted. Your care team will review everything before your appointment.
           </p>
-          <p style={styles.successHint}>You can close this page now.</p>
+          <p style={{ ...styles.successText, color: '#a0a0a0', fontSize: '14px', marginTop: '16px' }}>You can close this page now.</p>
         </div>
       </Page>
     );
@@ -274,20 +274,15 @@ export default function BaselineQuestionnaire({ pageError, initialData, token })
   const canProceed = isSectionComplete();
 
   return (
-    <Page title={section.title || 'Questionnaire'}>
-      {/* Progress bar */}
-      <div style={styles.progressContainer}>
-        <div style={styles.progressBar}>
-          <div style={{ ...styles.progressFill, width: `${progress}%` }} />
+    <Page title={section.title || 'Questionnaire'} progress={progress}>
+      <main style={styles.main}>
+        {/* Section label */}
+        <div style={styles.sectionLabel}>
+          <div style={styles.sectionLabelDot} />
+          <span>Section {currentSection + 1} of {sections.length}</span>
         </div>
-        <span style={styles.progressText}>
-          {currentSection + 1} of {sections.length}
-        </span>
-      </div>
 
-      {/* Section content */}
-      <div style={styles.formContainer}>
-        <h2 style={styles.sectionTitle}>{section.title}</h2>
+        <h1 style={styles.sectionTitle}>{section.title}</h1>
         {section.subtitle && (
           <p style={styles.sectionSubtitle}>{section.subtitle}</p>
         )}
@@ -322,14 +317,14 @@ export default function BaselineQuestionnaire({ pageError, initialData, token })
               opacity: canProceed && !submitting ? 1 : 0.4,
             }}
           >
-            {submitting ? 'Submitting...' : isLastSection ? 'Submit' : 'Continue'}
+            {submitting ? 'SUBMITTING...' : isLastSection ? 'SUBMIT' : 'CONTINUE'}
           </button>
         </div>
 
         {saving && (
           <p style={styles.savingIndicator}>Saving...</p>
         )}
-      </div>
+      </main>
     </Page>
   );
 }
@@ -374,9 +369,9 @@ function QuestionRenderer({ question, value, onChange }) {
               onClick={() => onChange(opt.value)}
               style={{
                 ...styles.optionCard,
-                background: value === opt.value ? '#000' : '#fff',
-                color: value === opt.value ? '#fff' : '#262626',
-                borderColor: value === opt.value ? '#000' : '#d4d4d4',
+                background: value === opt.value ? '#1a1a1a' : '#fff',
+                color: value === opt.value ? '#fff' : '#1a1a1a',
+                borderColor: value === opt.value ? '#1a1a1a' : '#e0e0e0',
               }}
             >
               {opt.label}
@@ -394,9 +389,9 @@ function QuestionRenderer({ question, value, onChange }) {
               onClick={() => onChange(opt.value)}
               style={{
                 ...styles.frequencyCard,
-                background: value === opt.value ? '#000' : '#fff',
-                color: value === opt.value ? '#fff' : '#262626',
-                borderColor: value === opt.value ? '#000' : '#d4d4d4',
+                background: value === opt.value ? '#1a1a1a' : '#fff',
+                color: value === opt.value ? '#fff' : '#1a1a1a',
+                borderColor: value === opt.value ? '#1a1a1a' : '#e0e0e0',
               }}
             >
               {opt.label}
@@ -414,9 +409,9 @@ function QuestionRenderer({ question, value, onChange }) {
               onClick={() => onChange(opt.value)}
               style={{
                 ...styles.frequencyCard,
-                background: value === opt.value ? '#000' : '#fff',
-                color: value === opt.value ? '#fff' : '#262626',
-                borderColor: value === opt.value ? '#000' : '#d4d4d4',
+                background: value === opt.value ? '#1a1a1a' : '#fff',
+                color: value === opt.value ? '#fff' : '#1a1a1a',
+                borderColor: value === opt.value ? '#1a1a1a' : '#e0e0e0',
               }}
             >
               {opt.label}
@@ -434,9 +429,9 @@ function QuestionRenderer({ question, value, onChange }) {
               onClick={() => onChange(opt.value)}
               style={{
                 ...styles.frequencyCard,
-                background: value === opt.value ? '#000' : '#fff',
-                color: value === opt.value ? '#fff' : '#262626',
-                borderColor: value === opt.value ? '#000' : '#d4d4d4',
+                background: value === opt.value ? '#1a1a1a' : '#fff',
+                color: value === opt.value ? '#fff' : '#1a1a1a',
+                borderColor: value === opt.value ? '#1a1a1a' : '#e0e0e0',
               }}
             >
               {opt.label}
@@ -473,9 +468,9 @@ function QuestionRenderer({ question, value, onChange }) {
               onClick={() => onChange(opt.value)}
               style={{
                 ...styles.botherCard,
-                background: value === opt.value ? '#000' : '#fff',
-                color: value === opt.value ? '#fff' : '#262626',
-                borderColor: value === opt.value ? '#000' : '#d4d4d4',
+                background: value === opt.value ? '#1a1a1a' : '#fff',
+                color: value === opt.value ? '#fff' : '#1a1a1a',
+                borderColor: value === opt.value ? '#1a1a1a' : '#e0e0e0',
               }}
             >
               {opt.label}
@@ -526,9 +521,9 @@ function QuestionRenderer({ question, value, onChange }) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// Page wrapper — shared layout with Range Medical header
+// Page wrapper — v2 Range Medical design
 // ═══════════════════════════════════════════════════════════
-function Page({ title, children }) {
+function Page({ title, progress, children }) {
   return (
     <>
       <Head>
@@ -538,30 +533,14 @@ function Page({ title, children }) {
       </Head>
 
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-        :root {
-          --black: #000000;
-          --white: #ffffff;
-          --gray-50: #fafafa;
-          --gray-100: #f5f5f5;
-          --gray-200: #e5e5e5;
-          --gray-300: #d4d4d4;
-          --gray-400: #a3a3a3;
-          --gray-500: #737373;
-          --gray-600: #525252;
-          --gray-700: #404040;
-          --gray-800: #262626;
-          --error: #dc2626;
-          --success: #16a34a;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          background-color: var(--gray-100);
-          color: var(--gray-800);
+          background-color: #fafafa;
+          color: #1a1a1a;
           line-height: 1.5;
           -webkit-font-smoothing: antialiased;
         }
@@ -569,9 +548,9 @@ function Page({ title, children }) {
         input[type="range"] {
           -webkit-appearance: none;
           width: 100%;
-          height: 8px;
+          height: 6px;
           border-radius: 0;
-          background: var(--gray-200);
+          background: #e0e0e0;
           outline: none;
         }
 
@@ -580,9 +559,9 @@ function Page({ title, children }) {
           width: 28px;
           height: 28px;
           border-radius: 50%;
-          background: var(--black);
+          background: #1a1a1a;
           cursor: pointer;
-          border: 3px solid var(--white);
+          border: 3px solid #fff;
           box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         }
 
@@ -590,27 +569,22 @@ function Page({ title, children }) {
           width: 28px;
           height: 28px;
           border-radius: 50%;
-          background: var(--black);
+          background: #1a1a1a;
           cursor: pointer;
-          border: 3px solid var(--white);
+          border: 3px solid #fff;
           box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        }
-
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-
-        @media (max-width: 640px) {
-          .q-container { padding: 1rem !important; }
-          .q-form { padding: 1.25rem !important; }
         }
       `}</style>
 
-      <div className="q-container" style={styles.container}>
-        {/* Header */}
+      <div style={styles.container}>
+        {/* v2 Header */}
         <header style={styles.header}>
-          <div style={styles.clinicName}>RANGE MEDICAL</div>
-          <div style={styles.headerSubtext}>Patient Questionnaire</div>
+          <div style={styles.wordmark}>RANGE</div>
+          {progress != null && (
+            <div style={styles.progressBar}>
+              <div style={{ ...styles.progressFill, width: `${progress}%` }} />
+            </div>
+          )}
         </header>
 
         {children}
@@ -620,183 +594,182 @@ function Page({ title, children }) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// Styles — matches intake form design system
+// Styles — Range Medical v2 design system
 // ═══════════════════════════════════════════════════════════
 const styles = {
+  // Layout
   container: {
-    maxWidth: 600,
-    margin: '0 auto',
-    padding: '1.5rem',
     minHeight: '100vh',
-  },
-  header: {
-    textAlign: 'center',
-    marginBottom: '1.5rem',
-  },
-  clinicName: {
-    fontSize: '1.5rem',
-    fontWeight: 700,
-    letterSpacing: '0.2em',
-    marginBottom: '0.25rem',
-  },
-  headerSubtext: {
-    fontSize: '0.875rem',
-    color: '#737373',
+    background: '#fafafa',
   },
 
-  // Progress
-  progressContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.75rem',
-    marginBottom: '1.5rem',
+  // Header
+  header: {
+    padding: '20px 24px',
+    background: '#fff',
+    borderBottom: '1px solid #e8e8e8',
+  },
+  wordmark: {
+    fontSize: '13px',
+    fontWeight: 800,
+    letterSpacing: '0.15em',
+    textAlign: 'center',
+    color: '#1a1a1a',
+    marginBottom: '16px',
   },
   progressBar: {
-    flex: 1,
-    height: 6,
-    backgroundColor: '#e5e5e5',
-    borderRadius: 0,
+    height: 4,
+    background: '#f0f0f0',
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#000',
-    borderRadius: 0,
+    background: '#1a1a1a',
     transition: 'width 0.3s ease',
   },
-  progressText: {
-    fontSize: '0.75rem',
-    color: '#737373',
-    whiteSpace: 'nowrap',
+
+  // Main content
+  main: {
+    maxWidth: 500,
+    margin: '0 auto',
+    padding: '32px 24px',
   },
 
-  // Form container
-  formContainer: {
-    background: '#fff',
-    borderRadius: 0,
-    padding: '1.5rem',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-  },
-  sectionTitle: {
-    fontSize: '1.25rem',
+  // Section label (v2 dot + uppercase)
+  sectionLabel: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    marginBottom: '24px',
+    fontSize: '11px',
     fontWeight: 700,
-    marginBottom: '0.25rem',
+    letterSpacing: '0.14em',
+    textTransform: 'uppercase',
+    color: '#808080',
+  },
+  sectionLabelDot: {
+    width: 8,
+    height: 8,
+    background: '#808080',
+  },
+
+  // Section title
+  sectionTitle: {
+    fontSize: '28px',
+    fontWeight: 700,
+    margin: '0 0 8px',
+    color: '#1a1a1a',
+    lineHeight: 1.2,
   },
   sectionSubtitle: {
-    fontSize: '0.875rem',
+    fontSize: '16px',
     color: '#737373',
-    marginBottom: '1.5rem',
-    lineHeight: 1.5,
+    margin: '0 0 32px',
+    lineHeight: 1.6,
   },
+
+  // Questions
   questionList: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '1.5rem',
+    gap: '24px',
   },
-
-  // Question block
   questionBlock: {
-    paddingBottom: '1.5rem',
-    borderBottom: '1px solid #f5f5f5',
+    paddingBottom: '24px',
+    borderBottom: '1px solid #e5e5e5',
   },
   questionLabel: {
     display: 'block',
-    fontSize: '0.9375rem',
+    fontSize: '15px',
     fontWeight: 600,
-    color: '#262626',
-    marginBottom: '0.75rem',
+    color: '#1a1a1a',
+    marginBottom: '12px',
     lineHeight: 1.4,
   },
 
   // Slider
-  sliderContainer: { padding: '0.5rem 0' },
-  slider: { width: '100%', marginBottom: '0.5rem' },
+  sliderContainer: { padding: '8px 0' },
+  slider: { width: '100%', marginBottom: '8px' },
   sliderLabels: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  sliderMinLabel: { fontSize: '0.75rem', color: '#737373', maxWidth: '30%' },
-  sliderValue: { fontSize: '1.5rem', fontWeight: 700, color: '#000' },
-  sliderMaxLabel: { fontSize: '0.75rem', color: '#737373', textAlign: 'right', maxWidth: '30%' },
+  sliderMinLabel: { fontSize: '11px', color: '#a0a0a0', maxWidth: '30%' },
+  sliderValue: { fontSize: '24px', fontWeight: 700, color: '#1a1a1a' },
+  sliderMaxLabel: { fontSize: '11px', color: '#a0a0a0', textAlign: 'right', maxWidth: '30%' },
 
   // Options grid (single select)
-  optionsGrid: { display: 'flex', flexDirection: 'column', gap: '0.5rem' },
+  optionsGrid: { display: 'flex', flexDirection: 'column', gap: '8px' },
   optionCard: {
-    padding: '0.875rem 1rem', border: '1.5px solid #d4d4d4', borderRadius: 0,
-    background: '#fff', cursor: 'pointer', fontSize: '0.9375rem', fontWeight: 500,
+    padding: '14px 16px', border: '2px solid #e0e0e0', borderRadius: 0,
+    background: '#fff', cursor: 'pointer', fontSize: '15px', fontWeight: 500,
     textAlign: 'left', transition: 'all 0.15s ease', fontFamily: 'inherit',
   },
 
   // Frequency options (PHQ-9, GAD-7, etc.)
-  frequencyOptions: { display: 'flex', flexDirection: 'column', gap: '0.5rem' },
+  frequencyOptions: { display: 'flex', flexDirection: 'column', gap: '8px' },
   frequencyCard: {
-    padding: '0.75rem 1rem', border: '1.5px solid #d4d4d4', borderRadius: 0,
-    background: '#fff', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500,
+    padding: '12px 16px', border: '2px solid #e0e0e0', borderRadius: 0,
+    background: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: 500,
     textAlign: 'left', transition: 'all 0.15s ease', fontFamily: 'inherit',
   },
 
   // Bother cards (MENQOL)
   botherCard: {
-    padding: '0.625rem 1rem', border: '1.5px solid #d4d4d4', borderRadius: 0,
-    background: '#fff', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500,
+    padding: '10px 16px', border: '2px solid #e0e0e0', borderRadius: 0,
+    background: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: 500,
     textAlign: 'left', transition: 'all 0.15s ease', fontFamily: 'inherit',
   },
 
   // Text/number inputs
   textInput: {
-    width: '100%', padding: '0.75rem', border: '1px solid #d4d4d4',
-    borderRadius: 0, fontSize: '1rem', fontFamily: 'inherit', outline: 'none',
+    width: '100%', padding: '14px 16px', border: '2px solid #e0e0e0',
+    borderRadius: 0, fontSize: '16px', fontFamily: 'inherit', outline: 'none',
   },
-  numberContainer: { display: 'flex', alignItems: 'center', gap: '0.5rem' },
+  numberContainer: { display: 'flex', alignItems: 'center', gap: '8px' },
   numberInput: {
-    width: 120, padding: '0.75rem', border: '1px solid #d4d4d4',
-    borderRadius: 0, fontSize: '1rem', fontFamily: 'inherit', outline: 'none',
+    width: 120, padding: '14px 16px', border: '2px solid #e0e0e0',
+    borderRadius: 0, fontSize: '16px', fontFamily: 'inherit', outline: 'none',
   },
-  numberSuffix: { fontSize: '0.875rem', color: '#737373' },
+  numberSuffix: { fontSize: '14px', color: '#737373' },
   textarea: {
-    width: '100%', padding: '0.75rem', border: '1px solid #d4d4d4',
-    borderRadius: 0, fontSize: '1rem', fontFamily: 'inherit', outline: 'none',
-    resize: 'vertical', minHeight: 100,
+    width: '100%', padding: '14px 16px', border: '2px solid #e0e0e0',
+    borderRadius: 0, fontSize: '16px', fontFamily: 'inherit', outline: 'none',
+    resize: 'none', minHeight: 100,
   },
 
   // Navigation
   navRow: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #e5e5e5',
+    display: 'flex', gap: '12px',
+    marginTop: '32px',
   },
   backButton: {
-    padding: '0.75rem 1.5rem', background: 'transparent', border: '1.5px solid #d4d4d4',
-    borderRadius: 0, fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer',
-    fontFamily: 'inherit', color: '#525252',
+    padding: '16px 24px', background: '#f5f5f5', border: 'none',
+    borderRadius: 0, fontSize: '11px', fontWeight: 700, cursor: 'pointer',
+    fontFamily: 'inherit', color: '#404040', letterSpacing: '0.12em', textTransform: 'uppercase',
   },
   nextButton: {
-    padding: '0.75rem 2rem', background: '#000', color: '#fff', border: 'none',
-    borderRadius: 0, fontSize: '0.9375rem', fontWeight: 600, cursor: 'pointer',
-    fontFamily: 'inherit', transition: 'opacity 0.15s ease',
+    flex: 1, padding: '16px 24px', background: '#1a1a1a', color: '#fff', border: 'none',
+    borderRadius: 0, fontSize: '11px', fontWeight: 700, cursor: 'pointer',
+    fontFamily: 'inherit', letterSpacing: '0.12em', textTransform: 'uppercase',
+    transition: 'opacity 0.15s ease',
   },
 
   // Saving indicator
-  savingIndicator: { textAlign: 'center', fontSize: '0.75rem', color: '#a3a3a3', marginTop: '0.75rem' },
+  savingIndicator: { textAlign: 'center', fontSize: '11px', color: '#a0a0a0', marginTop: '12px', letterSpacing: '0.05em' },
 
-  // Error
-  errorContainer: { textAlign: 'center', padding: '4rem 2rem' },
-  errorIcon: {
-    width: 48, height: 48, lineHeight: '48px', borderRadius: '50%',
-    background: '#fef2f2', color: '#dc2626', fontSize: '1.5rem', fontWeight: 700,
-    margin: '0 auto 1rem',
-  },
-  errorTitle: { fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' },
-  errorText: { color: '#525252', marginBottom: '1rem' },
-  errorHint: { color: '#a3a3a3', fontSize: '0.875rem' },
-
-  // Success
-  successContainer: {
-    textAlign: 'center', padding: '4rem 2rem', background: '#fff',
-    borderRadius: 0, boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+  // Success card
+  successCard: {
+    background: '#fff',
+    padding: '48px 32px',
+    textAlign: 'center',
+    maxWidth: 400,
+    margin: '80px auto',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
   },
   successIcon: {
-    width: 56, height: 56, lineHeight: '56px', borderRadius: '50%',
-    background: '#f0fdf4', color: '#16a34a', fontSize: '1.75rem', fontWeight: 700,
-    margin: '0 auto 1rem',
+    width: 64, height: 64, borderRadius: '50%',
+    background: '#1a1a1a', color: '#fff', fontSize: '28px', fontWeight: 700,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    margin: '0 auto 24px',
   },
-  successTitle: { fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.75rem' },
-  successText: { color: '#525252', fontSize: '0.9375rem', marginBottom: '0.5rem', lineHeight: 1.6 },
-  successHint: { color: '#a3a3a3', fontSize: '0.875rem', marginTop: '1rem' },
+  successTitle: { fontSize: '24px', fontWeight: 700, margin: '0 0 12px', color: '#1a1a1a' },
+  successText: { fontSize: '16px', color: '#737373', margin: 0, lineHeight: 1.6 },
 };

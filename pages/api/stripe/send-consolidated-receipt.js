@@ -84,32 +84,15 @@ export default async function handler(req, res) {
       }
     }
 
-    // Build line items
+    // Build line items — show amount paid only, never original_amount or discounts
     const items = purchases.map(p => {
       const qty = p.quantity || 1;
       const lineTotalCents = Math.round(p.amount * 100);
-      // Don't show original price for comped items — just show $0
-      const isItemComp = lineTotalCents === 0;
-      const unitPriceCents = isItemComp
-        ? 0
-        : p.original_amount
-          ? Math.round(p.original_amount * 100 / qty)
-          : Math.round(p.amount * 100 / qty);
-
-      let discountLabel = null;
-      if (!isItemComp) {
-        if (p.discount_type === 'percent') {
-          discountLabel = `${p.discount_amount}% off`;
-        } else if (p.discount_type === 'dollar') {
-          discountLabel = `$${p.discount_amount} off`;
-        }
-      }
 
       return {
         name: p.description || p.item_name,
         quantity: qty,
-        unitPriceCents,
-        discountLabel,
+        unitPriceCents: Math.round(lineTotalCents / qty),
         lineTotalCents,
       };
     });

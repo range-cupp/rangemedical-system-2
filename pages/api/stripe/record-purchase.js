@@ -59,17 +59,10 @@ async function sendReceiptEmail(purchase) {
     const actualPaidCents = stripeChargedCents || Math.round(purchase.amount * 100);
     const catalogPriceCents = Math.round(purchase.amount * 100);
 
-    // Build discount label
-    let discountLabel = null;
-    if (purchase.discount_type === 'percent') {
-      discountLabel = `${purchase.discount_amount}% off`;
-    } else if (purchase.discount_type === 'dollar') {
-      discountLabel = `$${purchase.discount_amount} off`;
-    }
-
     // Build patient address line
     const patientAddress = [patient.address, [patient.city, patient.state, patient.zip_code].filter(Boolean).join(', ')].filter(Boolean).join(', ');
 
+    // Receipts show amount paid only — never original_amount or discount breakdowns
     const receiptParams = {
       firstName,
       patientName: patient.name,
@@ -82,8 +75,6 @@ async function sendReceiptEmail(purchase) {
         day: 'numeric',
       }),
       description: purchase.description || purchase.item_name,
-      originalAmountCents: purchase.original_amount ? Math.round(purchase.original_amount * 100) : catalogPriceCents,
-      discountLabel,
       amountPaidCents: actualPaidCents,
       cardBrand,
       cardLast4,

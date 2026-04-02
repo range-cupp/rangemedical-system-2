@@ -74,6 +74,13 @@ scripts/                # One-off utility scripts
 - Protocol categories: `hrt`, `weight_loss`, `peptide`, `iv`, `hbot`, `rlt`, `injection`
 - Category colors/styles: use `CATEGORY_COLORS` and `getCategoryStyle()` from protocol-config
 
+### Receipts & Patient-Facing Amounts — NON-NEGOTIABLE
+- **Always show `amount_paid`** — the actual dollar amount the patient was charged. Never show `original_amount`, `list_price`, or catalog price on any patient-facing surface.
+- **No strikethrough pricing.** No discount breakdowns. No "was $X now $Y". Patients see one number: what they paid.
+- **Comps (`amount_paid` = 0):** Display "Complimentary" — never show what it would have cost.
+- `original_amount` exists for internal accounting only — it must NEVER appear on receipts, emails, PDFs, or the patient portal.
+- This applies to: receipt emails, receipt PDFs, consolidated receipts, resent receipts, invoice emails, patient portal payment history.
+
 ### Database
 - Supabase client is initialized in `lib/supabase.js` (client-side with anon key)
 - API routes that need elevated access use `SUPABASE_SERVICE_ROLE_KEY` (server-side only)

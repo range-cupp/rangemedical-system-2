@@ -102,28 +102,13 @@ export default async function handler(req, res) {
 
     if (isMultiItem) {
       // Consolidated receipt
+      // Show amount paid only — never original_amount or discounts
       const items = allPurchases.map(p => {
         const qty = p.quantity || 1;
         const lineTotalCents = Math.round(p.amount * 100);
-        // Don't show original price for comped items — just show $0
-        const isItemComp = lineTotalCents === 0;
-        const unitPriceCents = isItemComp
-          ? 0
-          : p.original_amount
-            ? Math.round(p.original_amount * 100 / qty)
-            : Math.round(p.amount * 100 / qty);
-
-        let discountLabel = null;
-        if (!isItemComp) {
-          if (p.discount_type === 'percent') {
-            discountLabel = `${p.discount_amount}% off`;
-          } else if (p.discount_type === 'dollar') {
-            discountLabel = `$${p.discount_amount} off`;
-          }
-        }
-
         const name = p.description || p.item_name || 'Service';
-        return { name, quantity: qty, unitPriceCents, discountLabel, lineTotalCents };
+
+        return { name, quantity: qty, unitPriceCents: Math.round(lineTotalCents / qty), lineTotalCents };
       });
 
       const totalAmountCents = allPurchases.reduce((sum, p) => sum + Math.round(p.amount * 100), 0);
@@ -144,19 +129,10 @@ export default async function handler(req, res) {
         paymentMethod,
       };
     } else {
-      // Single-item receipt
+      // Single-item receipt — show amount paid only, never original_amount or discounts
+      const rawPaid = parseFloat(purchase.amount_paid);
       const rawAmt = parseFloat(purchase.amount) || 0;
-      const amountPaidCents = Math.round(rawAmt * 100);
-      const originalAmountCents = purchase.original_amount
-        ? Math.round(parseFloat(purchase.original_amount) * 100)
-        : amountPaidCents;
-
-      let discountLabel = null;
-      if (purchase.discount_type === 'percent') {
-        discountLabel = `${purchase.discount_amount}% off`;
-      } else if (purchase.discount_type === 'dollar') {
-        discountLabel = `$${purchase.discount_amount} off`;
-      }
+      const amountPaidCents = Math.round((!isNaN(rawPaid) ? rawPaid : rawAmt) * 100);
 
       receiptParams = {
         firstName,
@@ -168,8 +144,6 @@ export default async function handler(req, res) {
           year: 'numeric', month: 'long', day: 'numeric',
         }),
         description: purchase.description || purchase.item_name,
-        originalAmountCents,
-        discountLabel,
         amountPaidCents,
         cardBrand,
         cardLast4,

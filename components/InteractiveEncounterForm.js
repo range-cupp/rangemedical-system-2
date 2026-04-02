@@ -738,32 +738,55 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
           </select>
         );
 
-      case 'button_group':
+      case 'button_group': {
+        const predefinedOpts = field.options.filter(o => o !== 'Other');
+        const hasOther = field.options.includes('Other');
+        const isOtherSelected = hasOther && value && !predefinedOpts.includes(value);
         return (
-          <div style={styles.buttonGroup}>
-            {field.options.map((opt) => (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => {
-                  updateField(sectionKey, field.key, opt);
-                  // Reset dose when patient sex changes (TRT forms)
-                  if (field.key === 'patient_sex') {
-                    updateField(sectionKey, 'dose', '');
-                    setCustomDose(false);
-                  }
-                }}
-                style={{
-                  ...styles.groupBtn,
-                  ...(value === opt ? styles.groupBtnActive : {}),
-                }}
-              >
-                {value === opt && <span style={{ marginRight: 4 }}>✓</span>}
-                {opt}
-              </button>
-            ))}
+          <div>
+            <div style={styles.buttonGroup}>
+              {field.options.map((opt) => {
+                const isActive = opt === 'Other' ? isOtherSelected : value === opt;
+                return (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => {
+                      if (opt === 'Other') {
+                        updateField(sectionKey, field.key, 'Other');
+                      } else {
+                        updateField(sectionKey, field.key, opt);
+                      }
+                      // Reset dose when patient sex changes (TRT forms)
+                      if (field.key === 'patient_sex') {
+                        updateField(sectionKey, 'dose', '');
+                        setCustomDose(false);
+                      }
+                    }}
+                    style={{
+                      ...styles.groupBtn,
+                      ...(isActive ? styles.groupBtnActive : {}),
+                    }}
+                  >
+                    {isActive && <span style={{ marginRight: 4 }}>✓</span>}
+                    {opt}
+                  </button>
+                );
+              })}
+            </div>
+            {isOtherSelected && (
+              <input
+                type="text"
+                value={value === 'Other' ? '' : value}
+                onChange={(e) => updateField(sectionKey, field.key, e.target.value || 'Other')}
+                placeholder="Type location..."
+                autoFocus
+                style={{ ...styles.input, marginTop: 8, width: '100%' }}
+              />
+            )}
           </div>
         );
+      }
 
       case 'toggle':
         return (

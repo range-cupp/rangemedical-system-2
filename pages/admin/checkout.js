@@ -266,6 +266,7 @@ function CheckoutInner() {
   const [dispFulfillment, setDispFulfillment] = useState('in_clinic');
   const [dispTrackingNumber, setDispTrackingNumber] = useState('');
   const [dispNotes, setDispNotes] = useState('');
+  const [dispDate, setDispDate] = useState(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }));
   const [dispCoverageType, setDispCoverageType] = useState(null);
   const [dispSelectedService, setDispSelectedService] = useState(null); // POS service for paid dispensing
   const [dispItemQty, setDispItemQty] = useState(1);
@@ -1296,6 +1297,7 @@ function CheckoutInner() {
     setDispFulfillment('in_clinic');
     setDispTrackingNumber('');
     setDispNotes('');
+    setDispDate(new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }));
     setDispCoverageType(null);
     setDispSelectedService(null);
     setDispItemQty(1);
@@ -1430,6 +1432,7 @@ function CheckoutInner() {
         fulfillmentMethod: dispFulfillment,
         trackingNumber: dispTrackingNumber || null,
         notes: dispNotes || null,
+        entryDate: dispDate || null,
         coverageType: isCovered ? dispCoverageType : 'paid',
         coverageSource: covSource || 'Paid at checkout',
         // For paid items, store service info for purchase recording
@@ -1477,6 +1480,7 @@ function CheckoutInner() {
           verified_by: d.verifiedBy,
           fulfillment_method: d.fulfillmentMethod,
           tracking_number: d.trackingNumber,
+          entry_date: d.entryDate || null,
           send_receipt: false, // will send consolidated at end
         };
         const res = await fetch('/api/medication-checkout', {
@@ -1969,6 +1973,18 @@ function CheckoutInner() {
                                           </button>
                                         ))}
                                       </div>
+                                    </div>
+
+                                    {/* Date — defaults to today, can backdate */}
+                                    <div style={styles.dispenseFieldGroup}>
+                                      <label style={styles.fieldLabel}>Date</label>
+                                      <input
+                                        type="date"
+                                        value={dispDate}
+                                        onChange={e => setDispDate(e.target.value)}
+                                        max={new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' })}
+                                        style={{ ...styles.fieldInput, width: '160px' }}
+                                      />
                                     </div>
 
                                     {/* Medication — HRT shows full med list including HCG */}

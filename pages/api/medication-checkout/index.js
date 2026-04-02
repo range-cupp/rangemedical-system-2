@@ -56,6 +56,9 @@ export default async function handler(req, res) {
     injection_method,
     injection_frequency,
 
+    // Date override (for backdating)
+    entry_date,
+
     // Email control
     send_receipt = true,   // default true; front desk can toggle off for multi-checkout visits
   } = req.body;
@@ -64,7 +67,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing required fields: patient_id, category' });
   }
 
-  const logDate = todayPacific();
+  const logDate = entry_date || todayPacific();
 
   try {
     // 1. Get patient info for receipt

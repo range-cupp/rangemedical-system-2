@@ -1350,18 +1350,20 @@ const mobileTabStyles = {
 export const sharedStyles = {
   // Page layout
   pageHeader: {
-    marginBottom: '24px'
+    marginBottom: '28px'
   },
   pageTitle: {
     margin: 0,
-    fontSize: '28px',
+    fontSize: '32px',
     fontWeight: '700',
-    color: '#000'
+    color: '#000',
+    letterSpacing: '-0.01em'
   },
   pageSubtitle: {
-    margin: '4px 0 0',
-    fontSize: '14px',
-    color: '#666'
+    margin: '6px 0 0',
+    fontSize: '16px',
+    color: '#666',
+    lineHeight: '1.5'
   },
 
   // Cards
@@ -1372,7 +1374,7 @@ export const sharedStyles = {
     overflow: 'hidden'
   },
   cardHeader: {
-    padding: '16px 20px',
+    padding: '18px 24px',
     borderBottom: '1px solid #e5e5e5',
     display: 'flex',
     justifyContent: 'space-between',
@@ -1380,11 +1382,11 @@ export const sharedStyles = {
   },
   cardTitle: {
     margin: 0,
-    fontSize: '16px',
+    fontSize: '19px',
     fontWeight: '600'
   },
   cardBody: {
-    padding: '20px'
+    padding: '24px'
   },
 
   // Tables
@@ -1393,9 +1395,9 @@ export const sharedStyles = {
     borderCollapse: 'collapse'
   },
   th: {
-    padding: '12px 16px',
+    padding: '14px 18px',
     textAlign: 'left',
-    fontSize: '11px',
+    fontSize: '13px',
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
@@ -1404,10 +1406,11 @@ export const sharedStyles = {
     background: '#fafafa'
   },
   td: {
-    padding: '12px 16px',
-    fontSize: '14px',
+    padding: '14px 18px',
+    fontSize: '16px',
     borderBottom: '1px solid #f0f0f0',
-    verticalAlign: 'middle'
+    verticalAlign: 'middle',
+    lineHeight: '1.5'
   },
   trHover: {
     cursor: 'pointer',
@@ -1416,36 +1419,36 @@ export const sharedStyles = {
 
   // Buttons
   btnPrimary: {
-    padding: '10px 20px',
+    padding: '12px 24px',
     background: '#000',
     color: '#fff',
     border: 'none',
     borderRadius: '0',
-    fontSize: '14px',
+    fontSize: '15px',
     fontWeight: '500',
     cursor: 'pointer',
     textDecoration: 'none',
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '6px'
+    gap: '8px'
   },
   btnSecondary: {
-    padding: '10px 20px',
+    padding: '12px 24px',
     background: '#fff',
     color: '#000',
     border: '1px solid #ddd',
     borderRadius: '0',
-    fontSize: '14px',
+    fontSize: '15px',
     fontWeight: '500',
     cursor: 'pointer',
     textDecoration: 'none',
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '6px'
+    gap: '8px'
   },
   btnSmall: {
-    padding: '6px 12px',
-    fontSize: '12px',
+    padding: '8px 14px',
+    fontSize: '14px',
     borderRadius: '0'
   },
   btnSuccess: {
@@ -1461,37 +1464,38 @@ export const sharedStyles = {
 
   // Forms
   input: {
-    padding: '10px 14px',
+    padding: '12px 16px',
     border: '1px solid #ddd',
     borderRadius: '0',
-    fontSize: '14px',
+    fontSize: '16px',
     width: '100%',
-    boxSizing: 'border-box'
+    boxSizing: 'border-box',
+    lineHeight: '1.5'
   },
   select: {
-    padding: '10px 14px',
+    padding: '12px 16px',
     border: '1px solid #ddd',
     borderRadius: '0',
-    fontSize: '14px',
+    fontSize: '16px',
     background: '#fff',
     cursor: 'pointer'
   },
   label: {
     display: 'block',
-    fontSize: '12px',
+    fontSize: '14px',
     fontWeight: '500',
     color: '#666',
     marginBottom: '6px'
   },
   fieldGroup: {
-    marginBottom: '16px'
+    marginBottom: '18px'
   },
 
   // Badges
   badge: {
-    padding: '4px 10px',
+    padding: '5px 12px',
     borderRadius: '0',
-    fontSize: '11px',
+    fontSize: '13px',
     fontWeight: '600',
     textTransform: 'uppercase'
   },
@@ -1510,20 +1514,20 @@ export const sharedStyles = {
 
   // Stats
   statCard: {
-    padding: '20px',
+    padding: '24px',
     background: '#fff',
     borderRadius: '0',
     border: '1px solid #e5e5e5'
   },
   statValue: {
-    fontSize: '32px',
+    fontSize: '36px',
     fontWeight: '700',
     lineHeight: 1
   },
   statLabel: {
-    fontSize: '12px',
+    fontSize: '14px',
     color: '#666',
-    marginTop: '4px',
+    marginTop: '6px',
     textTransform: 'uppercase',
     letterSpacing: '0.5px'
   },
@@ -1532,16 +1536,16 @@ export const sharedStyles = {
   filterBar: {
     display: 'flex',
     gap: '12px',
-    marginBottom: '20px',
+    marginBottom: '24px',
     flexWrap: 'wrap',
     alignItems: 'center'
   },
   searchInput: {
-    padding: '10px 14px',
+    padding: '12px 16px',
     border: '1px solid #ddd',
     borderRadius: '0',
-    fontSize: '14px',
-    width: '280px'
+    fontSize: '16px',
+    width: '320px'
   },
 
   // Empty states
@@ -1551,11 +1555,11 @@ export const sharedStyles = {
     color: '#666'
   },
   emptyIcon: {
-    fontSize: '48px',
+    fontSize: '52px',
     marginBottom: '16px'
   },
   emptyText: {
-    fontSize: '16px',
+    fontSize: '18px',
     marginBottom: '8px'
   },
 
@@ -1565,7 +1569,8 @@ export const sharedStyles = {
     justifyContent: 'center',
     alignItems: 'center',
     padding: '60px',
-    color: '#666'
+    color: '#666',
+    fontSize: '16px'
   },
 
   // Day tracking display
@@ -1575,11 +1580,11 @@ export const sharedStyles = {
     gap: '4px'
   },
   dayNumber: {
-    fontSize: '24px',
+    fontSize: '28px',
     fontWeight: '700'
   },
   dayTotal: {
-    fontSize: '16px',
+    fontSize: '18px',
     color: '#999'
   },
 
@@ -1601,14 +1606,14 @@ export const sharedStyles = {
     background: '#fff',
     borderRadius: '0',
     width: '100%',
-    maxWidth: '600px',
+    maxWidth: '640px',
     maxHeight: '90vh',
     overflow: 'hidden',
     display: 'flex',
     flexDirection: 'column'
   },
   modalHeader: {
-    padding: '20px',
+    padding: '22px 24px',
     borderBottom: '1px solid #e5e5e5',
     display: 'flex',
     justifyContent: 'space-between',
@@ -1616,16 +1621,18 @@ export const sharedStyles = {
   },
   modalTitle: {
     margin: 0,
-    fontSize: '18px',
+    fontSize: '21px',
     fontWeight: '600'
   },
   modalBody: {
-    padding: '20px',
+    padding: '24px',
     overflowY: 'auto',
-    flex: 1
+    flex: 1,
+    fontSize: '16px',
+    lineHeight: '1.5'
   },
   modalFooter: {
-    padding: '16px 20px',
+    padding: '18px 24px',
     borderTop: '1px solid #e5e5e5',
     display: 'flex',
     justifyContent: 'flex-end',
@@ -1634,7 +1641,7 @@ export const sharedStyles = {
   modalClose: {
     background: 'none',
     border: 'none',
-    fontSize: '24px',
+    fontSize: '26px',
     cursor: 'pointer',
     color: '#999',
     padding: '0',
@@ -1678,7 +1685,7 @@ const styles = {
   },
   logo: {
     color: '#fff',
-    fontSize: '13px',
+    fontSize: '14px',
     fontWeight: '700',
     letterSpacing: '2px',
     textDecoration: 'none'
@@ -1693,9 +1700,9 @@ const styles = {
   },
   navLink: {
     textDecoration: 'none',
-    padding: '10px 12px',
+    padding: '11px 14px',
     borderRadius: '0',
-    fontSize: '14px',
+    fontSize: '15px',
     display: 'flex',
     alignItems: 'center',
     gap: '10px',
@@ -1704,17 +1711,17 @@ const styles = {
   navIcon: {
     display: 'flex',
     alignItems: 'center',
-    width: '18px',
+    width: '20px',
     flexShrink: 0
   },
   unreadBadge: {
     marginLeft: 'auto',
     background: '#ef4444',
     color: '#fff',
-    fontSize: '11px',
+    fontSize: '12px',
     fontWeight: '700',
-    minWidth: '20px',
-    height: '20px',
+    minWidth: '22px',
+    height: '22px',
     borderRadius: '0',
     display: 'flex',
     alignItems: 'center',
@@ -1763,7 +1770,7 @@ const styles = {
     minWidth: 0,
   },
   employeeName: {
-    fontSize: '13px',
+    fontSize: '14px',
     fontWeight: 600,
     color: '#fff',
     whiteSpace: 'nowrap',
@@ -1771,7 +1778,7 @@ const styles = {
     textOverflow: 'ellipsis',
   },
   employeeTitle: {
-    fontSize: '11px',
+    fontSize: '12px',
     color: 'rgba(255,255,255,0.5)',
   },
   signOutBtn: {

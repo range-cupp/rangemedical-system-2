@@ -10,8 +10,9 @@ const BASE_RULES = `Rules:
 - Clean up grammar, punctuation, and organization
 - Use bullet points (•) for lists of items
 - Keep it concise and professional
-- Do not include markdown formatting like ** or ## — just plain text
-- Section headers should be in ALL CAPS if used
+- Section headers (like SUBJECTIVE, HISTORY OF PRESENT ILLNESS, ASSESSMENT, PLAN, etc.) must be in ALL CAPS and wrapped in **bold** markdown (e.g. **SUBJECTIVE**)
+- Do NOT use emoji, symbols, or decorative markers (like 📌, 🔹, ▸, ►, etc.) next to section headers — just bold all-caps text
+- Do not use ## or other heading markdown — only **bold** for headers
 - If the input is already clean and organized, make minimal changes`;
 
 export default async function handler(req, res) {

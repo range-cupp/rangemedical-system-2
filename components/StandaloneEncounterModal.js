@@ -117,9 +117,12 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
   const [showTemplateMenu, setShowTemplateMenu] = useState(false);
   const [error, setError] = useState('');
   const [noteMode, setNoteMode] = useState('freetext'); // 'freetext' | 'interactive'
+  const [showHighlightPicker, setShowHighlightPicker] = useState(false);
+  const [showFontSizePicker, setShowFontSizePicker] = useState(false);
 
   const noteRef = useRef(null);
   const recognitionRef = useRef(null);
+  const undoStackRef = useRef([]);
 
   // Focus the editor when stepping back from preview
   useEffect(() => {
@@ -131,6 +134,56 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
   // ── Helpers ──────────────────────────────────────────────────────────────
 
   const getNoteMarkdown = () => htmlToMd(noteRef.current?.innerHTML || '');
+
+  // Undo history
+  const saveUndoSnapshot = () => {
+    if (noteRef.current) {
+      undoStackRef.current.push(noteRef.current.innerHTML);
+      if (undoStackRef.current.length > 30) undoStackRef.current.shift();
+    }
+  };
+  const handleUndo = () => {
+    if (!noteRef.current) return;
+    if (undoStackRef.current.length > 0) {
+      noteRef.current.innerHTML = undoStackRef.current.pop();
+      setNoteIsEmpty(!noteRef.current.innerText?.trim());
+    } else {
+      noteRef.current.focus();
+      document.execCommand('undo', false, null);
+      setNoteIsEmpty(!noteRef.current.innerText?.trim());
+    }
+  };
+
+  // Rich text formatting
+  const execFormat = (command, value = null) => {
+    if (!noteRef.current) return;
+    noteRef.current.focus();
+    document.execCommand(command, false, value);
+  };
+  const handleBoldToggle = () => execFormat('bold');
+  const handleItalicToggle = () => execFormat('italic');
+  const handleUnderlineToggle = () => execFormat('underline');
+  const handleStrikeToggle = () => execFormat('strikeThrough');
+  const handleBulletList = () => execFormat('insertUnorderedList');
+  const handleNumberedList = () => execFormat('insertOrderedList');
+  const handleHighlight = (color) => execFormat('hiliteColor', color);
+  const handleFontSize = (size) => execFormat('fontSize', size);
+  const handleRemoveFormat = () => execFormat('removeFormat');
+  const highlightColors = [
+    { label: 'Yellow', color: '#fef08a' },
+    { label: 'Green', color: '#bbf7d0' },
+    { label: 'Blue', color: '#bfdbfe' },
+    { label: 'Pink', color: '#fbcfe8' },
+    { label: 'Orange', color: '#fed7aa' },
+    { label: 'None', color: 'transparent' },
+  ];
+  const fontSizes = [
+    { label: 'Small', size: '2' },
+    { label: 'Normal', size: '3' },
+    { label: 'Medium', size: '4' },
+    { label: 'Large', size: '5' },
+    { label: 'X-Large', size: '6' },
+  ];
 
   // Select the next ?? placeholder in a contentEditable element
   const selectNextPlaceholder = (el, fromStart = false) => {
@@ -159,6 +212,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
 
   const loadTemplate = (body) => {
     if (noteRef.current) {
+      saveUndoSnapshot();
       const existing = noteRef.current.innerHTML.trim();
       const separator = existing ? '<br><br><hr><br>' : '';
       noteRef.current.innerHTML = (existing ? existing + separator : '') + mdToHtml(body);
@@ -572,6 +626,85 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Encounter Note
               </label>
+              {/* Formatting toolbar */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2, marginBottom: 6, padding: '6px 8px', background: '#f9fafb', border: '1px solid #e5e7eb', alignItems: 'center' }}>
+                {/* Undo */}
+                <button type="button" onClick={handleUndo} title="Undo (Ctrl+Z)" style={{ padding: '5px 8px', fontSize: 13, fontWeight: 600, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer', lineHeight: 1 }}>
+                  ↩
+                </button>
+                <div style={{ width: 1, height: 22, background: '#d1d5db', margin: '0 4px' }} />
+
+                {/* Text formatting */}
+                <button type="button" onClick={handleBoldToggle} title="Bold (Ctrl+B)" style={{ padding: '5px 9px', fontSize: 13, fontWeight: 800, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer', fontFamily: 'serif', lineHeight: 1 }}>
+                  B
+                </button>
+                <button type="button" onClick={handleItalicToggle} title="Italic (Ctrl+I)" style={{ padding: '5px 10px', fontSize: 13, fontWeight: 400, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer', fontFamily: 'serif', fontStyle: 'italic', lineHeight: 1 }}>
+                  I
+                </button>
+                <button type="button" onClick={handleUnderlineToggle} title="Underline (Ctrl+U)" style={{ padding: '5px 9px', fontSize: 13, fontWeight: 400, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer', fontFamily: 'serif', textDecoration: 'underline', lineHeight: 1 }}>
+                  U
+                </button>
+                <button type="button" onClick={handleStrikeToggle} title="Strikethrough" style={{ padding: '5px 9px', fontSize: 13, fontWeight: 400, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer', fontFamily: 'serif', textDecoration: 'line-through', lineHeight: 1 }}>
+                  S
+                </button>
+                <div style={{ width: 1, height: 22, background: '#d1d5db', margin: '0 4px' }} />
+
+                {/* Font size */}
+                <div style={{ position: 'relative' }}>
+                  <button type="button" onClick={() => { setShowFontSizePicker(!showFontSizePicker); setShowHighlightPicker(false); }} title="Font Size" style={{ padding: '5px 8px', fontSize: 12, fontWeight: 500, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer', lineHeight: 1, display: 'flex', alignItems: 'center', gap: 3 }}>
+                    A<span style={{ fontSize: 9 }}>▼</span>
+                  </button>
+                  {showFontSizePicker && (
+                    <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 1000, background: '#fff', border: '1px solid #d1d5db', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', minWidth: 100, marginTop: 2 }}>
+                      {fontSizes.map(fs => (
+                        <button key={fs.size} type="button" onClick={() => { handleFontSize(fs.size); setShowFontSizePicker(false); }} style={{ display: 'block', width: '100%', padding: '6px 12px', fontSize: 13, border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', color: '#374151' }} onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                          {fs.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div style={{ width: 1, height: 22, background: '#d1d5db', margin: '0 4px' }} />
+
+                {/* Highlight */}
+                <div style={{ position: 'relative' }}>
+                  <button type="button" onClick={() => { setShowHighlightPicker(!showHighlightPicker); setShowFontSizePicker(false); }} title="Highlight" style={{ padding: '5px 8px', fontSize: 12, fontWeight: 600, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer', lineHeight: 1, display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <span style={{ background: '#fef08a', padding: '0 3px' }}>H</span><span style={{ fontSize: 9 }}>▼</span>
+                  </button>
+                  {showHighlightPicker && (
+                    <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 1000, background: '#fff', border: '1px solid #d1d5db', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', padding: 6, display: 'flex', gap: 4, marginTop: 2 }}>
+                      {highlightColors.map(hc => (
+                        <button key={hc.color} type="button" onClick={() => { handleHighlight(hc.color); setShowHighlightPicker(false); }} title={hc.label} style={{ width: 24, height: 24, border: '1px solid #d1d5db', borderRadius: 0, background: hc.color === 'transparent' ? '#fff' : hc.color, cursor: 'pointer', fontSize: 10, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {hc.color === 'transparent' ? '✕' : ''}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div style={{ width: 1, height: 22, background: '#d1d5db', margin: '0 4px' }} />
+
+                {/* Lists */}
+                <button type="button" onClick={handleBulletList} title="Bullet List" style={{ padding: '5px 8px', fontSize: 13, fontWeight: 400, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer', lineHeight: 1 }}>
+                  •≡
+                </button>
+                <button type="button" onClick={handleNumberedList} title="Numbered List" style={{ padding: '5px 8px', fontSize: 13, fontWeight: 400, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer', lineHeight: 1 }}>
+                  1.≡
+                </button>
+                <div style={{ width: 1, height: 22, background: '#d1d5db', margin: '0 4px' }} />
+
+                {/* Clear formatting */}
+                <button type="button" onClick={handleRemoveFormat} title="Clear Formatting" style={{ padding: '5px 8px', fontSize: 12, fontWeight: 400, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#9ca3af', cursor: 'pointer', lineHeight: 1 }}>
+                  T̸
+                </button>
+
+                {/* Placeholder hint */}
+                {noteRef.current?.innerText?.includes('??') && (
+                  <span style={{ fontSize: 11, color: '#6d28d9', alignSelf: 'center', marginLeft: 8, fontWeight: 500 }}>
+                    ⇥ Tab to jump between ?? fields
+                  </span>
+                )}
+              </div>
+
               <div style={{ position: 'relative' }}>
                 <div
                   ref={noteRef}

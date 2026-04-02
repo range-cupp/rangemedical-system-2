@@ -2393,6 +2393,42 @@ export default function PatientProfile() {
         }
       }
 
+      // For peptide vials: auto-derive total_sessions and end_date from vials × doses + frequency
+      let peptideTotalSessions = editForm.totalSessions ? parseInt(editForm.totalSessions) : null;
+      let peptideEndDate = dateOrNull(editForm.endDate);
+      if (selectedProtocol.category === 'peptide') {
+        const isVial = editForm.supplyType === 'vial';
+        const isPrefilled = (editForm.supplyType || '').startsWith('prefilled_');
+        if (isVial && editForm.numVials && editForm.dosesPerVial) {
+          peptideTotalSessions = parseInt(editForm.numVials) * parseInt(editForm.dosesPerVial);
+        }
+        // Auto-calc end date from frequency
+        const freq = (derivedFrequency || '').toLowerCase();
+        let dpw = null;
+        if (freq.includes('5 on')) dpw = 5;
+        else if (freq === 'daily' || freq.includes('1x daily')) dpw = 7;
+        else if (freq === '2x daily') dpw = 14;
+        else if (freq === 'every other day') dpw = 3.5;
+        else if (freq === 'every 5 days') dpw = 1.4;
+        else if (freq === '2x per week') dpw = 2;
+        else if (freq === '3x per week') dpw = 3;
+        else if (freq === 'weekly') dpw = 1;
+        if (editForm.startDate && dpw) {
+          let durationDays = null;
+          if (isPrefilled) {
+            durationDays = parseInt((editForm.supplyType || '').replace('prefilled_', '').replace('d', ''));
+            if (!peptideTotalSessions) peptideTotalSessions = Math.round(durationDays * dpw / 7);
+          } else if (peptideTotalSessions) {
+            durationDays = Math.round((peptideTotalSessions / dpw) * 7);
+          }
+          if (durationDays) {
+            const d = new Date(editForm.startDate + 'T12:00:00');
+            d.setDate(d.getDate() + durationDays);
+            peptideEndDate = d.toISOString().split('T')[0];
+          }
+        }
+      }
+
       const res = await fetch(`/api/protocols/${selectedProtocol.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -2401,11 +2437,11 @@ export default function PatientProfile() {
           selected_dose: editForm.selectedDose || null,
           frequency: derivedFrequency,
           start_date: dateOrNull(editForm.startDate),
-          end_date: dateOrNull(editForm.endDate),
+          end_date: peptideEndDate || dateOrNull(editForm.endDate),
           status: editForm.status,
           notes: editForm.notes || null,
           sessions_used: editForm.sessionsUsed,
-          total_sessions: editForm.totalSessions ? parseInt(editForm.totalSessions) : null,
+          total_sessions: peptideTotalSessions,
           // Peptide vial fields
           num_vials: editForm.numVials ? parseInt(editForm.numVials) : null,
           doses_per_vial: editForm.dosesPerVial ? parseInt(editForm.dosesPerVial) : null,
@@ -9238,14 +9274,57 @@ export default function PatientProfile() {
                   </>
                 )}
 
-                {/* ── Peptide: Frequency, Timeline, Delivery ── */}
-                {selectedProtocol.category === 'peptide' && (
+                {/* ── Peptide: Supply format drives everything ── */}
+                {selectedProtocol.category === 'peptide' && (() => {
+                  // Auto-calc helper: frequency → doses per week
+                  const getDosesPerWeek = (freq) => {
+                    if (!freq) return null;
+                    const f = freq.toLowerCase();
+                    if (f.includes('5 on')) return 5;
+                    if (f === 'daily' || f.includes('1x daily')) return 7;
+                    if (f === '2x daily') return 14;
+                    if (f === '3x daily') return 21;
+                    if (f === 'every other day') return 3.5;
+                    if (f === 'every 5 days') return 1.4;
+                    if (f === '2x per week') return 2;
+                    if (f === '3x per week') return 3;
+                    if (f === 'weekly' || f === '1x per week') return 1;
+                    return null;
+                  };
+                  const isVial = editForm.supplyType === 'vial';
+                  const isPrefilled = (editForm.supplyType || '').startsWith('prefilled_');
+                  const prefillDays = isPrefilled ? parseInt((editForm.supplyType || '').replace('prefilled_', '').replace('d', '')) : null;
+                  const dpw = getDosesPerWeek(editForm.frequency);
+                  // Vial: total = vials × doses_per_vial; duration from frequency
+                  const vialTotal = isVial && editForm.numVials && editForm.dosesPerVial
+                    ? parseInt(editForm.numVials) * parseInt(editForm.dosesPerVial) : null;
+                  const calcDurationDays = (() => {
+                    if (isPrefilled && prefillDays) return prefillDays;
+                    const total = vialTotal || editForm.totalSessions;
+                    if (total && dpw) return Math.round((total / dpw) * 7);
+                    return null;
+                  })();
+                  const calcEndDate = (() => {
+                    if (!editForm.startDate || !calcDurationDays) return null;
+                    const d = new Date(editForm.startDate + 'T12:00:00');
+                    d.setDate(d.getDate() + calcDurationDays);
+                    return d.toISOString().split('T')[0];
+                  })();
+                  const totalInjections = vialTotal || (isPrefilled && prefillDays && dpw ? Math.round(prefillDays * dpw / 7) : null) || editForm.totalSessions;
+
+                  return (
                   <>
-                    <div className="form-section-label" style={{ marginTop: '12px' }}>Protocol Details</div>
+                    <div className="form-section-label" style={{ marginTop: '12px' }}>Supply</div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                       <div className="form-group">
                         <label>Supply Format</label>
-                        <select value={editForm.supplyType} onChange={e => setEditForm({...editForm, supplyType: e.target.value})}>
+                        <select value={editForm.supplyType} onChange={e => {
+                          const val = e.target.value;
+                          const updates = { supplyType: val };
+                          // Pre-filled: auto-set delivery method
+                          if (val.startsWith('prefilled_')) updates.deliveryMethod = 'take_home';
+                          setEditForm({...editForm, ...updates});
+                        }}>
                           <option value="">Select format...</option>
                           {PEPTIDE_SUPPLY_FORMATS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                         </select>
@@ -9258,6 +9337,22 @@ export default function PatientProfile() {
                         </select>
                       </div>
                     </div>
+
+                    {/* Vial-specific: num vials + doses per vial */}
+                    {isVial && (
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div className="form-group">
+                          <label>Vials Dispensed</label>
+                          <input type="number" min="1" value={editForm.numVials || ''} onChange={e => setEditForm({...editForm, numVials: e.target.value ? parseInt(e.target.value) : ''})} placeholder="e.g. 2" />
+                        </div>
+                        <div className="form-group">
+                          <label>Doses per Vial</label>
+                          <input type="number" min="1" value={editForm.dosesPerVial || ''} onChange={e => setEditForm({...editForm, dosesPerVial: e.target.value ? parseInt(e.target.value) : ''})} placeholder="e.g. 10" />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="form-section-label" style={{ marginTop: '12px' }}>Schedule</div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                       <div className="form-group">
                         <label>Frequency</label>
@@ -9266,40 +9361,49 @@ export default function PatientProfile() {
                           {FREQUENCY_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                         </select>
                       </div>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                       <div className="form-group">
                         <label>Start Date</label>
                         <input type="date" value={editForm.startDate} onChange={e => setEditForm({...editForm, startDate: e.target.value})} />
                       </div>
-                      <div className="form-group">
-                        <label>Total Injections</label>
-                        <input type="number" min="1" value={editForm.totalSessions || ''} onChange={e => setEditForm({...editForm, totalSessions: e.target.value ? parseInt(e.target.value) : null})} placeholder="e.g. 30" />
-                      </div>
                     </div>
+
+                    {/* Auto-calculated summary */}
+                    {(vialTotal || (isPrefilled && prefillDays)) && (
+                      <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', padding: '10px 12px', borderRadius: 0, fontSize: 12, color: '#0369a1', marginBottom: 12 }}>
+                        {isVial && <div><strong>{editForm.numVials} vials × {editForm.dosesPerVial} doses = {vialTotal} total injections</strong></div>}
+                        {isPrefilled && <div><strong>{prefillDays}-day program</strong>{dpw ? ` — ${Math.round(prefillDays * dpw / 7)} injections` : ''}</div>}
+                        {calcDurationDays && <div>Duration: {calcDurationDays} days ({Math.round(calcDurationDays / 7)} weeks)</div>}
+                        {editForm.startDate && calcEndDate && <div>End date: {new Date(calcEndDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>}
+                      </div>
+                    )}
+
+                    {/* Progress tracking */}
+                    <div className="form-section-label" style={{ marginTop: '12px' }}>Progress</div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                       <div className="form-group">
                         <label>Sessions Used</label>
-                        <input type="number" min="0" max={editForm.totalSessions || 999} value={editForm.sessionsUsed ?? 0} onChange={e => setEditForm({...editForm, sessionsUsed: e.target.value ? parseInt(e.target.value) : 0})} />
-                        {editForm.totalSessions && (
-                          <div style={{ fontSize: 11, color: editForm.sessionsUsed >= editForm.totalSessions ? '#dc2626' : '#6b7280', marginTop: 2 }}>
-                            {editForm.sessionsUsed ?? 0} of {editForm.totalSessions} — {Math.max(0, (editForm.totalSessions || 0) - (editForm.sessionsUsed || 0))} remaining
+                        <input type="number" min="0" max={totalInjections || 999} value={editForm.sessionsUsed ?? 0} onChange={e => setEditForm({...editForm, sessionsUsed: e.target.value ? parseInt(e.target.value) : 0})} />
+                        {totalInjections && (
+                          <div style={{ fontSize: 11, color: editForm.sessionsUsed >= totalInjections ? '#dc2626' : '#6b7280', marginTop: 2 }}>
+                            {editForm.sessionsUsed ?? 0} of {totalInjections} — {Math.max(0, totalInjections - (editForm.sessionsUsed || 0))} remaining
+                            {isVial && editForm.dosesPerVial > 0 && (() => {
+                              const dpv = parseInt(editForm.dosesPerVial);
+                              const used = editForm.sessionsUsed || 0;
+                              const currentVial = Math.min(Math.floor(used / dpv) + 1, parseInt(editForm.numVials));
+                              const dosesInVial = used - ((currentVial - 1) * dpv);
+                              return ` · Vial ${currentVial} of ${editForm.numVials} (${dosesInVial}/${dpv} used)`;
+                            })()}
                           </div>
                         )}
                       </div>
                       <div className="form-group">
-                        <label>End Date</label>
-                        <input type="date" value={editForm.endDate || ''} onChange={e => setEditForm({...editForm, endDate: e.target.value})} />
+                        <label>End Date {calcEndDate ? '(auto)' : ''}</label>
+                        <input type="date" value={calcEndDate || editForm.endDate || ''} onChange={e => setEditForm({...editForm, endDate: e.target.value})} style={calcEndDate ? { background: '#f9fafb', color: '#6b7280' } : {}} />
                       </div>
                     </div>
-                    {editForm.startDate && editForm.endDate && (
-                      <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', padding: '8px 12px', borderRadius: 0, fontSize: 12, color: '#0369a1', marginBottom: 12 }}>
-                        Duration: {Math.round((new Date(editForm.endDate + 'T12:00:00') - new Date(editForm.startDate + 'T12:00:00')) / 86400000)} days
-                        {editForm.totalSessions ? ` — ${editForm.totalSessions} injections` : ''}
-                      </div>
-                    )}
                   </>
-                )}
+                  );
+                })()}
 
                 {/* ── Injection Package: Medication, Dose, Schedule, Timeline ── */}
                 {selectedProtocol.category === 'injection' && (

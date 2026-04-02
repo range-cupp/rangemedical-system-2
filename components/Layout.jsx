@@ -131,6 +131,7 @@ export default function Layout({ children, title, description }) {
               1901 Westcliff Dr. Suite 10<br />
               Newport Beach, CA 92660
             </p>
+            <p className="rm-footer-hours">Mon – Fri: 9:00 AM – 5:00 PM<br />Sat – Sun: Closed</p>
           </div>
           <div className="rm-footer-links">
             <div className="rm-footer-col">
@@ -444,6 +445,13 @@ export default function Layout({ children, title, description }) {
           font-size: 13px;
           color: #a0a0a0;
           margin: 0.375rem 0 0;
+          line-height: 1.5;
+        }
+
+        .rm-footer-hours {
+          font-size: 13px;
+          color: #a0a0a0;
+          margin: 0.5rem 0 0;
           line-height: 1.5;
         }
 

@@ -858,6 +858,10 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
                   const parentVal = formData[section.key]?.[field.conditionalOn.field];
                   if (parentVal !== field.conditionalOn.value) return null;
                 }
+                if (field.conditionalOnNot) {
+                  const parentVal = formData[section.key]?.[field.conditionalOnNot.field];
+                  if (parentVal === field.conditionalOnNot.value) return null;
+                }
                 return (
                   <div key={field.key} style={{
                     ...(field.type === 'button_group' || field.type === 'textarea' || field.type === 'multi_check' || field.type === 'vitamin_dose' || field.type === 'peptide_search' || field.type === 'dose_select' || field.type === 'wl_dose_select' || field.type === 'trt_dose_select' || field.type === 'body_avatar'

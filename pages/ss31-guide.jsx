@@ -65,7 +65,7 @@ const SERVICES = [
   },
 ];
 
-export default function MOTScGuide() {
+export default function SS31Guide() {
   const [openAccordion, setOpenAccordion] = useState(null);
 
   const toggleAccordion = (id) => {
@@ -74,33 +74,32 @@ export default function MOTScGuide() {
 
   return (
     <Layout
-      title="MOTS-C Peptide Guide | Range Medical"
-      description="Your guide to MOTS-C peptide therapy. How it works, protocol options, what to expect, and safety information. Range Medical, Newport Beach. (949) 997-3988"
+      title="SS-31 (Elamipretide) Peptide Guide | Range Medical"
+      description="Your guide to SS-31 (Elamipretide) mitochondrial peptide therapy. How it works, what to expect, and safety information. Range Medical, Newport Beach. (949) 997-3988"
     >
       <Head>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "MedicalWebPage", "name": "MOTS-C Peptide Guide", "description": "Patient guide for MOTS-C peptide therapy including protocol details, phased dosing, timeline, and safety information.", "url": "https://www.range-medical.com/mots-c-guide", "provider": { "@type": "MedicalBusiness", "name": "Range Medical", "telephone": "+1-949-997-3988", "address": { "@type": "PostalAddress", "streetAddress": "1901 Westcliff Dr. Suite 10", "addressLocality": "Newport Beach", "addressRegion": "CA", "postalCode": "92660", "addressCountry": "US" } } }) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ "@context": "https://schema.org", "@type": "MedicalWebPage", "name": "SS-31 (Elamipretide) Peptide Guide", "description": "Patient guide for SS-31 (Elamipretide) mitochondrial peptide therapy including protocol details, timeline, and safety information.", "url": "https://www.range-medical.com/ss31-guide", "provider": { "@type": "MedicalBusiness", "name": "Range Medical", "telephone": "+1-949-997-3988", "address": { "@type": "PostalAddress", "streetAddress": "1901 Westcliff Dr. Suite 10", "addressLocality": "Newport Beach", "addressRegion": "CA", "postalCode": "92660", "addressCountry": "US" } } }) }} />
       </Head>
 
       {/* Hero */}
       <section className="peptide-hero">
         <div className="container">
           <span className="hero-badge">Your Peptide Protocol Guide</span>
-          <h1>MOTS-C</h1>
-          <p className="hero-sub">The mitochondrial metabolic peptide — a naturally encoded signaling molecule that regulates metabolism, glucose handling, and fat burning at the deepest level of your cellular biology.</p>
+          <h1>SS-31</h1>
+          <p className="hero-sub">The mitochondrial peptide — targeted cellular energy support that optimizes your body's power plants from the inside out, restoring efficient energy production at the deepest level.</p>
           <div className="hero-dose">
-            <div><span>Category:</span> Longevity</div>
-            <div><span>Delivery:</span> In-clinic or take-home</div>
+            <div><span>Dose:</span> 1-2mg daily</div>
           </div>
         </div>
       </section>
 
-      {/* What Is MOTS-C */}
+      {/* What Is SS-31 */}
       <section className="section">
         <div className="container">
           <div className="section-kicker">The Basics</div>
-          <h2 className="section-title">What Is MOTS-C?</h2>
-          <p className="section-subtitle">MOTS-C stands for Mitochondrial Open Reading Frame of the 12S rRNA Type-c. It's a 16-amino-acid peptide encoded in your mitochondrial DNA — not your nuclear DNA like most proteins.</p>
-          <p className="body-text">MOTS-C is a natural signaling molecule produced by your mitochondria to regulate metabolism, glucose handling, and fat burning throughout your body. Think of it as a message your mitochondria send to keep your metabolism running efficiently. As you age, your natural MOTS-C levels decline — which is a key reason metabolic function slows down over time. Supplementing MOTS-C helps restore that signal to more youthful levels.</p>
+          <h2 className="section-title">What Is SS-31?</h2>
+          <p className="section-subtitle">SS-31 (also known as Elamipretide) is a mitochondria-targeted peptide. It concentrates in the inner mitochondrial membrane where it stabilizes cardiolipin — a lipid critical for mitochondrial energy production.</p>
+          <p className="body-text">Think of it as direct support for your cells' power plants. As we age, mitochondrial function declines. SS-31 helps restore efficient energy production at the cellular level.</p>
         </div>
       </section>
 
@@ -108,39 +107,39 @@ export default function MOTScGuide() {
       <section className="section section-gray">
         <div className="container">
           <div className="section-kicker">How It Works</div>
-          <h2 className="section-title">What MOTS-C Does</h2>
-          <p className="section-subtitle">Four key mechanisms that make MOTS-C one of the most powerful longevity peptides available.</p>
+          <h2 className="section-title">What SS-31 Does</h2>
+          <p className="section-subtitle">Four key mechanisms that make SS-31 one of the most targeted mitochondrial peptides available.</p>
           <div className="info-grid">
             <div className="info-card">
-              <h3>Metabolic Activation</h3>
+              <h3>Mitochondrial Support</h3>
               <ul>
-                <li>Activates the AMPK pathway (metabolic master switch)</li>
-                <li>Improves glucose uptake and insulin sensitivity</li>
-                <li>Shifts cells toward energy production over storage</li>
+                <li>Stabilizes cardiolipin in the inner mitochondrial membrane</li>
+                <li>Optimizes electron transport chain efficiency</li>
+                <li>Supports ATP (energy) production</li>
               </ul>
             </div>
             <div className="info-card">
-              <h3>Fat Metabolism</h3>
+              <h3>Cellular Energy</h3>
               <ul>
-                <li>Promotes fat burning and improves body composition</li>
-                <li>Supports exercise-mimetic effects at the cellular level</li>
-                <li>Enhances how cells use fatty acids for fuel</li>
+                <li>Improves cellular energy output</li>
+                <li>Reduces oxidative stress at the source</li>
+                <li>Supports organs with high energy demands (heart, brain, muscles)</li>
               </ul>
             </div>
             <div className="info-card">
-              <h3>Exercise Performance</h3>
+              <h3>Anti-Aging</h3>
               <ul>
-                <li>Enhances endurance and exercise capacity</li>
-                <li>Improves how cells use energy during activity</li>
-                <li>Supports faster recovery between sessions</li>
+                <li>Targets one of the core drivers of aging — mitochondrial dysfunction</li>
+                <li>Supports cellular longevity and resilience</li>
+                <li>May slow age-related energy decline</li>
               </ul>
             </div>
             <div className="info-card">
-              <h3>Longevity</h3>
+              <h3>Recovery</h3>
               <ul>
-                <li>Supports healthy aging at the mitochondrial level</li>
-                <li>Protects against age-related metabolic decline</li>
-                <li>Promotes mitochondrial biogenesis (new mitochondria)</li>
+                <li>Supports exercise recovery and endurance</li>
+                <li>May improve cardiac function</li>
+                <li>Enhances cellular repair capacity</li>
               </ul>
             </div>
           </div>
@@ -151,99 +150,51 @@ export default function MOTScGuide() {
       <section className="section">
         <div className="container">
           <div className="section-kicker">Your Protocol</div>
-          <h2 className="section-title">How to Use MOTS-C</h2>
-          <p className="section-subtitle">MOTS-C offers two protocol options. Your provider will recommend the best fit based on your goals and lifestyle.</p>
-
-          <div className="protocol-options">
-            <div className="protocol-option-card">
-              <div className="protocol-option-label">Option A</div>
-              <h3>20-Day Protocol</h3>
-              <p className="protocol-option-desc">5mg injection every 5 days (4 injections per phase). Best for patients who prefer fewer, higher-dose injections with more time between each one.</p>
+          <h2 className="section-title">How to Use SS-31</h2>
+          <p className="section-subtitle">Your provider has prescribed a protocol tailored to your goals. Here are the key details to keep in mind.</p>
+          <div className="info-grid">
+            <div className="info-card">
+              <h3>Dose</h3>
+              <p>Start at 1mg daily. Your provider may increase to 2mg based on your response and goals.</p>
             </div>
-            <div className="protocol-option-card">
-              <div className="protocol-option-label">Option B</div>
-              <h3>30-Day Protocol</h3>
-              <p className="protocol-option-desc">1mg daily, 5 days on / 2 days off (20 injections per phase). Best for patients who prefer consistent daily dosing with lower individual doses.</p>
-            </div>
-          </div>
-
-          <div className="info-grid" style={{ marginTop: '1.5rem' }}>
             <div className="info-card">
               <h3>Injection Site</h3>
-              <p>Subcutaneous injection in the abdomen. Rotate sites to prevent irritation. Morning injection is recommended.</p>
+              <p>Subcutaneous injection in the abdomen. Rotate sites daily to prevent irritation.</p>
+            </div>
+            <div className="info-card">
+              <h3>Duration</h3>
+              <p>25-50 days depending on dose. At 1mg/day, one 50mg vial lasts 50 days. At 2mg/day, 25 days.</p>
             </div>
             <div className="info-card">
               <h3>Storage</h3>
-              <p>Keep refrigerated at all times. Do not freeze. Remove from fridge a few minutes before injection to reach room temperature.</p>
+              <p>Keep refrigerated at all times. Reconstitute with 2mL bacteriostatic (BAC) water. Do not freeze.</p>
             </div>
           </div>
-
           <div className="tip-box" style={{ marginTop: '1.5rem' }}>
             <strong>Pro Tip</strong>
-            <p>For the 30-day protocol, set a daily phone reminder. For the 20-day protocol, mark your injection days on a calendar. Consistency is key to maximizing results.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Phased Dosing */}
-      <section className="section section-gray">
-        <div className="container">
-          <div className="section-kicker">Phased Dosing</div>
-          <h2 className="section-title">Phase 1 &amp; Phase 2</h2>
-          <p className="section-subtitle">MOTS-C uses a phased approach — starting at a baseline dose, then increasing for deeper metabolic optimization.</p>
-
-          <div className="phase-card">
-            <div className="phase-header">
-              <h3>Phase 1 — Baseline</h3>
-              <span className="phase-price">$500</span>
-            </div>
-            <p className="phase-total">20mg total peptide</p>
-            <div className="phase-options">
-              <div className="phase-option">
-                <span className="phase-option-label">20-Day Protocol:</span> 5mg every 5 days (4 injections)
-              </div>
-              <div className="phase-option">
-                <span className="phase-option-label">30-Day Protocol:</span> 1mg daily, 5 on / 2 off (20 injections)
-              </div>
-            </div>
-          </div>
-
-          <div className="phase-card">
-            <div className="phase-header">
-              <h3>Phase 2 — Escalation</h3>
-              <span className="phase-price">$800</span>
-            </div>
-            <p className="phase-total">40mg total peptide</p>
-            <div className="phase-options">
-              <div className="phase-option">
-                <span className="phase-option-label">20-Day Protocol:</span> 10mg every 5 days (4 injections)
-              </div>
-              <div className="phase-option">
-                <span className="phase-option-label">30-Day Protocol:</span> 2mg daily, 5 on / 2 off (20 injections)
-              </div>
-            </div>
+            <p>Morning dosing is ideal for SS-31 — it aligns with your body's natural energy cycle and supports sustained energy throughout the day.</p>
           </div>
         </div>
       </section>
 
       {/* What to Expect */}
-      <section className="section">
+      <section className="section section-gray">
         <div className="container">
           <div className="section-kicker">Timeline</div>
           <h2 className="section-title">What to Expect</h2>
-          <p className="section-subtitle">Everyone responds differently, but here's what patients typically experience during a MOTS-C protocol.</p>
+          <p className="section-subtitle">Everyone responds differently, but here's what patients typically experience during an SS-31 protocol.</p>
           <div className="timeline-grid">
             <div className="timeline-card">
               <h4>Week 1-2</h4>
-              <p>Improved energy levels and better exercise tolerance. Some patients notice they feel more alert and their workouts feel more productive. Early metabolic signaling begins.</p>
+              <p>Improved energy levels and a subtle sense of vitality. Many patients notice they feel more alert and less fatigued during daily activities.</p>
             </div>
             <div className="timeline-card">
               <h4>Week 3-4</h4>
-              <p>Body composition changes become noticeable. Sustained metabolic improvement, better endurance, and improved recovery between training sessions.</p>
+              <p>Sustained energy improvements and better exercise tolerance. Recovery from workouts feels faster, and overall stamina increases.</p>
             </div>
             <div className="timeline-card">
               <h4>Week 5+</h4>
-              <p>Deep metabolic optimization. Compounding benefits in energy production, fat utilization, and cellular efficiency. Many patients report their best results in this phase.</p>
+              <p>Deep cellular optimization. Recovery benefits compound, and patients report a lasting improvement in energy, endurance, and overall well-being.</p>
             </div>
           </div>
         </div>
@@ -339,21 +290,6 @@ export default function MOTScGuide() {
         .tip-box strong { display: block; margin-bottom: 0.25rem; }
         .tip-box p { font-size: 0.9rem; color: #525252; line-height: 1.6; margin: 0; }
 
-        .protocol-options { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
-        .protocol-option-card { background: #ffffff; border: 2px solid #e5e5e5; border-radius: 0; padding: 1.75rem; }
-        .protocol-option-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: #737373; margin-bottom: 0.5rem; }
-        .protocol-option-card h3 { font-size: 1.125rem; font-weight: 900; text-transform: uppercase; letter-spacing: -0.01em; margin-bottom: 0.75rem; }
-        .protocol-option-desc { font-size: 0.9rem; color: #525252; line-height: 1.7; margin: 0; }
-
-        .phase-card { background: #ffffff; border: 1px solid #e5e5e5; border-radius: 0; padding: 1.75rem; margin-bottom: 1.25rem; }
-        .phase-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 0.25rem; }
-        .phase-header h3 { font-size: 1.125rem; font-weight: 900; text-transform: uppercase; letter-spacing: -0.01em; margin: 0; }
-        .phase-price { font-size: 1.125rem; font-weight: 900; color: #171717; }
-        .phase-total { font-size: 0.875rem; color: #737373; margin-bottom: 1rem; }
-        .phase-options { display: flex; flex-direction: column; gap: 0.5rem; }
-        .phase-option { font-size: 0.9rem; color: #525252; line-height: 1.6; padding: 0.625rem 0.875rem; background: #fafafa; border: 1px solid #f0f0f0; }
-        .phase-option-label { font-weight: 700; color: #171717; }
-
         .timeline-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
         .timeline-card { background: #ffffff; border: 1px solid #e5e5e5; border-radius: 0; padding: 1.75rem; }
         .timeline-card h4 { font-size: 1rem; font-weight: 900; text-transform: uppercase; letter-spacing: -0.01em; margin-bottom: 0.5rem; }
@@ -387,12 +323,10 @@ export default function MOTScGuide() {
           .peptide-hero h1 { font-size: 2rem; }
           .hero-dose { flex-direction: column; gap: 0.5rem; }
           .info-grid { grid-template-columns: 1fr; }
-          .protocol-options { grid-template-columns: 1fr; }
           .timeline-grid { grid-template-columns: 1fr; }
           .section-title { font-size: 1.5rem; }
           .cta-buttons { flex-direction: column; align-items: center; }
           .accordion-header-left { flex-direction: column; gap: 0.25rem; }
-          .phase-header { flex-direction: column; gap: 0.25rem; }
         }
       `}</style>
     </Layout>

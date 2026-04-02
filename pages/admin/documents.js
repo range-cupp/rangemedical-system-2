@@ -62,6 +62,7 @@ const GUIDES = [
   { id: '4x_blend', name: '4X Blend Guide', category: 'gh', url: '/4x-blend-guide' },
   { id: 'igf1_lr3', name: 'IGF-1 LR3 Guide', category: 'gh', url: '/igf1-lr3-guide' },
   { id: 'mots_c', name: 'MOTS-C Guide', category: 'peptide', url: '/mots-c-guide' },
+  { id: 'ss31', name: 'SS-31 Guide', category: 'peptide', url: '/ss31-guide' },
   { id: 'nad', name: 'NAD+ Guide', category: 'iv', url: '/nad-guide' },
   { id: 'methylene_blue', name: 'Methylene Blue Guide', category: 'iv', url: '/methylene-blue-iv-guide' },
   { id: 'mb_vitc_combo', name: 'MB+VitC Combo Guide', category: 'iv', url: '/methylene-blue-combo-iv-guide' },

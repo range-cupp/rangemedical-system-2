@@ -35,6 +35,7 @@ export default async function handler(req, res) {
         patients (
           id,
           name,
+          phone,
           ghl_contact_id
         )
       `)
@@ -48,7 +49,7 @@ export default async function handler(req, res) {
     }
 
     if (!protocols || protocols.length === 0) {
-      return res.status(200).json([]);
+      return res.status(200).json({ success: true, protocols: [], total: 0, active: 0, completed: 0 });
     }
 
     const protocolIds = protocols.map(p => p.id);
@@ -117,6 +118,7 @@ export default async function handler(req, res) {
         id: p.id,
         patient_id: p.patient_id,
         patient_name: p.patients?.name || 'Unknown',
+        phone: p.patients?.phone || null,
         ghl_contact_id: p.patients?.ghl_contact_id || null,
         program_name: p.program_name,
         medication: p.medication,
@@ -140,7 +142,16 @@ export default async function handler(req, res) {
       };
     });
 
-    return res.status(200).json(enrichedProtocols);
+    const activeCount = enrichedProtocols.filter(p => p.status === 'active').length;
+    const completedCount = enrichedProtocols.filter(p => p.status === 'completed').length;
+
+    return res.status(200).json({
+      success: true,
+      protocols: enrichedProtocols,
+      total: enrichedProtocols.length,
+      active: activeCount,
+      completed: completedCount,
+    });
 
   } catch (err) {
     console.error('HRT pipeline error:', err);

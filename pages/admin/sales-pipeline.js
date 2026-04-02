@@ -10,6 +10,7 @@ import LeadDetailPanel from '../../components/LeadDetailPanel';
 import LabDetailPanel from '../../components/LabDetailPanel';
 import PeptideDetailPanel from '../../components/PeptideDetailPanel';
 import WLDetailPanel from '../../components/WLDetailPanel';
+import HRTDetailPanel from '../../components/HRTDetailPanel';
 import { supabase } from '../../lib/supabase';
 
 const STAGE_CONFIG = {
@@ -117,6 +118,43 @@ function getWLMedColor(medication) {
   return { color: '#374151', bg: '#f3f4f6' };
 }
 
+const HRT_STAGE_CONFIG = {
+  new_start:     { label: 'New Start',     color: '#8b5cf6', bg: '#f5f3ff' },
+  active:        { label: 'Active',        color: '#10b981', bg: '#ecfdf5' },
+  needs_refill:  { label: 'Needs Refill',  color: '#f59e0b', bg: '#fffbeb' },
+  labs_due:      { label: 'Labs Due',      color: '#3b82f6', bg: '#eff6ff' },
+  lapsed:        { label: 'Lapsed',        color: '#ef4444', bg: '#fef2f2' },
+  completed:     { label: 'Completed',     color: '#6b7280', bg: '#f3f4f6' },
+};
+
+function categorizeHRTProtocol(p) {
+  if (p.status === 'completed' || p.status === 'paused') return 'completed';
+  const daysSinceStart = p.days_since_start || 0;
+  const daysSinceRefill = p.days_since_last_refill ?? 999;
+
+  // Lapsed: no refill in 45+ days
+  if (daysSinceRefill >= 45 && daysSinceStart > 14) return 'lapsed';
+
+  // Needs refill: 28+ days since last refill (monthly supply cycle)
+  if (daysSinceRefill >= 28) return 'needs_refill';
+
+  // Labs due: 42-70 days in and labs not completed
+  if (daysSinceStart >= 42 && !p.labs_completed) return 'labs_due';
+
+  // New start: first 14 days
+  if (daysSinceStart <= 14) return 'new_start';
+
+  return 'active';
+}
+
+const HRT_SUPPLY_LABELS = {
+  prefilled_1week: '1-Wk',
+  prefilled_2week: '2-Wk',
+  prefilled_4week: '4-Wk',
+  vial_5ml: '5ml Vial',
+  vial_10ml: '10ml Vial',
+};
+
 // Categorize peptides for filtering
 function getPeptideCategory(medication, programType) {
   const med = (medication || '').toLowerCase();
@@ -176,12 +214,53 @@ export default function SalesPipeline() {
   const [selectedLabLead, setSelectedLabLead] = useState(null);
   const [selectedPeptide, setSelectedPeptide] = useState(null);
   const [selectedWL, setSelectedWL] = useState(null);
+  const [selectedHRT, setSelectedHRT] = useState(null);
   const [viewMode, setViewMode] = useState('standard'); // standard | trial | labs | peptides
   const [peptideFilter, setPeptideFilter] = useState('all'); // all | recovery | gh | other
 
   const fetchBoard = useCallback(async () => {
     try {
-      if (viewMode === 'weight_loss') {
+      if (viewMode === 'hrt') {
+        const res = await fetch('/api/pipelines/hrt');
+        const data = await res.json();
+        if (data.success) {
+          const stageBuckets = {};
+          Object.keys(HRT_STAGE_CONFIG).forEach(k => { stageBuckets[k] = []; });
+          (data.protocols || []).forEach(p => {
+            const stage = categorizeHRTProtocol(p);
+            const nameParts = (p.patient_name || '').split(' ');
+            const weekNum = Math.floor((p.days_since_start || 0) / 7) + 1;
+            stageBuckets[stage].push({
+              id: p.id,
+              first_name: nameParts[0] || '',
+              last_name: nameParts.slice(1).join(' ') || '',
+              phone: p.phone || null,
+              patient_id: p.patient_id,
+              medication: p.medication,
+              hrt_type: p.hrt_type,
+              current_dose: p.current_dose,
+              supply_type: p.supply_type,
+              delivery_method: p.delivery_method,
+              start_date: p.start_date,
+              last_refill_date: p.last_refill_date,
+              days_since_start: p.days_since_start,
+              days_since_last_refill: p.days_since_last_refill,
+              total_injections: p.total_injections,
+              labs_completed: p.labs_completed,
+              eight_week_labs_date: p.eight_week_labs_date,
+              weekNum,
+              notes: p.notes || null,
+              created_at: p.created_at,
+              stage,
+              _isHRT: true,
+            });
+          });
+          const hrtColumns = Object.keys(HRT_STAGE_CONFIG).map(key => ({ key, leads: stageBuckets[key] }));
+          setColumns(hrtColumns);
+          const needsAttention = (stageBuckets.needs_refill?.length || 0) + (stageBuckets.lapsed?.length || 0) + (stageBuckets.labs_due?.length || 0);
+          setSummary({ total: data.total, active: data.active, converted: needsAttention, lost: data.completed });
+        }
+      } else if (viewMode === 'weight_loss') {
         const res = await fetch('/api/pipelines/weight-loss');
         const data = await res.json();
         if (data.success) {
@@ -347,7 +426,7 @@ export default function SalesPipeline() {
     if (!data.id || data.fromStage === toStage) return;
 
     // If moving to "lost", open detail panel for reason
-    if (toStage === 'lost' && viewMode !== 'labs' && viewMode !== 'peptides' && viewMode !== 'weight_loss') {
+    if (toStage === 'lost' && viewMode !== 'labs' && viewMode !== 'peptides' && viewMode !== 'weight_loss' && viewMode !== 'hrt') {
       const lead = columns.flatMap(c => c.leads).find(l => l.id === data.id);
       setSelectedLead({ ...lead, stage: toStage });
     }
@@ -514,7 +593,12 @@ export default function SalesPipeline() {
     <AdminLayout title="Sales Pipeline">
       {/* Summary Stats */}
       <div style={styles.statsRow}>
-        {(viewMode === 'weight_loss' ? [
+        {(viewMode === 'hrt' ? [
+          { num: summary.total, label: 'Total Patients', color: '#111' },
+          { num: summary.active, label: 'Active', color: '#10b981' },
+          { num: summary.converted, label: 'Needs Attention', color: '#f59e0b' },
+          { num: summary.lost, label: 'Completed', color: '#6b7280' },
+        ] : viewMode === 'weight_loss' ? [
           { num: summary.total, label: 'Total Patients', color: '#111' },
           { num: summary.active, label: 'Active', color: '#10b981' },
           { num: summary.converted, label: 'Needs Attention', color: '#f59e0b' },
@@ -549,6 +633,7 @@ export default function SalesPipeline() {
           { key: 'trial', label: 'RLT Trials', radius: '0' },
           { key: 'labs', label: 'Labs', radius: '0' },
           { key: 'weight_loss', label: 'Weight Loss', radius: '0' },
+          { key: 'hrt', label: 'HRT', radius: '0' },
           { key: 'peptides', label: 'Peptides', radius: '0 6px 6px 0' },
         ].map(v => (
           <button
@@ -590,7 +675,7 @@ export default function SalesPipeline() {
       )}
 
       {/* Actions Bar — hidden for labs/peptides view */}
-      {viewMode !== 'labs' && viewMode !== 'peptides' && viewMode !== 'weight_loss' && <div style={styles.actionsBar}>
+      {viewMode !== 'labs' && viewMode !== 'peptides' && viewMode !== 'weight_loss' && viewMode !== 'hrt' && <div style={styles.actionsBar}>
         <div style={styles.actionsLeft}>
           <input
             type="text"
@@ -628,7 +713,7 @@ export default function SalesPipeline() {
       ) : (
         <div style={styles.board}>
           {filteredColumns.map(col => {
-            const activeStageConfig = viewMode === 'weight_loss' ? WL_STAGE_CONFIG : viewMode === 'peptides' ? PEPTIDE_STAGE_CONFIG : viewMode === 'labs' ? LAB_STAGE_CONFIG : viewMode === 'trial' ? TRIAL_STAGE_CONFIG : STAGE_CONFIG;
+            const activeStageConfig = viewMode === 'hrt' ? HRT_STAGE_CONFIG : viewMode === 'weight_loss' ? WL_STAGE_CONFIG : viewMode === 'peptides' ? PEPTIDE_STAGE_CONFIG : viewMode === 'labs' ? LAB_STAGE_CONFIG : viewMode === 'trial' ? TRIAL_STAGE_CONFIG : STAGE_CONFIG;
             const config = activeStageConfig[col.key] || { label: col.label || col.key, color: '#6b7280', bg: '#f3f4f6' };
             const isDragOver = dragOverColumn === col.key;
             return (
@@ -662,11 +747,19 @@ export default function SalesPipeline() {
                       : col.leads;
                     return visibleLeads.length === 0 ? (
                       <div style={styles.emptyCol}>
-                        {isDragOver ? 'Drop here' : viewMode === 'labs' || viewMode === 'peptides' || viewMode === 'weight_loss' ? 'No patients' : 'No leads'}
+                        {isDragOver ? 'Drop here' : viewMode === 'labs' || viewMode === 'peptides' || viewMode === 'weight_loss' || viewMode === 'hrt' ? 'No patients' : 'No leads'}
                       </div>
                     ) : (
                       visibleLeads.map(lead => (
-                        lead._isWL ? (
+                        lead._isHRT ? (
+                          <HRTCard
+                            key={lead.id}
+                            lead={lead}
+                            stageKey={col.key}
+                            onDragStart={handleDragStart}
+                            onClick={() => setSelectedHRT(lead)}
+                          />
+                        ) : lead._isWL ? (
                           <WLCard
                             key={lead.id}
                             lead={lead}
@@ -840,6 +933,12 @@ export default function SalesPipeline() {
         onClose={() => setSelectedWL(null)}
         lead={selectedWL}
       />
+
+      <HRTDetailPanel
+        isOpen={!!selectedHRT}
+        onClose={() => setSelectedHRT(null)}
+        lead={selectedHRT}
+      />
     </AdminLayout>
   );
 }
@@ -967,6 +1066,81 @@ function LabCard({ lead, stageKey, onDragStart, onClose, onClick }) {
           color: daysInStage > 3 ? '#ef4444' : daysInStage > 1 ? '#f59e0b' : '#9ca3af',
         }}>
           {daysInStage === 0 ? 'Today' : `${daysInStage}d`}
+        </span>
+      </div>
+      {lead.notes && (
+        <div style={styles.cardNotes}>{lead.notes.substring(0, 80)}{lead.notes.length > 80 ? '...' : ''}</div>
+      )}
+    </div>
+  );
+}
+
+function HRTCard({ lead, stageKey, onDragStart, onClick }) {
+  const [dragging, setDragging] = useState(false);
+  const isFemale = lead.hrt_type === 'female';
+
+  return (
+    <div
+      draggable
+      onDragStart={e => { setDragging(true); onDragStart(e, lead, stageKey); }}
+      onDragEnd={() => setDragging(false)}
+      onClick={() => { if (!dragging && onClick) onClick(); }}
+      style={{
+        ...styles.card,
+        opacity: dragging ? 0.5 : 1,
+        cursor: 'pointer',
+        borderLeft: `3px solid ${isFemale ? '#9d174d' : '#1e40af'}`,
+      }}
+    >
+      <div style={{ ...styles.cardName, borderBottom: '1px dashed #d1d5db' }}>
+        {lead.first_name} {lead.last_name}
+      </div>
+      {lead.phone && <div style={styles.cardPhone}>{lead.phone}</div>}
+      <div style={styles.cardMeta}>
+        <span style={{
+          fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '3px', whiteSpace: 'nowrap',
+          background: isFemale ? '#fce7f3' : '#dbeafe',
+          color: isFemale ? '#9d174d' : '#1e40af',
+        }}>
+          {isFemale ? 'Female' : 'Male'}
+        </span>
+        <span style={styles.cardPathTag}>Week {lead.weekNum}</span>
+        {lead.supply_type && (
+          <span style={styles.cardPathTag}>{HRT_SUPPLY_LABELS[lead.supply_type] || lead.supply_type}</span>
+        )}
+      </div>
+      {/* Dose + Injections */}
+      <div style={{ fontSize: '12px', color: '#374151', marginTop: '6px', display: 'flex', justifyContent: 'space-between' }}>
+        <span>{lead.current_dose || '\u2014'}</span>
+        <span style={{ color: '#6b7280' }}>{lead.total_injections} inj</span>
+      </div>
+      {/* Labs status */}
+      <div style={{ fontSize: '11px', marginTop: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ color: '#6b7280' }}>8-wk labs</span>
+        <span style={{
+          fontWeight: 600,
+          color: lead.labs_completed ? '#16a34a' : (lead.days_since_start || 0) >= 56 ? '#ef4444' : '#9ca3af',
+        }}>
+          {lead.labs_completed ? '\u2713 Done' : (lead.days_since_start || 0) >= 56 ? 'Overdue' : 'Pending'}
+        </span>
+      </div>
+      <div style={styles.cardFooter}>
+        <span style={styles.cardTime}>
+          {lead.last_refill_date
+            ? new Date(lead.last_refill_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            : 'No refill'}
+          {lead.days_since_last_refill != null && (
+            <span style={{ color: lead.days_since_last_refill > 35 ? '#ef4444' : '#9ca3af' }}>
+              {' '}({lead.days_since_last_refill}d)
+            </span>
+          )}
+        </span>
+        <span style={{
+          fontSize: '10px', fontWeight: 600, padding: '2px 6px', borderRadius: '3px',
+          background: lead.delivery_method === 'in_clinic' ? '#f0fdf4' : '#faf5ff',
+          color: lead.delivery_method === 'in_clinic' ? '#166534' : '#7c3aed',
+        }}>
+          {lead.delivery_method === 'in_clinic' ? 'Clinic' : 'Home'}
         </span>
       </div>
       {lead.notes && (

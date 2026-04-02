@@ -18,7 +18,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { patient_id, door } = req.body;
+    const { patient_id, door, forced_modalities } = req.body;
 
     if (!patient_id) {
       return res.status(400).json({ error: 'patient_id is required' });
@@ -63,6 +63,7 @@ export default async function handler(req, res) {
         responses: {},
         scored_totals: {},
         sections_completed: [],
+        forced_modalities: Array.isArray(forced_modalities) ? forced_modalities : [],
       })
       .select('id, token')
       .single();

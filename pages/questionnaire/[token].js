@@ -10,6 +10,7 @@ import { createClient } from '@supabase/supabase-js';
 import {
   DOOR1_SECTIONS,
   DOOR2_CORE_SECTIONS,
+  DOOR2_MODALITY_SECTIONS,
   DOOR2_FINAL_SECTION,
   getApplicableModalities,
   SEVERITY5_OPTIONS,
@@ -61,6 +62,7 @@ export async function getServerSideProps(context) {
   // Determine which sections to show
   // Door 1 = injury only, Door 2 = optimization only, Door 3 = both (seamless)
   let sections = [];
+  const forcedMods = questionnaire.forced_modalities || [];
 
   // Door 1 or combined: start with injury baseline
   if (questionnaire.door === 1 || questionnaire.door === 3) {
@@ -70,10 +72,19 @@ export async function getServerSideProps(context) {
   // Door 2 or combined: add optimization sections
   if (questionnaire.door === 2 || questionnaire.door === 3) {
     sections.push(...DOOR2_CORE_SECTIONS.map(s => ({ ...s })));
-    if (intakeData) {
-      const modalities = getApplicableModalities(intakeData.symptoms, intakeData.gender);
-      sections.push(...modalities.map(s => ({ ...s })));
+    // Modalities from intake symptoms
+    const intakeModalities = intakeData
+      ? getApplicableModalities(intakeData.symptoms, intakeData.gender)
+      : [];
+    // Merge intake-driven + forced modalities (no duplicates)
+    const includedIds = new Set(intakeModalities.map(s => s.id));
+    const allModalities = [...intakeModalities];
+    for (const mod of DOOR2_MODALITY_SECTIONS) {
+      if (forcedMods.includes(mod.id) && !includedIds.has(mod.id)) {
+        allModalities.push(mod);
+      }
     }
+    sections.push(...allModalities.map(s => ({ ...s })));
     sections.push({ ...DOOR2_FINAL_SECTION });
   }
 

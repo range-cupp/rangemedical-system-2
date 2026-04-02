@@ -458,6 +458,7 @@ export default function PatientProfile() {
   const [showSendAssessment, setShowSendAssessment] = useState(false);
   const [sendAssessmentDoor, setSendAssessmentDoor] = useState(3);
   const [sendingAssessment, setSendingAssessment] = useState(false);
+  const [sendAssessmentModalities, setSendAssessmentModalities] = useState([]);
   const [assessmentSynopsis, setAssessmentSynopsis] = useState(null);
   const [assessmentSynopsisLoading, setAssessmentSynopsisLoading] = useState(false);
   const [assessmentSynopsisExpanded, setAssessmentSynopsisExpanded] = useState(true);
@@ -1680,7 +1681,7 @@ export default function PatientProfile() {
       const res = await fetch('/api/questionnaire/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ patient_id: id, door: sendAssessmentDoor }),
+        body: JSON.stringify({ patient_id: id, door: sendAssessmentDoor, forced_modalities: sendAssessmentModalities }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to send assessment');
@@ -7922,7 +7923,7 @@ export default function PatientProfile() {
               {showSendAssessment && (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   onClick={() => setShowSendAssessment(false)}>
-                  <div style={{ background: '#fff', borderRadius: 0, padding: '28px', width: '400px', maxWidth: '90vw' }}
+                  <div style={{ background: '#fff', borderRadius: 0, padding: '28px', width: '440px', maxWidth: '90vw', maxHeight: '90vh', overflowY: 'auto' }}
                     onClick={e => e.stopPropagation()}>
                     <h3 style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: '700' }}>Send Assessment</h3>
                     <p style={{ fontSize: '14px', color: '#666', margin: '0 0 16px' }}>
@@ -7944,8 +7945,30 @@ export default function PatientProfile() {
                         </label>
                       ))}
                     </div>
+                    {(sendAssessmentDoor === 2 || sendAssessmentDoor === 3) && (
+                      <div style={{ marginBottom: '16px' }}>
+                        <label style={{ fontSize: '13px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Include Specific Instruments</label>
+                        <p style={{ fontSize: '12px', color: '#888', margin: '0 0 8px' }}>Core instruments (PHQ-9, GAD-7, Sleep, Energy) are always included. Check any additional instruments to force-include even if the intake didn&apos;t trigger them.</p>
+                        {[
+                          { id: 'ams', label: 'AMS', desc: 'Male hormone symptoms' },
+                          { id: 'menqol', label: 'MENQOL', desc: 'Menopause quality of life' },
+                          { id: 'iief5', label: 'IIEF-5', desc: 'Male sexual function' },
+                          { id: 'fsfi6', label: 'FSFI-6', desc: 'Female sexual function' },
+                          { id: 'tfeq_r18', label: 'TFEQ-R18', desc: 'Eating behavior' },
+                        ].map(inst => (
+                          <label key={inst.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', cursor: 'pointer', border: '1px solid #eee', marginBottom: '4px', background: sendAssessmentModalities.includes(inst.id) ? '#f0f0ff' : 'transparent' }}>
+                            <input type="checkbox" checked={sendAssessmentModalities.includes(inst.id)} onChange={() => setSendAssessmentModalities(prev => prev.includes(inst.id) ? prev.filter(m => m !== inst.id) : [...prev, inst.id])} />
+                            <div>
+                              <span style={{ fontSize: '13px', fontWeight: '600' }}>{inst.label}</span>
+                              <span style={{ fontSize: '12px', color: '#888', marginLeft: '6px' }}>{inst.desc}</span>
+                            </div>
+                          </label>
+                        ))}
+                        <button onClick={() => setSendAssessmentModalities(['ams', 'menqol', 'iief5', 'fsfi6', 'tfeq_r18'])} style={{ marginTop: '4px', padding: '4px 10px', border: '1px solid #ddd', background: '#f9f9f9', fontSize: '11px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit', color: '#666' }}>Select All</button>
+                      </div>
+                    )}
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                      <button onClick={() => setShowSendAssessment(false)} style={{ padding: '8px 16px', border: '1px solid #ddd', background: '#fff', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                      <button onClick={() => { setShowSendAssessment(false); setSendAssessmentModalities([]); }} style={{ padding: '8px 16px', border: '1px solid #ddd', background: '#fff', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
                       <button onClick={handleSendAssessment} disabled={sendingAssessment} style={{ padding: '8px 16px', border: 'none', background: '#000', color: '#fff', fontSize: '13px', fontWeight: '500', cursor: sendingAssessment ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: sendingAssessment ? 0.6 : 1 }}>
                         {sendingAssessment ? 'Sending...' : 'Send via SMS'}
                       </button>

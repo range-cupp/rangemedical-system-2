@@ -52,14 +52,18 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true });
   }
 
-  // PATCH — toggle partner active/inactive
+  // PATCH — update partner fields (active, assigned_to)
   if (req.method === 'PATCH') {
-    const { id, active } = req.body;
+    const { id, active, assigned_to } = req.body;
     if (!id) return res.status(400).json({ error: 'id is required' });
+
+    const updates = {};
+    if (typeof active === 'boolean') updates.active = active;
+    if (typeof assigned_to === 'string') updates.assigned_to = assigned_to;
 
     const { error } = await supabase
       .from('referral_partners')
-      .update({ active })
+      .update(updates)
       .eq('id', id);
 
     if (error) {

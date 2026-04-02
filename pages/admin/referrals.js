@@ -119,6 +119,19 @@ export default function ReferralsAdmin() {
     }
   }
 
+  async function updateAssignedTo(partner, assigned_to) {
+    try {
+      await fetch('/api/admin/referral-partners', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: partner.id, assigned_to }),
+      });
+      setPartners(prev => prev.map(p => p.id === partner.id ? { ...p, assigned_to } : p));
+    } catch (err) {
+      console.error('Update assigned_to error:', err);
+    }
+  }
+
   async function updateLeadStatus(leadId, status) {
     try {
       await fetch('/api/admin/referral-partners', {
@@ -267,7 +280,16 @@ export default function ReferralsAdmin() {
                       <td style={{ ...s.td, fontWeight: '600' }}>{p.name}</td>
                       <td style={{ ...s.td, color: '#888', fontFamily: 'monospace', fontSize: '13px' }}>/refer/{p.slug}</td>
                       <td style={s.td}>{p.partner_type || '—'}</td>
-                      <td style={{ ...s.td, fontSize: '13px' }}>{STAFF_OPTIONS.find(o => o.value === p.assigned_to)?.label || p.assigned_to || '—'}</td>
+                      <td style={s.td}>
+                        <select
+                          value={p.assigned_to || ''}
+                          onChange={e => updateAssignedTo(p, e.target.value)}
+                          style={{ border: 'none', background: 'transparent', fontSize: '13px', color: '#1a1a1a', cursor: 'pointer', padding: '0' }}
+                        >
+                          <option value="">Unassigned</option>
+                          {STAFF_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        </select>
+                      </td>
                       <td style={{ ...s.td, fontWeight: '600' }}>{leadCountByPartner[p.slug] || 0}</td>
                       <td style={s.td}>
                         <button onClick={() => toggleActive(p)} style={{ ...s.badge(p.active), cursor: 'pointer', border: 'none' }}>

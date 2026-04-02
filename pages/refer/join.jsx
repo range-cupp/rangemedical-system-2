@@ -77,7 +77,7 @@ export default function JoinReferralProgram() {
   };
 
   const shareViaText = () => {
-    const message = `Hey — I go to Range Medical for peptides, hormones, recovery, all of it. They're legit. Here's my link if you want to check it out: ${result.link}`;
+    const message = `Hey — I go to this wellness medical clinic called Range Medical. They're legit. Here's my link if you want to check them out: ${result.link}`;
     window.location.href = `sms:?&body=${encodeURIComponent(message)}`;
   };
 

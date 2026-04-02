@@ -42,31 +42,31 @@ const PACKETS = [
 ];
 
 const GUIDES = [
-  { id: 'hrt', name: 'HRT Guide', category: 'hrt', file: 'hrt_guide.pdf' },
-  { id: 'tirzepatide', name: 'Tirzepatide Guide', category: 'weight_loss', file: 'tirzepatide_guide.pdf' },
-  { id: 'retatrutide', name: 'Retatrutide Guide', category: 'weight_loss', file: 'retatrutide_guide.pdf' },
-  { id: 'wl_medication', name: 'WL Medication Guide', category: 'weight_loss', file: 'weight_loss_medication_guide.pdf' },
-  { id: 'bpc_tb4', name: 'BPC/TB4 Guide', category: 'peptide', file: 'bpc_tb4_guide.pdf' },
-  { id: 'glow', name: 'GLOW Guide', category: 'peptide', file: 'glow_guide.pdf' },
-  { id: 'ghk_cu', name: 'GHK-Cu Guide', category: 'peptide', file: 'ghk_cu_guide.pdf' },
-  { id: '3x_blend', name: '3x Blend Guide', category: 'peptide', file: '3x_blend_guide.pdf' },
-  { id: 'nad', name: 'NAD+ Guide', category: 'iv', file: 'nad_guide.pdf' },
-  { id: 'methylene_blue', name: 'Methylene Blue Guide', category: 'iv', file: 'methylene_blue_guide.pdf' },
-  { id: 'mb_vitc_combo', name: 'MB+VitC Combo Guide', category: 'iv', file: 'methylene_blue_combo_guide.pdf' },
-  { id: 'glutathione', name: 'Glutathione Guide', category: 'iv', file: 'glutathione_guide.pdf' },
-  { id: 'vitamin_c', name: 'Vitamin C Guide', category: 'iv', file: 'vitamin_c_guide.pdf' },
-  { id: 'range_iv', name: 'Range IV Guide', category: 'iv', file: 'range_iv_guide.pdf' },
-  { id: 'cellular_reset', name: 'Cellular Reset Guide', category: 'iv', file: 'cellular_reset_guide.pdf' },
-  { id: 'hbot', name: 'HBOT Guide', category: 'hbot', file: 'hbot_guide.pdf' },
-  { id: 'red_light', name: 'Red Light Guide', category: 'rlt', file: 'red_light_guide.pdf' },
-  { id: 'combo_membership', name: 'Combo Membership', category: 'membership', file: 'combo_membership_guide.pdf' },
-  { id: 'hbot_membership', name: 'HBOT Membership', category: 'membership', file: 'hbot_membership_guide.pdf' },
-  { id: 'rlt_membership', name: 'RLT Membership', category: 'membership', file: 'rlt_membership_guide.pdf' },
-  { id: 'essential_male_panel', name: 'Essential Male Panel', category: 'labs', file: 'essential_panel_male_guide.pdf' },
-  { id: 'essential_female_panel', name: 'Essential Female Panel', category: 'labs', file: 'essential_panel_female_guide.pdf' },
-  { id: 'elite_male_panel', name: 'Elite Male Panel', category: 'labs', file: 'elite_panel_male_guide.pdf' },
-  { id: 'elite_female_panel', name: 'Elite Female Panel', category: 'labs', file: 'elite_panel_female_guide.pdf' },
-  { id: 'the_blu', name: 'The Blu', category: 'other', file: 'the_blu_guide.pdf' },
+  { id: 'hrt', name: 'HRT Guide', category: 'hrt', url: '/hrt-guide' },
+  { id: 'tirzepatide', name: 'Tirzepatide Guide', category: 'weight_loss', url: '/tirzepatide-guide' },
+  { id: 'retatrutide', name: 'Retatrutide Guide', category: 'weight_loss', url: '/retatrutide-guide' },
+  { id: 'wl_medication', name: 'WL Medication Guide', category: 'weight_loss', url: '/weight-loss-medication-guide-page' },
+  { id: 'bpc_tb4', name: 'BPC/TB4 Guide', category: 'peptide', url: '/bpc-tb4-guide' },
+  { id: 'glow', name: 'GLOW Guide', category: 'peptide', url: '/glow-guide' },
+  { id: 'ghk_cu', name: 'GHK-Cu Guide', category: 'peptide', url: '/ghk-cu-cream' },
+  { id: '3x_blend', name: '3x Blend Guide', category: 'peptide', url: '/3x-blend-guide' },
+  { id: 'nad', name: 'NAD+ Guide', category: 'iv', url: '/nad-guide' },
+  { id: 'methylene_blue', name: 'Methylene Blue Guide', category: 'iv', url: '/methylene-blue-iv-guide' },
+  { id: 'mb_vitc_combo', name: 'MB+VitC Combo Guide', category: 'iv', url: '/methylene-blue-combo-iv-guide' },
+  { id: 'glutathione', name: 'Glutathione Guide', category: 'iv', url: '/glutathione-iv-guide' },
+  { id: 'vitamin_c', name: 'Vitamin C Guide', category: 'iv', url: '/vitamin-c-iv-guide' },
+  { id: 'range_iv', name: 'Range IV Guide', category: 'iv', url: '/range-iv-guide' },
+  { id: 'cellular_reset', name: 'Cellular Reset Guide', category: 'iv', url: '/cellular-reset-guide' },
+  { id: 'hbot', name: 'HBOT Guide', category: 'hbot', url: '/hbot-guide' },
+  { id: 'red_light', name: 'Red Light Guide', category: 'rlt', url: '/red-light-guide' },
+  { id: 'combo_membership', name: 'Combo Membership', category: 'membership', url: '/combo-membership-guide' },
+  { id: 'hbot_membership', name: 'HBOT Membership', category: 'membership', url: '/hbot-membership-guide' },
+  { id: 'rlt_membership', name: 'RLT Membership', category: 'membership', url: '/rlt-membership-guide' },
+  { id: 'essential_male_panel', name: 'Essential Male Panel', category: 'labs', url: '/essential-panel-male-guide' },
+  { id: 'essential_female_panel', name: 'Essential Female Panel', category: 'labs', url: '/essential-panel-female-guide' },
+  { id: 'elite_male_panel', name: 'Elite Male Panel', category: 'labs', url: '/elite-panel-male-guide' },
+  { id: 'elite_female_panel', name: 'Elite Female Panel', category: 'labs', url: '/elite-panel-female-guide' },
+  { id: 'the_blu', name: 'The Blu', category: 'other', url: '/the-blu-guide' },
 ];
 
 const GUIDE_CATEGORIES = [
@@ -157,7 +157,7 @@ export default function DocumentsPage() {
   };
 
   const openSendModal = (doc, category, method) => {
-    setSendModal({ ...doc, category, method });
+    setSendModal({ ...doc, category, method, url: doc.url || null });
     setSelectedPatient(null);
     setSearchQuery('');
     setSearchResults([]);
@@ -171,7 +171,9 @@ export default function DocumentsPage() {
     if (!sendModal) return;
     const method = sendModal.method;
     const docName = sendModal.name;
-    const docUrl = getDocUrl(sendModal.category, sendModal.file);
+    const docUrl = sendModal.url
+      ? `${window.location.origin}${sendModal.url}`
+      : getDocUrl(sendModal.category, sendModal.file);
 
     let patientName, patientEmail, patientPhone, patientId, ghlContactId;
 
@@ -302,12 +304,12 @@ export default function DocumentsPage() {
             </div>
             <div style={pageStyles.cardActions}>
               <button
-                onClick={() => handlePrint(category, doc.file)}
+                onClick={() => doc.url ? window.open(doc.url, '_blank') : handlePrint(category, doc.file)}
                 style={pageStyles.actionBtn}
-                title="Open PDF to print"
+                title={doc.url ? "Open guide page" : "Open PDF to print"}
               >
                 <Printer size={14} />
-                Print
+                {doc.url ? 'Open' : 'Print'}
               </button>
               <button
                 onClick={() => openSendModal(doc, category, 'email')}

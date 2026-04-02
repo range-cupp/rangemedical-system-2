@@ -13,6 +13,7 @@ import BookingTab from '../../components/BookingTab';
 import CalendarView from '../../components/CalendarView';
 import LabDashboard from '../../components/labs/LabDashboard';
 import { formatCategoryName, WEIGHT_LOSS_MEDICATIONS, WEIGHT_LOSS_DOSAGES, PEPTIDE_OPTIONS, HRT_MEDICATIONS, HRT_SECONDARY_MEDICATIONS, TESTOSTERONE_DOSES } from '../../lib/protocol-config';
+import { getHRTMedication, getHRTConcentration } from '../../lib/protocol-types';
 import { formatPhone } from '../../lib/format-utils';
 import { getHRTLabSchedule, matchDrawsToLogs, isHRTProtocol } from '../../lib/hrt-lab-schedule';
 import { loadStripe } from '@stripe/stripe-js';
@@ -1249,7 +1250,7 @@ export default function CommandCenter() {
 
     // Category-specific fields
     if (logCategory === 'testosterone') {
-      payload.medication = firstVisitData.hrtType === 'male' ? 'Testosterone Cypionate (200mg/ml)' : 'Testosterone Cypionate (100mg/ml)';
+      payload.medication = getHRTMedication(firstVisitData.hrtType);
       const dosage = firstVisitData.dosage === 'custom'
         ? firstVisitData.custom_dosage
         : (firstVisitData.dosage || assignForm.selectedDose || '');
@@ -1384,11 +1385,11 @@ export default function CommandCenter() {
   // Service-log-style medication options — sourced from protocol-config.js (single source of truth)
   const SL_TESTOSTERONE_OPTIONS = {
     male: {
-      label: 'Testosterone Cypionate (200mg/ml)',
+      label: getHRTMedication('male'),
       dosages: [...TESTOSTERONE_DOSES.male, { value: 'custom', label: 'Custom dose' }]
     },
     female: {
-      label: 'Testosterone Cypionate (100mg/ml)',
+      label: getHRTMedication('female'),
       dosages: [...TESTOSTERONE_DOSES.female, { value: 'custom', label: 'Custom dose' }]
     }
   };
@@ -1438,7 +1439,8 @@ export default function CommandCenter() {
     { value: 'NAD+ 50mg', label: 'NAD+ 50mg' },
     { value: 'NAD+ 100mg', label: 'NAD+ 100mg' },
     { value: 'L-Carnitine', label: 'L-Carnitine' },
-    { value: 'Lipo-C', label: 'Lipo-C' },
+    { value: 'Super Skinny Shot', label: 'Super Skinny Shot' },
+    { value: 'Skinny Shot', label: 'Skinny Shot' },
     { value: 'Taurine', label: 'Taurine' },
     { value: 'Toradol', label: 'Toradol' }
   ];
@@ -1609,7 +1611,7 @@ export default function CommandCenter() {
               : null,
             // Weight loss specific fields
             wlMedication: assignForm.wlMedication || null,
-            medication: isHRTTemplate() ? ((assignForm.hrtType || 'male') === 'male' ? 'Testosterone Cypionate (200mg/ml)' : 'Testosterone Cypionate (100mg/ml)') : (assignForm.wlMedication || assignForm.ivType || null),
+            medication: isHRTTemplate() ? getHRTMedication(assignForm.hrtType || 'male') : (assignForm.wlMedication || assignForm.ivType || null),
             pickupFrequencyDays: assignForm.pickupFrequency ? parseInt(assignForm.pickupFrequency) : null,
             injectionFrequencyDays: assignForm.injectionFrequency ? parseInt(assignForm.injectionFrequency) : null,
             injectionDay: assignForm.injectionDay || null,
@@ -5036,8 +5038,8 @@ export default function CommandCenter() {
                       onChange={e => setEditingProtocol({...editingProtocol, hrt_type: e.target.value, selected_dose: ''})}
                       style={styles.formSelect}
                     >
-                      <option value="male">Male (200mg/ml)</option>
-                      <option value="female">Female (100mg/ml)</option>
+                      <option value="male">Male ({getHRTConcentration('male')})</option>
+                      <option value="female">Female ({getHRTConcentration('female')})</option>
                     </select>
                   </div>
 

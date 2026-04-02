@@ -54,7 +54,7 @@ const EncounterQuickView = dynamic(() => import('../../components/EncounterQuick
 const ServiceLogContent = dynamic(() => import('../../components/ServiceLogContent'), { ssr: false });
 const EmailComposeModal = dynamic(() => import('../../components/EmailComposeModal'), { ssr: false });
 const SMSComposeModal = dynamic(() => import('../../components/SMSComposeModal'), { ssr: false });
-import { PROTOCOL_TYPES } from '../../lib/protocol-types';
+import { PROTOCOL_TYPES, getHRTMedication, getHRTConcentration } from '../../lib/protocol-types';
 
 // ─── Dispense helpers (mirrored from medications.js) ─────────────────────────
 
@@ -1817,9 +1817,7 @@ export default function PatientProfile() {
       // Determine medication based on template type
       let finalMedication = null;
       if (isHRT) {
-        finalMedication = assignForm.hrtGender === 'female'
-          ? 'Testosterone Cypionate (100mg/ml)'
-          : 'Testosterone Cypionate (200mg/ml)';
+        finalMedication = getHRTMedication(assignForm.hrtGender);
       } else if (isInjection) {
         finalMedication = assignForm.injectionMedication;
       } else if (isPeptide) {
@@ -8905,7 +8903,7 @@ export default function PatientProfile() {
                           </div>
                           {assignForm.hrtGender && (
                             <div style={{ marginTop: 6, fontSize: 12, color: '#6b7280' }}>
-                              Testosterone Cypionate ({assignForm.hrtGender === 'male' ? '200mg/ml' : '100mg/ml'})
+                              Testosterone Cypionate ({getHRTConcentration(assignForm.hrtGender)})
                             </div>
                           )}
                         </div>
@@ -9080,7 +9078,7 @@ export default function PatientProfile() {
                       {selectedProtocol.hrt_type === 'female' ? (
                         <>
                           <optgroup label="Female HRT">
-                            <option value="Testosterone Cypionate (100mg/ml)">Testosterone Cypionate (100mg/ml)</option>
+                            <option value={getHRTMedication('female')}>{getHRTMedication('female')}</option>
                             <option value="Estradiol">Estradiol</option>
                             <option value="Progesterone">Progesterone</option>
                             <option value="Thyroid (T3/T4/Armour)">Thyroid (T3/T4/Armour)</option>
@@ -9096,7 +9094,7 @@ export default function PatientProfile() {
                       ) : (
                         <>
                           <optgroup label="Male HRT">
-                            <option value="Testosterone Cypionate (200mg/ml)">Testosterone Cypionate (200mg/ml)</option>
+                            <option value={getHRTMedication('male')}>{getHRTMedication('male')}</option>
                             <option value="Testosterone Enanthate">Testosterone Enanthate</option>
                             <option value="Nandrolone">Nandrolone</option>
                             <option value="HCG">HCG</option>

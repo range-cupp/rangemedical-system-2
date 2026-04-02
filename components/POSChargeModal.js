@@ -538,13 +538,15 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   }
 
   async function recordPurchases(extraFields) {
+    const { amount_override, ...restFields } = extraFields || {};
+    const isComp = amount_override === 0;
     const shippingCents = getShippingCents();
 
     // Custom charge — single record (receipt sent by record-purchase)
     if (activeCategory === 'custom') {
-      const amount = getChargeAmount();
+      const amount = isComp ? 0 : getChargeAmount();
       const desc = getChargeDescription();
-      const discountData = getDiscountData();
+      const discountData = isComp ? {} : getDiscountData();
       const discountSuffix = discountType === 'percent'
         ? `${discountValue}% off`
         : `$${discountValue} off`;
@@ -554,15 +556,15 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
         body: JSON.stringify({
           patient_id: patient.id,
           amount,
-          description: discountData.discount_type ? `${desc} (${discountSuffix})` : desc,
+          description: !isComp && discountData.discount_type ? `${desc} (${discountSuffix})` : desc,
           payment_method: 'stripe',
           service_category: activeCategory,
           service_name: customDescription,
           quantity: 1,
-          shipping: shippingCents,
+          shipping: isComp ? 0 : shippingCents,
           skip_receipt: skipNotification,
           ...discountData,
-          ...extraFields,
+          ...restFields,
         }),
       });
       return;
@@ -575,15 +577,15 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       const qty = item.quantity || 1;
       const itemBase = (item.price || 0) * qty; // total before discount
       const itemDiscountAmt = getItemDiscountCents(item);
-      const itemFinal = itemBase - itemDiscountAmt;
+      const itemFinal = isComp ? 0 : (itemBase - itemDiscountAmt);
       const itemName = qty > 1 ? `${item.name} x${qty}` : item.name;
 
       const discountSuffix = item.itemDiscountType === 'percent'
         ? `${item.itemDiscountValue}% off`
         : `$${item.itemDiscountValue} off`;
 
-      // Apply shipping to first item only
-      const itemShipping = !shippingApplied && shippingCents > 0 ? shippingCents : 0;
+      // Apply shipping to first item only (no shipping on comps)
+      const itemShipping = isComp ? 0 : (!shippingApplied && shippingCents > 0 ? shippingCents : 0);
       shippingApplied = true;
 
       // For peptides, reconstruct full name so auto-protocol parsing works
@@ -596,7 +598,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
         body: JSON.stringify({
           patient_id: patient.id,
           amount: itemFinal,
-          description: itemDiscountAmt > 0 ? `${itemName} (${discountSuffix})` : itemName,
+          description: !isComp && itemDiscountAmt > 0 ? `${itemName} (${discountSuffix})` : itemName,
           payment_method: 'stripe',
           service_category: item.category,
           service_name: serviceName,
@@ -607,12 +609,12 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
           fulfillment_method: ['peptide', 'weight_loss', 'hrt', 'vials'].includes(item.category) ? fulfillmentMethod : null,
           tracking_number: ['peptide', 'weight_loss', 'hrt', 'vials'].includes(item.category) && fulfillmentMethod === 'overnight' ? trackingNumber : null,
           skip_receipt: true, // consolidated receipt sent below
-          ...(itemDiscountAmt > 0 ? {
+          ...(!isComp && itemDiscountAmt > 0 ? {
             discount_type: item.itemDiscountType,
             discount_amount: parseFloat(item.itemDiscountValue),
             original_amount: itemBase,
           } : {}),
-          ...extraFields,
+          ...restFields,
         }),
       });
       const data = await res.json();
@@ -830,7 +832,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
     if (amount === 0) {
       setStep('processing');
       try {
-        await recordPurchases({ payment_method: 'comp' });
+        await recordPurchases({ payment_method: 'comp', amount_override: 0 });
     
         setResultStatus('success');
         setResultMessage(`Comped ${description} for ${patient.name}`);

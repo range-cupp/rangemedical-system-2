@@ -1457,7 +1457,7 @@ function CheckoutInner() {
   }
 
   // Process all dispense items in the cart via /api/medication-checkout
-  async function processDispenseItems() {
+  async function processDispenseItems({ sendReceipt = false } = {}) {
     const dispItems = getDispenseItems();
     const results = [];
     for (const item of dispItems) {
@@ -1481,7 +1481,7 @@ function CheckoutInner() {
           fulfillment_method: d.fulfillmentMethod,
           tracking_number: d.trackingNumber,
           entry_date: d.entryDate || null,
-          send_receipt: false, // will send consolidated at end
+          send_receipt: sendReceipt,
         };
         const res = await fetch('/api/medication-checkout', {
           method: 'POST',
@@ -1502,7 +1502,7 @@ function CheckoutInner() {
   async function processDispenseOnly() {
     setStep('processing');
     try {
-      const results = await processDispenseItems();
+      const results = await processDispenseItems({ sendReceipt: !skipNotification });
       const failures = results.filter(r => !r.success);
       if (failures.length > 0) {
         setResultStatus('error');
@@ -2783,6 +2783,14 @@ function CheckoutInner() {
                   {/* Warning */}
                   {cartWarning && (
                     <div style={styles.cartWarningMsg}>{cartWarning}</div>
+                  )}
+
+                  {/* Skip receipt toggle (shown for dispense-only) */}
+                  {canProceedToPayment() && hasOnlyFreeDispenseItems() && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 0 4px', cursor: 'pointer', fontSize: '13px', color: '#64748b' }}>
+                      <input type="checkbox" checked={skipNotification} onChange={e => setSkipNotification(e.target.checked)} style={{ width: '16px', height: '16px' }} />
+                      Don't send receipt to patient
+                    </label>
                   )}
 
                   {/* Action buttons */}

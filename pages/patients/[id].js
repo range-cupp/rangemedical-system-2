@@ -38,6 +38,7 @@ import {
   getDoseOptions,
   getPeptideVialSupply,
   getVialInfo,
+  getVialIdForMedication,
   PEPTIDE_SUPPLY_FORMATS
 } from '../../lib/protocol-config';
 import { getHRTLabSchedule, matchDrawsToLogs, buildAdaptiveHRTSchedule, isHRTProtocol, getLabStatusSummary } from '../../lib/hrt-lab-schedule';
@@ -6272,22 +6273,54 @@ export default function PatientProfile() {
                                 {/* Action buttons for peptide protocols */}
                                 {protocol.status === 'active' && (
                                   <div className="px-actions">
-                                    {!protocol.peptide_guide_sent && (
-                                      <button
-                                        onClick={async () => {
-                                          try {
-                                            const res = await fetch(`/api/admin/protocols/${protocol.id}/send-guide`, { method: 'POST' });
-                                            const data = await res.json();
-                                            if (res.ok) { alert(data.twoStep ? 'Guide will deliver when patient replies.' : 'Peptide guide sent!'); fetchPatient(); }
-                                            else { alert(data.error || 'Failed to send'); }
-                                          } catch (e) { alert('Failed to send'); }
-                                        }}
-                                        className="btn-secondary-sm"
-                                      >📖 Send Peptide Guide</button>
-                                    )}
-                                    {protocol.peptide_guide_sent && (
-                                      <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }}>✓ Guide Sent</span>
-                                    )}
+                                    {(() => {
+                                      // Build preview URL using same logic as the send-guide API
+                                      const buildGuidePreviewUrl = () => {
+                                        const allPeptideProtos = activeProtocols.filter(p =>
+                                          ['peptide', 'recovery', 'longevity', 'gh_blend', 'skin', 'neuro', 'immune', 'sexual_health'].includes(p.category) && p.status === 'active'
+                                        );
+                                        const seen = new Set();
+                                        const entries = [];
+                                        for (const p of allPeptideProtos) {
+                                          const vialId = getVialIdForMedication(p.medication, p.program_name);
+                                          if (vialId && !seen.has(vialId)) {
+                                            seen.add(vialId);
+                                            const days = p.total_sessions || 0;
+                                            const delivery = (p.num_vials && p.num_vials > 0) ? 'vial' : 'prefilled';
+                                            entries.push(`${vialId}.${days}.${delivery}`);
+                                          }
+                                        }
+                                        if (entries.length === 0) {
+                                          const fallback = getVialIdForMedication(protocol.medication, protocol.program_name);
+                                          if (fallback) entries.push(`${fallback}.0.vial`);
+                                        }
+                                        return entries.length > 0 ? `https://www.range-medical.com/peptide-guide?v=${entries.join(',')}` : null;
+                                      };
+                                      const previewUrl = buildGuidePreviewUrl();
+                                      return (
+                                        <>
+                                          {previewUrl && (
+                                            <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary-sm" style={{ textDecoration: 'none', display: 'inline-block' }}>👁 Preview Guide</a>
+                                          )}
+                                          {!protocol.peptide_guide_sent && (
+                                            <button
+                                              onClick={async () => {
+                                                try {
+                                                  const res = await fetch(`/api/admin/protocols/${protocol.id}/send-guide`, { method: 'POST' });
+                                                  const data = await res.json();
+                                                  if (res.ok) { alert(data.twoStep ? 'Guide will deliver when patient replies.' : 'Peptide guide sent!'); fetchPatient(); }
+                                                  else { alert(data.error || 'Failed to send'); }
+                                                } catch (e) { alert('Failed to send'); }
+                                              }}
+                                              className="btn-secondary-sm"
+                                            >📖 Send Guide</button>
+                                          )}
+                                          {protocol.peptide_guide_sent && (
+                                            <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }}>✓ Guide Sent</span>
+                                          )}
+                                        </>
+                                      );
+                                    })()}
                                   </div>
                                 )}
                                 {/* 90-Day Cycle Progress */}

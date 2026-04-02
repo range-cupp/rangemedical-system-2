@@ -71,12 +71,54 @@ export default async function handler(req, res) {
       mergedEndDate = null;
     }
 
-    // Combine total_sessions if set
+    // Combine vial supply fields if present (peptide / injection vial protocols)
+    let mergedNumVials = target.num_vials || 0;
+    if (source.num_vials) {
+      mergedNumVials += source.num_vials;
+    }
+    // Prefer target's doses_per_vial (same medication), fallback to source
+    const mergedDosesPerVial = target.doses_per_vial || source.doses_per_vial || null;
+    // Prefer target's supply_type, fallback to source
+    const mergedSupplyType = target.supply_type || source.supply_type || null;
+    // Prefer target's frequency, fallback to source
+    const mergedFrequency = target.frequency || source.frequency || null;
+
+    // Combine total_sessions — for vial protocols, recalculate from merged vials
     let mergedTotalSessions = target.total_sessions;
-    if (source.total_sessions && target.total_sessions) {
+    if (mergedNumVials > 0 && mergedDosesPerVial) {
+      // Vial-based: total = vials × doses per vial
+      mergedTotalSessions = mergedNumVials * mergedDosesPerVial;
+    } else if (source.total_sessions && target.total_sessions) {
       mergedTotalSessions = source.total_sessions + target.total_sessions;
     } else if (source.total_sessions && !target.total_sessions) {
       mergedTotalSessions = source.total_sessions;
+    }
+
+    // For vial protocols, recalculate end_date from start + duration
+    if (mergedNumVials > 0 && mergedDosesPerVial && mergedFrequency) {
+      // Parse doses per week from frequency string
+      let dosesPerWeek = 7; // default daily
+      const freq = (mergedFrequency || '').toLowerCase();
+      const onOffMatch = freq.match(/(\d+)\s*(?:days?\s*)?on/i);
+      if (onOffMatch) {
+        dosesPerWeek = parseInt(onOffMatch[1]);
+      } else if (freq.includes('daily') || freq.includes('every day')) {
+        dosesPerWeek = 7;
+      } else if (freq.includes('every other') || freq.includes('eod')) {
+        dosesPerWeek = 3.5;
+      } else if (freq.includes('3x') || freq.includes('three times')) {
+        dosesPerWeek = 3;
+      } else if (freq.includes('2x') || freq.includes('twice')) {
+        dosesPerWeek = 2;
+      } else if (freq.includes('weekly') || freq.includes('1x') || freq.includes('once')) {
+        dosesPerWeek = 1;
+      }
+      const totalDoses = mergedNumVials * mergedDosesPerVial;
+      const durationDays = Math.ceil((totalDoses / dosesPerWeek) * 7);
+      const startDate = new Date(mergedStartDate + 'T12:00:00');
+      const calcEnd = new Date(startDate);
+      calcEnd.setDate(calcEnd.getDate() + durationDays);
+      mergedEndDate = calcEnd.toISOString().split('T')[0];
     }
 
     // Merge notes
@@ -87,16 +129,23 @@ export default async function handler(req, res) {
     // --- Apply updates in a logical sequence ---
 
     // 1. Update target protocol with merged values
+    const updatePayload = {
+      sessions_used: combinedSessions,
+      start_date: mergedStartDate,
+      end_date: mergedEndDate,
+      total_sessions: mergedTotalSessions,
+      notes: mergedNotes,
+      updated_at: new Date().toISOString(),
+    };
+    // Include vial fields if we have them
+    if (mergedNumVials > 0) updatePayload.num_vials = mergedNumVials;
+    if (mergedDosesPerVial) updatePayload.doses_per_vial = mergedDosesPerVial;
+    if (mergedSupplyType) updatePayload.supply_type = mergedSupplyType;
+    if (mergedFrequency && !target.frequency) updatePayload.frequency = mergedFrequency;
+
     const { data: updatedTarget, error: updateErr } = await supabase
       .from('protocols')
-      .update({
-        sessions_used: combinedSessions,
-        start_date: mergedStartDate,
-        end_date: mergedEndDate,
-        total_sessions: mergedTotalSessions,
-        notes: mergedNotes,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq('id', targetId)
       .select()
       .single();

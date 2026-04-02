@@ -8,6 +8,7 @@ import { logComm } from '../../../../../lib/comms-log';
 import { sendSMS, normalizePhone } from '../../../../../lib/send-sms';
 import { hasBlooioOptIn, queuePendingLinkMessage, isBlooioProvider } from '../../../../../lib/blooio-optin';
 import { getVialIdForMedication } from '../../../../../lib/protocol-config';
+import { VIAL_CATALOG } from '../../../../../lib/vial-catalog';
 import { todayPacific } from '../../../../../lib/date-utils';
 
 const supabase = createClient(
@@ -70,9 +71,16 @@ export default async function handler(req, res) {
       const vialId = getVialIdForMedication(p.medication, p.program_name);
       if (vialId && !seenVialIds.has(vialId)) {
         seenVialIds.add(vialId);
-        const days = p.total_sessions || null;
         const isVialPurchase = p.num_vials && p.num_vials > 0;
         const delivery = isVialPurchase ? 'vial' : 'prefilled';
+        // For vial protocols, calculate days from num_vials × catalog injectionsPerVial
+        let days = p.total_sessions || null;
+        if (isVialPurchase) {
+          const catalogEntry = VIAL_CATALOG.find(v => v.id === vialId);
+          if (catalogEntry && catalogEntry.injectionsPerVial) {
+            days = p.num_vials * catalogEntry.injectionsPerVial;
+          }
+        }
         vialEntries.push({ vialId, days, delivery });
       }
       protocolIds.push(p.id);

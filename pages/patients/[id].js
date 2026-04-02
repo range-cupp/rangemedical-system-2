@@ -43,6 +43,7 @@ import {
 } from '../../lib/protocol-config';
 import { getHRTLabSchedule, matchDrawsToLogs, buildAdaptiveHRTSchedule, isHRTProtocol, getLabStatusSummary } from '../../lib/hrt-lab-schedule';
 import { isRecoveryPeptide, isGHPeptide } from '../../lib/protocol-config';
+import { VIAL_CATALOG } from '../../lib/vial-catalog';
 import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
 import CycleProgressCard from '../../components/CycleProgressCard';
@@ -6285,8 +6286,16 @@ export default function PatientProfile() {
                                           const vialId = getVialIdForMedication(p.medication, p.program_name);
                                           if (vialId && !seen.has(vialId)) {
                                             seen.add(vialId);
-                                            const days = p.total_sessions || 0;
-                                            const delivery = (p.num_vials && p.num_vials > 0) ? 'vial' : 'prefilled';
+                                            const isVialPurchase = p.num_vials && p.num_vials > 0;
+                                            const delivery = isVialPurchase ? 'vial' : 'prefilled';
+                                            // For vial protocols, calculate days from num_vials × catalog injectionsPerVial
+                                            let days = p.total_sessions || 0;
+                                            if (isVialPurchase) {
+                                              const catalogEntry = VIAL_CATALOG.find(v => v.id === vialId);
+                                              if (catalogEntry && catalogEntry.injectionsPerVial) {
+                                                days = p.num_vials * catalogEntry.injectionsPerVial;
+                                              }
+                                            }
                                             entries.push(`${vialId}.${days}.${delivery}`);
                                           }
                                         }

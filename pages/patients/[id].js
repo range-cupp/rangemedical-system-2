@@ -4309,7 +4309,15 @@ export default function PatientProfile() {
 
               {/* Recent Payments */}
               <div className="synopsis-section">
-                <div className="synopsis-section-label">RECENT PAYMENTS</div>
+                <div className="synopsis-section-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span>RECENT PAYMENTS</span>
+                  {stats.ltv > 0 && (
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#059669', letterSpacing: 'normal', textTransform: 'none' }}>
+                      LTV ${stats.ltv.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      {stats.avgPerMonth ? <span style={{ color: '#6b7280', fontWeight: 400, marginLeft: 6 }}>(${stats.avgPerMonth}/mo)</span> : ''}
+                    </span>
+                  )}
+                </div>
                 {allPurchases.length === 0 && subscriptions.length === 0 ? (
                   <div className="synopsis-empty">No payments on file</div>
                 ) : (
@@ -8205,6 +8213,27 @@ export default function PatientProfile() {
           {/* Payments Tab */}
           {activeTab === 'payments' && (
             <>
+              {/* LTV Summary */}
+              {stats.ltv > 0 && (
+                <div style={{ display: 'flex', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
+                  <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 16px', flex: 1, minWidth: 120 }}>
+                    <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 2 }}>Lifetime Value</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: '#059669' }}>${stats.ltv.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</div>
+                  </div>
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 16px', flex: 1, minWidth: 120 }}>
+                    <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 2 }}>Avg / Month</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: '#1e293b' }}>{stats.avgPerMonth ? `$${stats.avgPerMonth.toLocaleString()}` : '—'}</div>
+                  </div>
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 16px', flex: 1, minWidth: 120 }}>
+                    <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 2 }}>Purchases</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: '#1e293b' }}>{stats.purchaseCount}</div>
+                  </div>
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 16px', flex: 1, minWidth: 120 }}>
+                    <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 2 }}>Patient Since</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: '#1e293b' }}>{stats.firstPurchase ? new Date(stats.firstPurchase + (stats.firstPurchase.includes('T') ? '' : 'T00:00:00')).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '—'}</div>
+                  </div>
+                </div>
+              )}
               {/* Payments Sub-tabs */}
               <div className="pay-tabs">
                 {[

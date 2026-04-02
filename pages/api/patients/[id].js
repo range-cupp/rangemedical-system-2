@@ -505,6 +505,20 @@ export default async function handler(req, res) {
 
       // Calculate stats
       const upcomingAppointments = appointments.filter(apt => new Date(apt.start_time) >= new Date());
+      // ── LTV calculation ──
+      const ltv = allPurchases.reduce((sum, p) => sum + (parseFloat(p.amount_paid) || 0), 0);
+      const purchaseDates = allPurchases
+        .map(p => p.purchase_date || p.created_at)
+        .filter(Boolean)
+        .sort();
+      const firstPurchase = purchaseDates[0] || null;
+      const lastPurchase = purchaseDates[purchaseDates.length - 1] || null;
+      let avgPerMonth = null;
+      if (firstPurchase && ltv > 0) {
+        const months = Math.max(1, (Date.now() - new Date(firstPurchase).getTime()) / (1000 * 60 * 60 * 24 * 30.44));
+        avgPerMonth = Math.round(ltv / months);
+      }
+
       const stats = {
         activeCount: activeProtocols.length,
         completedCount: completedProtocols.length,
@@ -515,7 +529,12 @@ export default async function handler(req, res) {
         documentCount: medicalDocuments?.length || 0,
         sessionCount: sessions?.length || 0,
         appointmentCount: appointments?.length || 0,
-        upcomingAppointments: upcomingAppointments?.length || 0
+        upcomingAppointments: upcomingAppointments?.length || 0,
+        ltv,
+        avgPerMonth,
+        purchaseCount: allPurchases.length,
+        firstPurchase,
+        lastPurchase,
       };
 
       return res.status(200).json({

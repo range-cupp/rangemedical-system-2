@@ -9377,30 +9377,52 @@ export default function PatientProfile() {
                       </div>
                     )}
 
-                    {/* Progress tracking */}
-                    <div className="form-section-label" style={{ marginTop: '12px' }}>Progress</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      <div className="form-group">
-                        <label>Sessions Used</label>
-                        <input type="number" min="0" max={totalInjections || 999} value={editForm.sessionsUsed ?? 0} onChange={e => setEditForm({...editForm, sessionsUsed: e.target.value ? parseInt(e.target.value) : 0})} />
-                        {totalInjections && (
-                          <div style={{ fontSize: 11, color: editForm.sessionsUsed >= totalInjections ? '#dc2626' : '#6b7280', marginTop: 2 }}>
-                            {editForm.sessionsUsed ?? 0} of {totalInjections} — {Math.max(0, totalInjections - (editForm.sessionsUsed || 0))} remaining
-                            {isVial && editForm.dosesPerVial > 0 && (() => {
-                              const dpv = parseInt(editForm.dosesPerVial);
-                              const used = editForm.sessionsUsed || 0;
-                              const currentVial = Math.min(Math.floor(used / dpv) + 1, parseInt(editForm.numVials));
-                              const dosesInVial = used - ((currentVial - 1) * dpv);
-                              return ` · Vial ${currentVial} of ${editForm.numVials} (${dosesInVial}/${dpv} used)`;
-                            })()}
+                    {/* Progress: time-based for take-home, session-based for in-clinic */}
+                    {editForm.deliveryMethod === 'in_clinic' && (
+                      <>
+                        <div className="form-section-label" style={{ marginTop: '12px' }}>Progress</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                          <div className="form-group">
+                            <label>Sessions Used</label>
+                            <input type="number" min="0" max={totalInjections || 999} value={editForm.sessionsUsed ?? 0} onChange={e => setEditForm({...editForm, sessionsUsed: e.target.value ? parseInt(e.target.value) : 0})} />
+                            {totalInjections && (
+                              <div style={{ fontSize: 11, color: editForm.sessionsUsed >= totalInjections ? '#dc2626' : '#6b7280', marginTop: 2 }}>
+                                {editForm.sessionsUsed ?? 0} of {totalInjections} — {Math.max(0, totalInjections - (editForm.sessionsUsed || 0))} remaining
+                              </div>
+                            )}
                           </div>
-                        )}
+                          <div className="form-group">
+                            <label>End Date {calcEndDate ? '(auto)' : ''}</label>
+                            <input type="date" value={calcEndDate || editForm.endDate || ''} onChange={e => setEditForm({...editForm, endDate: e.target.value})} style={calcEndDate ? { background: '#f9fafb', color: '#6b7280' } : {}} />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    {editForm.deliveryMethod !== 'in_clinic' && calcDurationDays && editForm.startDate && (
+                      <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', padding: '10px 12px', borderRadius: 0, fontSize: 12, color: '#374151', marginTop: 4 }}>
+                        {(() => {
+                          const today = new Date();
+                          const start = new Date(editForm.startDate + 'T12:00:00');
+                          const dayNum = Math.floor((today - start) / 86400000) + 1;
+                          const daysLeft = Math.max(0, calcDurationDays - dayNum);
+                          const pct = Math.min(100, Math.round((dayNum / calcDurationDays) * 100));
+                          if (dayNum < 1) return <span>Starts {start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>;
+                          if (daysLeft <= 0) return <span style={{ color: '#dc2626', fontWeight: 600 }}>Supply ended — refill needed</span>;
+                          return (
+                            <>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                <span><strong>Day {dayNum}</strong> of {calcDurationDays}</span>
+                                <span>{daysLeft} days remaining</span>
+                              </div>
+                              <div style={{ background: '#e5e7eb', height: 6, width: '100%' }}>
+                                <div style={{ background: pct > 85 ? '#dc2626' : '#0369a1', height: 6, width: `${pct}%` }} />
+                              </div>
+                              {calcEndDate && <div style={{ marginTop: 4, color: '#6b7280' }}>Refill by: {new Date(calcEndDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>}
+                            </>
+                          );
+                        })()}
                       </div>
-                      <div className="form-group">
-                        <label>End Date {calcEndDate ? '(auto)' : ''}</label>
-                        <input type="date" value={calcEndDate || editForm.endDate || ''} onChange={e => setEditForm({...editForm, endDate: e.target.value})} style={calcEndDate ? { background: '#f9fafb', color: '#6b7280' } : {}} />
-                      </div>
-                    </div>
+                    )}
                   </>
                   );
                 })()}

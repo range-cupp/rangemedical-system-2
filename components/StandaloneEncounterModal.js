@@ -52,6 +52,14 @@ const SERVICE_GROUPS = [
       { value: 'general', label: 'General' },
     ],
   },
+  {
+    label: 'Notes',
+    options: [
+      { value: 'special_event', label: 'Special Event Note' },
+      { value: 'follow_up', label: 'Follow-Up Note' },
+      { value: 'nursing_progress', label: 'Nursing Progress Note' },
+    ],
+  },
 ];
 
 // Helper: resolve parentType for form/template lookups (e.g., nad_iv → iv_therapy)

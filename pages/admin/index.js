@@ -18,12 +18,9 @@ const LAB_STAGES = [
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [labPipeline, setLabPipeline] = useState(null);
-  const [recentProtocols, setRecentProtocols] = useState([]);
   const [todayAppointments, setTodayAppointments] = useState([]);
   const [recentComms, setRecentComms] = useState([]);
   const [consentAlerts, setConsentAlerts] = useState([]);
-  const [renewalAlerts, setRenewalAlerts] = useState([]);
-  const [refillsDue, setRefillsDue] = useState([]);
   const [loading, setLoading] = useState(true);
   const [advancing, setAdvancing] = useState(null);
 
@@ -38,20 +35,8 @@ export default function Dashboard() {
 
       setStats(data.stats || {});
       setLabPipeline(data.labPipeline || null);
-      setRecentProtocols(data.recentProtocols || []);
       setTodayAppointments(data.todayAppointments || []);
       setRecentComms(data.recentComms || []);
-
-      const todayDate = new Date();
-      const renewals = (data.renewalAlerts || []).map(p => {
-        const sessionsUsed = p.sessions_used || 0;
-        const sessionsRemaining = p.total_sessions ? (p.total_sessions - sessionsUsed) : null;
-        const daysLeft = p.end_date ? Math.ceil((new Date(p.end_date + 'T23:59:59') - todayDate) / (1000 * 60 * 60 * 24)) : null;
-        const isDue = sessionsRemaining !== null ? sessionsRemaining <= 0 : (daysLeft !== null && daysLeft <= 0);
-        return { ...p, sessionsUsed, sessionsRemaining, isDue, statusLabel: p.total_sessions ? `${sessionsUsed} of ${p.total_sessions} sessions` : `${daysLeft}d left` };
-      });
-      setRenewalAlerts(renewals);
-      setRefillsDue(data.refillsDue || []);
     } catch (err) {
       console.error('Dashboard error:', err);
     } finally {
@@ -304,74 +289,6 @@ export default function Dashboard() {
             </div>
           )}
 
-          {renewalAlerts.length > 0 && (
-            <div style={{
-              background: '#FFF7ED', border: '1px solid #FB923C', borderRadius: 0,
-              padding: '16px 20px', marginBottom: 24,
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                <strong style={{ fontSize: 14, color: '#9A3412' }}>
-                  {renewalAlerts.length} Protocol{renewalAlerts.length !== 1 ? 's' : ''} Nearing Renewal
-                </strong>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {renewalAlerts.slice(0, 10).map((alert) => (
-                  <div key={alert.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-                    <span style={{
-                      background: alert.isDue ? '#FEE2E2' : '#FEF3C7',
-                      color: alert.isDue ? '#DC2626' : '#92400E',
-                      padding: '1px 8px', borderRadius: 0, fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
-                    }}>{alert.isDue ? 'RENEWAL DUE' : 'RENEWAL SOON'}</span>
-                    <Link href={`/patients/${alert.patient_id}`} style={{ fontWeight: 500, color: '#111', textDecoration: 'none' }}>
-                      {alert.patient_name || 'Patient'}
-                    </Link>
-                    <span style={{ color: '#6B7280' }}>— {alert.program_name}</span>
-                    <span style={{ color: alert.isDue ? '#DC2626' : '#92400E', fontWeight: 500 }}>
-                      ({alert.statusLabel})
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {refillsDue.length > 0 && (
-            <div style={{
-              background: '#EFF6FF', border: '1px solid #60A5FA', borderRadius: 0,
-              padding: '16px 20px', marginBottom: 24,
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                <strong style={{ fontSize: 14, color: '#1E40AF' }}>
-                  {refillsDue.length} Medication Refill{refillsDue.length !== 1 ? 's' : ''} Due
-                </strong>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {refillsDue.map((r) => {
-                  const isOverdue = r.is_overdue;
-                  const label = isOverdue
-                    ? `${Math.abs(r.days_until_refill)}d overdue`
-                    : r.days_until_refill === 0 ? 'Today' : `${r.days_until_refill}d`;
-                  return (
-                    <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-                      <span style={{
-                        background: isOverdue ? '#FEE2E2' : '#DBEAFE',
-                        color: isOverdue ? '#DC2626' : '#1D4ED8',
-                        padding: '1px 8px', borderRadius: 0, fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
-                      }}>{isOverdue ? 'OVERDUE' : 'DUE SOON'}</span>
-                      <Link href={`/patients/${r.patient_id}`} style={{ fontWeight: 500, color: '#111', textDecoration: 'none' }}>
-                        {r.patient_name}
-                      </Link>
-                      <span style={{ color: '#6B7280' }}>— {r.medication || r.program_name}</span>
-                      <span style={{ color: isOverdue ? '#DC2626' : '#1D4ED8', fontWeight: 500 }}>
-                        ({label})
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
           {/* ═══ QUICK ACTIONS ═══ */}
           <div style={styles.section}>
             <h2 style={styles.sectionTitle}>Quick Actions</h2>
@@ -486,72 +403,10 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* ═══ ACTIVE PROTOCOLS ═══ */}
-          <div style={styles.section}>
-            <div style={styles.sectionHeader}>
-              <h2 style={styles.sectionTitle}>Active Protocols</h2>
-              <Link href="/admin/protocols" style={styles.viewAllLink}>View all →</Link>
-            </div>
-            <div style={styles.tableCard}>
-              {recentProtocols.length === 0 ? (
-                <div style={styles.empty}>No active protocols</div>
-              ) : (
-                <table style={styles.table}>
-                  <thead>
-                    <tr>
-                      <th style={styles.th}>Patient</th>
-                      <th style={styles.th}>Program</th>
-                      <th style={styles.th}>Progress</th>
-                      <th style={styles.th}></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentProtocols.map(p => {
-                      const total = p.total_sessions || p.duration_days || 10;
-                      const current = calculateCurrentDay(p.start_date);
-                      const progress = Math.min(100, Math.round((current / total) * 100));
-
-                      return (
-                        <tr key={p.id} style={styles.tr}>
-                          <td style={styles.td}>
-                            <div style={styles.patientName}>{p.patient_name}</div>
-                          </td>
-                          <td style={styles.td}>{p.program_name || p.program_type}</td>
-                          <td style={styles.td}>
-                            <div style={styles.progressContainer}>
-                              <div style={styles.progressBar}>
-                                <div style={{ ...styles.progressFill, width: `${progress}%` }} />
-                              </div>
-                              <span style={styles.progressText}>Day {current}/{total}</span>
-                            </div>
-                          </td>
-                          <td style={styles.td}>
-                            <Link href={`/patients/${p.patient_id}`} style={styles.viewBtn}>
-                              View
-                            </Link>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
         </>
       )}
     </AdminLayout>
   );
-}
-
-function calculateCurrentDay(startDate) {
-  if (!startDate) return 0;
-  const start = new Date(startDate);
-  const today = new Date();
-  start.setHours(0, 0, 0, 0);
-  today.setHours(0, 0, 0, 0);
-  const diffTime = today - start;
-  return Math.max(1, Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1);
 }
 
 const styles = {

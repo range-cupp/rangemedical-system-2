@@ -5283,14 +5283,20 @@ export default function PatientProfile() {
                           {protocol.num_vials > 0 && (
                             <div style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0' }}>
                               {protocol.num_vials} vial{protocol.num_vials > 1 ? 's' : ''}
-                              {protocol.doses_per_vial > 0 && ` × ${protocol.doses_per_vial} doses`}
-                              {protocol.doses_per_vial > 0 && protocol.sessions_used > 0 && (() => {
-                                const dpv = protocol.doses_per_vial;
-                                const numV = protocol.num_vials;
-                                const used = protocol.sessions_used || 0;
-                                const currentVial = Math.min(Math.floor(used / dpv) + 1, numV);
-                                const dosesInVial = used - ((currentVial - 1) * dpv);
-                                return ` — Vial ${currentVial} of ${numV} (${dosesInVial}/${dpv} used)`;
+                              {(() => {
+                                const dose = protocol.selected_dose || '';
+                                const dpv = protocol.doses_per_vial || 0;
+                                // Calculate vial total (e.g., 10 doses × 100mg = 1000mg = 1g)
+                                const mgMatch = dose.match(/([\d.]+)\s*(mg|mcg|g)/i);
+                                if (mgMatch && dpv > 0) {
+                                  const val = parseFloat(mgMatch[1]);
+                                  const unit = mgMatch[2].toLowerCase();
+                                  const totalMg = unit === 'g' ? val * 1000 * dpv : unit === 'mcg' ? (val * dpv) / 1000 : val * dpv;
+                                  const vialLabel = totalMg >= 1000 ? `${(totalMg / 1000).toFixed(totalMg % 1000 === 0 ? 0 : 1)}g` : `${totalMg}mg`;
+                                  return ` (${vialLabel} each, ${dose}/dose)`;
+                                }
+                                if (dose) return ` (${dose}/dose)`;
+                                return dpv > 0 ? ` × ${dpv} doses` : '';
                               })()}
                             </div>
                           )}

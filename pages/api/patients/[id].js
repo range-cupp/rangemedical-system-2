@@ -506,7 +506,13 @@ export default async function handler(req, res) {
       // Calculate stats
       const upcomingAppointments = appointments.filter(apt => new Date(apt.start_time) >= new Date());
       // ── LTV calculation ──
-      const ltv = allPurchases.reduce((sum, p) => sum + (parseFloat(p.amount_paid) || 0), 0);
+      // Use stripe_amount_cents (actual charge) when available, fall back to amount_paid
+      const ltv = allPurchases.reduce((sum, p) => {
+        if (p.stripe_amount_cents && p.stripe_status === 'succeeded') {
+          return sum + (p.stripe_amount_cents / 100);
+        }
+        return sum + (parseFloat(p.amount_paid) || 0);
+      }, 0);
       const purchaseDates = allPurchases
         .map(p => p.purchase_date || p.created_at)
         .filter(Boolean)

@@ -8,6 +8,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import AdminLayout, { sharedStyles } from '../../../components/AdminLayout';
 import { CATEGORY_COLORS, getCategoryStyle } from '../../../lib/protocol-config';
+import { getWLStatus, getWLDaysSinceActivity, WL_STATUS_CONFIG } from '../../../lib/protocol-tracking';
 
 // =====================================================
 // CATEGORY TABS CONFIG
@@ -79,39 +80,8 @@ function daysUntil(d) {
   return `In ${diff} days`;
 }
 
-// Weight loss status helpers
-function getWLDaysSinceActivity(p) {
-  const c = p.days_since_last_checkin;
-  const i = p.days_since_last_injection;
-  if (c !== null && i !== null) return Math.min(c, i);
-  return c ?? i ?? null;
-}
-
-function getWLStatus(p) {
-  // Only mark complete if DB status is explicitly 'completed' — never auto-complete weight loss
-  if (p.status === 'completed') return 'complete';
-  if (p.delivery_method === 'take_home' && p.next_expected_date) {
-    const now = new Date();
-    const supplyEnd = new Date(p.next_expected_date + 'T00:00:00');
-    const daysUntilRefill = Math.ceil((supplyEnd - now) / (1000 * 60 * 60 * 24));
-    if (daysUntilRefill > 7) return 'on_track';
-    if (daysUntilRefill > 0) return 'due_soon';
-    return 'overdue';
-  }
-  const days = getWLDaysSinceActivity(p);
-  if (days === null) return 'new';
-  if (days > 10) return 'overdue';
-  if (days >= 7) return 'due_soon';
-  return 'on_track';
-}
-
-const STATUS_CONFIG = {
-  overdue:  { label: 'OVERDUE',  bg: '#fee2e2', color: '#991b1b' },
-  due_soon: { label: 'DUE SOON', bg: '#fef3c7', color: '#92400e' },
-  on_track: { label: 'On Track', bg: '#dcfce7', color: '#166534' },
-  new:      { label: 'New',      bg: '#dbeafe', color: '#1e40af' },
-  complete: { label: 'Complete', bg: '#e5e5e5', color: '#666' },
-};
+// Weight loss status helpers + STATUS_CONFIG now imported from lib/protocol-tracking
+const STATUS_CONFIG = WL_STATUS_CONFIG;
 
 // =====================================================
 // MAIN PAGE COMPONENT

@@ -4,204 +4,24 @@
 
 import { createClient } from '@supabase/supabase-js';
 import stripe from '../../../lib/stripe';
+import { getProtocolTracking } from '../../../lib/protocol-tracking';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Calculate days/sessions remaining based on protocol type
+// Calculate days/sessions remaining — delegates to shared lib
 function calculateRemaining(protocol) {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const programType = (protocol.program_type || '').toLowerCase();
-  const deliveryMethod = (protocol.delivery_method || '').toLowerCase();
-  const isWeightLoss = programType.includes('weight') || programType.includes('wl') || programType.includes('glp');
-  const isHRT = programType.includes('hrt') || programType.includes('testosterone') || programType.includes('hormone');
-  const isPeptide = programType.includes('peptide') || programType.includes('bpc') || programType.includes('recovery') || programType.includes('month_program') || programType.includes('jumpstart') || programType.includes('maintenance_4week') || programType.includes('gh_peptide');
-  const isTakeHome = deliveryMethod.includes('take') || deliveryMethod.includes('home');
-  const isInClinic = deliveryMethod.includes('clinic');
-
-  // ===== WEIGHT LOSS =====
-  if (isWeightLoss) {
-    // If next_expected_date is set (from dispense system), use it directly
-    if (protocol.next_expected_date) {
-      const nextDate = new Date(protocol.next_expected_date + 'T00:00:00');
-      const daysUntil = Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24));
-
-      const statusText = daysUntil <= 0 ? 'Refill overdue' :
-                         daysUntil <= 3 ? `${daysUntil}d — Refill soon` :
-                         `${daysUntil} days until refill`;
-
-      return { days_remaining: daysUntil, status_text: statusText };
-    }
-
-    if (isTakeHome) {
-      const totalInjections = protocol.total_sessions || 4;
-      const supplyDays = totalInjections * 7;
-      const trackingDate = protocol.last_refill_date || protocol.start_date;
-
-      if (trackingDate) {
-        const startDate = new Date(trackingDate + 'T00:00:00');
-        const endDate = new Date(startDate);
-        endDate.setDate(endDate.getDate() + supplyDays);
-        const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
-
-        let statusText = daysRemaining <= 0 ? 'Supply exhausted' :
-                         daysRemaining <= 3 ? `${daysRemaining}d - Refill soon` :
-                         daysRemaining <= 14 ? `${daysRemaining} days left` :
-                         `~${Math.floor(daysRemaining / 7)} weeks left`;
-
-        return { days_remaining: daysRemaining, total_days: supplyDays, status_text: statusText };
-      }
-    } else {
-      if (protocol.total_sessions && protocol.total_sessions > 0) {
-        const sessionsUsed = protocol.sessions_used || 0;
-        const sessionsRemaining = protocol.total_sessions - sessionsUsed;
-        const statusText = sessionsRemaining <= 0 ? `${sessionsUsed} of ${protocol.total_sessions} — add more` :
-                           `${sessionsUsed} of ${protocol.total_sessions} injections`;
-        return { sessions_remaining: sessionsRemaining, total_sessions: protocol.total_sessions, status_text: statusText };
-      }
-    }
-  }
-
-  // ===== HRT =====
-  if (isHRT) {
-    // If next_expected_date is set (from dispense system), use it directly
-    if (protocol.next_expected_date) {
-      const nextDate = new Date(protocol.next_expected_date + 'T00:00:00');
-      const daysUntil = Math.ceil((nextDate - today) / (1000 * 60 * 60 * 24));
-
-      const statusText = daysUntil <= 0 ? 'Refill overdue' :
-                         daysUntil <= 3 ? `${daysUntil}d — Refill soon` :
-                         daysUntil <= 14 ? `${daysUntil} days until refill` :
-                         `~${Math.floor(daysUntil / 7)} weeks until refill`;
-
-      return { days_remaining: daysUntil, status_text: statusText };
-    }
-
-    const supplyType = (protocol.supply_type || '').toLowerCase();
-    const selectedDose = (protocol.selected_dose || protocol.current_dose || '').toLowerCase();
-    const lastRefillDate = protocol.last_refill_date || protocol.start_date;
-
-    if (lastRefillDate) {
-      const refillDate = new Date(lastRefillDate + 'T00:00:00');
-      const daysSinceRefill = Math.ceil((today - refillDate) / (1000 * 60 * 60 * 24));
-
-      if (supplyType.includes('vial') || selectedDose.includes('vial')) {
-        // Determine vial size
-        const is10ml = supplyType.includes('10') || selectedDose.includes('10ml');
-        const vialMl = is10ml ? 10 : 5;
-
-        // Parse dose per injection - but NOT from vial descriptions
-        let dosePerInjection = 0.4; // default for male HRT
-        const doseField = protocol.dose_per_injection || protocol.frequency || '';
-
-        // Try to find dose from dose_per_injection or frequency field first
-        let doseMatch = (doseField || '').toString().match(/^(\d+\.?\d*)\s*ml/i) ||
-                        (doseField || '').toString().match(/(\d+\.?\d*)\s*ml/i);
-
-        // If not found there, try selected_dose but ONLY if it doesn't describe a vial
-        if (!doseMatch && !selectedDose.includes('vial')) {
-          doseMatch = selectedDose.match(/^(\d+\.?\d*)\s*ml/i);
-        }
-
-        // Also try to parse mg and convert (at 200mg/ml concentration)
-        if (!doseMatch) {
-          const mgMatch = (doseField || selectedDose).match(/(\d+)\s*mg/i);
-          if (mgMatch && !selectedDose.includes('@')) {
-            // Convert mg to ml assuming 200mg/ml concentration
-            dosePerInjection = parseInt(mgMatch[1]) / 200;
-          }
-        } else {
-          dosePerInjection = parseFloat(doseMatch[1]);
-        }
-
-        // Sanity check - dose should be between 0.1ml and 1ml for HRT
-        if (dosePerInjection < 0.1 || dosePerInjection > 1) {
-          dosePerInjection = 0.4; // fall back to default
-        }
-
-        const injectionsPerWeek = protocol.injections_per_week || 2;
-        const weeksSupply = Math.floor(vialMl / (dosePerInjection * injectionsPerWeek));
-        const vialDays = weeksSupply * 7;
-        const daysRemaining = vialDays - daysSinceRefill;
-
-        const statusText = daysRemaining <= 0 ? 'Refill overdue' :
-                           daysRemaining <= 14 ? `${daysRemaining}d - Refill soon` :
-                           `~${Math.floor(daysRemaining / 7)} weeks left`;
-
-        return { days_remaining: daysRemaining, total_days: vialDays, status_text: statusText };
-      } else {
-        const is4Week = supplyType.includes('4') || supplyType.includes('four') || supplyType.includes('month');
-        // HRT subscriptions are 30-day cycles; only use 14 if explicitly prefilled_2week
-        const supplyDays = is4Week ? 28 : (supplyType.includes('2') || supplyType.includes('two') ? 14 : 30);
-        const daysRemaining = supplyDays - daysSinceRefill;
-
-        const statusText = daysRemaining <= 0 ? 'Refill overdue' :
-                           daysRemaining <= 3 ? `${daysRemaining}d - Refill soon` :
-                           `${daysRemaining} days left`;
-
-        return { days_remaining: daysRemaining, total_days: supplyDays, status_text: statusText };
-      }
-    }
-  }
-
-  // ===== PEPTIDE — always use date-based tracking (calendar days, not injection count) =====
-  if (isPeptide && protocol.end_date) {
-    const endDate = new Date(protocol.end_date + 'T23:59:59');
-    const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
-
-    // Calculate total days from start_date → end_date (handles extensions/renewals correctly)
-    let totalDays = 30;
-    if (protocol.start_date) {
-      const startDate = new Date(protocol.start_date + 'T00:00:00');
-      const endDateCalc = new Date(protocol.end_date + 'T00:00:00');
-      totalDays = Math.max(1, Math.round((endDateCalc - startDate) / (1000 * 60 * 60 * 24)));
-    } else {
-      const programName = (protocol.program_name || '').toLowerCase();
-      const dayMatch = programName.match(/(\d+)[\s-]*day/i);
-      if (dayMatch) totalDays = parseInt(dayMatch[1]);
-    }
-
-    const statusText = daysRemaining <= 0 ? 'Renewal due' :
-                       daysRemaining <= 3 ? `${daysRemaining}d left!` :
-                       `${daysRemaining} days left`;
-
-    return { days_remaining: daysRemaining, total_days: totalDays, status_text: statusText };
-  }
-
-  // ===== SESSION-BASED (IV, HBOT, RLT, Combos, Injections) =====
-  // Check BEFORE date-based — protocols with total_sessions should always show session progress
-  if (protocol.total_sessions && protocol.total_sessions > 0) {
-    const sessionsUsed = protocol.sessions_used || 0;
-    const sessionsRemaining = protocol.total_sessions - sessionsUsed;
-    const statusText = sessionsRemaining <= 0 ? 'All sessions used' :
-                       `${sessionsUsed} of ${protocol.total_sessions} sessions`;
-    return { sessions_remaining: sessionsRemaining, total_sessions: protocol.total_sessions, status_text: statusText };
-  }
-
-  // ===== DATE-BASED FALLBACK =====
-  if (protocol.end_date) {
-    const endDate = new Date(protocol.end_date + 'T23:59:59');
-    const daysRemaining = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
-
-    let totalDays = 30;
-    const programName = (protocol.program_name || '').toLowerCase();
-    if (programName.includes('7')) totalDays = 7;
-    else if (programName.includes('10')) totalDays = 10;
-    else if (programName.includes('14')) totalDays = 14;
-    else if (programName.includes('20')) totalDays = 20;
-    else if (programName.includes('30')) totalDays = 30;
-
-    const statusText = daysRemaining <= 0 ? 'Protocol ended' :
-                       daysRemaining <= 3 ? `${daysRemaining}d left!` :
-                       `${daysRemaining} days left`;
-
-    return { days_remaining: daysRemaining, total_days: totalDays, status_text: statusText };
-  }
-
-  return { days_remaining: null, status_text: 'Active' };
+  const tracking = getProtocolTracking(protocol);
+  return {
+    days_remaining: tracking.days_remaining ?? null,
+    total_days: tracking.total_days,
+    sessions_remaining: tracking.sessions_remaining,
+    total_sessions: tracking.total_sessions,
+    sessions_exhausted: tracking.sessions_exhausted,
+    status_text: tracking.status_text,
+  };
 }
 
 // Get category for protocol (for color coding)
@@ -571,6 +391,7 @@ export default async function handler(req, res) {
           days_remaining: tracking.days_remaining,
           total_days: tracking.total_days,
           sessions_remaining: tracking.sessions_remaining,
+          sessions_exhausted: tracking.sessions_exhausted || false,
           status_text: tracking.status_text,
           category
         };

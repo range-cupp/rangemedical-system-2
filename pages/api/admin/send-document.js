@@ -6,7 +6,62 @@ import { Resend } from 'resend';
 import { sendSMS } from '../../../lib/send-sms';
 import { logComm } from '../../../lib/comms-log';
 
-function generateDocumentEmailHtml({ firstName, documentName, documentUrl }) {
+function generateDocumentEmailHtml({ firstName, documentName, documentUrl, documents }) {
+  // Multi-document support
+  if (documents && documents.length > 1) {
+    const linksHtml = documents.map(doc => `
+                                <tr>
+                                    <td style="padding: 6px 0;">
+                                        <a href="${doc.url}" style="display: inline-block; padding: 12px 24px; background-color: #000000; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500;">
+                                            ${doc.name}
+                                        </a>
+                                    </td>
+                                </tr>`).join('');
+
+    return `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Guides — Range Medical</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f5f5f5;">
+        <tr>
+            <td align="center" style="padding: 40px 20px;">
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; max-width: 600px;">
+                    <tr>
+                        <td style="background-color: #000000; padding: 30px; text-align: center;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700; letter-spacing: 0.1em;">RANGE MEDICAL</h1>
+                            <p style="margin: 10px 0 0; color: #a3a3a3; font-size: 14px;">Your Guides</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <p style="margin: 0 0 24px; color: #404040; font-size: 15px; line-height: 1.7;">Hi ${firstName},</p>
+                            <p style="margin: 0 0 24px; color: #404040; font-size: 15px; line-height: 1.7;">Here are your guides from Range Medical:</p>
+                            <table role="presentation" cellspacing="0" cellpadding="0" style="margin: 0 0 24px;">${linksHtml}
+                            </table>
+                            <p style="margin: 0 0 8px; color: #666; font-size: 13px; line-height: 1.6;">Have questions? Call or text us anytime — we're happy to help.</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 24px 30px; border-top: 1px solid #e5e5e5; background-color: #fafafa;">
+                            <p style="margin: 0 0 4px; color: #999; font-size: 12px;">Range Medical</p>
+                            <p style="margin: 0 0 4px; color: #999; font-size: 12px;">1901 Westcliff Dr, Suite 10 · Newport Beach, CA</p>
+                            <p style="margin: 0 0 4px; color: #999; font-size: 12px;">Questions? Call us at (949) 997-3988</p>
+                            <p style="margin: 0; color: #999; font-size: 12px;">www.range-medical.com</p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>`;
+  }
+
+  // Single document (original behavior)
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -62,15 +117,20 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { type, documentUrl, documentName, patientEmail, patientPhone, patientName, patientId, ghlContactId } = req.body;
+  const { type, documentUrl, documentName, documents, patientEmail, patientPhone, patientName, patientId, ghlContactId } = req.body;
 
-  if (!type || !documentUrl || !documentName) {
-    return res.status(400).json({ error: 'type, documentUrl, and documentName are required' });
+  // Support both single doc and multi-doc
+  const isMulti = documents && documents.length > 0;
+  if (!type || (!isMulti && (!documentUrl || !documentName))) {
+    return res.status(400).json({ error: 'type and document info are required' });
   }
 
   const firstName = patientName ? patientName.split(' ')[0] : 'there';
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.range-medical.com';
-  const fullUrl = documentUrl.startsWith('http') ? documentUrl : `${baseUrl}${documentUrl}`;
+  const resolveUrl = (url) => url.startsWith('http') ? url : `${baseUrl}${url}`;
+  const fullUrl = !isMulti ? resolveUrl(documentUrl) : null;
+  const resolvedDocs = isMulti ? documents.map(d => ({ name: d.name, url: resolveUrl(d.url) })) : null;
+  const displayName = isMulti ? `${documents.length} guides` : documentName;
 
   try {
     // ── Send via Email ──
@@ -82,14 +142,19 @@ export default async function handler(req, res) {
       const resend = new Resend(process.env.RESEND_API_KEY);
       const html = generateDocumentEmailHtml({
         firstName,
-        documentName,
+        documentName: isMulti ? null : documentName,
         documentUrl: fullUrl,
+        documents: resolvedDocs,
       });
+
+      const subject = isMulti
+        ? `Your Guides — Range Medical`
+        : `${documentName} — Range Medical`;
 
       const { data, error } = await resend.emails.send({
         from: 'Range Medical <noreply@range-medical.com>',
         to: patientEmail,
-        subject: `${documentName} — Range Medical`,
+        subject,
         html,
       });
 
@@ -101,18 +166,18 @@ export default async function handler(req, res) {
       await logComm({
         channel: 'email',
         messageType: 'document_link',
-        message: `Document sent via email: ${documentName}`,
+        message: `Document sent via email: ${displayName}`,
         source: 'send-document',
         patientId: patientId || null,
         patientName: patientName || null,
         ghlContactId: ghlContactId || null,
         recipient: patientEmail,
         direction: 'outbound',
-        subject: `${documentName} — Range Medical`,
+        subject,
       });
 
-      console.log(`✓ Document email sent to ${patientEmail}: ${documentName}`);
-      return res.status(200).json({ success: true, message: `${documentName} sent via email` });
+      console.log(`✓ Document email sent to ${patientEmail}: ${displayName}`);
+      return res.status(200).json({ success: true, message: `${displayName} sent via email` });
     }
 
     // ── Send via SMS ──
@@ -121,7 +186,13 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Patient phone is required for SMS delivery' });
       }
 
-      const smsMessage = `Hi ${firstName}! Here's info about ${documentName} from Range Medical:\n\n${fullUrl}\n\nQuestions? Call us at (949) 997-3988.\n\n- Range Medical`;
+      let smsMessage;
+      if (isMulti) {
+        const links = resolvedDocs.map(d => `${d.name}:\n${d.url}`).join('\n\n');
+        smsMessage = `Hi ${firstName}! Here are your guides from Range Medical:\n\n${links}\n\nQuestions? Call us at (949) 997-3988.\n\n- Range Medical`;
+      } else {
+        smsMessage = `Hi ${firstName}! Here's info about ${documentName} from Range Medical:\n\n${fullUrl}\n\nQuestions? Call us at (949) 997-3988.\n\n- Range Medical`;
+      }
 
       const result = await sendSMS({ to: patientPhone, message: smsMessage });
 
@@ -133,7 +204,7 @@ export default async function handler(req, res) {
       await logComm({
         channel: 'sms',
         messageType: 'document_link',
-        message: `Document sent via SMS: ${documentName}`,
+        message: `Document sent via SMS: ${displayName}`,
         source: 'send-document',
         patientId: patientId || null,
         patientName: patientName || null,
@@ -143,8 +214,8 @@ export default async function handler(req, res) {
         provider: result.provider,
       });
 
-      console.log(`✓ Document SMS sent to ${patientPhone}: ${documentName}`);
-      return res.status(200).json({ success: true, message: `${documentName} sent via SMS` });
+      console.log(`✓ Document SMS sent to ${patientPhone}: ${displayName}`);
+      return res.status(200).json({ success: true, message: `${displayName} sent via SMS` });
     }
 
     return res.status(400).json({ error: 'type must be "email" or "sms"' });

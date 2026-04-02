@@ -4,7 +4,7 @@
 
 import { useState, useRef } from 'react';
 import AdminLayout, { sharedStyles, overlayClickProps } from '../../components/AdminLayout';
-import { Printer, Mail, MessageSquare, Search, X, FileText, Package, FlaskConical, BookOpen } from 'lucide-react';
+import { Printer, Mail, MessageSquare, Search, X, FileText, Package, FlaskConical, BookOpen, CheckSquare, Square } from 'lucide-react';
 
 // ── Document Registry ──
 
@@ -89,6 +89,7 @@ export default function DocumentsPage() {
   const [sendModal, setSendModal] = useState(null); // { doc, method: 'email'|'sms' }
   const [successMsg, setSuccessMsg] = useState('');
   const [guideFilter, setGuideFilter] = useState('all');
+  const [selectedGuides, setSelectedGuides] = useState(new Set());
 
   // Patient search
   const [searchQuery, setSearchQuery] = useState('');
@@ -157,8 +158,29 @@ export default function DocumentsPage() {
     window.open(getDocUrl(category, filename), '_blank');
   };
 
+  const toggleGuideSelect = (id) => {
+    setSelectedGuides(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   const openSendModal = (doc, category, method) => {
     setSendModal({ ...doc, category, method, url: doc.url || null });
+    setSelectedPatient(null);
+    setSearchQuery('');
+    setSearchResults([]);
+    setManualName('');
+    setManualPhone('');
+    setManualEmail('');
+    setInputMode('search');
+  };
+
+  const openMultiSendModal = (method) => {
+    const docs = GUIDES.filter(g => selectedGuides.has(g.id));
+    setSendModal({ multi: true, docs, method, name: `${docs.length} guides` });
     setSelectedPatient(null);
     setSearchQuery('');
     setSearchResults([]);
@@ -171,10 +193,7 @@ export default function DocumentsPage() {
   const handleSend = async () => {
     if (!sendModal) return;
     const method = sendModal.method;
-    const docName = sendModal.name;
-    const docUrl = sendModal.url
-      ? `${window.location.origin}${sendModal.url}`
-      : getDocUrl(sendModal.category, sendModal.file);
+    const isMulti = sendModal.multi;
 
     let patientName, patientEmail, patientPhone, patientId, ghlContactId;
 
@@ -195,24 +214,39 @@ export default function DocumentsPage() {
 
     setSending(true);
     try {
+      const body = {
+        type: method,
+        patientEmail,
+        patientPhone,
+        patientName,
+        patientId,
+        ghlContactId,
+      };
+
+      if (isMulti) {
+        body.documents = sendModal.docs.map(d => ({
+          name: d.name,
+          url: `${window.location.origin}${d.url}`,
+        }));
+        body.documentName = sendModal.name;
+        body.documentUrl = sendModal.docs[0].url;
+      } else {
+        body.documentName = sendModal.name;
+        body.documentUrl = sendModal.url
+          ? `${window.location.origin}${sendModal.url}`
+          : getDocUrl(sendModal.category, sendModal.file);
+      }
+
       const res = await fetch('/api/admin/send-document', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: method,
-          documentUrl: docUrl,
-          documentName: docName,
-          patientEmail,
-          patientPhone,
-          patientName,
-          patientId,
-          ghlContactId,
-        }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (res.ok) {
         setSendModal(null);
-        showSuccess(`${docName} sent via ${method === 'email' ? 'email' : 'text'}`);
+        if (isMulti) setSelectedGuides(new Set());
+        showSuccess(`${isMulti ? sendModal.name : sendModal.name} sent via ${method === 'email' ? 'email' : 'text'}`);
       } else {
         alert(data.error || 'Failed to send');
       }
@@ -296,12 +330,31 @@ export default function DocumentsPage() {
       {/* Document Grid */}
       <div style={pageStyles.grid}>
         {currentDocs.map(doc => (
-          <div key={doc.id} style={pageStyles.card}>
+          <div key={doc.id} style={{
+            ...pageStyles.card,
+            ...(activeTab === 'guides' && selectedGuides.has(doc.id) ? pageStyles.cardSelected : {}),
+          }}>
             <div style={pageStyles.cardBody}>
-              <div style={pageStyles.cardTitle}>{doc.name}</div>
-              {doc.price && <div style={pageStyles.cardPrice}>{doc.price}</div>}
-              {doc.desc && <div style={pageStyles.cardDesc}>{doc.desc}</div>}
-              {doc.pages && <div style={pageStyles.cardPages}>{doc.pages} pages</div>}
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                {activeTab === 'guides' && (
+                  <button
+                    onClick={() => toggleGuideSelect(doc.id)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: 1, flexShrink: 0 }}
+                    title={selectedGuides.has(doc.id) ? 'Deselect' : 'Select'}
+                  >
+                    {selectedGuides.has(doc.id)
+                      ? <CheckSquare size={16} style={{ color: '#111' }} />
+                      : <Square size={16} style={{ color: '#ccc' }} />
+                    }
+                  </button>
+                )}
+                <div>
+                  <div style={pageStyles.cardTitle}>{doc.name}</div>
+                  {doc.price && <div style={pageStyles.cardPrice}>{doc.price}</div>}
+                  {doc.desc && <div style={pageStyles.cardDesc}>{doc.desc}</div>}
+                  {doc.pages && <div style={pageStyles.cardPages}>{doc.pages} pages</div>}
+                </div>
+              </div>
             </div>
             <div style={pageStyles.cardActions}>
               <button
@@ -333,6 +386,24 @@ export default function DocumentsPage() {
         ))}
       </div>
 
+      {/* Multi-select floating bar */}
+      {selectedGuides.size > 0 && (
+        <div style={pageStyles.floatingBar}>
+          <span style={{ fontWeight: 600 }}>{selectedGuides.size} selected</span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => openMultiSendModal('email')} style={pageStyles.floatingBtn}>
+              <Mail size={14} /> Email All
+            </button>
+            <button onClick={() => openMultiSendModal('sms')} style={pageStyles.floatingBtn}>
+              <MessageSquare size={14} /> Text All
+            </button>
+            <button onClick={() => setSelectedGuides(new Set())} style={{ ...pageStyles.floatingBtn, background: 'transparent', color: '#fff', border: '1px solid rgba(255,255,255,0.3)' }}>
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Send Modal */}
       {sendModal && (
         <div style={sharedStyles.modalOverlay} {...overlayClickProps(() => setSendModal(null))}>
@@ -345,11 +416,25 @@ export default function DocumentsPage() {
             </div>
 
             <div style={sharedStyles.modalBody}>
-              {/* Document being sent */}
-              <div style={pageStyles.sendDocPreview}>
-                <FileText size={16} style={{ color: '#666', flexShrink: 0 }} />
-                <span style={{ fontWeight: 600 }}>{sendModal.name}</span>
-              </div>
+              {/* Document(s) being sent */}
+              {sendModal.multi ? (
+                <div style={{ marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: '#888', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Sending {sendModal.docs.length} guides
+                  </div>
+                  {sendModal.docs.map(d => (
+                    <div key={d.id} style={{ ...pageStyles.sendDocPreview, marginBottom: 4 }}>
+                      <FileText size={14} style={{ color: '#666', flexShrink: 0 }} />
+                      <span style={{ fontSize: 13 }}>{d.name}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={pageStyles.sendDocPreview}>
+                  <FileText size={16} style={{ color: '#666', flexShrink: 0 }} />
+                  <span style={{ fontWeight: 600 }}>{sendModal.name}</span>
+                </div>
+              )}
 
               {/* Input mode toggle */}
               <div style={pageStyles.modeToggle}>
@@ -706,5 +791,38 @@ const pageStyles = {
     background: '#111',
     color: '#fff',
     borderColor: '#111',
+  },
+  cardSelected: {
+    borderColor: '#111',
+    boxShadow: '0 0 0 1px #111',
+  },
+  floatingBar: {
+    position: 'fixed',
+    bottom: 24,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    background: '#111',
+    color: '#fff',
+    padding: '12px 20px',
+    borderRadius: 0,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 20,
+    boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+    zIndex: 100,
+    fontSize: 14,
+  },
+  floatingBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '7px 16px',
+    border: 'none',
+    borderRadius: 0,
+    background: '#fff',
+    color: '#111',
+    cursor: 'pointer',
+    fontSize: 13,
+    fontWeight: 600,
   },
 };

@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import AdminLayout, { overlayClickProps } from '../../components/AdminLayout';
 import LabsPipelineTab from '../../components/LabsPipelineTab';
+import WeightLossPipelineTab from '../../components/WeightLossPipelineTab';
 import { WEIGHT_LOSS_DOSAGES, TESTOSTERONE_DOSES } from '../../lib/protocol-config';
 
 // ================================================================
@@ -253,6 +254,7 @@ export default function UnifiedPipeline() {
     fetchPatients();
     if (router.query.admin === 'true') setIsAdmin(true);
     if (router.query.view === 'labs') setMainView('labs');
+    if (router.query.view === 'weight_loss') setMainView('weight_loss');
   }, [router.query]);
 
   const fetchData = async () => {
@@ -988,7 +990,7 @@ export default function UnifiedPipeline() {
             </div>
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Injection Type</label>
-              <input type="text" value={protocolForm.injection_type || ''} onChange={(e) => setProtocolForm({ ...protocolForm, injection_type: e.target.value })} placeholder="e.g. B12, Glutathione, Lipo-C" style={styles.formInput} />
+              <input type="text" value={protocolForm.injection_type || ''} onChange={(e) => setProtocolForm({ ...protocolForm, injection_type: e.target.value })} placeholder="e.g. B12, Glutathione, Super Skinny Shot" style={styles.formInput} />
             </div>
             <div style={styles.formGroup}>
               <label style={styles.formLabel}>Delivery *</label>
@@ -1101,8 +1103,11 @@ export default function UnifiedPipeline() {
         <div style={styles.mainViewTabs}>
           <button style={{ ...styles.mainViewTab, ...(mainView === 'protocols' ? styles.mainViewTabActive : {}) }} onClick={() => setMainView('protocols')}>💊 Protocols</button>
           <button style={{ ...styles.mainViewTab, ...(mainView === 'in_clinic' ? styles.mainViewTabActive : {}) }} onClick={() => setMainView('in_clinic')}>🏥 In-Clinic {data?.counts?.overdue_visits > 0 && <span style={{ background: '#dc2626', color: '#fff', borderRadius: 0, padding: '2px 6px', fontSize: '11px', marginLeft: '4px' }}>{data.counts.overdue_visits}</span>}</button>
+          <button style={{ ...styles.mainViewTab, ...(mainView === 'weight_loss' ? styles.mainViewTabActive : {}) }} onClick={() => setMainView('weight_loss')}>⚖️ Weight Loss</button>
           <button style={{ ...styles.mainViewTab, ...(mainView === 'labs' ? styles.mainViewTabActive : {}) }} onClick={() => setMainView('labs')}>🩸 Labs</button>
         </div>
+
+        {mainView === 'weight_loss' && <div style={styles.labsContainer}><WeightLossPipelineTab /></div>}
 
         {mainView === 'labs' && <div style={styles.labsContainer}><LabsPipelineTab /></div>}
 

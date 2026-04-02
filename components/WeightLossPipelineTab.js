@@ -223,13 +223,13 @@ export default function WeightLossPipelineTab() {
                           <span style={styles.detailLabel}>Weight</span>
                           <span style={styles.detailValue}>
                             {protocol.starting_weight ? `${protocol.starting_weight}` : '?'}
-                            {' \u2192 '}
+                            {' → '}
                             {protocol.current_weight ? `${protocol.current_weight}` : '?'}
                             {weightLost && Number(weightLost) > 0 && (
-                              <span style={{ color: '#16a34a', fontWeight: 600, marginLeft: '4px' }}>\u2193{weightLost}</span>
+                              <span style={{ color: '#16a34a', fontWeight: 600, marginLeft: '4px' }}>{'↓'}{weightLost}</span>
                             )}
                             {weightLost && Number(weightLost) < 0 && (
-                              <span style={{ color: '#dc2626', fontWeight: 600, marginLeft: '4px' }}>\u2191{Math.abs(Number(weightLost))}</span>
+                              <span style={{ color: '#dc2626', fontWeight: 600, marginLeft: '4px' }}>{'↑'}{Math.abs(Number(weightLost))}</span>
                             )}
                           </span>
                         </div>

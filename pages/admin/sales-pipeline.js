@@ -580,7 +580,8 @@ export default function SalesPipeline() {
       if (filterPath !== 'all' && lead.path !== filterPath) return false;
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
-        const name = `${lead.first_name} ${lead.last_name}`.toLowerCase();
+        // Protocol views use patient_name; lead views use first_name/last_name
+        const name = (lead.patient_name || `${lead.first_name || ''} ${lead.last_name || ''}`).toLowerCase();
         const phone = (lead.phone || '').toLowerCase();
         const email = (lead.email || '').toLowerCase();
         return name.includes(term) || phone.includes(term) || email.includes(term);
@@ -674,38 +675,52 @@ export default function SalesPipeline() {
         </div>
       )}
 
-      {/* Actions Bar — hidden for labs/peptides view */}
-      {viewMode !== 'labs' && viewMode !== 'peptides' && viewMode !== 'weight_loss' && viewMode !== 'hrt' && <div style={styles.actionsBar}>
-        <div style={styles.actionsLeft}>
-          <input
-            type="text"
-            placeholder="Search leads..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            style={styles.searchInput}
-          />
-          <select value={filterSource} onChange={e => setFilterSource(e.target.value)} style={styles.filterSelect}>
-            <option value="all">All Sources</option>
-            {Object.entries(SOURCE_CONFIG).map(([k, v]) => (
-              <option key={k} value={k}>{v.label}</option>
-            ))}
-          </select>
-          <select value={filterPath} onChange={e => setFilterPath(e.target.value)} style={styles.filterSelect}>
-            <option value="all">All Paths</option>
-            <option value="injury">Injury</option>
-            <option value="energy">Energy</option>
-            <option value="labs">Labs</option>
-          </select>
+      {/* Actions Bar */}
+      {['weight_loss', 'hrt', 'peptides', 'labs'].includes(viewMode) ? (
+        <div style={styles.actionsBar}>
+          <div style={styles.actionsLeft}>
+            <input
+              type="text"
+              placeholder="Search patients..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              style={styles.searchInput}
+            />
+          </div>
         </div>
-        <div style={styles.actionsRight}>
-          <button onClick={handleImport} disabled={importing} style={styles.importBtn}>
-            {importing ? 'Importing...' : 'Import Existing Leads'}
-          </button>
-          <button onClick={() => setShowAddModal(true)} style={styles.addBtn}>
-            + Add Lead
-          </button>
+      ) : (
+        <div style={styles.actionsBar}>
+          <div style={styles.actionsLeft}>
+            <input
+              type="text"
+              placeholder="Search leads..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              style={styles.searchInput}
+            />
+            <select value={filterSource} onChange={e => setFilterSource(e.target.value)} style={styles.filterSelect}>
+              <option value="all">All Sources</option>
+              {Object.entries(SOURCE_CONFIG).map(([k, v]) => (
+                <option key={k} value={k}>{v.label}</option>
+              ))}
+            </select>
+            <select value={filterPath} onChange={e => setFilterPath(e.target.value)} style={styles.filterSelect}>
+              <option value="all">All Paths</option>
+              <option value="injury">Injury</option>
+              <option value="energy">Energy</option>
+              <option value="labs">Labs</option>
+            </select>
+          </div>
+          <div style={styles.actionsRight}>
+            <button onClick={handleImport} disabled={importing} style={styles.importBtn}>
+              {importing ? 'Importing...' : 'Import Existing Leads'}
+            </button>
+            <button onClick={() => setShowAddModal(true)} style={styles.addBtn}>
+              + Add Lead
+            </button>
+          </div>
         </div>
-      </div>}
+      )}
 
       {/* Kanban Board */}
       {loading ? (
@@ -1198,12 +1213,12 @@ function WLCard({ lead, stageKey, onDragStart, onClick }) {
       {/* Weight */}
       {(lead.starting_weight || lead.current_weight) && (
         <div style={{ fontSize: '12px', color: '#374151', marginTop: '4px', display: 'flex', justifyContent: 'space-between' }}>
-          <span>{lead.starting_weight || '?'} \u2192 {lead.current_weight || '?'} lbs</span>
+          <span>{lead.starting_weight || '?'} {'→'} {lead.current_weight || '?'} lbs</span>
           {lead.weight_lost && Number(lead.weight_lost) > 0 && (
-            <span style={{ color: '#16a34a', fontWeight: 600 }}>\u2193{lead.weight_lost}</span>
+            <span style={{ color: '#16a34a', fontWeight: 600 }}>{'↓'}{lead.weight_lost}</span>
           )}
           {lead.weight_lost && Number(lead.weight_lost) < 0 && (
-            <span style={{ color: '#dc2626', fontWeight: 600 }}>\u2191{Math.abs(Number(lead.weight_lost))}</span>
+            <span style={{ color: '#dc2626', fontWeight: 600 }}>{'↑'}{Math.abs(Number(lead.weight_lost))}</span>
           )}
         </div>
       )}

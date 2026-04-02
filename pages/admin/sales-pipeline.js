@@ -9,6 +9,7 @@ import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
 import LeadDetailPanel from '../../components/LeadDetailPanel';
 import LabDetailPanel from '../../components/LabDetailPanel';
 import PeptideDetailPanel from '../../components/PeptideDetailPanel';
+import WLDetailPanel from '../../components/WLDetailPanel';
 import { supabase } from '../../lib/supabase';
 
 const STAGE_CONFIG = {
@@ -174,6 +175,7 @@ export default function SalesPipeline() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLabLead, setSelectedLabLead] = useState(null);
   const [selectedPeptide, setSelectedPeptide] = useState(null);
+  const [selectedWL, setSelectedWL] = useState(null);
   const [viewMode, setViewMode] = useState('standard'); // standard | trial | labs | peptides
   const [peptideFilter, setPeptideFilter] = useState('all'); // all | recovery | gh | other
 
@@ -670,6 +672,7 @@ export default function SalesPipeline() {
                             lead={lead}
                             stageKey={col.key}
                             onDragStart={handleDragStart}
+                            onClick={() => setSelectedWL(lead)}
                           />
                         ) : lead._isPeptide ? (
                           <PeptideCard
@@ -831,6 +834,12 @@ export default function SalesPipeline() {
         onClose={() => setSelectedPeptide(null)}
         lead={selectedPeptide}
       />
+
+      <WLDetailPanel
+        isOpen={!!selectedWL}
+        onClose={() => setSelectedWL(null)}
+        lead={selectedWL}
+      />
     </AdminLayout>
   );
 }
@@ -967,7 +976,7 @@ function LabCard({ lead, stageKey, onDragStart, onClose, onClick }) {
   );
 }
 
-function WLCard({ lead, stageKey, onDragStart }) {
+function WLCard({ lead, stageKey, onDragStart, onClick }) {
   const [dragging, setDragging] = useState(false);
   const mc = getWLMedColor(lead.medication);
 
@@ -980,10 +989,11 @@ function WLCard({ lead, stageKey, onDragStart }) {
       draggable
       onDragStart={e => { setDragging(true); onDragStart(e, lead, stageKey); }}
       onDragEnd={() => setDragging(false)}
+      onClick={() => { if (!dragging && onClick) onClick(); }}
       style={{
         ...styles.card,
         opacity: dragging ? 0.5 : 1,
-        cursor: 'grab',
+        cursor: 'pointer',
         borderLeft: `3px solid ${mc.color}`,
       }}
     >

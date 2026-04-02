@@ -12,7 +12,7 @@ const services = [
   { id: 'hbot', name: 'Hyperbaric Oxygen Therapy', price: 'Starting at $185/session', description: 'Pressurized oxygen therapy for injury recovery, cognitive performance, and longevity. Memberships from $549/mo.' },
   { id: 'rlt', name: 'Red Light Therapy', price: 'Starting at $85/session', description: 'Photobiomodulation for muscle recovery, skin health, and cellular regeneration. Memberships from $399/mo.' },
   { id: 'prp', name: 'PRP Therapy', price: 'Starting at $750', description: 'Your own concentrated platelets injected to support tissue repair for joint pain and tendon issues.' },
-  { id: 'reset', name: '6-Week Cellular Reset', price: '$3,999', description: 'Comprehensive program combining multiple therapies for full cellular energy restoration.' },
+  { id: 'reset', name: '6-Week Cellular Reset', price: <><s style={{ color: '#a3a3a3', fontWeight: 400 }}>$3,999</s> $2,999</>, description: 'Comprehensive program combining multiple therapies for full cellular energy restoration.' },
 ];
 
 export default function ElitePanelFemaleGuide() {
@@ -187,7 +187,7 @@ export default function ElitePanelFemaleGuide() {
         .info-card p { font-size: 0.9rem; color: #525252; line-height: 1.7; }
         .info-card ul { list-style: none; padding: 0; margin: 0; }
         .info-card li { font-size: 0.9rem; color: #525252; padding: 0.375rem 0; padding-left: 1.25rem; position: relative; }
-        .info-card li::before { content: "\u2713"; position: absolute; left: 0; color: #000000; font-weight: 600; }
+        .info-card li::before { content: "✓"; position: absolute; left: 0; color: #000000; font-weight: 600; }
         .tip-box { background: #ffffff; border-left: 4px solid #000000; padding: 1.25rem 1.5rem; border-radius: 0; }
         .tip-box strong { display: block; margin-bottom: 0.25rem; }
         .tip-box p { font-size: 0.9rem; color: #525252; line-height: 1.6; margin: 0; }

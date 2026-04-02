@@ -60,7 +60,7 @@ const services = [
   {
     id: 'cellular-reset',
     name: '6-Week Cellular Reset',
-    price: '$3,999',
+    price: <><s style={{ color: '#a3a3a3', fontWeight: 400 }}>$3,999</s> $2,999</>,
     description: 'Comprehensive program combining multiple therapies for full cellular energy restoration.',
   },
 ];
@@ -228,7 +228,7 @@ export default function EssentialPanelFemaleGuide() {
         .info-card p { font-size: 0.9rem; color: #525252; line-height: 1.7; }
         .info-card ul { list-style: none; padding: 0; margin: 0; }
         .info-card li { font-size: 0.9rem; color: #525252; padding: 0.375rem 0; padding-left: 1.25rem; position: relative; }
-        .info-card li::before { content: "\\2713"; position: absolute; left: 0; color: #000000; font-weight: 600; }
+        .info-card li::before { content: "✓"; position: absolute; left: 0; color: #000000; font-weight: 600; }
         .tip-box { background: #ffffff; border-left: 4px solid #000000; padding: 1.25rem 1.5rem; border-radius: 0; }
         .tip-box strong { display: block; margin-bottom: 0.25rem; }
         .tip-box p { font-size: 0.9rem; color: #525252; line-height: 1.6; margin: 0; }

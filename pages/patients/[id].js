@@ -796,7 +796,7 @@ export default function PatientProfile() {
       const med = p.medication || '';
       const pt = (p.program_type || '').toLowerCase();
       const pn = (p.program_name || '').toLowerCase();
-      return isRecoveryPeptide(med) || pt.includes('recovery') || pt.includes('peptide') ||
+      return isRecoveryPeptide(med) || pt.includes('recovery') ||
              pn.includes('recovery') || pn.includes('bpc') || pn.includes('thymosin');
     });
     if (hasRecoveryPeptide) {

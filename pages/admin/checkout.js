@@ -18,6 +18,7 @@ import {
   HRT_SECONDARY_MEDICATIONS,
   HRT_SECONDARY_DOSAGES,
   INJECTION_MEDICATIONS,
+  NAD_INJECTION_DOSAGES,
   PEPTIDE_OPTIONS,
   IV_THERAPY_TYPES,
   getDoseOptions,
@@ -1344,7 +1345,13 @@ function CheckoutInner() {
       const detail = secDetails.find(d => d.medication === secondaryMed);
       if (detail?.dosage) setDispDosage(detail.dosage);
     } else {
-      const medName = protocol.medication || protocol.program_name || '';
+      let medName = protocol.medication || protocol.program_name || '';
+      // For injection/NAD categories, try to match against known medication list
+      const injCat = protocolToCategory(protocol.program_type);
+      if (['nad_injection', 'injection', 'vitamin'].includes(injCat) && medName) {
+        const matched = (INJECTION_MEDICATIONS || []).find(m => medName.toLowerCase().includes(m.toLowerCase()));
+        if (matched) medName = matched;
+      }
       if (medName) setDispMedication(medName);
       const doseVal = protocol.selected_dose || (protocol.dose_per_injection ? `${protocol.dose_per_injection}mg` : '');
       if (doseVal) setDispDosage(doseVal);
@@ -1996,6 +2003,17 @@ function CheckoutInner() {
                                             <option key={m.value || m} value={m.value || m}>{m.label || m}</option>
                                           ))}
                                         </select>
+                                      ) : (cat === 'nad_injection' || cat === 'injection' || cat === 'vitamin') ? (
+                                        <select
+                                          value={dispMedication}
+                                          onChange={e => { setDispMedication(e.target.value); setDispDosage(''); }}
+                                          style={styles.fieldInput}
+                                        >
+                                          <option value="">Select medication...</option>
+                                          {(INJECTION_MEDICATIONS || []).map(m => (
+                                            <option key={m} value={m}>{m}</option>
+                                          ))}
+                                        </select>
                                       ) : (
                                         <input
                                           type="text"
@@ -2048,6 +2066,17 @@ function CheckoutInner() {
                                             <select value={dispDosage} onChange={e => setDispDosage(e.target.value)} style={styles.fieldInput}>
                                               <option value="">Select dose...</option>
                                               {wlDoses.map(d => (
+                                                <option key={d} value={d}>{d}</option>
+                                              ))}
+                                            </select>
+                                          );
+                                        }
+                                        // NAD+ injection doses
+                                        if ((cat === 'nad_injection' || cat === 'injection' || cat === 'vitamin') && dispMedication === 'NAD+') {
+                                          return (
+                                            <select value={dispDosage} onChange={e => setDispDosage(e.target.value)} style={styles.fieldInput}>
+                                              <option value="">Select dose...</option>
+                                              {NAD_INJECTION_DOSAGES.map(d => (
                                                 <option key={d} value={d}>{d}</option>
                                               ))}
                                             </select>

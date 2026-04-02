@@ -111,10 +111,10 @@ export default async function handler(req, res) {
 
     const subProtocols = cycleProtocols.map(p => {
       const start = new Date(p.start_date + 'T12:00:00');
-      // For active protocols, count days elapsed so far (up to today)
-      // For completed protocols, count full duration (start to end)
-      const isActive = p.status === 'active';
-      const endForUsed = isActive ? today : (p.end_date ? new Date(p.end_date + 'T12:00:00') : today);
+      // Count days used: use end_date if available (even for active protocols whose supply ended),
+      // capped at today for protocols still in progress
+      const endDate = p.end_date ? new Date(p.end_date + 'T12:00:00') : null;
+      const endForUsed = endDate ? (endDate < today ? endDate : today) : today;
       const days = Math.max(0, Math.round((endForUsed - start) / (1000 * 60 * 60 * 24)));
       cycleDaysUsed += days;
 

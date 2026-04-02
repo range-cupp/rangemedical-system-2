@@ -49,7 +49,7 @@ export default async function handler(req, res) {
     }
 
     const questionnaire_type = door === 3 ? 'combined_baseline' : door === 1 ? 'door1_baseline' : 'door2_baseline';
-    const token = crypto.randomBytes(16).toString('hex');
+    const token = crypto.randomBytes(5).toString('hex');
 
     const { data: qRecord, error: qErr } = await supabase
       .from('baseline_questionnaires')
@@ -72,10 +72,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Failed to create questionnaire' });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
-      || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')
-      || 'https://app.range-medical.com';
-    const link = `${baseUrl}/questionnaire/${token}`;
+    const link = `https://app.range-medical.com/q/${token}`;
 
     const firstName = patient.first_name || 'there';
     const message = `Hi ${firstName}, your provider at Range Medical has prepared a short clinical assessment for you. It helps us build your personalized plan — takes under 10 minutes: ${link}`;

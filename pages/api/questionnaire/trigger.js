@@ -69,7 +69,7 @@ export default async function handler(req, res) {
       questionnaire_type = 'door2_baseline';
     }
 
-    const token = crypto.randomBytes(16).toString('hex');
+    const token = crypto.randomBytes(5).toString('hex');
 
     // Create single questionnaire record
     const { data: qRecord, error: qErr } = await supabase
@@ -94,10 +94,7 @@ export default async function handler(req, res) {
     }
 
     // Build the link
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
-      || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '')
-      || 'https://app.range-medical.com';
-    const link = `${baseUrl}/questionnaire/${token}`;
+    const link = `https://app.range-medical.com/q/${token}`;
 
     // Warm handoff SMS — personalized, explains why
     const firstName = intake.first_name || 'there';

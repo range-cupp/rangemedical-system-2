@@ -36,7 +36,8 @@ import {
   findPeptideInfo,
   findMatchingPeptide,
   getDoseOptions,
-  getPeptideVialSupply
+  getPeptideVialSupply,
+  PEPTIDE_SUPPLY_FORMATS
 } from '../../lib/protocol-config';
 import { getHRTLabSchedule, matchDrawsToLogs, buildAdaptiveHRTSchedule, isHRTProtocol, getLabStatusSummary } from '../../lib/hrt-lab-schedule';
 import { isRecoveryPeptide, isGHPeptide } from '../../lib/protocol-config';
@@ -5123,6 +5124,16 @@ export default function PatientProfile() {
                               )}
                             </span>
                             {protocol.status === 'completed' && <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', background: '#f3f4f6', padding: '2px 8px', borderRadius: 0 }}>✓ Completed</span>}
+                            {protocol.category === 'peptide' && protocol.supply_type && (() => {
+                              const fmt = PEPTIDE_SUPPLY_FORMATS.find(f => f.value === protocol.supply_type);
+                              if (!fmt) return null;
+                              const isVial = protocol.supply_type === 'vial';
+                              return (
+                                <span style={{ fontSize: '11px', fontWeight: 600, color: isVial ? '#92400e' : '#065f46', background: isVial ? '#fef3c7' : '#d1fae5', padding: '2px 8px', borderRadius: 0, marginLeft: 4 }}>
+                                  {isVial ? 'Vial' : fmt.label}
+                                </span>
+                              );
+                            })()}
                             {protocol.delivery_method === 'in_clinic' && <span className="clinic-badge">In-Clinic</span>}
                             {isWeightLoss && protocol.status === 'active' && protocol.sessions_exhausted && (
                               <span style={{ fontSize: '11px', fontWeight: 700, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', padding: '2px 8px', borderRadius: 0, marginLeft: 4 }}>
@@ -9242,10 +9253,10 @@ export default function PatientProfile() {
                     <div className="form-section-label" style={{ marginTop: '12px' }}>Protocol Details</div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                       <div className="form-group">
-                        <label>Frequency</label>
-                        <select value={editForm.frequency} onChange={e => setEditForm({...editForm, frequency: e.target.value})}>
-                          <option value="">Select frequency...</option>
-                          {FREQUENCY_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                        <label>Supply Format</label>
+                        <select value={editForm.supplyType} onChange={e => setEditForm({...editForm, supplyType: e.target.value})}>
+                          <option value="">Select format...</option>
+                          {PEPTIDE_SUPPLY_FORMATS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                         </select>
                       </div>
                       <div className="form-group">
@@ -9253,6 +9264,15 @@ export default function PatientProfile() {
                         <select value={editForm.deliveryMethod} onChange={e => setEditForm({...editForm, deliveryMethod: e.target.value})}>
                           <option value="take_home">Take Home</option>
                           <option value="in_clinic">In-Clinic</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div className="form-group">
+                        <label>Frequency</label>
+                        <select value={editForm.frequency} onChange={e => setEditForm({...editForm, frequency: e.target.value})}>
+                          <option value="">Select frequency...</option>
+                          {FREQUENCY_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                         </select>
                       </div>
                     </div>

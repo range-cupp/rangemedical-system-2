@@ -3,6 +3,7 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import { getProtocolTracking } from '../../../lib/protocol-tracking';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -150,6 +151,9 @@ export default async function handler(req, res) {
       // Completion status — only use the actual DB status, never auto-complete weight loss
       const isCompleted = p.status === 'completed';
 
+      // Use single source of truth for tracking (lib/protocol-tracking.js)
+      const tracking = getProtocolTracking(p);
+
       return {
         id: p.id,
         patient_id: p.patient_id,
@@ -175,6 +179,9 @@ export default async function handler(req, res) {
         current_weight: currentWeightMap[p.id] || null,
         next_expected_date: p.next_expected_date || null,
         last_visit_date: p.last_visit_date || null,
+        days_remaining: tracking.days_remaining ?? null,
+        status_text: tracking.status_text || null,
+        urgency: tracking.urgency || null,
         status: isCompleted ? 'completed' : 'active',
         notes: p.notes,
         created_at: p.created_at

@@ -4,6 +4,7 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import { getProtocolTracking } from '../../../lib/protocol-tracking';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -75,20 +76,15 @@ async function getPeptidePipeline(req, res) {
     // Calculate stage for each protocol and enrich data
     const enriched = (protocols || []).map(p => {
       const startDate = p.start_date ? new Date(p.start_date + 'T12:00:00') : null;
-      const endDate = p.end_date ? new Date(p.end_date + 'T12:00:00') : null;
 
-      let daysRemaining = null;
+      // Use single source of truth for tracking (lib/protocol-tracking.js)
+      const tracking = getProtocolTracking(p);
+      const daysRemaining = tracking.days_remaining ?? null;
+      const totalDays = tracking.total_days ?? null;
+
       let daysSinceStart = null;
-      let totalDays = null;
-
       if (startDate) {
         daysSinceStart = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
-      }
-      if (endDate) {
-        daysRemaining = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
-      }
-      if (startDate && endDate) {
-        totalDays = Math.round((endDate - startDate) / (1000 * 60 * 60 * 24));
       }
 
       // Calculate pipeline stage

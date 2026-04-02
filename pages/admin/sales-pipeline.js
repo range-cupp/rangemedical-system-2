@@ -88,19 +88,23 @@ const WL_STAGE_CONFIG = {
 function categorizeWLProtocol(p) {
   if (p.status === 'completed' || p.status === 'paused') return 'completed';
   const daysSinceStart = p.days_since_start || 0;
-  const remaining = p.injections_remaining ?? (p.total_injections - p.injections_used);
-  const daysSinceLastActivity = Math.min(
-    p.days_since_last_injection ?? 999,
-    p.days_since_last_checkin ?? 999
-  );
-  if (daysSinceLastActivity >= 10 && daysSinceStart > 14) return 'lapsed';
-  if (remaining <= 1 && remaining >= 0) return 'needs_refill';
-  if (p.end_date) {
-    const daysUntilEnd = Math.floor((new Date(p.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-    if (daysUntilEnd <= 14 && daysUntilEnd > 0) return 'renewal_due';
-    if (daysUntilEnd <= 0) return 'needs_refill';
-  }
+  const daysRemaining = p.days_remaining;
+
+  // Date-based: uses days_remaining from lib/protocol-tracking.js (single source of truth)
+  // days_remaining = days until next refill based on next_expected_date or last_refill + 28d
+
+  // Lapsed: refill overdue by 14+ days
+  if (daysRemaining !== null && daysRemaining !== undefined && daysRemaining <= -14) return 'lapsed';
+
+  // Needs refill: overdue or due within 3 days
+  if (daysRemaining !== null && daysRemaining !== undefined && daysRemaining <= 3) return 'needs_refill';
+
+  // Renewal due: refill coming in 4-14 days
+  if (daysRemaining !== null && daysRemaining !== undefined && daysRemaining <= 14) return 'renewal_due';
+
+  // New start: first 14 days
   if (daysSinceStart <= 14) return 'new_start';
+
   return 'active';
 }
 
@@ -130,13 +134,15 @@ const HRT_STAGE_CONFIG = {
 function categorizeHRTProtocol(p) {
   if (p.status === 'completed' || p.status === 'paused') return 'completed';
   const daysSinceStart = p.days_since_start || 0;
-  const daysSinceRefill = p.days_since_last_refill ?? 999;
+  const daysRemaining = p.days_remaining;
 
-  // Lapsed: no refill in 45+ days
-  if (daysSinceRefill >= 45 && daysSinceStart > 14) return 'lapsed';
+  // Date-based: uses days_remaining from lib/protocol-tracking.js (single source of truth)
 
-  // Needs refill: 28+ days since last refill (monthly supply cycle)
-  if (daysSinceRefill >= 28) return 'needs_refill';
+  // Lapsed: refill overdue by 14+ days
+  if (daysRemaining !== null && daysRemaining !== undefined && daysRemaining <= -14) return 'lapsed';
+
+  // Needs refill: overdue or due within 3 days
+  if (daysRemaining !== null && daysRemaining !== undefined && daysRemaining <= 3) return 'needs_refill';
 
   // Labs due: 42-70 days in and labs not completed
   if (daysSinceStart >= 42 && !p.labs_completed) return 'labs_due';
@@ -245,6 +251,8 @@ export default function SalesPipeline() {
               last_refill_date: p.last_refill_date,
               days_since_start: p.days_since_start,
               days_since_last_refill: p.days_since_last_refill,
+              days_remaining: p.days_remaining,
+              status_text: p.status_text,
               total_injections: p.total_injections,
               labs_completed: p.labs_completed,
               eight_week_labs_date: p.eight_week_labs_date,
@@ -291,6 +299,8 @@ export default function SalesPipeline() {
               month,
               days_since_start: p.days_since_start,
               days_since_last_injection: p.days_since_last_injection,
+              days_remaining: p.days_remaining,
+              status_text: p.status_text,
               last_activity: p.last_activity,
               notes: p.notes || null,
               created_at: p.created_at,

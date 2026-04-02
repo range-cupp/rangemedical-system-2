@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { getProtocolTracking } from '../../../lib/protocol-tracking';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -114,6 +115,9 @@ export default async function handler(req, res) {
       // Check if labs are completed
       const labsCompleted = p.labs_completed || !!p.eight_week_labs_date;
 
+      // Use single source of truth for tracking (lib/protocol-tracking.js)
+      const tracking = getProtocolTracking({ ...p, last_refill_date: lastRefillDate });
+
       return {
         id: p.id,
         patient_id: p.patient_id,
@@ -136,6 +140,10 @@ export default async function handler(req, res) {
         baseline_labs_date: p.baseline_labs_date || null,
         eight_week_labs_date: p.eight_week_labs_date || null,
         last_labs_date: p.last_labs_date || null,
+        days_remaining: tracking.days_remaining ?? null,
+        status_text: tracking.status_text || null,
+        urgency: tracking.urgency || null,
+        tracking_type: tracking.tracking_type || null,
         status: p.status || 'active',
         notes: p.notes,
         created_at: p.created_at

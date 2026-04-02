@@ -4000,45 +4000,11 @@ export default function PatientProfile() {
           </section>
         )}
 
-        {/* AI Synopsis + Staff Notes Bar */}
+        {/* Staff Notes Bar */}
         {!loading && patient && (
           <div className="staff-briefing-bar">
-            {/* AI Synopsis */}
-            <div className="briefing-section">
-              <button
-                className="briefing-header"
-                onClick={() => setAiSynopsisExpanded(!aiSynopsisExpanded)}
-              >
-                <span className="briefing-header-left">
-                  <span style={{ fontSize: 15 }}>🤖</span>
-                  <span className="briefing-title">AI SYNOPSIS</span>
-                  {aiSynopsisLoading && <span className="briefing-loading">Generating...</span>}
-                </span>
-                <span className="briefing-header-right">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleRefreshSynopsis(); }}
-                    className="briefing-refresh-btn"
-                    title="Refresh synopsis"
-                    disabled={aiSynopsisLoading}
-                  >↻</button>
-                  <span className="briefing-chevron">{aiSynopsisExpanded ? '▲' : '▼'}</span>
-                </span>
-              </button>
-              {aiSynopsisExpanded && (
-                <div className="briefing-body">
-                  {aiSynopsisLoading && !aiSynopsis ? (
-                    <div className="briefing-placeholder">Analyzing patient history...</div>
-                  ) : aiSynopsis ? (
-                    <div className="briefing-synopsis-text">{aiSynopsis}</div>
-                  ) : (
-                    <div className="briefing-placeholder">No synopsis available — click refresh to generate</div>
-                  )}
-                </div>
-              )}
-            </div>
-
             {/* Staff Internal Notes */}
-            <div className="briefing-section briefing-notes-section">
+            <div className="briefing-section">
               <button
                 className="briefing-header"
                 onClick={() => setStaffNotesExpanded(!staffNotesExpanded)}
@@ -10916,29 +10882,14 @@ export default function PatientProfile() {
 
         /* Staff Briefing Bar (AI Synopsis + Staff Notes) */
         .staff-briefing-bar {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 0;
           margin: 0 0 16px;
           border: 1px solid #e5e7eb;
           border-radius: 10px;
           background: #fff;
           overflow: hidden;
         }
-        @media (max-width: 768px) {
-          .staff-briefing-bar { grid-template-columns: 1fr; }
-        }
         .briefing-section {
           min-width: 0;
-        }
-        .briefing-notes-section {
-          border-left: 1px solid #e5e7eb;
-        }
-        @media (max-width: 768px) {
-          .briefing-notes-section {
-            border-left: none;
-            border-top: 1px solid #e5e7eb;
-          }
         }
         .briefing-header {
           display: flex;
@@ -10987,22 +10938,6 @@ export default function PatientProfile() {
           font-size: 10px;
           color: #9ca3af;
         }
-        .briefing-refresh-btn {
-          background: none;
-          border: 1px solid #e5e7eb;
-          color: #6b7280;
-          font-size: 14px;
-          width: 26px;
-          height: 26px;
-          border-radius: 6px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.15s;
-        }
-        .briefing-refresh-btn:hover { background: #f3f4f6; color: #374151; }
-        .briefing-refresh-btn:disabled { opacity: 0.4; cursor: default; }
         .briefing-add-btn {
           background: #111827;
           color: #fff;
@@ -11022,12 +10957,6 @@ export default function PatientProfile() {
           font-size: 13px;
           color: #9ca3af;
           font-style: italic;
-        }
-        .briefing-synopsis-text {
-          font-size: 13px;
-          color: #374151;
-          line-height: 1.65;
-          white-space: pre-wrap;
         }
         .quick-note-row {
           display: flex;
@@ -11447,10 +11376,10 @@ export default function PatientProfile() {
         }
         .px-tabs::-webkit-scrollbar { display: none; }
         .px-tabs button {
-          padding: 8px 12px;
+          padding: 10px 16px;
           border: none;
           background: none;
-          font-size: 12px;
+          font-size: 13px;
           font-weight: 500;
           color: #64748b;
           cursor: pointer;
@@ -11459,7 +11388,7 @@ export default function PatientProfile() {
           transition: all 0.15s;
           display: flex;
           align-items: center;
-          gap: 5px;
+          gap: 6px;
           flex-shrink: 0;
         }
         .px-tabs button:hover { background: rgba(255,255,255,0.6); color: #334155; }
@@ -11470,7 +11399,7 @@ export default function PatientProfile() {
           box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         }
         .px-tab-icon {
-          font-size: 13px;
+          font-size: 15px;
           line-height: 1;
         }
         .px-tab-label {

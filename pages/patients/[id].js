@@ -37,6 +37,7 @@ import {
   findMatchingPeptide,
   getDoseOptions,
   getPeptideVialSupply,
+  getVialInfo,
   PEPTIDE_SUPPLY_FORMATS
 } from '../../lib/protocol-config';
 import { getHRTLabSchedule, matchDrawsToLogs, buildAdaptiveHRTSchedule, isHRTProtocol, getLabStatusSummary } from '../../lib/hrt-lab-schedule';
@@ -5284,17 +5285,13 @@ export default function PatientProfile() {
                             <div style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0' }}>
                               {protocol.num_vials} vial{protocol.num_vials > 1 ? 's' : ''}
                               {(() => {
+                                const vialInfo = getVialInfo(protocol.medication, protocol.program_name);
                                 const dose = protocol.selected_dose || '';
                                 const dpv = protocol.doses_per_vial || 0;
-                                // Calculate vial total (e.g., 10 doses × 100mg = 1000mg = 1g)
-                                const mgMatch = dose.match(/([\d.]+)\s*(mg|mcg|g)/i);
-                                if (mgMatch && dpv > 0) {
-                                  const val = parseFloat(mgMatch[1]);
-                                  const unit = mgMatch[2].toLowerCase();
-                                  const totalMg = unit === 'g' ? val * 1000 * dpv : unit === 'mcg' ? (val * dpv) / 1000 : val * dpv;
-                                  const vialLabel = totalMg >= 1000 ? `${(totalMg / 1000).toFixed(totalMg % 1000 === 0 ? 0 : 1)}g` : `${totalMg}mg`;
-                                  return ` (${vialLabel} each, ${dose}/dose)`;
+                                if (vialInfo?.vialSize) {
+                                  return ` (${vialInfo.vialSize} each${dose ? `, ${dose}/dose` : ''})`;
                                 }
+                                if (dose && dpv > 0) return ` × ${dpv} doses (${dose}/dose)`;
                                 if (dose) return ` (${dose}/dose)`;
                                 return dpv > 0 ? ` × ${dpv} doses` : '';
                               })()}

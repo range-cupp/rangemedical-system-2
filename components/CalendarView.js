@@ -3797,6 +3797,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
         const notes = drawerData?.notes || [];
         const stats = drawerData?.stats || {};
         const wlLogs = drawerData?.weightLossLogs || [];
+        const purchases = drawerData?.allPurchases || [];
         const upcomingAppts = appts.filter(a => new Date(a.start_time) >= new Date());
         const pastAppts = appts.filter(a => new Date(a.start_time) < new Date());
 
@@ -4072,6 +4073,34 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                             </div>
                           </div>
                         ))}
+                      </div>
+                    )}
+
+                    {/* Recent Transactions */}
+                    {purchases.length > 0 && (
+                      <div style={card}>
+                        <h4 style={sectionHead}>Recent Transactions ({purchases.length})</h4>
+                        {purchases.slice(0, 6).map((p, i) => {
+                          const amt = parseFloat(p.amount) || 0;
+                          const paid = parseFloat(p.amount_paid);
+                          const displayAmt = (!isNaN(paid) && paid > 0 && paid < amt) ? paid : amt;
+                          return (
+                            <div key={p.id || i} style={{ padding: '8px 0', borderBottom: i < Math.min(purchases.length, 6) - 1 ? '1px solid #e5e7eb' : 'none' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '13px', fontWeight: '500', color: '#111', flex: 1, marginRight: '8px' }}>
+                                  {p.item_name || p.service_name || p.description || 'Payment'}
+                                </span>
+                                <span style={{ fontSize: '13px', fontWeight: '600', color: '#111', whiteSpace: 'nowrap' }}>
+                                  ${displayAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: '12px', color: '#888', marginTop: '2px', display: 'flex', justifyContent: 'space-between' }}>
+                                <span>{p.payment_method ? p.payment_method.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : ''}</span>
+                                <span>{p.purchase_date ? new Date(p.purchase_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
 

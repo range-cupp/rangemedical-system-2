@@ -4,7 +4,7 @@
 
 import { useState, useRef } from 'react';
 import AdminLayout, { sharedStyles, overlayClickProps } from '../../components/AdminLayout';
-import { Printer, Mail, MessageSquare, Search, X, FileText, Package, FlaskConical } from 'lucide-react';
+import { Printer, Mail, MessageSquare, Search, X, FileText, Package, FlaskConical, BookOpen } from 'lucide-react';
 
 // ── Document Registry ──
 
@@ -41,12 +41,54 @@ const PACKETS = [
   { id: 'elite_female', name: 'Elite Female Packet', desc: 'All services + Elite Female panel', pages: 15, file: 'Range_Medical_Elite_Female_Packet.pdf' },
 ];
 
+const GUIDES = [
+  { id: 'hrt', name: 'HRT Guide', category: 'hrt', url: '/hrt-guide' },
+  { id: 'tirzepatide', name: 'Tirzepatide Guide', category: 'weight_loss', url: '/tirzepatide-guide' },
+  { id: 'retatrutide', name: 'Retatrutide Guide', category: 'weight_loss', url: '/retatrutide-guide' },
+  { id: 'wl_medication', name: 'WL Medication Guide', category: 'weight_loss', url: '/weight-loss-medication-guide-page' },
+  { id: 'bpc_157', name: 'BPC-157 Guide', category: 'peptide', url: '/bpc-157-guide' },
+  { id: 'bpc_tb4', name: 'BPC/TB4 Guide', category: 'peptide', url: '/bpc-tb4-guide' },
+  { id: 'glow', name: 'GLOW Guide', category: 'peptide', url: '/glow-guide' },
+  { id: 'ghk_cu', name: 'GHK-Cu Guide', category: 'peptide', url: '/ghk-cu-cream' },
+  { id: '3x_blend', name: '3x Blend Guide', category: 'peptide', url: '/3x-blend-guide' },
+  { id: 'nad', name: 'NAD+ Guide', category: 'iv', url: '/nad-guide' },
+  { id: 'methylene_blue', name: 'Methylene Blue Guide', category: 'iv', url: '/methylene-blue-iv-guide' },
+  { id: 'mb_vitc_combo', name: 'MB+VitC Combo Guide', category: 'iv', url: '/methylene-blue-combo-iv-guide' },
+  { id: 'glutathione', name: 'Glutathione Guide', category: 'iv', url: '/glutathione-iv-guide' },
+  { id: 'vitamin_c', name: 'Vitamin C Guide', category: 'iv', url: '/vitamin-c-iv-guide' },
+  { id: 'range_iv', name: 'Range IV Guide', category: 'iv', url: '/range-iv-guide' },
+  { id: 'cellular_reset', name: 'Cellular Reset Guide', category: 'iv', url: '/cellular-reset-guide' },
+  { id: 'hbot', name: 'HBOT Guide', category: 'hbot', url: '/hbot-guide' },
+  { id: 'red_light', name: 'Red Light Guide', category: 'rlt', url: '/red-light-guide' },
+  { id: 'combo_membership', name: 'Combo Membership', category: 'membership', url: '/combo-membership-guide' },
+  { id: 'hbot_membership', name: 'HBOT Membership', category: 'membership', url: '/hbot-membership-guide' },
+  { id: 'rlt_membership', name: 'RLT Membership', category: 'membership', url: '/rlt-membership-guide' },
+  { id: 'essential_male_panel', name: 'Essential Male Panel', category: 'labs', url: '/essential-panel-male-guide' },
+  { id: 'essential_female_panel', name: 'Essential Female Panel', category: 'labs', url: '/essential-panel-female-guide' },
+  { id: 'elite_male_panel', name: 'Elite Male Panel', category: 'labs', url: '/elite-panel-male-guide' },
+  { id: 'elite_female_panel', name: 'Elite Female Panel', category: 'labs', url: '/elite-panel-female-guide' },
+  { id: 'the_blu', name: 'The Blu', category: 'other', url: '/the-blu-guide' },
+];
+
+const GUIDE_CATEGORIES = [
+  { id: 'all', label: 'All' },
+  { id: 'hrt', label: 'HRT' },
+  { id: 'weight_loss', label: 'Weight Loss' },
+  { id: 'peptide', label: 'Peptides' },
+  { id: 'iv', label: 'IV Therapy' },
+  { id: 'hbot', label: 'HBOT' },
+  { id: 'rlt', label: 'Red Light' },
+  { id: 'membership', label: 'Memberships' },
+  { id: 'labs', label: 'Labs' },
+];
+
 const getDocUrl = (category, filename) => `/documents/${category}/${filename}`;
 
 export default function DocumentsPage() {
   const [activeTab, setActiveTab] = useState('services');
   const [sendModal, setSendModal] = useState(null); // { doc, method: 'email'|'sms' }
   const [successMsg, setSuccessMsg] = useState('');
+  const [guideFilter, setGuideFilter] = useState('all');
 
   // Patient search
   const [searchQuery, setSearchQuery] = useState('');
@@ -187,14 +229,19 @@ export default function DocumentsPage() {
     { id: 'services', label: 'Service Sheets', icon: <FileText size={15} />, count: SERVICE_SHEETS.length },
     { id: 'panels', label: 'Lab Panels', icon: <FlaskConical size={15} />, count: LAB_PANELS.length },
     { id: 'packets', label: 'Packets', icon: <Package size={15} />, count: PACKETS.length },
+    { id: 'guides', label: 'Guides', icon: <BookOpen size={15} />, count: GUIDES.length },
   ];
+
+  const filteredGuides = guideFilter === 'all' ? GUIDES : GUIDES.filter(g => g.category === guideFilter);
 
   const currentDocs = activeTab === 'services' ? SERVICE_SHEETS
     : activeTab === 'panels' ? LAB_PANELS
+    : activeTab === 'guides' ? filteredGuides
     : PACKETS;
 
   const category = activeTab === 'services' ? 'services'
     : activeTab === 'panels' ? 'panels'
+    : activeTab === 'guides' ? 'guides'
     : 'packets';
 
   return (
@@ -225,7 +272,26 @@ export default function DocumentsPage() {
         {activeTab === 'services' && 'Individual service information sheets. Print for patients or send via email/text.'}
         {activeTab === 'panels' && 'Lab panel landing pages with biomarkers and services. Open for patients or send via email/text.'}
         {activeTab === 'packets' && 'Pre-combined packets with all services. Print the right one based on the patient\'s lab panel.'}
+        {activeTab === 'guides' && 'Patient guides — open to view or send via email/text.'}
       </div>
+
+      {/* Guide category filter */}
+      {activeTab === 'guides' && (
+        <div style={pageStyles.guideFilterBar}>
+          {GUIDE_CATEGORIES.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setGuideFilter(cat.id)}
+              style={{
+                ...pageStyles.guideFilterBtn,
+                ...(guideFilter === cat.id ? pageStyles.guideFilterBtnActive : {}),
+              }}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Document Grid */}
       <div style={pageStyles.grid}>
@@ -618,5 +684,27 @@ const pageStyles = {
     fontSize: 12,
     color: '#ef4444',
     fontWeight: 500,
+  },
+  guideFilterBar: {
+    display: 'flex',
+    gap: 6,
+    marginBottom: 16,
+    flexWrap: 'wrap',
+  },
+  guideFilterBtn: {
+    padding: '5px 14px',
+    borderRadius: 0,
+    border: '1px solid #e5e5e5',
+    background: '#fff',
+    cursor: 'pointer',
+    fontSize: 12,
+    fontWeight: 500,
+    color: '#666',
+    transition: 'all 0.15s',
+  },
+  guideFilterBtnActive: {
+    background: '#111',
+    color: '#fff',
+    borderColor: '#111',
   },
 };

@@ -241,7 +241,7 @@ export default function WLDetailPanel({ isOpen, onClose, lead }) {
                   <div>
                     <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: 500, marginBottom: '2px' }}>Weight</div>
                     <div style={{ fontSize: '14px', color: '#111', fontWeight: 600 }}>
-                      {lead.starting_weight || '?'} \u2192 {lead.current_weight || '?'} lbs
+                      {lead.starting_weight || '?'} {'→'} {lead.current_weight || '?'} lbs
                     </div>
                   </div>
                   {weightLost && Number(weightLost) !== 0 && (
@@ -250,7 +250,7 @@ export default function WLDetailPanel({ isOpen, onClose, lead }) {
                       fontWeight: 700,
                       color: Number(weightLost) > 0 ? '#16a34a' : '#dc2626',
                     }}>
-                      {Number(weightLost) > 0 ? '\u2193' : '\u2191'}{Math.abs(Number(weightLost))} lbs
+                      {Number(weightLost) > 0 ? '↓' : '↑'}{Math.abs(Number(weightLost))} lbs
                     </div>
                   )}
                 </div>

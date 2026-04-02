@@ -50,7 +50,7 @@ export default async function handler(req, res) {
       if (cycleType === 'recovery') {
         const pt = (p.program_type || '').toLowerCase();
         const pn = (p.program_name || '').toLowerCase();
-        return pt.includes('recovery') || pt.includes('peptide') ||
+        return pt.includes('recovery') ||
                pn.includes('recovery') || pn.includes('bpc') || pn.includes('thymosin');
       }
       return false;

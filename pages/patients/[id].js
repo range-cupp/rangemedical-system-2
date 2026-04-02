@@ -478,6 +478,7 @@ export default function PatientProfile() {
   const [stats, setStats] = useState({});
   const [hrtLabSchedules, setHrtLabSchedules] = useState({});
   const [cycleInfo, setCycleInfo] = useState(null);
+  const [ghCycleInfo, setGhCycleInfo] = useState(null);
 
   // Dispense modal state
   const [dispensingProtocol, setDispensingProtocol] = useState(null);
@@ -803,6 +804,13 @@ export default function PatientProfile() {
       fetch(`/api/protocols/cycle-info?patientId=${id}&cycleType=recovery`)
         .then(r => r.json())
         .then(data => { if (data.success) setCycleInfo(data); })
+        .catch(() => {});
+    }
+    const hasGHPeptide = activeProtocols.some(p => isGHPeptide(p.medication || ''));
+    if (hasGHPeptide) {
+      fetch(`/api/protocols/cycle-info?patientId=${id}&cycleType=gh`)
+        .then(r => r.json())
+        .then(data => { if (data.success) setGhCycleInfo(data); })
         .catch(() => {});
     }
   }, [id, activeProtocols]);
@@ -4679,6 +4687,67 @@ export default function PatientProfile() {
                     {cycleInfo.subProtocols?.length > 1 && (
                       <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>
                         {cycleInfo.subProtocols.length} protocols in this cycle
+                      </div>
+                    )}
+                  </div>
+                  );
+                })()}
+
+                {/* GH Secretagogue Cycle Tracker — 90-day max */}
+                {ghCycleInfo?.hasCycle && (() => {
+                  const planned = ghCycleInfo.maxDays;
+                  const used = ghCycleInfo.cycleDaysUsed;
+                  const remaining = Math.max(0, planned - used);
+                  const approachingMax = used > 60;
+                  const isWarning = remaining <= 14 && remaining > 0;
+                  const isComplete = remaining === 0 || ghCycleInfo.cycleExhausted;
+                  return (
+                  <div style={{
+                    margin: '0 16px 12px',
+                    padding: '12px 16px',
+                    borderRadius: 0,
+                    background: isComplete ? '#fef2f2' : isWarning ? '#fffbeb' : '#eff6ff',
+                    border: `1px solid ${isComplete ? '#fecaca' : isWarning ? '#fde68a' : '#bfdbfe'}`
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', color: '#6b7280' }}>
+                        GH Secretagogue Cycle
+                      </span>
+                      <span style={{
+                        fontSize: '13px',
+                        fontWeight: '700',
+                        color: isComplete ? '#dc2626' : isWarning ? '#d97706' : '#2563eb'
+                      }}>
+                        {used} / {planned} days
+                      </span>
+                    </div>
+                    <div style={{ background: '#e5e7eb', borderRadius: 0, height: '8px', overflow: 'hidden' }}>
+                      <div style={{
+                        height: '100%',
+                        borderRadius: 0,
+                        width: `${Math.min(100, planned > 0 ? Math.round((used / planned) * 100) : 0)}%`,
+                        background: isComplete ? '#dc2626' : isWarning ? '#f59e0b' : '#3b82f6',
+                        transition: 'width 0.3s ease'
+                      }} />
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '6px' }}>
+                      {ghCycleInfo.cycleExhausted ? (
+                        <span style={{ color: '#dc2626', fontWeight: '600' }}>
+                          Cycle complete — off period recommended
+                          {ghCycleInfo.offPeriodEnds && ` (ends ${new Date(ghCycleInfo.offPeriodEnds + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`}
+                        </span>
+                      ) : (
+                        <span><strong>{remaining}</strong> days remaining on 90-day cycle</span>
+                      )}
+                    </div>
+                    {approachingMax && !ghCycleInfo.cycleExhausted && (
+                      <div style={{ fontSize: '11px', color: '#d97706', marginTop: '4px' }}>
+                        Approaching cycle limit — plan off period
+                      </div>
+                    )}
+                    {ghCycleInfo.subProtocols?.length > 1 && (
+                      <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>
+                        {ghCycleInfo.subProtocols.length} protocols in this cycle
                       </div>
                     )}
                   </div>

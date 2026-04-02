@@ -209,135 +209,137 @@ export default async function handler(req, res) {
       esLower === 'weight_loss' ||
       structured_data?.form_type === 'weight_loss';
 
-    if (isWLEncounter && structured_data?.weight_vitals?.current_weight) {
+    if (isWLEncounter && structured_data) {
       try {
-        const weight = parseFloat(structured_data.weight_vitals.current_weight);
+        const rawWeight = structured_data?.weight_vitals?.current_weight;
+        const weight = rawWeight ? parseFloat(rawWeight) : null;
+        const hasWeight = weight !== null && !isNaN(weight);
         const dose = structured_data?.medication?.dose || null;
         const medication = structured_data?.medication?.medication_name || null;
         const logDate = note_date
           ? new Date(note_date).toISOString().split('T')[0]
           : todayPacific();
 
-        if (!isNaN(weight)) {
-          // Find the patient's active weight loss protocol
-          const { data: protocols } = await supabase
-            .from('protocols')
-            .select('id, starting_weight, sessions_used, total_sessions, selected_dose, dose, patient_id, medication')
+        // Find the patient's active weight loss protocol
+        const { data: protocols } = await supabase
+          .from('protocols')
+          .select('id, starting_weight, sessions_used, total_sessions, selected_dose, dose, patient_id, medication')
+          .eq('patient_id', patient_id)
+          .ilike('program_type', 'weight_loss%')
+          .in('status', ['active', 'in_progress'])
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        const activeProtocol = protocols?.[0];
+
+        if (activeProtocol) {
+          // 1. Create service_logs entry (source of truth for protocol session table)
+          // Injection is recorded even without a weight — weight can be added later
+          const { data: existingServiceLog } = await supabase
+            .from('service_logs')
+            .select('id')
             .eq('patient_id', patient_id)
-            .ilike('program_type', 'weight_loss%')
-            .in('status', ['active', 'in_progress'])
-            .order('created_at', { ascending: false })
-            .limit(1);
+            .eq('category', 'weight_loss')
+            .eq('entry_date', logDate)
+            .neq('entry_type', 'pickup')
+            .maybeSingle();
 
-          const activeProtocol = protocols?.[0];
+          const serviceLogFields = {
+            dosage: dose,
+            medication: medication,
+            notes: `Via encounter note by ${created_by || 'Staff'}`,
+            updated_at: new Date().toISOString(),
+          };
+          if (hasWeight) serviceLogFields.weight = weight;
 
-          if (activeProtocol) {
-            // 1. Create service_logs entry (source of truth for protocol session table)
-            const { data: existingServiceLog } = await supabase
-              .from('service_logs')
-              .select('id')
-              .eq('patient_id', patient_id)
-              .eq('category', 'weight_loss')
-              .eq('entry_date', logDate)
-              .neq('entry_type', 'pickup')
-              .maybeSingle();
-
-            if (existingServiceLog) {
-              // Update existing entry for today
-              await supabase
-                .from('service_logs')
-                .update({
-                  weight,
-                  dosage: dose,
-                  medication: medication,
-                  notes: `Via encounter note by ${created_by || 'Staff'}`,
-                  updated_at: new Date().toISOString(),
-                })
-                .eq('id', existingServiceLog.id);
-              console.log(`Updated service_log ${existingServiceLog.id} for ${logDate}`);
-            } else {
-              // Create new service log entry
-              await supabase
-                .from('service_logs')
-                .insert({
-                  patient_id,
-                  protocol_id: activeProtocol.id,
-                  category: 'weight_loss',
-                  entry_type: 'injection',
-                  entry_date: logDate,
-                  medication: medication,
-                  dosage: dose,
-                  weight,
-                  notes: `Via encounter note by ${created_by || 'Staff'}`,
-                  administered_by: created_by || null,
-                });
-              console.log(`Created service_log for weight loss on ${logDate}`);
-            }
-
-            // 2. Update protocol: dose + sessions_used + starting_weight
-            const protocolUpdates = {
-              updated_at: new Date().toISOString(),
-            };
-
-            // Update dose on protocol if provided + track escalation
-            if (dose) {
-              const previousDose = activeProtocol.selected_dose || activeProtocol.dose || null;
-              protocolUpdates.selected_dose = dose;
-              protocolUpdates.dose = dose;
-              protocolUpdates.current_dose = dose;
-
-              // Log dose change if different from previous dose
-              if (previousDose && previousDose !== dose) {
-                const plan = structured_data?.assessment?.plan || '';
-                const isIncrease = plan.toLowerCase().includes('increase');
-                const isDecrease = plan.toLowerCase().includes('decrease');
-                const direction = isIncrease ? 'increased' : (isDecrease ? 'decreased' : 'changed');
-
-                await supabase.from('protocol_logs').insert({
-                  protocol_id: activeProtocol.id,
-                  patient_id,
-                  log_type: 'dose_change',
-                  log_date: logDate,
-                  dose: dose,
-                  weight: weight || null,
-                  notes: `Dose ${direction}: ${previousDose} → ${dose}. ${plan}${structured_data?.additional?.notes ? ' — ' + structured_data.additional.notes : ''}`,
-                  logged_by: created_by || 'Staff',
-                }).then(({ error: doseLogErr }) => {
-                  if (doseLogErr) console.error('Dose change log error:', doseLogErr);
-                  else console.log(`Dose escalation logged: ${previousDose} → ${dose} for protocol ${activeProtocol.id}`);
-                });
-              }
-            }
-
-            // Increment sessions_used only if we created a new service log (not updating existing)
-            if (!existingServiceLog) {
-              protocolUpdates.sessions_used = (activeProtocol.sessions_used || 0) + 1;
-            }
-
-            // Set starting weight if not already set
-            if (!activeProtocol.starting_weight && structured_data.weight_vitals.starting_weight) {
-              const startWeight = parseFloat(structured_data.weight_vitals.starting_weight);
-              if (!isNaN(startWeight)) {
-                protocolUpdates.starting_weight = startWeight;
-              }
-            }
-
-            // Sync goal weight from encounter note (always update to latest)
-            if (structured_data.weight_vitals.goal_weight) {
-              const goalWeight = parseFloat(structured_data.weight_vitals.goal_weight);
-              if (!isNaN(goalWeight)) {
-                protocolUpdates.goal_weight = goalWeight;
-              }
-            }
-
+          if (existingServiceLog) {
+            // Update existing entry for today
             await supabase
-              .from('protocols')
-              .update(protocolUpdates)
-              .eq('id', activeProtocol.id);
+              .from('service_logs')
+              .update(serviceLogFields)
+              .eq('id', existingServiceLog.id);
+            console.log(`Updated service_log ${existingServiceLog.id} for ${logDate}`);
+          } else {
+            // Create new service log entry
+            await supabase
+              .from('service_logs')
+              .insert({
+                patient_id,
+                protocol_id: activeProtocol.id,
+                category: 'weight_loss',
+                entry_type: 'injection',
+                entry_date: logDate,
+                ...serviceLogFields,
+                administered_by: created_by || null,
+              });
+            console.log(`Created service_log for weight loss on ${logDate}`);
+          }
 
-            console.log(`Protocol ${activeProtocol.id} updated: dose=${dose}, weight=${weight}`);
+          // 2. Update protocol: dose + sessions_used + starting_weight
+          const protocolUpdates = {
+            updated_at: new Date().toISOString(),
+          };
 
-            // 3. Also log to weight_logs for backwards compatibility
+          // Update dose on protocol if provided + track escalation
+          if (dose) {
+            const previousDose = activeProtocol.selected_dose || activeProtocol.dose || null;
+            protocolUpdates.selected_dose = dose;
+            protocolUpdates.dose = dose;
+            protocolUpdates.current_dose = dose;
+
+            // Log dose change if different from previous dose
+            if (previousDose && previousDose !== dose) {
+              const plan = structured_data?.assessment?.plan || '';
+              const isIncrease = plan.toLowerCase().includes('increase');
+              const isDecrease = plan.toLowerCase().includes('decrease');
+              const direction = isIncrease ? 'increased' : (isDecrease ? 'decreased' : 'changed');
+
+              await supabase.from('protocol_logs').insert({
+                protocol_id: activeProtocol.id,
+                patient_id,
+                log_type: 'dose_change',
+                log_date: logDate,
+                dose: dose,
+                weight: weight || null,
+                notes: `Dose ${direction}: ${previousDose} → ${dose}. ${plan}${structured_data?.additional?.notes ? ' — ' + structured_data.additional.notes : ''}`,
+                logged_by: created_by || 'Staff',
+              }).then(({ error: doseLogErr }) => {
+                if (doseLogErr) console.error('Dose change log error:', doseLogErr);
+                else console.log(`Dose escalation logged: ${previousDose} → ${dose} for protocol ${activeProtocol.id}`);
+              });
+            }
+          }
+
+          // Increment sessions_used only if we created a new service log (not updating existing)
+          if (!existingServiceLog) {
+            protocolUpdates.sessions_used = (activeProtocol.sessions_used || 0) + 1;
+          }
+
+          // Set starting weight if not already set
+          if (!activeProtocol.starting_weight && structured_data?.weight_vitals?.starting_weight) {
+            const startWeight = parseFloat(structured_data.weight_vitals.starting_weight);
+            if (!isNaN(startWeight)) {
+              protocolUpdates.starting_weight = startWeight;
+            }
+          }
+
+          // Sync goal weight from encounter note (always update to latest)
+          if (structured_data?.weight_vitals?.goal_weight) {
+            const goalWeight = parseFloat(structured_data.weight_vitals.goal_weight);
+            if (!isNaN(goalWeight)) {
+              protocolUpdates.goal_weight = goalWeight;
+            }
+          }
+
+          await supabase
+            .from('protocols')
+            .update(protocolUpdates)
+            .eq('id', activeProtocol.id);
+
+          console.log(`Protocol ${activeProtocol.id} updated: dose=${dose}, weight=${weight}`);
+
+          // 3. Also log to weight_logs for backwards compatibility (only if weight present)
+          if (hasWeight) {
             const { data: existingWeightLog } = await supabase
               .from('weight_logs')
               .select('id')
@@ -360,11 +362,13 @@ export default async function handler(req, res) {
                   notes: `Via encounter note by ${created_by || 'Staff'}`,
                 });
             }
-          } else {
-            console.log(`No active weight loss protocol found for patient ${patient_id}`);
           }
+        } else {
+          console.log(`No active weight loss protocol found for patient ${patient_id}`);
+        }
 
-          // 4. Save to patient_vitals (powers the overview vitals table)
+        // 4. Save to patient_vitals (only if weight present)
+        if (hasWeight) {
           try {
             const vitalsData = {
               patient_id,

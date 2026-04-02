@@ -74,6 +74,48 @@ const PEPTIDE_STAGE_CONFIG = {
   paused:         { label: 'Paused',           color: '#6b7280', bg: '#f3f4f6' },
 };
 
+const WL_STAGE_CONFIG = {
+  new_start:     { label: 'New Start',     color: '#8b5cf6', bg: '#f5f3ff' },
+  active:        { label: 'Active',        color: '#10b981', bg: '#ecfdf5' },
+  needs_refill:  { label: 'Needs Refill',  color: '#f59e0b', bg: '#fffbeb' },
+  lapsed:        { label: 'Lapsed',        color: '#ef4444', bg: '#fef2f2' },
+  renewal_due:   { label: 'Renewal Due',   color: '#3b82f6', bg: '#eff6ff' },
+  completed:     { label: 'Completed',     color: '#6b7280', bg: '#f3f4f6' },
+};
+
+function categorizeWLProtocol(p) {
+  if (p.status === 'completed' || p.status === 'paused') return 'completed';
+  const daysSinceStart = p.days_since_start || 0;
+  const remaining = p.injections_remaining ?? (p.total_injections - p.injections_used);
+  const daysSinceLastActivity = Math.min(
+    p.days_since_last_injection ?? 999,
+    p.days_since_last_checkin ?? 999
+  );
+  if (daysSinceLastActivity >= 10 && daysSinceStart > 14) return 'lapsed';
+  if (remaining <= 1 && remaining >= 0) return 'needs_refill';
+  if (p.end_date) {
+    const daysUntilEnd = Math.floor((new Date(p.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    if (daysUntilEnd <= 14 && daysUntilEnd > 0) return 'renewal_due';
+    if (daysUntilEnd <= 0) return 'needs_refill';
+  }
+  if (daysSinceStart <= 14) return 'new_start';
+  return 'active';
+}
+
+const WL_MED_COLORS = {
+  semaglutide:  { color: '#1e40af', bg: '#dbeafe' },
+  tirzepatide:  { color: '#9d174d', bg: '#fce7f3' },
+  retatrutide:  { color: '#4338ca', bg: '#e0e7ff' },
+};
+
+function getWLMedColor(medication) {
+  const m = (medication || '').toLowerCase();
+  if (m.includes('semaglutide')) return WL_MED_COLORS.semaglutide;
+  if (m.includes('tirzepatide')) return WL_MED_COLORS.tirzepatide;
+  if (m.includes('retatrutide')) return WL_MED_COLORS.retatrutide;
+  return { color: '#374151', bg: '#f3f4f6' };
+}
+
 // Categorize peptides for filtering
 function getPeptideCategory(medication, programType) {
   const med = (medication || '').toLowerCase();
@@ -137,7 +179,51 @@ export default function SalesPipeline() {
 
   const fetchBoard = useCallback(async () => {
     try {
-      if (viewMode === 'peptides') {
+      if (viewMode === 'weight_loss') {
+        const res = await fetch('/api/pipelines/weight-loss');
+        const data = await res.json();
+        if (data.success) {
+          const stageBuckets = {};
+          Object.keys(WL_STAGE_CONFIG).forEach(k => { stageBuckets[k] = []; });
+          (data.protocols || []).forEach(p => {
+            const stage = categorizeWLProtocol(p);
+            const nameParts = (p.patient_name || '').split(' ');
+            const month = Math.floor((p.days_since_start || 0) / 30) + 1;
+            const weightLost = p.starting_weight && p.current_weight ? (p.starting_weight - p.current_weight).toFixed(1) : null;
+            stageBuckets[stage].push({
+              id: p.id,
+              first_name: nameParts[0] || '',
+              last_name: nameParts.slice(1).join(' ') || '',
+              phone: p.phone || null,
+              patient_id: p.patient_id,
+              medication: p.medication,
+              current_dose: p.current_dose,
+              delivery_method: p.delivery_method,
+              start_date: p.start_date,
+              end_date: p.end_date,
+              total_injections: p.total_injections,
+              injections_used: p.injections_used,
+              injections_remaining: p.injections_remaining,
+              starting_weight: p.starting_weight,
+              current_weight: p.current_weight,
+              weight_lost: weightLost,
+              month,
+              days_since_start: p.days_since_start,
+              days_since_last_injection: p.days_since_last_injection,
+              last_activity: p.last_activity,
+              notes: p.notes || null,
+              created_at: p.created_at,
+              stage,
+              _isWL: true,
+            });
+          });
+          const wlColumns = Object.keys(WL_STAGE_CONFIG).map(key => ({ key, leads: stageBuckets[key] }));
+          setColumns(wlColumns);
+          const activeCount = data.protocols.filter(p => p.status !== 'completed' && p.status !== 'paused').length;
+          const needsAttention = (stageBuckets.needs_refill?.length || 0) + (stageBuckets.lapsed?.length || 0) + (stageBuckets.renewal_due?.length || 0);
+          setSummary({ total: data.total, active: activeCount, converted: needsAttention, lost: data.completed });
+        }
+      } else if (viewMode === 'peptides') {
         const res = await fetch('/api/pipelines/peptide');
         const data = await res.json();
         if (data.success) {
@@ -259,7 +345,7 @@ export default function SalesPipeline() {
     if (!data.id || data.fromStage === toStage) return;
 
     // If moving to "lost", open detail panel for reason
-    if (toStage === 'lost' && viewMode !== 'labs' && viewMode !== 'peptides') {
+    if (toStage === 'lost' && viewMode !== 'labs' && viewMode !== 'peptides' && viewMode !== 'weight_loss') {
       const lead = columns.flatMap(c => c.leads).find(l => l.id === data.id);
       setSelectedLead({ ...lead, stage: toStage });
     }
@@ -426,7 +512,12 @@ export default function SalesPipeline() {
     <AdminLayout title="Sales Pipeline">
       {/* Summary Stats */}
       <div style={styles.statsRow}>
-        {(viewMode === 'peptides' ? [
+        {(viewMode === 'weight_loss' ? [
+          { num: summary.total, label: 'Total Patients', color: '#111' },
+          { num: summary.active, label: 'Active', color: '#10b981' },
+          { num: summary.converted, label: 'Needs Attention', color: '#f59e0b' },
+          { num: summary.lost, label: 'Completed', color: '#6b7280' },
+        ] : viewMode === 'peptides' ? [
           { num: summary.total, label: 'Total Protocols', color: '#111' },
           { num: summary.active, label: 'Active', color: '#10b981' },
           { num: summary.converted, label: 'Check-In Due', color: '#f59e0b' },
@@ -455,6 +546,7 @@ export default function SalesPipeline() {
           { key: 'standard', label: 'All Leads', radius: '6px 0 0 6px' },
           { key: 'trial', label: 'RLT Trials', radius: '0' },
           { key: 'labs', label: 'Labs', radius: '0' },
+          { key: 'weight_loss', label: 'Weight Loss', radius: '0' },
           { key: 'peptides', label: 'Peptides', radius: '0 6px 6px 0' },
         ].map(v => (
           <button
@@ -496,7 +588,7 @@ export default function SalesPipeline() {
       )}
 
       {/* Actions Bar — hidden for labs/peptides view */}
-      {viewMode !== 'labs' && viewMode !== 'peptides' && <div style={styles.actionsBar}>
+      {viewMode !== 'labs' && viewMode !== 'peptides' && viewMode !== 'weight_loss' && <div style={styles.actionsBar}>
         <div style={styles.actionsLeft}>
           <input
             type="text"
@@ -534,7 +626,7 @@ export default function SalesPipeline() {
       ) : (
         <div style={styles.board}>
           {filteredColumns.map(col => {
-            const activeStageConfig = viewMode === 'peptides' ? PEPTIDE_STAGE_CONFIG : viewMode === 'labs' ? LAB_STAGE_CONFIG : viewMode === 'trial' ? TRIAL_STAGE_CONFIG : STAGE_CONFIG;
+            const activeStageConfig = viewMode === 'weight_loss' ? WL_STAGE_CONFIG : viewMode === 'peptides' ? PEPTIDE_STAGE_CONFIG : viewMode === 'labs' ? LAB_STAGE_CONFIG : viewMode === 'trial' ? TRIAL_STAGE_CONFIG : STAGE_CONFIG;
             const config = activeStageConfig[col.key] || { label: col.label || col.key, color: '#6b7280', bg: '#f3f4f6' };
             const isDragOver = dragOverColumn === col.key;
             return (
@@ -568,11 +660,18 @@ export default function SalesPipeline() {
                       : col.leads;
                     return visibleLeads.length === 0 ? (
                       <div style={styles.emptyCol}>
-                        {isDragOver ? 'Drop here' : viewMode === 'labs' || viewMode === 'peptides' ? 'No patients' : 'No leads'}
+                        {isDragOver ? 'Drop here' : viewMode === 'labs' || viewMode === 'peptides' || viewMode === 'weight_loss' ? 'No patients' : 'No leads'}
                       </div>
                     ) : (
                       visibleLeads.map(lead => (
-                        lead._isPeptide ? (
+                        lead._isWL ? (
+                          <WLCard
+                            key={lead.id}
+                            lead={lead}
+                            stageKey={col.key}
+                            onDragStart={handleDragStart}
+                          />
+                        ) : lead._isPeptide ? (
                           <PeptideCard
                             key={lead.id}
                             lead={lead}
@@ -859,6 +958,86 @@ function LabCard({ lead, stageKey, onDragStart, onClose, onClick }) {
           color: daysInStage > 3 ? '#ef4444' : daysInStage > 1 ? '#f59e0b' : '#9ca3af',
         }}>
           {daysInStage === 0 ? 'Today' : `${daysInStage}d`}
+        </span>
+      </div>
+      {lead.notes && (
+        <div style={styles.cardNotes}>{lead.notes.substring(0, 80)}{lead.notes.length > 80 ? '...' : ''}</div>
+      )}
+    </div>
+  );
+}
+
+function WLCard({ lead, stageKey, onDragStart }) {
+  const [dragging, setDragging] = useState(false);
+  const mc = getWLMedColor(lead.medication);
+
+  const lastActivityFormatted = lead.last_activity
+    ? new Date(lead.last_activity + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    : null;
+
+  return (
+    <div
+      draggable
+      onDragStart={e => { setDragging(true); onDragStart(e, lead, stageKey); }}
+      onDragEnd={() => setDragging(false)}
+      style={{
+        ...styles.card,
+        opacity: dragging ? 0.5 : 1,
+        cursor: 'grab',
+        borderLeft: `3px solid ${mc.color}`,
+      }}
+    >
+      <div style={{ ...styles.cardName, borderBottom: '1px dashed #d1d5db' }}>
+        {lead.patient_id ? (
+          <a href={`/admin/patient/${lead.patient_id}`} style={{ color: '#111', textDecoration: 'none' }}>
+            {lead.first_name} {lead.last_name}
+          </a>
+        ) : (
+          <>{lead.first_name} {lead.last_name}</>
+        )}
+      </div>
+      {lead.phone && <div style={styles.cardPhone}>{lead.phone}</div>}
+      <div style={styles.cardMeta}>
+        <span style={{
+          fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '3px', whiteSpace: 'nowrap',
+          background: mc.bg, color: mc.color,
+        }}>
+          {lead.medication || 'GLP-1'}
+        </span>
+        <span style={styles.cardPathTag}>Month {lead.month}</span>
+      </div>
+      {/* Dose + Injections */}
+      <div style={{ fontSize: '12px', color: '#374151', marginTop: '6px', display: 'flex', justifyContent: 'space-between' }}>
+        <span>{lead.current_dose || '\u2014'}</span>
+        <span style={{ color: '#6b7280' }}>{lead.injections_used}/{lead.total_injections} inj</span>
+      </div>
+      {/* Weight */}
+      {(lead.starting_weight || lead.current_weight) && (
+        <div style={{ fontSize: '12px', color: '#374151', marginTop: '4px', display: 'flex', justifyContent: 'space-between' }}>
+          <span>{lead.starting_weight || '?'} \u2192 {lead.current_weight || '?'} lbs</span>
+          {lead.weight_lost && Number(lead.weight_lost) > 0 && (
+            <span style={{ color: '#16a34a', fontWeight: 600 }}>\u2193{lead.weight_lost}</span>
+          )}
+          {lead.weight_lost && Number(lead.weight_lost) < 0 && (
+            <span style={{ color: '#dc2626', fontWeight: 600 }}>\u2191{Math.abs(Number(lead.weight_lost))}</span>
+          )}
+        </div>
+      )}
+      <div style={styles.cardFooter}>
+        <span style={styles.cardTime}>
+          {lastActivityFormatted || 'No activity'}
+          {lead.days_since_last_injection != null && (
+            <span style={{ color: lead.days_since_last_injection > 10 ? '#ef4444' : '#9ca3af' }}>
+              {' '}({lead.days_since_last_injection}d)
+            </span>
+          )}
+        </span>
+        <span style={{
+          fontSize: '10px', fontWeight: 600, padding: '2px 6px', borderRadius: '3px',
+          background: lead.delivery_method === 'in_clinic' ? '#f0fdf4' : '#faf5ff',
+          color: lead.delivery_method === 'in_clinic' ? '#166534' : '#7c3aed',
+        }}>
+          {lead.delivery_method === 'in_clinic' ? 'Clinic' : 'Home'}
         </span>
       </div>
       {lead.notes && (

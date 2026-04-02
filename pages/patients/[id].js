@@ -2432,12 +2432,21 @@ export default function PatientProfile() {
         }
         // Pre-filled peptide: duration drives the math
         const isPrefilled = cat === 'peptide' && (editForm.supplyType || '').startsWith('prefilled_');
-        if (editForm.startDate && dpw) {
+        if (editForm.startDate) {
           let durationDays = null;
           if (isPrefilled) {
             durationDays = parseInt((editForm.supplyType || '').replace('prefilled_', '').replace('d', ''));
-            if (!derivedTotalSessions) derivedTotalSessions = Math.round(durationDays * dpw / 7);
-          } else if (derivedTotalSessions) {
+            if (!derivedTotalSessions && dpw) derivedTotalSessions = Math.round(durationDays * dpw / 7);
+          } else if (editForm.numVials) {
+            // Check catalog for explicit daysPerVial (e.g., GH blends = 30 days/vial)
+            const vid = getVialIdForMedication(editForm.medication, selectedProtocol.program_name);
+            const catEntry = vid ? VIAL_CATALOG.find(v => v.id === vid) : null;
+            if (catEntry && catEntry.daysPerVial) {
+              durationDays = parseInt(editForm.numVials) * catEntry.daysPerVial;
+            } else if (derivedTotalSessions && dpw) {
+              durationDays = Math.round((derivedTotalSessions / dpw) * 7);
+            }
+          } else if (derivedTotalSessions && dpw) {
             durationDays = Math.round((derivedTotalSessions / dpw) * 7);
           }
           if (durationDays) {
@@ -6213,7 +6222,7 @@ export default function PatientProfile() {
                                       let days = p.total_sessions || 0;
                                       if (isVP) {
                                         const cat = VIAL_CATALOG.find(v => v.id === vid);
-                                        if (cat && cat.injectionsPerVial) days = p.num_vials * cat.injectionsPerVial;
+                                        if (cat && (cat.daysPerVial || cat.injectionsPerVial)) days = p.num_vials * (cat.daysPerVial || cat.injectionsPerVial);
                                       }
                                       entries.push(`${vid}.${days}.${del}`);
                                     }
@@ -6339,8 +6348,8 @@ export default function PatientProfile() {
                                             let days = p.total_sessions || 0;
                                             if (isVialPurchase) {
                                               const catalogEntry = VIAL_CATALOG.find(v => v.id === vialId);
-                                              if (catalogEntry && catalogEntry.injectionsPerVial) {
-                                                days = p.num_vials * catalogEntry.injectionsPerVial;
+                                              if (catalogEntry && (catalogEntry.daysPerVial || catalogEntry.injectionsPerVial)) {
+                                                days = p.num_vials * (catalogEntry.daysPerVial || catalogEntry.injectionsPerVial);
                                               }
                                             }
                                             entries.push(`${vialId}.${days}.${delivery}`);
@@ -9469,6 +9478,12 @@ export default function PatientProfile() {
                     ? parseInt(editForm.numVials) * parseInt(editForm.dosesPerVial) : null;
                   const calcDurationDays = (() => {
                     if (isPrefilled && prefillDays) return prefillDays;
+                    // Check catalog for explicit daysPerVial (e.g., GH blends = 30 days/vial)
+                    if (isVial && editForm.numVials) {
+                      const vid = getVialIdForMedication(editForm.medication, selectedProtocol.program_name);
+                      const cat = vid ? VIAL_CATALOG.find(v => v.id === vid) : null;
+                      if (cat && cat.daysPerVial) return parseInt(editForm.numVials) * cat.daysPerVial;
+                    }
                     const total = vialTotal || editForm.totalSessions;
                     if (total && dpw) return Math.round((total / dpw) * 7);
                     return null;

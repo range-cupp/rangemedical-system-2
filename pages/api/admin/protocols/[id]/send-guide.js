@@ -77,8 +77,8 @@ export default async function handler(req, res) {
         let days = p.total_sessions || null;
         if (isVialPurchase) {
           const catalogEntry = VIAL_CATALOG.find(v => v.id === vialId);
-          if (catalogEntry && catalogEntry.injectionsPerVial) {
-            days = p.num_vials * catalogEntry.injectionsPerVial;
+          if (catalogEntry && (catalogEntry.daysPerVial || catalogEntry.injectionsPerVial)) {
+            days = p.num_vials * (catalogEntry.daysPerVial || catalogEntry.injectionsPerVial);
           }
         }
         vialEntries.push({ vialId, days, delivery });

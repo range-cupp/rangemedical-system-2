@@ -6,6 +6,8 @@
 // Range Medical System V2
 
 import { createClient } from '@supabase/supabase-js';
+import { getVialIdForMedication } from '../../../lib/protocol-config';
+import { VIAL_CATALOG } from '../../../lib/vial-catalog';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -95,30 +97,43 @@ export default async function handler(req, res) {
     }
 
     // For vial protocols, recalculate end_date from start + duration
-    if (mergedNumVials > 0 && mergedDosesPerVial && mergedFrequency) {
-      // Parse doses per week from frequency string
-      let dosesPerWeek = 7; // default daily
-      const freq = (mergedFrequency || '').toLowerCase();
-      const onOffMatch = freq.match(/(\d+)\s*(?:days?\s*)?on/i);
-      if (onOffMatch) {
-        dosesPerWeek = parseInt(onOffMatch[1]);
-      } else if (freq.includes('daily') || freq.includes('every day')) {
-        dosesPerWeek = 7;
-      } else if (freq.includes('every other') || freq.includes('eod')) {
-        dosesPerWeek = 3.5;
-      } else if (freq.includes('3x') || freq.includes('three times')) {
-        dosesPerWeek = 3;
-      } else if (freq.includes('2x') || freq.includes('twice')) {
-        dosesPerWeek = 2;
-      } else if (freq.includes('weekly') || freq.includes('1x') || freq.includes('once')) {
-        dosesPerWeek = 1;
+    if (mergedNumVials > 0 && mergedDosesPerVial) {
+      // Check vial catalog for explicit daysPerVial (e.g., GH blends = 30 days/vial)
+      const vialId = getVialIdForMedication(target.medication, target.program_name);
+      const catalogEntry = vialId ? VIAL_CATALOG.find(v => v.id === vialId) : null;
+      let durationDays;
+
+      if (catalogEntry && catalogEntry.daysPerVial) {
+        // Use catalog's explicit days per vial
+        durationDays = mergedNumVials * catalogEntry.daysPerVial;
+      } else if (mergedFrequency) {
+        // Calculate from frequency
+        let dosesPerWeek = 7;
+        const freq = (mergedFrequency || '').toLowerCase();
+        const onOffMatch = freq.match(/(\d+)\s*(?:days?\s*)?on/i);
+        if (onOffMatch) {
+          dosesPerWeek = parseInt(onOffMatch[1]);
+        } else if (freq.includes('daily') || freq.includes('every day')) {
+          dosesPerWeek = 7;
+        } else if (freq.includes('every other') || freq.includes('eod')) {
+          dosesPerWeek = 3.5;
+        } else if (freq.includes('3x') || freq.includes('three times')) {
+          dosesPerWeek = 3;
+        } else if (freq.includes('2x') || freq.includes('twice')) {
+          dosesPerWeek = 2;
+        } else if (freq.includes('weekly') || freq.includes('1x') || freq.includes('once')) {
+          dosesPerWeek = 1;
+        }
+        const totalDoses = mergedNumVials * mergedDosesPerVial;
+        durationDays = Math.ceil((totalDoses / dosesPerWeek) * 7);
       }
-      const totalDoses = mergedNumVials * mergedDosesPerVial;
-      const durationDays = Math.ceil((totalDoses / dosesPerWeek) * 7);
-      const startDate = new Date(mergedStartDate + 'T12:00:00');
-      const calcEnd = new Date(startDate);
-      calcEnd.setDate(calcEnd.getDate() + durationDays);
-      mergedEndDate = calcEnd.toISOString().split('T')[0];
+
+      if (durationDays) {
+        const startDate = new Date(mergedStartDate + 'T12:00:00');
+        const calcEnd = new Date(startDate);
+        calcEnd.setDate(calcEnd.getDate() + durationDays);
+        mergedEndDate = calcEnd.toISOString().split('T')[0];
+      }
     }
 
     // Merge notes

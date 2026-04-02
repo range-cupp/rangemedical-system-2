@@ -6195,6 +6195,53 @@ export default function PatientProfile() {
                                   <span><span className="px-legend-dot next" /> Next</span>
                                   <span><span className="px-legend-dot future" /> Available</span>
                                 </div>
+                                {/* Guide buttons for injection protocols (e.g., NAD+) */}
+                                {protocol.status === 'active' && (() => {
+                                  const vialId = getVialIdForMedication(protocol.medication, protocol.program_name);
+                                  if (!vialId) return null;
+                                  const allProtos = activeProtocols.filter(p =>
+                                    ['peptide', 'recovery', 'longevity', 'gh_blend', 'skin', 'neuro', 'immune', 'sexual_health', 'injection'].includes(p.category) && p.status === 'active'
+                                  );
+                                  const seen = new Set();
+                                  const entries = [];
+                                  for (const p of allProtos) {
+                                    const vid = getVialIdForMedication(p.medication, p.program_name);
+                                    if (vid && !seen.has(vid)) {
+                                      seen.add(vid);
+                                      const isVP = p.num_vials && p.num_vials > 0;
+                                      const del = isVP ? 'vial' : 'prefilled';
+                                      let days = p.total_sessions || 0;
+                                      if (isVP) {
+                                        const cat = VIAL_CATALOG.find(v => v.id === vid);
+                                        if (cat && cat.injectionsPerVial) days = p.num_vials * cat.injectionsPerVial;
+                                      }
+                                      entries.push(`${vid}.${days}.${del}`);
+                                    }
+                                  }
+                                  const previewUrl = entries.length > 0 ? `https://www.range-medical.com/peptide-guide?v=${entries.join(',')}` : null;
+                                  if (!previewUrl) return null;
+                                  return (
+                                    <div className="px-actions">
+                                      <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary-sm" style={{ textDecoration: 'none', display: 'inline-block' }}>👁 Preview Guide</a>
+                                      {!protocol.peptide_guide_sent && (
+                                        <button
+                                          onClick={async () => {
+                                            try {
+                                              const res = await fetch(`/api/admin/protocols/${protocol.id}/send-guide`, { method: 'POST' });
+                                              const data = await res.json();
+                                              if (res.ok) { alert(data.twoStep ? 'Guide will deliver when patient replies.' : 'Guide sent!'); fetchPatient(); }
+                                              else { alert(data.error || 'Failed to send'); }
+                                            } catch (e) { alert('Failed to send'); }
+                                          }}
+                                          className="btn-secondary-sm"
+                                        >📖 Send Guide</button>
+                                      )}
+                                      {protocol.peptide_guide_sent && (
+                                        <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }}>✓ Guide Sent</span>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
                               </div>
                             );
                           })()}
@@ -6278,7 +6325,7 @@ export default function PatientProfile() {
                                       // Build preview URL using same logic as the send-guide API
                                       const buildGuidePreviewUrl = () => {
                                         const allPeptideProtos = activeProtocols.filter(p =>
-                                          ['peptide', 'recovery', 'longevity', 'gh_blend', 'skin', 'neuro', 'immune', 'sexual_health'].includes(p.category) && p.status === 'active'
+                                          ['peptide', 'recovery', 'longevity', 'gh_blend', 'skin', 'neuro', 'immune', 'sexual_health', 'injection'].includes(p.category) && p.status === 'active'
                                         );
                                         const seen = new Set();
                                         const entries = [];

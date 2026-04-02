@@ -59,7 +59,7 @@ export default async function handler(req, res) {
       .select('id, medication, program_name, category, status, total_sessions, delivery_method, supply_type, num_vials')
       .eq('patient_id', protocol.patient_id)
       .eq('status', 'active')
-      .in('category', ['peptide', 'recovery', 'longevity', 'gh_blend', 'skin', 'neuro', 'immune', 'sexual_health']);
+      .in('category', ['peptide', 'recovery', 'longevity', 'gh_blend', 'skin', 'neuro', 'immune', 'sexual_health', 'injection']);
 
     // Build enhanced vial entries: vialId.days.delivery
     // num_vials > 0 = patient got a whole vial (needs reconstitution)

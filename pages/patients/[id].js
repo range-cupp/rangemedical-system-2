@@ -458,6 +458,9 @@ export default function PatientProfile() {
   const [showSendAssessment, setShowSendAssessment] = useState(false);
   const [sendAssessmentDoor, setSendAssessmentDoor] = useState(3);
   const [sendingAssessment, setSendingAssessment] = useState(false);
+  const [assessmentSynopsis, setAssessmentSynopsis] = useState(null);
+  const [assessmentSynopsisLoading, setAssessmentSynopsisLoading] = useState(false);
+  const [assessmentSynopsisExpanded, setAssessmentSynopsisExpanded] = useState(true);
   const [labProtocols, setLabProtocols] = useState([]);
   const [labDocuments, setLabDocuments] = useState([]);
   const [sendingLabId, setSendingLabId] = useState(null);
@@ -1694,6 +1697,25 @@ export default function PatientProfile() {
     } finally {
       setSendingAssessment(false);
     }
+  };
+
+  const handleGenerateAssessmentSynopsis = async (questionnaireId, force = false) => {
+    setAssessmentSynopsisLoading(true);
+    try {
+      const res = await fetch('/api/assessment/synopsis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questionnaire_id: questionnaireId, force }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAssessmentSynopsis(data.synopsis);
+        setAssessmentSynopsisExpanded(true);
+      }
+    } catch (err) {
+      console.error('Assessment synopsis error:', err);
+    }
+    setAssessmentSynopsisLoading(false);
   };
 
   const getGhlLink = () => {
@@ -7963,7 +7985,7 @@ export default function PatientProfile() {
                           return (
                             <button
                               key={bq.id || idx}
-                              onClick={() => setSelectedBaselineIdx(idx)}
+                              onClick={() => { setSelectedBaselineIdx(idx); setAssessmentSynopsis(null); }}
                               style={{
                                 padding: '6px 14px', borderRadius: 0, border: '1px solid',
                                 borderColor: idx === selectedBaselineIdx ? '#000' : '#ddd',
@@ -8000,6 +8022,38 @@ export default function PatientProfile() {
                         )}
                       </div>
                     </section>
+
+                    {/* AI Clinical Synopsis */}
+                    {selected?.status === 'completed' && (
+                      <section className="card" style={{ marginTop: '12px', border: '1px solid #C7D2FE' }}>
+                        <div
+                          onClick={() => (selected.ai_synopsis || assessmentSynopsis) && setAssessmentSynopsisExpanded(!assessmentSynopsisExpanded)}
+                          style={{ padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: (selected.ai_synopsis || assessmentSynopsis) ? 'pointer' : 'default', background: '#F5F3FF' }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '1rem' }}>🧠</span>
+                            <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#4338CA' }}>AI Clinical Synopsis</span>
+                            {(selected.ai_synopsis || assessmentSynopsis) && (
+                              <span style={{ fontSize: '0.6875rem', color: '#6366F1', fontWeight: 400 }}>
+                                {assessmentSynopsisExpanded ? '(click to collapse)' : '(click to expand)'}
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleGenerateAssessmentSynopsis(selected.id, !!(selected.ai_synopsis || assessmentSynopsis)); }}
+                            disabled={assessmentSynopsisLoading}
+                            style={{ padding: '4px 10px', borderRadius: 0, border: '1px solid #C7D2FE', background: '#fff', cursor: assessmentSynopsisLoading ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 500, color: '#4338CA', opacity: assessmentSynopsisLoading ? 0.6 : 1, fontFamily: 'inherit' }}
+                          >
+                            {assessmentSynopsisLoading ? 'Generating...' : (selected.ai_synopsis || assessmentSynopsis) ? 'Regenerate' : 'Generate Synopsis'}
+                          </button>
+                        </div>
+                        {assessmentSynopsisExpanded && (selected.ai_synopsis || assessmentSynopsis) && (
+                          <div style={{ padding: '16px 20px', fontSize: '0.8125rem', lineHeight: '1.6', color: '#1F2937', whiteSpace: 'pre-wrap', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', borderTop: '1px solid #C7D2FE' }}>
+                            {assessmentSynopsis || selected.ai_synopsis}
+                          </div>
+                        )}
+                      </section>
+                    )}
 
                     {/* Injury Baseline (Door 1 or 3) */}
                     {(door === 1 || door === 3) && (

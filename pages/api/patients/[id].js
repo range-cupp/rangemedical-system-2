@@ -164,7 +164,7 @@ export default async function handler(req, res) {
         // Native appointments
         supabase.from('appointments').select('id, patient_id, patient_name, service_name, service_category, provider, start_time, end_time, duration_minutes, status, notes, source, ghl_appointment_id, created_at').eq('patient_id', id).order('start_time', { ascending: false }).limit(200),
         // Baseline questionnaires (new validated instruments)
-        supabase.from('baseline_questionnaires').select('id, patient_id, intake_id, door, questionnaire_type, responses, scored_totals, sections_completed, status, submitted_at, created_at').eq('patient_id', id).order('submitted_at', { ascending: false }).limit(20),
+        supabase.from('baseline_questionnaires').select('id, patient_id, intake_id, door, questionnaire_type, responses, scored_totals, sections_completed, status, submitted_at, created_at, ai_synopsis, ai_synopsis_generated_at').eq('patient_id', id).order('submitted_at', { ascending: false }).limit(20),
       ]);
 
       // ── Step 3: Extract results ──

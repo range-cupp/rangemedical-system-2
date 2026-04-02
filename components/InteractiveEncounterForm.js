@@ -200,11 +200,73 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
   const [customDose, setCustomDose] = useState(false);
   const [selectedWLMed, setSelectedWLMed] = useState('');
 
+  // Rich text editor state for Provider Notes
+  const notesEditorRef = useRef(null);
+  const notesUndoStack = useRef([]);
+  const [aiFormatting, setAiFormatting] = useState(false);
+
+  const saveNotesUndoSnapshot = () => {
+    if (notesEditorRef.current) {
+      notesUndoStack.current.push(notesEditorRef.current.innerHTML);
+      if (notesUndoStack.current.length > 30) notesUndoStack.current.shift();
+    }
+  };
+  const handleNotesUndo = () => {
+    if (!notesEditorRef.current) return;
+    if (notesUndoStack.current.length > 0) {
+      notesEditorRef.current.innerHTML = notesUndoStack.current.pop();
+    } else {
+      notesEditorRef.current.focus();
+      document.execCommand('undo', false, null);
+    }
+    syncNotesEditorToForm();
+  };
+  const execNotesFormat = (command, value = null) => {
+    if (!notesEditorRef.current) return;
+    notesEditorRef.current.focus();
+    document.execCommand(command, false, value);
+  };
+  const syncNotesEditorToForm = () => {
+    const text = notesEditorRef.current?.innerText || '';
+    updateField('additional', 'notes', text);
+  };
+  const handleNotesAIFormat = async () => {
+    const text = notesEditorRef.current?.innerText || '';
+    if (!text.trim()) return;
+    setAiFormatting(true);
+    try {
+      const res = await fetch('/api/notes/format', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ raw_text: text, note_type: 'additional_notes' }),
+      });
+      const data = await res.json();
+      if (data.formatted && notesEditorRef.current) {
+        saveNotesUndoSnapshot();
+        notesEditorRef.current.innerText = data.formatted;
+        syncNotesEditorToForm();
+      }
+    } catch (err) {
+      console.error('AI format error:', err);
+    } finally {
+      setAiFormatting(false);
+    }
+  };
+
+  // Staff email → display name mapping for performed_by auto-fill
+  const STAFF_DISPLAY_NAMES = {
+    'cupp@range-medical.com': 'Chris Cupp',
+    'burgess@range-medical.com': 'Dr. Damien Burgess',
+    'lily@range-medical.com': 'Lily Diaz RN',
+    'evan@range-medical.com': 'Evan',
+    'damon@range-medical.com': 'Damon Durante',
+  };
+
   // Auto-fill performed_by from currentUser
   useEffect(() => {
     if (currentUser && formData.additional && !formData.additional.performed_by) {
-      const name = currentUser.split('@')[0];
-      const displayName = name.charAt(0).toUpperCase() + name.slice(1);
+      const displayName = STAFF_DISPLAY_NAMES[currentUser.toLowerCase()]
+        || (currentUser.split('@')[0].charAt(0).toUpperCase() + currentUser.split('@')[0].slice(1));
       updateField('additional', 'performed_by', displayName);
     }
   }, [currentUser]);
@@ -617,13 +679,41 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
 
       case 'textarea':
         return (
-          <textarea
-            value={value}
-            onChange={(e) => updateField(sectionKey, field.key, e.target.value)}
-            placeholder={field.placeholder || ''}
-            rows={3}
-            style={styles.textarea}
-          />
+          <div>
+            {/* Formatting toolbar */}
+            <div style={styles.richToolbar}>
+              <button type="button" onClick={handleNotesUndo} title="Undo" style={styles.toolbarBtn}>↩</button>
+              <div style={styles.toolbarDivider} />
+              <button type="button" onClick={() => execNotesFormat('bold')} title="Bold" style={{ ...styles.toolbarBtn, fontWeight: 800, fontFamily: 'serif' }}>B</button>
+              <button type="button" onClick={() => execNotesFormat('italic')} title="Italic" style={{ ...styles.toolbarBtn, fontStyle: 'italic', fontFamily: 'serif' }}>I</button>
+              <button type="button" onClick={() => execNotesFormat('underline')} title="Underline" style={{ ...styles.toolbarBtn, textDecoration: 'underline', fontFamily: 'serif' }}>U</button>
+              <div style={styles.toolbarDivider} />
+              <button type="button" onClick={() => execNotesFormat('insertUnorderedList')} title="Bullet List" style={styles.toolbarBtn}>•≡</button>
+              <button type="button" onClick={() => execNotesFormat('insertOrderedList')} title="Numbered List" style={styles.toolbarBtn}>1.≡</button>
+              <div style={styles.toolbarDivider} />
+              <button type="button" onClick={() => execNotesFormat('removeFormat')} title="Clear Formatting" style={{ ...styles.toolbarBtn, color: '#9ca3af' }}>T̸</button>
+            </div>
+            {/* Editable area */}
+            <div
+              ref={notesEditorRef}
+              contentEditable
+              suppressContentEditableWarning
+              data-placeholder={field.placeholder || ''}
+              onInput={syncNotesEditorToForm}
+              style={styles.richEditor}
+            />
+            {/* AI format button */}
+            <div style={{ display: 'flex', marginTop: 6 }}>
+              <button
+                type="button"
+                onClick={handleNotesAIFormat}
+                disabled={aiFormatting}
+                style={styles.aiFormatBtn}
+              >
+                {aiFormatting ? 'Formatting...' : '✨ Format with AI'}
+              </button>
+            </div>
+          </div>
         );
 
       case 'select':
@@ -809,6 +899,13 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
 
   return (
     <div style={styles.formWrapper}>
+      <style>{`
+        [data-placeholder]:empty::before {
+          content: attr(data-placeholder);
+          color: #c5c5c5;
+          pointer-events: none;
+        }
+      `}</style>
       {/* Header */}
       <div style={styles.header}>
         <div style={styles.headerLeft}>
@@ -1056,6 +1153,60 @@ const styles = {
     fontFamily: 'inherit',
     lineHeight: 1.6,
     boxSizing: 'border-box',
+  },
+  richToolbar: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 2,
+    padding: '6px 8px',
+    background: '#f9fafb',
+    border: '1.5px solid #e5e7eb',
+    borderBottom: 'none',
+    alignItems: 'center',
+  },
+  toolbarBtn: {
+    padding: '5px 8px',
+    fontSize: 13,
+    fontWeight: 600,
+    border: '1px solid #d1d5db',
+    borderRadius: 0,
+    background: '#fff',
+    color: '#374151',
+    cursor: 'pointer',
+    lineHeight: 1,
+  },
+  toolbarDivider: {
+    width: 1,
+    height: 22,
+    background: '#d1d5db',
+    margin: '0 4px',
+  },
+  richEditor: {
+    width: '100%',
+    minHeight: 80,
+    padding: '10px 14px',
+    fontSize: 14,
+    border: '1.5px solid #e5e7eb',
+    background: '#fff',
+    color: '#111',
+    outline: 'none',
+    fontFamily: 'inherit',
+    lineHeight: 1.6,
+    boxSizing: 'border-box',
+    overflowY: 'auto',
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+  },
+  aiFormatBtn: {
+    padding: '6px 14px',
+    fontSize: 13,
+    fontWeight: 600,
+    border: '1px solid #d1d5db',
+    borderRadius: 0,
+    background: '#fff',
+    color: '#374151',
+    cursor: 'pointer',
+    transition: 'background 0.15s',
   },
   select: {
     width: '100%',

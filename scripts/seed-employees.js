@@ -33,7 +33,7 @@ const EMPLOYEES = [
   },
   {
     email: 'lily@range-medical.com',
-    name: 'Lily Diaz',
+    name: 'Lily Diaz RN',
     title: 'RN',
     is_admin: false,
     calcom_user_id: 2197567,

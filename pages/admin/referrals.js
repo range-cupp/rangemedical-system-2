@@ -6,7 +6,7 @@ const STAFF_OPTIONS = [
   { value: 'damon@range-medical.com', label: 'Damon Durante' },
   { value: 'cupp@range-medical.com', label: 'Chris Cupp' },
   { value: 'damien@range-medical.com', label: 'Dr. Damien Burgess' },
-  { value: 'lily@range-medical.com', label: 'Lily Diaz' },
+  { value: 'lily@range-medical.com', label: 'Lily Diaz RN' },
   { value: 'evan@range-medical.com', label: 'Evan' },
 ];
 

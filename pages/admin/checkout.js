@@ -2011,9 +2011,14 @@ function CheckoutInner() {
                                     <div style={styles.dispenseFieldGroup}>
                                       <label style={styles.fieldLabel}>Dosage</label>
                                       {(() => {
-                                        // HRT: testosterone doses are gender-specific
+                                        // HRT: testosterone doses are gender-specific — use protocol hrt_type first, then patient gender
                                         if (cat === 'testosterone' && (dispMedication === 'Testosterone Cypionate' || dispMedication === 'Testosterone Enanthate')) {
-                                          const gender = dispCoverage?.patient_gender || 'male';
+                                          const rawType = proto?.hrt_type;
+                                          const gender = (rawType === 'female' || rawType === 'hrt_female' ? 'female' : null)
+                                            || (rawType === 'male' || rawType === 'hrt_male' ? 'male' : null)
+                                            || (proto?.medication?.includes('100mg/ml') ? 'female' : null)
+                                            || dispCoverage?.patient_gender
+                                            || 'male';
                                           const doses = TESTOSTERONE_DOSES[gender] || TESTOSTERONE_DOSES.male || [];
                                           return (
                                             <select value={dispDosage} onChange={e => setDispDosage(e.target.value)} style={styles.fieldInput}>

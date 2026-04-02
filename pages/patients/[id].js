@@ -455,6 +455,9 @@ export default function PatientProfile() {
   const [selectedQuestionnaireIdx, setSelectedQuestionnaireIdx] = useState(0);
   const [baselineQuestionnaires, setBaselineQuestionnaires] = useState([]);
   const [selectedBaselineIdx, setSelectedBaselineIdx] = useState(0);
+  const [showSendAssessment, setShowSendAssessment] = useState(false);
+  const [sendAssessmentDoor, setSendAssessmentDoor] = useState(3);
+  const [sendingAssessment, setSendingAssessment] = useState(false);
   const [labProtocols, setLabProtocols] = useState([]);
   const [labDocuments, setLabDocuments] = useState([]);
   const [sendingLabId, setSendingLabId] = useState(null);
@@ -1665,6 +1668,31 @@ export default function PatientProfile() {
     } finally {
       setSendFormsLoading(false);
       setTimeout(() => setSendFormsResult(null), 4000);
+    }
+  };
+
+  const handleSendAssessment = async () => {
+    setSendingAssessment(true);
+    try {
+      const res = await fetch('/api/questionnaire/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ patient_id: id, door: sendAssessmentDoor }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send assessment');
+      setShowSendAssessment(false);
+      // Refresh patient data to show new questionnaire
+      const refreshRes = await fetch(`/api/patients/${id}`);
+      const refreshData = await refreshRes.json();
+      if (refreshData.baselineQuestionnaires) {
+        setBaselineQuestionnaires(refreshData.baselineQuestionnaires);
+        setSelectedBaselineIdx(0);
+      }
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSendingAssessment(false);
     }
   };
 
@@ -7868,14 +7896,53 @@ export default function PatientProfile() {
 
             return (
             <>
+              {/* Send Assessment Modal */}
+              {showSendAssessment && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  onClick={() => setShowSendAssessment(false)}>
+                  <div style={{ background: '#fff', borderRadius: 0, padding: '28px', width: '400px', maxWidth: '90vw' }}
+                    onClick={e => e.stopPropagation()}>
+                    <h3 style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: '700' }}>Send Assessment</h3>
+                    <p style={{ fontSize: '14px', color: '#666', margin: '0 0 16px' }}>
+                      Send a baseline questionnaire to <strong>{patient?.first_name || 'this patient'}</strong> via SMS.
+                    </p>
+                    <div style={{ marginBottom: '16px' }}>
+                      <label style={{ fontSize: '13px', fontWeight: '600', display: 'block', marginBottom: '8px' }}>Assessment Type</label>
+                      {[
+                        { value: 3, label: 'Combined', desc: 'Injury + Optimization (full assessment)' },
+                        { value: 2, label: 'Optimization', desc: 'Mood, sleep, energy, hormones' },
+                        { value: 1, label: 'Injury', desc: 'Pain, function, trajectory' },
+                      ].map(opt => (
+                        <label key={opt.value} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '8px 10px', cursor: 'pointer', background: sendAssessmentDoor === opt.value ? '#f5f5f5' : 'transparent', border: `1px solid ${sendAssessmentDoor === opt.value ? '#000' : '#eee'}`, marginBottom: '4px' }}>
+                          <input type="radio" name="assessmentDoor" checked={sendAssessmentDoor === opt.value} onChange={() => setSendAssessmentDoor(opt.value)} style={{ marginTop: '2px' }} />
+                          <div>
+                            <div style={{ fontSize: '14px', fontWeight: '600' }}>{opt.label}</div>
+                            <div style={{ fontSize: '12px', color: '#888' }}>{opt.desc}</div>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                      <button onClick={() => setShowSendAssessment(false)} style={{ padding: '8px 16px', border: '1px solid #ddd', background: '#fff', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                      <button onClick={handleSendAssessment} disabled={sendingAssessment} style={{ padding: '8px 16px', border: 'none', background: '#000', color: '#fff', fontSize: '13px', fontWeight: '500', cursor: sendingAssessment ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: sendingAssessment ? 0.6 : 1 }}>
+                        {sendingAssessment ? 'Sending...' : 'Send via SMS'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {baselineQuestionnaires.length === 0 ? (
                 <section className="card">
                   <div style={{ padding: '40px 20px', textAlign: 'center' }}>
                     <div style={{ fontSize: '48px', marginBottom: '16px' }}>📊</div>
                     <h3 style={{ margin: '0 0 8px', fontSize: '16px', fontWeight: '600' }}>No Baseline Assessments</h3>
                     <p style={{ color: '#888', fontSize: '14px', margin: '0 0 20px' }}>
-                      This patient hasn&apos;t completed a baseline questionnaire yet. It&apos;s sent automatically after intake submission.
+                      This patient hasn&apos;t completed a baseline questionnaire yet.
                     </p>
+                    <button onClick={() => setShowSendAssessment(true)} style={{ padding: '10px 24px', background: '#000', color: '#fff', border: 'none', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: 'inherit' }}>
+                      Send Assessment
+                    </button>
                   </div>
                 </section>
               ) : (() => {
@@ -7915,7 +7982,12 @@ export default function PatientProfile() {
                       <div style={{ padding: '20px 24px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                           <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700' }}>{doorLabel}</h3>
-                          <span style={{ fontSize: '13px', color: '#888' }}>Submitted {submittedDate}</span>
+                          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                            <span style={{ fontSize: '13px', color: '#888' }}>Submitted {submittedDate}</span>
+                            <button onClick={() => setShowSendAssessment(true)} style={{ padding: '5px 12px', background: '#000', color: '#fff', border: 'none', fontSize: '12px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit' }}>
+                              Send New
+                            </button>
+                          </div>
                         </div>
                         <div style={{ fontSize: '12px', color: '#888' }}>
                           {selected?.status === 'completed' ? '✅ Completed' : '⏳ In Progress'} · Sections: {(selected?.sections_completed || []).length}

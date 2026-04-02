@@ -1723,16 +1723,12 @@ export default function PatientProfile() {
       // Build descriptive label
       const typeLabel = lastType === 'pickup' ? 'Pickup' : lastType === 'injection' ? 'Range Injection' : lastType === 'session' ? 'Session' : null;
 
-      // Renewal / supply status — uses sessions_exhausted from lib/protocol-tracking
+      // Renewal / supply status — driven by days_remaining (date-based) and sessions_remaining
       let renewalTag = null;
       const daysLeft = protocol.days_remaining;
       const sessLeft = protocol.sessions_remaining;
       const totalSess = protocol.total_sessions;
-      // Sessions exhausted (set by lib) — always show renewal needed
-      if (protocol.sessions_exhausted) {
-        renewalTag = { label: 'Renewal needed', urgent: true };
-      }
-      if (!renewalTag && daysLeft !== null && daysLeft !== undefined) {
+      if (daysLeft !== null && daysLeft !== undefined) {
         if (daysLeft <= 0) renewalTag = { label: 'Refill overdue', urgent: true };
         else if (daysLeft <= 7) renewalTag = { label: `Refill in ${daysLeft}d`, urgent: true };
         else if (daysLeft <= 14) renewalTag = { label: `Refill in ${daysLeft}d`, urgent: false };
@@ -5135,11 +5131,6 @@ export default function PatientProfile() {
                               );
                             })()}
                             {protocol.delivery_method === 'in_clinic' && <span className="clinic-badge">In-Clinic</span>}
-                            {isWeightLoss && protocol.status === 'active' && protocol.sessions_exhausted && (
-                              <span style={{ fontSize: '11px', fontWeight: 700, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', padding: '2px 8px', borderRadius: 0, marginLeft: 4 }}>
-                                ⚠ Renewal Due
-                              </span>
-                            )}
                             {isWeightLoss && protocol.status === 'active' && sessionsTotal > 0 && (
                               <span style={{ fontSize: '11px', fontWeight: 700, color: '#9333ea', background: '#faf5ff', border: '1px solid #e9d5ff', padding: '2px 8px', borderRadius: 0, marginLeft: 4 }}>
                                 {sessionsCompleted}/{sessionsTotal} sessions

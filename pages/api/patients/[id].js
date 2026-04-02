@@ -19,7 +19,6 @@ function calculateRemaining(protocol) {
     total_days: tracking.total_days,
     sessions_remaining: tracking.sessions_remaining,
     total_sessions: tracking.total_sessions,
-    sessions_exhausted: tracking.sessions_exhausted,
     status_text: tracking.status_text,
   };
 }
@@ -391,7 +390,6 @@ export default async function handler(req, res) {
           days_remaining: tracking.days_remaining,
           total_days: tracking.total_days,
           sessions_remaining: tracking.sessions_remaining,
-          sessions_exhausted: tracking.sessions_exhausted || false,
           status_text: tracking.status_text,
           category
         };

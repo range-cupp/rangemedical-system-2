@@ -1344,8 +1344,10 @@ function CheckoutInner() {
       const detail = secDetails.find(d => d.medication === secondaryMed);
       if (detail?.dosage) setDispDosage(detail.dosage);
     } else {
-      if (protocol.medication) setDispMedication(protocol.medication);
-      if (protocol.selected_dose) setDispDosage(protocol.selected_dose);
+      const medName = protocol.medication || protocol.program_name || '';
+      if (medName) setDispMedication(medName);
+      const doseVal = protocol.selected_dose || (protocol.dose_per_injection ? `${protocol.dose_per_injection}mg` : '');
+      if (doseVal) setDispDosage(doseVal);
       if (protocol.supply_type) setDispSupplyType(protocol.supply_type);
     }
 

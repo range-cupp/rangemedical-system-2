@@ -604,6 +604,12 @@ export default function PatientProfile() {
   const [confirmDeletePurchase, setConfirmDeletePurchase] = useState(false);
   const [deletingPurchase, setDeletingPurchase] = useState(false);
 
+  // HRT Dose Change modal state
+  const [showDoseChangeModal, setShowDoseChangeModal] = useState(false);
+  const [doseChangeProtocol, setDoseChangeProtocol] = useState(null);
+  const [doseChangeForm, setDoseChangeForm] = useState({ date: '', dose: '', injectionsPerWeek: 2, notes: '' });
+  const [doseChangeSaving, setDoseChangeSaving] = useState(false);
+
   // Add Credit modal state
   const [showAddCreditModal, setShowAddCreditModal] = useState(false);
   const [addCreditAmount, setAddCreditAmount] = useState('');
@@ -1270,6 +1276,66 @@ export default function PatientProfile() {
   };
 
   // Blood draw handlers
+  const openDoseChangeModal = (protocol) => {
+    setDoseChangeProtocol(protocol);
+    setDoseChangeForm({
+      date: new Date().toISOString().split('T')[0],
+      dose: '',
+      injectionsPerWeek: protocol.injections_per_week || 2,
+      notes: ''
+    });
+    setShowDoseChangeModal(true);
+  };
+
+  const handleSaveDoseChange = async () => {
+    if (!doseChangeForm.date || !doseChangeForm.dose) return;
+    setDoseChangeSaving(true);
+    try {
+      const currentHistory = Array.isArray(doseChangeProtocol.dose_history) ? [...doseChangeProtocol.dose_history] : [];
+      // If empty, seed with current dose at start_date
+      if (currentHistory.length === 0 && doseChangeProtocol.selected_dose && doseChangeProtocol.start_date) {
+        currentHistory.push({
+          date: doseChangeProtocol.start_date,
+          dose: doseChangeProtocol.selected_dose,
+          injections_per_week: doseChangeProtocol.injections_per_week || 2,
+          notes: 'Starting dose'
+        });
+      }
+      currentHistory.push({
+        date: doseChangeForm.date,
+        dose: doseChangeForm.dose,
+        injections_per_week: parseInt(doseChangeForm.injectionsPerWeek) || 2,
+        notes: doseChangeForm.notes || ''
+      });
+      // Sort by date
+      currentHistory.sort((a, b) => a.date.localeCompare(b.date));
+      await fetch(`/api/protocols/${doseChangeProtocol.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dose_history: currentHistory })
+      });
+      setShowDoseChangeModal(false);
+      fetchPatient();
+    } catch (err) {
+      alert('Failed to save dose change');
+    }
+    setDoseChangeSaving(false);
+  };
+
+  const handleDeleteDoseEntry = async (protocol, entryIndex) => {
+    const currentHistory = Array.isArray(protocol.dose_history) ? [...protocol.dose_history] : [];
+    if (entryIndex < 0 || entryIndex >= currentHistory.length) return;
+    currentHistory.splice(entryIndex, 1);
+    try {
+      await fetch(`/api/protocols/${protocol.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dose_history: currentHistory })
+      });
+      fetchPatient();
+    } catch {}
+  };
+
   const handleBloodDrawClick = (draw, protocolId) => {
     setBloodDrawDate(draw.completedDate || new Date().toISOString().split('T')[0]);
     setBloodDrawModal({ ...draw, protocolId });
@@ -4389,6 +4455,81 @@ export default function PatientProfile() {
           {/* Overview Tab */}
           {activeTab === 'overview' && (
             <>
+              {/* Upcoming Appointments */}
+              {(() => {
+                const now = new Date();
+                const upcoming = appointments
+                  .filter(a => new Date(a.start_time) >= now && !['cancelled', 'no_show'].includes((a.status || '').toLowerCase()))
+                  .sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
+                  .slice(0, 5);
+                if (upcoming.length === 0) return null;
+                return (
+                  <section className="card" style={{ marginBottom: '16px' }}>
+                    <div className="card-header">
+                      <h3>Upcoming Appointments</h3>
+                      <button onClick={() => setActiveTab('appointments')} className="btn-text">View All →</button>
+                    </div>
+                    <div style={{ padding: '4px 16px 12px' }}>
+                      {upcoming.map(apt => {
+                        const aptDate = new Date(apt.start_time);
+                        const today = new Date();
+                        today.setHours(0,0,0,0);
+                        const aptDay = new Date(aptDate);
+                        aptDay.setHours(0,0,0,0);
+                        const diffDays = Math.round((aptDay - today) / (1000 * 60 * 60 * 24));
+                        const isToday = diffDays === 0;
+                        const isTomorrow = diffDays === 1;
+                        const statusColors = {
+                          scheduled: { bg: '#fef3c7', text: '#92400e' },
+                          confirmed: { bg: '#dbeafe', text: '#1e40af' },
+                          checked_in: { bg: '#fef9c3', text: '#854d0e' },
+                          in_progress: { bg: '#e0e7ff', text: '#3730a3' },
+                        };
+                        const status = (apt.status || 'scheduled').toLowerCase();
+                        const sc = statusColors[status] || statusColors.scheduled;
+                        return (
+                          <div key={apt.id} style={{
+                            display: 'flex', alignItems: 'center', gap: '12px',
+                            padding: '10px 12px', marginBottom: '4px',
+                            background: isToday ? '#eff6ff' : '#f8fafc',
+                            border: isToday ? '1px solid #93c5fd' : '1px solid #f1f5f9',
+                            borderRadius: 0, cursor: 'pointer',
+                          }}
+                            onClick={() => setActiveTab('appointments')}
+                          >
+                            <div style={{ minWidth: '56px', textAlign: 'center', flexShrink: 0 }}>
+                              <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: isToday ? '#2563eb' : isTomorrow ? '#d97706' : '#64748b' }}>
+                                {isToday ? 'Today' : isTomorrow ? 'Tomorrow' : aptDate.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'America/Los_Angeles' })}
+                              </div>
+                              <div style={{ fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>
+                                {aptDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' })}
+                              </div>
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: '13px', fontWeight: 600, color: '#1e293b' }}>
+                                {apt.calendar_name || 'Appointment'}
+                              </div>
+                              <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                                {aptDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Los_Angeles' })}
+                                {apt.duration_minutes ? ` · ${apt.duration_minutes} min` : ''}
+                                {apt.provider ? ` · ${apt.provider}` : ''}
+                              </div>
+                            </div>
+                            <span style={{
+                              padding: '2px 8px', fontSize: '10px', fontWeight: 700,
+                              textTransform: 'uppercase', letterSpacing: '0.5px',
+                              background: sc.bg, color: sc.text,
+                            }}>
+                              {status.replace('_', ' ')}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                );
+              })()}
+
               {/* Current Medications Snapshot */}
               {activeProtocols.filter(p => ['hrt', 'weight_loss', 'peptide'].includes(p.category)).length > 0 && (
                 <section className="card" style={{ marginBottom: '16px' }}>
@@ -6482,6 +6623,162 @@ export default function PatientProfile() {
                                     </div>
                                   )}
                                 </div>
+                                {/* HRT Dosage Timeline */}
+                                {protocol.start_date && (() => {
+                                  const doseHistory = Array.isArray(protocol.dose_history) && protocol.dose_history.length > 0
+                                    ? protocol.dose_history
+                                    : protocol.selected_dose
+                                      ? [{ date: protocol.start_date, dose: protocol.selected_dose, injections_per_week: protocol.injections_per_week || 2, notes: 'Starting dose' }]
+                                      : [];
+                                  if (doseHistory.length === 0) return null;
+
+                                  // Parse mg from dose string like "0.3ml/60mg" → 60
+                                  const parseMg = (doseStr) => {
+                                    if (!doseStr) return null;
+                                    const match = doseStr.match(/(\d+)\s*mg/i);
+                                    return match ? parseInt(match[1]) : null;
+                                  };
+
+                                  // Build weekly slots from start_date to now (or end_date)
+                                  const startDate = new Date(protocol.start_date + 'T12:00:00');
+                                  const endDate = protocol.status === 'completed' && protocol.end_date
+                                    ? new Date(protocol.end_date + 'T12:00:00')
+                                    : new Date();
+                                  const totalWeeks = Math.max(1, Math.ceil((endDate - startDate) / (7 * 24 * 60 * 60 * 1000)));
+                                  // Sort dose history by date
+                                  const sortedHistory = [...doseHistory].sort((a, b) => a.date.localeCompare(b.date));
+
+                                  // Build weeks with dose info
+                                  const weeks = [];
+                                  for (let w = 0; w < totalWeeks && w < 200; w++) {
+                                    const weekStart = new Date(startDate);
+                                    weekStart.setDate(weekStart.getDate() + w * 7);
+                                    const weekStr = weekStart.toISOString().split('T')[0];
+
+                                    // Find which dose was active this week
+                                    let activeDose = sortedHistory[0];
+                                    for (const entry of sortedHistory) {
+                                      if (entry.date <= weekStr) activeDose = entry;
+                                      else break;
+                                    }
+
+                                    const mg = parseMg(activeDose.dose);
+                                    const ipw = activeDose.injections_per_week || protocol.injections_per_week || 2;
+                                    const weeklyTotal = mg && ipw ? mg * ipw : null;
+                                    const isDoseChange = sortedHistory.some(e => {
+                                      const eDate = new Date(e.date + 'T12:00:00');
+                                      return eDate >= weekStart && eDate < new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000) && sortedHistory.indexOf(e) > 0;
+                                    });
+                                    const isFuture = weekStart > new Date();
+
+                                    // Match service logs to this week
+                                    const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+                                    const weekLogs = protoServiceLogs.filter(l => {
+                                      const ld = new Date(l.entry_date + 'T12:00:00');
+                                      return ld >= weekStart && ld < weekEnd && (l.entry_type === 'injection' || l.entry_type === 'session');
+                                    });
+
+                                    weeks.push({ num: w + 1, weekStart, weekStr, activeDose, mg, ipw, weeklyTotal, isDoseChange, isFuture, weekLogs });
+                                  }
+
+                                  // Determine if we should show collapsed (>12 weeks)
+                                  const isTimelineExpanded = expandedProtocols['timeline_' + protocol.id];
+                                  const showWeeks = isTimelineExpanded ? weeks : weeks.slice(-12);
+                                  const hiddenCount = weeks.length - showWeeks.length;
+
+                                  return (
+                                    <div style={{ marginTop: 8 }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                        <div style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                          Dosage Timeline
+                                        </div>
+                                        {weeks.length > 12 && (
+                                          <button
+                                            onClick={() => setExpandedProtocols(prev => ({ ...prev, ['timeline_' + protocol.id]: !prev['timeline_' + protocol.id] }))}
+                                            style={{ fontSize: 11, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px' }}
+                                          >
+                                            {isTimelineExpanded ? 'Show recent' : `Show all ${weeks.length} weeks`}
+                                          </button>
+                                        )}
+                                      </div>
+                                      <div style={{ overflowX: 'auto' }}>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                                          <thead>
+                                            <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
+                                              <th style={{ padding: '4px 8px', textAlign: 'left', color: '#6b7280', fontWeight: 600, fontSize: 11 }}>Wk</th>
+                                              <th style={{ padding: '4px 8px', textAlign: 'left', color: '#6b7280', fontWeight: 600, fontSize: 11 }}>Week of</th>
+                                              <th style={{ padding: '4px 8px', textAlign: 'left', color: '#6b7280', fontWeight: 600, fontSize: 11 }}>Dose/Inj</th>
+                                              <th style={{ padding: '4px 8px', textAlign: 'left', color: '#6b7280', fontWeight: 600, fontSize: 11 }}>Freq</th>
+                                              <th style={{ padding: '4px 8px', textAlign: 'left', color: '#6b7280', fontWeight: 600, fontSize: 11 }}>Weekly Total</th>
+                                              <th style={{ padding: '4px 8px', textAlign: 'left', color: '#6b7280', fontWeight: 600, fontSize: 11 }}>Logged</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            {hiddenCount > 0 && !isTimelineExpanded && (
+                                              <tr>
+                                                <td colSpan={6} style={{ padding: '4px 8px', color: '#9ca3af', fontStyle: 'italic', fontSize: 11, textAlign: 'center', borderBottom: '1px solid #f3f4f6' }}>
+                                                  {hiddenCount} earlier week{hiddenCount !== 1 ? 's' : ''} hidden
+                                                </td>
+                                              </tr>
+                                            )}
+                                            {showWeeks.map(week => (
+                                              <tr
+                                                key={week.num}
+                                                style={{
+                                                  borderBottom: '1px solid #f3f4f6',
+                                                  background: week.isDoseChange ? '#fefce8' : week.num === 1 ? '#f0f9ff' : 'transparent',
+                                                  opacity: week.isFuture ? 0.4 : 1,
+                                                  ...(week.isDoseChange ? { borderLeft: '3px solid #eab308' } : week.num === 1 ? { borderLeft: '3px solid #3b82f6' } : {})
+                                                }}
+                                              >
+                                                <td style={{ padding: '5px 8px', color: '#9ca3af', fontSize: 11 }}>{week.num}</td>
+                                                <td style={{ padding: '5px 8px' }}>
+                                                  {week.weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                  {week.num === 1 && <span style={{ fontSize: 9, color: '#3b82f6', marginLeft: 4, fontWeight: 600 }}>START</span>}
+                                                </td>
+                                                <td style={{ padding: '5px 8px', fontWeight: week.isDoseChange ? 700 : 400 }}>
+                                                  {week.mg ? `${week.mg}mg` : week.activeDose.dose}
+                                                  {week.isDoseChange && <span style={{ fontSize: 9, color: '#eab308', marginLeft: 4, fontWeight: 600 }}>CHANGED</span>}
+                                                </td>
+                                                <td style={{ padding: '5px 8px', color: '#6b7280' }}>{week.ipw}x/wk</td>
+                                                <td style={{ padding: '5px 8px', fontWeight: 600 }}>{week.weeklyTotal ? `${week.weeklyTotal}mg/wk` : '\u2014'}</td>
+                                                <td style={{ padding: '5px 8px' }}>
+                                                  {week.isFuture ? (
+                                                    <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>Upcoming</span>
+                                                  ) : week.weekLogs.length > 0 ? (
+                                                    <span style={{ color: '#16a34a' }}>{'\u2713'} {week.weekLogs.length} inj</span>
+                                                  ) : (
+                                                    <span style={{ color: '#d1d5db' }}>{'\u2014'}</span>
+                                                  )}
+                                                </td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                      <div style={{ marginTop: 6, display: 'flex', gap: 8 }}>
+                                        <button
+                                          onClick={() => openDoseChangeModal(protocol)}
+                                          style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', background: '#000', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer' }}
+                                        >+ Add Dose Change</button>
+                                      </div>
+                                      {/* Dose change summary */}
+                                      {sortedHistory.length > 1 && (
+                                        <div style={{ marginTop: 8, padding: '8px 10px', background: '#fefce8', border: '1px solid #fde68a', fontSize: 11, color: '#92400e' }}>
+                                          <span style={{ fontWeight: 600 }}>Dose changes ({sortedHistory.length - 1}):</span>
+                                          {sortedHistory.map((entry, i) => (
+                                            <span key={i}>
+                                              {i > 0 && ' \u2192 '}
+                                              {' '}{parseMg(entry.dose) || entry.dose}mg
+                                              <span style={{ color: '#b45309' }}> ({new Date(entry.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})</span>
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
+
                                 {/* Injection reminders status */}
                                 {protocol.delivery_method === 'take_home' && (
                                   <div style={{ padding: '8px 12px', background: protocol.hrt_reminders_enabled ? '#F0FDF4' : '#f9fafb', border: `1px solid ${protocol.hrt_reminders_enabled ? '#BBF7D0' : '#e5e7eb'}`, borderRadius: 0, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -11104,6 +11401,81 @@ export default function PatientProfile() {
                   fontSize: 14, fontWeight: 600, opacity: sessionLogSaving ? 0.6 : 1
                 }}>{sessionLogSaving ? 'Saving...' : 'Log Session'}</button>
               </div>
+            </div>
+          </>
+        )}
+
+        {/* HRT Dose Change Modal */}
+        {showDoseChangeModal && doseChangeProtocol && (
+          <>
+            <div onClick={() => setShowDoseChangeModal(false)} style={{
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 10000
+            }} />
+            <div style={{
+              position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+              background: '#fff', padding: '24px', zIndex: 10001, width: '400px', maxWidth: '90vw',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
+            }}>
+              <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700 }}>Add Dose Change</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Effective Date</label>
+                  <input type="date" value={doseChangeForm.date} onChange={e => setDoseChangeForm(f => ({ ...f, date: e.target.value }))}
+                    style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Dose</label>
+                  <select value={doseChangeForm.dose} onChange={e => setDoseChangeForm(f => ({ ...f, dose: e.target.value }))}
+                    style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }}>
+                    <option value="">Select dose...</option>
+                    {(TESTOSTERONE_DOSES[doseChangeProtocol.hrt_type === 'female' ? 'female' : 'male'] || TESTOSTERONE_DOSES.male).map(d => (
+                      <option key={d.value} value={d.value}>{d.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Injections per Week</label>
+                  <select value={doseChangeForm.injectionsPerWeek} onChange={e => setDoseChangeForm(f => ({ ...f, injectionsPerWeek: e.target.value }))}
+                    style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }}>
+                    <option value="1">1x per week</option>
+                    <option value="2">2x per week</option>
+                    <option value="3">3x per week</option>
+                    <option value="7">Daily</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Notes (optional)</label>
+                  <input type="text" value={doseChangeForm.notes} onChange={e => setDoseChangeForm(f => ({ ...f, notes: e.target.value }))}
+                    placeholder="e.g. Reduced after labs"
+                    style={{ width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 13 }} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
+                <button onClick={() => setShowDoseChangeModal(false)} style={{ padding: '6px 16px', border: '1px solid #d1d5db', background: '#fff', borderRadius: 0, cursor: 'pointer', fontSize: 13 }}>Cancel</button>
+                <button onClick={handleSaveDoseChange} disabled={doseChangeSaving || !doseChangeForm.dose || !doseChangeForm.date}
+                  style={{ padding: '6px 16px', background: '#000', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer', fontSize: 13, fontWeight: 600, opacity: doseChangeSaving || !doseChangeForm.dose ? 0.5 : 1 }}>
+                  {doseChangeSaving ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+
+              {/* Existing dose history entries */}
+              {Array.isArray(doseChangeProtocol.dose_history) && doseChangeProtocol.dose_history.length > 0 && (
+                <div style={{ marginTop: 16, borderTop: '1px solid #e5e7eb', paddingTop: 12 }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', marginBottom: 6 }}>Existing Entries</div>
+                  {doseChangeProtocol.dose_history.map((entry, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0', fontSize: 12, borderBottom: '1px solid #f3f4f6' }}>
+                      <span>
+                        <span style={{ fontWeight: 600 }}>{new Date(entry.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                        {' \u2014 '}{entry.dose}{entry.notes ? ` (${entry.notes})` : ''}
+                      </span>
+                      {i > 0 && (
+                        <button onClick={() => { handleDeleteDoseEntry(doseChangeProtocol, i); setShowDoseChangeModal(false); }}
+                          style={{ fontSize: 11, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}>Remove</button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </>
         )}

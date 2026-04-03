@@ -199,7 +199,9 @@ async function updateProtocol(id, updates, res) {
     'last_payment_date',
     // HRT secondary medications
     'secondary_medications',
-    'secondary_medication_details'
+    'secondary_medication_details',
+    // HRT dose history
+    'dose_history'
   ];
 
   // Date fields that need special handling (convert empty string to null)
@@ -295,6 +297,44 @@ async function updateProtocol(id, updates, res) {
         updateData.next_expected_date = nextDate.toISOString().split('T')[0];
       }
     }
+  }
+
+  // Auto-track HRT dose changes in dose_history
+  if (updateData.selected_dose !== undefined || updateData.injections_per_week !== undefined) {
+    const { data: current2 } = await supabase.from('protocols').select('category, selected_dose, injections_per_week, dose_history, start_date').eq('id', id).single();
+    if (current2 && current2.category === 'hrt') {
+      const oldDose = current2.selected_dose;
+      const oldIpw = current2.injections_per_week;
+      const newDose = updateData.selected_dose ?? oldDose;
+      const newIpw = updateData.injections_per_week ?? oldIpw;
+      const doseChanged = newDose !== oldDose || newIpw !== oldIpw;
+
+      if (doseChanged && newDose) {
+        const history = Array.isArray(current2.dose_history) ? [...current2.dose_history] : [];
+        // If empty, seed with the old dose at start_date
+        if (history.length === 0 && oldDose && current2.start_date) {
+          history.push({
+            date: current2.start_date,
+            dose: oldDose,
+            injections_per_week: oldIpw || 2,
+            notes: 'Starting dose'
+          });
+        }
+        // Add new dose entry
+        history.push({
+          date: new Date().toISOString().split('T')[0],
+          dose: newDose,
+          injections_per_week: parseInt(newIpw) || 2,
+          notes: `Changed from ${oldDose || 'unknown'}`
+        });
+        updateData.dose_history = history;
+      }
+    }
+  }
+
+  // If dose_history is being set directly (manual adjustment), allow it through
+  if (updateData.dose_history && typeof updateData.dose_history === 'string') {
+    try { updateData.dose_history = JSON.parse(updateData.dose_history); } catch { /* keep as-is */ }
   }
 
   const { data, error } = await supabase

@@ -12,33 +12,33 @@ export default function CashPay() {
       </Head>
 
       <Layout>
-        <section className="sp-hero">
-          <div className="container">
+        <section className="cp-hero">
+          <div className="cp-container">
             <div className="v2-label"><span className="v2-dot" /> How We Work</div>
             <h1>No Insurance.<br />On Purpose.</h1>
-            <div className="sp-hero-rule" />
-            <p className="sp-hero-sub">
+            <div className="cp-hero-rule" />
+            <p className="cp-hero-sub">
               Range Medical is a cash-pay clinic. We don&apos;t accept insurance &mdash; and that&apos;s a deliberate
               choice that lets us give you better care.
             </p>
           </div>
         </section>
 
-        <section className="sp-section">
-          <div className="container" style={{ maxWidth: '800px' }}>
-            <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '1.5rem' }}>Why Cash-Pay?</h2>
-            <p style={{ fontSize: '1rem', color: '#525252', lineHeight: 1.8, marginBottom: '1.5rem' }}>
+        <section className="cp-content">
+          <div className="cp-container cp-narrow">
+            <h2>Why Cash-Pay?</h2>
+            <p className="cp-intro">
               Insurance-based clinics operate under a system that limits what providers can offer, how much time
               they can spend with you, and which treatments get approved. We built Range Medical outside of that
               system so we could focus on one thing: getting you results.
             </p>
-            <p style={{ fontSize: '1rem', color: '#525252', lineHeight: 1.8, marginBottom: '2.5rem' }}>
+            <p className="cp-intro">
               Here&apos;s what that means for you.
             </p>
 
-            <div className="cashpay-detail">
-              <div className="cashpay-detail-item">
-                <span className="cashpay-num">01</span>
+            <div className="cp-detail">
+              <div className="cp-detail-item">
+                <span className="cp-num">01</span>
                 <h3>More Time With Your Provider</h3>
                 <p>
                   Insurance reimbursement pressures clinics to see as many patients as possible in a day. That
@@ -48,8 +48,8 @@ export default function CashPay() {
                 </p>
               </div>
 
-              <div className="cashpay-detail-item">
-                <span className="cashpay-num">02</span>
+              <div className="cp-detail-item">
+                <span className="cp-num">02</span>
                 <h3>Transparent Pricing</h3>
                 <p>
                   You know what everything costs before you commit. No surprise bills, no co-pay confusion,
@@ -59,8 +59,8 @@ export default function CashPay() {
                 </p>
               </div>
 
-              <div className="cashpay-detail-item">
-                <span className="cashpay-num">03</span>
+              <div className="cp-detail-item">
+                <span className="cp-num">03</span>
                 <h3>Better Treatment Options</h3>
                 <p>
                   Many of the therapies we offer &mdash; peptides, hyperbaric oxygen, advanced lab panels, NAD+
@@ -70,8 +70,8 @@ export default function CashPay() {
                 </p>
               </div>
 
-              <div className="cashpay-detail-item">
-                <span className="cashpay-num">04</span>
+              <div className="cp-detail-item">
+                <span className="cp-num">04</span>
                 <h3>No Referrals, No Prior Auth, No Red Tape</h3>
                 <p>
                   You don&apos;t need a referral to come see us. You don&apos;t need to wait for prior authorization.
@@ -79,8 +79,8 @@ export default function CashPay() {
                 </p>
               </div>
 
-              <div className="cashpay-detail-item">
-                <span className="cashpay-num">05</span>
+              <div className="cp-detail-item">
+                <span className="cp-num">05</span>
                 <h3>HSA & FSA Accepted</h3>
                 <p>
                   You can use your Health Savings Account (HSA) or Flexible Spending Account (FSA) for any of our
@@ -119,23 +119,79 @@ export default function CashPay() {
       </Layout>
 
       <style jsx>{`
-        .cashpay-detail {
+        .cp-hero {
+          padding: 5rem 2rem 4rem;
+        }
+
+        .cp-container {
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        .cp-narrow {
+          max-width: 800px;
+        }
+
+        .cp-hero h1 {
+          font-size: clamp(2.5rem, 6vw, 4rem);
+          font-weight: 900;
+          line-height: 1.05;
+          letter-spacing: -0.02em;
+          margin: 1rem 0 0;
+          color: #1a1a1a;
+        }
+
+        .cp-hero-rule {
+          width: 3rem;
+          height: 3px;
+          background: #1a1a1a;
+          margin: 2rem 0;
+        }
+
+        .cp-hero-sub {
+          font-size: 1.0625rem;
+          color: #525252;
+          line-height: 1.7;
+          max-width: 600px;
+          margin: 0;
+        }
+
+        .cp-content {
+          padding: 0 2rem 5rem;
+        }
+
+        .cp-content h2 {
+          font-size: 1.75rem;
+          font-weight: 800;
+          margin: 0 0 1.5rem;
+          color: #1a1a1a;
+        }
+
+        .cp-intro {
+          font-size: 1rem;
+          color: #525252;
+          line-height: 1.8;
+          margin: 0 0 1.25rem;
+        }
+
+        .cp-detail {
           display: flex;
           flex-direction: column;
           gap: 2.5rem;
+          margin-top: 3rem;
         }
 
-        .cashpay-detail-item {
+        .cp-detail-item {
           padding-bottom: 2.5rem;
           border-bottom: 1px solid #e8e8e8;
         }
 
-        .cashpay-detail-item:last-child {
+        .cp-detail-item:last-child {
           border-bottom: none;
           padding-bottom: 0;
         }
 
-        .cashpay-num {
+        .cp-num {
           font-size: 11px;
           font-weight: 800;
           letter-spacing: 0.1em;
@@ -144,18 +200,28 @@ export default function CashPay() {
           margin-bottom: 0.75rem;
         }
 
-        .cashpay-detail-item h3 {
+        .cp-detail-item h3 {
           font-size: 1.25rem;
           font-weight: 800;
           margin: 0 0 0.75rem;
           color: #1a1a1a;
         }
 
-        .cashpay-detail-item p {
+        .cp-detail-item p {
           font-size: 0.9375rem;
           color: #525252;
           line-height: 1.8;
           margin: 0;
+        }
+
+        @media (max-width: 640px) {
+          .cp-hero {
+            padding: 3rem 1.5rem 2.5rem;
+          }
+
+          .cp-content {
+            padding: 0 1.5rem 3rem;
+          }
         }
       `}</style>
     </>

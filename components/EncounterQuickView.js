@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { getCategoryStyle } from '../lib/protocol-config';
 import { overlayClickProps } from './AdminLayout';
 
-export default function EncounterQuickView({ appointments, notes, protocols, onClose, onOpenEncounter }) {
+export default function EncounterQuickView({ appointments, notes, protocols, patientName, onClose, onOpenEncounter }) {
   const [activeTab, setActiveTab] = useState('encounters');
   const [selectedAptId, setSelectedAptId] = useState(null);
   const [selectedProtocolId, setSelectedProtocolId] = useState(null);
@@ -253,7 +253,7 @@ export default function EncounterQuickView({ appointments, notes, protocols, onC
           {/* Header */}
           <div className="eqv-header">
             <div>
-              <h3 className="eqv-title">Quick View</h3>
+              <h3 className="eqv-title">{patientName ? `Quick View — ${patientName}` : 'Quick View'}</h3>
               <div className="eqv-subtitle">
                 {activeTab === 'encounters'
                   ? `${pastEncounters.length} encounter${pastEncounters.length !== 1 ? 's' : ''} with notes`

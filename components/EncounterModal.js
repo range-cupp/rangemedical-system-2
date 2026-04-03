@@ -1108,7 +1108,7 @@ export default function EncounterModal({ appointment, currentUser, onClose, onRe
           {/* Header */}
           <div className="enc-header">
             <div>
-              <h3 className="enc-title">Encounter</h3>
+              <h3 className="enc-title">{appointment?.patient_name ? `Encounter — ${appointment.patient_name}` : 'Encounter'}</h3>
               <div className="enc-subtitle">
                 {activeAppointment?.service_name || activeAppointment?.appointment_title || 'Appointment'} — {formatDate(activeAppointment?.start_time)}
                 {multiServiceQueue.length > 0 && (

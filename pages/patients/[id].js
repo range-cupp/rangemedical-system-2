@@ -11275,6 +11275,7 @@ export default function PatientProfile() {
             appointments={appointments}
             notes={notes}
             protocols={[...activeProtocols, ...completedProtocols]}
+            patientName={patient?.name}
             onClose={() => setShowQuickView(false)}
             onOpenEncounter={(apt) => {
               setShowQuickView(false);
@@ -11286,7 +11287,7 @@ export default function PatientProfile() {
         {/* Encounter Modal (replaces old Appointment Edit Modal) */}
         {editingAppointment && (
           <EncounterModal
-            appointment={{ ...editingAppointment, patient_id: patient?.id }}
+            appointment={{ ...editingAppointment, patient_id: patient?.id, patient_name: patient?.name }}
             currentUser={session?.user?.user_metadata?.full_name || session?.user?.email || 'Staff'}
             onClose={() => setEditingAppointment(null)}
             onRefresh={fetchPatient}

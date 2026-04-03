@@ -414,8 +414,8 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 24px', borderBottom: '1px solid #e5e7eb' }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#111827' }}>Log Encounter</h3>
-            <p style={{ margin: '2px 0 0', fontSize: 13, color: '#6b7280' }}>{patient?.name} — no appointment required</p>
+            <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#111827' }}>Log Encounter — {patient?.name || 'Patient'}</h3>
+            <p style={{ margin: '2px 0 0', fontSize: 13, color: '#6b7280' }}>No appointment required</p>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 22, color: '#9ca3af', cursor: 'pointer', lineHeight: 1, padding: 4 }}>×</button>
         </div>

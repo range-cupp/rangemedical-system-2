@@ -51,7 +51,7 @@ export default async function handler(req, res) {
     // Get paginated data
     let query = supabase
       .from('comms_log')
-      .select('id, channel, message_type, message, html_body, status, error_message, recipient, subject, direction, source, created_at, needs_response, media_url');
+      .select('id, channel, message_type, message, html_body, status, error_message, recipient, subject, direction, source, created_at, needs_response, media_url, metadata');
     query = buildFilter(query);
     query = query.order('created_at', { ascending: false }).range(offset, offset + limit - 1);
 

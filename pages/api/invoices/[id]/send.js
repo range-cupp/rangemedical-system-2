@@ -78,6 +78,7 @@ export default async function handler(req, res) {
             patientName: invoice.patient_name,
             recipient: invoice.patient_email,
             subject: `Invoice from Range Medical — ${total}`,
+            metadata: { invoice_id: invoice.id },
           });
         } catch (emailErr) {
           console.error('Invoice email error:', emailErr);
@@ -143,6 +144,7 @@ export default async function handler(req, res) {
                   patientName: invoice.patient_name,
                   recipient: normalizedPhone,
                   provider: optInResult.provider,
+                  metadata: { invoice_id: invoice.id },
                 });
 
                 twoStep = true;
@@ -162,6 +164,7 @@ export default async function handler(req, res) {
                 provider: smsResult.provider,
                 status: smsResult.success ? 'sent' : 'error',
                 errorMessage: smsResult.error || null,
+                metadata: { invoice_id: invoice.id },
               });
             }
           } else {
@@ -179,6 +182,7 @@ export default async function handler(req, res) {
               provider: smsResult.provider,
               status: smsResult.success ? 'sent' : 'error',
               errorMessage: smsResult.error || null,
+              metadata: { invoice_id: invoice.id },
             });
           }
         } catch (smsErr) {

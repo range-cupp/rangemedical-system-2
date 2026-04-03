@@ -89,6 +89,8 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const [rescheduleResult, setRescheduleResult] = useState(null);
   const [imagePreview, setImagePreview] = useState(null); // { file, previewUrl }
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [invoiceDetail, setInvoiceDetail] = useState(null);
+  const [loadingInvoice, setLoadingInvoice] = useState(false);
   const imageInputRef = useRef(null);
   const audioRef = useRef(null);
   const nameInputRef = useRef(null);
@@ -194,6 +196,26 @@ export default function ConversationView({ patientId, patientName, patientPhone,
       setCreatingTask(false);
     }
   };
+
+  // Fetch invoice details when an invoice message is selected
+  useEffect(() => {
+    if (!selectedMessage) {
+      setInvoiceDetail(null);
+      return;
+    }
+    const isInvoice = selectedMessage.message_type === 'invoice' || selectedMessage.message_type === 'invoice_optin';
+    const invoiceId = selectedMessage.metadata?.invoice_id;
+    if (!isInvoice || !invoiceId) {
+      setInvoiceDetail(null);
+      return;
+    }
+    setLoadingInvoice(true);
+    fetch(`/api/invoices/${invoiceId}`)
+      .then(r => r.json())
+      .then(d => { setInvoiceDetail(d.invoice || null); })
+      .catch(() => setInvoiceDetail(null))
+      .finally(() => setLoadingInvoice(false));
+  }, [selectedMessage]);
 
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
@@ -1783,6 +1805,72 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                 </div>
               )}
             </div>
+            {/* Invoice detail panel */}
+            {(selectedMessage.message_type === 'invoice' || selectedMessage.message_type === 'invoice_optin') && (
+              <div style={{ padding: '12px 20px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
+                {loadingInvoice ? (
+                  <div style={{ color: '#94a3b8', fontSize: 13 }}>Loading invoice...</div>
+                ) : invoiceDetail ? (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <span style={{ fontWeight: 600, fontSize: 14, color: '#1e293b' }}>Invoice Details</span>
+                      <span style={{
+                        fontSize: 11,
+                        fontWeight: 600,
+                        padding: '2px 8px',
+                        borderRadius: 4,
+                        background: invoiceDetail.status === 'paid' ? '#dcfce7' : invoiceDetail.status === 'expired' ? '#fef3c7' : invoiceDetail.status === 'void' ? '#fee2e2' : '#e0f2fe',
+                        color: invoiceDetail.status === 'paid' ? '#166534' : invoiceDetail.status === 'expired' ? '#92400e' : invoiceDetail.status === 'void' ? '#991b1b' : '#0369a1',
+                      }}>
+                        {(invoiceDetail.status || 'pending').toUpperCase()}
+                      </span>
+                    </div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                          <th style={{ textAlign: 'left', padding: '6px 0', color: '#64748b', fontWeight: 500 }}>Item</th>
+                          <th style={{ textAlign: 'right', padding: '6px 0', color: '#64748b', fontWeight: 500 }}>Qty</th>
+                          <th style={{ textAlign: 'right', padding: '6px 0', color: '#64748b', fontWeight: 500 }}>Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(invoiceDetail.items || []).map((item, i) => (
+                          <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={{ padding: '6px 0', color: '#1e293b' }}>{item.name}</td>
+                            <td style={{ padding: '6px 0', color: '#64748b', textAlign: 'right' }}>{item.quantity || 1}</td>
+                            <td style={{ padding: '6px 0', color: '#1e293b', textAlign: 'right', fontWeight: 500 }}>
+                              ${((item.price_cents || item.amount_cents || 0) / 100).toFixed(2)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {invoiceDetail.discount_cents > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: 13, color: '#16a34a' }}>
+                        <span>Discount{invoiceDetail.discount_description ? ` (${invoiceDetail.discount_description})` : ''}</span>
+                        <span>-${(invoiceDetail.discount_cents / 100).toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0 4px', borderTop: '1px solid #e2e8f0', marginTop: 4, fontWeight: 600, fontSize: 14, color: '#1e293b' }}>
+                      <span>Total</span>
+                      <span>${(invoiceDetail.total_cents / 100).toFixed(2)}</span>
+                    </div>
+                    {invoiceDetail.notes && (
+                      <div style={{ marginTop: 8, fontSize: 12, color: '#64748b', fontStyle: 'italic' }}>
+                        Note: {invoiceDetail.notes}
+                      </div>
+                    )}
+                    {invoiceDetail.paid_at && (
+                      <div style={{ marginTop: 6, fontSize: 12, color: '#16a34a' }}>
+                        Paid {new Date(invoiceDetail.paid_at).toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles', dateStyle: 'medium' })}
+                      </div>
+                    )}
+                  </div>
+                ) : selectedMessage.metadata?.invoice_id ? (
+                  <div style={{ color: '#94a3b8', fontSize: 13 }}>Invoice not found</div>
+                ) : null}
+              </div>
+            )}
             <div style={styles.modalBody}>
               {selectedMessage.channel === 'email' ? (
                 selectedMessage.html_body ? (

@@ -395,11 +395,11 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
               if (field.required) {
                 if (field.conditionalOn) {
                   const parentVal = formData[sKey]?.[field.conditionalOn.field];
-                  if (parentVal !== field.conditionalOn.value) return;
+                  if (!conditionalMatch(parentVal, field.conditionalOn.value)) return;
                 }
                 if (field.conditionalOnNot) {
                   const parentVal = formData[sKey]?.[field.conditionalOnNot.field];
-                  if (parentVal === field.conditionalOnNot.value) return;
+                  if (conditionalMatch(parentVal, field.conditionalOnNot.value)) return;
                 }
                 const val = formData[sKey]?.[field.key];
                 if (!val || (typeof val === 'string' && !val.trim()) || (Array.isArray(val) && val.length === 0)) {
@@ -415,11 +415,11 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
               // Skip validation for conditionally hidden fields
               if (field.conditionalOn) {
                 const parentVal = formData[section.key]?.[field.conditionalOn.field];
-                if (parentVal !== field.conditionalOn.value) return;
+                if (!conditionalMatch(parentVal, field.conditionalOn.value)) return;
               }
               if (field.conditionalOnNot) {
                 const parentVal = formData[section.key]?.[field.conditionalOnNot.field];
-                if (parentVal === field.conditionalOnNot.value) return;
+                if (conditionalMatch(parentVal, field.conditionalOnNot.value)) return;
               }
               const val = formData[section.key]?.[field.key];
               if (!val || (typeof val === 'string' && !val.trim()) || (Array.isArray(val) && val.length === 0)) {
@@ -431,6 +431,12 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
       }
     });
     return missing;
+  };
+
+  // Check if a conditional field should be visible (handles both scalar and array parent values)
+  const conditionalMatch = (parentVal, targetVal) => {
+    if (Array.isArray(parentVal)) return parentVal.includes(targetVal);
+    return parentVal === targetVal;
   };
 
   const generatedNote = generateNoteMarkdown(formType, formData, vitals);
@@ -1040,11 +1046,11 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
                   {section.fields.map((field) => {
                     if (field.conditionalOn) {
                       const parentVal = formData[sKey]?.[field.conditionalOn.field];
-                      if (parentVal !== field.conditionalOn.value) return null;
+                      if (!conditionalMatch(parentVal, field.conditionalOn.value)) return null;
                     }
                     if (field.conditionalOnNot) {
                       const parentVal = formData[sKey]?.[field.conditionalOnNot.field];
-                      if (parentVal === field.conditionalOnNot.value) return null;
+                      if (conditionalMatch(parentVal, field.conditionalOnNot.value)) return null;
                     }
                     return (
                       <div key={field.key} style={{
@@ -1113,11 +1119,11 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
                   // Conditional field: only show when parent field matches value
                   if (field.conditionalOn) {
                     const parentVal = formData[section.key]?.[field.conditionalOn.field];
-                    if (parentVal !== field.conditionalOn.value) return null;
+                    if (!conditionalMatch(parentVal, field.conditionalOn.value)) return null;
                   }
                   if (field.conditionalOnNot) {
                     const parentVal = formData[section.key]?.[field.conditionalOnNot.field];
-                    if (parentVal === field.conditionalOnNot.value) return null;
+                    if (conditionalMatch(parentVal, field.conditionalOnNot.value)) return null;
                   }
                   return (
                     <div key={field.key} style={{

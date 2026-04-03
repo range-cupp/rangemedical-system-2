@@ -348,6 +348,15 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
       if (section.type === 'fields') {
         section.fields.forEach(field => {
           if (field.required) {
+            // Skip validation for conditionally hidden fields
+            if (field.conditionalOn) {
+              const parentVal = formData[section.key]?.[field.conditionalOn.field];
+              if (parentVal !== field.conditionalOn.value) return;
+            }
+            if (field.conditionalOnNot) {
+              const parentVal = formData[section.key]?.[field.conditionalOnNot.field];
+              if (parentVal === field.conditionalOnNot.value) return;
+            }
             const val = formData[section.key]?.[field.key];
             if (!val || (typeof val === 'string' && !val.trim()) || (Array.isArray(val) && val.length === 0)) {
               missing.push(field.label);

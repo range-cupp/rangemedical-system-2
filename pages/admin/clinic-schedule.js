@@ -1,5 +1,5 @@
 // /pages/admin/clinic-schedule.js
-// In-Clinic Schedule - Pulls appointments directly from GoHighLevel
+// In-Clinic Schedule - Pulls from clinic_appointments + appointments tables
 // Range Medical
 
 import { useState, useEffect } from 'react';
@@ -50,34 +50,13 @@ export default function ClinicSchedule() {
     }
   };
 
-  const syncFromGHL = async () => {
-    try {
-      setSyncing(true);
-      setSyncMessage(null);
-      setError(null);
-
-      setSyncMessage('Syncing from GHL...');
-
-      const res = await fetch('/api/admin/sync-ghl-appointments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date: selectedDate })
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        setSyncMessage(`Synced ${data.synced} appointments from GHL`);
-        // Now fetch the updated appointments from database
-        await fetchAppointments();
-      } else {
-        setError(data.error || 'Sync failed');
-      }
-    } catch (err) {
-      console.error('Sync error:', err);
-      setError('Failed to sync from GHL');
-    } finally {
-      setSyncing(false);
-    }
+  const refreshAppointments = async () => {
+    setSyncing(true);
+    setSyncMessage(null);
+    await fetchAppointments();
+    setSyncMessage('Refreshed');
+    setSyncing(false);
+    setTimeout(() => setSyncMessage(null), 2000);
   };
 
   const formatTime = (dateStr) => {
@@ -129,7 +108,7 @@ export default function ClinicSchedule() {
         <div style={styles.header}>
           <div>
             <h1 style={styles.title}>Clinic Schedule</h1>
-            <div style={styles.subtitle}>Appointments from GoHighLevel</div>
+            <div style={styles.subtitle}>All scheduled appointments</div>
           </div>
           <Link href="/admin/pipeline" style={styles.backLink}>← Pipeline</Link>
         </div>
@@ -205,10 +184,25 @@ export default function ClinicSchedule() {
                       </div>
                       <div style={styles.appointmentDetails}>
                         <span style={styles.calendarName}>{apt.calendarName}</span>
-                        {apt.title !== apt.calendarName && <span> • {apt.title}</span>}
+                        {apt.title && apt.title !== apt.calendarName && <span> • {apt.title}</span>}
+                        {apt.source === 'cal_com' && <span style={styles.sourceBadge}>Cal.com</span>}
                       </div>
+                      {apt.notes && apt.notes.includes('GOOGLE REVIEW GIFT') && (
+                        <div style={styles.giftBadge}>🎁 Google Review Gift — do not charge</div>
+                      )}
+                      {apt.notes && apt.notes.includes('BIRTHDAY GIFT') && (
+                        <div style={styles.giftBadge}>🎂 Birthday Gift — do not charge</div>
+                      )}
                       {apt.patient?.phone && (
                         <div style={styles.contactInfo}>{formatPhone(apt.patient.phone)}</div>
+                      )}
+                      {apt.patient && (
+                        <Link
+                          href={`/admin/checkout?patient_id=${apt.patient.id}&patient_name=${encodeURIComponent(apt.patientName)}`}
+                          style={styles.checkoutBtn}
+                        >
+                          Checkout →
+                        </Link>
                       )}
                     </div>
                   </div>
@@ -258,8 +252,8 @@ export default function ClinicSchedule() {
         )}
 
         {/* Refresh Button */}
-        <button onClick={syncFromGHL} disabled={syncing} style={styles.refreshBtn}>
-          {syncing ? 'Syncing...' : '↻ Sync from GHL'}
+        <button onClick={refreshAppointments} disabled={syncing} style={styles.refreshBtn}>
+          {syncing ? 'Refreshing...' : '↻ Refresh'}
         </button>
     </AdminLayout>
   );
@@ -442,6 +436,17 @@ const styles = {
     color: '#9ca3af',
     marginTop: '4px'
   },
+  checkoutBtn: {
+    display: 'inline-block',
+    marginTop: '6px',
+    padding: '4px 12px',
+    fontSize: '12px',
+    fontWeight: 600,
+    background: '#1a1a1a',
+    color: '#fff',
+    textDecoration: 'none',
+    letterSpacing: '0.03em',
+  },
   groupedSection: {
     marginTop: '32px',
     paddingTop: '24px',
@@ -520,5 +525,25 @@ const styles = {
     color: '#166534',
     borderRadius: 0,
     fontSize: '14px'
+  },
+  sourceBadge: {
+    display: 'inline-block',
+    marginLeft: '8px',
+    padding: '1px 6px',
+    fontSize: '11px',
+    fontWeight: '500',
+    background: '#ede9fe',
+    color: '#6d28d9',
+    borderRadius: 0,
+    verticalAlign: 'middle'
+  },
+  giftBadge: {
+    marginTop: '4px',
+    padding: '4px 8px',
+    fontSize: '12px',
+    fontWeight: '600',
+    background: '#fef3c7',
+    color: '#92400e',
+    borderRadius: 0
   }
 };

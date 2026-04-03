@@ -92,6 +92,37 @@ export default async function handler(req, res) {
       })
       .eq('id', gift.id);
 
+    // Write directly to appointments table so it shows on schedule + patient profile
+    // Check if webhook already created this appointment first
+    const injectionLabelForAppt = injectionType === 'nad-injection' ? 'NAD+ Injection' : 'Range Injections';
+    const startTime = new Date(slotStart);
+    const endTime = new Date(startTime.getTime() + 15 * 60 * 1000);
+
+    const { data: existing } = await supabase
+      .from('appointments')
+      .select('id')
+      .eq('cal_com_booking_id', String(bookingUid))
+      .maybeSingle();
+
+    if (!existing) {
+      await supabase.from('appointments').insert({
+        patient_id: gift.patient_id,
+        patient_name: patientName,
+        patient_phone: patientPhone || null,
+        service_name: injectionLabelForAppt,
+        service_category: 'injection',
+        provider: null,
+        start_time: startTime.toISOString(),
+        end_time: endTime.toISOString(),
+        duration_minutes: 15,
+        status: 'scheduled',
+        notes: '[GOOGLE REVIEW GIFT] Free injection - do not charge',
+        source: 'cal_com',
+        cal_com_booking_id: String(bookingUid),
+        created_by: 'review-gift',
+      });
+    }
+
     // Notify Chris via email
     try {
       const resend = new Resend(process.env.RESEND_API_KEY);

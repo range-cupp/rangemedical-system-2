@@ -580,7 +580,7 @@ const NAV_ITEMS = [
   { href: '/staff-chat', label: 'Assistant', icon: 'message' },
   { href: '/admin/send-forms', label: 'Send Forms', icon: 'file-text' },
   { href: '/admin/knowledge', label: 'Knowledge Base', icon: 'book-open' },
-  { href: '/admin/documents', label: 'Documents', icon: 'printer' },
+  { href: '/admin/peptide-guide', label: 'Peptide Guide', icon: 'flask' },
   { href: '/admin/snippets', label: 'Snippets', icon: 'file-text' },
   { href: '/admin/provider-schedule', label: 'Staff Hours', icon: 'clock' },
   { href: '/admin/employees', label: 'Employees', icon: 'user-check', permission: 'can_manage_employees' },

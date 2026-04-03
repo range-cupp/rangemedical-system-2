@@ -1999,6 +1999,10 @@ export default function PatientProfile() {
           injectionsPerWeek: isHRT ? parseInt(assignForm.injectionsPerWeek || (assignForm.injectionMethod === 'subq' ? '7' : '2')) : undefined,
           supplyType: isHRT ? assignForm.supplyType : undefined,
           hrtInitialQuantity: isHRT && assignForm.supplyType ? (() => {
+            if (assignForm.supplyType.includes('day')) {
+              const match = assignForm.supplyType.match(/(\d+)day/);
+              return match ? parseInt(match[1]) : undefined;
+            }
             const match = assignForm.supplyType.match(/(\d+)/);
             if (!match) return undefined;
             const perWeek = assignForm.injectionMethod === 'subq' ? 7 : 2;
@@ -9694,7 +9698,7 @@ export default function PatientProfile() {
                             <label>Supply Type</label>
                             <select value={assignForm.supplyType} onChange={e => setAssignForm({...assignForm, supplyType: e.target.value})}>
                               <option value="">Select supply...</option>
-                              {HRT_SUPPLY_TYPES.map(st => (
+                              {HRT_SUPPLY_TYPES.filter(st => !st.method || st.method === assignForm.injectionMethod).map(st => (
                                 <option key={st.value} value={st.value}>{st.label}</option>
                               ))}
                             </select>
@@ -10301,7 +10305,7 @@ export default function PatientProfile() {
                         <label>Supply Type</label>
                         <select value={editForm.supplyType} onChange={e => setEditForm({...editForm, supplyType: e.target.value})}>
                           <option value="">Select...</option>
-                          {HRT_SUPPLY_TYPES.map(st => <option key={st.value} value={st.value}>{st.label}</option>)}
+                          {HRT_SUPPLY_TYPES.filter(st => !st.method || st.method === editForm.injectionMethod).map(st => <option key={st.value} value={st.value}>{st.label}</option>)}
                         </select>
                       </div>
                       <div className="form-group">

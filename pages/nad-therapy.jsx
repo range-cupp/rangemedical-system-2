@@ -448,6 +448,86 @@ export default function NADTherapy() {
           </div>
         </section>
 
+        {/* Safety & Transparency */}
+        <section className="nad-section">
+          <div className="nad-container">
+            <div className="nad-animate">
+              <div className="v2-label"><span className="v2-dot" /> SAFETY & TRANSPARENCY</div>
+              <h2>WHAT WE WANT YOU TO KNOW UPFRONT.</h2>
+              <div className="nad-divider"></div>
+              <p className="nad-body-text">
+                NAD+ is one of the more intense IV infusions &mdash; you will likely feel something during the session. That is normal, expected, and manageable. Your nurse adjusts the drip rate to keep you comfortable.
+              </p>
+            </div>
+
+            <div className="nad-safety-grid nad-animate">
+              <div className="nad-safety-card">
+                <div className="nad-safety-label">What You Will Likely Feel</div>
+                <div className="nad-safety-items">
+                  <div className="nad-safety-item">
+                    <span className="nad-safety-icon">1</span>
+                    <div>
+                      <strong>Chest Tightness</strong>
+                      <p>A heavy or constricting feeling in your chest during infusion. Not cardiac &mdash; it is the NAD+ itself. Goes away instantly when the drip slows.</p>
+                    </div>
+                  </div>
+                  <div className="nad-safety-item">
+                    <span className="nad-safety-icon">2</span>
+                    <div>
+                      <strong>Nausea</strong>
+                      <p>Queasy stomach if the drip rate is too fast. Completely rate-dependent &mdash; slowing the drip fixes it every time.</p>
+                    </div>
+                  </div>
+                  <div className="nad-safety-item">
+                    <span className="nad-safety-icon">3</span>
+                    <div>
+                      <strong>Flushing & Warmth</strong>
+                      <p>Warmth spreading through your body from NAD+-related vasodilation. Same mechanism as a niacin flush. Harmless.</p>
+                    </div>
+                  </div>
+                  <div className="nad-safety-item">
+                    <span className="nad-safety-icon">4</span>
+                    <div>
+                      <strong>Post-Session Fatigue</strong>
+                      <p>Feeling tired after your session. Your body is using the NAD+ for cellular repair. The energy boost comes 24-48 hours later.</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="nad-safety-guides">
+                  <Link href="/nad-side-effects-guide" className="nad-safety-guide-link">Full NAD+ Side Effects Guide <span>&rarr;</span></Link>
+                </div>
+              </div>
+
+              <div className="nad-safety-card nad-safety-card-dark">
+                <div className="nad-safety-label">Who Should Discuss With Their Provider First</div>
+                <div className="nad-safety-items">
+                  <div className="nad-safety-item">
+                    <span className="nad-safety-warn">!</span>
+                    <p>Currently taking blood pressure medications (NAD+ can affect blood pressure)</p>
+                  </div>
+                  <div className="nad-safety-item">
+                    <span className="nad-safety-warn">!</span>
+                    <p>History of heart arrhythmias or cardiac conditions</p>
+                  </div>
+                  <div className="nad-safety-item">
+                    <span className="nad-safety-warn">!</span>
+                    <p>Pregnant or breastfeeding</p>
+                  </div>
+                  <div className="nad-safety-item">
+                    <span className="nad-safety-warn">!</span>
+                    <p>Active infections or fever</p>
+                  </div>
+                  <div className="nad-safety-item">
+                    <span className="nad-safety-warn">!</span>
+                    <p>Currently on chemotherapy or immunosuppressive medications</p>
+                  </div>
+                </div>
+                <p className="nad-safety-note">NAD+ therapy is not FDA-approved for specific conditions. All infusions are administered and monitored by licensed medical professionals. We assess every patient before starting.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* FAQ */}
         <section className="nad-section-alt">
           <div className="nad-container">
@@ -1041,6 +1121,130 @@ export default function NADTherapy() {
           border-color: rgba(255, 255, 255, 0.6);
         }
 
+        /* Safety & Transparency */
+        .nad-safety-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.5rem;
+          margin-top: 2.5rem;
+        }
+        .nad-safety-card {
+          border: 1px solid #e0e0e0;
+          padding: 2rem;
+          background: #ffffff;
+        }
+        .nad-safety-card-dark {
+          background: #0a0a0a;
+          border-color: #0a0a0a;
+          color: #ffffff;
+        }
+        .nad-safety-label {
+          font-size: 0.7rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          color: #737373;
+          margin-bottom: 1.5rem;
+        }
+        .nad-safety-card-dark .nad-safety-label {
+          color: rgba(255,255,255,0.5);
+        }
+        .nad-safety-items {
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+        }
+        .nad-safety-item {
+          display: flex;
+          gap: 1rem;
+          align-items: flex-start;
+          padding: 0.875rem 0;
+          border-bottom: 1px solid #f0f0f0;
+        }
+        .nad-safety-card-dark .nad-safety-item {
+          border-bottom-color: rgba(255,255,255,0.1);
+        }
+        .nad-safety-item:last-child {
+          border-bottom: none;
+        }
+        .nad-safety-icon {
+          width: 1.5rem;
+          height: 1.5rem;
+          background: #171717;
+          color: #ffffff;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 0.6875rem;
+          flex-shrink: 0;
+          margin-top: 0.125rem;
+        }
+        .nad-safety-warn {
+          width: 1.5rem;
+          height: 1.5rem;
+          background: rgba(239, 68, 68, 0.15);
+          color: #ef4444;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 0.75rem;
+          flex-shrink: 0;
+          margin-top: 0.125rem;
+        }
+        .nad-safety-item strong {
+          display: block;
+          font-size: 0.9rem;
+          color: #171717;
+          margin-bottom: 0.125rem;
+        }
+        .nad-safety-item p {
+          font-size: 0.8125rem;
+          line-height: 1.6;
+          color: #737373;
+          margin: 0;
+        }
+        .nad-safety-card-dark .nad-safety-item p {
+          color: rgba(255,255,255,0.7);
+        }
+        .nad-safety-guides {
+          display: flex;
+          gap: 1rem;
+          margin-top: 1.5rem;
+          padding-top: 1rem;
+          border-top: 1px solid #e0e0e0;
+        }
+        .nad-safety-guide-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.375rem;
+          font-size: 0.8125rem;
+          font-weight: 600;
+          color: #171717;
+          text-decoration: none;
+          padding: 0.5rem 1rem;
+          border: 1px solid #e0e0e0;
+          transition: all 0.2s;
+        }
+        .nad-safety-guide-link:hover {
+          border-color: #171717;
+        }
+        .nad-safety-guide-link span {
+          transition: transform 0.2s;
+        }
+        .nad-safety-guide-link:hover span {
+          transform: translateX(3px);
+        }
+        .nad-safety-note {
+          font-size: 0.8125rem;
+          color: rgba(255,255,255,0.5);
+          margin-top: 1.25rem;
+          line-height: 1.6;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
           .nad-section {
@@ -1090,6 +1294,10 @@ export default function NADTherapy() {
 
           .nad-research-card {
             border-right: none;
+          }
+
+          .nad-safety-grid {
+            grid-template-columns: 1fr;
           }
 
           .nad-cta-buttons {

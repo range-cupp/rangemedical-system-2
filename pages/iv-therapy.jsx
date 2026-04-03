@@ -505,6 +505,86 @@ export default function IVTherapy() {
           </div>
         </section>
 
+        {/* Safety & Transparency */}
+        <section className="iv-section">
+          <div className="iv-container">
+            <div className="iv-animate">
+              <div className="v2-label"><span className="v2-dot" /> SAFETY & TRANSPARENCY</div>
+              <h2>WHAT WE WANT YOU TO KNOW UPFRONT.</h2>
+              <div className="iv-divider"></div>
+              <p className="iv-body-text">
+                IV therapy is one of the safest treatments we offer. Your nurse monitors you throughout every session. Here is what you might notice.
+              </p>
+            </div>
+
+            <div className="iv-safety-grid iv-animate">
+              <div className="iv-safety-card">
+                <div className="iv-safety-label">What You Might Notice</div>
+                <div className="iv-safety-items">
+                  <div className="iv-safety-item">
+                    <span className="iv-safety-icon">1</span>
+                    <div>
+                      <strong>Vein Discomfort</strong>
+                      <p>Mild tenderness or bruising at the IV site. Normal and resolves in a few days.</p>
+                    </div>
+                  </div>
+                  <div className="iv-safety-item">
+                    <span className="iv-safety-icon">2</span>
+                    <div>
+                      <strong>Flushing or Warmth</strong>
+                      <p>Brief warmth from B-vitamins or NAD+. A pharmacological response, not an allergic reaction.</p>
+                    </div>
+                  </div>
+                  <div className="iv-safety-item">
+                    <span className="iv-safety-icon">3</span>
+                    <div>
+                      <strong>Metallic Taste</strong>
+                      <p>Some formulas (glutathione, vitamin C) create a brief taste during infusion. Harmless and temporary.</p>
+                    </div>
+                  </div>
+                  <div className="iv-safety-item">
+                    <span className="iv-safety-icon">4</span>
+                    <div>
+                      <strong>Lightheadedness</strong>
+                      <p>Usually from skipping meals before your session or standing up too quickly afterward.</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="iv-safety-guides">
+                  <Link href="/iv-therapy-side-effects-guide" className="iv-safety-guide-link">Full IV Therapy Side Effects Guide <span>&rarr;</span></Link>
+                </div>
+              </div>
+
+              <div className="iv-safety-card iv-safety-card-dark">
+                <div className="iv-safety-label">Who Should Tell Us Before Receiving IV Therapy</div>
+                <div className="iv-safety-items">
+                  <div className="iv-safety-item">
+                    <span className="iv-safety-warn">!</span>
+                    <p>Kidney disease or impaired kidney function (affects how your body processes IV nutrients)</p>
+                  </div>
+                  <div className="iv-safety-item">
+                    <span className="iv-safety-warn">!</span>
+                    <p>Heart failure or fluid overload conditions (IV fluids add volume)</p>
+                  </div>
+                  <div className="iv-safety-item">
+                    <span className="iv-safety-warn">!</span>
+                    <p>G6PD deficiency (high-dose vitamin C can cause hemolysis)</p>
+                  </div>
+                  <div className="iv-safety-item">
+                    <span className="iv-safety-warn">!</span>
+                    <p>Currently on blood thinners or chemotherapy (timing and formulation adjustments may be needed)</p>
+                  </div>
+                  <div className="iv-safety-item">
+                    <span className="iv-safety-warn">!</span>
+                    <p>Pregnant or breastfeeding</p>
+                  </div>
+                </div>
+                <p className="iv-safety-note">These are not necessarily disqualifying — but we need to know so we can adjust your protocol. We screen everyone before their first infusion.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* FAQ */}
         <section className="iv-section iv-section-alt">
           <div className="iv-container">
@@ -1230,6 +1310,130 @@ export default function IVTherapy() {
           border-color: rgba(255, 255, 255, 0.6);
         }
 
+        /* Safety & Transparency */
+        .iv-safety-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.5rem;
+          margin-top: 2.5rem;
+        }
+        .iv-safety-card {
+          border: 1px solid #e0e0e0;
+          padding: 2rem;
+          background: #ffffff;
+        }
+        .iv-safety-card-dark {
+          background: #0a0a0a;
+          border-color: #0a0a0a;
+          color: #ffffff;
+        }
+        .iv-safety-label {
+          font-size: 0.7rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          color: #737373;
+          margin-bottom: 1.5rem;
+        }
+        .iv-safety-card-dark .iv-safety-label {
+          color: rgba(255,255,255,0.5);
+        }
+        .iv-safety-items {
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+        }
+        .iv-safety-item {
+          display: flex;
+          gap: 1rem;
+          align-items: flex-start;
+          padding: 0.875rem 0;
+          border-bottom: 1px solid #f0f0f0;
+        }
+        .iv-safety-card-dark .iv-safety-item {
+          border-bottom-color: rgba(255,255,255,0.1);
+        }
+        .iv-safety-item:last-child {
+          border-bottom: none;
+        }
+        .iv-safety-icon {
+          width: 1.5rem;
+          height: 1.5rem;
+          background: #171717;
+          color: #ffffff;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 0.6875rem;
+          flex-shrink: 0;
+          margin-top: 0.125rem;
+        }
+        .iv-safety-warn {
+          width: 1.5rem;
+          height: 1.5rem;
+          background: rgba(239, 68, 68, 0.15);
+          color: #ef4444;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 0.75rem;
+          flex-shrink: 0;
+          margin-top: 0.125rem;
+        }
+        .iv-safety-item strong {
+          display: block;
+          font-size: 0.9rem;
+          color: #171717;
+          margin-bottom: 0.125rem;
+        }
+        .iv-safety-item p {
+          font-size: 0.8125rem;
+          line-height: 1.6;
+          color: #737373;
+          margin: 0;
+        }
+        .iv-safety-card-dark .iv-safety-item p {
+          color: rgba(255,255,255,0.7);
+        }
+        .iv-safety-guides {
+          display: flex;
+          gap: 1rem;
+          margin-top: 1.5rem;
+          padding-top: 1rem;
+          border-top: 1px solid #e0e0e0;
+        }
+        .iv-safety-guide-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.375rem;
+          font-size: 0.8125rem;
+          font-weight: 600;
+          color: #171717;
+          text-decoration: none;
+          padding: 0.5rem 1rem;
+          border: 1px solid #e0e0e0;
+          transition: all 0.2s;
+        }
+        .iv-safety-guide-link:hover {
+          border-color: #171717;
+        }
+        .iv-safety-guide-link span {
+          transition: transform 0.2s;
+        }
+        .iv-safety-guide-link:hover span {
+          transform: translateX(3px);
+        }
+        .iv-safety-note {
+          font-size: 0.8125rem;
+          color: rgba(255,255,255,0.5);
+          margin-top: 1.25rem;
+          line-height: 1.6;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
           .iv-section,
@@ -1322,6 +1526,14 @@ export default function IVTherapy() {
 
           .iv-cta-section {
             padding: 4rem 1.5rem;
+          }
+
+          .iv-safety-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .iv-safety-guides {
+            flex-direction: column;
           }
         }
       `}</style>

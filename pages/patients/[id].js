@@ -275,6 +275,8 @@ const AVAILABLE_GUIDES = [
   { id: 'tirzepatide-side-effects-guide', name: 'Tirzepatide Side Effects', icon: '⚠️', category: 'side_effects' },
   { id: 'retatrutide-side-effects-guide', name: 'Retatrutide Side Effects', icon: '⚠️', category: 'side_effects' },
   { id: 'retatrutide-skin-guide', name: 'Retatrutide Skin Guide', icon: '⚠️', category: 'side_effects' },
+  { id: 'nad-side-effects-guide', name: 'NAD+ Side Effects', icon: '⚠️', category: 'side_effects' },
+  { id: 'rlt-side-effects-guide', name: 'Red Light Side Effects', icon: '⚠️', category: 'side_effects' },
 ];
 const GUIDE_CATEGORY_FILTERS = [
   { id: 'all', label: 'All' },

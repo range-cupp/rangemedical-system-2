@@ -444,6 +444,85 @@ export default function PeptideTherapy() {
           </div>
         </section>
 
+        {/* Safety & Transparency */}
+        <section className="pep-section">
+          <div className="pep-container">
+            <div className="pep-animate">
+              <div className="v2-label"><span className="v2-dot" /> Safety & Transparency</div>
+              <h2>WHAT WE WANT YOU TO KNOW UPFRONT.</h2>
+              <p className="pep-body-text">
+                We believe you should know exactly what to expect — including the parts other clinics gloss over. Here are the most common side effects and who may not be a candidate.
+              </p>
+            </div>
+
+            <div className="pep-safety-grid pep-animate">
+              <div className="pep-safety-card">
+                <div className="pep-safety-label">Common Side Effects</div>
+                <div className="pep-safety-items">
+                  <div className="pep-safety-item">
+                    <span className="pep-safety-icon">1</span>
+                    <div>
+                      <strong>Injection Site Reactions</strong>
+                      <p>Redness, stinging, or small bumps at the injection site. Improves with technique and rotation.</p>
+                    </div>
+                  </div>
+                  <div className="pep-safety-item">
+                    <span className="pep-safety-icon">2</span>
+                    <div>
+                      <strong>Flushing & Warmth</strong>
+                      <p>Brief warmth or facial redness after growth hormone peptides. A sign the peptide is active.</p>
+                    </div>
+                  </div>
+                  <div className="pep-safety-item">
+                    <span className="pep-safety-icon">3</span>
+                    <div>
+                      <strong>Increased Hunger</strong>
+                      <p>Growth hormone peptides stimulate ghrelin. Inject at bedtime to sleep through the spike.</p>
+                    </div>
+                  </div>
+                  <div className="pep-safety-item">
+                    <span className="pep-safety-icon">4</span>
+                    <div>
+                      <strong>Water Retention</strong>
+                      <p>Mild puffiness in first 2-3 weeks, especially with GH peptides. Stabilizes quickly.</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="pep-safety-guides">
+                  <Link href="/peptide-side-effects-guide" className="pep-safety-guide-link">Full Peptide Side Effects Guide <span>&rarr;</span></Link>
+                </div>
+              </div>
+
+              <div className="pep-safety-card pep-safety-card-dark">
+                <div className="pep-safety-label">Who May Not Be a Candidate</div>
+                <div className="pep-safety-items">
+                  <div className="pep-safety-item">
+                    <span className="pep-safety-warn">!</span>
+                    <p>Active cancer or history of cancer (some peptides may stimulate cell growth)</p>
+                  </div>
+                  <div className="pep-safety-item">
+                    <span className="pep-safety-warn">!</span>
+                    <p>Pregnant or breastfeeding</p>
+                  </div>
+                  <div className="pep-safety-item">
+                    <span className="pep-safety-warn">!</span>
+                    <p>Active infection at injection site</p>
+                  </div>
+                  <div className="pep-safety-item">
+                    <span className="pep-safety-warn">!</span>
+                    <p>Known allergy to specific peptide compounds</p>
+                  </div>
+                  <div className="pep-safety-item">
+                    <span className="pep-safety-warn">!</span>
+                    <p>Certain autoimmune conditions (discuss with provider)</p>
+                  </div>
+                </div>
+                <p className="pep-safety-note">We review your medical history before prescribing any peptide. Not all peptides carry the same considerations — we'll discuss what applies to you.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* FAQ */}
         <section className="pep-section pep-section-alt">
           <div className="pep-container">
@@ -1066,6 +1145,130 @@ export default function PeptideTherapy() {
           border-color: rgba(255, 255, 255, 0.6);
         }
 
+        /* Safety & Transparency */
+        .pep-safety-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.5rem;
+          margin-top: 2.5rem;
+        }
+        .pep-safety-card {
+          border: 1px solid #e0e0e0;
+          padding: 2rem;
+          background: #ffffff;
+        }
+        .pep-safety-card-dark {
+          background: #0a0a0a;
+          border-color: #0a0a0a;
+          color: #ffffff;
+        }
+        .pep-safety-label {
+          font-size: 0.7rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          color: #737373;
+          margin-bottom: 1.5rem;
+        }
+        .pep-safety-card-dark .pep-safety-label {
+          color: rgba(255,255,255,0.5);
+        }
+        .pep-safety-items {
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+        }
+        .pep-safety-item {
+          display: flex;
+          gap: 1rem;
+          align-items: flex-start;
+          padding: 0.875rem 0;
+          border-bottom: 1px solid #f0f0f0;
+        }
+        .pep-safety-card-dark .pep-safety-item {
+          border-bottom-color: rgba(255,255,255,0.1);
+        }
+        .pep-safety-item:last-child {
+          border-bottom: none;
+        }
+        .pep-safety-icon {
+          width: 1.5rem;
+          height: 1.5rem;
+          background: #171717;
+          color: #ffffff;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 0.6875rem;
+          flex-shrink: 0;
+          margin-top: 0.125rem;
+        }
+        .pep-safety-warn {
+          width: 1.5rem;
+          height: 1.5rem;
+          background: rgba(239, 68, 68, 0.15);
+          color: #ef4444;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 0.75rem;
+          flex-shrink: 0;
+          margin-top: 0.125rem;
+        }
+        .pep-safety-item strong {
+          display: block;
+          font-size: 0.9rem;
+          color: #171717;
+          margin-bottom: 0.125rem;
+        }
+        .pep-safety-item p {
+          font-size: 0.8125rem;
+          line-height: 1.6;
+          color: #737373;
+          margin: 0;
+        }
+        .pep-safety-card-dark .pep-safety-item p {
+          color: rgba(255,255,255,0.7);
+        }
+        .pep-safety-guides {
+          display: flex;
+          gap: 1rem;
+          margin-top: 1.5rem;
+          padding-top: 1rem;
+          border-top: 1px solid #e0e0e0;
+        }
+        .pep-safety-guide-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.375rem;
+          font-size: 0.8125rem;
+          font-weight: 600;
+          color: #171717;
+          text-decoration: none;
+          padding: 0.5rem 1rem;
+          border: 1px solid #e0e0e0;
+          transition: all 0.2s;
+        }
+        .pep-safety-guide-link:hover {
+          border-color: #171717;
+        }
+        .pep-safety-guide-link span {
+          transition: transform 0.2s;
+        }
+        .pep-safety-guide-link:hover span {
+          transform: translateX(3px);
+        }
+        .pep-safety-note {
+          font-size: 0.8125rem;
+          color: rgba(255,255,255,0.5);
+          margin-top: 1.25rem;
+          line-height: 1.6;
+        }
+
         /* Responsive */
         @media (max-width: 900px) {
           .pep-cards-grid {
@@ -1082,6 +1285,10 @@ export default function PeptideTherapy() {
 
           .pep-research-card {
             border-right: none;
+          }
+
+          .pep-safety-grid {
+            grid-template-columns: 1fr;
           }
         }
 

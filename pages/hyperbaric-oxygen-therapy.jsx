@@ -593,6 +593,86 @@ export default function HyperbaricOxygenTherapy() {
           </div>
         </section>
 
+        {/* Safety & Transparency */}
+        <section className="hbot-section">
+          <div className="hbot-container">
+            <div className="hbot-animate">
+              <div className="v2-label"><span className="v2-dot" /> SAFETY & TRANSPARENCY</div>
+              <h2>WHAT WE WANT YOU TO KNOW UPFRONT.</h2>
+              <div className="hbot-divider"></div>
+              <p className="hbot-body-text">
+                HBOT is safe and well-studied. Your technician monitors you throughout every session. Here is what you might experience.
+              </p>
+            </div>
+
+            <div className="hbot-safety-grid hbot-animate">
+              <div className="hbot-safety-card">
+                <div className="hbot-safety-label">What You Might Notice</div>
+                <div className="hbot-safety-items">
+                  <div className="hbot-safety-item">
+                    <span className="hbot-safety-icon">1</span>
+                    <div>
+                      <strong>Ear Pressure</strong>
+                      <p>Nearly everyone feels this during pressurization. Like descending in an airplane. Your ears learn to equalize quickly.</p>
+                    </div>
+                  </div>
+                  <div className="hbot-safety-item">
+                    <span className="hbot-safety-icon">2</span>
+                    <div>
+                      <strong>Sinus Pressure</strong>
+                      <p>Especially if you have any congestion. A pre-session decongestant prevents this for most people.</p>
+                    </div>
+                  </div>
+                  <div className="hbot-safety-item">
+                    <span className="hbot-safety-icon">3</span>
+                    <div>
+                      <strong>Temporary Vision Changes</strong>
+                      <p>After 10+ sessions, near vision may improve slightly and distance blur. 100% reversible after completing your protocol.</p>
+                    </div>
+                  </div>
+                  <div className="hbot-safety-item">
+                    <span className="hbot-safety-icon">4</span>
+                    <div>
+                      <strong>Post-Session Fatigue</strong>
+                      <p>Feeling tired after — your body is using the extra oxygen for repair. Most people feel energized by the next day.</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="hbot-safety-guides">
+                  <Link href="/hbot-side-effects-guide" className="hbot-safety-guide-link">Full HBOT Side Effects Guide <span>&rarr;</span></Link>
+                </div>
+              </div>
+
+              <div className="hbot-safety-card hbot-safety-card-dark">
+                <div className="hbot-safety-label">Who Should Not Do HBOT</div>
+                <div className="hbot-safety-items">
+                  <div className="hbot-safety-item">
+                    <span className="hbot-safety-warn">!</span>
+                    <p>Untreated pneumothorax (collapsed lung)</p>
+                  </div>
+                  <div className="hbot-safety-item">
+                    <span className="hbot-safety-warn">!</span>
+                    <p>Active ear or sinus infection (reschedule until resolved)</p>
+                  </div>
+                  <div className="hbot-safety-item">
+                    <span className="hbot-safety-warn">!</span>
+                    <p>Certain chemotherapy drugs (timing conflicts — discuss with provider)</p>
+                  </div>
+                  <div className="hbot-safety-item">
+                    <span className="hbot-safety-warn">!</span>
+                    <p>Severe claustrophobia that does not respond to accommodation</p>
+                  </div>
+                  <div className="hbot-safety-item">
+                    <span className="hbot-safety-warn">!</span>
+                    <p>Uncontrolled high fever</p>
+                  </div>
+                </div>
+                <p className="hbot-safety-note">We screen every patient before their first session. If you are congested or have an active infection, we will reschedule — not push through.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* FAQ */}
         <section className="hbot-section hbot-section-alt">
           <div className="hbot-container">
@@ -1542,6 +1622,130 @@ export default function HyperbaricOxygenTherapy() {
           border-color: #1a1a1a;
         }
 
+        /* Safety & Transparency */
+        .hbot-safety-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.5rem;
+          margin-top: 2.5rem;
+        }
+        .hbot-safety-card {
+          border: 1px solid #e0e0e0;
+          padding: 2rem;
+          background: #ffffff;
+        }
+        .hbot-safety-card-dark {
+          background: #0a0a0a;
+          border-color: #0a0a0a;
+          color: #ffffff;
+        }
+        .hbot-safety-label {
+          font-size: 0.7rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          color: #737373;
+          margin-bottom: 1.5rem;
+        }
+        .hbot-safety-card-dark .hbot-safety-label {
+          color: rgba(255,255,255,0.5);
+        }
+        .hbot-safety-items {
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+        }
+        .hbot-safety-item {
+          display: flex;
+          gap: 1rem;
+          align-items: flex-start;
+          padding: 0.875rem 0;
+          border-bottom: 1px solid #f0f0f0;
+        }
+        .hbot-safety-card-dark .hbot-safety-item {
+          border-bottom-color: rgba(255,255,255,0.1);
+        }
+        .hbot-safety-item:last-child {
+          border-bottom: none;
+        }
+        .hbot-safety-icon {
+          width: 1.5rem;
+          height: 1.5rem;
+          background: #171717;
+          color: #ffffff;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 0.6875rem;
+          flex-shrink: 0;
+          margin-top: 0.125rem;
+        }
+        .hbot-safety-warn {
+          width: 1.5rem;
+          height: 1.5rem;
+          background: rgba(239, 68, 68, 0.15);
+          color: #ef4444;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 0.75rem;
+          flex-shrink: 0;
+          margin-top: 0.125rem;
+        }
+        .hbot-safety-item strong {
+          display: block;
+          font-size: 0.9rem;
+          color: #171717;
+          margin-bottom: 0.125rem;
+        }
+        .hbot-safety-item p {
+          font-size: 0.8125rem;
+          line-height: 1.6;
+          color: #737373;
+          margin: 0;
+        }
+        .hbot-safety-card-dark .hbot-safety-item p {
+          color: rgba(255,255,255,0.7);
+        }
+        .hbot-safety-guides {
+          display: flex;
+          gap: 1rem;
+          margin-top: 1.5rem;
+          padding-top: 1rem;
+          border-top: 1px solid #e0e0e0;
+        }
+        .hbot-safety-guide-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.375rem;
+          font-size: 0.8125rem;
+          font-weight: 600;
+          color: #171717;
+          text-decoration: none;
+          padding: 0.5rem 1rem;
+          border: 1px solid #e0e0e0;
+          transition: all 0.2s;
+        }
+        .hbot-safety-guide-link:hover {
+          border-color: #171717;
+        }
+        .hbot-safety-guide-link span {
+          transition: transform 0.2s;
+        }
+        .hbot-safety-guide-link:hover span {
+          transform: translateX(3px);
+        }
+        .hbot-safety-note {
+          font-size: 0.8125rem;
+          color: rgba(255,255,255,0.5);
+          margin-top: 1.25rem;
+          line-height: 1.6;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
           .hbot-section {
@@ -1616,6 +1820,10 @@ export default function HyperbaricOxygenTherapy() {
           .hbot-expect-item {
             flex-direction: column;
             gap: 0.5rem;
+          }
+
+          .hbot-safety-grid {
+            grid-template-columns: 1fr;
           }
 
           .hbot-cta-title {

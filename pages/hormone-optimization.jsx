@@ -563,6 +563,86 @@ export default function HormoneOptimization() {
           </div>
         </section>
 
+        {/* Safety & Transparency */}
+        <section className="hrt-section">
+          <div className="hrt-container">
+            <div className="hrt-animate">
+              <div className="v2-label"><span className="v2-dot" /> SAFETY & TRANSPARENCY</div>
+              <h2>WHAT WE WANT YOU TO KNOW UPFRONT.</h2>
+              <div className="hrt-divider"></div>
+              <p className="hrt-body-text">
+                Hormone therapy is safe when properly monitored — but you should know exactly what to expect, including what we watch for.
+              </p>
+            </div>
+
+            <div className="hrt-safety-grid hrt-animate">
+              <div className="hrt-safety-card">
+                <div className="hrt-safety-label">Common Side Effects</div>
+                <div className="hrt-safety-items">
+                  <div className="hrt-safety-item">
+                    <span className="hrt-safety-icon">1</span>
+                    <div>
+                      <strong>Acne & Oily Skin</strong>
+                      <p>Testosterone stimulates oil production. Usually mild and resolves within 2-3 months as your body adjusts.</p>
+                    </div>
+                  </div>
+                  <div className="hrt-safety-item">
+                    <span className="hrt-safety-icon">2</span>
+                    <div>
+                      <strong>Fluid Retention</strong>
+                      <p>Temporary water retention in the first few weeks. Not fat gain — stabilizes as levels reach steady state.</p>
+                    </div>
+                  </div>
+                  <div className="hrt-safety-item">
+                    <span className="hrt-safety-icon">3</span>
+                    <div>
+                      <strong>Mood Changes</strong>
+                      <p>Temporary irritability or emotional shifts as your brain adjusts to new hormone levels. Usually settles within 4-6 weeks.</p>
+                    </div>
+                  </div>
+                  <div className="hrt-safety-item">
+                    <span className="hrt-safety-icon">4</span>
+                    <div>
+                      <strong>Elevated Hematocrit</strong>
+                      <p>Testosterone increases red blood cell production. We monitor this with regular bloodwork and adjust as needed.</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="hrt-safety-guides">
+                  <Link href="/hrt-side-effects-guide" className="hrt-safety-guide-link">Full HRT Side Effects Guide <span>&rarr;</span></Link>
+                </div>
+              </div>
+
+              <div className="hrt-safety-card hrt-safety-card-dark">
+                <div className="hrt-safety-label">Who May Not Be a Candidate</div>
+                <div className="hrt-safety-items">
+                  <div className="hrt-safety-item">
+                    <span className="hrt-safety-warn">!</span>
+                    <p>Active hormone-sensitive cancers (breast, prostate) or history of hormone-sensitive malignancy without clearance</p>
+                  </div>
+                  <div className="hrt-safety-item">
+                    <span className="hrt-safety-warn">!</span>
+                    <p>Untreated polycythemia (abnormally high red blood cell count)</p>
+                  </div>
+                  <div className="hrt-safety-item">
+                    <span className="hrt-safety-warn">!</span>
+                    <p>Severe untreated sleep apnea</p>
+                  </div>
+                  <div className="hrt-safety-item">
+                    <span className="hrt-safety-warn">!</span>
+                    <p>Active or recent blood clot (DVT/PE) without anticoagulation</p>
+                  </div>
+                  <div className="hrt-safety-item">
+                    <span className="hrt-safety-warn">!</span>
+                    <p>Pregnant or planning pregnancy (testosterone is contraindicated)</p>
+                  </div>
+                </div>
+                <p className="hrt-safety-note">We review your full medical history and labs before starting any protocol. If there are concerns, we discuss them openly.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* FAQ */}
         <section className="hrt-section hrt-section-alt">
           <div className="hrt-container">
@@ -1284,6 +1364,130 @@ export default function HormoneOptimization() {
           margin: 0;
         }
 
+        /* Safety & Transparency */
+        .hrt-safety-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.5rem;
+          margin-top: 2.5rem;
+        }
+        .hrt-safety-card {
+          border: 1px solid #e0e0e0;
+          padding: 2rem;
+          background: #ffffff;
+        }
+        .hrt-safety-card-dark {
+          background: #0a0a0a;
+          border-color: #0a0a0a;
+          color: #ffffff;
+        }
+        .hrt-safety-label {
+          font-size: 0.7rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          color: #737373;
+          margin-bottom: 1.5rem;
+        }
+        .hrt-safety-card-dark .hrt-safety-label {
+          color: rgba(255,255,255,0.5);
+        }
+        .hrt-safety-items {
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+        }
+        .hrt-safety-item {
+          display: flex;
+          gap: 1rem;
+          align-items: flex-start;
+          padding: 0.875rem 0;
+          border-bottom: 1px solid #f0f0f0;
+        }
+        .hrt-safety-card-dark .hrt-safety-item {
+          border-bottom-color: rgba(255,255,255,0.1);
+        }
+        .hrt-safety-item:last-child {
+          border-bottom: none;
+        }
+        .hrt-safety-icon {
+          width: 1.5rem;
+          height: 1.5rem;
+          background: #171717;
+          color: #ffffff;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 0.6875rem;
+          flex-shrink: 0;
+          margin-top: 0.125rem;
+        }
+        .hrt-safety-warn {
+          width: 1.5rem;
+          height: 1.5rem;
+          background: rgba(239, 68, 68, 0.15);
+          color: #ef4444;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 0.75rem;
+          flex-shrink: 0;
+          margin-top: 0.125rem;
+        }
+        .hrt-safety-item strong {
+          display: block;
+          font-size: 0.9rem;
+          color: #171717;
+          margin-bottom: 0.125rem;
+        }
+        .hrt-safety-item p {
+          font-size: 0.8125rem;
+          line-height: 1.6;
+          color: #737373;
+          margin: 0;
+        }
+        .hrt-safety-card-dark .hrt-safety-item p {
+          color: rgba(255,255,255,0.7);
+        }
+        .hrt-safety-guides {
+          display: flex;
+          gap: 1rem;
+          margin-top: 1.5rem;
+          padding-top: 1rem;
+          border-top: 1px solid #e0e0e0;
+        }
+        .hrt-safety-guide-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.375rem;
+          font-size: 0.8125rem;
+          font-weight: 600;
+          color: #171717;
+          text-decoration: none;
+          padding: 0.5rem 1rem;
+          border: 1px solid #e0e0e0;
+          transition: all 0.2s;
+        }
+        .hrt-safety-guide-link:hover {
+          border-color: #171717;
+        }
+        .hrt-safety-guide-link span {
+          transition: transform 0.2s;
+        }
+        .hrt-safety-guide-link:hover span {
+          transform: translateX(3px);
+        }
+        .hrt-safety-note {
+          font-size: 0.8125rem;
+          color: rgba(255,255,255,0.5);
+          margin-top: 1.25rem;
+          line-height: 1.6;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
           .hrt-section,
@@ -1347,6 +1551,13 @@ export default function HormoneOptimization() {
           .hrt-women-med-header {
             flex-direction: column;
             gap: 0.25rem;
+          }
+
+          .hrt-safety-grid {
+            grid-template-columns: 1fr;
+          }
+          .hrt-safety-guides {
+            flex-direction: column;
           }
         }
       `}</style>

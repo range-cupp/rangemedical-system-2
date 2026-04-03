@@ -89,13 +89,15 @@ export default function WeightLoss() {
       name: "Tirzepatide",
       brand: "Mounjaro / Zepbound",
       desc: "Dual GIP/GLP-1 receptor agonist. The newest and often most effective option, targeting two pathways for enhanced weight loss.",
-      highlight: "Most Popular"
+      highlight: "Most Popular",
+      sideEffectsLink: "/tirzepatide-side-effects-guide"
     },
     {
       name: "Semaglutide",
       brand: "Ozempic / Wegovy",
       desc: "GLP-1 receptor agonist. Well-studied with years of clinical data. Effective for weight loss and blood sugar control.",
-      highlight: null
+      highlight: null,
+      sideEffectsLink: "/semaglutide-side-effects-guide"
     }
   ];
 
@@ -341,6 +343,11 @@ export default function WeightLoss() {
                   <div className="wl-med-name">{med.name}</div>
                   <div className="wl-med-brand">{med.brand}</div>
                   <div className="wl-med-desc">{med.desc}</div>
+                  {med.sideEffectsLink && (
+                    <Link href={med.sideEffectsLink} className="wl-med-se-link">
+                      View Side Effects Guide <span>&rarr;</span>
+                    </Link>
+                  )}
                 </div>
               ))}
             </div>
@@ -453,6 +460,87 @@ export default function WeightLoss() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Safety & Transparency */}
+        <section className="wl-section">
+          <div className="wl-container">
+            <div className="wl-animate">
+              <div className="v2-label"><span className="v2-dot" /> SAFETY & TRANSPARENCY</div>
+              <h2>WHAT WE WANT YOU TO KNOW UPFRONT.</h2>
+              <div className="wl-divider"></div>
+              <p className="wl-body-text">
+                We believe you should know exactly what to expect — including the parts other clinics gloss over. Here are the most common side effects and who should not take these medications.
+              </p>
+            </div>
+
+            <div className="wl-safety-grid wl-animate">
+              <div className="wl-safety-card">
+                <div className="wl-safety-label">Common Side Effects</div>
+                <div className="wl-safety-items">
+                  <div className="wl-safety-item">
+                    <span className="wl-safety-icon">1</span>
+                    <div>
+                      <strong>Nausea</strong>
+                      <p>The most common side effect. Affects 3-4 out of 10 people, mostly in the first 1-2 weeks at each new dose. Usually mild and temporary.</p>
+                    </div>
+                  </div>
+                  <div className="wl-safety-item">
+                    <span className="wl-safety-icon">2</span>
+                    <div>
+                      <strong>GI Changes</strong>
+                      <p>Diarrhea, constipation, or heartburn as your digestive system adjusts to slower gastric emptying. Manageable with diet changes.</p>
+                    </div>
+                  </div>
+                  <div className="wl-safety-item">
+                    <span className="wl-safety-icon">3</span>
+                    <div>
+                      <strong>Reduced Appetite</strong>
+                      <p>The intended effect — but it can go too far. We monitor nutrition closely and adjust dosing to keep you fueled properly.</p>
+                    </div>
+                  </div>
+                  <div className="wl-safety-item">
+                    <span className="wl-safety-icon">4</span>
+                    <div>
+                      <strong>Fatigue & Hair Thinning</strong>
+                      <p>Less common. Usually related to eating too little or losing weight too fast — both of which we actively manage.</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="wl-safety-guides">
+                  <Link href="/semaglutide-side-effects-guide" className="wl-safety-guide-link">Semaglutide Guide <span>&rarr;</span></Link>
+                  <Link href="/tirzepatide-side-effects-guide" className="wl-safety-guide-link">Tirzepatide Guide <span>&rarr;</span></Link>
+                </div>
+              </div>
+
+              <div className="wl-safety-card wl-safety-card-dark">
+                <div className="wl-safety-label">Who Should Not Take GLP-1 Medications</div>
+                <div className="wl-safety-items">
+                  <div className="wl-safety-item">
+                    <span className="wl-safety-warn">!</span>
+                    <p>Personal or family history of medullary thyroid carcinoma (MTC) or Multiple Endocrine Neoplasia syndrome type 2 (MEN 2)</p>
+                  </div>
+                  <div className="wl-safety-item">
+                    <span className="wl-safety-warn">!</span>
+                    <p>History of pancreatitis or active gallbladder disease</p>
+                  </div>
+                  <div className="wl-safety-item">
+                    <span className="wl-safety-warn">!</span>
+                    <p>Currently pregnant, planning to become pregnant, or breastfeeding</p>
+                  </div>
+                  <div className="wl-safety-item">
+                    <span className="wl-safety-warn">!</span>
+                    <p>Known allergy to semaglutide, tirzepatide, or any component of the formulation</p>
+                  </div>
+                  <div className="wl-safety-item">
+                    <span className="wl-safety-warn">!</span>
+                    <p>Type 1 diabetes (these medications are for type 2 diabetes and weight management only)</p>
+                  </div>
+                </div>
+                <p className="wl-safety-note">We screen for all of these during your assessment. If you are unsure, we will review your history and let you know.</p>
+              </div>
             </div>
           </div>
         </section>
@@ -1108,6 +1196,155 @@ export default function WeightLoss() {
           border-color: rgba(255, 255, 255, 0.6);
         }
 
+        /* Side Effects Link on Med Cards */
+        .wl-med-se-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.375rem;
+          margin-top: 1rem;
+          font-size: 0.8125rem;
+          font-weight: 600;
+          color: #171717;
+          text-decoration: none;
+          padding: 0.5rem 0;
+          border-top: 1px solid #f0f0f0;
+          width: 100%;
+          transition: color 0.2s;
+        }
+        .wl-med-se-link:hover {
+          color: #525252;
+        }
+        .wl-med-se-link span {
+          transition: transform 0.2s;
+        }
+        .wl-med-se-link:hover span {
+          transform: translateX(3px);
+        }
+
+        /* Safety & Transparency */
+        .wl-safety-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.5rem;
+          margin-top: 2.5rem;
+        }
+        .wl-safety-card {
+          border: 1px solid #e0e0e0;
+          padding: 2rem;
+          background: #ffffff;
+        }
+        .wl-safety-card-dark {
+          background: #0a0a0a;
+          border-color: #0a0a0a;
+          color: #ffffff;
+        }
+        .wl-safety-label {
+          font-size: 0.7rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          color: #737373;
+          margin-bottom: 1.5rem;
+        }
+        .wl-safety-card-dark .wl-safety-label {
+          color: rgba(255,255,255,0.5);
+        }
+        .wl-safety-items {
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+        }
+        .wl-safety-item {
+          display: flex;
+          gap: 1rem;
+          align-items: flex-start;
+          padding: 0.875rem 0;
+          border-bottom: 1px solid #f0f0f0;
+        }
+        .wl-safety-card-dark .wl-safety-item {
+          border-bottom-color: rgba(255,255,255,0.1);
+        }
+        .wl-safety-item:last-child {
+          border-bottom: none;
+        }
+        .wl-safety-icon {
+          width: 1.5rem;
+          height: 1.5rem;
+          background: #171717;
+          color: #ffffff;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 0.6875rem;
+          flex-shrink: 0;
+          margin-top: 0.125rem;
+        }
+        .wl-safety-warn {
+          width: 1.5rem;
+          height: 1.5rem;
+          background: rgba(239, 68, 68, 0.15);
+          color: #ef4444;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 0.75rem;
+          flex-shrink: 0;
+          margin-top: 0.125rem;
+        }
+        .wl-safety-item strong {
+          display: block;
+          font-size: 0.9rem;
+          color: #171717;
+          margin-bottom: 0.125rem;
+        }
+        .wl-safety-item p {
+          font-size: 0.8125rem;
+          line-height: 1.6;
+          color: #737373;
+          margin: 0;
+        }
+        .wl-safety-card-dark .wl-safety-item p {
+          color: rgba(255,255,255,0.7);
+        }
+        .wl-safety-guides {
+          display: flex;
+          gap: 1rem;
+          margin-top: 1.5rem;
+          padding-top: 1rem;
+          border-top: 1px solid #e0e0e0;
+        }
+        .wl-safety-guide-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.375rem;
+          font-size: 0.8125rem;
+          font-weight: 600;
+          color: #171717;
+          text-decoration: none;
+          padding: 0.5rem 1rem;
+          border: 1px solid #e0e0e0;
+          transition: all 0.2s;
+        }
+        .wl-safety-guide-link:hover {
+          border-color: #171717;
+        }
+        .wl-safety-guide-link span {
+          transition: transform 0.2s;
+        }
+        .wl-safety-guide-link:hover span {
+          transform: translateX(3px);
+        }
+        .wl-safety-note {
+          font-size: 0.8125rem;
+          color: rgba(255,255,255,0.5);
+          margin-top: 1.25rem;
+          line-height: 1.6;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
           .wl-section {
@@ -1146,6 +1383,14 @@ export default function WeightLoss() {
 
           .wl-med-card:last-child {
             border-bottom: 1px solid #e0e0e0;
+          }
+
+          .wl-safety-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .wl-safety-guides {
+            flex-direction: column;
           }
 
           .wl-benefits-grid {

@@ -40,11 +40,24 @@ const AVAILABLE_GUIDES = [
   { id: 'tirzepatide-guide', name: 'Tirzepatide Guide', icon: '⚖️', category: 'weight_loss' },
   { id: 'retatrutide-guide', name: 'Retatrutide Guide', icon: '⚖️', category: 'weight_loss' },
   { id: 'weight-loss-medication-guide-page', name: 'WL Medication Guide', icon: '⚖️', category: 'weight_loss' },
+  { id: 'bpc-157-guide', name: 'BPC-157 Guide', icon: '🧬', category: 'peptide' },
   { id: 'bpc-tb4-guide', name: 'BPC/TB4 Guide', icon: '🧬', category: 'peptide' },
-  { id: 'recovery-blend-guide', name: 'Recovery Blend Guide', icon: '🧬', category: 'peptide' },
+  { id: 'recovery-blend-guide', name: 'Recovery 4-Blend Guide', icon: '🧬', category: 'peptide' },
+  { id: 'klow-guide', name: 'KLOW Guide', icon: '🧬', category: 'peptide' },
   { id: 'glow-guide', name: 'GLOW Guide', icon: '✨', category: 'peptide' },
   { id: 'ghk-cu-guide', name: 'GHK-Cu Guide', icon: '🧬', category: 'peptide' },
-  { id: '3x-blend-guide', name: '3x Blend Guide', icon: '🧬', category: 'peptide' },
+  { id: 'bdnf-guide', name: 'BDNF Guide', icon: '🧬', category: 'peptide' },
+  { id: 'aod-9604-guide', name: 'AOD-9604 Guide', icon: '🧬', category: 'peptide' },
+  { id: 'dsip-guide', name: 'DSIP Guide', icon: '🧬', category: 'peptide' },
+  { id: 'slupp-guide', name: '5-Amino / SLUPP Guide', icon: '🧬', category: 'peptide' },
+  { id: 'mots-c-guide', name: 'MOTS-C Guide', icon: '🧬', category: 'peptide' },
+  { id: 'ss31-guide', name: 'SS-31 Guide', icon: '🧬', category: 'peptide' },
+  { id: 'peptide-guide', name: 'Peptide Guide (General)', icon: '🧬', category: 'peptide' },
+  { id: 'cjc-ipamorelin-guide', name: 'CJC/Ipamorelin Guide', icon: '💉', category: 'gh' },
+  { id: 'tesamorelin-ipamorelin-guide', name: 'Tesa/Ipamorelin Guide', icon: '💉', category: 'gh' },
+  { id: '3x-blend-guide', name: '3X Blend Guide', icon: '💉', category: 'gh' },
+  { id: '4x-blend-guide', name: '4X Blend Guide', icon: '💉', category: 'gh' },
+  { id: 'igf1-lr3-guide', name: 'IGF-1 LR3 Guide', icon: '💉', category: 'gh' },
   { id: 'nad-guide', name: 'NAD+ Guide', icon: '💧', category: 'iv' },
   { id: 'methylene-blue-iv-guide', name: 'Methylene Blue Guide', icon: '💧', category: 'iv' },
   { id: 'methylene-blue-combo-iv-guide', name: 'MB+VitC Combo Guide', icon: '💧', category: 'iv' },
@@ -62,6 +75,17 @@ const AVAILABLE_GUIDES = [
   { id: 'elite-panel-male-guide', name: 'Elite Male Panel', icon: '🧪', category: 'labs' },
   { id: 'elite-panel-female-guide', name: 'Elite Female Panel', icon: '🧪', category: 'labs' },
   { id: 'the-blu-guide', name: 'The Blu', icon: '💎', category: 'other' },
+  { id: 'medrol-dosepak-guide', name: 'Medrol Dosepak Guide', icon: '💊', category: 'other' },
+  { id: 'hrt-side-effects-guide', name: 'HRT Side Effects', icon: '⚠️', category: 'side_effects' },
+  { id: 'hbot-side-effects-guide', name: 'HBOT Side Effects', icon: '⚠️', category: 'side_effects' },
+  { id: 'iv-therapy-side-effects-guide', name: 'IV Therapy Side Effects', icon: '⚠️', category: 'side_effects' },
+  { id: 'peptide-side-effects-guide', name: 'Peptide Side Effects', icon: '⚠️', category: 'side_effects' },
+  { id: 'semaglutide-side-effects-guide', name: 'Semaglutide Side Effects', icon: '⚠️', category: 'side_effects' },
+  { id: 'tirzepatide-side-effects-guide', name: 'Tirzepatide Side Effects', icon: '⚠️', category: 'side_effects' },
+  { id: 'retatrutide-side-effects-guide', name: 'Retatrutide Side Effects', icon: '⚠️', category: 'side_effects' },
+  { id: 'retatrutide-skin-guide', name: 'Retatrutide Skin Guide', icon: '⚠️', category: 'side_effects' },
+  { id: 'nad-side-effects-guide', name: 'NAD+ Side Effects', icon: '⚠️', category: 'side_effects' },
+  { id: 'rlt-side-effects-guide', name: 'Red Light Side Effects', icon: '⚠️', category: 'side_effects' },
 ];
 
 const GUIDE_CATEGORIES = [
@@ -69,11 +93,14 @@ const GUIDE_CATEGORIES = [
   { id: 'hrt', label: 'HRT' },
   { id: 'weight_loss', label: 'Weight Loss' },
   { id: 'peptide', label: 'Peptides' },
+  { id: 'gh', label: 'Growth Hormone' },
   { id: 'iv', label: 'IV Therapy' },
   { id: 'hbot', label: 'HBOT' },
   { id: 'rlt', label: 'Red Light' },
   { id: 'membership', label: 'Memberships' },
   { id: 'labs', label: 'Labs' },
+  { id: 'side_effects', label: 'Side Effects' },
+  { id: 'other', label: 'Other' },
 ];
 
 export default function SendFormsPage() {
@@ -96,6 +123,7 @@ export default function SendFormsPage() {
   // Guide selection
   const [selectedGuides, setSelectedGuides] = useState([]);
   const [guideCategory, setGuideCategory] = useState('all');
+  const [guideSearch, setGuideSearch] = useState('');
 
   // Delivery method
   const [deliveryMethod, setDeliveryMethod] = useState('email'); // 'sms' | 'email'
@@ -444,10 +472,12 @@ export default function SendFormsPage() {
     return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
   };
 
-  // Filtered guides by category
-  const filteredGuides = guideCategory === 'all'
-    ? AVAILABLE_GUIDES
-    : AVAILABLE_GUIDES.filter(g => g.category === guideCategory);
+  // Filtered guides by category and search
+  const filteredGuides = AVAILABLE_GUIDES.filter(g => {
+    const matchCategory = guideCategory === 'all' || g.category === guideCategory;
+    const matchSearch = !guideSearch || g.name.toLowerCase().includes(guideSearch.toLowerCase());
+    return matchCategory && matchSearch;
+  });
 
   const itemLabel = pageMode === 'questionnaire' ? 'Questionnaire' : pageMode === 'forms' ? 'Form' : 'Guide';
   const itemLabelPlural = pageMode === 'questionnaire' ? 'Questionnaire' : pageMode === 'forms' ? 'Forms' : 'Guides';
@@ -692,6 +722,20 @@ export default function SendFormsPage() {
               </>
             ) : (
               <>
+                {/* Guide search */}
+                <div style={{ marginBottom: 8 }}>
+                  <input
+                    type="text"
+                    placeholder="Search guides..."
+                    value={guideSearch}
+                    onChange={e => setGuideSearch(e.target.value)}
+                    style={{
+                      width: '100%', padding: '8px 12px', fontSize: 13, border: '1px solid #e5e7eb',
+                      borderRadius: 0, outline: 'none', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
                 {/* Guide category filter */}
                 <div style={styles.quickRow}>
                   {GUIDE_CATEGORIES.map(cat => (

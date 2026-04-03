@@ -600,6 +600,82 @@ export default function RedLightTherapy() {
           </div>
         </section>
 
+        {/* Safety & Transparency */}
+        <section className="rlt-section">
+          <div className="rlt-container">
+            <div className="rlt-animate">
+              <div className="v2-label"><span className="v2-dot" /> SAFETY & TRANSPARENCY</div>
+              <h2>WHAT WE WANT YOU TO KNOW UPFRONT.</h2>
+              <div className="rlt-divider"></div>
+              <p className="rlt-body-text">
+                Red light therapy is one of the safest therapies available — no UV, no radiation, no downtime. Here is what you might notice.
+              </p>
+            </div>
+
+            <div className="rlt-safety-grid rlt-animate">
+              <div className="rlt-safety-card">
+                <div className="rlt-safety-label">What You Might Notice</div>
+                <div className="rlt-safety-items">
+                  <div className="rlt-safety-item">
+                    <span className="rlt-safety-icon">1</span>
+                    <div>
+                      <strong>Mild Skin Redness</strong>
+                      <p>Temporary pink flush at the treated area. Actually means blood flow is increasing — the intended mechanism.</p>
+                    </div>
+                  </div>
+                  <div className="rlt-safety-item">
+                    <span className="rlt-safety-icon">2</span>
+                    <div>
+                      <strong>Warmth & Tingling</strong>
+                      <p>Gentle warmth during treatment from light energy absorption. Should feel pleasant, like sunlight.</p>
+                    </div>
+                  </div>
+                  <div className="rlt-safety-item">
+                    <span className="rlt-safety-icon">3</span>
+                    <div>
+                      <strong>Eye Sensitivity</strong>
+                      <p>Protective eyewear is provided and required. With goggles on, eye strain is completely eliminated.</p>
+                    </div>
+                  </div>
+                  <div className="rlt-safety-item">
+                    <span className="rlt-safety-icon">4</span>
+                    <div>
+                      <strong>Relaxation or Fatigue</strong>
+                      <p>Some people feel deeply relaxed after a session. Others feel energized. Both are normal responses.</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="rlt-safety-guides">
+                  <Link href="/rlt-side-effects-guide" className="rlt-safety-guide-link">Full Red Light Side Effects Guide <span>&rarr;</span></Link>
+                </div>
+              </div>
+
+              <div className="rlt-safety-card rlt-safety-card-dark">
+                <div className="rlt-safety-label">Tell Us Before Your Session If</div>
+                <div className="rlt-safety-items">
+                  <div className="rlt-safety-item">
+                    <span className="rlt-safety-warn">!</span>
+                    <p>You are taking photosensitizing medications (certain antibiotics, retinoids, or acne medications)</p>
+                  </div>
+                  <div className="rlt-safety-item">
+                    <span className="rlt-safety-warn">!</span>
+                    <p>You have a history of photosensitivity disorders (lupus, porphyria)</p>
+                  </div>
+                  <div className="rlt-safety-item">
+                    <span className="rlt-safety-warn">!</span>
+                    <p>You have active skin cancer or suspicious lesions in the treatment area</p>
+                  </div>
+                  <div className="rlt-safety-item">
+                    <span className="rlt-safety-warn">!</span>
+                    <p>You are pregnant (limited data — we take a conservative approach)</p>
+                  </div>
+                </div>
+                <p className="rlt-safety-note">Red light therapy has very few contraindications. Most people can start immediately. When in doubt, ask — we're happy to review your situation.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* FAQ */}
         <section className="rlt-section-alt">
           <div className="rlt-container">
@@ -1619,6 +1695,130 @@ export default function RedLightTherapy() {
           border-color: rgba(255, 255, 255, 0.6);
         }
 
+        /* Safety & Transparency */
+        .rlt-safety-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.5rem;
+          margin-top: 2.5rem;
+        }
+        .rlt-safety-card {
+          border: 1px solid #e0e0e0;
+          padding: 2rem;
+          background: #ffffff;
+        }
+        .rlt-safety-card-dark {
+          background: #0a0a0a;
+          border-color: #0a0a0a;
+          color: #ffffff;
+        }
+        .rlt-safety-label {
+          font-size: 0.7rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          color: #737373;
+          margin-bottom: 1.5rem;
+        }
+        .rlt-safety-card-dark .rlt-safety-label {
+          color: rgba(255,255,255,0.5);
+        }
+        .rlt-safety-items {
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+        }
+        .rlt-safety-item {
+          display: flex;
+          gap: 1rem;
+          align-items: flex-start;
+          padding: 0.875rem 0;
+          border-bottom: 1px solid #f0f0f0;
+        }
+        .rlt-safety-card-dark .rlt-safety-item {
+          border-bottom-color: rgba(255,255,255,0.1);
+        }
+        .rlt-safety-item:last-child {
+          border-bottom: none;
+        }
+        .rlt-safety-icon {
+          width: 1.5rem;
+          height: 1.5rem;
+          background: #171717;
+          color: #ffffff;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 0.6875rem;
+          flex-shrink: 0;
+          margin-top: 0.125rem;
+        }
+        .rlt-safety-warn {
+          width: 1.5rem;
+          height: 1.5rem;
+          background: rgba(239, 68, 68, 0.15);
+          color: #ef4444;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          font-size: 0.75rem;
+          flex-shrink: 0;
+          margin-top: 0.125rem;
+        }
+        .rlt-safety-item strong {
+          display: block;
+          font-size: 0.9rem;
+          color: #171717;
+          margin-bottom: 0.125rem;
+        }
+        .rlt-safety-item p {
+          font-size: 0.8125rem;
+          line-height: 1.6;
+          color: #737373;
+          margin: 0;
+        }
+        .rlt-safety-card-dark .rlt-safety-item p {
+          color: rgba(255,255,255,0.7);
+        }
+        .rlt-safety-guides {
+          display: flex;
+          gap: 1rem;
+          margin-top: 1.5rem;
+          padding-top: 1rem;
+          border-top: 1px solid #e0e0e0;
+        }
+        .rlt-safety-guide-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.375rem;
+          font-size: 0.8125rem;
+          font-weight: 600;
+          color: #171717;
+          text-decoration: none;
+          padding: 0.5rem 1rem;
+          border: 1px solid #e0e0e0;
+          transition: all 0.2s;
+        }
+        .rlt-safety-guide-link:hover {
+          border-color: #171717;
+        }
+        .rlt-safety-guide-link span {
+          transition: transform 0.2s;
+        }
+        .rlt-safety-guide-link:hover span {
+          transform: translateX(3px);
+        }
+        .rlt-safety-note {
+          font-size: 0.8125rem;
+          color: rgba(255,255,255,0.5);
+          margin-top: 1.25rem;
+          line-height: 1.6;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
           .rlt-section {
@@ -1693,6 +1893,14 @@ export default function RedLightTherapy() {
           .rlt-expect-item {
             flex-direction: column;
             gap: 0.5rem;
+          }
+
+          .rlt-safety-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .rlt-safety-guides {
+            flex-direction: column;
           }
 
           .rlt-cta-title {

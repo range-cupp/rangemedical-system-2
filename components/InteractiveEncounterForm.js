@@ -165,6 +165,24 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
   const formDef = ENCOUNTER_FORMS[formType];
   if (!formDef) return null;
 
+  // Build default field values for a section
+  const buildSectionDefaults = (section) => {
+    const obj = {};
+    section.fields.forEach(field => {
+      if (field.type === 'vitamin_dose') {
+        obj[field.key] = [];
+        obj.vitamin_doses = {};
+      } else if (field.type === 'multi_check') {
+        obj[field.key] = (field.defaultChecked || []).map(i => field.options[i]);
+      } else if (field.type === 'toggle') {
+        obj[field.key] = field.defaultValue || field.options[0];
+      } else {
+        obj[field.key] = field.defaultValue || '';
+      }
+    });
+    return obj;
+  };
+
   // Build initial form state from section definitions
   const buildInitialState = () => {
     const state = {};
@@ -175,19 +193,13 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
           state[section.key][item.key] = item.defaultChecked || false;
         });
       } else if (section.type === 'fields') {
-        state[section.key] = {};
-        section.fields.forEach(field => {
-          if (field.type === 'vitamin_dose') {
-            state[section.key][field.key] = [];
-            state[section.key].vitamin_doses = {};
-          } else if (field.type === 'multi_check') {
-            state[section.key][field.key] = (field.defaultChecked || []).map(i => field.options[i]);
-          } else if (field.type === 'toggle') {
-            state[section.key][field.key] = field.defaultValue || field.options[0];
-          } else {
-            state[section.key][field.key] = field.defaultValue || '';
-          }
-        });
+        if (section.repeatable) {
+          // Repeatable sections: start with one instance keyed as section.key + '_0'
+          state[`${section.key}_0`] = buildSectionDefaults(section);
+          state[`_repeat_count_${section.key}`] = 1;
+        } else {
+          state[section.key] = buildSectionDefaults(section);
+        }
       }
     });
     return state;
@@ -257,7 +269,7 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
   const STAFF_DISPLAY_NAMES = {
     'cupp@range-medical.com': 'Chris Cupp',
     'burgess@range-medical.com': 'Dr. Damien Burgess',
-    'lily@range-medical.com': 'Lily Diaz RN',
+    'lily@range-medical.com': 'Lily',
     'evan@range-medical.com': 'Evan',
     'damon@range-medical.com': 'Damon Durante',
   };
@@ -341,28 +353,81 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
     });
   };
 
+  // Add another instance of a repeatable section
+  const addRepeatableInstance = (section) => {
+    setFormData(prev => {
+      const count = prev[`_repeat_count_${section.key}`] || 1;
+      return {
+        ...prev,
+        [`${section.key}_${count}`]: buildSectionDefaults(section),
+        [`_repeat_count_${section.key}`]: count + 1,
+      };
+    });
+  };
+
+  // Remove an instance of a repeatable section
+  const removeRepeatableInstance = (section, idx) => {
+    setFormData(prev => {
+      const count = prev[`_repeat_count_${section.key}`] || 1;
+      if (count <= 1) return prev; // Always keep at least one
+      const next = { ...prev };
+      // Shift entries down to fill the gap
+      for (let i = idx; i < count - 1; i++) {
+        next[`${section.key}_${i}`] = prev[`${section.key}_${i + 1}`];
+      }
+      delete next[`${section.key}_${count - 1}`];
+      next[`_repeat_count_${section.key}`] = count - 1;
+      return next;
+    });
+  };
+
   // Check required fields
   const getMissingFields = () => {
     const missing = [];
     formDef.sections.forEach(section => {
       if (section.type === 'fields') {
-        section.fields.forEach(field => {
-          if (field.required) {
-            // Skip validation for conditionally hidden fields
-            if (field.conditionalOn) {
-              const parentVal = formData[section.key]?.[field.conditionalOn.field];
-              if (parentVal !== field.conditionalOn.value) return;
-            }
-            if (field.conditionalOnNot) {
-              const parentVal = formData[section.key]?.[field.conditionalOnNot.field];
-              if (parentVal === field.conditionalOnNot.value) return;
-            }
-            const val = formData[section.key]?.[field.key];
-            if (!val || (typeof val === 'string' && !val.trim()) || (Array.isArray(val) && val.length === 0)) {
-              missing.push(field.label);
-            }
+        if (section.repeatable) {
+          // Validate all instances of repeatable sections
+          const count = formData[`_repeat_count_${section.key}`] || 1;
+          for (let i = 0; i < count; i++) {
+            const sKey = `${section.key}_${i}`;
+            section.fields.forEach(field => {
+              if (field.required) {
+                if (field.conditionalOn) {
+                  const parentVal = formData[sKey]?.[field.conditionalOn.field];
+                  if (parentVal !== field.conditionalOn.value) return;
+                }
+                if (field.conditionalOnNot) {
+                  const parentVal = formData[sKey]?.[field.conditionalOnNot.field];
+                  if (parentVal === field.conditionalOnNot.value) return;
+                }
+                const val = formData[sKey]?.[field.key];
+                if (!val || (typeof val === 'string' && !val.trim()) || (Array.isArray(val) && val.length === 0)) {
+                  const label = count > 1 ? `${field.label} (Injection ${i + 1})` : field.label;
+                  missing.push(label);
+                }
+              }
+            });
           }
-        });
+        } else {
+          section.fields.forEach(field => {
+            if (field.required) {
+              // Skip validation for conditionally hidden fields
+              if (field.conditionalOn) {
+                const parentVal = formData[section.key]?.[field.conditionalOn.field];
+                if (parentVal !== field.conditionalOn.value) return;
+              }
+              if (field.conditionalOnNot) {
+                const parentVal = formData[section.key]?.[field.conditionalOnNot.field];
+                if (parentVal === field.conditionalOnNot.value) return;
+              }
+              const val = formData[section.key]?.[field.key];
+              if (!val || (typeof val === 'string' && !val.trim()) || (Array.isArray(val) && val.length === 0)) {
+                missing.push(field.label);
+              }
+            }
+          });
+        }
       }
     });
     return missing;
@@ -949,64 +1014,127 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
       </div>
 
       {/* Sections */}
-      {formDef.sections.map((section) => (
-        <div key={section.key} style={styles.section}>
-          <div style={styles.sectionTitle}>{section.title}</div>
-
-          {section.type === 'checklist' && (
-            <div style={styles.checklist}>
-              {section.items.map((item) => {
-                const checked = formData[section.key]?.[item.key] || false;
-                return (
-                  <label key={item.key} style={styles.checkLabel}>
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggleChecklistItem(section.key, item.key)}
-                      style={{ marginRight: 10, width: 18, height: 18, accentColor: '#059669' }}
-                    />
-                    <span style={{
-                      fontSize: 14,
-                      color: checked ? '#111' : '#9ca3af',
-                      textDecoration: checked ? 'none' : 'none',
-                    }}>
-                      {checked && <span style={{ color: '#059669', marginRight: 4 }}>✓</span>}
-                      {item.label}
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-          )}
-
-          {section.type === 'fields' && (
-            <div style={styles.fieldGrid}>
-              {section.fields.map((field) => {
-                // Conditional field: only show when parent field matches value
-                if (field.conditionalOn) {
-                  const parentVal = formData[section.key]?.[field.conditionalOn.field];
-                  if (parentVal !== field.conditionalOn.value) return null;
-                }
-                if (field.conditionalOnNot) {
-                  const parentVal = formData[section.key]?.[field.conditionalOnNot.field];
-                  if (parentVal === field.conditionalOnNot.value) return null;
-                }
-                return (
-                  <div key={field.key} style={{
-                    ...(field.type === 'button_group' || field.type === 'textarea' || field.type === 'multi_check' || field.type === 'vitamin_dose' || field.type === 'peptide_search' || field.type === 'dose_select' || field.type === 'wl_dose_select' || field.type === 'trt_dose_select' || field.type === 'body_avatar'
-                      ? styles.fieldFull : styles.fieldHalf),
-                  }}>
-                    <label style={styles.fieldLabel}>
-                      {field.label}
-                      {field.required && <span style={{ color: '#ef4444', marginLeft: 2 }}>*</span>}
-                    </label>
-                    {renderField(field, section.key)}
+      {formDef.sections.map((section) => {
+        // Repeatable sections (e.g., multiple injections)
+        if (section.repeatable && section.type === 'fields') {
+          const count = formData[`_repeat_count_${section.key}`] || 1;
+          return Array.from({ length: count }, (_, idx) => {
+            const sKey = `${section.key}_${idx}`;
+            return (
+              <div key={sKey} style={styles.section}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={styles.sectionTitle}>
+                    {section.title}{count > 1 ? ` #${idx + 1}` : ''}
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                  {count > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeRepeatableInstance(section, idx)}
+                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 13, fontWeight: 600, padding: '4px 8px' }}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+                <div style={styles.fieldGrid}>
+                  {section.fields.map((field) => {
+                    if (field.conditionalOn) {
+                      const parentVal = formData[sKey]?.[field.conditionalOn.field];
+                      if (parentVal !== field.conditionalOn.value) return null;
+                    }
+                    if (field.conditionalOnNot) {
+                      const parentVal = formData[sKey]?.[field.conditionalOnNot.field];
+                      if (parentVal === field.conditionalOnNot.value) return null;
+                    }
+                    return (
+                      <div key={field.key} style={{
+                        ...(field.type === 'button_group' || field.type === 'textarea' || field.type === 'multi_check' || field.type === 'vitamin_dose' || field.type === 'peptide_search' || field.type === 'dose_select' || field.type === 'wl_dose_select' || field.type === 'trt_dose_select' || field.type === 'body_avatar'
+                          ? styles.fieldFull : styles.fieldHalf),
+                      }}>
+                        <label style={styles.fieldLabel}>
+                          {field.label}
+                          {field.required && <span style={{ color: '#ef4444', marginLeft: 2 }}>*</span>}
+                        </label>
+                        {renderField(field, sKey)}
+                      </div>
+                    );
+                  })}
+                </div>
+                {idx === count - 1 && (
+                  <button
+                    type="button"
+                    onClick={() => addRepeatableInstance(section)}
+                    style={{
+                      marginTop: 12, padding: '8px 16px', background: '#f9fafb', border: '1.5px dashed #d1d5db',
+                      borderRadius: 8, color: '#374151', fontSize: 13, fontWeight: 600, cursor: 'pointer', width: '100%',
+                    }}
+                  >
+                    + {section.repeatLabel || 'Add Another'}
+                  </button>
+                )}
+              </div>
+            );
+          });
+        }
+
+        return (
+          <div key={section.key} style={styles.section}>
+            <div style={styles.sectionTitle}>{section.title}</div>
+
+            {section.type === 'checklist' && (
+              <div style={styles.checklist}>
+                {section.items.map((item) => {
+                  const checked = formData[section.key]?.[item.key] || false;
+                  return (
+                    <label key={item.key} style={styles.checkLabel}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleChecklistItem(section.key, item.key)}
+                        style={{ marginRight: 10, width: 18, height: 18, accentColor: '#059669' }}
+                      />
+                      <span style={{
+                        fontSize: 14,
+                        color: checked ? '#111' : '#9ca3af',
+                        textDecoration: checked ? 'none' : 'none',
+                      }}>
+                        {checked && <span style={{ color: '#059669', marginRight: 4 }}>✓</span>}
+                        {item.label}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+
+            {section.type === 'fields' && (
+              <div style={styles.fieldGrid}>
+                {section.fields.map((field) => {
+                  // Conditional field: only show when parent field matches value
+                  if (field.conditionalOn) {
+                    const parentVal = formData[section.key]?.[field.conditionalOn.field];
+                    if (parentVal !== field.conditionalOn.value) return null;
+                  }
+                  if (field.conditionalOnNot) {
+                    const parentVal = formData[section.key]?.[field.conditionalOnNot.field];
+                    if (parentVal === field.conditionalOnNot.value) return null;
+                  }
+                  return (
+                    <div key={field.key} style={{
+                      ...(field.type === 'button_group' || field.type === 'textarea' || field.type === 'multi_check' || field.type === 'vitamin_dose' || field.type === 'peptide_search' || field.type === 'dose_select' || field.type === 'wl_dose_select' || field.type === 'trt_dose_select' || field.type === 'body_avatar'
+                        ? styles.fieldFull : styles.fieldHalf),
+                    }}>
+                      <label style={styles.fieldLabel}>
+                        {field.label}
+                        {field.required && <span style={{ color: '#ef4444', marginLeft: 2 }}>*</span>}
+                      </label>
+                      {renderField(field, section.key)}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
       ))}
 
       {/* Preview toggle */}

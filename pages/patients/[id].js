@@ -796,6 +796,8 @@ export default function PatientProfile() {
   const [editingNote, setEditingNote] = useState(null);
   const [editNoteBody, setEditNoteBody] = useState('');
   const [editNoteSaving, setEditNoteSaving] = useState(false);
+  // Strip markdown bold markers for clean editing
+  const stripMarkdownBold = (text) => (text || '').replace(/\*\*(.*?)\*\*/g, '$1');
   const [expandedNotes, setExpandedNotes] = useState({});
   const [noteFilter, setNoteFilter] = useState('clinical');
   const [addNoteCategory, setAddNoteCategory] = useState('internal');
@@ -3332,16 +3334,19 @@ export default function PatientProfile() {
       const res = await fetch(`/api/notes/${editingNote.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body: editNoteBody }),
+        body: JSON.stringify({ body: editNoteBody, requesting_user: session?.user?.email || 'Staff' }),
       });
       const data = await res.json();
       if (data.success) {
         setNotes(prev => prev.map(n => n.id === editingNote.id ? { ...n, body: editNoteBody } : n));
         setEditingNote(null);
         setEditNoteBody('');
+      } else {
+        alert(data.error || 'Failed to save edit');
       }
     } catch (error) {
       console.error('Edit note error:', error);
+      alert('Failed to save edit — please try again');
     } finally {
       setEditNoteSaving(false);
     }
@@ -4180,7 +4185,7 @@ export default function PatientProfile() {
               </div>
               <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                 <button
-                  onClick={() => { setEditingNote(pinnedNote); setEditNoteBody(pinnedNote.body || ''); }}
+                  onClick={() => { setEditingNote(pinnedNote); setEditNoteBody(stripMarkdownBold(pinnedNote.body)); }}
                   style={{ background: 'none', border: 'none', color: '#92400e', cursor: 'pointer', fontSize: 13, padding: '2px 6px' }}
                   title="Edit note"
                 >✏️</button>
@@ -7784,7 +7789,7 @@ export default function PatientProfile() {
                           </div>
                           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                             <button
-                              onClick={() => { setEditingNote(note); setEditNoteBody(note.body || ''); }}
+                              onClick={() => { setEditingNote(note); setEditNoteBody(stripMarkdownBold(note.body)); }}
                               style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 14, padding: '0 4px', lineHeight: 1 }}
                               title="Edit note"
                             >✏️</button>

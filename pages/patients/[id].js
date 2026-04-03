@@ -231,12 +231,23 @@ const AVAILABLE_GUIDES = [
   { id: 'tirzepatide-guide', name: 'Tirzepatide Guide', icon: '⚖️', category: 'weight_loss' },
   { id: 'retatrutide-guide', name: 'Retatrutide Guide', icon: '⚖️', category: 'weight_loss' },
   { id: 'weight-loss-medication-guide-page', name: 'WL Medication Guide', icon: '⚖️', category: 'weight_loss' },
+  { id: 'bpc-157-guide', name: 'BPC-157 Guide', icon: '🧬', category: 'peptide' },
   { id: 'bpc-tb4-guide', name: 'BPC/TB4 Guide', icon: '🧬', category: 'peptide' },
-  { id: 'recovery-blend-guide', name: 'Recovery Blend Guide', icon: '🧬', category: 'peptide' },
+  { id: 'recovery-blend-guide', name: 'Recovery 4-Blend Guide', icon: '🧬', category: 'peptide' },
+  { id: 'klow-guide', name: 'KLOW Guide', icon: '🧬', category: 'peptide' },
   { id: 'glow-guide', name: 'GLOW Guide', icon: '✨', category: 'peptide' },
   { id: 'ghk-cu-guide', name: 'GHK-Cu Guide', icon: '🧬', category: 'peptide' },
-  { id: '3x-blend-guide', name: '3x Blend Guide', icon: '🧬', category: 'peptide' },
-  { id: 'tesamorelin-ipamorelin-guide', name: '2X Tesa/Ipa Guide', icon: '🧬', category: 'peptide' },
+  { id: 'bdnf-guide', name: 'BDNF Guide', icon: '🧬', category: 'peptide' },
+  { id: 'aod-9604-guide', name: 'AOD-9604 Guide', icon: '🧬', category: 'peptide' },
+  { id: 'dsip-guide', name: 'DSIP Guide', icon: '🧬', category: 'peptide' },
+  { id: 'slupp-guide', name: '5-Amino / SLUPP Guide', icon: '🧬', category: 'peptide' },
+  { id: 'cjc-ipamorelin-guide', name: 'CJC/Ipamorelin Guide', icon: '💉', category: 'gh' },
+  { id: 'tesamorelin-ipamorelin-guide', name: 'Tesa/Ipamorelin Guide', icon: '💉', category: 'gh' },
+  { id: '3x-blend-guide', name: '3X Blend Guide', icon: '💉', category: 'gh' },
+  { id: '4x-blend-guide', name: '4X Blend Guide', icon: '💉', category: 'gh' },
+  { id: 'igf1-lr3-guide', name: 'IGF-1 LR3 Guide', icon: '💉', category: 'gh' },
+  { id: 'mots-c-guide', name: 'MOTS-C Guide', icon: '🧬', category: 'peptide' },
+  { id: 'ss31-guide', name: 'SS-31 Guide', icon: '🧬', category: 'peptide' },
   { id: 'nad-guide', name: 'NAD+ Guide', icon: '💧', category: 'iv' },
   { id: 'methylene-blue-iv-guide', name: 'Methylene Blue Guide', icon: '💧', category: 'iv' },
   { id: 'methylene-blue-combo-iv-guide', name: 'MB+VitC Combo Guide', icon: '💧', category: 'iv' },
@@ -254,17 +265,30 @@ const AVAILABLE_GUIDES = [
   { id: 'elite-panel-male-guide', name: 'Elite Male Panel', icon: '🧪', category: 'labs' },
   { id: 'elite-panel-female-guide', name: 'Elite Female Panel', icon: '🧪', category: 'labs' },
   { id: 'the-blu-guide', name: 'The Blu', icon: '💎', category: 'other' },
+  { id: 'peptide-guide', name: 'Peptide Guide (General)', icon: '🧬', category: 'peptide' },
+  { id: 'medrol-dosepak-guide', name: 'Medrol Dosepak Guide', icon: '💊', category: 'other' },
+  { id: 'hrt-side-effects-guide', name: 'HRT Side Effects', icon: '⚠️', category: 'side_effects' },
+  { id: 'hbot-side-effects-guide', name: 'HBOT Side Effects', icon: '⚠️', category: 'side_effects' },
+  { id: 'iv-therapy-side-effects-guide', name: 'IV Therapy Side Effects', icon: '⚠️', category: 'side_effects' },
+  { id: 'peptide-side-effects-guide', name: 'Peptide Side Effects', icon: '⚠️', category: 'side_effects' },
+  { id: 'semaglutide-side-effects-guide', name: 'Semaglutide Side Effects', icon: '⚠️', category: 'side_effects' },
+  { id: 'tirzepatide-side-effects-guide', name: 'Tirzepatide Side Effects', icon: '⚠️', category: 'side_effects' },
+  { id: 'retatrutide-side-effects-guide', name: 'Retatrutide Side Effects', icon: '⚠️', category: 'side_effects' },
+  { id: 'retatrutide-skin-guide', name: 'Retatrutide Skin Guide', icon: '⚠️', category: 'side_effects' },
 ];
 const GUIDE_CATEGORY_FILTERS = [
   { id: 'all', label: 'All' },
   { id: 'hrt', label: 'HRT' },
   { id: 'weight_loss', label: 'Weight Loss' },
   { id: 'peptide', label: 'Peptides' },
-  { id: 'iv', label: 'IV' },
+  { id: 'gh', label: 'Growth Hormone' },
+  { id: 'iv', label: 'IV Therapy' },
   { id: 'hbot', label: 'HBOT' },
   { id: 'rlt', label: 'Red Light' },
   { id: 'membership', label: 'Memberships' },
   { id: 'labs', label: 'Labs' },
+  { id: 'side_effects', label: 'Side Effects' },
+  { id: 'other', label: 'Other' },
 ];
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
@@ -526,6 +550,7 @@ export default function PatientProfile() {
   const [sendFormsTab, setSendFormsTab] = useState('forms'); // 'forms' | 'guides'
   const [sendGuidesSelected, setSendGuidesSelected] = useState(new Set());
   const [sendGuidesCategory, setSendGuidesCategory] = useState('all');
+  const [sendGuidesSearch, setSendGuidesSearch] = useState('');
   const [pinnedNoteExpanded, setPinnedNoteExpanded] = useState(false);
   const [pinnedNoteOverflows, setPinnedNoteOverflows] = useState(false);
   const pinnedNoteRef = useRef(null);
@@ -5534,7 +5559,12 @@ export default function PatientProfile() {
                             // In-clinic protocols don't have pickups/refills — only show payment info
                             const lastPickupLog = !isInClinicWL && wlDeliveryLogs.length > 0 ? wlDeliveryLogs[wlDeliveryLogs.length - 1] : null;
                             const lastPickupDate = lastPickupLog ? new Date(lastPickupLog.entry_date + 'T12:00:00') : null;
-                            const pickupSupplyDays = lastPickupLog && lastPickupLog.quantity ? lastPickupLog.quantity * 7 : 28;
+                            // If there's an in-clinic injection on the same day as the pickup, the take-home supply
+                            // starts the following week (e.g., 3 take-homes + 1 in-clinic = 4 weeks total)
+                            const hadInClinicOnPickupDay = lastPickupLog && wlLogs.some(l => l.entry_date === lastPickupLog.entry_date);
+                            const pickupSupplyDays = lastPickupLog && lastPickupLog.quantity
+                              ? (lastPickupLog.quantity + (hadInClinicOnPickupDay ? 1 : 0)) * 7
+                              : 28;
                             const nextRefillDate = lastPickupDate ? new Date(lastPickupDate.getTime() + pickupSupplyDays * 86400000) : null;
                             const daysUntilRefill = nextRefillDate ? Math.ceil((nextRefillDate - today) / 86400000) : null;
                             const refillOverdue = daysUntilRefill !== null && daysUntilRefill < 0;
@@ -9624,7 +9654,7 @@ export default function PatientProfile() {
                                   onClick={() => setAssignForm({
                                     ...assignForm,
                                     injectionMethod: m.value,
-                                    frequency: m.value === 'subq' ? 'Daily' : '2x per week',
+                                    frequency: m.value === 'subq' ? '7 days a week' : '2x per week',
                                     injectionsPerWeek: m.value === 'subq' ? '7' : '2'
                                   })}
                                   style={{
@@ -9640,7 +9670,7 @@ export default function PatientProfile() {
                             </div>
                             {assignForm.injectionMethod && (
                               <div style={{ marginTop: 6, fontSize: 12, color: '#6b7280' }}>
-                                {assignForm.injectionMethod === 'im' ? '2x per week (IM)' : 'Daily (SubQ)'}
+                                {assignForm.injectionMethod === 'im' ? '2x per week (IM)' : '7 days a week (SubQ)'}
                               </div>
                             )}
                           </div>
@@ -10261,7 +10291,7 @@ export default function PatientProfile() {
                           <option value={1}>1x per week</option>
                           <option value={2}>2x per week</option>
                           <option value={3}>3x per week</option>
-                          <option value={7}>Daily</option>
+                          <option value={7}>7 days a week</option>
                         </select>
                       </div>
                     </div>
@@ -13855,6 +13885,20 @@ export default function PatientProfile() {
               </>
             ) : (
               <>
+                {/* Guide Search */}
+                <div style={{ padding: '0 16px 8px' }}>
+                  <input
+                    type="text"
+                    placeholder="Search guides..."
+                    value={sendGuidesSearch}
+                    onChange={e => setSendGuidesSearch(e.target.value)}
+                    style={{
+                      width: '100%', padding: '8px 12px', fontSize: 13, border: '1px solid #e5e7eb',
+                      borderRadius: 0, outline: 'none', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
                 {/* Guide Category Filters */}
                 <div className="sf-quick-row">
                   {GUIDE_CATEGORY_FILTERS.map(cat => (
@@ -13868,7 +13912,11 @@ export default function PatientProfile() {
                 {/* Guide Grid */}
                 <div className="sf-form-grid">
                   {AVAILABLE_GUIDES
-                    .filter(g => sendGuidesCategory === 'all' || g.category === sendGuidesCategory)
+                    .filter(g => {
+                      const matchCategory = sendGuidesCategory === 'all' || g.category === sendGuidesCategory;
+                      const matchSearch = !sendGuidesSearch || g.name.toLowerCase().includes(sendGuidesSearch.toLowerCase());
+                      return matchCategory && matchSearch;
+                    })
                     .map(guide => {
                       const checked = sendGuidesSelected.has(guide.id);
                       return (

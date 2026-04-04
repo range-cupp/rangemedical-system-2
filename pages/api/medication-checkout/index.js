@@ -69,6 +69,12 @@ export default async function handler(req, res) {
 
   const logDate = entry_date || todayPacific();
 
+  // Determine if this is a WL in-clinic purchase (not a take-home pickup)
+  // For WL in-clinic: checkout only sets available injections on the protocol.
+  // Actual injection tracking comes from encounter notes only.
+  const resolvedEntryType = entry_type || (['hbot', 'iv_therapy', 'red_light'].includes(category) ? 'session' : 'injection');
+  const isWLInClinic = isWeightLossType(category) && resolvedEntryType !== 'pickup' && resolvedEntryType !== 'med_pickup';
+
   try {
     // 1. Get patient info for receipt
     const { data: patient } = await supabase
@@ -83,53 +89,55 @@ export default async function handler(req, res) {
 
     const patientName = patient.name || `${patient.first_name || ''} ${patient.last_name || ''}`.trim();
 
-    // 2. Create service log entry via the existing service-log API logic
-    const resolvedEntryType = entry_type || (['hbot', 'iv_therapy', 'red_light'].includes(category) ? 'session' : 'injection');
+    let finalLog = null;
 
-    const logData = {
-      patient_id,
-      category,
-      entry_type: resolvedEntryType,
-      entry_date: logDate,
-      medication: medication || null,
-      dosage: dosage || null,
-      weight: weight ? parseFloat(weight) : null,
-      quantity: quantity ? parseInt(quantity) : null,
-      supply_type: supply_type || null,
-      duration: duration ? parseInt(duration) : null,
-      notes: notes || null,
-      protocol_id: protocol_id || null,
-      administered_by: administered_by || null,
-      verified_by: verified_by || null,
-      lot_number: lot_number || null,
-      expiration_date: expiration_date || null,
-      fulfillment_method: fulfillment_method || 'in_clinic',
-      tracking_number: tracking_number || null,
-      checkout_type: 'medication_checkout',
-    };
+    // 2. For WL in-clinic: do NOT create a service log — encounter notes are the sole source
+    // For everything else (take-home pickups, non-WL categories): create service log as before
+    if (!isWLInClinic) {
+      const logData = {
+        patient_id,
+        category,
+        entry_type: resolvedEntryType,
+        entry_date: logDate,
+        medication: medication || null,
+        dosage: dosage || null,
+        weight: weight ? parseFloat(weight) : null,
+        quantity: quantity ? parseInt(quantity) : null,
+        supply_type: supply_type || null,
+        duration: duration ? parseInt(duration) : null,
+        notes: notes || null,
+        protocol_id: protocol_id || null,
+        administered_by: administered_by || null,
+        verified_by: verified_by || null,
+        lot_number: lot_number || null,
+        expiration_date: expiration_date || null,
+        fulfillment_method: fulfillment_method || 'in_clinic',
+        tracking_number: tracking_number || null,
+        checkout_type: 'medication_checkout',
+      };
 
-    const { data: serviceLog, error: logError } = await supabase
-      .from('service_logs')
-      .insert([logData])
-      .select()
-      .single();
+      const { data: serviceLog, error: logError } = await supabase
+        .from('service_logs')
+        .insert([logData])
+        .select()
+        .single();
 
-    // If new columns don't exist yet, retry without them
-    let finalLog = serviceLog;
-    if (logError) {
-      const msg = logError.message || '';
-      if (msg.includes('checkout_type') || msg.includes('verified_by')) {
-        delete logData.checkout_type;
-        delete logData.verified_by;
-        const { data: retryLog, error: retryError } = await supabase
-          .from('service_logs')
-          .insert([logData])
-          .select()
-          .single();
-        if (retryError) throw retryError;
-        finalLog = retryLog;
-      } else {
-        throw logError;
+      finalLog = serviceLog;
+      if (logError) {
+        const msg = logError.message || '';
+        if (msg.includes('checkout_type') || msg.includes('verified_by')) {
+          delete logData.checkout_type;
+          delete logData.verified_by;
+          const { data: retryLog, error: retryError } = await supabase
+            .from('service_logs')
+            .insert([logData])
+            .select()
+            .single();
+          if (retryError) throw retryError;
+          finalLog = retryLog;
+        } else {
+          throw logError;
+        }
       }
     }
 
@@ -147,11 +155,13 @@ export default async function handler(req, res) {
         supply_type,
         injection_method,
         injection_frequency,
+        isWLInClinic,
       });
     }
 
-    // 4. For weight loss multi-injection pickups, create future injection entries
-    if (isWeightLossType(category) && resolvedEntryType === 'pickup' && quantity && parseInt(quantity) > 0) {
+    // 4. For weight loss TAKE-HOME pickups only, create future injection entries
+    // In-clinic WL does NOT pre-schedule — encounter notes handle each injection individually
+    if (!isWLInClinic && isWeightLossType(category) && resolvedEntryType === 'pickup' && quantity && parseInt(quantity) > 0) {
       const pickupDosage = dosage || '';
       const atMatch = pickupDosage.match(/@\s*(.+)/);
       const injectionDose = atMatch ? atMatch[1].trim() : pickupDosage;
@@ -210,7 +220,7 @@ export default async function handler(req, res) {
 
 // Update protocol based on checkout
 async function updateProtocol(protocolId, opts) {
-  const { category, entryType, logDate, medication, dosage, quantity, supply_type, injection_method, injection_frequency } = opts;
+  const { category, entryType, logDate, medication, dosage, quantity, supply_type, injection_method, injection_frequency, isWLInClinic } = opts;
 
   try {
     const { data: protocol, error } = await supabase
@@ -225,39 +235,60 @@ async function updateProtocol(protocolId, opts) {
 
     const updates = {
       updated_at: new Date().toISOString(),
-      last_visit_date: logDate,
     };
 
-    // Increment sessions_used for session/injection-based protocols
-    // Skip session counting if the checkout item's category doesn't match the protocol's category
-    // (e.g., B12 vitamin add-ons linked to a weight_loss protocol shouldn't count as WL sessions)
     const protocolCategory = protocol.program_type || category;
     const categoryMatchesProtocol = category === protocolCategory || isWeightLossType(category) === isWeightLossType(protocolCategory);
 
+    // ── WL IN-CLINIC PURCHASE ──
+    // Only sets available injections (total_sessions). Does NOT touch sessions_used.
+    // Encounter notes are the sole source of injection tracking for in-clinic WL.
+    if (isWLInClinic) {
+      const purchaseQty = quantity ? parseInt(quantity) : 1;
+      const currentTotal = protocol.total_sessions || 0;
+      const currentUsed = protocol.sessions_used || 0;
+
+      // If patient has remaining sessions, this is a replenishment (e.g., new month)
+      // If sessions_used >= total_sessions, extend total to give them more
+      if (currentUsed >= currentTotal) {
+        updates.total_sessions = currentTotal + purchaseQty;
+      }
+      // If they still have sessions remaining, don't change total_sessions
+      // (they already have available injections from a prior purchase)
+
+      // Update medication details if provided
+      if (categoryMatchesProtocol) {
+        if (medication) updates.medication = medication;
+        if (dosage) updates.selected_dose = dosage;
+      }
+      if (injection_method) updates.injection_method = injection_method;
+      if (injection_frequency) updates.injection_frequency = parseInt(injection_frequency);
+
+      const { error: updateError } = await supabase
+        .from('protocols')
+        .update(updates)
+        .eq('id', protocolId);
+
+      if (updateError) throw updateError;
+      return { updated: true, protocol_id: protocolId, updates, mode: 'wl_in_clinic_purchase' };
+    }
+
+    // ── NON-WL / TAKE-HOME PATH (existing behavior) ──
+    updates.last_visit_date = logDate;
+
+    // Increment sessions_used for session/injection-based protocols
     if ((entryType === 'injection' || entryType === 'session') && protocol.total_sessions && categoryMatchesProtocol) {
-      const increment = (isWeightLossType(category) && quantity && parseInt(quantity) > 1) ? parseInt(quantity) : 1;
+      const increment = 1;
       updates.sessions_used = (protocol.sessions_used || 0) + increment;
 
-      // For WL: also extend total_sessions when dispensing a new batch
-      // e.g., had 8/8, dispensing 4 more → 12/12
-      if (isWeightLossType(category) && increment > 1) {
-        updates.total_sessions = (protocol.total_sessions || 0) + increment;
-      }
-
-      // Calculate next expected date
-      // For WL multi-injection pickups, use quantity * 7 days (e.g., 4 injections = 28 days)
-      // For single sessions/injections, use 7 days
-      const nextDays = (isWeightLossType(category) && quantity && parseInt(quantity) > 1)
-        ? parseInt(quantity) * 7
-        : 7;
+      // Calculate next expected date (7 days for single injection/session)
       const nextDate = new Date(logDate + 'T12:00:00');
-      nextDate.setDate(nextDate.getDate() + nextDays);
+      nextDate.setDate(nextDate.getDate() + 7);
       updates.next_expected_date = nextDate.toISOString().split('T')[0];
 
       // Check if protocol is now complete
-      // Weight loss protocols stay active — total_sessions is per billing period, not lifetime
       // Peptide protocols get a 14-day grace period after end_date before auto-completing
-      if (updates.sessions_used >= protocol.total_sessions && !isWeightLossType(protocolCategory)) {
+      if (updates.sessions_used >= protocol.total_sessions) {
         const isPeptide = protocolCategory === 'peptide';
         if (isPeptide) {
           const endDate = protocol.end_date ? new Date(protocol.end_date + 'T12:00:00') : null;
@@ -278,13 +309,21 @@ async function updateProtocol(protocolId, opts) {
     if (entryType === 'pickup' || entryType === 'med_pickup') {
       updates.last_refill_date = logDate;
 
-      // For WL take-home pickups: increment sessions (both used and total)
-      // e.g., patient had 8/8, buys 4 more → becomes 12/12 (all dispensed as take-home)
+      // For WL take-home pickups: increment sessions_used
+      // Only extend total_sessions if patient is at/past their limit (buying MORE sessions)
+      // e.g., 6/8 + pickup 1 → 7/8 (still has sessions remaining, don't touch total)
+      // e.g., 8/8 + pickup 4 → 12/12 (at limit, extend total to match)
       if (isWeightLossType(category) && quantity && parseInt(quantity) > 0) {
         const pickupQty = parseInt(quantity);
-        updates.sessions_used = (protocol.sessions_used || 0) + pickupQty;
-        // Extend total_sessions so it stays in sync (8 + 4 = 12)
-        updates.total_sessions = (protocol.total_sessions || 0) + pickupQty;
+        const currentUsed = protocol.sessions_used || 0;
+        const currentTotal = protocol.total_sessions || 0;
+        const newUsed = currentUsed + pickupQty;
+        updates.sessions_used = newUsed;
+
+        // Only extend total_sessions if dispensing would exceed the current total
+        if (newUsed > currentTotal) {
+          updates.total_sessions = newUsed;
+        }
       }
 
       // Calculate next expected date based on supply type
@@ -306,7 +345,24 @@ async function updateProtocol(protocolId, opts) {
         }
       } else if (quantity) {
         // For peptide/WL pickups, use quantity as weeks
-        const days = parseInt(quantity) * 7;
+        let days = parseInt(quantity) * 7;
+
+        // If there's an in-clinic injection on the same day as the pickup,
+        // the take-home supply starts the following week (add 7 days)
+        if (isWeightLossType(category)) {
+          const { data: sameDayInjection } = await supabase
+            .from('service_logs')
+            .select('id')
+            .eq('patient_id', protocol.patient_id)
+            .eq('protocol_id', protocolId)
+            .eq('entry_date', logDate)
+            .eq('entry_type', 'injection')
+            .limit(1);
+          if (sameDayInjection && sameDayInjection.length > 0) {
+            days += 7;
+          }
+        }
+
         const nextDate = new Date(logDate + 'T12:00:00');
         nextDate.setDate(nextDate.getDate() + (days || 30));
         updates.next_expected_date = nextDate.toISOString().split('T')[0];

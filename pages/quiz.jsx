@@ -410,7 +410,7 @@ export default function Quiz() {
             )}
 
             {/* Panel options */}
-            <div className="quiz-results-label">Choose Your Panel</div>
+            <div className="quiz-results-label">Book Your $197 Range Assessment</div>
 
             <div className="quiz-panels-grid">
               <div className="quiz-panel-card">

@@ -545,7 +545,7 @@ export default function HormoneOptimization() {
               <div className="v2-label"><span className="v2-dot" /> Getting Started</div>
               <h2>YOUR FIRST VISIT,<br />STEP BY STEP.</h2>
               <p className="hrt-body-text">
-                Getting started is simple. Free assessment, no commitment required. Here&apos;s exactly what happens.
+                Getting started is simple. $197 assessment, credited toward treatment. Here&apos;s exactly what happens.
               </p>
             </div>
 
@@ -727,10 +727,10 @@ export default function HormoneOptimization() {
               <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '1.5rem' }}><span className="v2-dot" /> Next Steps</div>
               <h2 className="hrt-cta-title">IMAGINE HAVING<br />THE ENERGY AND DRIVE<br />YOU HAD 10 YEARS AGO.</h2>
               <p className="hrt-body-text" style={{ margin: '0 auto 2.5rem' }}>
-                Waking up rested. Thinking clearly all day. Feeling strong in the gym and present at home. That&apos;s what optimized hormones feel like &mdash; and it&apos;s closer than you think. Free assessment, no commitment required.
+                Waking up rested. Thinking clearly all day. Feeling strong in the gym and present at home. That&apos;s what optimized hormones feel like &mdash; and it&apos;s closer than you think. $197 assessment, credited toward treatment.
               </p>
               <div className="hrt-cta-buttons">
-                <Link href="/start" className="hrt-btn-primary">START NOW</Link>
+                <Link href="/range-assessment" className="hrt-btn-primary">Book Your $197 Range Assessment</Link>
                 <div className="hrt-cta-or">or</div>
                 <a href="tel:9499973988" className="hrt-cta-phone">(949) 997-3988</a>
               </div>

@@ -412,7 +412,7 @@ Staff: ${staff.name}${staff.title ? ` (${staff.title})` : ''}.
 
 CLINIC: Range Medical, 1901 Westcliff Drive Suite 10, Newport Beach CA 92660. (949) 997-3988. Mon–Fri 8am–5pm. Cash/card/HSA/FSA only — no insurance.
 
-PRICING QUICK-REF: Range IV $225 | NAD+ IV from $375 | Vit C IV from $215 | Glutathione IV from $170 | MB Combo $750 | Standard injection $35 | Premium injection $50 | HBOT $185 | RLT $85 | HRT $250/mo | Essential Labs $350 | Elite Labs $750 | Assessment $250 (credited) | PRP $750
+PRICING QUICK-REF: Range IV $225 | NAD+ IV from $375 | Vit C IV from $215 | Glutathione IV from $170 | MB Combo $750 | Standard injection $35 | Premium injection $50 | HBOT $185 | RLT $85 | HRT $250/mo | Essential Labs $350 | Elite Labs $750 | Range Assessment $197 (credited toward treatment) | PRP $750
 For detailed pricing or service descriptions → use get_service_info or search_knowledge tools.
 
 ${liveCatalogBlock}

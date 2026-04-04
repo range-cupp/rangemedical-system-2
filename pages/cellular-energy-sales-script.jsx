@@ -51,7 +51,7 @@ export default function CellularEnergySalesScript() {
           <div style={{background: '#fafafa', borderRadius: '0', padding: '1.5rem', marginBottom: '2rem', textAlign: 'center'}}>
             <h3 style={{marginBottom: '1rem'}}>Patient Flow</h3>
             <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap'}}>
-              <span style={{background: '#fff', border: '1px solid #e5e5e5', padding: '0.5rem 1rem', borderRadius: '0', fontSize: '0.875rem'}}>Assessment ($250)</span>
+              <span style={{background: '#fff', border: '1px solid #e5e5e5', padding: '0.5rem 1rem', borderRadius: '0', fontSize: '0.875rem'}}>Assessment ($197)</span>
               <span>→</span>
               <span style={{background: '#000', color: '#fff', padding: '0.5rem 1rem', borderRadius: '0', fontSize: '0.875rem'}}>Reset ($3,999)</span>
               <span style={{fontSize: '0.75rem', color: '#737373'}}>[±IV +$999]</span>
@@ -128,7 +128,7 @@ export default function CellularEnergySalesScript() {
           <div className="faq-item" style={{marginBottom: '1rem'}}>
             <h4>If They Seem Uncertain</h4>
             <p style={{background: '#dcfce7', padding: '1rem', borderRadius: '0', fontStyle: 'italic'}}>
-              "Before you commit to anything, let's get objective data. Our Cellular Energy Assessment includes comprehensive labs to see exactly what's happening at the cellular level, plus you'll experience both therapies so you know what you're getting into. It's $250, and if you decide to move forward with the full Reset within 7 days, that entire amount is credited toward the program."
+              "Before you commit to anything, let's get objective data. Our Cellular Energy Assessment includes comprehensive labs to see exactly what's happening at the cellular level, plus you'll experience both therapies so you know what you're getting into. It's $197, and if you decide to move forward with the full Reset within 7 days, that entire amount is credited toward the program."
             </p>
           </div>
 
@@ -229,7 +229,7 @@ export default function CellularEnergySalesScript() {
           <div className="faq-item" style={{marginBottom: '1rem'}}>
             <h4>"It's expensive"</h4>
             <p style={{background: '#fee2e2', padding: '1rem', borderRadius: '0', fontStyle: 'italic'}}>
-              "I hear you. Let me ask—how much have you already spent trying to fix this? Supplements, doctor visits, lost productivity? The Reset is a one-time investment to actually fix the underlying problem. And if the full Reset feels like too much right now, the Assessment is $250 (credited toward treatment) and gives you real data to make this decision."
+              "I hear you. Let me ask—how much have you already spent trying to fix this? Supplements, doctor visits, lost productivity? The Reset is a one-time investment to actually fix the underlying problem. And if the full Reset feels like too much right now, the Assessment is $197 (credited toward treatment) and gives you real data to make this decision."
             </p>
           </div>
 

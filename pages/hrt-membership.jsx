@@ -352,7 +352,7 @@ export default function HRTMembership() {
               </div>
               <div className="faq-item">
                 <h3>How do I get started?</h3>
-                <p>Start with a free assessment. We'll review your symptoms, order labs if needed, and determine if HRT is right for you. If it is, you'll start your membership when you begin your protocol.</p>
+                <p>Start with a $197 Range Assessment (credited toward treatment). We'll review your symptoms, order labs if needed, and determine if HRT is right for you. If it is, you'll start your membership when you begin your protocol.</p>
               </div>
               <div className="faq-item">
                 <h3>Is there a contract or commitment?</h3>
@@ -376,9 +376,9 @@ export default function HRTMembership() {
             <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '1.5rem' }}><span className="v2-dot" /> NEXT STEPS</div>
             <h2>READY TO FEEL LIKE YOURSELF AGAIN?</h2>
             <div className="hrt-divider-light"></div>
-            <p>Start with a free assessment. If HRT is right for you, your $250/month membership includes everything you need.</p>
+            <p>Start with a $197 Range Assessment. If HRT is right for you, your $250/month membership includes everything you need.</p>
             <div className="cta-buttons">
-              <a href="/start" className="btn-white">START NOW</a>
+              <a href="/range-assessment" className="btn-white">Book Your $197 Range Assessment</a>
             </div>
             <p className="cta-location">Range Medical · 1901 Westcliff Dr, Newport Beach</p>
           </div>

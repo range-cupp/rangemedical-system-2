@@ -101,7 +101,7 @@ export default function CashPay() {
               <Link href="/range-assessment?path=injury&from=start" className="btn-white">
                 Injury & Recovery
               </Link>
-              <Link href="/start/energy" style={{
+              <Link href="/range-assessment" style={{
                 display: 'inline-block', background: 'transparent', color: '#ffffff',
                 padding: '0.875rem 2rem', fontWeight: 700,
                 fontSize: '11px', textDecoration: 'none', letterSpacing: '0.12em',

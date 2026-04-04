@@ -83,7 +83,7 @@ export default function StartPage() {
     if (doorId === 'injury') {
       router.push('/range-assessment?path=injury&from=start');
     } else {
-      router.push('/start/energy');
+      router.push('/range-assessment');
     }
   };
 

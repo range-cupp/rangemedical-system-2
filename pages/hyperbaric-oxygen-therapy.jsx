@@ -681,7 +681,7 @@ export default function HyperbaricOxygenTherapy() {
               <h2>WHAT 20 SESSIONS CAN CHANGE.</h2>
               <div className="hbot-divider"></div>
               <p className="hbot-body-text">
-                These are real patient outcomes from our Newport Beach clinic. Names withheld for privacy. Every case started with a free assessment.
+                These are real patient outcomes from our Newport Beach clinic. Names withheld for privacy. Every case started with a Range Assessment.
               </p>
             </div>
 
@@ -757,10 +757,10 @@ export default function HyperbaricOxygenTherapy() {
               <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '1.5rem' }}><span className="v2-dot" /> NEXT STEPS</div>
               <h2 className="hbot-cta-title">YOUR BODY IS CAPABLE OF MORE THAN YOU THINK.</h2>
               <p className="hbot-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
-                Patients tell us HBOT is the treatment they wish they'd started sooner. Faster healing, clearer thinking, deeper sleep. Come see what pressurized oxygen can do. Free assessment, no commitment required.
+                Patients tell us HBOT is the treatment they wish they'd started sooner. Faster healing, clearer thinking, deeper sleep. Come see what pressurized oxygen can do. $197 assessment, credited toward treatment.
               </p>
               <div className="hbot-cta-buttons">
-                <Link href="/start" className="hbot-btn-primary">Start Now</Link>
+                <Link href="/range-assessment" className="hbot-btn-primary">Book Your $197 Range Assessment</Link>
                 <div className="hbot-cta-or">or</div>
                 <a href="tel:9499973988" className="hbot-cta-phone">(949) 997-3988</a>
               </div>

@@ -530,7 +530,7 @@ export default function UnderstandingPeptides() {
                 Get started with Range Medical and our team will guide you to the right protocol. Or give us a call — we're happy to answer any questions.
               </p>
               <div className="pm-cta-buttons">
-                <Link href="/start" className="pm-btn-primary">START NOW</Link>
+                <Link href="/range-assessment" className="pm-btn-primary">Book Your $197 Range Assessment</Link>
               </div>
               <div className="pm-cta-phone-row">
                 <div className="pm-cta-or">or call us</div>

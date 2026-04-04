@@ -28,12 +28,12 @@ export default function Home() {
     <>
       <Head>
         <title>Range Medical | Newport Beach Wellness & Recovery Clinic</title>
-        <meta name="description" content="Two ways to feel like yourself again. Range Medical in Newport Beach offers injury recovery and energy optimization programs. Take our Range Assessment to get started." />
+        <meta name="description" content="Start with a $197 Range Assessment at Range Medical in Newport Beach. If you move forward with treatment, we apply the full amount to your plan. Injury recovery and energy optimization." />
         <meta name="keywords" content="wellness clinic Newport Beach, injury recovery, low energy treatment, brain fog help, hormone optimization, medical weight loss, peptide therapy, PRP therapy, IV therapy" />
         <link rel="canonical" href="https://www.range-medical.com/" />
 
         <meta property="og:title" content="Range Medical | Newport Beach Wellness & Recovery" />
-        <meta property="og:description" content="Two ways to feel like yourself again. Injury recovery or energy optimization. Take our Range Assessment ($250, credited toward treatment)." />
+        <meta property="og:description" content="Start with a $197 Range Assessment. If you move forward with treatment, we apply the full amount to your plan. Injury recovery or energy optimization." />
         <meta property="og:url" content="https://www.range-medical.com/" />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="https://www.range-medical.com/og-home.jpg" />
@@ -42,7 +42,7 @@ export default function Home() {
 
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Range Medical | Newport Beach Wellness & Recovery" />
-        <meta name="twitter:description" content="Two ways to feel like yourself again. Take our Range Assessment ($250, credited toward treatment)." />
+        <meta name="twitter:description" content="Start with a $197 Range Assessment. If you move forward with treatment, we apply the full amount to your plan." />
         <meta name="twitter:image" content="https://www.range-medical.com/og-home.jpg" />
 
         <meta name="geo.region" content="US-CA" />
@@ -119,21 +119,26 @@ export default function Home() {
         {/* Hero Section */}
         <section className="hero">
           <div className="v2-label"><span className="v2-dot" /> Recovery &middot; Energy &middot; Optimization</div>
-          <h1>Two Ways to<br />Feel Like<br />Yourself Again.</h1>
+          <h1>One Assessment.<br />One Plan.<br />Feel Like<br />Yourself Again.</h1>
           <div className="hero-rule" />
           <p className="hero-sub">
-            Start with a Range Assessment for your biggest concern &mdash; injury recovery or low energy.
-            One visit, one plan.
+            Start with a $197 Range Assessment. We&apos;ll review your history, symptoms, and goals &mdash; then build your plan.
+            If you move forward with treatment, the full $197 goes toward it.
           </p>
+          <div style={{ marginTop: '2rem' }}>
+            <Link href="/range-assessment" className="btn-primary">
+              Book Your $197 Range Assessment
+            </Link>
+          </div>
         </section>
 
-        {/* Two Doors Section */}
+        {/* Two Paths Section */}
         <section id="home-doors" className={`home-section-alt home-animate ${isVisible['home-doors'] ? 'home-visible' : ''}`}>
           <div className="home-container">
             <div className="v2-label"><span className="v2-dot" /> How It Works</div>
-            <h2>Two Doors,<br />One Goal.</h2>
+            <h2>One Assessment.<br />Two Paths.</h2>
             <p className="home-section-intro">
-              Pick the door that matches your main concern. Both start with a Range Assessment.
+              Every patient starts with a $197 Range Assessment. Tell us what brings you in, and we&apos;ll take it from there.
             </p>
 
             <div className="doors-grid">
@@ -145,26 +150,26 @@ export default function Home() {
                   <li>Review your injury and rehab history</li>
                   <li>Discuss recovery timeline and goals</li>
                   <li>Get a clear protocol recommendation</li>
-                  <li>Free &mdash; no cost to start</li>
+                  <li>$197 credited toward your treatment</li>
                 </ul>
-                <Link href="/range-assessment?path=injury&from=start" className="v2-link-cta">
-                  Start Here <span>&rarr;</span>
+                <Link href="/range-assessment?path=injury" className="v2-link-cta">
+                  Book Assessment <span>&rarr;</span>
                 </Link>
               </div>
 
               <div className="door-card featured">
                 <span className="door-badge">Most Popular</span>
                 <span className="door-number">02</span>
-                <h3>Energy,<br />Hormones &<br />Weight Loss</h3>
+                <h3>Energy,<br />Hormones &<br />Weight</h3>
                 <p>You&apos;re tired, foggy, or just don&apos;t feel like yourself. You want answers and a plan.</p>
                 <ul>
-                  <li>We start with labs &mdash; real data, not guesswork</li>
-                  <li>1:1 provider review of your results</li>
-                  <li>Written plan in plain language</li>
-                  <li>Essential ($350) or Elite ($750)</li>
+                  <li>Review symptoms, goals, and history</li>
+                  <li>Discuss the right lab panel for you</li>
+                  <li>Get a clear path forward</li>
+                  <li>$197 credited toward your program</li>
                 </ul>
-                <Link href="/start/energy" className="v2-link-cta">
-                  Start Here <span>&rarr;</span>
+                <Link href="/range-assessment?path=energy" className="v2-link-cta">
+                  Book Assessment <span>&rarr;</span>
                 </Link>
               </div>
             </div>
@@ -294,19 +299,10 @@ export default function Home() {
           <div className="container">
             <h2>Ready to Feel<br />Like Yourself<br />Again?</h2>
             <div className="cta-rule" />
-            <p>Pick the path that fits your situation.</p>
+            <p>One assessment. One plan. $197 credited toward your treatment.</p>
             <div className="cta-buttons">
-              <Link href="/range-assessment?path=injury&from=start" className="btn-white">
-                Injury & Recovery
-              </Link>
-              <Link href="/start/energy" style={{
-                display: 'inline-block', background: 'transparent', color: '#ffffff',
-                padding: '0.875rem 2rem', fontWeight: 700,
-                fontSize: '11px', textDecoration: 'none', letterSpacing: '0.12em',
-                border: '1px solid #404040', textTransform: 'uppercase',
-                transition: 'all 0.2s'
-              }}>
-                Energy, Hormones & Weight Loss
+              <Link href="/range-assessment" className="btn-white">
+                Book Your $197 Range Assessment
               </Link>
             </div>
             <p className="cta-location">

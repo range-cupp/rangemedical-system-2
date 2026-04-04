@@ -22,7 +22,8 @@ function capitalizeName(name) {
 
 const PATH_LABELS = {
   injury: 'Injury & Recovery',
-  energy: 'Energy, Hormones & Weight Loss',
+  energy: 'Energy & Optimization',
+  both: 'Injury + Energy (Both)',
 };
 
 export default async function handler(req, res) {
@@ -49,7 +50,7 @@ export default async function handler(req, res) {
     if (!firstName || !lastName || !email || !phone || !path) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
-    if (!['injury', 'energy'].includes(path)) {
+    if (!['injury', 'energy', 'both'].includes(path)) {
       return res.status(400).json({ error: 'Invalid path' });
     }
 
@@ -153,13 +154,9 @@ export default async function handler(req, res) {
     if (consentSms && phone) {
       try {
         const normalized = normalizePhone(phone);
-        const nextStepUrl = path === 'injury'
-          ? 'https://range-medical.com/range-assessment?path=injury&from=start'
-          : `https://range-medical.com/start/energy?name=${encodeURIComponent(capFirst)}`;
+        const nextStepUrl = 'https://range-medical.com/range-assessment';
 
-        const message = path === 'injury'
-          ? `Got your info, ${capFirst}.\n\nYour next step is a quick assessment — we'll ask a few questions about your injury and show you the best recovery options.\n\nStart here:\n${nextStepUrl}\n\n- Range Medical`
-          : `Got your info, ${capFirst}.\n\nI just sent a short video that explains your next step. When you're ready, use this link to pick your lab panel:\n\n${nextStepUrl}\n\n- Range Medical`;
+        const message = `Got your info, ${capFirst}.\n\nYour next step is to book your $197 Range Assessment. We'll review your history, symptoms, and goals — then build your plan. If you move forward with treatment, the full $197 goes toward it.\n\nBook here:\n${nextStepUrl}\n\n- Range Medical`;
 
         const smsResult = await sendSMS({ to: normalized, message });
 

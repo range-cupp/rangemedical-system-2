@@ -764,10 +764,10 @@ export default function RedLightTherapy() {
               <div className="v2-label" style={{ marginBottom: '1.5rem' }}><span className="v2-dot" /> NEXT STEPS</div>
               <h2 className="rlt-cta-title">WHAT IF RECOVERY DIDN'T HAVE TO TAKE SO LONG?</h2>
               <p className="rlt-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
-                Our patients combine red light therapy with their existing protocols and notice the difference within weeks. Less pain, better skin, faster recovery. Come see what light can do. Free assessment, no commitment required.
+                Our patients combine red light therapy with their existing protocols and notice the difference within weeks. Less pain, better skin, faster recovery. Come see what light can do. $197 assessment, credited toward treatment.
               </p>
               <div className="rlt-cta-buttons">
-                <Link href="/start" className="rlt-btn-primary">Start Now</Link>
+                <Link href="/range-assessment" className="rlt-btn-primary">Book Your $197 Range Assessment</Link>
                 <div className="rlt-cta-or">or</div>
                 <a href="tel:9499973988" className="rlt-cta-phone">(949) 997-3988</a>
               </div>

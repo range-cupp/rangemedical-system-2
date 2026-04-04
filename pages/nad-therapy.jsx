@@ -614,10 +614,10 @@ export default function NADTherapy() {
               <div className="v2-label" style={{ marginBottom: '1.5rem', justifyContent: 'center' }}><span className="v2-dot" /> Next Steps</div>
               <h2 className="nad-cta-title">WHAT IF YOU COULD<br />THINK CLEARLY AGAIN?</h2>
               <p className="nad-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
-                Patients describe their first NAD+ infusion as a &ldquo;mental reset.&rdquo; The fog lifts. Energy returns. Focus sharpens. It&apos;s not magic &mdash; it&apos;s giving your brain the fuel it&apos;s been missing. Free assessment, no commitment required.
+                Patients describe their first NAD+ infusion as a &ldquo;mental reset.&rdquo; The fog lifts. Energy returns. Focus sharpens. It&apos;s not magic &mdash; it&apos;s giving your brain the fuel it&apos;s been missing. $197 assessment, credited toward treatment.
               </p>
               <div className="nad-cta-buttons">
-                <Link href="/start" className="btn-white">Start Now</Link>
+                <Link href="/range-assessment" className="btn-white">Book Your $197 Range Assessment</Link>
                 <div className="nad-cta-or">or</div>
                 <a href="tel:9499973988" className="nad-cta-phone">(949) 997-3988</a>
               </div>

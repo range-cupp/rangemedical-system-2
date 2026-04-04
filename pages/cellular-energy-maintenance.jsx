@@ -29,7 +29,7 @@ export default function CellularEnergyMaintenance() {
         </p>
         <div className="hero-cta">
           <p className="hero-secondary">
-            This page is for 6-Week Reset graduates. <Link href="/start"><strong>Not a graduate?</strong></Link>
+            This page is for 6-Week Reset graduates. <Link href="/range-assessment"><strong>Not a graduate?</strong></Link>
           </p>
         </div>
       </section>
@@ -105,7 +105,7 @@ export default function CellularEnergyMaintenance() {
 
             <div className="faq-item">
               <h4>What if I haven't done the Reset?</h4>
-              <p>Maintenance is for Reset graduates. If you're starting fresh, <Link href="/start"><strong>start here</strong></Link>.</p>
+              <p>Maintenance is for Reset graduates. If you're starting fresh, <Link href="/range-assessment"><strong>start here</strong></Link>.</p>
             </div>
           </div>
         </div>

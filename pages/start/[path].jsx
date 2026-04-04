@@ -45,7 +45,7 @@ export default function StartThankYou() {
         <div style={{ textAlign: 'center', padding: '120px 20px' }}>
           <h1 style={{ fontSize: 28, fontWeight: 700 }}>Page not found</h1>
           <p style={{ color: '#737373', marginTop: 8 }}>
-            <Link href="/start" style={{ color: '#171717', fontWeight: 600 }}>Go back to Start</Link>
+            <Link href="/range-assessment" style={{ color: '#171717', fontWeight: 600 }}>Go back to Range Assessment</Link>
           </p>
         </div>
       </Layout>
@@ -1003,8 +1003,8 @@ export default function StartThankYou() {
 
             {/* Panel selection */}
             <section className="ty-panels">
-              <div className="v2-label" style={{ justifyContent: 'center', marginBottom: 12 }}><span className="v2-dot" /> CHOOSE YOUR PANEL</div>
-              <h2>Pick your panel</h2>
+              <div className="v2-label" style={{ justifyContent: 'center', marginBottom: 12 }}><span className="v2-dot" /> YOUR RANGE ASSESSMENT</div>
+              <h2>Book your Range Assessment</h2>
               <p>One payment. Labs, provider review, and written plan included.</p>
 
               <div className="ty-panels-grid">
@@ -1165,7 +1165,7 @@ export default function StartThankYou() {
                 <div className="ty-expect-item">
                   <div className="ty-expect-num">01</div>
                   <div className="ty-expect-text">
-                    <h4>Pick your panel and check out</h4>
+                    <h4>Book your Range Assessment</h4>
                     <p>Click Essential or Elite above. Enter your info, pay, and book your blood draw — all in one step.</p>
                   </div>
                 </div>

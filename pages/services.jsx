@@ -482,7 +482,7 @@ export default function Services() {
                 <h3>Exosome Therapy</h3>
                 <div className="svc-card-price">Consultation-based</div>
                 <div className="svc-card-detail">Pricing discussed at your assessment</div>
-                <Link href="/start" className="svc-btn-start">Start Here &rarr;</Link>
+                <Link href="/range-assessment" className="svc-btn-start">Book Your $197 Range Assessment &rarr;</Link>
               </div>
             </div>
           </div>
@@ -510,7 +510,7 @@ export default function Services() {
                   <li>One Range IV per month ($225 value)</li>
                 </ul>
                 <div className="svc-card-note">Requires baseline lab panel (Essential $350 / Elite $750)</div>
-                <Link href="/start" className="svc-btn-start">Start Here &rarr;</Link>
+                <Link href="/range-assessment" className="svc-btn-start">Book Your $197 Range Assessment &rarr;</Link>
               </div>
             </div>
 
@@ -529,7 +529,7 @@ export default function Services() {
                   <li>Nutrition guidance included</li>
                 </ul>
                 <div className="svc-card-note">Requires baseline lab panel (Essential $350 / Elite $750)</div>
-                <Link href="/start" className="svc-btn-start">Start Here &rarr;</Link>
+                <Link href="/range-assessment" className="svc-btn-start">Book Your $197 Range Assessment &rarr;</Link>
               </div>
             </div>
 
@@ -548,7 +548,7 @@ export default function Services() {
                   <li>Immune, sleep, cognitive, and longevity peptides</li>
                   <li>Pre-filled syringes, prescription required</li>
                 </ul>
-                <Link href="/start" className="svc-btn-start">Start Here &rarr;</Link>
+                <Link href="/range-assessment" className="svc-btn-start">Book Your $197 Range Assessment &rarr;</Link>
               </div>
             </div>
           </div>
@@ -601,9 +601,9 @@ export default function Services() {
           <div className="v2-container v2-cta-inner">
             <h2>NOT SURE<br />WHERE TO<br />START?</h2>
             <div className="v2-cta-rule" />
-            <p>Take the Range Assessment &mdash; it&apos;s free and takes 2 minutes.</p>
+            <p>Book your $197 Range Assessment &mdash; it goes directly toward treatment.</p>
             <div className="v2-cta-buttons">
-              <Link href="/start" className="v2-btn-white">START HERE</Link>
+              <Link href="/range-assessment" className="v2-btn-white">Book Your $197 Range Assessment</Link>
               <a href="tel:9499973988" className="v2-btn-outline">(949) 997-3988</a>
             </div>
             <div className="v2-cta-location">

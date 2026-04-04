@@ -211,7 +211,7 @@ export default function TheBluGuide() {
         .blu-section { padding: 6rem 2rem; }
         .blu-section-alt { background: #fafafa; padding: 6rem 2rem; }
         .blu-section-inverted { background: #1a1a1a; color: #ffffff; }
-        .blu-page h1 { font-size: 2.75rem; font-weight: 900; line-height: 0.95; letter-spacing: -0.02em; text-transform: uppercase; color: #171717; margin-bottom: 1.5rem; }
+        .blu-page h1 { font-size: clamp(2.5rem, 6vw, 4rem); font-weight: 900; line-height: 0.95; letter-spacing: -0.02em; text-transform: uppercase; color: #171717; margin-bottom: 1.5rem; }
         .blu-page h2 { font-size: 2rem; font-weight: 900; letter-spacing: -0.02em; line-height: 0.95; text-transform: uppercase; color: #171717; margin-bottom: 1rem; }
         .blu-page h3 { font-size: 1.125rem; font-weight: 700; color: #171717; }
         .blu-section-inverted h1, .blu-section-inverted h2, .blu-section-inverted h3, .blu-section-inverted h4 { color: #ffffff; }

@@ -575,7 +575,7 @@ async function sendPatientResultsEmail({ firstName, email, symptoms, goals, last
               <div style="background: #000000; border-radius: 12px; padding: 24px; margin-bottom: 24px; text-align: center;">
                 <p style="margin: 0 0 8px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: #a3a3a3;">Your Recommended Panel</p>
                 <h2 style="margin: 0 0 8px; font-size: 28px; font-weight: 700; color: #ffffff;">${panelName}</h2>
-                <p style="margin: 0; font-size: 24px; font-weight: 700; color: #ffffff;">${panelPrice}</p>
+                <p style="margin: 0; font-size: 14px; color: #a3a3a3;">We'll discuss this at your Range Assessment</p>
               </div>
 
               ${labsSection}
@@ -605,19 +605,19 @@ async function sendPatientResultsEmail({ firstName, email, symptoms, goals, last
                   <tr>
                     <td style="padding-bottom: 12px;">
                       <span style="display: inline-block; width: 24px; height: 24px; background: #000; color: #fff; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 700; margin-right: 12px;">1</span>
-                      <span style="font-size: 14px; color: #171717;">Book your panel online or call us</span>
+                      <span style="font-size: 14px; color: #171717;">Book your $197 Range Assessment</span>
                     </td>
                   </tr>
                   <tr>
                     <td style="padding-bottom: 12px;">
                       <span style="display: inline-block; width: 24px; height: 24px; background: #000; color: #fff; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 700; margin-right: 12px;">2</span>
-                      <span style="font-size: 14px; color: #171717;">Get your blood draw at a local lab</span>
+                      <span style="font-size: 14px; color: #171717;">Meet with our team to review your results and goals</span>
                     </td>
                   </tr>
                   <tr>
                     <td>
                       <span style="display: inline-block; width: 24px; height: 24px; background: #000; color: #fff; border-radius: 50%; text-align: center; line-height: 24px; font-size: 12px; font-weight: 700; margin-right: 12px;">3</span>
-                      <span style="font-size: 14px; color: #171717;">Review results with your provider</span>
+                      <span style="font-size: 14px; color: #171717;">Get your personalized plan — $197 credited toward treatment</span>
                     </td>
                   </tr>
                 </table>
@@ -625,7 +625,7 @@ async function sendPatientResultsEmail({ firstName, email, symptoms, goals, last
 
               <!-- CTA -->
               <div style="text-align: center;">
-                <a href="${recommendElite ? 'https://link.range-medical.com/payment-link/698365ba6503ca98c6834212' : 'https://link.range-medical.com/payment-link/698365fcc80eaf78e79b8ef7'}" style="display: inline-block; background: #000000; color: #ffffff; padding: 14px 32px; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 16px;">Pay & Book ${panelName}</a>
+                <a href="https://range-medical.com/range-assessment" style="display: inline-block; background: #000000; color: #ffffff; padding: 14px 32px; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 16px;">Book Your $197 Range Assessment</a>
                 <p style="margin: 16px 0 0; font-size: 14px; color: #737373;">
                   Or call <a href="tel:9499973988" style="color: #171717; font-weight: 600;">(949) 997-3988</a>
                 </p>
@@ -654,7 +654,7 @@ async function sendPatientResultsEmail({ firstName, email, symptoms, goals, last
   const { error } = await resend.emails.send({
     from: 'Range Medical <noreply@range-medical.com>',
     to: email,
-    subject: `Your Lab Recommendation: ${panelName} - Range Medical`,
+    subject: `Your Assessment Results & Next Steps - Range Medical`,
     html: emailHtml
   });
 

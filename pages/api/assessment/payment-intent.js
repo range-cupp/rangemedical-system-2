@@ -1,5 +1,5 @@
 // /pages/api/assessment/payment-intent.js
-// Creates a Stripe PaymentIntent for the $250 assessment fee
+// Creates a Stripe PaymentIntent for the $197 assessment fee
 // Range Medical — Injury & Recovery Assessment
 
 import { createClient } from '@supabase/supabase-js';
@@ -23,8 +23,8 @@ export default async function handler(req, res) {
     }
 
     // Apply discount (e.g., $50 off from start funnel)
-    const discountCents = Math.min((discount || 0) * 100, 25000); // cap at full amount
-    const amountCents = 25000 - discountCents;
+    const discountCents = Math.min((discount || 0) * 100, 19700); // cap at full amount
+    const amountCents = 19700 - discountCents;
 
     const normalizedEmail = email.toLowerCase().trim();
 

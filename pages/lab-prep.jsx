@@ -84,7 +84,7 @@ export default function LabPrepPage() {
             <Link href="/weight-loss">Weight Loss</Link>
             <Link href="/lab-panels">Labs</Link>
           </nav>
-          <Link href="/start" className="v2-nav-cta">START HERE</Link>
+          <Link href="/range-assessment" className="v2-nav-cta">Book Your $197 Range Assessment</Link>
           <button className="v2-hamburger" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">
             <span /><span />
           </button>
@@ -99,7 +99,7 @@ export default function LabPrepPage() {
             <Link href="/hyperbaric-oxygen-therapy" onClick={() => setMenuOpen(false)}>Hyperbaric Oxygen</Link>
             <Link href="/red-light-therapy" onClick={() => setMenuOpen(false)}>Red Light Therapy</Link>
             <Link href="/lab-panels" onClick={() => setMenuOpen(false)}>Labs & Testing</Link>
-            <Link href="/start" className="v2-mobile-cta" onClick={() => setMenuOpen(false)}>START HERE</Link>
+            <Link href="/range-assessment" className="v2-mobile-cta" onClick={() => setMenuOpen(false)}>Book Your $197 Range Assessment</Link>
           </div>
         )}
       </header>
@@ -358,7 +358,7 @@ export default function LabPrepPage() {
               <p>If you found this page but haven&apos;t scheduled yet, start with an assessment.</p>
             )}
             <div className="v2-cta-buttons">
-              <Link href="/start" className="v2-btn-white">START HERE</Link>
+              <Link href="/range-assessment" className="v2-btn-white">Book Your $197 Range Assessment</Link>
               <a href="tel:+19499973988" className="v2-btn-outline">CALL (949) 997-3988</a>
             </div>
             <div className="v2-cta-location">
@@ -378,7 +378,7 @@ export default function LabPrepPage() {
           <div className="v2-footer-links">
             <div className="v2-footer-col">
               <h4>START</h4>
-              <Link href="/start">Start Here</Link>
+              <Link href="/range-assessment">Book Your $197 Range Assessment</Link>
               <Link href="/injury-recovery">Injury Recovery</Link>
               <Link href="/lab-panels">Labs & Testing</Link>
             </div>

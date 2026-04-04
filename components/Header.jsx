@@ -36,23 +36,37 @@ export default function Header() {
         <nav className="rm-nav">
           <div className="rm-nav-links">
             <Link
+              href="/range-assessment"
+              className={`rm-nav-link ${router.pathname === '/range-assessment' ? 'active' : ''}`}
+            >
+              Range Assessment
+            </Link>
+
+            <Link
               href="/injury-recovery"
               className={`rm-nav-link ${router.pathname === '/injury-recovery' ? 'active' : ''}`}
             >
-              Injury Recovery
+              Injury & Recovery
+            </Link>
+
+            <Link
+              href="/energy-optimization"
+              className={`rm-nav-link ${router.pathname === '/energy-optimization' ? 'active' : ''}`}
+            >
+              Energy & Optimization
             </Link>
 
             <div className="rm-nav-dropdown">
               <button className={`rm-nav-dropdown-trigger ${isActiveTreatment ? 'active' : ''}`}>
-                How We Treat 
+                Services
                 <svg width="10" height="6" viewBox="0 0 10 6" fill="none">
                   <path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
               <div className="rm-nav-dropdown-menu">
                 {treatments.map(t => (
-                  <Link 
-                    key={t.href} 
+                  <Link
+                    key={t.href}
                     href={t.href}
                     className={router.pathname === t.href ? 'active' : ''}
                   >
@@ -61,17 +75,10 @@ export default function Header() {
                 ))}
               </div>
             </div>
-            
-            <Link 
-              href="/lab-panels"
-              className={router.pathname === '/lab-panels' ? 'active' : ''}
-            >
-              Labs & Testing
-            </Link>
           </div>
-          
-          <Link href="/start" className="rm-nav-cta">
-            Start Now
+
+          <Link href="/range-assessment" className="rm-nav-cta">
+            Book $197 Assessment
           </Link>
         </nav>
         
@@ -84,14 +91,20 @@ export default function Header() {
       
       {mobileOpen && (
         <div className="rm-mobile-menu">
+          <Link href="/range-assessment" onClick={() => setMobileOpen(false)}>
+            Range Assessment
+          </Link>
           <Link href="/injury-recovery" onClick={() => setMobileOpen(false)}>
-            Injury Recovery
+            Injury & Recovery
+          </Link>
+          <Link href="/energy-optimization" onClick={() => setMobileOpen(false)}>
+            Energy & Optimization
           </Link>
           <button
             className="rm-mobile-dropdown-toggle"
             onClick={() => setTreatmentsOpen(!treatmentsOpen)}
           >
-            <span>How We Treat</span>
+            <span>Services</span>
             <svg
               width="12" height="7" viewBox="0 0 12 7" fill="none"
               style={{ transform: treatmentsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
@@ -113,11 +126,8 @@ export default function Header() {
               ))}
             </div>
           )}
-          <Link href="/lab-panels" onClick={() => setMobileOpen(false)}>
-            Labs & Testing
-          </Link>
-          <Link href="/start" className="rm-mobile-cta" onClick={() => setMobileOpen(false)}>
-            Start Now
+          <Link href="/range-assessment" className="rm-mobile-cta" onClick={() => setMobileOpen(false)}>
+            Book $197 Assessment
           </Link>
         </div>
       )}

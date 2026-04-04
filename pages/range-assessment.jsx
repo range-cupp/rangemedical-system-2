@@ -69,17 +69,17 @@ function AssessmentPaymentForm({ onSuccess, leadId }) {
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', fontSize: '1rem', color: '#171717' }}>
           <span>In-Clinic Visit — Injury & Recovery</span>
-          <span style={{ fontWeight: 700 }}>$250</span>
+          <span style={{ fontWeight: 700 }}>$197</span>
         </div>
         <div style={{ borderTop: '2px solid #eee', paddingTop: 12, display: 'flex', justifyContent: 'space-between', fontSize: '1.125rem', fontWeight: 700, color: '#171717' }}>
           <span>Total</span>
-          <span>$250.00</span>
+          <span>$197.00</span>
         </div>
       </div>
 
       <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 0, padding: '0.875rem 1rem', marginBottom: 24 }}>
         <p style={{ margin: 0, fontSize: '0.875rem', color: '#166534' }}>
-          This $250 goes directly toward your treatment protocol.
+          This $197 goes directly toward your treatment protocol.
         </p>
       </div>
 
@@ -110,7 +110,7 @@ function AssessmentPaymentForm({ onSuccess, leadId }) {
           fontFamily: 'inherit',
         }}
       >
-        {processing ? 'Processing...' : 'Pay $250'}
+        {processing ? 'Processing...' : 'Pay $197'}
       </button>
     </form>
   );
@@ -1137,7 +1137,7 @@ export default function RangeAssessment() {
                     {formatBookingTime(bookingResult.start)}
                   </p>
                   <p style={{ fontSize: '0.9375rem', color: '#525252', lineHeight: 1.6, margin: '0 0 0.5rem' }}>
-                    We'll go over your treatment options in person based on your assessment answers. Your $250 goes directly toward whichever protocol you choose.
+                    We'll go over your treatment options in person based on your assessment answers. Your $197 goes directly toward whichever protocol you choose.
                   </p>
                   <p style={{ fontSize: '0.9375rem', color: '#525252', lineHeight: 1.6, margin: '0 0 1rem' }}>
                     We've texted a short medical intake form to your phone — please complete it before your visit so we're ready to go.
@@ -2159,11 +2159,11 @@ export default function RangeAssessment() {
                     }}
                     style={{ border: 'none', cursor: 'pointer', fontFamily: 'inherit', opacity: startContactSubmitting ? 0.6 : 1 }}
                   >
-                    {startContactSubmitting ? 'Setting up your visit...' : 'Continue to Payment — $250'}
+                    {startContactSubmitting ? 'Setting up your visit...' : 'Continue to Payment — $197'}
                   </button>
 
                   <p style={{ fontSize: 13, color: '#a3a3a3', marginTop: 12, textAlign: 'center', lineHeight: 1.5 }}>
-                    Your $250 goes directly toward your treatment protocol.<br />
+                    Your $197 goes directly toward your treatment protocol.<br />
                     By continuing, you agree to receive texts from Range Medical.
                   </p>
                 </>
@@ -2172,7 +2172,7 @@ export default function RangeAssessment() {
                   {/* Standard flow (direct visitors or contact already collected) */}
                   <h3>Next Step: Book Your In-Clinic Visit</h3>
                   <p>
-                    Our provider will evaluate your situation in person and walk you through the treatment options that make sense for you. Your <strong>$250</strong> visit fee goes directly toward whichever protocol you choose.
+                    Our provider will evaluate your situation in person and walk you through the treatment options that make sense for you. Your <strong>$197</strong> visit fee goes directly toward whichever protocol you choose.
                   </p>
                   <button
                     className="inj-res-cta"
@@ -2184,10 +2184,10 @@ export default function RangeAssessment() {
                     }}
                     style={{ border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
                   >
-                    Book Visit — $250
+                    Book Visit — $197
                   </button>
                   <p style={{ fontSize: '0.85rem', color: '#a3a3a3', marginTop: '0.75rem' }}>
-                    This $250 goes directly toward your treatment protocol.
+                    This $197 goes directly toward your treatment protocol.
                   </p>
                 </>
               )}
@@ -2666,7 +2666,7 @@ export default function RangeAssessment() {
             <div className="res-section">
               <div className="res-section-label">
                 <div className="res-section-num">3</div>
-                <span>Pick Your Panel & Pay</span>
+                <span>Choose Your Labs & Pay</span>
               </div>
 
               <div className="res-panels-grid">
@@ -2827,7 +2827,7 @@ export default function RangeAssessment() {
 
                 <button
                   className="ra-path-card"
-                  onClick={() => router.push('/start/energy')}
+                  onClick={() => router.push('/range-assessment?path=energy')}
                 >
                   <div className="ra-path-icon">
                     <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

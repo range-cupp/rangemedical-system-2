@@ -426,7 +426,7 @@ export default function PeptideTherapy() {
               <div className="v2-label"><span className="v2-dot" /> Getting Started</div>
               <h2>YOUR FIRST VISIT, STEP BY STEP.</h2>
               <p className="pep-body-text">
-                Getting started with peptides is straightforward. Here's exactly what happens at our Newport Beach clinic. Free assessment, no commitment required.
+                Getting started with peptides is straightforward. Here's exactly what happens at our Newport Beach clinic. $197 assessment, credited toward treatment.
               </p>
             </div>
 
@@ -628,10 +628,10 @@ export default function PeptideTherapy() {
               <h2>IMAGINE RECOVERING LIKE YOU DID IN YOUR 20s.</h2>
               <div className="cta-rule" />
               <p>
-                Better sleep. Faster recovery. Joints that don't ache every morning. That's what peptide therapy patients tell us within the first 8 weeks. Free assessment, no commitment required.
+                Better sleep. Faster recovery. Joints that don't ache every morning. That's what peptide therapy patients tell us within the first 8 weeks. $197 assessment, credited toward treatment.
               </p>
               <div className="pep-cta-buttons">
-                <Link href="/start" className="btn-white">Start Now</Link>
+                <Link href="/range-assessment" className="btn-white">Book Your $197 Range Assessment</Link>
                 <div className="pep-cta-or">or</div>
                 <a href="tel:9499973988" className="pep-cta-phone">(949) 997-3988</a>
               </div>

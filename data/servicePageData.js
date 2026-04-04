@@ -22,7 +22,7 @@ export const servicePages = {
     howItWorks: {
       title: 'How It Works',
       steps: [
-        { title: 'Take Assessment', description: 'Start with a Range Assessment ($250, credited toward treatment) to discuss your symptoms and goals.' },
+        { title: 'Take Assessment', description: 'Start with a $197 Range Assessment (credited toward treatment) to discuss your symptoms and goals.' },
         { title: 'Run Labs', description: 'Comprehensive hormone panel to see what\'s actually going on.' },
         { title: 'Review Results', description: 'Your provider explains your labs and recommends a plan.' },
         { title: 'Start Treatment', description: 'Personalized protocol with ongoing monitoring and adjustments.' }
@@ -73,7 +73,7 @@ export const servicePages = {
     howItWorks: {
       title: 'How It Works',
       steps: [
-        { title: 'Take Assessment', description: 'Start with a Range Assessment ($250, credited toward treatment) to see if GLP-1s are right for you.' },
+        { title: 'Take Assessment', description: 'Start with a $197 Range Assessment (credited toward treatment) to see if GLP-1s are right for you.' },
         { title: 'Run Labs', description: 'Check metabolic markers, thyroid, and hormones that affect weight.' },
         { title: 'Start Medication', description: 'Tirzepatide, Semaglutide, or Retatrutide — dosed for your body.' },
         { title: 'Ongoing Support', description: 'Weekly check-ins, dose adjustments, and lab monitoring.' }
@@ -319,7 +319,7 @@ export const servicePages = {
     howItWorks: {
       title: 'How It Works',
       steps: [
-        { title: 'Choose Panel', description: 'Essential ($350) or Elite ($750) based on your goals.' },
+        { title: 'Range Assessment', description: 'Start with a $197 assessment so we can match the right labs to your goals.' },
         { title: 'Blood Draw', description: 'Quick draw at our office — no fasting required for most panels.' },
         { title: 'Results', description: 'Results typically back in 3-5 business days.' },
         { title: 'Review', description: 'Your provider explains everything and builds your plan.' }

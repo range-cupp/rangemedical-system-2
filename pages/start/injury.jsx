@@ -801,7 +801,7 @@ export default function StartInjury() {
 
           {!leadInfo && selectedSlot && (
             <p style={{ fontSize: 13, color: '#dc2626', textAlign: 'center', marginTop: 8 }}>
-              Please go back to <a href="/start" style={{ color: '#dc2626', fontWeight: 600 }}>/start</a> and fill out the form first.
+              Please go back to <a href="/range-assessment" style={{ color: '#dc2626', fontWeight: 600 }}>/range-assessment</a> and fill out the form first.
             </p>
           )}
 

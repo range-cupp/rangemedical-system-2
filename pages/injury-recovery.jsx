@@ -9,7 +9,7 @@ import { getStudiesByService } from '../data/researchStudies';
 export default function InjuryRecovery() {
   const router = useRouter();
   const fromStart = router.query.from === 'start';
-  const assessmentLink = '/start';
+  const assessmentLink = '/range-assessment';
 
   const [openFaq, setOpenFaq] = useState(null);
   const [isVisible, setIsVisible] = useState({});
@@ -78,12 +78,12 @@ export default function InjuryRecovery() {
     <>
       <Head>
         <title>Your Guide to Injury Recovery | Range Medical | Newport Beach</title>
-        <meta name="description" content="Speed up your injury recovery with targeted protocols including HBOT, red light therapy, peptides, and PRP. Start with a free assessment at Range Medical in Newport Beach." />
+        <meta name="description" content="Speed up your injury recovery with targeted protocols including HBOT, red light therapy, peptides, and PRP. Start with a $197 Range Assessment at Range Medical in Newport Beach." />
         <meta name="keywords" content="injury recovery Newport Beach, sports injury treatment, HBOT injury recovery, red light therapy healing, peptide therapy recovery, PRP treatment, post-surgical recovery" />
         <link rel="canonical" href="https://www.range-medical.com/injury-recovery" />
 
         <meta property="og:title" content="Your Guide to Injury Recovery | Range Medical" />
-        <meta property="og:description" content="Speed up your injury recovery with targeted protocols. Start with a free assessment at Range Medical." />
+        <meta property="og:description" content="Speed up your injury recovery with targeted protocols. Start with a $197 Range Assessment at Range Medical." />
         <meta property="og:url" content="https://www.range-medical.com/injury-recovery" />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="https://www.range-medical.com/og-injury-recovery.jpg" />
@@ -92,7 +92,7 @@ export default function InjuryRecovery() {
 
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Your Guide to Injury Recovery | Range Medical" />
-        <meta name="twitter:description" content="Speed up your injury recovery with targeted protocols. Start with a free assessment at Range Medical." />
+        <meta name="twitter:description" content="Speed up your injury recovery with targeted protocols. Start with a $197 Range Assessment at Range Medical." />
         <meta name="twitter:image" content="https://www.range-medical.com/og-injury-recovery.jpg" />
 
         <meta name="geo.region" content="US-CA" />
@@ -263,7 +263,7 @@ export default function InjuryRecovery() {
             <div className="v2-label"><span className="v2-dot" /> How It Works</div>
             <h2>From Assessment<br />to Recovery Plan</h2>
             <p className="inj-section-intro">
-              Start with a free assessment. We&apos;ll learn about your situation so your provider can determine the best approach during your visit.
+              Start with a $197 Range Assessment (credited toward treatment). We&apos;ll learn about your situation so your provider can determine the best approach during your visit.
             </p>
 
             <div className="inj-process-grid">
@@ -445,7 +445,7 @@ export default function InjuryRecovery() {
             <p className="inj-cta-text">
               Take the online assessment. It takes 2 minutes and helps our team understand your situation before your visit.
             </p>
-            <Link href={assessmentLink} className="btn-white">Start Now</Link>
+            <Link href={assessmentLink} className="btn-white">Book Your $197 Range Assessment</Link>
             <p className="inj-cta-location">
               Range Medical &bull; 1901 Westcliff Dr, Newport Beach
             </p>

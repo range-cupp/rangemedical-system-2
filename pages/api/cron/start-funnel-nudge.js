@@ -52,13 +52,9 @@ export default async function handler(req, res) {
         const normalized = normalizePhone(lead.phone);
         if (!normalized) continue;
 
-        const nextStepUrl = lead.path === 'injury'
-          ? 'https://range-medical.com/range-assessment?path=injury&from=start'
-          : `https://range-medical.com/start/energy?name=${encodeURIComponent(lead.first_name)}`;
+        const nextStepUrl = 'https://range-medical.com/range-assessment';
 
-        const message = lead.path === 'injury'
-          ? `Hey ${lead.first_name}, just checking in. Ready to book your Recovery Visit? Pick a time here:\n\n${nextStepUrl}\n\n- Range Medical`
-          : `Hey ${lead.first_name}, just checking in. Did you get a chance to watch the video? Here's your link to pick your lab panel when you're ready:\n\n${nextStepUrl}\n\n- Range Medical`;
+        const message = `Hey ${lead.first_name}, just checking in. Ready to book your $197 Range Assessment? We'll review your situation and build your plan — and the full $197 goes toward treatment if you move forward.\n\nBook here:\n${nextStepUrl}\n\n- Range Medical`;
 
         const smsResult = await sendSMS({ to: normalized, message });
 
@@ -109,13 +105,9 @@ export default async function handler(req, res) {
         const normalized = normalizePhone(lead.phone);
         if (!normalized) continue;
 
-        const nextStepUrl = lead.path === 'injury'
-          ? 'https://range-medical.com/range-assessment?path=injury&from=start'
-          : `https://range-medical.com/start/energy?name=${encodeURIComponent(lead.first_name)}`;
+        const nextStepUrl = 'https://range-medical.com/range-assessment';
 
-        const message = lead.path === 'injury'
-          ? `Hi ${lead.first_name}, wanted to reach out one last time. If you're still dealing with that injury, we're here when you're ready to book your Recovery Visit:\n\n${nextStepUrl}\n\nOr just reply to this text.\n\n- Range Medical`
-          : `Hi ${lead.first_name}, wanted to reach out one last time. If you're still thinking about it, we're here when you're ready:\n\n${nextStepUrl}\n\nOr just reply to this text.\n\n- Range Medical`;
+        const message = `Hi ${lead.first_name}, wanted to reach out one last time. If you're still thinking about it, we're here when you're ready to book your Range Assessment:\n\n${nextStepUrl}\n\nOr just reply to this text.\n\n- Range Medical`;
 
         const smsResult = await sendSMS({ to: normalized, message });
 

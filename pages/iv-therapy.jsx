@@ -669,10 +669,10 @@ export default function IVTherapy() {
               <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '1.5rem' }}><span className="v2-dot" /> NEXT STEPS</div>
               <h2 className="iv-cta-title">STOP RUNNING ON EMPTY.</h2>
               <p className="iv-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
-                Most people are chronically dehydrated and nutrient-depleted without knowing it. One session and you'll feel the difference. Walk in tired, walk out recharged. Free assessment, no commitment required.
+                Most people are chronically dehydrated and nutrient-depleted without knowing it. One session and you'll feel the difference. Walk in tired, walk out recharged. $197 assessment, credited toward treatment.
               </p>
               <div className="iv-cta-buttons">
-                <Link href="/start" className="iv-btn-primary">START NOW</Link>
+                <Link href="/range-assessment" className="iv-btn-primary">Book Your $197 Range Assessment</Link>
                 <div className="iv-cta-or">or</div>
                 <a href="tel:9499973988" className="iv-cta-phone">(949) 997-3988</a>
               </div>

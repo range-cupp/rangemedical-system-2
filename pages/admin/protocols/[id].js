@@ -1691,13 +1691,15 @@ export default function ProtocolDetail() {
               </div>
             )}
 
-            {/* Injection Log (weight loss only) */}
-            {!isEditing && isWeightLoss && injectionLogs.length > 0 && (
+            {/* Injection Log (weight loss only) — sorted oldest → newest */}
+            {!isEditing && isWeightLoss && injectionLogs.length > 0 && (() => {
+              const chronologicalLogs = [...injectionLogs].sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
+              return (
               <div style={styles.card}>
                 <h2 style={styles.cardTitle}>💉 Injection Log</h2>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-                  {injectionLogs.map((log, idx) => {
-                    const isLast = idx === injectionLogs.length - 1;
+                  {chronologicalLogs.map((log, idx) => {
+                    const isLast = idx === chronologicalLogs.length - 1;
                     const isMissedLog = log.log_type === 'missed' || (log.notes || '').includes('MISSED WEEK');
                     // Parse date timezone-safe
                     const rawDate = log.log_date;
@@ -1812,7 +1814,8 @@ export default function ProtocolDetail() {
                   })}
                 </div>
               </div>
-            )}
+              );
+            })()}
 
             {/* Calendar Grid for Injection/Day protocols (non-weight-loss, non-ongoing) */}
             {!isEditing && !isSessionBased && !isWeightLoss && !isOngoing && (

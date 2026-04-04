@@ -1020,7 +1020,7 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
       </div>
 
       {/* Sections */}
-      {formDef.sections.map((section) => {
+      {formDef.sections.flatMap((section) => {
         // Repeatable sections (e.g., multiple injections)
         if (section.repeatable && section.type === 'fields') {
           const count = formData[`_repeat_count_${section.key}`] || 1;
@@ -1141,7 +1141,8 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
               </div>
             )}
           </div>
-      ))}
+        );
+      })}
 
       {/* Preview toggle */}
       <div style={styles.previewToggle}>

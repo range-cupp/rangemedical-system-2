@@ -796,7 +796,7 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
               <img
                 src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png"
                 alt="Range Medical"
-                style={{ height: '32px', display: 'block' }}
+                style={{ height: '32px', display: 'block', filter: 'brightness(0) invert(1)' }}
               />
             </Link>
           </div>

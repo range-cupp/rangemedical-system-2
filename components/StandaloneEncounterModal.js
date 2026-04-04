@@ -101,10 +101,13 @@ function htmlToMd(html) {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function StandaloneEncounterModal({ patient, currentUser, onClose, onRefresh }) {
-  const today = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const currentTime = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', timeZone: 'America/Los_Angeles' });
 
   const [form, setForm] = useState({
     visitDate: today,
+    visitTime: currentTime,
     serviceType: 'general',
     provider: currentUser || '',
   });
@@ -342,7 +345,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
     setSaving(true);
     setError('');
 
-    const visitDateTime = new Date(form.visitDate + 'T12:00:00').toISOString();
+    const visitDateTime = new Date(form.visitDate + 'T' + (form.visitTime || '12:00') + ':00').toISOString();
 
     try {
       const res = await fetch('/api/notes/create', {
@@ -351,7 +354,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
         body: JSON.stringify({
           patient_id: patient.id,
           raw_input: rawMarkdown || bodyToSave,
-          body: bodyToSave || null,
+          body: bodyToSave || rawMarkdown,
           created_by: form.provider || currentUser || 'Staff',
           source: 'encounter',
           encounter_service: form.serviceType,
@@ -427,14 +430,22 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Visit Date
+                Visit Date & Time
               </label>
-              <input
-                type="date"
-                value={form.visitDate}
-                onChange={e => setForm(prev => ({ ...prev, visitDate: e.target.value }))}
-                style={{ width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
-              />
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  type="date"
+                  value={form.visitDate}
+                  onChange={e => setForm(prev => ({ ...prev, visitDate: e.target.value }))}
+                  style={{ flex: 1, padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                />
+                <input
+                  type="time"
+                  value={form.visitTime}
+                  onChange={e => setForm(prev => ({ ...prev, visitTime: e.target.value }))}
+                  style={{ width: 120, padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 0, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
+                />
+              </div>
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -519,7 +530,7 @@ export default function StandaloneEncounterModal({ patient, currentUser, onClose
                 onSave={async ({ markdown, structured_data, note_type, form_type }) => {
                   setSaving(true);
                   setError('');
-                  const visitDateTime = new Date(form.visitDate + 'T12:00:00').toISOString();
+                  const visitDateTime = new Date(form.visitDate + 'T' + (form.visitTime || '12:00') + ':00').toISOString();
                   try {
                     const res = await fetch('/api/notes/create', {
                       method: 'POST',

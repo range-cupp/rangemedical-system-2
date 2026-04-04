@@ -42,11 +42,17 @@ export default function PeptideGuidePage() {
   const [vialMg, setVialMg] = useState('');
   const [bacWater, setBacWater] = useState('');
   const [desiredDose, setDesiredDose] = useState('');
+  const [doseUnit, setDoseUnit] = useState('mg'); // 'mg' or 'mcg'
 
-  const reconResult = useMemo(
-    () => calcUnits(parseFloat(vialMg), parseFloat(bacWater), parseFloat(desiredDose)),
-    [vialMg, bacWater, desiredDose]
-  );
+  const reconResult = useMemo(() => {
+    const vial = parseFloat(vialMg);
+    const water = parseFloat(bacWater);
+    let dose = parseFloat(desiredDose);
+    if (!vial || !water || !dose) return null;
+    // Convert mcg to mg for calculation (vial is always mg)
+    if (doseUnit === 'mcg') dose = dose / 1000;
+    return calcUnits(vial, water, dose);
+  }, [vialMg, bacWater, desiredDose, doseUnit]);
 
   const groups = PEPTIDE_OPTIONS.map(g => g.group);
 
@@ -104,15 +110,35 @@ export default function PeptideGuidePage() {
               />
             </div>
             <div style={styles.calcField}>
-              <label style={styles.calcLabel}>Desired Dose (mg)</label>
-              <input
-                type="number"
-                step="any"
-                value={desiredDose}
-                onChange={e => setDesiredDose(e.target.value)}
-                placeholder="e.g. 1"
-                style={styles.calcInput}
-              />
+              <label style={styles.calcLabel}>Desired Dose ({doseUnit})</label>
+              <div style={styles.inputWithToggle}>
+                <input
+                  type="number"
+                  step="any"
+                  value={desiredDose}
+                  onChange={e => setDesiredDose(e.target.value)}
+                  placeholder={doseUnit === 'mg' ? 'e.g. 1' : 'e.g. 250'}
+                  style={{ ...styles.calcInput, borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: 'none' }}
+                />
+                <div style={styles.unitToggle}>
+                  <button
+                    onClick={() => setDoseUnit('mg')}
+                    style={{
+                      ...styles.unitBtn,
+                      ...(doseUnit === 'mg' ? styles.unitBtnActive : {}),
+                      borderRadius: '0 8px 0 0',
+                    }}
+                  >mg</button>
+                  <button
+                    onClick={() => setDoseUnit('mcg')}
+                    style={{
+                      ...styles.unitBtn,
+                      ...(doseUnit === 'mcg' ? styles.unitBtnActive : {}),
+                      borderRadius: '0 0 8px 0',
+                    }}
+                  >mcg</button>
+                </div>
+              </div>
             </div>
             <div style={styles.calcResultBox}>
               <label style={styles.calcLabel}>Units to Draw</label>
@@ -125,7 +151,7 @@ export default function PeptideGuidePage() {
           </div>
           {reconResult !== null && (
             <p style={styles.calcExplain}>
-              {desiredDose}mg out of a {vialMg}mg vial reconstituted with {bacWater}mL BAC water = <strong>{Math.round(reconResult * 10) / 10} units</strong> on an insulin syringe
+              {desiredDose}{doseUnit} out of a {vialMg}mg vial reconstituted with {bacWater}mL BAC water = <strong>{Math.round(reconResult * 10) / 10} units</strong> on an insulin syringe
             </p>
           )}
         </div>
@@ -317,6 +343,34 @@ const styles = {
     borderRadius: 8,
     outline: 'none',
     boxSizing: 'border-box',
+  },
+  inputWithToggle: {
+    display: 'flex',
+    alignItems: 'stretch',
+  },
+  unitToggle: {
+    display: 'flex',
+    flexDirection: 'column',
+    flexShrink: 0,
+  },
+  unitBtn: {
+    padding: '0 10px',
+    fontSize: 12,
+    fontWeight: 600,
+    border: '1px solid #d1d5db',
+    background: '#fff',
+    color: '#888',
+    cursor: 'pointer',
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 42,
+  },
+  unitBtnActive: {
+    background: '#111',
+    color: '#fff',
+    borderColor: '#111',
   },
   calcResultBox: {
     flex: '1 1 160px',

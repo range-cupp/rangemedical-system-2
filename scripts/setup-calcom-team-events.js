@@ -57,6 +57,11 @@ const EVENT_TYPES = [
   { slug: 'vitamin-c-iv', title: 'Vitamin C IV', length: 90, desc: 'High-dose Vitamin C IV infusion.', loc: LOC_IN_PERSON, hosts: hosts([LILY, DAMIEN]) },
   { slug: 'specialty-iv', title: 'Specialty IV', length: 60, desc: 'Specialty IV therapy session.', loc: LOC_IN_PERSON, hosts: hosts([LILY, DAMIEN]) },
 
+  // RANGE ASSESSMENT
+  { slug: 'range-assessment-injury', title: 'Range Assessment — Injury & Recovery', length: 30, desc: '$197 Range Assessment for injury recovery. Credited toward treatment if you move forward within 7 days.', loc: LOC_IN_PERSON, hosts: hosts([CHRIS, DAMON, DAMIEN]) },
+  { slug: 'range-assessment-energy', title: 'Range Assessment — Energy & Optimization', length: 30, desc: '$197 Range Assessment for energy, hormones, and weight. Credited toward treatment if you move forward within 7 days.', loc: LOC_IN_PERSON, hosts: hosts([CHRIS, DAMON, DAMIEN]) },
+  { slug: 'range-assessment-both', title: 'Range Assessment — Both', length: 45, desc: '$197 Range Assessment covering both injury recovery and energy optimization. Credited toward treatment if you move forward within 7 days.', loc: LOC_IN_PERSON, hosts: hosts([CHRIS, DAMON, DAMIEN]) },
+
   // DIAGNOSTICS
   { slug: 'dexa-scan', title: 'DEXA Scan', length: 45, desc: 'DEXA body composition scan at Range Medical. Approximately 45 minutes.', loc: LOC_IN_PERSON, hosts: fixedHost(DAMIEN) },
 

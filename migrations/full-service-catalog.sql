@@ -31,16 +31,16 @@ CREATE UNIQUE INDEX IF NOT EXISTS pos_services_name_unique ON pos_services(name)
 -- ── Assessment ───────────────────────────────────────────────────────────────
 
 INSERT INTO pos_services (name, category, price_cents, recurring, description, sort_order) VALUES
-  ('Range Assessment', 'assessment', 25000, false, 'Initial consultation with provider. $250 credited toward any treatment started.', 1)
+  ('Range Assessment', 'assessment', 19700, false, 'Initial consultation with team member. $197 credited toward any treatment started within 7 days.', 1)
 ON CONFLICT (name) DO UPDATE SET price_cents = EXCLUDED.price_cents, description = EXCLUDED.description;
 
 -- ── Lab Panels ───────────────────────────────────────────────────────────────
 
 INSERT INTO pos_services (name, category, price_cents, recurring, description, sort_order) VALUES
-  ('Men''s Essential Panel',   'lab_panels', 35000, false, 'Hormones, thyroid, metabolic, lipids, CBC, vitamins, cortisol, PSA. Assessment special: $300.', 1),
-  ('Men''s Elite Panel',       'lab_panels', 75000, false, 'Everything in Essential + advanced cardiovascular, inflammation, IGF-1, ferritin. Assessment special: $700.', 2),
-  ('Women''s Essential Panel', 'lab_panels', 35000, false, 'Hormones, thyroid, metabolic, lipids, CBC, vitamins, cortisol. Assessment special: $300.', 3),
-  ('Women''s Elite Panel',     'lab_panels', 75000, false, 'Everything in Essential + advanced cardiovascular, inflammation, IGF-1, ferritin. Assessment special: $700.', 4)
+  ('Men''s Essential Panel',   'labs', 35000, false, 'Hormones, thyroid, metabolic, lipids, CBC, vitamins, cortisol, PSA. Assessment special: $300.', 1),
+  ('Men''s Elite Panel',       'labs', 75000, false, 'Everything in Essential + advanced cardiovascular, inflammation, IGF-1, ferritin. Assessment special: $700.', 2),
+  ('Women''s Essential Panel', 'labs', 35000, false, 'Hormones, thyroid, metabolic, lipids, CBC, vitamins, cortisol. Assessment special: $300.', 3),
+  ('Women''s Elite Panel',     'labs', 75000, false, 'Everything in Essential + advanced cardiovascular, inflammation, IGF-1, ferritin. Assessment special: $700.', 4)
 ON CONFLICT (name) DO UPDATE SET price_cents = EXCLUDED.price_cents, description = EXCLUDED.description;
 
 -- ── IV Therapy ───────────────────────────────────────────────────────────────
@@ -62,21 +62,32 @@ INSERT INTO pos_services (name, category, price_cents, recurring, description, s
   ('Exosome IV',            'iv_therapy',     0, false, 'Exosome IV therapy. Pricing by consultation — varies by protocol.', 14)
 ON CONFLICT (name) DO UPDATE SET price_cents = EXCLUDED.price_cents, description = EXCLUDED.description;
 
--- ── Injections ───────────────────────────────────────────────────────────────
+-- ── Injections (Standard + Premium) ──────────────────────────────────────────
 
 INSERT INTO pos_services (name, category, price_cents, recurring, description, sort_order) VALUES
   ('Standard Injection',       'injections',  3500, false, 'B12, B-Complex, D3, Biotin, Amino Blend, NAC, BCAA — $35 each.', 1),
-  ('Premium Injection',        'injections',  5000, false, 'L-Carnitine, Glutathione, MIC-B12 (Skinny Shot) — $50 each.', 2),
-  ('NAD+ Injection 50mg',      'injections',  2500, false, 'NAD+ IM injection 50mg ($0.50/mg).', 3),
-  ('NAD+ Injection 75mg',      'injections',  3750, false, 'NAD+ IM injection 75mg ($0.50/mg).', 4),
-  ('NAD+ Injection 100mg',     'injections',  5000, false, 'NAD+ IM injection 100mg ($0.50/mg).', 5),
-  ('NAD+ Injection 125mg',     'injections',  6250, false, 'NAD+ IM injection 125mg ($0.50/mg).', 6),
-  ('NAD+ Injection 150mg',     'injections',  7500, false, 'NAD+ IM injection 150mg ($0.50/mg).', 7)
+  ('Premium Injection',        'injections',  5000, false, 'L-Carnitine, Glutathione, MIC-B12 (Skinny Shot) — $50 each.', 2)
 ON CONFLICT (name) DO UPDATE SET price_cents = EXCLUDED.price_cents, description = EXCLUDED.description;
+
+-- ── NAD+ Injections (Individual + 12-Packs) ─────────────────────────────────
+
+INSERT INTO pos_services (name, category, price_cents, recurring, description, sort_order) VALUES
+  ('NAD+ Injection 50mg',                  'nad_injection',  2500, false, 'NAD+ IM injection 50mg ($0.50/mg).', 1),
+  ('NAD+ Injection 75mg',                  'nad_injection',  3750, false, 'NAD+ IM injection 75mg ($0.50/mg).', 2),
+  ('NAD+ Injection 100mg',                 'nad_injection',  5000, false, 'NAD+ IM injection 100mg ($0.50/mg).', 3),
+  ('NAD+ Injection 125mg',                 'nad_injection',  6250, false, 'NAD+ IM injection 125mg ($0.50/mg).', 4),
+  ('NAD+ Injection 150mg',                 'nad_injection',  7500, false, 'NAD+ IM injection 150mg ($0.50/mg).', 5),
+  ('NAD+ 50mg — 12-Pack (Pay for 10)',     'nad_injection', 25000, false, '12 NAD+ 50mg IM injections for the price of 10. MWF schedule, ~4 weeks.', 10),
+  ('NAD+ 75mg — 12-Pack (Pay for 10)',     'nad_injection', 37500, false, '12 NAD+ 75mg IM injections for the price of 10. MWF schedule, ~4 weeks.', 11),
+  ('NAD+ 100mg — 12-Pack (Pay for 10)',    'nad_injection', 50000, false, '12 NAD+ 100mg IM injections for the price of 10. MWF schedule, ~4 weeks.', 12),
+  ('NAD+ 125mg — 12-Pack (Pay for 10)',    'nad_injection', 62500, false, '12 NAD+ 125mg IM injections for the price of 10. MWF schedule, ~4 weeks.', 13),
+  ('NAD+ 150mg — 12-Pack (Pay for 10)',    'nad_injection', 75000, false, '12 NAD+ 150mg IM injections for the price of 10. MWF schedule, ~4 weeks.', 14)
+ON CONFLICT (name) DO UPDATE SET price_cents = EXCLUDED.price_cents, category = EXCLUDED.category, description = EXCLUDED.description, sort_order = EXCLUDED.sort_order;
 
 -- ── HBOT — Single & Packs ────────────────────────────────────────────────────
 
 INSERT INTO pos_services (name, category, price_cents, recurring, description, sort_order) VALUES
+  ('HBOT — Intro (3 Sessions)',       'hbot',  14900, false, '3 HBOT sessions / 10 days — intro offer.', 0),
   ('HBOT — Single Session',           'hbot',  18500, false, '60–90 min hyperbaric oxygen session.', 1),
   ('HBOT — 5-Session Pack',           'hbot',  85000, false, 'HBOT 5-pack ($170/session).', 2),
   ('HBOT — 10-Session Pack',          'hbot', 160000, false, 'HBOT 10-pack ($160/session).', 3),
@@ -94,6 +105,7 @@ ON CONFLICT (name) DO UPDATE SET price_cents = EXCLUDED.price_cents, description
 -- ── Red Light Therapy ────────────────────────────────────────────────────────
 
 INSERT INTO pos_services (name, category, price_cents, recurring, description, sort_order) VALUES
+  ('Red Light Therapy — Intro (3 Sessions)', 'regenerative', 4900, false, '3 RLT sessions / 7 days — intro offer.', 0),
   ('Red Light Therapy — Single',       'regenerative',  8500, false, '10–20 min RLT session.', 1),
   ('Red Light Therapy — 5-Pack',       'regenerative', 37500, false, 'RLT 5-pack ($75/session).', 2),
   ('Red Light Therapy — 10-Pack',      'regenerative', 60000, false, 'RLT 10-pack ($60/session).', 3),
@@ -222,6 +234,9 @@ UPDATE pos_services SET active = true WHERE name IN (
   'Standard Injection','Premium Injection',
   'NAD+ Injection 50mg','NAD+ Injection 75mg','NAD+ Injection 100mg',
   'NAD+ Injection 125mg','NAD+ Injection 150mg',
+  'NAD+ 50mg — 12-Pack (Pay for 10)','NAD+ 75mg — 12-Pack (Pay for 10)',
+  'NAD+ 100mg — 12-Pack (Pay for 10)','NAD+ 125mg — 12-Pack (Pay for 10)',
+  'NAD+ 150mg — 12-Pack (Pay for 10)',
   'HBOT — Single Session','HBOT — 5-Session Pack','HBOT — 10-Session Pack',
   'HBOT — Additional Member Session',
   'HBOT Membership — 1x/Week','HBOT Membership — 2x/Week','HBOT Membership — 3x/Week',

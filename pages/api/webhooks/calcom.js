@@ -51,6 +51,11 @@ const CALCOM_APPOINTMENT_ACTIONS = {
   'injection-weight-loss': 'track_visit',
   'injection-peptide': 'track_visit',
 
+  // Range Assessment — log only
+  'range-assessment-injury': 'log',
+  'range-assessment-energy': 'log',
+  'range-assessment-both': 'log',
+
   // Log only — record appointment, no package/protocol action
   'initial-consultation': 'log',
   'initial-consultation-peptide': 'log',

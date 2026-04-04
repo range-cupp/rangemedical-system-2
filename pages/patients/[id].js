@@ -3289,21 +3289,39 @@ export default function PatientProfile() {
   };
 
   const handleDeleteNote = async (noteId) => {
-    if (!confirm('Delete this note? This cannot be undone.')) return;
-    try {
-      const res = await fetch(`/api/notes/${noteId}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requesting_user: session?.user?.email || employee?.name || 'Staff' }),
-      });
-      const data = await res.json();
-      if (data.error) {
-        alert(data.error);
-        return;
+    const note = notes.find(n => n.id === noteId);
+    const isSigned = note?.status === 'signed';
+
+    if (isSigned) {
+      const reason = prompt('This is a signed note. Enter a reason for deletion (required):');
+      if (!reason || !reason.trim()) return;
+      if (!confirm('Are you sure you want to permanently delete this signed note? This will be logged.')) return;
+      try {
+        const res = await fetch(`/api/notes/${noteId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requesting_user: session?.user?.email || employee?.name || 'Staff', reason: reason.trim() }),
+        });
+        const data = await res.json();
+        if (data.error) { alert(data.error); return; }
+        setNotes(prev => prev.filter(n => n.id !== noteId));
+      } catch (error) {
+        console.error('Delete note error:', error);
       }
-      setNotes(prev => prev.filter(n => n.id !== noteId));
-    } catch (error) {
-      console.error('Delete note error:', error);
+    } else {
+      if (!confirm('Delete this note? This cannot be undone.')) return;
+      try {
+        const res = await fetch(`/api/notes/${noteId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requesting_user: session?.user?.email || employee?.name || 'Staff' }),
+        });
+        const data = await res.json();
+        if (data.error) { alert(data.error); return; }
+        setNotes(prev => prev.filter(n => n.id !== noteId));
+      } catch (error) {
+        console.error('Delete note error:', error);
+      }
     }
   };
 
@@ -7806,11 +7824,11 @@ export default function PatientProfile() {
                               }}
                               title={note.pinned ? 'Unpin note' : 'Pin note'}
                             >📌</button>
-                            {note.status !== 'signed' && canDeleteNote(note) && (
+                            {(note.status !== 'signed' ? canDeleteNote(note) : isAdminUser) && (
                               <button
                                 onClick={() => handleDeleteNote(note.id)}
-                                style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 18, padding: '0 4px', lineHeight: 1 }}
-                                title="Delete note"
+                                style={{ background: 'none', border: 'none', color: note.status === 'signed' ? '#dc2626' : '#999', cursor: 'pointer', fontSize: 18, padding: '0 4px', lineHeight: 1 }}
+                                title={note.status === 'signed' ? 'Delete signed note (admin)' : 'Delete note'}
                               >×</button>
                             )}
                           </div>

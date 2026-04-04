@@ -40,10 +40,10 @@ export default async function handler(req, res) {
 
   if (req.method === 'DELETE') {
     try {
-      // Fetch note to check authorship and signed status
+      // Fetch full note for authorship check and audit log
       const { data: note, error: fetchError } = await supabase
         .from('patient_notes')
-        .select('id, created_by, status')
+        .select('id, patient_id, created_by, status, body, source, note_category, created_at, note_date, encounter_service, protocol_name')
         .eq('id', id)
         .single();
 
@@ -51,21 +51,38 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'Note not found' });
       }
 
-      // Cannot delete signed notes
-      if (note.status === 'signed') {
-        return res.status(403).json({ error: 'Cannot delete a signed note. Add an addendum instead.' });
-      }
-
       // Require requesting_user for authorship check
-      const { requesting_user } = req.body || {};
+      const { requesting_user, reason } = req.body || {};
       if (!requesting_user) {
         return res.status(400).json({ error: 'requesting_user is required' });
+      }
+
+      // Signed notes can only be deleted by admin
+      if (note.status === 'signed' && !isAdmin(requesting_user)) {
+        return res.status(403).json({ error: 'Cannot delete a signed note. Add an addendum instead.' });
       }
 
       // Only the note author or an admin can delete
       if (!isAdmin(requesting_user) && note.created_by && !isNoteAuthor(note.created_by, requesting_user)) {
         return res.status(403).json({ error: 'Only the note author or an admin can delete this note' });
       }
+
+      // Log deletion to audit table before deleting
+      await supabase.from('note_deletions').insert({
+        note_id: note.id,
+        patient_id: note.patient_id,
+        deleted_by: requesting_user,
+        note_body: note.body,
+        note_source: note.source,
+        note_status: note.status,
+        note_category: note.note_category,
+        note_created_by: note.created_by,
+        note_created_at: note.created_at,
+        note_date: note.note_date,
+        encounter_service: note.encounter_service,
+        protocol_name: note.protocol_name,
+        reason: reason || null,
+      });
 
       const { error } = await supabase
         .from('patient_notes')

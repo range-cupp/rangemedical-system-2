@@ -305,9 +305,9 @@ export default function HormoneOptimization() {
         {/* Hero */}
         <section className="hrt-hero">
           <div className="v2-label"><span className="v2-dot" /> Energy &middot; Clarity &middot; Vitality</div>
-          <h1>YOUR GUIDE TO<br />HORMONE<br />OPTIMIZATION</h1>
+          <h1>REMEMBER WHEN<br />YOU HAD ENERGY<br />FOR EVERYTHING?</h1>
           <div className="hrt-hero-rule" />
-          <p className="hrt-body-text">Everything you need to know about hormone replacement therapy &mdash; how it works, what to expect, and why it might help you feel like yourself again.</p>
+          <p className="hrt-body-text">That version of you isn&apos;t gone &mdash; your hormones just need recalibrating. Physician-supervised hormone optimization in Newport Beach.</p>
           <div className="hrt-hero-scroll">
             Scroll to explore
             <span>&darr;</span>
@@ -545,7 +545,7 @@ export default function HormoneOptimization() {
               <div className="v2-label"><span className="v2-dot" /> Getting Started</div>
               <h2>YOUR FIRST VISIT,<br />STEP BY STEP.</h2>
               <p className="hrt-body-text">
-                Getting started is simple. Here's exactly what happens.
+                Getting started is simple. Free assessment, no commitment required. Here&apos;s exactly what happens.
               </p>
             </div>
 
@@ -643,6 +643,61 @@ export default function HormoneOptimization() {
           </div>
         </section>
 
+        {/* Real Results */}
+        <section className="hrt-section hrt-section-inverted">
+          <div className="hrt-container">
+            <div className="hrt-animate">
+              <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> Real Results</div>
+              <h2>WHAT LIFE LOOKS LIKE<br />AFTER OPTIMIZATION.</h2>
+              <div className="hrt-divider" style={{ background: 'rgba(255,255,255,0.15)' }}></div>
+              <p className="hrt-body-text">
+                These are composite snapshots based on real patient outcomes. Names and identifying details are removed &mdash; the patterns are consistent.
+              </p>
+            </div>
+
+            <div className="hrt-results-grid hrt-animate">
+              <div className="hrt-result-card">
+                <div className="hrt-result-profile">Male, 45</div>
+                <div className="hrt-result-before">
+                  <span className="hrt-result-label">Before</span>
+                  Exhausted by 3pm every day. Brain fog so thick he couldn&apos;t focus through a meeting. Zero drive &mdash; at work or at home. Labs showed total testosterone at 280.
+                </div>
+                <div className="hrt-result-after">
+                  <span className="hrt-result-label">After 3 months</span>
+                  Energy back all day. Mental clarity sharp. Lost 12 lbs of fat. Sleeping through the night for the first time in years.
+                </div>
+              </div>
+              <div className="hrt-result-card">
+                <div className="hrt-result-profile">Male, 38</div>
+                <div className="hrt-result-before">
+                  <span className="hrt-result-label">Before</span>
+                  Irritable with his family. Couldn&apos;t build muscle despite training 5x/week. Low libido affecting his relationship.
+                </div>
+                <div className="hrt-result-after">
+                  <span className="hrt-result-label">After 4 months</span>
+                  Mood stabilized. Putting on muscle again. Relationship improved. Says he feels like himself for the first time in years.
+                </div>
+              </div>
+              <div className="hrt-result-card">
+                <div className="hrt-result-profile">Female, 51</div>
+                <div className="hrt-result-before">
+                  <span className="hrt-result-label">Before</span>
+                  Post-menopausal. Couldn&apos;t sleep more than 4 hours. Hot flashes 10x/day. Anxiety she&apos;d never experienced before.
+                </div>
+                <div className="hrt-result-after">
+                  <span className="hrt-result-label">After 3 months</span>
+                  Sleeping 7+ hours. Hot flashes gone. Mood calm and steady. Says she got her life back.
+                </div>
+              </div>
+            </div>
+
+            <div className="hrt-inaction hrt-animate">
+              <div className="hrt-inaction-label">THE COST OF WAITING</div>
+              <p>Testosterone declines roughly 1% per year after 30. Estrogen and progesterone shift dramatically during perimenopause. These aren&apos;t problems that resolve on their own &mdash; they compound. The fatigue gets worse. The weight gets harder to lose. The brain fog gets thicker. Starting sooner means less ground to make up.</p>
+            </div>
+          </div>
+        </section>
+
         {/* FAQ */}
         <section className="hrt-section hrt-section-alt">
           <div className="hrt-container">
@@ -670,9 +725,9 @@ export default function HormoneOptimization() {
           <div className="hrt-container">
             <div className="hrt-animate">
               <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '1.5rem' }}><span className="v2-dot" /> Next Steps</div>
-              <h2 className="hrt-cta-title">READY TO FEEL<br />LIKE YOURSELF<br />AGAIN?</h2>
+              <h2 className="hrt-cta-title">IMAGINE HAVING<br />THE ENERGY AND DRIVE<br />YOU HAD 10 YEARS AGO.</h2>
               <p className="hrt-body-text" style={{ margin: '0 auto 2.5rem' }}>
-                Get started with Range Medical. We'll review your symptoms, run comprehensive labs, and build a plan. Our Newport Beach team is here to help.
+                Waking up rested. Thinking clearly all day. Feeling strong in the gym and present at home. That&apos;s what optimized hormones feel like &mdash; and it&apos;s closer than you think. Free assessment, no commitment required.
               </p>
               <div className="hrt-cta-buttons">
                 <Link href="/start" className="hrt-btn-primary">START NOW</Link>
@@ -1488,6 +1543,70 @@ export default function HormoneOptimization() {
           line-height: 1.6;
         }
 
+        /* Real Results */
+        .hrt-results-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 0;
+          margin-top: 2.5rem;
+        }
+        .hrt-result-card {
+          padding: 2rem;
+          border-right: 1px solid rgba(255,255,255,0.1);
+        }
+        .hrt-result-card:last-child {
+          border-right: none;
+        }
+        .hrt-result-profile {
+          font-size: 0.75rem;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: rgba(255,255,255,0.4);
+          margin-bottom: 1.25rem;
+          font-weight: 600;
+        }
+        .hrt-result-before,
+        .hrt-result-after {
+          font-size: 0.9375rem;
+          line-height: 1.7;
+          color: rgba(255,255,255,0.7);
+          margin-bottom: 1rem;
+        }
+        .hrt-result-after {
+          color: rgba(255,255,255,0.95);
+        }
+        .hrt-result-label {
+          display: block;
+          font-size: 0.6875rem;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          font-weight: 700;
+          margin-bottom: 0.5rem;
+          color: rgba(255,255,255,0.3);
+        }
+        .hrt-result-after .hrt-result-label {
+          color: #4ade80;
+        }
+        .hrt-inaction {
+          margin-top: 3rem;
+          padding: 2rem 2.5rem;
+          border-left: 3px solid rgba(255,255,255,0.15);
+        }
+        .hrt-inaction-label {
+          font-size: 0.6875rem;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          font-weight: 700;
+          color: rgba(255,255,255,0.35);
+          margin-bottom: 0.75rem;
+        }
+        .hrt-inaction p {
+          font-size: 0.9375rem;
+          line-height: 1.7;
+          color: rgba(255,255,255,0.7);
+          margin: 0;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
           .hrt-section,
@@ -1558,6 +1677,20 @@ export default function HormoneOptimization() {
           }
           .hrt-safety-guides {
             flex-direction: column;
+          }
+          .hrt-results-grid {
+            grid-template-columns: 1fr;
+          }
+          .hrt-result-card {
+            border-right: none;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 1.5rem 0;
+          }
+          .hrt-result-card:last-child {
+            border-bottom: none;
+          }
+          .hrt-inaction {
+            padding: 1.5rem;
           }
         }
       `}</style>

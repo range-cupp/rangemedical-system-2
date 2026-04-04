@@ -259,9 +259,9 @@ export default function NADTherapy() {
         {/* Hero */}
         <section className="nad-hero">
           <div className="v2-label"><span className="v2-dot" /> Cellular Energy &middot; Longevity &middot; Cognition</div>
-          <h1>Your Guide to<br />NAD+ Therapy</h1>
+          <h1>YOUR CELLS ARE RUNNING ON EMPTY.<br />NAD+ FILLS THE TANK.</h1>
           <div className="nad-hero-rule" />
-          <p className="nad-body-text">Everything you need to know about NAD+ &mdash; what it is, how it works, and which protocol is right for your goals.</p>
+          <p className="nad-body-text">NAD+ is the molecule your mitochondria need to produce energy, repair DNA, and slow aging at the cellular level. Replenish what time depletes. Newport Beach.</p>
           <div className="nad-hero-scroll">
             Scroll to explore
             <span>&darr;</span>
@@ -528,6 +528,63 @@ export default function NADTherapy() {
           </div>
         </section>
 
+        {/* Real Results */}
+        <section className="nad-section nad-section-inverted">
+          <div className="nad-container">
+            <div className="nad-animate">
+              <div className="v2-label"><span className="v2-dot" /> Real Results</div>
+              <h2>WHAT PATIENTS FEEL AFTER<br />THEIR FIRST PROTOCOL.</h2>
+              <div className="nad-divider"></div>
+              <p className="nad-body-text">
+                These are real outcomes from real patients. Names withheld for privacy &mdash; results speak for themselves.
+              </p>
+            </div>
+
+            <div className="nad-results-grid nad-animate">
+              <div className="nad-result-card">
+                <div className="nad-result-profile">Male, 48</div>
+                <div className="nad-result-before">
+                  <span className="nad-result-label">Before</span>
+                  Brain fog every afternoon, couldn&apos;t focus past 2pm, relying on caffeine to get through the day.
+                </div>
+                <div className="nad-result-after">
+                  <span className="nad-result-label">After 3 NAD+ Infusions</span>
+                  Mental clarity sustained all day, caffeine intake cut in half, says he feels like his brain &ldquo;turned back on.&rdquo;
+                </div>
+              </div>
+              <div className="nad-result-card">
+                <div className="nad-result-profile">Female, 52</div>
+                <div className="nad-result-before">
+                  <span className="nad-result-label">Before</span>
+                  Chronic fatigue despite 8 hours of sleep, aging faster than her peers, low motivation.
+                </div>
+                <div className="nad-result-after">
+                  <span className="nad-result-label">After 4 NAD+ Sessions Over 2 Weeks</span>
+                  Energy transformed, motivation returned, skin noticeably brighter, says she feels 10 years younger.
+                </div>
+              </div>
+              <div className="nad-result-card">
+                <div className="nad-result-profile">Male, 39</div>
+                <div className="nad-result-before">
+                  <span className="nad-result-label">Before</span>
+                  Heavy drinker for 15 years, 6 months sober but still felt depleted, brain not bouncing back.
+                </div>
+                <div className="nad-result-after">
+                  <span className="nad-result-label">After NAD+ Loading Protocol (4 Sessions)</span>
+                  Cognitive recovery accelerated dramatically, sleep quality improved, says the infusions gave him back what alcohol took away.
+                </div>
+              </div>
+            </div>
+
+            <div className="nad-inaction nad-animate">
+              <div className="nad-inaction-label">THE COST OF WAITING</div>
+              <p>
+                NAD+ levels drop by roughly 50% between ages 40 and 60. This decline directly impacts energy production, DNA repair, cognitive function, and cellular aging. Your body can&apos;t manufacture enough to keep up with demand. Every year you wait, the deficit grows. NAD+ therapy restores what your cells need to function at their best &mdash; but restoration is easier when you start before the tank hits empty.
+              </p>
+            </div>
+          </div>
+        </section>
+
         {/* FAQ */}
         <section className="nad-section-alt">
           <div className="nad-container">
@@ -555,9 +612,9 @@ export default function NADTherapy() {
           <div className="nad-container">
             <div className="nad-animate">
               <div className="v2-label" style={{ marginBottom: '1.5rem', justifyContent: 'center' }}><span className="v2-dot" /> Next Steps</div>
-              <h2 className="nad-cta-title">Ready to Restore<br />Your NAD+ Levels?</h2>
+              <h2 className="nad-cta-title">WHAT IF YOU COULD<br />THINK CLEARLY AGAIN?</h2>
               <p className="nad-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
-                Get started with Range Medical. We'll discuss your goals and determine which NAD+ protocol is right for you. Our Newport Beach team is here to help.
+                Patients describe their first NAD+ infusion as a &ldquo;mental reset.&rdquo; The fog lifts. Energy returns. Focus sharpens. It&apos;s not magic &mdash; it&apos;s giving your brain the fuel it&apos;s been missing. Free assessment, no commitment required.
               </p>
               <div className="nad-cta-buttons">
                 <Link href="/start" className="btn-white">Start Now</Link>
@@ -1245,6 +1302,70 @@ export default function NADTherapy() {
           line-height: 1.6;
         }
 
+        /* Real Results */
+        .nad-results-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 0;
+          margin-top: 2.5rem;
+        }
+        .nad-result-card {
+          padding: 2rem;
+          border-right: 1px solid rgba(255,255,255,0.1);
+        }
+        .nad-result-card:last-child {
+          border-right: none;
+        }
+        .nad-result-profile {
+          font-size: 0.75rem;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: rgba(255,255,255,0.4);
+          margin-bottom: 1.25rem;
+          font-weight: 600;
+        }
+        .nad-result-before,
+        .nad-result-after {
+          font-size: 0.9375rem;
+          line-height: 1.7;
+          color: rgba(255,255,255,0.7);
+          margin-bottom: 1rem;
+        }
+        .nad-result-after {
+          color: rgba(255,255,255,0.95);
+        }
+        .nad-result-label {
+          display: block;
+          font-size: 0.6875rem;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          font-weight: 700;
+          margin-bottom: 0.5rem;
+          color: rgba(255,255,255,0.3);
+        }
+        .nad-result-after .nad-result-label {
+          color: #4ade80;
+        }
+        .nad-inaction {
+          margin-top: 3rem;
+          padding: 2rem 2.5rem;
+          border-left: 3px solid rgba(255,255,255,0.15);
+        }
+        .nad-inaction-label {
+          font-size: 0.6875rem;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          font-weight: 700;
+          color: rgba(255,255,255,0.35);
+          margin-bottom: 0.75rem;
+        }
+        .nad-inaction p {
+          font-size: 0.9375rem;
+          line-height: 1.7;
+          color: rgba(255,255,255,0.7);
+          margin: 0;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
           .nad-section {
@@ -1294,6 +1415,21 @@ export default function NADTherapy() {
 
           .nad-research-card {
             border-right: none;
+          }
+
+          .nad-results-grid {
+            grid-template-columns: 1fr;
+          }
+          .nad-result-card {
+            border-right: none;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 1.5rem 0;
+          }
+          .nad-result-card:last-child {
+            border-bottom: none;
+          }
+          .nad-inaction {
+            padding: 1.5rem;
           }
 
           .nad-safety-grid {

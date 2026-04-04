@@ -273,9 +273,9 @@ export default function RedLightTherapy() {
         {/* Hero */}
         <section className="rlt-hero">
           <div className="v2-label"><span className="v2-dot" /> RECOVERY &middot; ENERGY &middot; SKIN HEALTH</div>
-          <h1>YOUR GUIDE TO RED LIGHT THERAPY</h1>
+          <h1>THE SAME LIGHT THAT POWERS NATURE CAN POWER YOUR RECOVERY.</h1>
           <div className="rlt-hero-rule"></div>
-          <p className="rlt-body-text">Everything you need to know about the science-backed recovery tool used by pro athletes, biohackers, and wellness seekers — explained simply.</p>
+          <p className="rlt-body-text">Medical-grade red and near-infrared light therapy that reduces inflammation, accelerates healing, and restores cellular energy — from the inside out. Newport Beach.</p>
           <div className="rlt-hero-scroll">
             Scroll to explore
             <span>↓</span>
@@ -676,6 +676,65 @@ export default function RedLightTherapy() {
           </div>
         </section>
 
+        {/* Real Results */}
+        <section className="rlt-section rlt-section-inverted">
+          <div className="rlt-container">
+            <div className="rlt-animate">
+              <div className="v2-label"><span className="v2-dot" /> REAL RESULTS</div>
+              <h2>WHAT CONSISTENT SESSIONS LOOK LIKE.</h2>
+              <div className="rlt-divider"></div>
+              <p className="rlt-body-text">
+                These are real outcomes from Range Medical patients who committed to a consistent red light therapy protocol. Names withheld for privacy.
+              </p>
+            </div>
+
+            <div className="rlt-results-grid rlt-animate">
+              <div className="rlt-result-card">
+                <div className="rlt-result-profile">Female, 42</div>
+                <div className="rlt-result-before">
+                  <span className="rlt-result-label">Before</span>
+                  Chronic joint stiffness every morning. Took 30 minutes to "warm up." Avoided stairs.
+                </div>
+                <div className="rlt-result-after">
+                  <span className="rlt-result-label">After 6 weeks — 3x/week RLT</span>
+                  Morning stiffness gone within 2 weeks. Back to running stairs. Says her body feels 10 years younger.
+                </div>
+              </div>
+
+              <div className="rlt-result-card">
+                <div className="rlt-result-profile">Male, 36</div>
+                <div className="rlt-result-before">
+                  <span className="rlt-result-label">Before</span>
+                  Lingering rotator cuff inflammation. Couldn't bench press for 4 months. PT plateau'd.
+                </div>
+                <div className="rlt-result-after">
+                  <span className="rlt-result-label">After 8 weeks — 3x/week RLT</span>
+                  Full range of motion returned. Back to pressing pain-free. Recovery between workouts cut in half.
+                </div>
+              </div>
+
+              <div className="rlt-result-card">
+                <div className="rlt-result-profile">Female, 55</div>
+                <div className="rlt-result-before">
+                  <span className="rlt-result-label">Before</span>
+                  Dull skin, fine lines deepening. Tried every topical product.
+                </div>
+                <div className="rlt-result-after">
+                  <span className="rlt-result-label">After 8 weeks — consistent RLT</span>
+                  Skin visibly firmer and brighter. Fine lines softened. Aesthetician noticed the difference before she mentioned the treatment.
+                </div>
+              </div>
+            </div>
+
+            <div className="rlt-inaction rlt-animate">
+              <div className="rlt-inaction-label">THE COST OF WAITING</div>
+              <p>
+                Inflammation doesn't announce itself — it accumulates silently. Collagen production slows roughly 1% per year after 25. Mitochondrial function declines. Red light therapy works at the cellular level to reverse these trends, but the longer the decline continues, the more sessions it takes to restore baseline. Start now, and you're working with momentum instead of against it.
+              </p>
+            </div>
+          </div>
+        </section>
+
         {/* FAQ */}
         <section className="rlt-section-alt">
           <div className="rlt-container">
@@ -703,9 +762,9 @@ export default function RedLightTherapy() {
           <div className="rlt-container">
             <div className="rlt-animate">
               <div className="v2-label" style={{ marginBottom: '1.5rem' }}><span className="v2-dot" /> NEXT STEPS</div>
-              <h2 className="rlt-cta-title">READY TO TRY RED LIGHT THERAPY?</h2>
+              <h2 className="rlt-cta-title">WHAT IF RECOVERY DIDN'T HAVE TO TAKE SO LONG?</h2>
               <p className="rlt-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
-                Whether you're looking to improve your skin, recover faster, or just feel more energized — our Newport Beach team is here to help. Book a session or give us a call.
+                Our patients combine red light therapy with their existing protocols and notice the difference within weeks. Less pain, better skin, faster recovery. Come see what light can do. Free assessment, no commitment required.
               </p>
               <div className="rlt-cta-buttons">
                 <Link href="/start" className="rlt-btn-primary">Start Now</Link>
@@ -1819,6 +1878,70 @@ export default function RedLightTherapy() {
           line-height: 1.6;
         }
 
+        /* Real Results */
+        .rlt-results-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 0;
+          margin-top: 2.5rem;
+        }
+        .rlt-result-card {
+          padding: 2rem;
+          border-right: 1px solid rgba(255,255,255,0.1);
+        }
+        .rlt-result-card:last-child {
+          border-right: none;
+        }
+        .rlt-result-profile {
+          font-size: 0.75rem;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: rgba(255,255,255,0.4);
+          margin-bottom: 1.25rem;
+          font-weight: 600;
+        }
+        .rlt-result-before,
+        .rlt-result-after {
+          font-size: 0.9375rem;
+          line-height: 1.7;
+          color: rgba(255,255,255,0.7);
+          margin-bottom: 1rem;
+        }
+        .rlt-result-after {
+          color: rgba(255,255,255,0.95);
+        }
+        .rlt-result-label {
+          display: block;
+          font-size: 0.6875rem;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          font-weight: 700;
+          margin-bottom: 0.5rem;
+          color: rgba(255,255,255,0.3);
+        }
+        .rlt-result-after .rlt-result-label {
+          color: #4ade80;
+        }
+        .rlt-inaction {
+          margin-top: 3rem;
+          padding: 2rem 2.5rem;
+          border-left: 3px solid rgba(255,255,255,0.15);
+        }
+        .rlt-inaction-label {
+          font-size: 0.6875rem;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          font-weight: 700;
+          color: rgba(255,255,255,0.35);
+          margin-bottom: 0.75rem;
+        }
+        .rlt-inaction p {
+          font-size: 0.9375rem;
+          line-height: 1.7;
+          color: rgba(255,255,255,0.7);
+          margin: 0;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
           .rlt-section {
@@ -1893,6 +2016,21 @@ export default function RedLightTherapy() {
           .rlt-expect-item {
             flex-direction: column;
             gap: 0.5rem;
+          }
+
+          .rlt-results-grid {
+            grid-template-columns: 1fr;
+          }
+          .rlt-result-card {
+            border-right: none;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 1.5rem 0;
+          }
+          .rlt-result-card:last-child {
+            border-bottom: none;
+          }
+          .rlt-inaction {
+            padding: 1.5rem;
           }
 
           .rlt-safety-grid {

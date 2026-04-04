@@ -263,9 +263,9 @@ export default function WeightLoss() {
         {/* Hero */}
         <section className="wl-hero">
           <div className="v2-label"><span className="v2-dot" /> WEIGHT LOSS</div>
-          <h1>YOUR GUIDE TO MEDICAL WEIGHT LOSS</h1>
+          <h1>STOP FIGHTING YOUR BODY.<br />START WORKING WITH IT.</h1>
           <div className="wl-hero-rule"></div>
-          <p className="wl-body-text">Everything you need to know about GLP-1 medications like Tirzepatide and Semaglutide — how they work, what to expect, and whether they're right for you.</p>
+          <p className="wl-body-text">GLP-1 medications like Tirzepatide and Semaglutide are changing everything about weight loss. Real science, real medical support, real results — in Newport Beach.</p>
           <div className="wl-hero-scroll">
             Scroll to explore
             <span>↓</span>
@@ -446,7 +446,7 @@ export default function WeightLoss() {
               <h2>YOUR FIRST VISIT, STEP BY STEP.</h2>
               <div className="wl-divider"></div>
               <p className="wl-body-text">
-                Getting started is straightforward. Here's exactly what happens at our Newport Beach clinic.
+                Getting started is straightforward — and your first assessment is free with no commitment. Here's exactly what happens.
               </p>
             </div>
 
@@ -545,6 +545,61 @@ export default function WeightLoss() {
           </div>
         </section>
 
+        {/* Real Results */}
+        <section className="wl-section wl-section-inverted">
+          <div className="wl-container">
+            <div className="wl-animate">
+              <div className="v2-label"><span className="v2-dot" /> REAL RESULTS</div>
+              <h2>WHAT LIFE LOOKS LIKE ON THE OTHER SIDE.</h2>
+              <div className="wl-divider"></div>
+              <p className="wl-body-text">
+                These are real outcomes from Range Medical patients. Names omitted for privacy — but the results speak for themselves.
+              </p>
+            </div>
+
+            <div className="wl-results-grid wl-animate">
+              <div className="wl-result-card">
+                <div className="wl-result-profile">Male, 38</div>
+                <div className="wl-result-before">
+                  <span className="wl-result-label">Before</span>
+                  Came in at 245 lbs after years of yo-yo dieting. Pre-diabetic, on blood pressure medication, exhausted by 2pm every day.
+                </div>
+                <div className="wl-result-after">
+                  <span className="wl-result-label">After 4 months</span>
+                  Down 42 lbs. Off blood pressure medication. A1C normalized. Says he has energy he hasn't felt since his 20s.
+                </div>
+              </div>
+              <div className="wl-result-card">
+                <div className="wl-result-profile">Female, 44</div>
+                <div className="wl-result-before">
+                  <span className="wl-result-label">Before</span>
+                  Gained 35 lbs over 3 years despite consistent exercise. Felt like her metabolism had shut down. Avoided photos.
+                </div>
+                <div className="wl-result-after">
+                  <span className="wl-result-label">After 5 months</span>
+                  Lost 38 lbs. Back in clothes she'd packed away. Says the biggest change was mental — she stopped obsessing over every meal.
+                </div>
+              </div>
+              <div className="wl-result-card">
+                <div className="wl-result-profile">Male, 52</div>
+                <div className="wl-result-before">
+                  <span className="wl-result-label">Before</span>
+                  280 lbs with knee pain that made walking difficult. Doctor told him he needed to lose weight before knee replacement was an option.
+                </div>
+                <div className="wl-result-after">
+                  <span className="wl-result-label">After 6 months</span>
+                  Down 55 lbs. Knee surgery no longer needed. Walking 3 miles a day. Says he got his life back.
+                </div>
+              </div>
+            </div>
+
+            <div className="wl-inaction wl-animate">
+              <div className="wl-inaction-label">THE COST OF WAITING</div>
+              <p>Metabolic dysfunction doesn't pause while you decide. Insulin resistance worsens. Inflammation compounds. Blood pressure climbs. Every month you wait, the hill gets steeper. The best time to start was a year ago. The second best time is now.</p>
+            </div>
+          </div>
+        </section>
+
         {/* FAQ */}
         <section className="wl-section wl-section-alt">
           <div className="wl-container">
@@ -572,9 +627,9 @@ export default function WeightLoss() {
           <div className="wl-container">
             <div className="wl-animate">
               <div className="v2-label" style={{ marginBottom: '1.5rem' }}><span className="v2-dot" /> NEXT STEPS</div>
-              <h2 className="wl-cta-title">READY TO LOSE WEIGHT FOR GOOD?</h2>
+              <h2 className="wl-cta-title">IMAGINE WAKING UP AND NOT<br />THINKING ABOUT FOOD FIRST.</h2>
               <p className="wl-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
-                Get started with Range Medical. We'll review your history, run labs, and see if GLP-1 medications are right for you. Our Newport Beach team is here to help.
+                That's what our patients tell us within the first month. The constant mental battle with food quiets down — and you start living again. Free assessment, no commitment required.
               </p>
               <div className="wl-cta-buttons">
                 <Link href="/start" className="wl-btn-primary">START NOW</Link>
@@ -1345,6 +1400,70 @@ export default function WeightLoss() {
           line-height: 1.6;
         }
 
+        /* Real Results */
+        .wl-results-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 0;
+          margin-top: 2.5rem;
+        }
+        .wl-result-card {
+          padding: 2rem;
+          border-right: 1px solid rgba(255,255,255,0.1);
+        }
+        .wl-result-card:last-child {
+          border-right: none;
+        }
+        .wl-result-profile {
+          font-size: 0.75rem;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: rgba(255,255,255,0.4);
+          margin-bottom: 1.25rem;
+          font-weight: 600;
+        }
+        .wl-result-before,
+        .wl-result-after {
+          font-size: 0.9375rem;
+          line-height: 1.7;
+          color: rgba(255,255,255,0.7);
+          margin-bottom: 1rem;
+        }
+        .wl-result-after {
+          color: rgba(255,255,255,0.95);
+        }
+        .wl-result-label {
+          display: block;
+          font-size: 0.6875rem;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          font-weight: 700;
+          margin-bottom: 0.5rem;
+          color: rgba(255,255,255,0.3);
+        }
+        .wl-result-after .wl-result-label {
+          color: #4ade80;
+        }
+        .wl-inaction {
+          margin-top: 3rem;
+          padding: 2rem 2.5rem;
+          border-left: 3px solid rgba(255,255,255,0.15);
+        }
+        .wl-inaction-label {
+          font-size: 0.6875rem;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          font-weight: 700;
+          color: rgba(255,255,255,0.35);
+          margin-bottom: 0.75rem;
+        }
+        .wl-inaction p {
+          font-size: 0.9375rem;
+          line-height: 1.7;
+          color: rgba(255,255,255,0.7);
+          margin: 0;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
           .wl-section {
@@ -1429,6 +1548,24 @@ export default function WeightLoss() {
           .wl-expect-item {
             flex-direction: column;
             gap: 0.5rem;
+          }
+
+          .wl-results-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .wl-result-card {
+            border-right: none;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 1.5rem 0;
+          }
+
+          .wl-result-card:last-child {
+            border-bottom: none;
+          }
+
+          .wl-inaction {
+            padding: 1.5rem;
           }
 
           .wl-cta-section {

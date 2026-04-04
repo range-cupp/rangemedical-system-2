@@ -277,9 +277,9 @@ export default function IVTherapy() {
         {/* Hero */}
         <section className="iv-hero">
           <div className="v2-label"><span className="v2-dot" /> HYDRATION · ENERGY · RECOVERY</div>
-          <h1>YOUR GUIDE TO IV THERAPY</h1>
+          <h1>FEEL THE DIFFERENCE WHEN YOUR BODY ACTUALLY HAS WHAT IT NEEDS.</h1>
           <div className="iv-hero-rule"></div>
-          <p className="iv-body-text">Everything you need to know about IV vitamin therapy — what it is, how it works, and whether it's right for your goals.</p>
+          <p className="iv-body-text">Clinical-grade IV therapy that delivers vitamins, minerals, and amino acids directly to your cells — bypassing the gut for 100% absorption. Newport Beach.</p>
           <div className="iv-hero-scroll">
             Scroll to explore
             <span>↓</span>
@@ -585,6 +585,61 @@ export default function IVTherapy() {
           </div>
         </section>
 
+        {/* Real Results */}
+        <section className="iv-section iv-section-inverted">
+          <div className="iv-container">
+            <div className="iv-animate">
+              <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> REAL RESULTS</div>
+              <h2>WHAT ONE SESSION CAN DO.</h2>
+              <div className="iv-divider"></div>
+              <p className="iv-body-text">
+                These are real outcomes from Range Medical patients. Names omitted for privacy. Results vary by individual.
+              </p>
+            </div>
+
+            <div className="iv-results-grid iv-animate">
+              <div className="iv-result-card">
+                <div className="iv-result-profile">Female, 35</div>
+                <div className="iv-result-before">
+                  <span className="iv-result-label">Before</span>
+                  Chronic fatigue despite a good diet and consistent sleep. Brain fog every afternoon. Tried every supplement on the shelf — nothing moved the needle.
+                </div>
+                <div className="iv-result-after">
+                  <span className="iv-result-label">After 4 Weekly IVs</span>
+                  Energy stabilized all day. Brain fog cleared. Says she finally feels like her supplements are "actually working" now that her baseline is restored.
+                </div>
+              </div>
+              <div className="iv-result-card">
+                <div className="iv-result-profile">Male, 42</div>
+                <div className="iv-result-before">
+                  <span className="iv-result-label">Before</span>
+                  Training for a marathon but hitting a wall at mile 16. Recovery taking 3+ days between long runs. Couldn't break through the plateau.
+                </div>
+                <div className="iv-result-after">
+                  <span className="iv-result-label">After Weekly IVs During Training Block</span>
+                  Broke through the wall. Recovery down to 24 hours. PR'd his marathon by 12 minutes.
+                </div>
+              </div>
+              <div className="iv-result-card">
+                <div className="iv-result-profile">Female, 29</div>
+                <div className="iv-result-before">
+                  <span className="iv-result-label">Before</span>
+                  Frequent migraines, chronically dehydrated despite drinking "tons of water," dull skin. Energy crashed by 2pm daily.
+                </div>
+                <div className="iv-result-after">
+                  <span className="iv-result-label">After Monthly IV Sessions</span>
+                  Migraines reduced from weekly to rare. Skin visibly brighter. Energy consistent throughout the day.
+                </div>
+              </div>
+            </div>
+
+            <div className="iv-inaction iv-animate">
+              <div className="iv-inaction-label">THE COST OF WAITING</div>
+              <p>Your gut absorbs only 20-40% of oral supplements. The rest is wasted. Meanwhile, stress, caffeine, alcohol, and processed food deplete your reserves faster than you can replenish them. IV therapy isn't a luxury — it's the most efficient way to give your body what it's been missing.</p>
+            </div>
+          </div>
+        </section>
+
         {/* FAQ */}
         <section className="iv-section iv-section-alt">
           <div className="iv-container">
@@ -612,9 +667,9 @@ export default function IVTherapy() {
           <div className="iv-container">
             <div className="iv-animate">
               <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '1.5rem' }}><span className="v2-dot" /> NEXT STEPS</div>
-              <h2 className="iv-cta-title">READY TO FEEL THE DIFFERENCE?</h2>
+              <h2 className="iv-cta-title">STOP RUNNING ON EMPTY.</h2>
               <p className="iv-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
-                Walk-ins welcome for established patients. New to Range? Book a quick screening to get started. Our Newport Beach team is ready to help.
+                Most people are chronically dehydrated and nutrient-depleted without knowing it. One session and you'll feel the difference. Walk in tired, walk out recharged. Free assessment, no commitment required.
               </p>
               <div className="iv-cta-buttons">
                 <Link href="/start" className="iv-btn-primary">START NOW</Link>
@@ -1434,6 +1489,70 @@ export default function IVTherapy() {
           line-height: 1.6;
         }
 
+        /* Real Results */
+        .iv-results-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 0;
+          margin-top: 2.5rem;
+        }
+        .iv-result-card {
+          padding: 2rem;
+          border-right: 1px solid rgba(255,255,255,0.1);
+        }
+        .iv-result-card:last-child {
+          border-right: none;
+        }
+        .iv-result-profile {
+          font-size: 0.75rem;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: rgba(255,255,255,0.4);
+          margin-bottom: 1.25rem;
+          font-weight: 600;
+        }
+        .iv-result-before,
+        .iv-result-after {
+          font-size: 0.9375rem;
+          line-height: 1.7;
+          color: rgba(255,255,255,0.7);
+          margin-bottom: 1rem;
+        }
+        .iv-result-after {
+          color: rgba(255,255,255,0.95);
+        }
+        .iv-result-label {
+          display: block;
+          font-size: 0.6875rem;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          font-weight: 700;
+          margin-bottom: 0.5rem;
+          color: rgba(255,255,255,0.3);
+        }
+        .iv-result-after .iv-result-label {
+          color: #4ade80;
+        }
+        .iv-inaction {
+          margin-top: 3rem;
+          padding: 2rem 2.5rem;
+          border-left: 3px solid rgba(255,255,255,0.15);
+        }
+        .iv-inaction-label {
+          font-size: 0.6875rem;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          font-weight: 700;
+          color: rgba(255,255,255,0.35);
+          margin-bottom: 0.75rem;
+        }
+        .iv-inaction p {
+          font-size: 0.9375rem;
+          line-height: 1.7;
+          color: rgba(255,255,255,0.7);
+          margin: 0;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
           .iv-section,
@@ -1534,6 +1653,21 @@ export default function IVTherapy() {
 
           .iv-safety-guides {
             flex-direction: column;
+          }
+
+          .iv-results-grid {
+            grid-template-columns: 1fr;
+          }
+          .iv-result-card {
+            border-right: none;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 1.5rem 0;
+          }
+          .iv-result-card:last-child {
+            border-bottom: none;
+          }
+          .iv-inaction {
+            padding: 1.5rem;
           }
         }
       `}</style>

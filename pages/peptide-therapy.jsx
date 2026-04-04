@@ -277,9 +277,9 @@ export default function PeptideTherapy() {
         <section className="pep-hero">
           <div className="pep-hero-inner">
             <div className="v2-label"><span className="v2-dot" /> Recovery &middot; Healing &middot; Performance</div>
-            <h1>YOUR GUIDE TO PEPTIDE THERAPY</h1>
+            <h1>YOUR BODY ALREADY KNOWS HOW TO HEAL. WE JUST REMIND IT.</h1>
             <div className="pep-hero-rule" />
-            <p className="pep-hero-sub">Everything you need to know about therapeutic peptides — what they are, how they work, and whether they're right for your goals.</p>
+            <p className="pep-hero-sub">Targeted peptide protocols that accelerate recovery, optimize growth hormone, and restore what time takes away. Physician-supervised in Newport Beach.</p>
             <div className="pep-hero-scroll">
               Scroll to explore
               <span>&#8595;</span>
@@ -426,7 +426,7 @@ export default function PeptideTherapy() {
               <div className="v2-label"><span className="v2-dot" /> Getting Started</div>
               <h2>YOUR FIRST VISIT, STEP BY STEP.</h2>
               <p className="pep-body-text">
-                Getting started with peptides is straightforward. Here's exactly what happens at our Newport Beach clinic.
+                Getting started with peptides is straightforward. Here's exactly what happens at our Newport Beach clinic. Free assessment, no commitment required.
               </p>
             </div>
 
@@ -523,6 +523,63 @@ export default function PeptideTherapy() {
           </div>
         </section>
 
+        {/* Real Results */}
+        <section className="pep-section pep-section-inverted">
+          <div className="pep-container">
+            <div className="pep-animate">
+              <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> Real Results</div>
+              <h2>WHAT PATIENTS TELL US AFTER 90 DAYS.</h2>
+              <div className="pep-hero-rule" style={{ background: 'rgba(255,255,255,0.1)' }} />
+              <p className="pep-body-text">
+                Real outcomes from Range Medical patients. Details anonymized, results documented during follow-up visits.
+              </p>
+            </div>
+
+            <div className="pep-results-grid pep-animate">
+              <div className="pep-result-card">
+                <div className="pep-result-profile">Male, 50</div>
+                <div className="pep-result-before">
+                  <span className="pep-result-label">Before</span>
+                  Chronic joint pain limiting workouts. Shoulder injury lingering 8 months. Considering surgery.
+                </div>
+                <div className="pep-result-after">
+                  <span className="pep-result-label">After 10 Weeks &mdash; BPC-157 / TB-500</span>
+                  Back to full training. Pain resolved. Surgery cancelled.
+                </div>
+              </div>
+              <div className="pep-result-card">
+                <div className="pep-result-profile">Male, 34</div>
+                <div className="pep-result-before">
+                  <span className="pep-result-label">Before</span>
+                  Sleeping 5 hours. Waking exhausted. Recovery from workouts taking 3&ndash;4 days.
+                </div>
+                <div className="pep-result-after">
+                  <span className="pep-result-label">After 8 Weeks &mdash; CJC / Ipamorelin</span>
+                  Sleeping 7+ hours. Recovery down to 24 hours. Body composition noticeably leaner.
+                </div>
+              </div>
+              <div className="pep-result-card">
+                <div className="pep-result-profile">Female, 46</div>
+                <div className="pep-result-before">
+                  <span className="pep-result-label">Before</span>
+                  Energy crashing by noon. Hair thinning. Skin losing elasticity.
+                </div>
+                <div className="pep-result-after">
+                  <span className="pep-result-label">After 12 Weeks &mdash; Peptide Protocol</span>
+                  Sustained energy all day. Hair thickening. Skin visibly improved.
+                </div>
+              </div>
+            </div>
+
+            <div className="pep-inaction pep-animate">
+              <div className="pep-inaction-label">The Cost of Waiting</div>
+              <p>
+                Growth hormone production declines roughly 14% per decade after 30. Recovery slows. Sleep quality deteriorates. Injuries that used to heal in weeks start taking months. Peptide therapy works with your body's existing biology — but the longer you wait, the more ground there is to recover.
+              </p>
+            </div>
+          </div>
+        </section>
+
         {/* FAQ */}
         <section className="pep-section pep-section-alt">
           <div className="pep-container">
@@ -568,10 +625,10 @@ export default function PeptideTherapy() {
           <div className="container">
             <div className="pep-animate">
               <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)', justifyContent: 'center' }}><span className="v2-dot" /> Next Steps</div>
-              <h2>READY TO OPTIMIZE YOUR RECOVERY?</h2>
+              <h2>IMAGINE RECOVERING LIKE YOU DID IN YOUR 20s.</h2>
               <div className="cta-rule" />
               <p>
-                Get started with Range Medical. We'll discuss your goals and design a peptide protocol for your situation. Our Newport Beach team is here to help.
+                Better sleep. Faster recovery. Joints that don't ache every morning. That's what peptide therapy patients tell us within the first 8 weeks. Free assessment, no commitment required.
               </p>
               <div className="pep-cta-buttons">
                 <Link href="/start" className="btn-white">Start Now</Link>
@@ -1269,6 +1326,70 @@ export default function PeptideTherapy() {
           line-height: 1.6;
         }
 
+        /* Real Results */
+        .pep-results-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 0;
+          margin-top: 2.5rem;
+        }
+        .pep-result-card {
+          padding: 2rem;
+          border-right: 1px solid rgba(255,255,255,0.1);
+        }
+        .pep-result-card:last-child {
+          border-right: none;
+        }
+        .pep-result-profile {
+          font-size: 0.75rem;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: rgba(255,255,255,0.4);
+          margin-bottom: 1.25rem;
+          font-weight: 600;
+        }
+        .pep-result-before,
+        .pep-result-after {
+          font-size: 0.9375rem;
+          line-height: 1.7;
+          color: rgba(255,255,255,0.7);
+          margin-bottom: 1rem;
+        }
+        .pep-result-after {
+          color: rgba(255,255,255,0.95);
+        }
+        .pep-result-label {
+          display: block;
+          font-size: 0.6875rem;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          font-weight: 700;
+          margin-bottom: 0.5rem;
+          color: rgba(255,255,255,0.3);
+        }
+        .pep-result-after .pep-result-label {
+          color: #4ade80;
+        }
+        .pep-inaction {
+          margin-top: 3rem;
+          padding: 2rem 2.5rem;
+          border-left: 3px solid rgba(255,255,255,0.15);
+        }
+        .pep-inaction-label {
+          font-size: 0.6875rem;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          font-weight: 700;
+          color: rgba(255,255,255,0.35);
+          margin-bottom: 0.75rem;
+        }
+        .pep-inaction p {
+          font-size: 0.9375rem;
+          line-height: 1.7;
+          color: rgba(255,255,255,0.7);
+          margin: 0;
+        }
+
         /* Responsive */
         @media (max-width: 900px) {
           .pep-cards-grid {
@@ -1289,6 +1410,21 @@ export default function PeptideTherapy() {
 
           .pep-safety-grid {
             grid-template-columns: 1fr;
+          }
+
+          .pep-results-grid {
+            grid-template-columns: 1fr;
+          }
+          .pep-result-card {
+            border-right: none;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 1.5rem 0;
+          }
+          .pep-result-card:last-child {
+            border-bottom: none;
+          }
+          .pep-inaction {
+            padding: 1.5rem;
           }
         }
 

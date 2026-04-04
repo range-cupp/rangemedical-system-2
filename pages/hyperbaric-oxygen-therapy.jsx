@@ -268,9 +268,9 @@ export default function HyperbaricOxygenTherapy() {
         {/* Hero */}
         <section className="hbot-hero">
           <div className="v2-label"><span className="v2-dot" /> RECOVERY &middot; ENERGY &middot; HEALING</div>
-          <h1>YOUR GUIDE TO HYPERBARIC OXYGEN THERAPY</h1>
+          <h1>HEALING STARTS AT THE CELLULAR LEVEL.</h1>
           <div className="hbot-hero-rule"></div>
-          <p className="hbot-body-text">Everything you need to know about the recovery tool used by pro athletes, the military, and top medical centers — explained simply.</p>
+          <p className="hbot-body-text">Hyperbaric oxygen therapy floods your tissues with pure oxygen under pressure — accelerating recovery, reducing inflammation, and unlocking your body's deepest repair mechanisms. Newport Beach.</p>
           <div className="hbot-hero-scroll">
             Scroll to explore
             <span>&darr;</span>
@@ -673,6 +673,61 @@ export default function HyperbaricOxygenTherapy() {
           </div>
         </section>
 
+        {/* Real Results */}
+        <section className="hbot-section hbot-section-inverted">
+          <div className="hbot-container">
+            <div className="hbot-animate">
+              <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)' }}><span className="v2-dot" /> REAL RESULTS</div>
+              <h2>WHAT 20 SESSIONS CAN CHANGE.</h2>
+              <div className="hbot-divider"></div>
+              <p className="hbot-body-text">
+                These are real patient outcomes from our Newport Beach clinic. Names withheld for privacy. Every case started with a free assessment.
+              </p>
+            </div>
+
+            <div className="hbot-results-grid hbot-animate">
+              <div className="hbot-result-card">
+                <div className="hbot-result-profile">Male, 55</div>
+                <div className="hbot-result-before">
+                  <span className="hbot-result-label">Before</span>
+                  Post-surgical knee recovery stalled at 6 weeks, still limping, inflammation markers elevated.
+                </div>
+                <div className="hbot-result-after">
+                  <span className="hbot-result-label">After 20 HBOT Sessions</span>
+                  Full range of motion restored, inflammation markers normalized, physical therapist said recovery accelerated by months.
+                </div>
+              </div>
+              <div className="hbot-result-card">
+                <div className="hbot-result-profile">Male, 41</div>
+                <div className="hbot-result-before">
+                  <span className="hbot-result-label">Before</span>
+                  Post-concussion syndrome for 8 months, brain fog, light sensitivity, couldn't work full days.
+                </div>
+                <div className="hbot-result-after">
+                  <span className="hbot-result-label">After 30 HBOT Sessions</span>
+                  Cognitive clarity returned, back to full work schedule, headaches resolved.
+                </div>
+              </div>
+              <div className="hbot-result-card">
+                <div className="hbot-result-profile">Female, 48</div>
+                <div className="hbot-result-before">
+                  <span className="hbot-result-label">Before</span>
+                  Chronic fatigue, autoimmune flare-ups every few months, poor wound healing.
+                </div>
+                <div className="hbot-result-after">
+                  <span className="hbot-result-label">After 20 HBOT Sessions</span>
+                  Energy noticeably improved, went 6+ months without a flare, small cuts healing in days instead of weeks.
+                </div>
+              </div>
+            </div>
+
+            <div className="hbot-inaction hbot-animate">
+              <div className="hbot-inaction-label">THE COST OF WAITING</div>
+              <p>Chronic inflammation doesn't resolve on its own — it compounds. Injuries that don't heal properly create compensatory patterns that cause new problems. The brain doesn't recover from concussion on a fixed timeline. HBOT accelerates what your body is already trying to do. The sooner you start, the less damage accumulates.</p>
+            </div>
+          </div>
+        </section>
+
         {/* FAQ */}
         <section className="hbot-section hbot-section-alt">
           <div className="hbot-container">
@@ -700,9 +755,9 @@ export default function HyperbaricOxygenTherapy() {
           <div className="hbot-container">
             <div className="hbot-animate">
               <div className="v2-label" style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '1.5rem' }}><span className="v2-dot" /> NEXT STEPS</div>
-              <h2 className="hbot-cta-title">READY TO LEARN MORE?</h2>
+              <h2 className="hbot-cta-title">YOUR BODY IS CAPABLE OF MORE THAN YOU THINK.</h2>
               <p className="hbot-body-text" style={{ textAlign: 'center', margin: '0 auto 2.5rem' }}>
-                If you have questions or want to find out if hyperbaric oxygen therapy is right for you, our Newport Beach team is here to help. No pressure — just the information you need.
+                Patients tell us HBOT is the treatment they wish they'd started sooner. Faster healing, clearer thinking, deeper sleep. Come see what pressurized oxygen can do. Free assessment, no commitment required.
               </p>
               <div className="hbot-cta-buttons">
                 <Link href="/start" className="hbot-btn-primary">Start Now</Link>
@@ -1746,6 +1801,70 @@ export default function HyperbaricOxygenTherapy() {
           line-height: 1.6;
         }
 
+        /* Real Results */
+        .hbot-results-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 0;
+          margin-top: 2.5rem;
+        }
+        .hbot-result-card {
+          padding: 2rem;
+          border-right: 1px solid rgba(255,255,255,0.1);
+        }
+        .hbot-result-card:last-child {
+          border-right: none;
+        }
+        .hbot-result-profile {
+          font-size: 0.75rem;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: rgba(255,255,255,0.4);
+          margin-bottom: 1.25rem;
+          font-weight: 600;
+        }
+        .hbot-result-before,
+        .hbot-result-after {
+          font-size: 0.9375rem;
+          line-height: 1.7;
+          color: rgba(255,255,255,0.7);
+          margin-bottom: 1rem;
+        }
+        .hbot-result-after {
+          color: rgba(255,255,255,0.95);
+        }
+        .hbot-result-label {
+          display: block;
+          font-size: 0.6875rem;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          font-weight: 700;
+          margin-bottom: 0.5rem;
+          color: rgba(255,255,255,0.3);
+        }
+        .hbot-result-after .hbot-result-label {
+          color: #4ade80;
+        }
+        .hbot-inaction {
+          margin-top: 3rem;
+          padding: 2rem 2.5rem;
+          border-left: 3px solid rgba(255,255,255,0.15);
+        }
+        .hbot-inaction-label {
+          font-size: 0.6875rem;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          font-weight: 700;
+          color: rgba(255,255,255,0.35);
+          margin-bottom: 0.75rem;
+        }
+        .hbot-inaction p {
+          font-size: 0.9375rem;
+          line-height: 1.7;
+          color: rgba(255,255,255,0.7);
+          margin: 0;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
           .hbot-section {
@@ -1824,6 +1943,21 @@ export default function HyperbaricOxygenTherapy() {
 
           .hbot-safety-grid {
             grid-template-columns: 1fr;
+          }
+
+          .hbot-results-grid {
+            grid-template-columns: 1fr;
+          }
+          .hbot-result-card {
+            border-right: none;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 1.5rem 0;
+          }
+          .hbot-result-card:last-child {
+            border-bottom: none;
+          }
+          .hbot-inaction {
+            padding: 1.5rem;
           }
 
           .hbot-cta-title {

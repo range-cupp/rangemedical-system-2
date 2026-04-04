@@ -617,7 +617,7 @@ export default function TesamorelinIpamorelin() {
       <header className="header">
         <div className="container">
           <a href="/home" className="logo">
-            <img src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/6933ae9e1d466e9b7dfb6b69.png" alt="Range Medical" />
+            <img src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" alt="Range Medical" />
           </a>
           <div className="header-cta">
             <a href="tel:949-997-3988" className="header-phone">949-997-3988</a>
@@ -963,7 +963,7 @@ export default function TesamorelinIpamorelin() {
       {/* Footer */}
       <footer className="footer">
         <div className="container">
-          <img src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/6933ae9e1d466e9b7dfb6b69.png" alt="Range Medical" />
+          <img src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" alt="Range Medical" />
           <p>© 2025 Range Medical. All rights reserved.</p>
         </div>
       </footer>

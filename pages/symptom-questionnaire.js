@@ -134,7 +134,7 @@ export default function SymptomQuestionnaire() {
       <div style={styles.container}>
         <div style={styles.header}>
           <img 
-            src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/6933ae9e1d466e9b7dfb6b69.png" 
+            src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png" 
             alt="Range Medical" 
             style={styles.logo}
           />

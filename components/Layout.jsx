@@ -22,7 +22,13 @@ export default function Layout({ children, title, description }) {
       {/* Header */}
       <header className="rm-header">
         <div className="rm-header-inner">
-          <Link href="/" className="rm-wordmark">RANGE MEDICAL</Link>
+          <Link href="/" className="rm-wordmark">
+            <img
+              src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png"
+              alt="Range Medical"
+              style={{ height: '56px' }}
+            />
+          </Link>
 
           {/* Desktop Navigation */}
           <nav className="rm-nav">
@@ -124,7 +130,12 @@ export default function Layout({ children, title, description }) {
       <footer className="rm-footer">
         <div className="rm-footer-inner">
           <div className="rm-footer-brand">
-            <span className="rm-footer-wordmark">RANGE MEDICAL</span>
+            <img
+              src="https://storage.googleapis.com/msgsndr/WICdvbXmTjQORW6GiHWW/media/695fe7ca6eabe6386b2d84e1.png"
+              alt="Range Medical"
+              className="rm-footer-wordmark"
+              style={{ height: '24px' }}
+            />
             <p className="rm-footer-tagline">Feel like yourself again.</p>
             <a href="tel:9499973988" className="rm-footer-contact">(949) 997-3988</a>
             <p className="rm-footer-address">

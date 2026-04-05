@@ -14,7 +14,7 @@ import {
   formatPrice,
   calculatePricing,
 } from '../../lib/protocol-builder-config';
-import { Check, Plus, X, GripVertical, ChevronDown, ChevronUp, User, Search, FileText, Trash2, Sparkles, ArrowUpRight, Activity, Brain, FlaskConical } from 'lucide-react';
+import { Check, Plus, X, GripVertical, ChevronDown, ChevronUp, User, Search, FileText, Trash2, Sparkles, ArrowUpRight, Activity, Brain, FlaskConical, Share2, Heart, Printer } from 'lucide-react';
 
 // ── Styles ──────────────────────────────────────────────────────────────────
 
@@ -355,6 +355,84 @@ const s = {
     transition: 'background 0.15s',
   },
 
+  // Benefits section on plan cards
+  benefitsSection: {
+    padding: '16px 20px 0',
+    borderTop: '1px solid #f0f0f0',
+  },
+  benefitsToggle: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '0 0 12px',
+    fontSize: '11px',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
+    color: '#059669',
+  },
+  bestFor: {
+    fontSize: '12px',
+    color: '#404040',
+    background: '#f0fdf4',
+    border: '1px solid #dcfce7',
+    padding: '8px 12px',
+    marginBottom: '12px',
+    lineHeight: '1.5',
+  },
+  benefitItem: {
+    fontSize: '13px',
+    color: '#404040',
+    padding: '4px 0',
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '8px',
+    lineHeight: '1.5',
+  },
+  benefitBullet: {
+    width: '5px',
+    height: '5px',
+    background: '#059669',
+    flexShrink: 0,
+    marginTop: '7px',
+  },
+
+  // Share / Patient-facing view
+  shareBtn: {
+    padding: '14px 24px',
+    background: '#fff',
+    color: '#1a1a1a',
+    border: '1px solid #e0e0e0',
+    fontSize: '12px',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: '0.1em',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    transition: 'all 0.15s',
+  },
+  patientView: {
+    background: '#fff',
+    width: '800px',
+    maxHeight: '90vh',
+    overflowY: 'auto',
+    boxShadow: '0 24px 48px rgba(0,0,0,0.2)',
+  },
+  pvHeader: {
+    padding: '40px 48px 32px',
+    borderBottom: '1px solid #e0e0e0',
+    textAlign: 'center',
+  },
+  pvCard: {
+    padding: '28px 0',
+    borderBottom: '1px solid #f0f0f0',
+  },
+
   // Modal
   modalOverlay: {
     position: 'fixed',
@@ -389,6 +467,8 @@ export default function ProtocolBuilder() {
   const [planItems, setPlanItems] = useState([]);
   const [dragOverPlan, setDragOverPlan] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
+  const [showPatientView, setShowPatientView] = useState(false);
+  const [expandedBenefits, setExpandedBenefits] = useState({});
 
   // Patient
   const [patientQuery, setPatientQuery] = useState('');
@@ -631,6 +711,38 @@ export default function ProtocolBuilder() {
               </li>
             )}
           </ul>
+
+          {/* Benefits & Best For */}
+          {item.benefits && item.benefits.length > 0 && (
+            <div style={s.benefitsSection}>
+              <button
+                style={s.benefitsToggle}
+                onClick={() => setExpandedBenefits(prev => ({ ...prev, [planItem.uid]: !prev[planItem.uid] }))}
+              >
+                <Heart size={12} />
+                Why This Protocol
+                {expandedBenefits[planItem.uid] ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              </button>
+              {expandedBenefits[planItem.uid] && (
+                <>
+                  {item.bestFor && (
+                    <div style={s.bestFor}>
+                      <span style={{ fontWeight: '700', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#059669' }}>Best for: </span>
+                      {item.bestFor}
+                    </div>
+                  )}
+                  <div style={{ paddingBottom: '16px' }}>
+                    {item.benefits.map((b, i) => (
+                      <div key={i} style={s.benefitItem}>
+                        <span style={s.benefitBullet} />
+                        <span>{b}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           <div style={s.optionRow}>
             {item.options && (
@@ -906,11 +1018,18 @@ export default function ProtocolBuilder() {
                   <div style={{ fontSize: '13px', fontWeight: '700', color: '#2E6B35' }}>Saving {formatPrice(totals.savings)}</div>
                 )}
               </div>
-              <button style={s.agreeBtn} onClick={() => setShowSummary(true)}
-                onMouseEnter={(e) => { e.currentTarget.style.background = '#404040'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = '#1a1a1a'; }}>
-                Patient Agrees
-              </button>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button style={s.shareBtn} onClick={() => setShowPatientView(true)}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#fafafa'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}>
+                  <Share2 size={14} /> Share with Patient
+                </button>
+                <button style={s.agreeBtn} onClick={() => setShowSummary(true)}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#404040'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = '#1a1a1a'; }}>
+                  Patient Agrees
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -993,6 +1112,140 @@ export default function ProtocolBuilder() {
                 onMouseEnter={(e) => { e.currentTarget.style.background = '#404040'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = '#1a1a1a'; }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><FileText size={14} /> Confirm Agreement</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ═══ PATIENT-FACING VIEW MODAL ═══ */}
+      {showPatientView && (
+        <div style={s.modalOverlay} onClick={() => setShowPatientView(false)}>
+          <div style={s.patientView} onClick={(e) => e.stopPropagation()}>
+            {/* Clean header */}
+            <div style={s.pvHeader}>
+              <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#a0a0a0', marginBottom: '8px' }}>Range Medical</div>
+              <h2 style={{ fontSize: '28px', fontWeight: '900', letterSpacing: '-0.02em', textTransform: 'uppercase', margin: '0 0 6px', color: '#1a1a1a' }}>Your Personalized Plan</h2>
+              {selectedPatient && (
+                <div style={{ fontSize: '15px', color: '#737373' }}>
+                  Prepared for {selectedPatient.first_name} {selectedPatient.last_name} — {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                </div>
+              )}
+            </div>
+
+            {/* Protocol cards */}
+            <div style={{ padding: '8px 48px 32px' }}>
+              {planItems.map((planItem, idx) => {
+                const item = BUILDER_ITEMS.find(i => i.id === planItem.itemId);
+                if (!item) return null;
+                const color = getCategoryColor(item.category);
+                const selectedDose = item.options?.[planItem.selectedDoseIndex] || null;
+                const pricing = calculatePricing(item, planItem.selectedOption, selectedDose, planItem.customDuration);
+
+                return (
+                  <div key={planItem.uid} style={s.pvCard}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+                          <span style={{ width: '10px', height: '10px', background: color, display: 'inline-block' }} />
+                          <span style={{ fontSize: '18px', fontWeight: '800', color: '#1a1a1a', letterSpacing: '-0.01em' }}>{item.name}</span>
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#737373', marginLeft: '20px' }}>{item.description} — {item.durationLabel}</div>
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{ fontSize: '20px', fontWeight: '900', color: '#1a1a1a' }}>
+                          {pricing.monthly ? formatPrice(pricing.monthly) : formatPrice(pricing.total)}
+                        </div>
+                        <div style={{ fontSize: '11px', color: '#a0a0a0', fontWeight: '500' }}>
+                          {pricing.monthly ? '/mo' : ''} {pricing.label !== 'One-time' && !pricing.monthly ? pricing.label : ''}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Best for */}
+                    {item.bestFor && (
+                      <div style={{ fontSize: '13px', color: '#404040', background: '#f8fafc', padding: '10px 14px', marginBottom: '14px', borderLeft: `3px solid ${color}`, lineHeight: '1.5' }}>
+                        <span style={{ fontWeight: '700' }}>Best for: </span>{item.bestFor}
+                      </div>
+                    )}
+
+                    {/* Benefits */}
+                    {item.benefits && item.benefits.length > 0 && (
+                      <div style={{ marginBottom: '14px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#a0a0a0', marginBottom: '8px' }}>Why This Protocol</div>
+                        {item.benefits.map((b, i) => (
+                          <div key={i} style={{ fontSize: '13px', color: '#404040', padding: '3px 0', display: 'flex', alignItems: 'flex-start', gap: '8px', lineHeight: '1.5' }}>
+                            <span style={{ width: '5px', height: '5px', background: color, flexShrink: 0, marginTop: '7px' }} />
+                            <span>{b}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* What's included */}
+                    {item.included && item.included.length > 0 && (
+                      <div>
+                        <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#a0a0a0', marginBottom: '8px' }}>What's Included</div>
+                        {item.included.map((inc, i) => (
+                          <div key={i} style={{ fontSize: '13px', color: '#404040', padding: '3px 0', display: 'flex', alignItems: 'flex-start', gap: '8px', lineHeight: '1.5' }}>
+                            <Check size={13} style={{ color: '#2E6B35', flexShrink: 0, marginTop: '3px' }} />
+                            <span>{inc}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {selectedDose && (
+                      <div style={{ fontSize: '12px', color: '#737373', marginTop: '10px' }}>Selected: {selectedDose.label}</div>
+                    )}
+                    {pricing.savings > 0 && (
+                      <div style={{ fontSize: '13px', fontWeight: '700', color: '#2E6B35', marginTop: '8px' }}>Saving {formatPrice(pricing.savings)} with {planItem.selectedOption} billing</div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Total */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 0 0', marginTop: '8px', borderTop: '2px solid #1a1a1a' }}>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#737373' }}>Estimated Investment</div>
+                  {totals.monthlyRecurring > 0 && (
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#737373', marginTop: '2px' }}>{formatPrice(totals.monthlyRecurring)}/mo recurring</div>
+                  )}
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '28px', fontWeight: '900', color: '#1a1a1a', letterSpacing: '-0.02em' }}>{formatPrice(totals.total)}</div>
+                  {totals.savings > 0 && <div style={{ fontSize: '13px', fontWeight: '700', color: '#2E6B35' }}>Saving {formatPrice(totals.savings)}</div>}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div style={{ marginTop: '32px', padding: '20px 0', borderTop: '1px solid #f0f0f0', textAlign: 'center' }}>
+                <div style={{ fontSize: '13px', color: '#a0a0a0', lineHeight: '1.6' }}>
+                  Range Medical — 1901 Westcliff Drive, Suite 10, Newport Beach, CA<br />
+                  (949) 997-3988 — range-medical.com
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div style={{ padding: '20px 48px', borderTop: '1px solid #e0e0e0', display: 'flex', gap: '12px', justifyContent: 'flex-end', background: '#fafafa' }}>
+              <button
+                style={{ ...s.shareBtn }}
+                onClick={() => {
+                  window.print();
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#fafafa'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}
+              >
+                <Printer size={14} /> Print / Save PDF
+              </button>
+              <button
+                style={{ ...s.agreeBtn, background: '#fff', color: '#1a1a1a', border: '1px solid #e0e0e0' }}
+                onClick={() => setShowPatientView(false)}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#fafafa'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}
+              >
+                Close
               </button>
             </div>
           </div>

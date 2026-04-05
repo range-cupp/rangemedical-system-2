@@ -799,12 +799,12 @@ export default function ProtocolBuilder() {
             const currentDuration = planItem.customDuration || item.duration;
 
             return (
-              <div style={{ borderTop: '1px solid #f0f0f0', padding: '16px 20px 0' }}>
+              <div style={{ borderTop: '1px solid #f0f0f0', padding: '20px 20px 0' }}>
                 {/* Weight inputs */}
-                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', marginBottom: '20px' }}>
                   <div style={{ flex: 1 }}>
-                    <span style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a0a0a0', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
-                      <Scale size={10} /> Current Weight
+                    <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#737373', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '8px' }}>
+                      <Scale size={12} /> Current Weight
                     </span>
                     <input
                       type="number" min={80} max={600} placeholder="lbs"
@@ -812,20 +812,19 @@ export default function ProtocolBuilder() {
                       onChange={(e) => {
                         const w = parseFloat(e.target.value) || null;
                         const updates = { currentWeight: w };
-                        // Auto-recommend tier if both weights present
                         if (w && gw && w > gw) {
                           const rec = getRecommendedTier(item, Math.round(w - gw));
                           if (rec) updates.customDuration = rec;
                         }
                         updatePlanItem(planItem.uid, updates);
                       }}
-                      style={{ padding: '8px 12px', border: '1px solid #e0e0e0', fontSize: '14px', fontWeight: '700', width: '100%', boxSizing: 'border-box', textAlign: 'center' }}
+                      style={{ padding: '12px 14px', border: '1px solid #e0e0e0', fontSize: '18px', fontWeight: '800', width: '100%', boxSizing: 'border-box', textAlign: 'center' }}
                     />
                   </div>
-                  <div style={{ fontSize: '20px', color: '#d0d0d0', paddingBottom: '8px' }}>→</div>
+                  <div style={{ fontSize: '24px', color: '#d0d0d0', paddingBottom: '12px' }}>→</div>
                   <div style={{ flex: 1 }}>
-                    <span style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a0a0a0', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
-                      <Target size={10} /> Goal Weight
+                    <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#737373', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '8px' }}>
+                      <Target size={12} /> Goal Weight
                     </span>
                     <input
                       type="number" min={80} max={600} placeholder="lbs"
@@ -839,39 +838,39 @@ export default function ProtocolBuilder() {
                         }
                         updatePlanItem(planItem.uid, updates);
                       }}
-                      style={{ padding: '8px 12px', border: '1px solid #e0e0e0', fontSize: '14px', fontWeight: '700', width: '100%', boxSizing: 'border-box', textAlign: 'center' }}
+                      style={{ padding: '12px 14px', border: '1px solid #e0e0e0', fontSize: '18px', fontWeight: '800', width: '100%', boxSizing: 'border-box', textAlign: 'center' }}
                     />
                   </div>
                   {lbsToLose && (
                     <div style={{ flex: 1, textAlign: 'center', paddingBottom: '4px' }}>
-                      <div style={{ fontSize: '24px', fontWeight: '900', color: '#2563eb', letterSpacing: '-0.02em' }}>{lbsToLose}</div>
-                      <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#737373' }}>lbs to lose</div>
+                      <div style={{ fontSize: '32px', fontWeight: '900', color: '#2563eb', letterSpacing: '-0.03em', lineHeight: 1 }}>{lbsToLose}</div>
+                      <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#737373', marginTop: '4px' }}>lbs to lose</div>
                     </div>
                   )}
                 </div>
 
                 {/* Duration tier buttons */}
-                <div style={{ marginBottom: '8px' }}>
-                  <span style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a0a0a0', display: 'block', marginBottom: '8px' }}>
+                <div style={{ marginBottom: '12px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#737373', display: 'block', marginBottom: '10px' }}>
                     Program Duration {recommended ? '· Recommended based on goal' : ''}
                   </span>
-                  <div style={{ display: 'flex', gap: '0', border: '1px solid #e0e0e0', overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', gap: '8px' }}>
                     {item.durationTiers.map(tier => {
                       const active = currentDuration === tier.months;
                       const isRecommended = recommended === tier.months;
                       return (
                         <button key={tier.months} style={{
-                          flex: 1, padding: '10px 8px', fontSize: '11px', fontWeight: '700', border: 'none',
-                          borderRight: '1px solid #e0e0e0', cursor: 'pointer', transition: 'all 0.15s',
+                          flex: 1, padding: '14px 8px 12px', fontSize: '13px', fontWeight: '800', border: active ? '2px solid #1a1a1a' : (isRecommended ? '2px solid #2563eb' : '1px solid #e0e0e0'),
+                          cursor: 'pointer', transition: 'all 0.15s',
                           background: active ? '#1a1a1a' : (isRecommended ? '#eff6ff' : '#fff'),
                           color: active ? '#fff' : (isRecommended ? '#2563eb' : '#737373'),
                           textAlign: 'center', lineHeight: '1.3', position: 'relative',
                         }} onClick={() => updatePlanItem(planItem.uid, { customDuration: tier.months })}>
                           {isRecommended && !active && (
-                            <div style={{ position: 'absolute', top: '-1px', left: '50%', transform: 'translateX(-50%)', fontSize: '8px', fontWeight: '800', background: '#2563eb', color: '#fff', padding: '1px 6px', letterSpacing: '0.08em' }}>REC</div>
+                            <div style={{ position: 'absolute', top: '-11px', left: '50%', transform: 'translateX(-50%)', fontSize: '9px', fontWeight: '800', background: '#2563eb', color: '#fff', padding: '2px 10px', letterSpacing: '0.1em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Recommended</div>
                           )}
-                          <div style={{ textTransform: 'uppercase', letterSpacing: '0.06em' }}>{tier.months}mo</div>
-                          <div style={{ fontSize: '10px', fontWeight: '500', opacity: 0.7, marginTop: '2px' }}>{tier.lbsMin}–{tier.lbsMax} lbs</div>
+                          <div style={{ fontSize: '16px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '-0.01em' }}>{tier.months}mo</div>
+                          <div style={{ fontSize: '11px', fontWeight: '600', opacity: 0.6, marginTop: '3px' }}>{tier.lbsMin}–{tier.lbsMax} lbs</div>
                         </button>
                       );
                     })}
@@ -880,7 +879,7 @@ export default function ProtocolBuilder() {
                   {item.durationTiers.map(tier => {
                     if (currentDuration !== tier.months) return null;
                     return (
-                      <div key={tier.months} style={{ fontSize: '12px', color: '#404040', padding: '8px 12px', background: '#f8fafc', borderLeft: '3px solid #2563eb', marginTop: '8px', lineHeight: '1.5' }}>
+                      <div key={tier.months} style={{ fontSize: '13px', color: '#404040', padding: '10px 14px', background: '#f8fafc', borderLeft: '3px solid #2563eb', marginTop: '10px', lineHeight: '1.6' }}>
                         <span style={{ fontWeight: '700' }}>{tier.label}:</span> {tier.description}
                       </div>
                     );
@@ -889,16 +888,16 @@ export default function ProtocolBuilder() {
 
                 {/* Personalized projections when weight goal is set */}
                 {lbsToLose && item.clinicalData && (
-                  <div style={{ margin: '12px 0 0', border: '1px solid #e8e8e8', overflow: 'hidden' }}>
-                    <div style={{ padding: '8px 12px', background: '#f8fafc', borderBottom: '1px solid #e8e8e8', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#2563eb', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Activity size={12} /> Projected Timeline for {cw} → {gw} lbs
+                  <div style={{ margin: '14px 0 0', border: '1px solid #e0e0e0', overflow: 'hidden' }}>
+                    <div style={{ padding: '10px 14px', background: '#f8fafc', borderBottom: '1px solid #e0e0e0', fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#2563eb', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Activity size={14} /> Projected Timeline for {cw} → {gw} lbs
                     </div>
                     <div>
                       <div style={{ display: 'flex', background: '#fafafa', borderBottom: '1px solid #f0f0f0' }}>
-                        <div style={{ flex: 1, padding: '6px 10px', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', color: '#a0a0a0' }}>Month</div>
-                        <div style={{ flex: 1, padding: '6px 10px', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', color: '#a0a0a0' }}>Est. Weight</div>
-                        <div style={{ flex: 1, padding: '6px 10px', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', color: '#a0a0a0' }}>Lbs Lost</div>
-                        <div style={{ flex: 2, padding: '6px 10px', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', color: '#a0a0a0' }}>Note</div>
+                        <div style={{ flex: 1, padding: '8px 12px', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#a0a0a0' }}>Month</div>
+                        <div style={{ flex: 1, padding: '8px 12px', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#a0a0a0' }}>Est. Weight</div>
+                        <div style={{ flex: 1, padding: '8px 12px', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#a0a0a0' }}>Lbs Lost</div>
+                        <div style={{ flex: 2, padding: '8px 12px', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', color: '#a0a0a0' }}>Note</div>
                       </div>
                       {item.clinicalData.weightLossTimeline.map((row, i) => {
                         const projectedLoss = Math.round(cw * (row.pctLoss / 100));
@@ -907,17 +906,17 @@ export default function ProtocolBuilder() {
                         const hitGoal = projectedWeight <= gw;
                         return (
                           <div key={i} style={{ display: 'flex', borderBottom: '1px solid #f0f0f0', background: hitGoal ? '#f0fdf4' : (isInProgram ? '#fff' : '#fafafa'), opacity: isInProgram ? 1 : 0.5 }}>
-                            <div style={{ flex: 1, padding: '7px 10px', fontSize: '12px', fontWeight: '700', color: '#1a1a1a' }}>{row.months}</div>
-                            <div style={{ flex: 1, padding: '7px 10px', fontSize: '12px', fontWeight: '700', color: hitGoal ? '#059669' : '#1a1a1a' }}>
+                            <div style={{ flex: 1, padding: '10px 12px', fontSize: '14px', fontWeight: '800', color: '#1a1a1a' }}>{row.months}</div>
+                            <div style={{ flex: 1, padding: '10px 12px', fontSize: '14px', fontWeight: '800', color: hitGoal ? '#059669' : '#1a1a1a' }}>
                               {projectedWeight} lbs {hitGoal && '✓'}
                             </div>
-                            <div style={{ flex: 1, padding: '7px 10px', fontSize: '12px', fontWeight: '600', color: '#2563eb' }}>-{projectedLoss}</div>
-                            <div style={{ flex: 2, padding: '7px 10px', fontSize: '11px', color: '#737373' }}>{row.note}</div>
+                            <div style={{ flex: 1, padding: '10px 12px', fontSize: '14px', fontWeight: '700', color: '#2563eb' }}>-{projectedLoss}</div>
+                            <div style={{ flex: 2, padding: '10px 12px', fontSize: '13px', color: '#737373' }}>{row.note}</div>
                           </div>
                         );
                       })}
                     </div>
-                    <div style={{ padding: '8px 12px', fontSize: '11px', color: '#737373', background: '#fafafa' }}>
+                    <div style={{ padding: '10px 14px', fontSize: '12px', color: '#737373', background: '#fafafa' }}>
                       {item.clinicalData.source} · Avg: {item.clinicalData.avgMonthlyLoss} · Plateau: {item.clinicalData.plateau}
                     </div>
                   </div>
@@ -925,22 +924,22 @@ export default function ProtocolBuilder() {
 
                 {/* Titration steps (always visible for WL) */}
                 {item.titration && (
-                  <div style={{ margin: '12px 0 4px' }}>
-                    <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#a0a0a0', marginBottom: '6px' }}>
+                  <div style={{ margin: '14px 0 4px' }}>
+                    <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#737373', marginBottom: '8px' }}>
                       Dose Titration ({item.titration.frequency}) — maintenance at wk {item.titration.weeksToMaintenance}
                     </div>
                     <div style={{ display: 'flex', gap: '0', flexWrap: 'wrap' }}>
                       {item.titration.steps.map((step, i) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
                           <div style={{
-                            padding: '4px 8px', fontSize: '10px', fontWeight: '600',
+                            padding: '6px 10px', fontSize: '11px', fontWeight: '600',
                             background: i === item.titration.steps.length - 1 ? '#2563eb' : '#f0f0f0',
                             color: i === item.titration.steps.length - 1 ? '#fff' : '#404040',
                           }}>
                             {step}
                           </div>
                           {i < item.titration.steps.length - 1 && (
-                            <div style={{ padding: '0 2px', color: '#ccc', fontSize: '9px' }}>→</div>
+                            <div style={{ padding: '0 3px', color: '#ccc', fontSize: '10px' }}>→</div>
                           )}
                         </div>
                       ))}

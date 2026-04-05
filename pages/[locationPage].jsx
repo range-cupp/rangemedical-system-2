@@ -137,7 +137,7 @@ export default function LocationPage({ pageData, schemas, serviceSlug, citySlug 
           <p className="loc-body-text">{service.subtitle}</p>
           <p className="loc-body-text loc-intro">{intro}</p>
           <Link href="/range-assessment" className="loc-btn-primary">
-            Book Your $197 Range Assessment
+            Book Your Range Assessment
           </Link>
         </section>
 
@@ -254,7 +254,7 @@ export default function LocationPage({ pageData, schemas, serviceSlug, citySlug 
                 {CLINIC.phone}
               </p>
               <Link href="/range-assessment" className="loc-btn-primary" style={{ marginTop: '1.5rem' }}>
-                Book Your $197 Range Assessment
+                Book Your Range Assessment
               </Link>
             </div>
           </div>

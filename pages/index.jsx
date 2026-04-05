@@ -127,7 +127,7 @@ export default function Home() {
           </p>
           <div style={{ marginTop: '2rem' }}>
             <Link href="/range-assessment" className="btn-primary">
-              Book Your $197 Range Assessment
+              Book Your Range Assessment
             </Link>
           </div>
         </section>
@@ -302,7 +302,7 @@ export default function Home() {
             <p>One assessment. One plan. $197 credited toward your treatment.</p>
             <div className="cta-buttons">
               <Link href="/range-assessment" className="btn-white">
-                Book Your $197 Range Assessment
+                Book Your Range Assessment
               </Link>
             </div>
             <p className="cta-location">

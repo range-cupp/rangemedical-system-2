@@ -433,7 +433,7 @@ export default function InjuryRecovery() {
             <p className="inj-cta-text">
               Take the online assessment. It takes 2 minutes and helps our team understand your situation before your visit.
             </p>
-            <Link href={assessmentLink} className="btn-white">Book Your $197 Range Assessment</Link>
+            <Link href={assessmentLink} className="btn-white">Book Your Range Assessment</Link>
             <p className="inj-cta-location">
               Range Medical &bull; 1901 Westcliff Dr, Newport Beach
             </p>

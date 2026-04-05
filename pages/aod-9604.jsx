@@ -91,7 +91,7 @@ export default function AOD9604() {
             <h1>AOD-9604</h1>
             <p className="hero-sub">A modified fragment of human growth hormone that targets fat metabolism — without affecting blood sugar, muscle, or IGF-1 levels. Originally developed as an anti-obesity drug, AOD-9604 helps your body break down stored fat and prevent new fat from forming.</p>
             <div className="hero-cta">
-              <Link href="/range-assessment" className="btn-primary">Book Your $197 Range Assessment</Link>
+              <Link href="/range-assessment" className="btn-primary">Book Your Range Assessment</Link>
               <p className="aod-hero-phone">Or call us at <a href="tel:9499973988">(949) 997-3988</a></p>
             </div>
           </div>
@@ -464,7 +464,7 @@ export default function AOD9604() {
             <h2 className="section-title">See If AOD-9604 Is Right for You</h2>
             <p className="section-subtitle">Get started with Range Medical. We&rsquo;ll review your goals, discuss your options, and build a protocol that makes sense for you — no pressure, no sales pitch.</p>
             <div className="aod-cta-buttons">
-              <Link href="/range-assessment" className="btn-primary">Book Your $197 Range Assessment</Link>
+              <Link href="/range-assessment" className="btn-primary">Book Your Range Assessment</Link>
               <a href="tel:9499973988" className="btn-outline">Call (949) 997-3988</a>
             </div>
             <p className="aod-cta-location">Range Medical · 1901 Westcliff Dr, Newport Beach, CA</p>

@@ -378,7 +378,7 @@ export default function HRTMembership() {
             <div className="hrt-divider-light"></div>
             <p>Start with a $197 Range Assessment. If HRT is right for you, your $250/month membership includes everything you need.</p>
             <div className="cta-buttons">
-              <a href="/range-assessment" className="btn-white">Book Your $197 Range Assessment</a>
+              <a href="/range-assessment" className="btn-white">Book Your Range Assessment</a>
             </div>
             <p className="cta-location">Range Medical · 1901 Westcliff Dr, Newport Beach</p>
           </div>

@@ -403,7 +403,7 @@ export default function PRPTherapy() {
                 Get started with Range Medical. Your provider will evaluate your injury and determine if PRP is right for your situation. Our Newport Beach team is here to help.
               </p>
               <div className="prp-cta-buttons">
-                <Link href="/range-assessment" className="prp-btn-primary">Book Your $197 Range Assessment</Link>
+                <Link href="/range-assessment" className="prp-btn-primary">Book Your Range Assessment</Link>
                 <div className="prp-cta-or">or</div>
                 <a href="tel:9499973988" className="prp-cta-phone">(949) 997-3988</a>
               </div>

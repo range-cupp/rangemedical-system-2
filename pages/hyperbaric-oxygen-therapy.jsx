@@ -749,7 +749,7 @@ export default function HyperbaricOxygenTherapy() {
                 Patients tell us HBOT is the treatment they wish they'd started sooner. Faster healing, clearer thinking, deeper sleep. Come see what pressurized oxygen can do. $197 assessment, credited toward treatment.
               </p>
               <div className="hbot-cta-buttons">
-                <Link href="/range-assessment" className="hbot-btn-primary">Book Your $197 Range Assessment</Link>
+                <Link href="/range-assessment" className="hbot-btn-primary">Book Your Range Assessment</Link>
                 <div className="hbot-cta-or">or</div>
                 <a href="tel:9499973988" className="hbot-cta-phone">(949) 997-3988</a>
               </div>

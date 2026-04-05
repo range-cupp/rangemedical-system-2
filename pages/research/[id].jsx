@@ -88,7 +88,7 @@ export default function ResearchStudy({ study }) {
           <div className="research-cta">
             <p>Interested in how this could help you?</p>
             <Link href="/range-assessment" className="research-cta-btn">
-              Book Your $197 Assessment
+              Book Your Range Assessment
             </Link>
             <a href="tel:9499973988" className="research-cta-phone">(949) 997-3988</a>
           </div>

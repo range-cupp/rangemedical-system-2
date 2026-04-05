@@ -621,7 +621,7 @@ export default function WeightLoss() {
                 That's what our patients tell us within the first month. The constant mental battle with food quiets down — and you start living again. $197 assessment, credited toward treatment.
               </p>
               <div className="wl-cta-buttons">
-                <Link href="/range-assessment" className="wl-btn-primary">Book Your $197 Range Assessment</Link>
+                <Link href="/range-assessment" className="wl-btn-primary">Book Your Range Assessment</Link>
                 <div className="wl-cta-or">or</div>
                 <a href="tel:9499973988" className="wl-cta-phone">(949) 997-3988</a>
               </div>

@@ -621,7 +621,7 @@ export default function TesamorelinIpamorelin() {
           </a>
           <div className="header-cta">
             <a href="tel:949-997-3988" className="header-phone">949-997-3988</a>
-            <a href="/range-assessment" className="cta-link">Book Your $197 Range Assessment</a>
+            <a href="/range-assessment" className="cta-link">Book Your Range Assessment</a>
           </div>
         </div>
       </header>
@@ -633,7 +633,7 @@ export default function TesamorelinIpamorelin() {
           <h1>Tesamorelin + Ipamorelin</h1>
           <p className="hero-subtitle">Two peptides that work together to optimize your growth hormone levels—helping you burn fat, build lean muscle, sleep better, and feel more like yourself again.</p>
           <div className="cta-group">
-            <a href="/range-assessment" className="cta-link">Book Your $197 Range Assessment</a>
+            <a href="/range-assessment" className="cta-link">Book Your Range Assessment</a>
           </div>
         </div>
       </section>
@@ -951,7 +951,7 @@ export default function TesamorelinIpamorelin() {
           <h2>Ready to learn more?</h2>
           <p>Get started with Range Medical to see if Tesamorelin + Ipamorelin is right for you. We'll review your health history, answer your questions, and create a plan tailored to your goals.</p>
           <div className="cta-group">
-            <a href="/range-assessment" className="cta-link">Book Your $197 Range Assessment</a>
+            <a href="/range-assessment" className="cta-link">Book Your Range Assessment</a>
           </div>
           <div className="location-info">
             <strong>Range Medical</strong><br />

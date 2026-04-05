@@ -252,7 +252,7 @@ export default function EnergyOptimization() {
             <div className="eo-process-grid">
               <div className="eo-process-step">
                 <div className="eo-process-number">01</div>
-                <h4>Book Your Assessment</h4>
+                <h4>Book Your Range Assessment</h4>
                 <p>$197 Range Assessment. Meet with our team, discuss your symptoms and goals, and decide on the right lab panel together.</p>
               </div>
 
@@ -425,7 +425,7 @@ export default function EnergyOptimization() {
               Start with a $197 Range Assessment. We&apos;ll review your situation, discuss the right labs, and build your plan.
               If you move forward with treatment, the full $197 goes toward it.
             </p>
-            <Link href="/range-assessment?path=energy" className="btn-white">Book Your $197 Range Assessment</Link>
+            <Link href="/range-assessment?path=energy" className="btn-white">Book Your Range Assessment</Link>
             <p className="eo-cta-location">
               Range Medical &bull; 1901 Westcliff Dr, Newport Beach
             </p>

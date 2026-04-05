@@ -78,17 +78,17 @@ export default function Header() {
           </div>
 
           <Link href="/range-assessment" className="rm-nav-cta">
-            Book Your Assessment
+            Book Your Range Assessment
           </Link>
         </nav>
-        
+
         <button className="rm-mobile-toggle" onClick={() => setMobileOpen(!mobileOpen)}>
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"/>
           </svg>
         </button>
       </div>
-      
+
       {mobileOpen && (
         <div className="rm-mobile-menu">
           <Link href="/range-assessment" onClick={() => setMobileOpen(false)}>
@@ -127,7 +127,7 @@ export default function Header() {
             </div>
           )}
           <Link href="/range-assessment" className="rm-mobile-cta" onClick={() => setMobileOpen(false)}>
-            Book Your Assessment
+            Book Your Range Assessment
           </Link>
         </div>
       )}

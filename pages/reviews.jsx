@@ -303,7 +303,7 @@ export default function ReviewsPage({ reviews, aggregateRating, totalReviewCount
           <h2>READY TO FEEL<br />LIKE YOURSELF AGAIN?</h2>
           <p className="rv-cta-body">Join our patients who have transformed their health with Range Medical.</p>
           <Link href="/range-assessment" className="rv-btn-white">
-            Book Your $197 Range Assessment
+            Book Your Range Assessment
           </Link>
           <p className="rv-cta-location">
             1901 Westcliff Dr. Suite 10, Newport Beach

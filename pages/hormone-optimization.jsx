@@ -719,7 +719,7 @@ export default function HormoneOptimization() {
                 Waking up rested. Thinking clearly all day. Feeling strong in the gym and present at home. That&apos;s what optimized hormones feel like &mdash; and it&apos;s closer than you think. $197 assessment, credited toward treatment.
               </p>
               <div className="hrt-cta-buttons">
-                <Link href="/range-assessment" className="hrt-btn-primary">Book Your $197 Range Assessment</Link>
+                <Link href="/range-assessment" className="hrt-btn-primary">Book Your Range Assessment</Link>
                 <div className="hrt-cta-or">or</div>
                 <a href="tel:9499973988" className="hrt-cta-phone">(949) 997-3988</a>
               </div>

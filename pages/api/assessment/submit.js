@@ -625,7 +625,7 @@ async function sendPatientResultsEmail({ firstName, email, symptoms, goals, last
 
               <!-- CTA -->
               <div style="text-align: center;">
-                <a href="https://range-medical.com/range-assessment" style="display: inline-block; background: #000000; color: #ffffff; padding: 14px 32px; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 16px;">Book Your $197 Range Assessment</a>
+                <a href="https://range-medical.com/range-assessment" style="display: inline-block; background: #000000; color: #ffffff; padding: 14px 32px; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 16px;">Book Your Range Assessment</a>
                 <p style="margin: 16px 0 0; font-size: 14px; color: #737373;">
                   Or call <a href="tel:9499973988" style="color: #171717; font-weight: 600;">(949) 997-3988</a>
                 </p>

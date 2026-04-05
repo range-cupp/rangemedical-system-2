@@ -5,13 +5,10 @@ import Layout from '../components/Layout';
 import Link from 'next/link';
 import Head from 'next/head';
 import { useEffect, useState } from 'react';
-import ResearchModal from '../components/ResearchModal';
 import { getStudiesByService } from '../data/researchStudies';
 
 export default function PeptideTherapy() {
   const [openFaq, setOpenFaq] = useState(null);
-  const [selectedStudy, setSelectedStudy] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const studies = getStudiesByService('peptide-therapy');
 
   // Scroll-based animations with IntersectionObserver
@@ -38,14 +35,6 @@ export default function PeptideTherapy() {
 
   const toggleFaq = (index) => {
     setOpenFaq(openFaq === index ? null : index);
-  };
-
-  const handleResearchClick = (studyId) => {
-    const study = studies.find(s => s.id === studyId);
-    if (study) {
-      setSelectedStudy(study);
-      setIsModalOpen(true);
-    }
   };
 
   const faqs = [
@@ -402,7 +391,7 @@ export default function PeptideTherapy() {
                 <div
                   key={study.id}
                   className="pep-research-card pep-animate"
-                  onClick={() => handleResearchClick(study.id)}
+                  onClick={() => window.location.href = '/research/' + study.id}
                   style={{ cursor: 'pointer' }}
                 >
                   <div className="pep-research-category">{study.category}</div>
@@ -638,13 +627,6 @@ export default function PeptideTherapy() {
             </div>
           </div>
         </section>
-
-        <ResearchModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          study={selectedStudy}
-          servicePage="peptide-therapy"
-        />
       </div>
 
       <style jsx>{`

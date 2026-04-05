@@ -5,13 +5,10 @@ import Layout from '../components/Layout';
 import Link from 'next/link';
 import Head from 'next/head';
 import { useEffect, useState } from 'react';
-import ResearchModal from '../components/ResearchModal';
 import { getStudiesByService } from '../data/researchStudies';
 
 export default function ExosomeTherapy() {
   const [openFaq, setOpenFaq] = useState(null);
-  const [selectedStudy, setSelectedStudy] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const studies = getStudiesByService('exosome-therapy');
 
   // Scroll-based animations with IntersectionObserver
@@ -40,13 +37,6 @@ export default function ExosomeTherapy() {
     setOpenFaq(openFaq === index ? null : index);
   };
 
-  const handleResearchClick = (studyId) => {
-    const study = studies.find(s => s.id === studyId);
-    if (study) {
-      setSelectedStudy(study);
-      setIsModalOpen(true);
-    }
-  };
 
   const faqs = [
     {
@@ -365,7 +355,7 @@ export default function ExosomeTherapy() {
                 <div
                   key={study.id}
                   className="exo-research-card exo-animate"
-                  onClick={() => handleResearchClick(study.id)}
+                  onClick={() => window.location.href = '/research/' + study.id}
                   style={{ cursor: 'pointer' }}
                 >
                   <div className="exo-research-category">{study.category}</div>
@@ -422,12 +412,6 @@ export default function ExosomeTherapy() {
           </div>
         </section>
 
-        <ResearchModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          study={selectedStudy}
-          servicePage="exosome-therapy"
-        />
       </div>
 
       <style jsx>{`

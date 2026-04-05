@@ -3,7 +3,6 @@ import Link from 'next/link';
 import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import ResearchModal from '../components/ResearchModal';
 import { getStudiesByService } from '../data/researchStudies';
 
 export default function InjuryRecovery() {
@@ -13,8 +12,6 @@ export default function InjuryRecovery() {
 
   const [openFaq, setOpenFaq] = useState(null);
   const [isVisible, setIsVisible] = useState({});
-  const [selectedStudy, setSelectedStudy] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const studies = getStudiesByService('injury-recovery');
 
   useEffect(() => {
@@ -39,13 +36,6 @@ export default function InjuryRecovery() {
     setOpenFaq(openFaq === index ? null : index);
   };
 
-  const handleResearchClick = (studyId) => {
-    const study = studies.find(s => s.id === studyId);
-    if (study) {
-      setSelectedStudy(study);
-      setIsModalOpen(true);
-    }
-  };
 
   const faqs = [
     {
@@ -390,7 +380,7 @@ export default function InjuryRecovery() {
                 <div
                   key={study.id}
                   className="inj-research-card"
-                  onClick={() => handleResearchClick(study.id)}
+                  onClick={() => window.location.href = '/research/' + study.id}
                 >
                   <span className="inj-research-category">{study.category}</span>
                   <h4 className="inj-research-headline">{study.headline}</h4>
@@ -452,12 +442,6 @@ export default function InjuryRecovery() {
           </div>
         </section>
 
-        <ResearchModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          study={selectedStudy}
-          servicePage="injury-recovery"
-        />
 
         <style jsx>{`
           /* Hero Section */

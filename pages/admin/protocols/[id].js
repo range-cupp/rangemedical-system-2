@@ -185,6 +185,7 @@ export default function ProtocolDetail() {
   const [sessionSaving, setSessionSaving] = useState(false);
   const [clinicalNotes, setClinicalNotes] = useState([]);
   const [encounterNotes, setEncounterNotes] = useState([]); // All encounter notes for this patient (for matching to injection dates)
+  const [wlPurchases, setWlPurchases] = useState([]); // Weight loss purchases for grouped injection view
   const [encounterSlideNote, setEncounterSlideNote] = useState(null); // Note to show in slide-out panel
   const [showAddClinicalNote, setShowAddClinicalNote] = useState(false);
   const [clinicalNoteInput, setClinicalNoteInput] = useState('');
@@ -406,6 +407,7 @@ export default function ProtocolDetail() {
       unique.sort((a, b) => new Date(b.log_date) - new Date(a.log_date));
       setInjectionLogs(unique);
       setWeightProgress(data.weightProgress || null);
+      setWlPurchases(data.wlPurchases || []);
 
       // Sync local state with protocol.sessions_used from DB (authoritative source)
       // Do NOT auto-correct upward based on merged log count — that causes ghost entries
@@ -1691,121 +1693,227 @@ export default function ProtocolDetail() {
               </div>
             )}
 
-            {/* Injection Log (weight loss only) — sorted oldest → newest */}
+            {/* Injection Log (weight loss only) — purchase-grouped view */}
             {!isEditing && isWeightLoss && injectionLogs.length > 0 && (() => {
               const chronologicalLogs = [...injectionLogs].sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
+
+              // Group injections by purchase windows or 4-injection cycles
+              let groups = [];
+              if (wlPurchases.length > 0) {
+                // Purchase-grouped: each purchase defines a window until the next purchase
+                const sortedPurchases = [...wlPurchases].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+                for (let i = 0; i < sortedPurchases.length; i++) {
+                  const purchase = sortedPurchases[i];
+                  const purchaseDate = new Date(purchase.created_at);
+                  const nextPurchaseDate = i < sortedPurchases.length - 1 ? new Date(sortedPurchases[i + 1].created_at) : null;
+                  const injections = chronologicalLogs.filter(log => {
+                    const logDate = new Date(log.log_date + 'T12:00:00');
+                    if (logDate < purchaseDate - 86400000) return false; // 1 day grace before purchase
+                    if (nextPurchaseDate && logDate >= nextPurchaseDate) return false;
+                    return true;
+                  });
+                  const qty = purchase.quantity || 4;
+                  groups.push({
+                    label: `Month ${i + 1}`,
+                    subLabel: new Date(purchase.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    amount: purchase.amount_paid,
+                    injections,
+                    totalSlots: qty,
+                    purchaseId: purchase.id,
+                  });
+                }
+                // Any injections before the first purchase go into "Pre-purchase"
+                if (sortedPurchases.length > 0) {
+                  const firstPurchaseDate = new Date(sortedPurchases[0].created_at);
+                  const prePurchaseInjections = chronologicalLogs.filter(log => {
+                    const logDate = new Date(log.log_date + 'T12:00:00');
+                    return logDate < firstPurchaseDate - 86400000;
+                  });
+                  if (prePurchaseInjections.length > 0) {
+                    groups.unshift({
+                      label: 'Pre-purchase',
+                      subLabel: null,
+                      amount: null,
+                      injections: prePurchaseInjections,
+                      totalSlots: prePurchaseInjections.length,
+                    });
+                  }
+                }
+              } else {
+                // No purchases (comped) — group in chunks of 4
+                for (let i = 0; i < chronologicalLogs.length; i += 4) {
+                  const chunk = chronologicalLogs.slice(i, i + 4);
+                  const cycleNum = Math.floor(i / 4) + 1;
+                  const startNum = i + 1;
+                  const endNum = Math.min(i + 4, chronologicalLogs.length);
+                  groups.push({
+                    label: `Cycle ${cycleNum}`,
+                    subLabel: `Injections ${startNum}–${endNum}`,
+                    amount: null,
+                    injections: chunk,
+                    totalSlots: 4,
+                  });
+                }
+              }
+
+              // Render helper for a single injection row
+              const renderInjectionRow = (log, idx, isLastInGroup) => {
+                const isMissedLog = log.log_type === 'missed' || (log.notes || '').includes('MISSED WEEK');
+                const rawDate = log.log_date;
+                const logDate = rawDate && rawDate.length === 10
+                  ? new Date(rawDate + 'T12:00:00')
+                  : new Date(rawDate);
+                const dateStr = logDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                const notes = log.notes || '';
+                const doseMatch = notes.match(/Dose:\s*([^|]+)/);
+                const sideEffectsMatch = notes.match(/Side effects:\s*([^|]+)/);
+                const dose = log.dosage || (doseMatch ? doseMatch[1].trim() : null);
+                const sideEffects = sideEffectsMatch ? sideEffectsMatch[1].trim() : null;
+                let freeNotes = notes
+                  .replace(/MISSED WEEK\s*\|?\s*/g, '')
+                  .replace(/Dose:\s*[^|]+\|?\s*/g, '')
+                  .replace(/Side effects:\s*[^|]+\|?\s*/g, '')
+                  .replace(/BP:\s*[^|]+\|?\s*/g, '')
+                  .replace(/^Injection #\d+$/, '')
+                  .trim();
+
+                return (
+                  <div key={log.id} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '20px', flexShrink: 0 }}>
+                      <div style={{
+                        width: '12px', height: '12px', borderRadius: '50%',
+                        background: isMissedLog ? '#f59e0b' : '#22c55e', border: '2px solid #fff',
+                        boxShadow: isMissedLog ? '0 0 0 2px #f59e0b' : '0 0 0 2px #22c55e', flexShrink: 0, marginTop: '4px'
+                      }}>
+                        <span style={{ color: '#fff', fontSize: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>{isMissedLog ? '✕' : '✓'}</span>
+                      </div>
+                      {!isLastInGroup && (
+                        <div style={{ width: '2px', flex: 1, background: '#e5e7eb', minHeight: '40px' }} />
+                      )}
+                    </div>
+                    <div style={{ flex: 1, paddingBottom: isLastInGroup ? '0' : '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+                        <span style={{ fontSize: '13px', color: '#9ca3af', fontWeight: '500', minWidth: '16px' }}>#{idx + 1}</span>
+                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{dateStr}</span>
+                        {isMissedLog && (
+                          <span style={{
+                            fontSize: '10px', fontWeight: '600', padding: '2px 6px',
+                            borderRadius: 0, background: '#fef3c7', color: '#92400e',
+                            textTransform: 'uppercase',
+                          }}>
+                            No Check-in
+                          </span>
+                        )}
+                        {!isMissedLog && log.log_type === 'injection' && (
+                          <span
+                            onClick={() => handleToggleDelivery(log)}
+                            title="Click to change to Take Home"
+                            style={{
+                              fontSize: '10px', fontWeight: '600', padding: '2px 6px',
+                              borderRadius: 0, background: '#e0e7ff', color: '#3730a3',
+                              textTransform: 'uppercase', cursor: 'pointer',
+                            }}
+                          >
+                            In Clinic
+                          </span>
+                        )}
+                        {!isMissedLog && log.log_type === 'checkin' && (
+                          <span
+                            onClick={() => handleToggleDelivery(log)}
+                            title="Click to change to In Clinic"
+                            style={{
+                              fontSize: '10px', fontWeight: '600', padding: '2px 6px',
+                              borderRadius: 0, background: '#f3f4f6', color: '#6b7280',
+                              textTransform: 'uppercase', cursor: 'pointer',
+                            }}
+                          >
+                            Take Home
+                          </span>
+                        )}
+                        {(() => {
+                          const matchedNote = findEncounterNoteForDate(log.log_date);
+                          return matchedNote ? (
+                            <span
+                              onClick={(e) => { e.stopPropagation(); setEncounterSlideNote(matchedNote); }}
+                              style={{
+                                fontSize: '10px', fontWeight: '600', padding: '2px 6px',
+                                borderRadius: 0, background: '#f0fdf4', color: '#16a34a',
+                                cursor: 'pointer', marginLeft: 'auto',
+                              }}
+                            >
+                              View Note
+                            </span>
+                          ) : null;
+                        })()}
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '13px', color: '#6b7280' }}>
+                        {dose && <span>💊 {dose}</span>}
+                        {log.weight && <span>⚖️ {log.weight} lbs</span>}
+                        {(() => {
+                          const bpMatch = (notes || '').match(/BP:\s*([^|]+)/);
+                          return bpMatch ? <span>🩺 {bpMatch[1].trim()}</span> : null;
+                        })()}
+                        {sideEffects && sideEffects !== 'None' && (
+                          <span style={{ color: '#dc2626' }}>⚠️ {sideEffects}</span>
+                        )}
+                      </div>
+                      {freeNotes && (
+                        <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px', fontStyle: 'italic' }}>
+                          {freeNotes}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              };
+
               return (
               <div style={styles.card}>
                 <h2 style={styles.cardTitle}>💉 Injection Log</h2>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-                  {chronologicalLogs.map((log, idx) => {
-                    const isLast = idx === chronologicalLogs.length - 1;
-                    const isMissedLog = log.log_type === 'missed' || (log.notes || '').includes('MISSED WEEK');
-                    // Parse date timezone-safe
-                    const rawDate = log.log_date;
-                    const logDate = rawDate && rawDate.length === 10
-                      ? new Date(rawDate + 'T12:00:00')
-                      : new Date(rawDate);
-                    const dateStr = logDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-
-                    // Parse notes for structured data
-                    const notes = log.notes || '';
-                    const doseMatch = notes.match(/Dose:\s*([^|]+)/);
-                    const sideEffectsMatch = notes.match(/Side effects:\s*([^|]+)/);
-                    const dose = log.dosage || (doseMatch ? doseMatch[1].trim() : null);
-                    const sideEffects = sideEffectsMatch ? sideEffectsMatch[1].trim() : null;
-                    // Remaining notes after structured fields
-                    let freeNotes = notes
-                      .replace(/MISSED WEEK\s*\|?\s*/g, '')
-                      .replace(/Dose:\s*[^|]+\|?\s*/g, '')
-                      .replace(/Side effects:\s*[^|]+\|?\s*/g, '')
-                      .replace(/BP:\s*[^|]+\|?\s*/g, '')
-                      .replace(/^Injection #\d+$/, '')
-                      .trim();
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  {groups.map((group, groupIdx) => {
+                    const used = group.injections.length;
+                    const remaining = Math.max(0, group.totalSlots - used);
+                    const isComplete = used >= group.totalSlots;
 
                     return (
-                      <div key={log.id} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '20px', flexShrink: 0 }}>
+                      <div key={group.purchaseId || `cycle-${groupIdx}`}>
+                        {/* Group header */}
+                        <div style={{
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          padding: '10px 14px', background: '#f8fafc', borderRadius: '8px 8px 0 0',
+                          borderBottom: '1px solid #e5e7eb',
+                        }}>
+                          <div>
+                            <span style={{ fontSize: '14px', fontWeight: '700', color: '#1f2937' }}>{group.label}</span>
+                            {group.subLabel && (
+                              <span style={{ fontSize: '13px', color: '#6b7280', marginLeft: '8px' }}>— {group.subLabel}</span>
+                            )}
+                            {group.amount != null && (
+                              <span style={{ fontSize: '13px', color: '#6b7280', marginLeft: '6px' }}>
+                                (${parseFloat(group.amount).toFixed(0)})
+                              </span>
+                            )}
+                          </div>
                           <div style={{
-                            width: '12px', height: '12px', borderRadius: '50%',
-                            background: isMissedLog ? '#f59e0b' : '#22c55e', border: '2px solid #fff',
-                            boxShadow: isMissedLog ? '0 0 0 2px #f59e0b' : '0 0 0 2px #22c55e', flexShrink: 0, marginTop: '4px'
+                            fontSize: '12px', fontWeight: '600',
+                            padding: '3px 10px', borderRadius: '12px',
+                            background: isComplete ? '#dcfce7' : '#eff6ff',
+                            color: isComplete ? '#16a34a' : '#3b82f6',
                           }}>
-                            <span style={{ color: '#fff', fontSize: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>{isMissedLog ? '✕' : '✓'}</span>
+                            {used}/{group.totalSlots} {isComplete ? 'complete' : `used — ${remaining} remaining`}
                           </div>
-                          {!isLast && (
-                            <div style={{ width: '2px', flex: 1, background: '#e5e7eb', minHeight: '40px' }} />
-                          )}
                         </div>
-                        <div style={{ flex: 1, paddingBottom: isLast ? '0' : '12px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-                            <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>{dateStr}</span>
-                            {isMissedLog && (
-                              <span style={{
-                                fontSize: '10px', fontWeight: '600', padding: '2px 6px',
-                                borderRadius: 0, background: '#fef3c7', color: '#92400e',
-                                textTransform: 'uppercase',
-                              }}>
-                                No Check-in
-                              </span>
-                            )}
-                            {!isMissedLog && log.log_type === 'injection' && (
-                              <span
-                                onClick={() => handleToggleDelivery(log)}
-                                title="Click to change to Take Home"
-                                style={{
-                                  fontSize: '10px', fontWeight: '600', padding: '2px 6px',
-                                  borderRadius: 0, background: '#e0e7ff', color: '#3730a3',
-                                  textTransform: 'uppercase', cursor: 'pointer',
-                                }}
-                              >
-                                In Clinic
-                              </span>
-                            )}
-                            {!isMissedLog && log.log_type === 'checkin' && (
-                              <span
-                                onClick={() => handleToggleDelivery(log)}
-                                title="Click to change to In Clinic"
-                                style={{
-                                  fontSize: '10px', fontWeight: '600', padding: '2px 6px',
-                                  borderRadius: 0, background: '#f3f4f6', color: '#6b7280',
-                                  textTransform: 'uppercase', cursor: 'pointer',
-                                }}
-                              >
-                                Take Home
-                              </span>
-                            )}
-                            {/* View Encounter Note button */}
-                            {(() => {
-                              const matchedNote = findEncounterNoteForDate(log.log_date);
-                              return matchedNote ? (
-                                <span
-                                  onClick={(e) => { e.stopPropagation(); setEncounterSlideNote(matchedNote); }}
-                                  style={{
-                                    fontSize: '10px', fontWeight: '600', padding: '2px 6px',
-                                    borderRadius: 0, background: '#f0fdf4', color: '#16a34a',
-                                    cursor: 'pointer', marginLeft: 'auto',
-                                  }}
-                                >
-                                  View Note
-                                </span>
-                              ) : null;
-                            })()}
-                          </div>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', fontSize: '13px', color: '#6b7280' }}>
-                            {dose && <span>💊 {dose}</span>}
-                            {log.weight && <span>⚖️ {log.weight} lbs</span>}
-                            {(() => {
-                              const bpMatch = (notes || '').match(/BP:\s*([^|]+)/);
-                              return bpMatch ? <span>🩺 {bpMatch[1].trim()}</span> : null;
-                            })()}
-                            {sideEffects && sideEffects !== 'None' && (
-                              <span style={{ color: '#dc2626' }}>⚠️ {sideEffects}</span>
-                            )}
-                          </div>
-                          {freeNotes && (
-                            <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px', fontStyle: 'italic' }}>
-                              {freeNotes}
+
+                        {/* Injection rows */}
+                        <div style={{ padding: '12px 14px 14px', borderLeft: '1px solid #e5e7eb', borderRight: '1px solid #e5e7eb', borderBottom: '1px solid #e5e7eb', borderRadius: '0 0 8px 8px' }}>
+                          {group.injections.length > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                              {group.injections.map((log, idx) => renderInjectionRow(log, idx, idx === group.injections.length - 1))}
+                            </div>
+                          ) : (
+                            <div style={{ fontSize: '13px', color: '#9ca3af', fontStyle: 'italic', padding: '8px 0' }}>
+                              No injections recorded yet
                             </div>
                           )}
                         </div>

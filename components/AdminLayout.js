@@ -568,6 +568,7 @@ const NAV_ITEMS = [
   { href: '/admin/referrals', label: 'Referrals', icon: 'user-plus' },
   { href: '/admin/patients', label: 'Patients', icon: 'users' },
   { href: '/admin/protocols', label: 'Protocols', icon: 'activity' },
+  { href: '/admin/protocol-builder', label: 'Protocol Builder', icon: 'clipboard' },
   { href: '/admin/schedule', label: 'Schedule', icon: 'calendar' },
   { href: '/admin/medications', label: 'Medications', icon: 'pill' },
   { href: '/admin/checkout', label: 'Checkout', icon: 'shopping-bag' },

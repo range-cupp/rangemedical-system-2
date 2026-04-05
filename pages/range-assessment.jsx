@@ -2805,6 +2805,9 @@ export default function RangeAssessment() {
               <p className="ra-intro">
                 Select the option that best describes your situation. This helps us understand your needs before your visit.
               </p>
+              <p className="ra-pricing">
+                <strong>$197</strong> — applied directly toward your treatment protocol.
+              </p>
 
               <div className="ra-path-grid">
                 <button
@@ -3327,7 +3330,17 @@ const styles = `
     color: #525252;
     line-height: 1.7;
     max-width: 540px;
+    margin: 0 auto 0.75rem;
+  }
+
+  .ra-pricing {
+    font-size: 1rem;
+    color: #171717;
     margin: 0 auto 2.5rem;
+  }
+
+  .ra-pricing strong {
+    font-weight: 700;
   }
 
   .ra-path-grid {

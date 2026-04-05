@@ -6,25 +6,7 @@ import { NOTE_TYPES, ENCOUNTER_TEMPLATES, getTemplateForService, NURSE_TEMPLATES
 import { ENCOUNTER_FORMS } from '../lib/encounter-form-config';
 import InteractiveEncounterForm from './InteractiveEncounterForm';
 import { overlayClickProps } from './AdminLayout';
-
-// Users allowed to create/edit/sign encounter notes
-const NOTE_AUTHORS = ['burgess@range-medical.com', 'lily@range-medical.com', 'evan@range-medical.com', 'chris@range-medical.com'];
-
-// Map login emails to all possible created_by values (handles pre-transition names)
-const AUTHOR_ALIASES = {
-  'burgess@range-medical.com': ['burgess@range-medical.com', 'Dr. Damien Burgess', 'Dr. Burgess', 'Damien Burgess'],
-  'lily@range-medical.com': ['lily@range-medical.com', 'Lily', 'Lily Diaz RN', 'Lily Diaz'],
-  'evan@range-medical.com': ['evan@range-medical.com', 'Evan'],
-  'chris@range-medical.com': ['chris@range-medical.com', 'Chris', 'Chris Cupp'],
-};
-
-// Check if currentUser is the author of a note (handles alias mismatches)
-function isNoteAuthor(noteCreatedBy, currentUser) {
-  if (!noteCreatedBy || !currentUser) return false;
-  if (noteCreatedBy === currentUser) return true;
-  const aliases = AUTHOR_ALIASES[currentUser?.toLowerCase()] || [];
-  return aliases.some(alias => alias.toLowerCase() === noteCreatedBy.toLowerCase());
-}
+import { NOTE_AUTHORS, isNoteAuthor } from '../lib/staff-config';
 
 // Parse **bold** markdown into React elements
 function renderFormattedText(text) {

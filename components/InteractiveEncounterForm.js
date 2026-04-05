@@ -265,14 +265,8 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
     }
   };
 
-  // Staff email → display name mapping for performed_by auto-fill
-  const STAFF_DISPLAY_NAMES = {
-    'cupp@range-medical.com': 'Chris Cupp',
-    'burgess@range-medical.com': 'Dr. Damien Burgess',
-    'lily@range-medical.com': 'Lily Diaz RN',
-    'evan@range-medical.com': 'Evan',
-    'damon@range-medical.com': 'Damon Durante',
-  };
+  // Staff display names imported from centralized config
+  const { STAFF_DISPLAY_NAMES } = require('../lib/staff-config');
 
   // Auto-fill performed_by from currentUser
   useEffect(() => {

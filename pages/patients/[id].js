@@ -47,6 +47,7 @@ import { VIAL_CATALOG } from '../../lib/vial-catalog';
 import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
 import CycleProgressCard from '../../components/CycleProgressCard';
+import { STAFF_DISPLAY_NAMES as _STAFF_NAMES, getStaffDisplayName, AUTHOR_ALIASES as _AUTHOR_ALIASES, isNoteAuthor as _isNoteAuthor, isAdmin as _isStaffAdmin, ADMIN_EMAILS } from '../../lib/staff-config';
 
 // Lazy-load heavy components that aren't needed on initial render
 const CalendarView = dynamic(() => import('../../components/CalendarView'), { ssr: false });
@@ -418,35 +419,13 @@ export default function PatientProfile() {
   const { id } = router.query || {};
   const { session, employee } = useAuth();
 
-  // Staff email → display name mapping
-  const STAFF_DISPLAY_NAMES = {
-    'burgess@range-medical.com': 'Dr. Damien Burgess',
-    'lily@range-medical.com': 'Lily Diaz RN',
-    'evan@range-medical.com': 'Evan',
-    'chris@range-medical.com': 'Chris Cupp',
-    'damon@range-medical.com': 'Damon Durante',
-  };
-  const getStaffDisplayName = (val) => {
-    if (!val) return '';
-    const lower = val.toLowerCase();
-    return STAFF_DISPLAY_NAMES[lower] || val;
-  };
-
-  // Check if current user can delete a specific note (author or admin)
-  const NOTE_AUTHOR_ALIASES = {
-    'burgess@range-medical.com': ['burgess@range-medical.com', 'dr. damien burgess', 'dr. burgess', 'damien burgess'],
-    'lily@range-medical.com': ['lily@range-medical.com', 'lily', 'lily diaz rn'],
-    'evan@range-medical.com': ['evan@range-medical.com', 'evan'],
-    'chris@range-medical.com': ['chris@range-medical.com', 'chris', 'chris cupp'],
-    'damon@range-medical.com': ['damon@range-medical.com', 'damon', 'damon durante'],
-  };
+  // Staff names & permissions imported from lib/staff-config.js (single source of truth)
   const currentUserEmail = session?.user?.email?.toLowerCase() || '';
-  const isAdminUser = currentUserEmail === 'chris@range-medical.com';
+  const isAdminUser = _isStaffAdmin(currentUserEmail);
   const canDeleteNote = (note) => {
     if (isAdminUser) return true;
     if (!note.created_by) return false;
-    const aliases = NOTE_AUTHOR_ALIASES[currentUserEmail] || [];
-    return note.created_by.toLowerCase() === currentUserEmail || aliases.some(a => a === note.created_by.toLowerCase());
+    return _isNoteAuthor(note.created_by, currentUserEmail);
   };
 
   // Email & SMS compose modals
@@ -6039,37 +6018,44 @@ export default function PatientProfile() {
                                       const todayDate = new Date(todayStr + 'T12:00:00');
                                       const isTakeHome = protocol.delivery_method === 'take_home';
 
-                                      // Build purchase groups for this protocol
+                                      // Build purchase groups for this protocol (quantity-based, not date-window)
+                                      // Each purchase covers N injections (quantity field, default 4 for monthly)
                                       const protoPurchasesForGroups = allPurchases
                                         .filter(p => p.protocol_id === protocol.id && p.purchase_date)
                                         .sort((a, b) => new Date(a.purchase_date) - new Date(b.purchase_date));
 
-                                      // Helper: find which purchase group a date belongs to
-                                      const getPurchaseGroupForDate = (dateStr) => {
-                                        if (protoPurchasesForGroups.length === 0) return null;
-                                        const d = new Date(dateStr + 'T12:00:00');
-                                        for (let i = protoPurchasesForGroups.length - 1; i >= 0; i--) {
-                                          const pDate = new Date(protoPurchasesForGroups[i].purchase_date + 'T12:00:00');
-                                          // Purchase date is on or before the injection date (1 day grace)
-                                          if (d >= new Date(pDate.getTime() - 86400000)) return i;
+                                      // Build injection-count boundaries: purchase 0 covers injections 1-4, purchase 1 covers 5-8, etc.
+                                      const purchaseBoundaries = [];
+                                      let runningTotal = 0;
+                                      for (const p of protoPurchasesForGroups) {
+                                        const qty = p.quantity || 4;
+                                        purchaseBoundaries.push({ purchase: p, startIdx: runningTotal, endIdx: runningTotal + qty - 1 });
+                                        runningTotal += qty;
+                                      }
+
+                                      // Helper: find which purchase group injection #N belongs to (0-indexed)
+                                      const getPurchaseGroupForIdx = (injectionIdx) => {
+                                        for (let i = 0; i < purchaseBoundaries.length; i++) {
+                                          if (injectionIdx >= purchaseBoundaries[i].startIdx && injectionIdx <= purchaseBoundaries[i].endIdx) return i;
                                         }
-                                        return -1; // before first purchase
+                                        return null; // beyond purchased injections
                                       };
 
                                       // Helper: render a purchase group header row
                                       const renderGroupHeader = (purchaseIdx) => {
-                                        if (protoPurchasesForGroups.length === 0) return null;
-                                        if (purchaseIdx < 0) return null;
-                                        const purchase = protoPurchasesForGroups[purchaseIdx];
-                                        if (!purchase) return null;
+                                        if (purchaseBoundaries.length === 0 || purchaseIdx == null || purchaseIdx < 0) return null;
+                                        const boundary = purchaseBoundaries[purchaseIdx];
+                                        if (!boundary) return null;
+                                        const purchase = boundary.purchase;
                                         const pDate = new Date(purchase.purchase_date + 'T12:00:00');
                                         const dateLabel = pDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                                         const amount = purchase.amount_paid != null ? `$${parseFloat(purchase.amount_paid).toFixed(0)}` : '';
+                                        const qty = purchase.quantity || 4;
                                         return (
                                           <tr key={'group-' + purchase.id} style={{ background: '#f1f5f9', borderTop: purchaseIdx > 0 ? '2px solid #cbd5e1' : 'none' }}>
                                             <td colSpan={7} style={{ padding: '8px 10px', fontSize: 12, fontWeight: 700, color: '#334155' }}>
                                               <span style={{ marginRight: 6 }}>💳</span>
-                                              Month {purchaseIdx + 1} — {dateLabel}
+                                              {qty} injections — {dateLabel}
                                               {amount && <span style={{ fontWeight: 500, color: '#64748b', marginLeft: 6 }}>({amount})</span>}
                                             </td>
                                           </tr>
@@ -6078,6 +6064,8 @@ export default function PatientProfile() {
 
                                       // Track which group headers have been rendered
                                       const renderedGroups = new Set();
+                                      // Track running injection count for group assignment
+                                      let injectionCounter = 0;
 
                                       // Ongoing protocols (no total_sessions) — just show actual logs
                                       if (!totalSlots || !startStr) {
@@ -6091,7 +6079,7 @@ export default function PatientProfile() {
                                       })();
                                       return wlLogs.flatMap((log, i) => {
                                           // Insert purchase group header if entering a new group
-                                          const groupIdx = getPurchaseGroupForDate(log.entry_date);
+                                          const groupIdx = getPurchaseGroupForIdx(i);
                                           let groupHeader = null;
                                           if (groupIdx !== null && groupIdx >= 0 && !renderedGroups.has(groupIdx)) {
                                             renderedGroups.add(groupIdx);
@@ -6196,9 +6184,8 @@ export default function PatientProfile() {
                                       })();
 
                                       const rows = slots.flatMap(slot => {
-                                        // Insert purchase group header if entering a new group
-                                        const slotDate = slot.log ? slot.log.entry_date : slot.expStr;
-                                        const slotGroupIdx = getPurchaseGroupForDate(slotDate);
+                                        // Insert purchase group header based on slot number (1-indexed → 0-indexed)
+                                        const slotGroupIdx = getPurchaseGroupForIdx(slot.num - 1);
                                         let slotGroupHeader = null;
                                         if (slotGroupIdx !== null && slotGroupIdx >= 0 && !renderedGroups.has(slotGroupIdx)) {
                                           renderedGroups.add(slotGroupIdx);

@@ -11,6 +11,7 @@ import { isRecoveryPeptide, isGHPeptide, RECOVERY_CYCLE_MAX_DAYS, RECOVERY_CYCLE
 import { PROTOCOL_TYPES, detectProtocolType, getDBProgramType, getDeliveryLabel } from '../../../lib/protocol-types';
 import AdminLayout from '../../../components/AdminLayout';
 import { useAuth } from '../../../components/AuthProvider';
+import { isNoteAuthor as _isNoteAuthor, isAdmin as _isStaffAdmin } from '../../../lib/staff-config';
 
 // Side effects list — matches lib/wl-side-effect-guidance.js
 const WL_SIDE_EFFECTS = ['Nausea', 'Fatigue', 'Constipation', 'Indigestion', 'Injection Site Pain'];
@@ -130,20 +131,13 @@ export default function ProtocolDetail() {
   const { id } = router.query;
   const { session } = useAuth();
 
-  // Note delete permissions — author or admin only
-  const NOTE_AUTHOR_ALIASES = {
-    'burgess@range-medical.com': ['burgess@range-medical.com', 'dr. damien burgess', 'dr. burgess', 'damien burgess'],
-    'lily@range-medical.com': ['lily@range-medical.com', 'lily'],
-    'evan@range-medical.com': ['evan@range-medical.com', 'evan'],
-    'chris@range-medical.com': ['chris@range-medical.com', 'chris', 'chris cupp'],
-  };
+  // Note delete permissions — imported from lib/staff-config.js (single source of truth)
   const currentUserEmail = session?.user?.email?.toLowerCase() || '';
-  const isAdminUser = currentUserEmail === 'chris@range-medical.com';
+  const isAdminUser = _isStaffAdmin(currentUserEmail);
   const canDeleteNote = (note) => {
     if (isAdminUser) return true;
     if (!note.created_by) return false;
-    const aliases = NOTE_AUTHOR_ALIASES[currentUserEmail] || [];
-    return note.created_by.toLowerCase() === currentUserEmail || aliases.some(a => a === note.created_by.toLowerCase());
+    return _isNoteAuthor(note.created_by, currentUserEmail);
   };
 
   const [protocol, setProtocol] = useState(null);

@@ -8,28 +8,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// Map login emails to all possible created_by values (handles pre-transition names)
-const AUTHOR_ALIASES = {
-  'burgess@range-medical.com': ['burgess@range-medical.com', 'dr. damien burgess', 'dr. burgess', 'damien burgess'],
-  'lily@range-medical.com': ['lily@range-medical.com', 'lily'],
-  'evan@range-medical.com': ['evan@range-medical.com', 'evan'],
-  'chris@range-medical.com': ['chris@range-medical.com', 'chris', 'chris cupp'],
-};
-
-// Admin users who can delete any note
-const ADMIN_EMAILS = ['chris@range-medical.com'];
-
-function isNoteAuthor(noteCreatedBy, requestingUser) {
-  if (!noteCreatedBy || !requestingUser) return false;
-  if (noteCreatedBy === requestingUser) return true;
-  const aliases = AUTHOR_ALIASES[requestingUser?.toLowerCase()] || [];
-  return aliases.some(alias => alias === noteCreatedBy.toLowerCase());
-}
-
-function isAdmin(requestingUser) {
-  if (!requestingUser) return false;
-  return ADMIN_EMAILS.includes(requestingUser.toLowerCase());
-}
+import { isNoteAuthor, isAdmin, ADMIN_EMAILS } from '../../../lib/staff-config';
 
 export default async function handler(req, res) {
   const { id } = req.query;

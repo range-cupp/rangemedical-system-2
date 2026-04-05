@@ -6039,6 +6039,46 @@ export default function PatientProfile() {
                                       const todayDate = new Date(todayStr + 'T12:00:00');
                                       const isTakeHome = protocol.delivery_method === 'take_home';
 
+                                      // Build purchase groups for this protocol
+                                      const protoPurchasesForGroups = allPurchases
+                                        .filter(p => p.protocol_id === protocol.id && p.purchase_date)
+                                        .sort((a, b) => new Date(a.purchase_date) - new Date(b.purchase_date));
+
+                                      // Helper: find which purchase group a date belongs to
+                                      const getPurchaseGroupForDate = (dateStr) => {
+                                        if (protoPurchasesForGroups.length === 0) return null;
+                                        const d = new Date(dateStr + 'T12:00:00');
+                                        for (let i = protoPurchasesForGroups.length - 1; i >= 0; i--) {
+                                          const pDate = new Date(protoPurchasesForGroups[i].purchase_date + 'T12:00:00');
+                                          // Purchase date is on or before the injection date (1 day grace)
+                                          if (d >= new Date(pDate.getTime() - 86400000)) return i;
+                                        }
+                                        return -1; // before first purchase
+                                      };
+
+                                      // Helper: render a purchase group header row
+                                      const renderGroupHeader = (purchaseIdx) => {
+                                        if (protoPurchasesForGroups.length === 0) return null;
+                                        if (purchaseIdx < 0) return null;
+                                        const purchase = protoPurchasesForGroups[purchaseIdx];
+                                        if (!purchase) return null;
+                                        const pDate = new Date(purchase.purchase_date + 'T12:00:00');
+                                        const dateLabel = pDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                                        const amount = purchase.amount_paid != null ? `$${parseFloat(purchase.amount_paid).toFixed(0)}` : '';
+                                        return (
+                                          <tr key={'group-' + purchase.id} style={{ background: '#f1f5f9', borderTop: purchaseIdx > 0 ? '2px solid #cbd5e1' : 'none' }}>
+                                            <td colSpan={7} style={{ padding: '8px 10px', fontSize: 12, fontWeight: 700, color: '#334155' }}>
+                                              <span style={{ marginRight: 6 }}>💳</span>
+                                              Month {purchaseIdx + 1} — {dateLabel}
+                                              {amount && <span style={{ fontWeight: 500, color: '#64748b', marginLeft: 6 }}>({amount})</span>}
+                                            </td>
+                                          </tr>
+                                        );
+                                      };
+
+                                      // Track which group headers have been rendered
+                                      const renderedGroups = new Set();
+
                                       // Ongoing protocols (no total_sessions) — just show actual logs
                                       if (!totalSlots || !startStr) {
                                         // Get first weight for "Total" column
@@ -6050,6 +6090,13 @@ export default function PatientProfile() {
                                         return null;
                                       })();
                                       return wlLogs.flatMap((log, i) => {
+                                          // Insert purchase group header if entering a new group
+                                          const groupIdx = getPurchaseGroupForDate(log.entry_date);
+                                          let groupHeader = null;
+                                          if (groupIdx !== null && groupIdx >= 0 && !renderedGroups.has(groupIdx)) {
+                                            renderedGroups.add(groupIdx);
+                                            groupHeader = renderGroupHeader(groupIdx);
+                                          }
                                           const logW = log.weight ? parseFloat(log.weight) : null;
                                           const vitW = !logW ? findVitalsWeight(log.entry_date) : null;
                                           const curWeight = logW || vitW;
@@ -6063,7 +6110,9 @@ export default function PatientProfile() {
                                           const totalDelta = firstOngoingWeight && curWeight && i > 0 ? (curWeight - firstOngoingWeight).toFixed(1) : null;
                                           const isFirstRow = i === 0;
                                           const logSideEffects = parseSideEffects(log.notes);
-                                          const elements = [
+                                          const elements = [];
+                                          if (groupHeader) elements.push(groupHeader);
+                                          elements.push(...[
                                             <tr key={log.id} className="wl-editable-row" onClick={() => openEditInjection(log)} title="Click to edit" style={isFirstRow ? { background: '#f0f9ff', borderLeft: '3px solid #3b82f6' } : {}}>
                                               <td style={{ color: '#9ca3af', fontSize: 12 }}>{i + 1}</td>
                                               <td>{formatShortDate(log.entry_date)}</td>
@@ -6078,7 +6127,7 @@ export default function PatientProfile() {
                                               </td>
                                               <td style={{ textAlign: 'center' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></td>
                                             </tr>
-                                          ];
+                                          ]);
                                           if (logSideEffects) {
                                             elements.push(
                                               <tr key={log.id + '-se'} style={{ background: '#fef2f2' }}>
@@ -6147,13 +6196,22 @@ export default function PatientProfile() {
                                       })();
 
                                       const rows = slots.flatMap(slot => {
+                                        // Insert purchase group header if entering a new group
+                                        const slotDate = slot.log ? slot.log.entry_date : slot.expStr;
+                                        const slotGroupIdx = getPurchaseGroupForDate(slotDate);
+                                        let slotGroupHeader = null;
+                                        if (slotGroupIdx !== null && slotGroupIdx >= 0 && !renderedGroups.has(slotGroupIdx)) {
+                                          renderedGroups.add(slotGroupIdx);
+                                          slotGroupHeader = renderGroupHeader(slotGroupIdx);
+                                        }
+
                                         // Bulk dispensed slot without a log
                                         if (allDispensed && !slot.log) {
                                           const shipLog = bulkPickup || allWlLogs[0];
                                           const shipDate = shipLog ? formatShortDate(shipLog.entry_date) : formatShortDate(slot.expStr);
                                           const doseLabel = parseDose(shipLog?.dosage) || protocol.selected_dose || '\u2014';
                                           const fulfillment = shipLog?.fulfillment_method;
-                                          return (
+                                          const dispensedRow = (
                                             <tr key={'dispensed-' + slot.num} style={{ background: '#f0fdf4' }}>
                                               <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
                                               <td>{formatShortDate(slot.expStr)}</td>
@@ -6164,6 +6222,7 @@ export default function PatientProfile() {
                                               <td></td>
                                             </tr>
                                           );
+                                          return slotGroupHeader ? [slotGroupHeader, dispensedRow] : dispensedRow;
                                         }
                                         // Slot with a log
                                         if (slot.log) {
@@ -6210,6 +6269,7 @@ export default function PatientProfile() {
                                               </tr>
                                             );
                                           }
+                                          if (slotGroupHeader) rowElements.unshift(slotGroupHeader);
                                           return rowElements;
                                         }
                                         // Past slot without log
@@ -6217,7 +6277,7 @@ export default function PatientProfile() {
                                           const emptyVitalsWeight = findVitalsWeight(slot.expStr);
                                           if (isTakeHome) {
                                             // Take-home: neutral "click to add weight" style
-                                            return (
+                                            const emptyTHRow = (
                                               <tr key={'empty-' + slot.num} style={{ background: '#f9fafb', cursor: 'pointer' }}
                                                 onClick={() => openQuickWeightModal(protocol, slot.expStr)}
                                                 title="Click to log weight for this session">
@@ -6230,9 +6290,10 @@ export default function PatientProfile() {
                                                 <td style={{ textAlign: 'center', color: '#9ca3af', fontWeight: 700, fontSize: 14 }}>+</td>
                                               </tr>
                                             );
+                                            return slotGroupHeader ? [slotGroupHeader, emptyTHRow] : emptyTHRow;
                                           } else {
                                             // In-clinic: clickable "Log injection" row
-                                            return (
+                                            const emptyICRow = (
                                               <tr key={'noshow-' + slot.num} style={{ background: '#f0f9ff', cursor: 'pointer' }}
                                                 onClick={() => openQuickWeightModal(protocol, slot.expStr)}
                                                 title="Click to log injection for this session">
@@ -6245,10 +6306,11 @@ export default function PatientProfile() {
                                                 <td style={{ textAlign: 'center', color: '#3b82f6', fontWeight: 700, fontSize: 14 }}>+</td>
                                               </tr>
                                             );
+                                            return slotGroupHeader ? [slotGroupHeader, emptyICRow] : emptyICRow;
                                           }
                                         }
                                         // Future slot
-                                        return (
+                                        const futureRow = (
                                           <tr key={'future-' + slot.num} style={{ opacity: 0.35 }}>
                                             <td style={{ color: '#9ca3af', fontSize: 12 }}>{slot.num}</td>
                                             <td style={{ color: '#9ca3af' }}>{formatShortDate(slot.expStr)}</td>
@@ -6256,6 +6318,7 @@ export default function PatientProfile() {
                                             <td></td>
                                           </tr>
                                         );
+                                        return slotGroupHeader ? [slotGroupHeader, futureRow] : futureRow;
                                       });
 
                                       // Append any unmatched logs

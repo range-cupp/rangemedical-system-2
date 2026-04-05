@@ -13,7 +13,7 @@ const NOTE_AUTHORS = ['burgess@range-medical.com', 'lily@range-medical.com', 'ev
 // Map login emails to all possible created_by values (handles pre-transition names)
 const AUTHOR_ALIASES = {
   'burgess@range-medical.com': ['burgess@range-medical.com', 'Dr. Damien Burgess', 'Dr. Burgess', 'Damien Burgess'],
-  'lily@range-medical.com': ['lily@range-medical.com', 'Lily'],
+  'lily@range-medical.com': ['lily@range-medical.com', 'Lily', 'Lily Diaz RN', 'Lily Diaz'],
   'evan@range-medical.com': ['evan@range-medical.com', 'Evan'],
   'chris@range-medical.com': ['chris@range-medical.com', 'Chris', 'Chris Cupp'],
 };

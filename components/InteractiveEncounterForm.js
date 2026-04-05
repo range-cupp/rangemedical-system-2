@@ -269,7 +269,7 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
   const STAFF_DISPLAY_NAMES = {
     'cupp@range-medical.com': 'Chris Cupp',
     'burgess@range-medical.com': 'Dr. Damien Burgess',
-    'lily@range-medical.com': 'Lily',
+    'lily@range-medical.com': 'Lily Diaz RN',
     'evan@range-medical.com': 'Evan',
     'damon@range-medical.com': 'Damon Durante',
   };

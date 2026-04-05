@@ -18,17 +18,10 @@ const SERVICE_LABELS = {
   'energy-optimization': 'Energy Optimization'
 };
 
-export async function getStaticPaths() {
-  const paths = Object.keys(researchStudies).map((id) => ({
-    params: { id }
-  }));
-  return { paths, fallback: false };
-}
-
-export async function getStaticProps({ params }) {
+export async function getServerSideProps({ params }) {
   const study = getStudyById(params.id);
   if (!study) return { notFound: true };
-  return { props: { study } };
+  return { props: { study: JSON.parse(JSON.stringify(study)) } };
 }
 
 export default function ResearchStudy({ study }) {

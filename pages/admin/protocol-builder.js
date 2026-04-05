@@ -470,6 +470,8 @@ export default function ProtocolBuilder() {
   const [showSummary, setShowSummary] = useState(false);
   const [showPatientView, setShowPatientView] = useState(false);
   const [expandedBenefits, setExpandedBenefits] = useState({});
+  const [shareUrl, setShareUrl] = useState(null);
+  const [sharing, setSharing] = useState(false);
 
   // Patient
   const [patientQuery, setPatientQuery] = useState('');
@@ -640,6 +642,18 @@ export default function ProtocolBuilder() {
   const addToPlan = (itemId) => {
     const item = BUILDER_ITEMS.find(i => i.id === itemId);
     if (!item) return;
+    // Prevent adding two weight loss medications — GLP-1s don't mix
+    if (item.category === 'weight_loss') {
+      const existingWL = planItems.find(p => {
+        const existing = BUILDER_ITEMS.find(i => i.id === p.itemId);
+        return existing?.category === 'weight_loss';
+      });
+      if (existingWL) {
+        const existingName = BUILDER_ITEMS.find(i => i.id === existingWL.itemId)?.name;
+        if (!confirm(`${existingName} is already in this plan. GLP-1 medications cannot be combined.\n\nReplace ${existingName} with ${item.name}?`)) return;
+        setPlanItems(prev => prev.filter(p => p.uid !== existingWL.uid));
+      }
+    }
     setPlanItems(prev => [...prev, {
       uid: Date.now() + Math.random(),
       itemId: item.id,
@@ -1038,27 +1052,6 @@ export default function ProtocolBuilder() {
                   </div>
                 );
               })}
-              {/* Show free months for upfront */}
-              {planItem.selectedOption === 'upfront' && (() => {
-                const currentDuration = planItem.customDuration || item.duration;
-                const upfrontConfig = item.paymentOptions.upfront;
-                let freeMonths = 0;
-                if (upfrontConfig?.monthsFree) {
-                  const tiers = Object.keys(upfrontConfig.monthsFree).map(Number).sort((a, b) => a - b);
-                  for (const t of tiers) { if (currentDuration >= t) freeMonths = upfrontConfig.monthsFree[t]; }
-                }
-                if (freeMonths <= 0) return null;
-                const freeStartMonth = currentDuration - freeMonths;
-                return Array.from({ length: freeMonths }, (_, fi) => (
-                  <div key={`free-${fi}`} style={{
-                    flex: '1 0 auto', minWidth: '60px', padding: '6px 8px', textAlign: 'center',
-                    background: '#f0fdf4', borderRight: fi < freeMonths - 1 ? '1px solid #dcfce7' : 'none',
-                  }}>
-                    <div style={{ fontSize: '10px', fontWeight: '700', color: '#059669', textTransform: 'uppercase' }}>Mo {freeStartMonth + fi + 1}</div>
-                    <div style={{ fontSize: '13px', fontWeight: '700', color: '#059669' }}>FREE</div>
-                  </div>
-                ));
-              })()}
             </div>
           </div>
         )}
@@ -1305,10 +1298,41 @@ export default function ProtocolBuilder() {
                 )}
               </div>
               <div style={{ display: 'flex', gap: '12px' }}>
-                <button style={s.shareBtn} onClick={() => setShowPatientView(true)}
+                <button style={s.shareBtn} disabled={sharing} onClick={async () => {
+                  setSharing(true);
+                  try {
+                    const res = await fetch('/api/protocol-builder/share', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        patientId: selectedPatient?.id || null,
+                        patientName: selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name}` : null,
+                        planItems: planItems.map(p => ({
+                          itemId: p.itemId,
+                          selectedOption: p.selectedOption,
+                          selectedDoseIndex: p.selectedDoseIndex,
+                          customDuration: p.customDuration,
+                          currentWeight: p.currentWeight,
+                          goalWeight: p.goalWeight,
+                        })),
+                      }),
+                    });
+                    const data = await res.json();
+                    if (data.url) {
+                      setShareUrl(data.url);
+                      setShowPatientView(true);
+                    } else {
+                      alert('Failed to create share link');
+                    }
+                  } catch (err) {
+                    console.error(err);
+                    alert('Failed to create share link');
+                  }
+                  setSharing(false);
+                }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = '#fafafa'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}>
-                  <Share2 size={14} /> Share with Patient
+                  <Share2 size={14} /> {sharing ? 'Creating...' : 'Share with Patient'}
                 </button>
                 <button style={s.agreeBtn} onClick={() => setShowSummary(true)}
                   onMouseEnter={(e) => { e.currentTarget.style.background = '#404040'; }}
@@ -1403,135 +1427,76 @@ export default function ProtocolBuilder() {
           </div>
         </div>
       )}
-      {/* ═══ PATIENT-FACING VIEW MODAL ═══ */}
-      {showPatientView && (
-        <div style={s.modalOverlay} onClick={() => setShowPatientView(false)}>
-          <div style={s.patientView} onClick={(e) => e.stopPropagation()}>
-            {/* Clean header */}
-            <div style={s.pvHeader}>
-              <div style={{ fontSize: '11px', fontWeight: '700', letterSpacing: '0.14em', textTransform: 'uppercase', color: '#a0a0a0', marginBottom: '8px' }}>Range Medical</div>
-              <h2 style={{ fontSize: '28px', fontWeight: '900', letterSpacing: '-0.02em', textTransform: 'uppercase', margin: '0 0 6px', color: '#1a1a1a' }}>Your Personalized Plan</h2>
-              {selectedPatient && (
-                <div style={{ fontSize: '15px', color: '#737373' }}>
-                  Prepared for {selectedPatient.first_name} {selectedPatient.last_name} — {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                </div>
-              )}
+      {/* ═══ SHARE LINK MODAL ═══ */}
+      {showPatientView && shareUrl && (
+        <div style={s.modalOverlay} onClick={() => { setShowPatientView(false); setShareUrl(null); }}>
+          <div style={{ ...s.modal, width: '520px' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ padding: '32px 32px 24px', textAlign: 'center' }}>
+              <div style={{ width: '48px', height: '48px', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <Check size={24} color="#059669" />
+              </div>
+              <h3 style={{ fontSize: '20px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '-0.01em', margin: '0 0 6px' }}>Plan Ready to Share</h3>
+              <p style={{ fontSize: '14px', color: '#737373', margin: 0 }}>
+                {selectedPatient ? `Send this link to ${selectedPatient.first_name}` : 'Send this link to the patient'} — they can view pricing options and toggle durations.
+              </p>
             </div>
 
-            {/* Protocol cards */}
-            <div style={{ padding: '8px 48px 32px' }}>
-              {planItems.map((planItem, idx) => {
-                const item = BUILDER_ITEMS.find(i => i.id === planItem.itemId);
-                if (!item) return null;
-                const color = getCategoryColor(item.category);
-                const selectedDose = item.options?.[planItem.selectedDoseIndex] || null;
-                const pricing = calculatePricing(item, planItem.selectedOption, selectedDose, planItem.customDuration);
+            <div style={{ padding: '0 32px 24px' }}>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="text" readOnly value={shareUrl}
+                  style={{ flex: 1, padding: '12px 14px', border: '1px solid #e0e0e0', fontSize: '13px', fontWeight: '600', color: '#1a1a1a', background: '#fafafa', outline: 'none' }}
+                  onClick={(e) => e.target.select()}
+                />
+                <button
+                  style={{ ...s.agreeBtn, padding: '12px 20px' }}
+                  onClick={() => {
+                    navigator.clipboard.writeText(shareUrl);
+                    const btn = document.activeElement;
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+                  }}
+                >
+                  Copy
+                </button>
+              </div>
 
-                return (
-                  <div key={planItem.uid} style={s.pvCard}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-                          <span style={{ width: '10px', height: '10px', background: color, display: 'inline-block' }} />
-                          <span style={{ fontSize: '18px', fontWeight: '800', color: '#1a1a1a', letterSpacing: '-0.01em' }}>{item.name}</span>
-                        </div>
-                        <div style={{ fontSize: '13px', color: '#737373', marginLeft: '20px' }}>{item.description} — {item.durationLabel}</div>
-                      </div>
-                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontSize: '20px', fontWeight: '900', color: '#1a1a1a' }}>
-                          {pricing.monthly ? formatPrice(pricing.monthly) : formatPrice(pricing.total)}
-                        </div>
-                        <div style={{ fontSize: '11px', color: '#a0a0a0', fontWeight: '500' }}>
-                          {pricing.monthly ? '/mo' : ''} {pricing.label !== 'One-time' && !pricing.monthly ? pricing.label : ''}
-                        </div>
-                      </div>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                <button
+                  style={{ ...s.shareBtn, flex: 1, justifyContent: 'center' }}
+                  onClick={() => window.open(shareUrl, '_blank')}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#fafafa'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}
+                >
+                  Preview Page
+                </button>
+              </div>
+
+              {/* Quick summary of what's in the plan */}
+              <div style={{ marginTop: '20px', padding: '16px', background: '#fafafa', border: '1px solid #e0e0e0' }}>
+                <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a0a0a0', marginBottom: '10px' }}>Plan Contents</div>
+                {planItems.map(pi => {
+                  const it = BUILDER_ITEMS.find(i => i.id === pi.itemId);
+                  if (!it) return null;
+                  const dur = pi.customDuration || it.duration;
+                  return (
+                    <div key={pi.uid} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '13px' }}>
+                      <span style={{ fontWeight: '600' }}>{it.name}</span>
+                      <span style={{ color: '#737373' }}>{it.billingType === 'flat' ? it.durationLabel : `${dur} months`}</span>
                     </div>
-
-                    {/* Best for */}
-                    {item.bestFor && (
-                      <div style={{ fontSize: '13px', color: '#404040', background: '#f8fafc', padding: '10px 14px', marginBottom: '14px', borderLeft: `3px solid ${color}`, lineHeight: '1.5' }}>
-                        <span style={{ fontWeight: '700' }}>Best for: </span>{item.bestFor}
-                      </div>
-                    )}
-
-                    {/* Benefits */}
-                    {item.benefits && item.benefits.length > 0 && (
-                      <div style={{ marginBottom: '14px' }}>
-                        <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#a0a0a0', marginBottom: '8px' }}>Why This Protocol</div>
-                        {item.benefits.map((b, i) => (
-                          <div key={i} style={{ fontSize: '13px', color: '#404040', padding: '3px 0', display: 'flex', alignItems: 'flex-start', gap: '8px', lineHeight: '1.5' }}>
-                            <span style={{ width: '5px', height: '5px', background: color, flexShrink: 0, marginTop: '7px' }} />
-                            <span>{b}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* What's included */}
-                    {item.included && item.included.length > 0 && (
-                      <div>
-                        <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#a0a0a0', marginBottom: '8px' }}>What's Included</div>
-                        {item.included.map((inc, i) => (
-                          <div key={i} style={{ fontSize: '13px', color: '#404040', padding: '3px 0', display: 'flex', alignItems: 'flex-start', gap: '8px', lineHeight: '1.5' }}>
-                            <Check size={13} style={{ color: '#2E6B35', flexShrink: 0, marginTop: '3px' }} />
-                            <span>{inc}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {selectedDose && (
-                      <div style={{ fontSize: '12px', color: '#737373', marginTop: '10px' }}>Selected: {selectedDose.label}</div>
-                    )}
-                    {pricing.savings > 0 && (
-                      <div style={{ fontSize: '13px', fontWeight: '700', color: '#2E6B35', marginTop: '8px' }}>Saving {formatPrice(pricing.savings)} with {planItem.selectedOption} billing</div>
-                    )}
-                  </div>
-                );
-              })}
-
-              {/* Total */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 0 0', marginTop: '8px', borderTop: '2px solid #1a1a1a' }}>
-                <div>
-                  <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#737373' }}>Estimated Investment</div>
-                  {totals.monthlyRecurring > 0 && (
-                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#737373', marginTop: '2px' }}>{formatPrice(totals.monthlyRecurring)}/mo recurring</div>
-                  )}
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '28px', fontWeight: '900', color: '#1a1a1a', letterSpacing: '-0.02em' }}>{formatPrice(totals.total)}</div>
-                  {totals.savings > 0 && <div style={{ fontSize: '13px', fontWeight: '700', color: '#2E6B35' }}>Saving {formatPrice(totals.savings)}</div>}
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div style={{ marginTop: '32px', padding: '20px 0', borderTop: '1px solid #f0f0f0', textAlign: 'center' }}>
-                <div style={{ fontSize: '13px', color: '#a0a0a0', lineHeight: '1.6' }}>
-                  Range Medical — 1901 Westcliff Drive, Suite 10, Newport Beach, CA<br />
-                  (949) 997-3988 — range-medical.com
-                </div>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Actions */}
-            <div style={{ padding: '20px 48px', borderTop: '1px solid #e0e0e0', display: 'flex', gap: '12px', justifyContent: 'flex-end', background: '#fafafa' }}>
-              <button
-                style={{ ...s.shareBtn }}
-                onClick={() => {
-                  window.print();
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = '#fafafa'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}
-              >
-                <Printer size={14} /> Print / Save PDF
-              </button>
+            <div style={{ padding: '16px 32px', borderTop: '1px solid #e0e0e0', display: 'flex', justifyContent: 'flex-end', background: '#fafafa' }}>
               <button
                 style={{ ...s.agreeBtn, background: '#fff', color: '#1a1a1a', border: '1px solid #e0e0e0' }}
-                onClick={() => setShowPatientView(false)}
+                onClick={() => { setShowPatientView(false); setShareUrl(null); }}
                 onMouseEnter={(e) => { e.currentTarget.style.background = '#fafafa'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = '#fff'; }}
               >
-                Close
+                Done
               </button>
             </div>
           </div>

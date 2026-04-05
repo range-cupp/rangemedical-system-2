@@ -13,6 +13,7 @@ import {
   getCategoryColor,
   formatPrice,
   calculatePricing,
+  getSteppedTotal,
 } from '../../lib/protocol-builder-config';
 import { Check, Plus, X, GripVertical, ChevronDown, ChevronUp, User, Search, FileText, Trash2, Sparkles, ArrowUpRight, Activity, Brain, FlaskConical, Share2, Heart, Printer, Scale, Target } from 'lucide-react';
 
@@ -981,6 +982,18 @@ export default function ProtocolBuilder() {
                           {Math.round(item.paymentOptions[key].discount * 100)}% off
                         </span>
                       )}
+                      {key === 'upfront' && item.paymentOptions[key]?.monthsFree && (() => {
+                        const dur = planItem.customDuration || item.duration;
+                        const tiers = Object.keys(item.paymentOptions[key].monthsFree).map(Number).sort((a, b) => a - b);
+                        let free = 0;
+                        for (const t of tiers) { if (dur >= t) free = item.paymentOptions[key].monthsFree[t]; }
+                        if (free <= 0) return null;
+                        return (
+                          <span style={{ marginLeft: '4px', color: planItem.selectedOption === key ? '#4ade80' : '#2E6B35' }}>
+                            {free}mo free
+                          </span>
+                        );
+                      })()}
                     </button>
                   ))}
                 </div>
@@ -989,13 +1002,75 @@ export default function ProtocolBuilder() {
           </div>
         </div>
 
+        {/* Month-by-month cost breakdown for stepped pricing */}
+        {item.steppedPricing && pricing.monthlyBreakdown && (
+          <div style={{ borderTop: '1px solid #f0f0f0', padding: '12px 20px' }}>
+            <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#a0a0a0', marginBottom: '8px' }}>
+              Monthly Cost Breakdown
+            </div>
+            <div style={{ display: 'flex', gap: '0', flexWrap: 'wrap' }}>
+              {pricing.monthlyBreakdown.map((price, i) => {
+                const isFree = planItem.selectedOption === 'upfront' && i >= pricing.monthlyBreakdown.length;
+                const currentDuration = planItem.customDuration || item.duration;
+                const upfrontConfig = item.paymentOptions.upfront;
+                let freeMonths = 0;
+                if (planItem.selectedOption === 'upfront' && upfrontConfig?.monthsFree) {
+                  const tiers = Object.keys(upfrontConfig.monthsFree).map(Number).sort((a, b) => a - b);
+                  for (const t of tiers) { if (currentDuration >= t) freeMonths = upfrontConfig.monthsFree[t]; }
+                }
+                const paidMonths = currentDuration - freeMonths;
+                const isFreed = i >= paidMonths && planItem.selectedOption === 'upfront';
+
+                return (
+                  <div key={i} style={{
+                    flex: '1 0 auto', minWidth: '60px', padding: '6px 8px', textAlign: 'center',
+                    borderRight: i < pricing.monthlyBreakdown.length - 1 ? '1px solid #f0f0f0' : 'none',
+                    background: isFreed ? '#f0fdf4' : 'transparent',
+                  }}>
+                    <div style={{ fontSize: '10px', fontWeight: '700', color: '#a0a0a0', textTransform: 'uppercase' }}>Mo {i + 1}</div>
+                    <div style={{ fontSize: '13px', fontWeight: '700', color: isFreed ? '#059669' : '#1a1a1a' }}>
+                      {isFreed ? 'FREE' : formatPrice(price)}
+                    </div>
+                    {item.titration && item.titration.steps[i] && (
+                      <div style={{ fontSize: '9px', color: '#a0a0a0', marginTop: '2px' }}>
+                        {item.titration.steps[i].split(' (')[0]}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {/* Show free months for upfront */}
+              {planItem.selectedOption === 'upfront' && (() => {
+                const currentDuration = planItem.customDuration || item.duration;
+                const upfrontConfig = item.paymentOptions.upfront;
+                let freeMonths = 0;
+                if (upfrontConfig?.monthsFree) {
+                  const tiers = Object.keys(upfrontConfig.monthsFree).map(Number).sort((a, b) => a - b);
+                  for (const t of tiers) { if (currentDuration >= t) freeMonths = upfrontConfig.monthsFree[t]; }
+                }
+                if (freeMonths <= 0) return null;
+                const freeStartMonth = currentDuration - freeMonths;
+                return Array.from({ length: freeMonths }, (_, fi) => (
+                  <div key={`free-${fi}`} style={{
+                    flex: '1 0 auto', minWidth: '60px', padding: '6px 8px', textAlign: 'center',
+                    background: '#f0fdf4', borderRight: fi < freeMonths - 1 ? '1px solid #dcfce7' : 'none',
+                  }}>
+                    <div style={{ fontSize: '10px', fontWeight: '700', color: '#059669', textTransform: 'uppercase' }}>Mo {freeStartMonth + fi + 1}</div>
+                    <div style={{ fontSize: '13px', fontWeight: '700', color: '#059669' }}>FREE</div>
+                  </div>
+                ));
+              })()}
+            </div>
+          </div>
+        )}
+
         <div style={s.planCardPricing}>
           <div>
             <span style={{ fontSize: '24px', fontWeight: '900', color: '#1a1a1a', letterSpacing: '-0.02em', lineHeight: 1 }}>
               {pricing.monthly ? formatPrice(pricing.monthly) : formatPrice(pricing.total)}
             </span>
             <span style={{ fontSize: '12px', fontWeight: '500', color: '#a0a0a0', marginLeft: '4px' }}>
-              {pricing.monthly ? '/mo' : ''}
+              {pricing.monthly ? '/mo avg' : ''}
             </span>
             {pricing.savings > 0 && (
               <div style={{ fontSize: '12px', fontWeight: '700', color: '#2E6B35' }}>Save {formatPrice(pricing.savings)}</div>

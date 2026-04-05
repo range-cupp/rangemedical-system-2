@@ -678,7 +678,11 @@ export default function ProtocolBuilder() {
         <div style={s.planCardHeader(color)}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <span style={{ fontSize: '16px', fontWeight: '800', color: '#1a1a1a', letterSpacing: '-0.01em' }}>{item.name}</span>
-            <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#737373', marginLeft: '12px' }}>{item.durationLabel}</span>
+            <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#737373', marginLeft: '12px' }}>
+              {item.durationTiers
+                ? (item.durationTiers.find(t => t.months === (planItem.customDuration || item.duration))?.label || `${planItem.customDuration || item.duration} months`)
+                : item.durationLabel}
+            </span>
           </div>
           <button
             style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', padding: '4px', display: 'flex', transition: 'color 0.15s' }}
@@ -744,6 +748,106 @@ export default function ProtocolBuilder() {
             </div>
           )}
 
+          {/* Duration Tier Selector (weight loss items) */}
+          {item.durationTiers && (
+            <div style={{ margin: '0 0 16px' }}>
+              <span style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a0a0a0', display: 'block', marginBottom: '8px' }}>Program Duration</span>
+              <div style={{ display: 'flex', gap: '0', border: '1px solid #e0e0e0', overflow: 'hidden' }}>
+                {item.durationTiers.map(tier => {
+                  const active = (planItem.customDuration || item.duration) === tier.months;
+                  return (
+                    <button key={tier.months} style={{
+                      flex: 1, padding: '10px 8px', fontSize: '11px', fontWeight: '700', border: 'none',
+                      borderRight: '1px solid #e0e0e0', cursor: 'pointer', transition: 'all 0.15s',
+                      background: active ? '#1a1a1a' : '#fff', color: active ? '#fff' : '#737373',
+                      textAlign: 'center', lineHeight: '1.3',
+                    }} onClick={() => updatePlanItem(planItem.uid, { customDuration: tier.months })}>
+                      <div style={{ textTransform: 'uppercase', letterSpacing: '0.06em' }}>{tier.months}mo</div>
+                      <div style={{ fontSize: '10px', fontWeight: '500', opacity: 0.7, marginTop: '2px' }}>{tier.goalLbs} lbs</div>
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Show selected tier description */}
+              {item.durationTiers.map(tier => {
+                if ((planItem.customDuration || item.duration) !== tier.months) return null;
+                return (
+                  <div key={tier.months} style={{ fontSize: '12px', color: '#404040', padding: '8px 12px', background: '#f8fafc', borderLeft: '3px solid #2563eb', marginTop: '8px', lineHeight: '1.5' }}>
+                    <span style={{ fontWeight: '700' }}>{tier.label}:</span> {tier.description}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Titration + Clinical Timeline (weight loss items) */}
+          {item.titration && (
+            <div style={{ margin: '0 0 16px', border: '1px solid #e8e8e8', overflow: 'hidden' }}>
+              <button
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#f8fafc', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#2563eb' }}
+                onClick={() => setExpandedBenefits(prev => ({ ...prev, [`${planItem.uid}-clinical`]: !prev[`${planItem.uid}-clinical`] }))}
+              >
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Activity size={12} /> Titration & Expected Results</span>
+                {expandedBenefits[`${planItem.uid}-clinical`] ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              </button>
+              {expandedBenefits[`${planItem.uid}-clinical`] && (
+                <div style={{ padding: '14px' }}>
+                  {/* Titration steps */}
+                  <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#a0a0a0', marginBottom: '8px' }}>Dose Titration ({item.titration.frequency})</div>
+                  <div style={{ display: 'flex', gap: '0', marginBottom: '16px', flexWrap: 'wrap' }}>
+                    {item.titration.steps.map((step, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
+                        <div style={{
+                          padding: '5px 10px', fontSize: '11px', fontWeight: '600',
+                          background: i === item.titration.steps.length - 1 ? '#2563eb' : '#f0f0f0',
+                          color: i === item.titration.steps.length - 1 ? '#fff' : '#404040',
+                        }}>
+                          {step}
+                        </div>
+                        {i < item.titration.steps.length - 1 && (
+                          <div style={{ padding: '0 2px', color: '#ccc', fontSize: '10px' }}>→</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#737373', marginBottom: '14px' }}>
+                    Maintenance dose: <span style={{ fontWeight: '700', color: '#1a1a1a' }}>{item.titration.maintenanceDose}</span> reached at <span style={{ fontWeight: '700', color: '#1a1a1a' }}>week {item.titration.weeksToMaintenance}</span>
+                  </div>
+
+                  {/* Weight loss timeline */}
+                  {item.clinicalData && (
+                    <>
+                      <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#a0a0a0', marginBottom: '8px' }}>Expected Weight Loss ({item.clinicalData.source})</div>
+                      <div style={{ border: '1px solid #f0f0f0', overflow: 'hidden', marginBottom: '10px' }}>
+                        <div style={{ display: 'flex', background: '#fafafa', borderBottom: '1px solid #f0f0f0' }}>
+                          <div style={{ flex: 1, padding: '6px 10px', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', color: '#a0a0a0' }}>Month</div>
+                          <div style={{ flex: 1, padding: '6px 10px', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', color: '#a0a0a0' }}>% Loss</div>
+                          <div style={{ flex: 1, padding: '6px 10px', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', color: '#a0a0a0' }}>~Lbs</div>
+                          <div style={{ flex: 2, padding: '6px 10px', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', color: '#a0a0a0' }}>Note</div>
+                        </div>
+                        {item.clinicalData.weightLossTimeline.map((row, i) => {
+                          const currentDuration = planItem.customDuration || item.duration;
+                          const isInProgram = row.months <= currentDuration;
+                          return (
+                            <div key={i} style={{ display: 'flex', borderBottom: '1px solid #f0f0f0', background: isInProgram ? '#fff' : '#fafafa', opacity: isInProgram ? 1 : 0.5 }}>
+                              <div style={{ flex: 1, padding: '7px 10px', fontSize: '12px', fontWeight: '700', color: '#1a1a1a' }}>{row.months}</div>
+                              <div style={{ flex: 1, padding: '7px 10px', fontSize: '12px', fontWeight: '700', color: '#2563eb' }}>{row.pctLoss}%</div>
+                              <div style={{ flex: 1, padding: '7px 10px', fontSize: '12px', fontWeight: '600', color: '#404040' }}>~{row.approxLbs}</div>
+                              <div style={{ flex: 2, padding: '7px 10px', fontSize: '11px', color: '#737373' }}>{row.note}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#737373', lineHeight: '1.6' }}>
+                        Plateau: <span style={{ fontWeight: '600' }}>{item.clinicalData.plateau}</span> · Max loss: <span style={{ fontWeight: '600' }}>{item.clinicalData.maxLoss}</span> · Avg rate: <span style={{ fontWeight: '600' }}>{item.clinicalData.avgMonthlyLoss}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           <div style={s.optionRow}>
             {item.options && (
               <div style={s.optionGroup}>
@@ -755,7 +859,7 @@ export default function ProtocolBuilder() {
                 </select>
               </div>
             )}
-            {item.durationEditable && (
+            {item.durationEditable && !item.durationTiers && (
               <div style={s.optionGroup}>
                 <span style={s.optionLabel}>Duration (months)</span>
                 <input type="number" min={1} max={24} value={planItem.customDuration || item.duration || 6}

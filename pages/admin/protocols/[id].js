@@ -1691,47 +1691,43 @@ export default function ProtocolDetail() {
             {!isEditing && isWeightLoss && injectionLogs.length > 0 && (() => {
               const chronologicalLogs = [...injectionLogs].sort((a, b) => new Date(a.log_date) - new Date(b.log_date));
 
-              // Group injections by purchase windows or 4-injection cycles
+              // Group injections by purchase quantity (each WL purchase = 4 injections)
               let groups = [];
               if (wlPurchases.length > 0) {
-                // Purchase-grouped: each purchase defines a window until the next purchase
+                // Quantity-based: each purchase covers N injections (default 4 for monthly WL)
                 const sortedPurchases = [...wlPurchases].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+                let injectionIdx = 0;
                 for (let i = 0; i < sortedPurchases.length; i++) {
                   const purchase = sortedPurchases[i];
-                  const purchaseDate = new Date(purchase.created_at);
-                  const nextPurchaseDate = i < sortedPurchases.length - 1 ? new Date(sortedPurchases[i + 1].created_at) : null;
-                  const injections = chronologicalLogs.filter(log => {
-                    const logDate = new Date(log.log_date + 'T12:00:00');
-                    if (logDate < purchaseDate - 86400000) return false; // 1 day grace before purchase
-                    if (nextPurchaseDate && logDate >= nextPurchaseDate) return false;
-                    return true;
-                  });
-                  const qty = purchase.quantity || 4;
+                  // Determine injections per purchase from description, default 4 for monthly
+                  let injectionsPerPurchase = 4;
+                  const desc = (purchase.description || '').toLowerCase();
+                  const injMatch = desc.match(/(\d+)\s*injection/);
+                  if (injMatch) injectionsPerPurchase = parseInt(injMatch[1]);
+                  else if (desc.includes('bi-weekly') || desc.includes('biweekly') || desc.includes('2 week')) injectionsPerPurchase = 2;
+                  else if (desc.includes('single') || desc.includes('1 week')) injectionsPerPurchase = 1;
+
+                  const groupInjections = chronologicalLogs.slice(injectionIdx, injectionIdx + injectionsPerPurchase);
+                  const dateLabel = new Date(purchase.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                   groups.push({
-                    label: `Month ${i + 1}`,
-                    subLabel: new Date(purchase.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    label: `${injectionsPerPurchase} injections`,
+                    subLabel: dateLabel,
                     amount: purchase.amount_paid,
-                    injections,
-                    totalSlots: qty,
+                    injections: groupInjections,
+                    totalSlots: injectionsPerPurchase,
                     purchaseId: purchase.id,
                   });
+                  injectionIdx += injectionsPerPurchase;
                 }
-                // Any injections before the first purchase go into "Pre-purchase"
-                if (sortedPurchases.length > 0) {
-                  const firstPurchaseDate = new Date(sortedPurchases[0].created_at);
-                  const prePurchaseInjections = chronologicalLogs.filter(log => {
-                    const logDate = new Date(log.log_date + 'T12:00:00');
-                    return logDate < firstPurchaseDate - 86400000;
+                // Any remaining injections beyond purchased quantity
+                if (injectionIdx < chronologicalLogs.length) {
+                  groups.push({
+                    label: 'Unpaid',
+                    subLabel: null,
+                    amount: null,
+                    injections: chronologicalLogs.slice(injectionIdx),
+                    totalSlots: chronologicalLogs.length - injectionIdx,
                   });
-                  if (prePurchaseInjections.length > 0) {
-                    groups.unshift({
-                      label: 'Pre-purchase',
-                      subLabel: null,
-                      amount: null,
-                      injections: prePurchaseInjections,
-                      totalSlots: prePurchaseInjections.length,
-                    });
-                  }
                 }
               } else {
                 // No purchases (comped) — group in chunks of 4

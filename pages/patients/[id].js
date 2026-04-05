@@ -6024,13 +6024,20 @@ export default function PatientProfile() {
                                         .filter(p => p.protocol_id === protocol.id && p.purchase_date)
                                         .sort((a, b) => new Date(a.purchase_date) - new Date(b.purchase_date));
 
-                                      // Build injection-count boundaries: purchase 0 covers injections 1-4, purchase 1 covers 5-8, etc.
+                                      // Build injection-count boundaries: each WL purchase = 4 injections (one month / 4 weeks)
+                                      // quantity field on purchases tracks line item qty, NOT injection count
                                       const purchaseBoundaries = [];
                                       let runningTotal = 0;
                                       for (const p of protoPurchasesForGroups) {
-                                        const qty = p.quantity || 4;
-                                        purchaseBoundaries.push({ purchase: p, startIdx: runningTotal, endIdx: runningTotal + qty - 1 });
-                                        runningTotal += qty;
+                                        // WL monthly = 4 injections, unless description says otherwise (e.g. "2 injections")
+                                        let injectionsPerPurchase = 4;
+                                        const desc = (p.description || p.item_name || '').toLowerCase();
+                                        const injMatch = desc.match(/(\d+)\s*injection/);
+                                        if (injMatch) injectionsPerPurchase = parseInt(injMatch[1]);
+                                        else if (desc.includes('bi-weekly') || desc.includes('biweekly') || desc.includes('2 week')) injectionsPerPurchase = 2;
+                                        else if (desc.includes('single') || desc.includes('1 week')) injectionsPerPurchase = 1;
+                                        purchaseBoundaries.push({ purchase: p, startIdx: runningTotal, endIdx: runningTotal + injectionsPerPurchase - 1, injectionsPerPurchase });
+                                        runningTotal += injectionsPerPurchase;
                                       }
 
                                       // Helper: find which purchase group injection #N belongs to (0-indexed)
@@ -6050,7 +6057,7 @@ export default function PatientProfile() {
                                         const pDate = new Date(purchase.purchase_date + 'T12:00:00');
                                         const dateLabel = pDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                                         const amount = purchase.amount_paid != null ? `$${parseFloat(purchase.amount_paid).toFixed(0)}` : '';
-                                        const qty = purchase.quantity || 4;
+                                        const qty = boundary.injectionsPerPurchase;
                                         return (
                                           <tr key={'group-' + purchase.id} style={{ background: '#f1f5f9', borderTop: purchaseIdx > 0 ? '2px solid #cbd5e1' : 'none' }}>
                                             <td colSpan={7} style={{ padding: '8px 10px', fontSize: 12, fontWeight: 700, color: '#334155' }}>

@@ -14,7 +14,7 @@ import {
   formatPrice,
   calculatePricing,
 } from '../../lib/protocol-builder-config';
-import { Check, Plus, X, GripVertical, ChevronDown, ChevronUp, User, Search, FileText, Trash2, Sparkles, ArrowUpRight, Activity, Brain, FlaskConical, Share2, Heart, Printer } from 'lucide-react';
+import { Check, Plus, X, GripVertical, ChevronDown, ChevronUp, User, Search, FileText, Trash2, Sparkles, ArrowUpRight, Activity, Brain, FlaskConical, Share2, Heart, Printer, Scale, Target } from 'lucide-react';
 
 // ── Styles ──────────────────────────────────────────────────────────────────
 
@@ -484,6 +484,7 @@ export default function ProtocolBuilder() {
   const [assessmentSynopsis, setAssessmentSynopsis] = useState(null);
   const [aiExpanded, setAiExpanded] = useState({ labs: true, assessment: true });
   const [loadingContext, setLoadingContext] = useState(false);
+  const [patientWeight, setPatientWeight] = useState(null); // latest weight from vitals/service logs
 
   // Patient search
   useEffect(() => {
@@ -529,6 +530,28 @@ export default function ProtocolBuilder() {
         .order('created_at', { ascending: false });
       setCurrentProtocols(protocols || []);
 
+      // Fetch latest weight from service logs or vitals
+      const { data: weightLogs } = await supabase
+        .from('service_logs')
+        .select('weight')
+        .eq('patient_id', patientId)
+        .not('weight', 'is', null)
+        .order('service_date', { ascending: false })
+        .limit(1);
+      if (weightLogs?.[0]?.weight) {
+        setPatientWeight(parseFloat(weightLogs[0].weight));
+      } else {
+        // Try patient_vitals as fallback
+        const { data: vitals } = await supabase
+          .from('patient_vitals')
+          .select('weight_lbs')
+          .eq('patient_id', patientId)
+          .not('weight_lbs', 'is', null)
+          .order('recorded_at', { ascending: false })
+          .limit(1);
+        setPatientWeight(vitals?.[0]?.weight_lbs ? parseFloat(vitals[0].weight_lbs) : null);
+      }
+
       // Fetch latest lab with AI synopsis
       const { data: labs } = await supabase
         .from('labs')
@@ -567,6 +590,7 @@ export default function ProtocolBuilder() {
     setCurrentProtocols([]);
     setLabSynopsis(null);
     setAssessmentSynopsis(null);
+    setPatientWeight(null);
   };
 
   // Filter catalog
@@ -597,6 +621,21 @@ export default function ProtocolBuilder() {
   const handleDrop = (e) => { e.preventDefault(); setDragOverPlan(false); addToPlan(e.dataTransfer.getData('text/plain')); };
 
   // Plan management
+  // Recommend a duration tier based on lbs to lose
+  const getRecommendedTier = (item, lbsToLose) => {
+    if (!item.durationTiers || !lbsToLose || lbsToLose <= 0) return null;
+    // Find the tier where lbsToLose falls within the range
+    for (const tier of item.durationTiers) {
+      if (lbsToLose >= tier.lbsMin && lbsToLose <= tier.lbsMax) return tier.months;
+    }
+    // If above all tiers, recommend the longest
+    if (lbsToLose > item.durationTiers[item.durationTiers.length - 1].lbsMax) {
+      return item.durationTiers[item.durationTiers.length - 1].months;
+    }
+    // If below all tiers, recommend the shortest
+    return item.durationTiers[0].months;
+  };
+
   const addToPlan = (itemId) => {
     const item = BUILDER_ITEMS.find(i => i.id === itemId);
     if (!item) return;
@@ -606,6 +645,8 @@ export default function ProtocolBuilder() {
       selectedOption: item.paymentOptions.monthly ? 'monthly' : (item.paymentOptions.upfront ? 'upfront' : null),
       selectedDoseIndex: 0,
       customDuration: item.duration,
+      currentWeight: patientWeight || null,
+      goalWeight: null,
       expanded: true,
     }]);
   };
@@ -678,7 +719,11 @@ export default function ProtocolBuilder() {
         <div style={s.planCardHeader(color)}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <span style={{ fontSize: '16px', fontWeight: '800', color: '#1a1a1a', letterSpacing: '-0.01em' }}>{item.name}</span>
-            <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#737373', marginLeft: '12px' }}>{item.durationLabel}</span>
+            <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#737373', marginLeft: '12px' }}>
+              {item.durationTiers
+                ? (item.durationTiers.find(t => t.months === (planItem.customDuration || item.duration))?.label || `${planItem.customDuration || item.duration} months`)
+                : item.durationLabel}
+            </span>
           </div>
           <button
             style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', padding: '4px', display: 'flex', transition: 'color 0.15s' }}
@@ -744,6 +789,167 @@ export default function ProtocolBuilder() {
             </div>
           )}
 
+          {/* ── Weight Loss Goal Calculator ── */}
+          {item.durationTiers && (() => {
+            const cw = planItem.currentWeight;
+            const gw = planItem.goalWeight;
+            const lbsToLose = (cw && gw && cw > gw) ? Math.round(cw - gw) : null;
+            const recommended = lbsToLose ? getRecommendedTier(item, lbsToLose) : null;
+            const currentDuration = planItem.customDuration || item.duration;
+
+            return (
+              <div style={{ borderTop: '1px solid #f0f0f0', padding: '16px 20px 0' }}>
+                {/* Weight inputs */}
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end', marginBottom: '16px' }}>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a0a0a0', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+                      <Scale size={10} /> Current Weight
+                    </span>
+                    <input
+                      type="number" min={80} max={600} placeholder="lbs"
+                      value={planItem.currentWeight || ''}
+                      onChange={(e) => {
+                        const w = parseFloat(e.target.value) || null;
+                        const updates = { currentWeight: w };
+                        // Auto-recommend tier if both weights present
+                        if (w && gw && w > gw) {
+                          const rec = getRecommendedTier(item, Math.round(w - gw));
+                          if (rec) updates.customDuration = rec;
+                        }
+                        updatePlanItem(planItem.uid, updates);
+                      }}
+                      style={{ padding: '8px 12px', border: '1px solid #e0e0e0', fontSize: '14px', fontWeight: '700', width: '100%', boxSizing: 'border-box', textAlign: 'center' }}
+                    />
+                  </div>
+                  <div style={{ fontSize: '20px', color: '#d0d0d0', paddingBottom: '8px' }}>→</div>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a0a0a0', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '6px' }}>
+                      <Target size={10} /> Goal Weight
+                    </span>
+                    <input
+                      type="number" min={80} max={600} placeholder="lbs"
+                      value={planItem.goalWeight || ''}
+                      onChange={(e) => {
+                        const g = parseFloat(e.target.value) || null;
+                        const updates = { goalWeight: g };
+                        if (cw && g && cw > g) {
+                          const rec = getRecommendedTier(item, Math.round(cw - g));
+                          if (rec) updates.customDuration = rec;
+                        }
+                        updatePlanItem(planItem.uid, updates);
+                      }}
+                      style={{ padding: '8px 12px', border: '1px solid #e0e0e0', fontSize: '14px', fontWeight: '700', width: '100%', boxSizing: 'border-box', textAlign: 'center' }}
+                    />
+                  </div>
+                  {lbsToLose && (
+                    <div style={{ flex: 1, textAlign: 'center', paddingBottom: '4px' }}>
+                      <div style={{ fontSize: '24px', fontWeight: '900', color: '#2563eb', letterSpacing: '-0.02em' }}>{lbsToLose}</div>
+                      <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#737373' }}>lbs to lose</div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Duration tier buttons */}
+                <div style={{ marginBottom: '8px' }}>
+                  <span style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a0a0a0', display: 'block', marginBottom: '8px' }}>
+                    Program Duration {recommended ? '· Recommended based on goal' : ''}
+                  </span>
+                  <div style={{ display: 'flex', gap: '0', border: '1px solid #e0e0e0', overflow: 'hidden' }}>
+                    {item.durationTiers.map(tier => {
+                      const active = currentDuration === tier.months;
+                      const isRecommended = recommended === tier.months;
+                      return (
+                        <button key={tier.months} style={{
+                          flex: 1, padding: '10px 8px', fontSize: '11px', fontWeight: '700', border: 'none',
+                          borderRight: '1px solid #e0e0e0', cursor: 'pointer', transition: 'all 0.15s',
+                          background: active ? '#1a1a1a' : (isRecommended ? '#eff6ff' : '#fff'),
+                          color: active ? '#fff' : (isRecommended ? '#2563eb' : '#737373'),
+                          textAlign: 'center', lineHeight: '1.3', position: 'relative',
+                        }} onClick={() => updatePlanItem(planItem.uid, { customDuration: tier.months })}>
+                          {isRecommended && !active && (
+                            <div style={{ position: 'absolute', top: '-1px', left: '50%', transform: 'translateX(-50%)', fontSize: '8px', fontWeight: '800', background: '#2563eb', color: '#fff', padding: '1px 6px', letterSpacing: '0.08em' }}>REC</div>
+                          )}
+                          <div style={{ textTransform: 'uppercase', letterSpacing: '0.06em' }}>{tier.months}mo</div>
+                          <div style={{ fontSize: '10px', fontWeight: '500', opacity: 0.7, marginTop: '2px' }}>{tier.lbsMin}–{tier.lbsMax} lbs</div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {/* Selected tier description */}
+                  {item.durationTiers.map(tier => {
+                    if (currentDuration !== tier.months) return null;
+                    return (
+                      <div key={tier.months} style={{ fontSize: '12px', color: '#404040', padding: '8px 12px', background: '#f8fafc', borderLeft: '3px solid #2563eb', marginTop: '8px', lineHeight: '1.5' }}>
+                        <span style={{ fontWeight: '700' }}>{tier.label}:</span> {tier.description}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Personalized projections when weight goal is set */}
+                {lbsToLose && item.clinicalData && (
+                  <div style={{ margin: '12px 0 0', border: '1px solid #e8e8e8', overflow: 'hidden' }}>
+                    <div style={{ padding: '8px 12px', background: '#f8fafc', borderBottom: '1px solid #e8e8e8', fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#2563eb', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Activity size={12} /> Projected Timeline for {cw} → {gw} lbs
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', background: '#fafafa', borderBottom: '1px solid #f0f0f0' }}>
+                        <div style={{ flex: 1, padding: '6px 10px', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', color: '#a0a0a0' }}>Month</div>
+                        <div style={{ flex: 1, padding: '6px 10px', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', color: '#a0a0a0' }}>Est. Weight</div>
+                        <div style={{ flex: 1, padding: '6px 10px', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', color: '#a0a0a0' }}>Lbs Lost</div>
+                        <div style={{ flex: 2, padding: '6px 10px', fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', color: '#a0a0a0' }}>Note</div>
+                      </div>
+                      {item.clinicalData.weightLossTimeline.map((row, i) => {
+                        const projectedLoss = Math.round(cw * (row.pctLoss / 100));
+                        const projectedWeight = Math.round(cw - projectedLoss);
+                        const isInProgram = row.months <= currentDuration;
+                        const hitGoal = projectedWeight <= gw;
+                        return (
+                          <div key={i} style={{ display: 'flex', borderBottom: '1px solid #f0f0f0', background: hitGoal ? '#f0fdf4' : (isInProgram ? '#fff' : '#fafafa'), opacity: isInProgram ? 1 : 0.5 }}>
+                            <div style={{ flex: 1, padding: '7px 10px', fontSize: '12px', fontWeight: '700', color: '#1a1a1a' }}>{row.months}</div>
+                            <div style={{ flex: 1, padding: '7px 10px', fontSize: '12px', fontWeight: '700', color: hitGoal ? '#059669' : '#1a1a1a' }}>
+                              {projectedWeight} lbs {hitGoal && '✓'}
+                            </div>
+                            <div style={{ flex: 1, padding: '7px 10px', fontSize: '12px', fontWeight: '600', color: '#2563eb' }}>-{projectedLoss}</div>
+                            <div style={{ flex: 2, padding: '7px 10px', fontSize: '11px', color: '#737373' }}>{row.note}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div style={{ padding: '8px 12px', fontSize: '11px', color: '#737373', background: '#fafafa' }}>
+                      {item.clinicalData.source} · Avg: {item.clinicalData.avgMonthlyLoss} · Plateau: {item.clinicalData.plateau}
+                    </div>
+                  </div>
+                )}
+
+                {/* Titration steps (always visible for WL) */}
+                {item.titration && (
+                  <div style={{ margin: '12px 0 4px' }}>
+                    <div style={{ fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#a0a0a0', marginBottom: '6px' }}>
+                      Dose Titration ({item.titration.frequency}) — maintenance at wk {item.titration.weeksToMaintenance}
+                    </div>
+                    <div style={{ display: 'flex', gap: '0', flexWrap: 'wrap' }}>
+                      {item.titration.steps.map((step, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
+                          <div style={{
+                            padding: '4px 8px', fontSize: '10px', fontWeight: '600',
+                            background: i === item.titration.steps.length - 1 ? '#2563eb' : '#f0f0f0',
+                            color: i === item.titration.steps.length - 1 ? '#fff' : '#404040',
+                          }}>
+                            {step}
+                          </div>
+                          {i < item.titration.steps.length - 1 && (
+                            <div style={{ padding: '0 2px', color: '#ccc', fontSize: '9px' }}>→</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           <div style={s.optionRow}>
             {item.options && (
               <div style={s.optionGroup}>
@@ -755,7 +961,7 @@ export default function ProtocolBuilder() {
                 </select>
               </div>
             )}
-            {item.durationEditable && (
+            {item.durationEditable && !item.durationTiers && (
               <div style={s.optionGroup}>
                 <span style={s.optionLabel}>Duration (months)</span>
                 <input type="number" min={1} max={24} value={planItem.customDuration || item.duration || 6}

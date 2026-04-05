@@ -518,7 +518,7 @@ export default function PatientProfile() {
   const [timelineFilter, setTimelineFilter] = useState('all');
 
   // UI state
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('chart');
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [expandedProtocols, setExpandedProtocols] = useState({});
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -1177,10 +1177,10 @@ export default function PatientProfile() {
 
   // Auto-load stripe subscriptions when switching to subscriptions sub-tab
   useEffect(() => {
-    if (activeTab === 'payments' && paymentsSubTab === 'subscriptions' && stripeSubscriptions.length === 0 && !loadingStripeSubs) {
+    if (activeTab === 'billing' && paymentsSubTab === 'subscriptions' && stripeSubscriptions.length === 0 && !loadingStripeSubs) {
       fetchStripeSubscriptions();
     }
-    if (activeTab === 'payments' && paymentsSubTab === 'subscriptions') {
+    if (activeTab === 'billing' && paymentsSubTab === 'subscriptions') {
       fetchSubPlans();
     }
   }, [activeTab, paymentsSubTab]);
@@ -3732,7 +3732,7 @@ export default function PatientProfile() {
                       backgroundColor: '#dbeafe',
                       color: '#1e40af',
                       cursor: 'pointer',
-                    }} onClick={() => { setActiveTab('payments'); setPaymentsSubTab('cards'); }}>
+                    }} onClick={() => { setActiveTab('billing'); setPaymentsSubTab('cards'); }}>
                       💳 {savedCards[0].brand.toUpperCase()} ····{savedCards[0].last4}
                     </span>
                   )}
@@ -3766,7 +3766,7 @@ export default function PatientProfile() {
                           backgroundColor: p.catStyle.bg,
                           color: p.catStyle.text,
                           borderLeft: `3px solid ${p.catStyle.text}`,
-                        }} onClick={() => setActiveTab('protocols')} title={p.lastDate ? `Last: ${p.lastType || 'Activity'} on ${p.lastDate.toLocaleDateString()}` : 'No injections or pickups logged yet'}>
+                        }} onClick={() => setActiveTab('chart')} title={p.lastDate ? `Last: ${p.lastType || 'Activity'} on ${p.lastDate.toLocaleDateString()}` : 'No injections or pickups logged yet'}>
                           <span className="protocol-activity-name">{p.name}</span>
                           <span className="protocol-activity-detail" style={{
                             color: !p.lastDate ? '#9ca3af' : daysSince > 14 ? '#dc2626' : p.catStyle.text,
@@ -4307,7 +4307,7 @@ export default function PatientProfile() {
                         ))}
                         {internalNotes.length > 5 && (
                           <button
-                            onClick={() => { setActiveTab('notes'); setNoteFilter('internal'); }}
+                            onClick={() => { setActiveTab('notes_labs'); setNoteFilter('internal'); }}
                             className="briefing-view-all"
                           >
                             View all {internalNotes.length} staff notes →
@@ -4371,7 +4371,7 @@ export default function PatientProfile() {
                       a.type === 'hrt' ? 'synopsis-alert-hrt' :
                       'synopsis-alert-info'
                     }`}
-                      onClick={() => setActiveTab('labs')}>
+                      onClick={() => setActiveTab('notes_labs')}>
                       <span className="synopsis-alert-icon">{
                         a.type === 'urgent' ? '🩸' :
                         a.type === 'soon' ? '🩸' :
@@ -4385,115 +4385,25 @@ export default function PatientProfile() {
               );
             })()}
 
-            <div className="synopsis-grid">
-              {/* Active Protocols */}
-              <div className="synopsis-section">
-                <div className="synopsis-section-label">ACTIVE PROTOCOLS</div>
-                {activeProtocols.length === 0 ? (
-                  <div className="synopsis-empty">No active protocols</div>
-                ) : (
-                  <div className="synopsis-protocols">
-                    {activeProtocols.map(proto => {
-                      const cat = getCategoryStyle(proto.category);
-                      const name = getProtocolDisplayName(proto);
-                      const dose = proto.selected_dose || proto.current_dose || '';
-                      const statusText = proto.status_text || '';
-                      const daysLeft = proto.days_remaining;
-                      const sessLeft = proto.sessions_remaining;
-                      const totalSess = proto.total_sessions;
-                      let supplyInfo = statusText;
-                      if (!supplyInfo) {
-                        if (daysLeft !== null && daysLeft !== undefined) {
-                          supplyInfo = daysLeft <= 0 ? 'Refill overdue' : `${daysLeft}d until refill`;
-                        } else if (sessLeft !== null && sessLeft !== undefined && totalSess > 0) {
-                          supplyInfo = `${totalSess - sessLeft}/${totalSess} sessions`;
-                        }
-                      }
-                      return (
-                        <div key={proto.id} className="synopsis-protocol-row" onClick={() => setActiveTab('protocols')}>
-                          <span className="synopsis-protocol-dot" style={{ background: cat.text }} />
-                          <span className="synopsis-protocol-name">{name}</span>
-                          {dose && <span className="synopsis-protocol-dose">{dose}</span>}
-                          {supplyInfo && (
-                            <span className="synopsis-protocol-supply" style={{
-                              color: (daysLeft !== null && daysLeft <= 0) || (sessLeft !== null && sessLeft <= 0) ? '#dc2626' : '#6b7280'
-                            }}>{supplyInfo}</span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Recent Payments */}
-              <div className="synopsis-section">
-                <div className="synopsis-section-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>RECENT PAYMENTS</span>
-                  {stats.ltv > 0 && (
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: '#059669', letterSpacing: 'normal', textTransform: 'none' }}>
-                      LTV ${stats.ltv.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-                      {stats.avgPerMonth ? <span style={{ color: '#6b7280', fontWeight: 400, marginLeft: 6 }}>(${stats.avgPerMonth}/mo)</span> : ''}
-                    </span>
-                  )}
-                </div>
-                {allPurchases.length === 0 && subscriptions.length === 0 ? (
-                  <div className="synopsis-empty">No payments on file</div>
-                ) : (
-                  <div className="synopsis-payments">
-                    {/* Active subscriptions first */}
-                    {subscriptions.filter(s => s.status === 'active').map(sub => (
-                      <div key={sub.id} className="synopsis-payment-row" onClick={() => { setActiveTab('payments'); }}>
-                        <span className="synopsis-payment-icon">🔄</span>
-                        <span className="synopsis-payment-desc">{sub.description || 'Subscription'}</span>
-                        <span className="synopsis-payment-amount">${((sub.amount_cents || 0) / 100).toFixed(0)}/{sub.interval || 'mo'}</span>
-                        <span className="synopsis-payment-badge synopsis-payment-active">Active</span>
-                      </div>
-                    ))}
-                    {/* Last 3 purchases */}
-                    {allPurchases.slice(0, 3).map(p => {
-                      const date = p.purchase_date || p.created_at;
-                      const dateStr = date ? new Date(date + (date.includes('T') ? '' : 'T00:00:00')).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
-                      const amount = p.amount_paid ? `$${Number(p.amount_paid).toFixed(0)}` : '';
-                      const itemName = p.service_name || p.description || 'Payment';
-                      return (
-                        <div key={p.id} className="synopsis-payment-row" onClick={() => { setActiveTab('payments'); }}>
-                          <span className="synopsis-payment-icon">💳</span>
-                          <span className="synopsis-payment-desc">{itemName}</span>
-                          {amount && <span className="synopsis-payment-amount">{amount}</span>}
-                          <span className="synopsis-payment-date">{dateStr}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
+            {/* Synopsis grid removed — protocols visible on Chart tab, payments on Billing tab */}
           </section>
         )}
 
         {/* Tab Navigation */}
         <nav className="px-tabs">
           {[
-            { key: 'overview', label: 'Overview', icon: '📋' },
-            { key: 'communications', label: 'Comms', icon: '💬', count: commsLog.filter(c => c.direction === 'inbound' && c.status !== 'read').length || 0 },
-            { key: 'protocols', label: 'Protocols', icon: '💊', count: stats.activeCount || 0 },
-            { key: 'medications', label: 'Medications', icon: '💉', count: (medications.length + prescriptions.length) || 0 },
-            { key: 'labs', label: 'Labs', icon: '🔬' },
-            { key: 'appointments', label: 'Visits', icon: '📅', count: (appointments.length + serviceLogs.length) || 0 },
-            { key: 'timeline', label: 'Timeline', icon: '📊' },
-            { key: 'notes', label: 'Notes', icon: '📝', count: notes.length || 0 },
-            { key: 'intakes', label: 'Docs', icon: '📄', count: (intakes.length + consents.length + medicalDocuments.length + assessments.length) || 0 },
-            { key: 'tasks', label: 'Tasks', icon: '✅', count: patientTasks.filter(t => t.status === 'pending').length || 0 },
-            { key: 'symptoms', label: 'Assessments', icon: '📊', count: baselineQuestionnaires.length || 0 },
-            { key: 'payments', label: 'Payments', icon: '💳' },
+            { key: 'chart', label: 'Chart', icon: '📋', count: stats.activeCount || 0 },
+            { key: 'notes_labs', label: 'Notes & Labs', icon: '🔬', count: notes.length || 0 },
+            { key: 'messages', label: 'Messages', icon: '💬', count: commsLog.filter(c => c.direction === 'inbound' && c.status !== 'read').length || 0 },
+            { key: 'billing', label: 'Billing', icon: '💳' },
+            { key: 'records', label: 'Records', icon: '📄', count: (intakes.length + consents.length + medicalDocuments.length + patientTasks.filter(t => t.status === 'pending').length) || 0 },
           ].map(tab => (
             <button
               key={tab.key}
               className={activeTab === tab.key ? 'active' : ''}
               onClick={() => {
                 setActiveTab(tab.key);
-                if (tab.key === 'timeline' && timeline.length === 0) fetchTimeline();
+                if (tab.key === 'records' && timeline.length === 0) fetchTimeline();
               }}
             >
               <span className="px-tab-icon">{tab.icon}</span>
@@ -4506,7 +4416,7 @@ export default function PatientProfile() {
         {/* Tab Content */}
         <div className="tab-content">
           {/* Overview Tab */}
-          {activeTab === 'overview' && (
+          {activeTab === 'chart' && (
             <>
               {/* Upcoming Appointments */}
               {(() => {
@@ -4520,7 +4430,7 @@ export default function PatientProfile() {
                   <section className="card" style={{ marginBottom: '16px' }}>
                     <div className="card-header">
                       <h3>Upcoming Appointments</h3>
-                      <button onClick={() => setActiveTab('appointments')} className="btn-text">View All →</button>
+                      <button onClick={() => setActiveTab('chart')} className="btn-text">View All →</button>
                     </div>
                     <div style={{ padding: '4px 16px 12px' }}>
                       {upcoming.map(apt => {
@@ -4548,7 +4458,7 @@ export default function PatientProfile() {
                             border: isToday ? '1px solid #93c5fd' : '1px solid #f1f5f9',
                             borderRadius: 0, cursor: 'pointer',
                           }}
-                            onClick={() => setActiveTab('appointments')}
+                            onClick={() => setActiveTab('chart')}
                           >
                             <div style={{ minWidth: '56px', textAlign: 'center', flexShrink: 0 }}>
                               <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: isToday ? '#2563eb' : isTomorrow ? '#d97706' : '#64748b' }}>
@@ -4588,7 +4498,7 @@ export default function PatientProfile() {
                 <section className="card" style={{ marginBottom: '16px' }}>
                   <div className="card-header">
                     <h3>Current Medications</h3>
-                    <button onClick={() => setActiveTab('protocols')} className="btn-text">View Protocols →</button>
+                    <button onClick={() => setActiveTab('chart')} className="btn-text">View Protocols →</button>
                   </div>
                   <div style={{ padding: '4px 16px 12px' }}>
                     {activeProtocols
@@ -4718,7 +4628,7 @@ export default function PatientProfile() {
               <section className="card" style={{ marginBottom: '16px' }}>
                 <div className="card-header">
                   <h3>Recent Messages</h3>
-                  <button onClick={() => setActiveTab('communications')} className="btn-text">View All →</button>
+                  <button onClick={() => setActiveTab('messages')} className="btn-text">View All →</button>
                 </div>
                 {commsLog.length === 0 ? (
                   <div className="empty" style={{ padding: '20px 16px', textAlign: 'center' }}>No messages yet</div>
@@ -4727,7 +4637,7 @@ export default function PatientProfile() {
                     {commsLog.slice(0, 5).map(msg => (
                       <div
                         key={msg.id}
-                        onClick={() => setActiveTab('communications')}
+                        onClick={() => setActiveTab('messages')}
                         style={{
                           display: 'flex', alignItems: 'flex-start', gap: '10px',
                           padding: '10px 12px', marginBottom: '6px',
@@ -5059,7 +4969,7 @@ export default function PatientProfile() {
                       );
                     })}
                     {activeProtocols.length > 5 && (
-                      <button onClick={() => setActiveTab('protocols')} className="view-all">View all {activeProtocols.length} protocols →</button>
+                      <button onClick={() => setActiveTab('chart')} className="view-all">View all {activeProtocols.length} protocols →</button>
                     )}
                   </div>
                 )}
@@ -5074,7 +4984,7 @@ export default function PatientProfile() {
                 const drawDate = drawDateObj ? drawDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(drawDateObj.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) }) : '';
                 return (
                   <div
-                    onClick={() => setActiveTab('labs')}
+                    onClick={() => setActiveTab('notes_labs')}
                     style={{
                       margin: '0 0 12px', padding: '12px 16px', borderRadius: 0, cursor: 'pointer',
                       background: `${stage.color}15`, border: `1px solid ${stage.color}40`,
@@ -5188,7 +5098,7 @@ export default function PatientProfile() {
                 <section className="card">
                   <div className="card-header">
                     <h3>Recent Documents</h3>
-                    <button onClick={() => setActiveTab('intakes')} className="btn-text">View All →</button>
+                    <button onClick={() => setActiveTab('records')} className="btn-text">View All →</button>
                   </div>
                   <div className="intake-list">
                     {consents.slice(0, 2).map(consent => (
@@ -5222,7 +5132,7 @@ export default function PatientProfile() {
           )}
 
           {/* Medications Tab */}
-          {activeTab === 'medications' && (
+          {activeTab === 'records' && (
             <>
               {/* Active Medications */}
               <section className="card">
@@ -5352,7 +5262,7 @@ export default function PatientProfile() {
           )}
 
           {/* Protocols Tab */}
-          {activeTab === 'protocols' && (
+          {activeTab === 'chart' && (
             <>
               <section className="card">
                 <div className="card-header">
@@ -5938,6 +5848,25 @@ export default function PatientProfile() {
                           {/* ===== Weight Loss: Section 3 — Expanded Details ===== */}
                           {isWeightLoss && isExpanded && (wlLogs.length > 0 || (protocol.total_sessions > 0 && protocol.start_date)) && (
                             <div className="wl-progress">
+                              {/* Big Injection Counter */}
+                              <div className="px-stats-row" style={{ marginBottom: 16 }}>
+                                <div className="px-stat px-stat-big">
+                                  <span className="px-stat-label">Injection</span>
+                                  <span className="px-stat-value">{sessionsCompleted} <span style={{ fontSize: '0.4em', color: '#9ca3af', fontWeight: 400 }}>/ {sessionsTotal || '—'}</span></span>
+                                </div>
+                                {startingWeight && currentWeight && (
+                                  <div className="px-stat">
+                                    <span className="px-stat-label">Weight Lost</span>
+                                    <span className="px-stat-value" style={{ color: parseFloat(totalLoss) > 0 ? '#16a34a' : '#dc2626' }}>{totalLoss > 0 ? '-' : ''}{totalLoss} lbs</span>
+                                  </div>
+                                )}
+                                {currentDose && (
+                                  <div className="px-stat">
+                                    <span className="px-stat-label">Current Dose</span>
+                                    <span className="px-stat-value">{currentDose}</span>
+                                  </div>
+                                )}
+                              </div>
                               {/* Weight Chart */}
                               {chartData.length >= 2 && (() => {
                                 let paymentMarkers = wlDeliveryLogs.map(log => ({
@@ -6510,9 +6439,9 @@ export default function PatientProfile() {
                             return (
                               <div className="protocol-expand">
                                 <div className="px-stats-row">
-                                  <div className="px-stat">
-                                    <span className="px-stat-label">Sessions Used</span>
-                                    <span className="px-stat-value">{sessionsUsed} / {totalSessions}</span>
+                                  <div className="px-stat px-stat-big">
+                                    <span className="px-stat-label">Sessions</span>
+                                    <span className="px-stat-value">{sessionsUsed} <span style={{ fontSize: '0.4em', color: '#9ca3af', fontWeight: 400 }}>/ {totalSessions}</span></span>
                                   </div>
                                   <div className="px-stat">
                                     <span className="px-stat-label">Remaining</span>
@@ -6569,9 +6498,9 @@ export default function PatientProfile() {
                             return (
                               <div className="protocol-expand">
                                 <div className="px-stats-row">
-                                  <div className="px-stat">
-                                    <span className="px-stat-label">Injections Used</span>
-                                    <span className="px-stat-value">{sessionsUsed} / {totalSessions}</span>
+                                  <div className="px-stat px-stat-big">
+                                    <span className="px-stat-label">Injections</span>
+                                    <span className="px-stat-value">{sessionsUsed} <span style={{ fontSize: '0.4em', color: '#9ca3af', fontWeight: 400 }}>/ {totalSessions}</span></span>
                                   </div>
                                   <div className="px-stat">
                                     <span className="px-stat-label">Remaining</span>
@@ -6691,9 +6620,9 @@ export default function PatientProfile() {
                             return (
                               <div className="protocol-expand">
                                 <div className="px-stats-row">
-                                  <div className="px-stat">
-                                    <span className="px-stat-label">Current Day</span>
-                                    <span className="px-stat-value">{currentDay && currentDay > 0 ? Math.min(currentDay, totalDays) : '—'} / {totalDays}</span>
+                                  <div className="px-stat px-stat-big">
+                                    <span className="px-stat-label">Day</span>
+                                    <span className="px-stat-value">{currentDay && currentDay > 0 ? Math.min(currentDay, totalDays) : '—'} <span style={{ fontSize: '0.4em', color: '#9ca3af', fontWeight: 400 }}>/ {totalDays}</span></span>
                                   </div>
                                   <div className="px-stat">
                                     <span className="px-stat-label">Remaining</span>
@@ -6807,9 +6736,9 @@ export default function PatientProfile() {
                             return (
                               <div className="protocol-expand">
                                 <div className="px-stats-row">
-                                  <div className="px-stat">
-                                    <span className="px-stat-label">Membership</span>
-                                    <span className="px-stat-value">{monthsOn} month{monthsOn !== 1 ? 's' : ''}</span>
+                                  <div className="px-stat px-stat-big">
+                                    <span className="px-stat-label">Month</span>
+                                    <span className="px-stat-value">{monthsOn}</span>
                                   </div>
                                   <div className="px-stat">
                                     <span className="px-stat-label">Supply</span>
@@ -7018,7 +6947,7 @@ export default function PatientProfile() {
           )}
 
           {/* Labs Tab — Redesigned */}
-          {activeTab === 'labs' && (
+          {activeTab === 'notes_labs' && (
             <>
               {/* Lab Pipeline — Progress Tracker */}
               {labProtocols.filter(lp => lp.status !== 'consult_complete').map(lp => {
@@ -7304,7 +7233,7 @@ export default function PatientProfile() {
           )}
 
           {/* Documents Tab (Intakes + Consents + Assessments) */}
-          {activeTab === 'intakes' && (
+          {activeTab === 'records' && (
             <>
               {/* Assessments Section */}
               {assessments.length > 0 && (
@@ -7494,7 +7423,7 @@ export default function PatientProfile() {
           )}
 
           {/* Timeline Tab */}
-          {activeTab === 'timeline' && (
+          {activeTab === 'records' && (
             <>
               <div className="timeline-filters">
                 {['all', 'services', 'protocols', 'documents', 'appointments', 'communications'].map(f => (
@@ -7546,7 +7475,7 @@ export default function PatientProfile() {
           )}
 
           {/* Visits Tab (Appointments + Sessions) */}
-          {activeTab === 'appointments' && (
+          {activeTab === 'chart' && (
             <>
               {/* Vitals Flowsheet (PF-style: dates as columns) */}
               {vitalsHistory.length > 0 && (() => {
@@ -7815,7 +7744,7 @@ export default function PatientProfile() {
           )}
 
           {/* Notes Tab */}
-          {activeTab === 'notes' && (() => {
+          {activeTab === 'notes_labs' && (() => {
             // Categorize notes — use note_category if available, fall back to source-based logic
             const getCat = (n) => n.note_category || (
               ['encounter', 'addendum', 'protocol'].includes(n.source) ? 'clinical' : 'internal'
@@ -8012,7 +7941,7 @@ export default function PatientProfile() {
           })()}
 
           {/* Tasks Tab */}
-          {activeTab === 'tasks' && (
+          {activeTab === 'records' && (
             <>
               <section className="card">
                 <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -8375,7 +8304,7 @@ export default function PatientProfile() {
           )}
 
           {/* Symptoms Tab */}
-          {activeTab === 'symptoms' && (() => {
+          {activeTab === 'notes_labs' && (() => {
             // Instrument definitions for display
             const INSTRUMENTS = {
               phq9: { label: 'PHQ-9', subtitle: 'Depression', maxScore: 27, levels: [
@@ -8678,7 +8607,7 @@ export default function PatientProfile() {
           })()}
 
           {/* Payments Tab */}
-          {activeTab === 'payments' && (
+          {activeTab === 'billing' && (
             <>
               {/* LTV Summary */}
               {stats.ltv > 0 && (
@@ -9103,7 +9032,7 @@ export default function PatientProfile() {
           )}
 
           {/* Communications Tab */}
-          {activeTab === 'communications' && (
+          {activeTab === 'messages' && (
             <div style={{ height: 'calc(100vh - 220px)', minHeight: '400px', maxHeight: '800px' }}>
               <ConversationView
                 patientId={id}
@@ -11804,7 +11733,7 @@ export default function PatientProfile() {
         .back-btn:hover { color: #000; }
         .header-identity { min-width: 0; }
         .header-identity h1 {
-          font-size: 24px;
+          font-size: 28px;
           font-weight: 700;
           margin: 0 0 4px;
           line-height: 1.2;
@@ -11813,14 +11742,14 @@ export default function PatientProfile() {
           display: flex;
           gap: 12px;
           color: #6b7280;
-          font-size: 13px;
+          font-size: 14px;
           flex-wrap: wrap;
           align-items: center;
         }
         .blooio-badge {
           font-size: 11px;
           padding: 2px 8px;
-          border-radius: 10px;
+          border-radius: 0;
           font-weight: 600;
         }
         /* Protocol Activity Row */
@@ -11835,7 +11764,7 @@ export default function PatientProfile() {
           align-items: center;
           gap: 6px;
           padding: 3px 10px;
-          border-radius: 6px;
+          border-radius: 0;
           font-size: 12px;
           font-weight: 500;
           cursor: pointer;
@@ -11856,7 +11785,7 @@ export default function PatientProfile() {
           font-size: 10px;
           font-weight: 600;
           padding: 1px 6px;
-          border-radius: 4px;
+          border-radius: 0;
           white-space: nowrap;
           margin-left: 2px;
         }
@@ -11868,7 +11797,7 @@ export default function PatientProfile() {
           margin-top: 12px;
           padding: 4px;
           background: #f8fafc;
-          border-radius: 10px;
+          border-radius: 0;
           border: 1px solid #f1f5f9;
           flex-wrap: wrap;
         }
@@ -11890,7 +11819,7 @@ export default function PatientProfile() {
           gap: 4px;
           padding: 6px 10px;
           border: none;
-          border-radius: 7px;
+          border-radius: 0;
           background: transparent;
           color: #475569;
           font-size: 12px;
@@ -11922,7 +11851,7 @@ export default function PatientProfile() {
         .toolbar-count {
           font-size: 10px;
           padding: 1px 6px;
-          border-radius: 10px;
+          border-radius: 0;
           background: #ede9fe;
           color: #6d28d9;
           font-weight: 700;
@@ -11941,7 +11870,7 @@ export default function PatientProfile() {
           margin-top: 6px;
           background: #fff;
           border: 1px solid #e2e8f0;
-          border-radius: 10px;
+          border-radius: 0;
           box-shadow: 0 8px 24px rgba(0,0,0,0.12);
           min-width: 200px;
           z-index: 100;
@@ -11960,7 +11889,7 @@ export default function PatientProfile() {
           font-size: 13px;
           font-family: inherit;
           cursor: pointer;
-          border-radius: 7px;
+          border-radius: 0;
           text-decoration: none;
           transition: background 0.1s;
         }
@@ -11974,7 +11903,7 @@ export default function PatientProfile() {
           transform: translate(-50%, -50%);
           background: #fff;
           padding: 24px;
-          border-radius: 12px;
+          border-radius: 0;
           box-shadow: 0 20px 60px rgba(0,0,0,0.3);
           z-index: 10001;
           max-width: 480px;
@@ -11985,7 +11914,7 @@ export default function PatientProfile() {
         .staff-briefing-bar {
           margin: 0 0 16px;
           border: 1px solid #e5e7eb;
-          border-radius: 10px;
+          border-radius: 0;
           background: #fff;
           overflow: hidden;
         }
@@ -12033,7 +11962,7 @@ export default function PatientProfile() {
           color: #6b7280;
           background: #f3f4f6;
           padding: 1px 7px;
-          border-radius: 10px;
+          border-radius: 0;
         }
         .briefing-chevron {
           font-size: 10px;
@@ -12046,7 +11975,7 @@ export default function PatientProfile() {
           font-size: 11px;
           font-weight: 600;
           padding: 4px 10px;
-          border-radius: 4px;
+          border-radius: 0;
           cursor: pointer;
           transition: opacity 0.15s;
         }
@@ -12068,8 +11997,8 @@ export default function PatientProfile() {
           flex: 1;
           padding: 7px 10px;
           border: 1px solid #e5e7eb;
-          border-radius: 6px;
-          font-size: 13px;
+          border-radius: 0;
+          font-size: 14px;
           font-family: inherit;
           outline: none;
           transition: border-color 0.15s;
@@ -12082,7 +12011,7 @@ export default function PatientProfile() {
           font-size: 12px;
           font-weight: 600;
           padding: 7px 14px;
-          border-radius: 6px;
+          border-radius: 0;
           cursor: pointer;
           transition: opacity 0.15s;
           white-space: nowrap;
@@ -12097,7 +12026,7 @@ export default function PatientProfile() {
         .briefing-note-item {
           padding: 8px 10px;
           background: #f9fafb;
-          border-radius: 6px;
+          border-radius: 0;
           border: 1px solid #f3f4f6;
         }
         .briefing-note-meta {
@@ -12110,7 +12039,7 @@ export default function PatientProfile() {
           font-size: 11px;
         }
         .briefing-note-body {
-          font-size: 13px;
+          font-size: 14px;
           color: #374151;
           line-height: 1.5;
           white-space: pre-wrap;
@@ -12140,7 +12069,7 @@ export default function PatientProfile() {
         .synopsis-card {
           margin: 0 0 16px;
           border: 1px solid #e5e7eb;
-          border-radius: 10px;
+          border-radius: 0;
           background: #fff;
           overflow: hidden;
         }
@@ -12209,7 +12138,7 @@ export default function PatientProfile() {
           margin-bottom: 8px;
         }
         .synopsis-empty {
-          font-size: 13px;
+          font-size: 14px;
           color: #9ca3af;
         }
         .synopsis-protocols {
@@ -12221,7 +12150,7 @@ export default function PatientProfile() {
           display: flex;
           align-items: center;
           gap: 8px;
-          font-size: 13px;
+          font-size: 14px;
           cursor: pointer;
           padding: 2px 0;
         }
@@ -12257,7 +12186,7 @@ export default function PatientProfile() {
           display: flex;
           align-items: center;
           gap: 8px;
-          font-size: 13px;
+          font-size: 14px;
           cursor: pointer;
           padding: 2px 0;
         }
@@ -12289,7 +12218,7 @@ export default function PatientProfile() {
           font-size: 10px;
           font-weight: 600;
           padding: 1px 6px;
-          border-radius: 4px;
+          border-radius: 0;
           white-space: nowrap;
         }
         .synopsis-payment-active {
@@ -12312,14 +12241,14 @@ export default function PatientProfile() {
           cursor: pointer;
           padding: 10px 16px;
           color: #374151;
-          font-size: 13px;
+          font-size: 14px;
           transition: background 0.15s;
         }
         .demographics-toggle:hover { background: #f1f5f9; }
         .demographics-preview {
           display: flex;
           gap: 16px;
-          font-size: 13px;
+          font-size: 14px;
           color: #475569;
           flex-wrap: wrap;
         }
@@ -12340,7 +12269,7 @@ export default function PatientProfile() {
           margin-top: 8px;
           padding: 14px 16px;
           background: #f9fafb;
-          border-radius: 8px;
+          border-radius: 0;
           animation: slideDown 0.15s ease-out;
         }
         @keyframes slideDown {
@@ -12359,7 +12288,7 @@ export default function PatientProfile() {
           color: #6b7280;
           cursor: pointer;
           padding: 2px 8px;
-          border-radius: 4px;
+          border-radius: 0;
         }
         .edit-demographics-btn:hover { background: #e5e7eb; color: #111; }
         .save-demographics-btn {
@@ -12368,7 +12297,7 @@ export default function PatientProfile() {
           border: none;
           font-size: 12px;
           padding: 4px 14px;
-          border-radius: 4px;
+          border-radius: 0;
           cursor: pointer;
           font-weight: 600;
         }
@@ -12379,7 +12308,7 @@ export default function PatientProfile() {
           border: 1px solid #d1d5db;
           font-size: 12px;
           padding: 4px 14px;
-          border-radius: 4px;
+          border-radius: 0;
           cursor: pointer;
           color: #374151;
         }
@@ -12423,8 +12352,8 @@ export default function PatientProfile() {
           width: 100%;
           padding: 6px 10px;
           border: 1px solid #d1d5db;
-          border-radius: 6px;
-          font-size: 13px;
+          border-radius: 0;
+          font-size: 14px;
           background: #fff;
           box-sizing: border-box;
         }
@@ -12441,7 +12370,7 @@ export default function PatientProfile() {
         .pending-section {
           background: #fef3c7;
           border: 1px solid #f59e0b;
-          border-radius: 8px;
+          border-radius: 0;
           padding: 16px;
           margin-bottom: 24px;
         }
@@ -12457,47 +12386,51 @@ export default function PatientProfile() {
           align-items: center;
           background: #fff;
           padding: 12px 16px;
-          border-radius: 6px;
+          border-radius: 0;
         }
         .pending-info strong { display: block; margin-bottom: 2px; }
-        .pending-info span { font-size: 13px; color: #666; }
+        .pending-info span { font-size: 14px; color: #666; }
         .pending-actions { display: flex; gap: 8px; }
 
-        /* Tabs — Epic-style */
+        /* Tabs — Flat style */
         .px-tabs {
           display: flex;
-          gap: 2px;
+          gap: 0;
           margin-bottom: 20px;
-          background: #f1f5f9;
-          border-radius: 10px;
-          padding: 3px;
+          background: none;
+          border-radius: 0;
+          padding: 0;
           overflow-x: auto;
           -webkit-overflow-scrolling: touch;
           scrollbar-width: none;
+          border-bottom: 2px solid #e5e7eb;
         }
         .px-tabs::-webkit-scrollbar { display: none; }
         .px-tabs button {
-          padding: 10px 16px;
+          padding: 12px 20px;
           border: none;
           background: none;
-          font-size: 13px;
+          font-size: 14px;
           font-weight: 500;
           color: #64748b;
           cursor: pointer;
-          border-radius: 7px;
+          border-radius: 0;
           white-space: nowrap;
           transition: all 0.15s;
           display: flex;
           align-items: center;
           gap: 6px;
           flex-shrink: 0;
+          border-bottom: 2px solid transparent;
+          margin-bottom: -2px;
         }
-        .px-tabs button:hover { background: rgba(255,255,255,0.6); color: #334155; }
+        .px-tabs button:hover { color: #334155; }
         .px-tabs button.active {
-          background: #fff;
+          background: none;
           color: #0f172a;
           font-weight: 600;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+          box-shadow: none;
+          border-bottom: 2px solid #0f172a;
         }
         .px-tab-icon {
           font-size: 15px;
@@ -12512,33 +12445,34 @@ export default function PatientProfile() {
           background: #e2e8f0;
           color: #475569;
           padding: 1px 6px;
-          border-radius: 10px;
+          border-radius: 0;
           min-width: 18px;
           text-align: center;
           line-height: 1.5;
         }
         .px-tabs button.active .px-tab-count {
-          background: #dbeafe;
-          color: #2563eb;
+          background: #0f172a;
+          color: #fff;
         }
 
         /* Cards */
         .card {
           background: #fff;
           border: 1px solid #e5e7eb;
-          border-radius: 8px;
+          border-radius: 0;
           margin-bottom: 16px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         .card-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 16px;
+          padding: 20px;
           border-bottom: 1px solid #e5e7eb;
         }
         .card-header h3 {
           font-size: 16px;
-          font-weight: 600;
+          font-weight: 700;
           margin: 0;
         }
         .empty {
@@ -12583,7 +12517,7 @@ export default function PatientProfile() {
           font-size: 11px;
           font-weight: 600;
           padding: 4px 8px;
-          border-radius: 4px;
+          border-radius: 0;
         }
         .protocol-name { font-weight: 500; }
         .protocol-dose { color: #666; font-size: 14px; }
@@ -12592,13 +12526,13 @@ export default function PatientProfile() {
           align-items: center;
           gap: 12px;
         }
-        .status-text { font-size: 13px; color: #666; }
+        .status-text { font-size: 14px; color: #666; }
         .status-badge {
           font-size: 12px;
           padding: 4px 10px;
           background: #dbeafe;
           color: #1e40af;
-          border-radius: 4px;
+          border-radius: 0;
         }
         .protocol-card {
           padding: 16px;
@@ -12617,9 +12551,9 @@ export default function PatientProfile() {
           margin-bottom: 4px;
         }
         .protocol-details span { margin-right: 12px; }
-        .protocol-dates { font-size: 13px; color: #9ca3af; }
+        .protocol-dates { font-size: 14px; color: #9ca3af; }
         .protocol-schedule {
-          font-size: 13px;
+          font-size: 14px;
           color: #2563eb;
           margin-bottom: 4px;
         }
@@ -12629,7 +12563,7 @@ export default function PatientProfile() {
           padding: 2px 6px;
           background: #fef3c7;
           color: #92400e;
-          border-radius: 4px;
+          border-radius: 0;
           text-transform: uppercase;
         }
         .protocol-footer {
@@ -12688,7 +12622,7 @@ export default function PatientProfile() {
         .wl-chart {
           margin-bottom: 16px;
           background: #fafafa;
-          border-radius: 8px;
+          border-radius: 0;
           padding: 12px 4px;
         }
         .wl-history {
@@ -12697,7 +12631,7 @@ export default function PatientProfile() {
         .wl-table {
           width: 100%;
           border-collapse: collapse;
-          font-size: 13px;
+          font-size: 14px;
         }
         .wl-table th {
           text-align: left;
@@ -12742,7 +12676,7 @@ export default function PatientProfile() {
           flex: 1;
           min-width: 100px;
           background: #f9fafb;
-          border-radius: 8px;
+          border-radius: 0;
           padding: 10px 14px;
           text-align: center;
         }
@@ -12754,9 +12688,18 @@ export default function PatientProfile() {
           margin-bottom: 2px;
         }
         .px-stat-value {
-          font-size: 18px;
+          font-size: 24px;
           font-weight: 700;
           color: #111827;
+        }
+        .px-stat-big .px-stat-value {
+          font-size: 48px;
+          line-height: 1;
+        }
+        @media (min-width: 768px) {
+          .px-stat-big .px-stat-value {
+            font-size: 72px;
+          }
         }
         .px-session-grid {
           display: grid;
@@ -12773,7 +12716,7 @@ export default function PatientProfile() {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          border-radius: 6px;
+          border-radius: 0;
           font-size: 11px;
           font-weight: 600;
           position: relative;
@@ -12836,7 +12779,7 @@ export default function PatientProfile() {
           display: inline-block;
           width: 10px;
           height: 10px;
-          border-radius: 3px;
+          border-radius: 0;
           margin-right: 4px;
           vertical-align: middle;
         }
@@ -12847,13 +12790,13 @@ export default function PatientProfile() {
           width: 100%;
           height: 10px;
           background: #e5e7eb;
-          border-radius: 5px;
+          border-radius: 0;
           overflow: hidden;
         }
         .px-bar-fill {
           height: 100%;
           background: #22c55e;
-          border-radius: 5px;
+          border-radius: 0;
           transition: width 0.3s;
         }
         .px-actions {
@@ -12863,9 +12806,9 @@ export default function PatientProfile() {
         }
         .px-actions button {
           padding: 6px 14px;
-          font-size: 13px;
+          font-size: 14px;
           font-weight: 600;
-          border-radius: 6px;
+          border-radius: 0;
           border: 1px solid #d1d5db;
           background: #fff;
           cursor: pointer;
@@ -12916,12 +12859,12 @@ export default function PatientProfile() {
           flex-direction: column;
         }
         .intake-info strong { font-size: 14px; }
-        .intake-info span { font-size: 13px; color: #666; }
+        .intake-info span { font-size: 14px; color: #666; }
         .intake-arrow { color: #9ca3af; }
         .intake-card {
           padding: 16px;
           border: 1px solid #e5e7eb;
-          border-radius: 8px;
+          border-radius: 0;
           margin-bottom: 12px;
           cursor: pointer;
         }
@@ -12936,9 +12879,9 @@ export default function PatientProfile() {
           flex-direction: column;
         }
         .intake-header strong { font-size: 15px; }
-        .intake-header span { font-size: 13px; color: #666; }
+        .intake-header span { font-size: 14px; color: #666; }
         .intake-details {
-          font-size: 13px;
+          font-size: 14px;
           color: #666;
           margin-bottom: 12px;
         }
@@ -12950,7 +12893,7 @@ export default function PatientProfile() {
         .consent-card {
           padding: 14px 16px;
           border: 1px solid #e5e7eb;
-          border-radius: 10px;
+          border-radius: 0;
           background: #fff;
           transition: border-color 0.15s;
           cursor: pointer;
@@ -12974,7 +12917,7 @@ export default function PatientProfile() {
           font-size: 11px;
           font-weight: 500;
           padding: 2px 8px;
-          border-radius: 10px;
+          border-radius: 0;
           white-space: nowrap;
         }
         .consent-status.signed {
@@ -12988,7 +12931,7 @@ export default function PatientProfile() {
         .consent-meta {
           display: flex;
           gap: 12px;
-          font-size: 13px;
+          font-size: 14px;
           color: #6b7280;
           margin-bottom: 10px;
           padding-left: 28px;
@@ -13001,7 +12944,7 @@ export default function PatientProfile() {
         .document-card {
           padding: 16px;
           border: 1px solid #e5e7eb;
-          border-radius: 8px;
+          border-radius: 0;
           margin-bottom: 12px;
         }
         .document-header {
@@ -13020,11 +12963,11 @@ export default function PatientProfile() {
           color: #666;
           background: #f3f4f6;
           padding: 2px 8px;
-          border-radius: 4px;
+          border-radius: 0;
           width: fit-content;
         }
         .document-details {
-          font-size: 13px;
+          font-size: 14px;
           color: #666;
           margin-bottom: 12px;
         }
@@ -13043,7 +12986,7 @@ export default function PatientProfile() {
         .doc-icon { font-size: 24px; }
         .doc-info { flex: 1; }
         .doc-info strong { display: block; margin-bottom: 2px; }
-        .doc-info span { font-size: 13px; color: #666; }
+        .doc-info span { font-size: 14px; color: #666; }
         .doc-actions { display: flex; gap: 8px; align-items: center; }
         .lab-list { padding: 16px; }
         .lab-row {
@@ -13051,7 +12994,7 @@ export default function PatientProfile() {
           border-bottom: 1px solid #f3f4f6;
         }
         .lab-info strong { display: block; margin-bottom: 2px; }
-        .lab-info span { font-size: 13px; color: #666; }
+        .lab-info span { font-size: 14px; color: #666; }
 
         /* Sessions */
         .session-list { padding: 16px; }
@@ -13062,15 +13005,15 @@ export default function PatientProfile() {
           border-bottom: 1px solid #f3f4f6;
         }
         .session-date {
-          font-size: 13px;
+          font-size: 14px;
           font-weight: 600;
           color: #666;
           min-width: 80px;
         }
         .session-info strong { display: block; }
-        .session-info span { font-size: 13px; color: #666; }
+        .session-info span { font-size: 14px; color: #666; }
         .session-notes {
-          font-size: 13px;
+          font-size: 14px;
           color: #666;
           font-style: italic;
         }
@@ -13083,7 +13026,7 @@ export default function PatientProfile() {
           gap: 16px;
           padding: 12px;
           border-bottom: 1px solid #f3f4f6;
-          border-radius: 6px;
+          border-radius: 0;
           margin-bottom: 8px;
         }
         .appointment-row.upcoming {
@@ -13102,7 +13045,7 @@ export default function PatientProfile() {
           text-align: center;
         }
         .apt-day {
-          font-size: 13px;
+          font-size: 14px;
           font-weight: 600;
           color: #374151;
         }
@@ -13119,14 +13062,14 @@ export default function PatientProfile() {
           margin-bottom: 2px;
         }
         .apt-title {
-          font-size: 13px;
+          font-size: 14px;
           color: #666;
         }
         .apt-status {
           font-size: 12px;
           font-weight: 500;
           padding: 4px 10px;
-          border-radius: 4px;
+          border-radius: 0;
           text-transform: capitalize;
         }
 
@@ -13137,7 +13080,7 @@ export default function PatientProfile() {
           border-bottom: 1px solid #f3f4f6;
         }
         .note-date {
-          font-size: 13px;
+          font-size: 14px;
           font-weight: 600;
           color: #666;
           margin-bottom: 4px;
@@ -13159,7 +13102,7 @@ export default function PatientProfile() {
           color: #fff;
           border: none;
           padding: 10px 20px;
-          border-radius: 6px;
+          border-radius: 0;
           font-size: 14px;
           font-weight: 500;
           cursor: pointer;
@@ -13170,8 +13113,8 @@ export default function PatientProfile() {
           color: #fff;
           border: none;
           padding: 6px 14px;
-          border-radius: 6px;
-          font-size: 13px;
+          border-radius: 0;
+          font-size: 14px;
           font-weight: 500;
           cursor: pointer;
         }
@@ -13180,7 +13123,7 @@ export default function PatientProfile() {
           color: #000;
           border: 1px solid #d1d5db;
           padding: 10px 20px;
-          border-radius: 6px;
+          border-radius: 0;
           font-size: 14px;
           cursor: pointer;
           text-decoration: none;
@@ -13190,8 +13133,8 @@ export default function PatientProfile() {
           color: #000;
           border: 1px solid #d1d5db;
           padding: 6px 14px;
-          border-radius: 6px;
-          font-size: 13px;
+          border-radius: 0;
+          font-size: 14px;
           cursor: pointer;
           text-decoration: none;
         }
@@ -13199,7 +13142,7 @@ export default function PatientProfile() {
           background: none;
           border: none;
           color: #2563eb;
-          font-size: 13px;
+          font-size: 14px;
           cursor: pointer;
           padding: 4px 8px;
         }
@@ -13221,7 +13164,7 @@ export default function PatientProfile() {
         }
         .modal {
           background: #fff;
-          border-radius: 12px;
+          border-radius: 0;
           width: 100%;
           max-width: 500px;
           max-height: 90vh;
@@ -13261,7 +13204,7 @@ export default function PatientProfile() {
         .modal-preview {
           background: #f3f4f6;
           padding: 12px;
-          border-radius: 6px;
+          border-radius: 0;
           margin-bottom: 16px;
           font-weight: 500;
         }
@@ -13280,7 +13223,7 @@ export default function PatientProfile() {
           width: 100%;
           padding: 10px 12px;
           border: 1px solid #d1d5db;
-          border-radius: 6px;
+          border-radius: 0;
           font-size: 14px;
           box-sizing: border-box;
         }
@@ -13306,7 +13249,7 @@ export default function PatientProfile() {
           margin-top: 6px;
           padding: 8px 10px;
           background: #f9fafb;
-          border-radius: 4px;
+          border-radius: 0;
         }
         .checkbox-group {
           display: flex;
@@ -13317,7 +13260,7 @@ export default function PatientProfile() {
           display: flex;
           align-items: center;
           gap: 4px;
-          font-size: 13px;
+          font-size: 14px;
           cursor: pointer;
         }
         .checkbox-label input[type="checkbox"] {
@@ -13329,7 +13272,7 @@ export default function PatientProfile() {
           background: #fef2f2;
           color: #dc2626;
           padding: 12px;
-          border-radius: 6px;
+          border-radius: 0;
           margin-bottom: 16px;
           font-size: 14px;
         }
@@ -13342,7 +13285,7 @@ export default function PatientProfile() {
         }
         .file-selected {
           margin-top: 8px;
-          font-size: 13px;
+          font-size: 14px;
           color: #059669;
         }
         .pack-toggle {
@@ -13355,8 +13298,8 @@ export default function PatientProfile() {
           padding: 10px;
           border: 2px solid #d1d5db;
           background: #fff;
-          border-radius: 6px;
-          font-size: 13px;
+          border-radius: 0;
+          font-size: 14px;
           cursor: pointer;
         }
         .pack-toggle button.active {
@@ -13398,7 +13341,7 @@ export default function PatientProfile() {
         .intake-symptoms pre {
           background: #f9fafb;
           padding: 12px;
-          border-radius: 6px;
+          border-radius: 0;
           font-size: 12px;
           overflow: auto;
           max-height: 200px;
@@ -13420,8 +13363,8 @@ export default function PatientProfile() {
           padding: 6px 14px;
           border: 1px solid #d1d5db;
           background: #fff;
-          border-radius: 20px;
-          font-size: 13px;
+          border-radius: 0;
+          font-size: 14px;
           cursor: pointer;
           color: #6b7280;
         }
@@ -13458,7 +13401,7 @@ export default function PatientProfile() {
         }
         .timeline-title { font-weight: 500; font-size: 14px; }
         .timeline-date { font-size: 12px; color: #9ca3af; white-space: nowrap; }
-        .timeline-detail { font-size: 13px; color: #6b7280; margin-top: 2px; }
+        .timeline-detail { font-size: 14px; color: #6b7280; margin-top: 2px; }
 
         /* Payments */
         .payments-list { padding: 0; }
@@ -13476,7 +13419,7 @@ export default function PatientProfile() {
         .payment-amount { font-weight: 600; font-size: 15px; white-space: nowrap; }
         .payment-status {
           padding: 4px 10px;
-          border-radius: 12px;
+          border-radius: 0;
           font-size: 12px;
           font-weight: 500;
           text-transform: capitalize;
@@ -13501,7 +13444,7 @@ export default function PatientProfile() {
           align-items: center;
           margin-bottom: 2px;
         }
-        .comms-type { font-weight: 500; font-size: 13px; }
+        .comms-type { font-weight: 500; font-size: 14px; }
         .comms-date { font-size: 12px; color: #9ca3af; }
         .comms-message-type {
           font-size: 12px;
@@ -13510,7 +13453,7 @@ export default function PatientProfile() {
           margin-bottom: 4px;
         }
         .comms-body {
-          font-size: 13px;
+          font-size: 14px;
           color: #374151;
           line-height: 1.4;
         }
@@ -13584,18 +13527,18 @@ export default function PatientProfile() {
           padding: 20px;
         }
         .sf-modal {
-          background: #fff; border-radius: 16px; width: 100%; max-width: 540px;
+          background: #fff; border-radius: 0; width: 100%; max-width: 540px;
           max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
         }
         .sf-header {
           display: flex; justify-content: space-between; align-items: center;
           padding: 20px 24px 12px; position: sticky; top: 0; background: #fff;
-          border-bottom: 1px solid #f1f5f9; border-radius: 16px 16px 0 0; z-index: 1;
+          border-bottom: 1px solid #f1f5f9; border-radius: 0; z-index: 1;
         }
         .sf-header h3 { margin: 0; font-size: 16px; font-weight: 700; color: #0f172a; }
         .sf-close {
           background: none; border: none; font-size: 18px; color: #94a3b8;
-          cursor: pointer; padding: 4px 8px; border-radius: 6px;
+          cursor: pointer; padding: 4px 8px; border-radius: 0;
         }
         .sf-close:hover { background: #f1f5f9; color: #475569; }
         .sf-tab-row {
@@ -13613,7 +13556,7 @@ export default function PatientProfile() {
           display: flex; flex-wrap: wrap; gap: 6px; padding: 16px 24px 8px;
         }
         .sf-quick-btn {
-          padding: 5px 12px; border-radius: 20px; border: 1px solid #e2e8f0;
+          padding: 5px 12px; border-radius: 0; border: 1px solid #e2e8f0;
           background: #fff; color: #475569; font-size: 11px; font-weight: 600;
           cursor: pointer; transition: all 0.15s; font-family: inherit;
         }
@@ -13625,14 +13568,14 @@ export default function PatientProfile() {
         }
         .sf-form-card {
           display: flex; align-items: center; gap: 8px;
-          padding: 10px 12px; border-radius: 8px; border: 1px solid #e2e8f0;
+          padding: 10px 12px; border-radius: 0; border: 1px solid #e2e8f0;
           background: #fff; cursor: pointer; transition: all 0.15s;
           font-family: inherit; text-align: left;
         }
         .sf-form-card:hover { border-color: #94a3b8; background: #f8fafc; }
         .sf-form-card.active { border-color: #2563eb; background: #eff6ff; }
         .sf-form-check {
-          width: 18px; height: 18px; border-radius: 4px; border: 2px solid #d1d5db;
+          width: 18px; height: 18px; border-radius: 0; border: 2px solid #d1d5db;
           display: flex; align-items: center; justify-content: center;
           font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
           transition: all 0.15s;
@@ -13648,10 +13591,10 @@ export default function PatientProfile() {
           padding: 12px 24px;
         }
         .sf-toggle {
-          display: flex; background: #f1f5f9; border-radius: 8px; padding: 2px;
+          display: flex; background: #f1f5f9; border-radius: 0; padding: 2px;
         }
         .sf-toggle-btn {
-          padding: 6px 14px; border: none; border-radius: 6px;
+          padding: 6px 14px; border: none; border-radius: 0;
           background: transparent; color: #64748b; font-size: 12px;
           font-weight: 600; cursor: pointer; font-family: inherit;
           transition: all 0.15s;
@@ -13661,14 +13604,14 @@ export default function PatientProfile() {
         .sf-delivery-to { font-size: 12px; color: #64748b; }
         .sf-actions { padding: 12px 24px 20px; display: flex; flex-direction: column; gap: 8px; }
         .sf-send-btn {
-          width: 100%; padding: 12px; border: none; border-radius: 10px;
+          width: 100%; padding: 12px; border: none; border-radius: 0;
           background: #2563eb; color: #fff; font-size: 14px; font-weight: 600;
           cursor: pointer; font-family: inherit; transition: all 0.15s;
         }
         .sf-send-btn:hover:not(:disabled) { background: #1d4ed8; }
         .sf-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .sf-result {
-          padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;
+          padding: 10px 14px; border-radius: 0; font-size: 14px; font-weight: 500;
           text-align: center;
         }
         .sf-result-ok { background: #f0fdf4; color: #166534; }
@@ -13679,14 +13622,14 @@ export default function PatientProfile() {
           display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap;
         }
         .pay-tab {
-          padding: 6px 14px; border-radius: 20px; border: 1px solid #e2e8f0;
+          padding: 6px 14px; border-radius: 0; border: 1px solid #e2e8f0;
           background: #fff; color: #475569; font-size: 12px; font-weight: 600;
           cursor: pointer; transition: all 0.15s; font-family: inherit;
         }
         .pay-tab:hover { border-color: #94a3b8; background: #f8fafc; }
         .pay-tab.active { background: #1e40af; color: #fff; border-color: #1e40af; }
         .pay-section {
-          background: #fff; border-radius: 12px; border: 1px solid #e2e8f0;
+          background: #fff; border-radius: 0; border: 1px solid #e2e8f0;
           overflow: hidden;
         }
         .pay-section-header {
@@ -13697,13 +13640,13 @@ export default function PatientProfile() {
           margin: 0; font-size: 15px; font-weight: 700; color: #0f172a;
         }
         .pay-btn-primary {
-          padding: 6px 14px; border-radius: 8px; border: none;
+          padding: 6px 14px; border-radius: 0; border: none;
           background: #16a34a; color: #fff; font-size: 12px; font-weight: 600;
           cursor: pointer; font-family: inherit; transition: all 0.15s;
         }
         .pay-btn-primary:hover { background: #15803d; }
         .pay-btn-secondary {
-          padding: 6px 14px; border-radius: 8px; border: 1px solid #e2e8f0;
+          padding: 6px 14px; border-radius: 0; border: 1px solid #e2e8f0;
           background: #fff; color: #475569; font-size: 12px; font-weight: 500;
           cursor: pointer; font-family: inherit; transition: all 0.15s;
         }
@@ -13714,7 +13657,7 @@ export default function PatientProfile() {
         .pay-list { padding: 8px 12px; }
         .pay-item {
           display: flex; align-items: center; gap: 12px;
-          padding: 12px 14px; border-radius: 10px; border: 1px solid #f1f5f9;
+          padding: 12px 14px; border-radius: 0; border: 1px solid #f1f5f9;
           background: #fafbfc; margin-bottom: 6px; transition: all 0.15s;
         }
         .pay-item:hover { border-color: #e2e8f0; background: #f8fafc; }
@@ -13726,7 +13669,7 @@ export default function PatientProfile() {
         .pay-item-sub { font-size: 11px; color: #94a3b8; margin-top: 2px; }
         .pay-item-amount { font-size: 15px; font-weight: 700; color: #0f172a; flex-shrink: 0; }
         .pay-badge {
-          display: inline-block; padding: 3px 10px; border-radius: 12px;
+          display: inline-block; padding: 3px 10px; border-radius: 0;
           font-size: 10px; font-weight: 700; text-transform: uppercase; flex-shrink: 0;
         }
         .pay-badge-green { background: #dcfce7; color: #166534; }
@@ -13735,7 +13678,7 @@ export default function PatientProfile() {
         .pay-badge-gray { background: #f3f4f6; color: #6b7280; }
         .pay-badge-blue { background: #dbeafe; color: #1e40af; }
         .pay-sub-card {
-          background: #fafbfc; border-radius: 12px; border: 1px solid #e2e8f0;
+          background: #fafbfc; border-radius: 0; border: 1px solid #e2e8f0;
           padding: 16px 18px; margin: 6px 0;
         }
         .pay-sub-card.past-due { border: 2px solid #fca5a5; }
@@ -13751,17 +13694,17 @@ export default function PatientProfile() {
         }
         .pay-sub-details strong { color: #475569; font-weight: 600; }
         .pay-sub-alert {
-          background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px;
+          background: #fef2f2; border: 1px solid #fecaca; border-radius: 0;
           padding: 10px 14px; margin-bottom: 10px; font-size: 12px; color: #991b1b;
         }
         .pay-sub-actions { display: flex; gap: 6px; flex-wrap: wrap; }
         .pay-sub-actions button, .pay-sub-actions select, .pay-sub-actions a {
-          padding: 5px 12px; font-size: 11px; border-radius: 6px;
+          padding: 5px 12px; font-size: 11px; border-radius: 0;
           cursor: pointer; font-family: inherit; transition: all 0.15s;
         }
         .pay-card-row {
           display: flex; align-items: center; gap: 12px;
-          padding: 12px 14px; background: #fafbfc; border-radius: 10px;
+          padding: 12px 14px; background: #fafbfc; border-radius: 0;
           margin-bottom: 6px; border: 1px solid #f1f5f9;
         }
         .pay-card-icon { font-size: 20px; flex-shrink: 0; }
@@ -13770,7 +13713,7 @@ export default function PatientProfile() {
         .pay-card-exp { font-size: 11px; color: #94a3b8; }
         .pay-new-sub-form {
           margin: 0 12px 12px; padding: 16px; background: #f0fdf4;
-          border-radius: 10px; border: 1px solid #bbf7d0;
+          border-radius: 0; border: 1px solid #bbf7d0;
         }
 
         /* Responsive: Tablet */
@@ -13778,15 +13721,15 @@ export default function PatientProfile() {
           .patient-profile { padding: 16px; }
           .header-top { flex-direction: column; gap: 12px; }
           .header-left { width: 100%; }
-          .header-identity h1 { font-size: 22px; }
+          .header-identity h1 { font-size: 24px; }
           .header-toolbar { gap: 3px; }
-          .toolbar-btn { padding: 5px 8px; font-size: 11px; }
+          .toolbar-btn { padding: 5px 8px; font-size: 12px; }
           .toolbar-divider { height: 18px; }
           .sf-form-grid { grid-template-columns: 1fr; }
           .demographics-grid { grid-template-columns: repeat(2, 1fr); }
           .demographics-edit-grid { grid-template-columns: repeat(2, 1fr); }
-          .demographics-preview { gap: 8px; font-size: 11px; }
-          .px-tabs button { padding: 7px 10px; font-size: 11px; }
+          .demographics-preview { gap: 8px; font-size: 13px; }
+          .px-tabs button { padding: 10px 14px; font-size: 13px; }
           .pending-card { flex-direction: column; gap: 12px; align-items: flex-start; }
           .protocol-row { flex-direction: column; align-items: flex-start; gap: 8px; }
           .intake-detail-grid { grid-template-columns: 1fr; }
@@ -13797,9 +13740,9 @@ export default function PatientProfile() {
         /* Responsive: Phone */
         @media (max-width: 480px) {
           .patient-profile { padding: 12px; }
-          .header-identity h1 { font-size: 20px; }
+          .header-identity h1 { font-size: 22px; }
           .back-text { display: none; }
-          .contact-row { font-size: 12px; gap: 8px; }
+          .contact-row { font-size: 13px; gap: 8px; }
           .header-toolbar { gap: 2px; padding: 3px; }
           .toolbar-label { display: none; }
           .toolbar-btn { padding: 6px 8px; }
@@ -13808,13 +13751,13 @@ export default function PatientProfile() {
           .demographics-edit-grid { grid-template-columns: 1fr; }
           .demographics-preview { flex-direction: column; gap: 2px; }
           .demographics-preview span + span::before { display: none; }
-          .px-tabs button { padding: 6px 8px; font-size: 10px; gap: 3px; }
-          .px-tab-icon { font-size: 12px; }
+          .px-tabs button { padding: 8px 12px; font-size: 12px; gap: 3px; }
+          .px-tab-icon { font-size: 13px; }
           .px-tab-count { font-size: 9px; padding: 1px 4px; }
           .card-header { padding: 12px 14px; }
           .pending-actions { width: 100%; }
           .pending-actions button { flex: 1; }
-          .modal { max-width: 100% !important; border-radius: 16px 16px 0 0; width: 100%; }
+          .modal { max-width: 100% !important; border-radius: 0; width: 100%; }
           .wl-table { font-size: 12px; }
           .wl-table th, .wl-table td { padding: 6px 8px; }
         }

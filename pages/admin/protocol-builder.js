@@ -1075,6 +1075,12 @@ export default function ProtocolBuilder() {
             {pricing.savings > 0 && (
               <div style={{ fontSize: '12px', fontWeight: '700', color: '#2E6B35' }}>Save {formatPrice(pricing.savings)}</div>
             )}
+            {/* Show avg monthly when paying upfront */}
+            {!pricing.monthly && planItem.selectedOption === 'upfront' && (planItem.customDuration || item.duration) > 1 && (
+              <div style={{ fontSize: '13px', fontWeight: '600', color: '#737373', marginTop: '4px' }}>
+                {formatPrice(Math.round(pricing.total / (planItem.customDuration || item.duration)))}/mo avg
+              </div>
+            )}
           </div>
           <div style={{ fontSize: '13px', fontWeight: '600', color: '#737373', textAlign: 'right' }}>
             {pricing.monthly && <>Total: {formatPrice(pricing.total)}<br />{pricing.label}</>}

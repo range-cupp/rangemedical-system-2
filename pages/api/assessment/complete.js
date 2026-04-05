@@ -416,6 +416,18 @@ export default async function handler(req, res) {
       console.error('Consolidated email error:', emailError);
     }
 
+    // Send patient-facing assessment results email (energy path only)
+    if (assessmentPath === 'energy' && email && recommendation) {
+      try {
+        await sendPatientAssessmentEmail({
+          firstName, email, recommendation, formData
+        });
+        console.log(`Patient assessment email sent to ${email}`);
+      } catch (patientEmailError) {
+        console.error('Patient assessment email error:', patientEmailError);
+      }
+    }
+
     return;
 
   } catch (error) {
@@ -1115,6 +1127,173 @@ async function sendConsolidatedEmail({ firstName, lastName, email, phone, assess
 
   if (error) {
     console.error('Consolidated email error:', error);
+    throw error;
+  }
+}
+
+// Send patient-facing assessment results email
+async function sendPatientAssessmentEmail({ firstName, email, recommendation, formData }) {
+  const symptomLabels = {
+    'fatigue': 'Fatigue', 'brain_fog': 'Brain fog', 'weight_gain': 'Weight gain',
+    'poor_sleep': 'Poor sleep', 'low_libido': 'Low libido', 'muscle_loss': 'Muscle loss',
+    'mood_changes': 'Mood changes', 'recovery': 'Slow recovery'
+  };
+  const goalLabels = {
+    'more_energy': 'More energy', 'better_sleep': 'Better sleep', 'lose_weight': 'Lose weight',
+    'build_muscle': 'Build muscle', 'mental_clarity': 'Mental clarity',
+    'feel_myself': 'Feel like myself again', 'longevity': 'Longevity', 'performance': 'Performance'
+  };
+
+  const symptoms = (formData.symptoms || recommendation.symptoms || []).map(s => symptomLabels[s] || s);
+  const goals = (formData.goals || recommendation.goals || []).map(g => goalLabels[g] || g);
+  const panelName = recommendation.panel === 'elite' ? 'Elite Panel' : 'Essential Panel';
+  const allMarkers = [
+    ...(recommendation.essentialMarkers || []),
+    ...(recommendation.panel === 'elite' ? (recommendation.eliteMarkers || []) : [])
+  ];
+
+  // Build reasons HTML
+  const reasons = (recommendation.reasons || []).map(r => r.reason).filter(Boolean);
+
+  const markersHtml = allMarkers.map(m =>
+    `<tr><td style="padding: 6px 12px; font-size: 14px; color: #171717; border-bottom: 1px solid #f0f0f0;">
+      <span style="color: #16a34a; font-weight: 600; margin-right: 6px;">&#10003;</span> ${m}
+    </td></tr>`
+  ).join('');
+
+  const symptomsHtml = symptoms.map(s =>
+    `<span style="display: inline-block; background: #fef2f2; color: #dc2626; font-size: 13px; font-weight: 500; padding: 4px 10px; border-radius: 20px; margin: 3px 4px 3px 0;">${s}</span>`
+  ).join('');
+
+  const goalsHtml = goals.map(g =>
+    `<span style="display: inline-block; background: #f0fdf4; color: #16a34a; font-size: 13px; font-weight: 500; padding: 4px 10px; border-radius: 20px; margin: 3px 4px 3px 0;">${g}</span>`
+  ).join('');
+
+  const reasonsHtml = reasons.map(r =>
+    `<tr><td style="padding: 8px 0; font-size: 14px; color: #525252; line-height: 1.5; border-bottom: 1px solid #f5f5f5;">
+      <span style="color: #171717; font-weight: 500;">&#8226;</span>&nbsp; ${r}
+    </td></tr>`
+  ).join('');
+
+  const emailHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f5;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background-color: #000000; padding: 24px 32px;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 20px; font-weight: 600;">Your Assessment Results</h1>
+              <p style="margin: 6px 0 0; color: #a3a3a3; font-size: 13px;">Range Medical — Energy & Optimization</p>
+            </td>
+          </tr>
+
+          <!-- Greeting -->
+          <tr>
+            <td style="padding: 28px 32px 16px;">
+              <p style="margin: 0; font-size: 16px; color: #171717; line-height: 1.6;">
+                Hi ${firstName},
+              </p>
+              <p style="margin: 12px 0 0; font-size: 14px; color: #525252; line-height: 1.6;">
+                Thank you for completing your assessment. Based on your answers, here's a summary of what we found and what we recommend.
+              </p>
+            </td>
+          </tr>
+
+          <tr><td style="padding: 0 32px;"><hr style="border: none; border-top: 1px solid #e5e5e5; margin: 0;"></td></tr>
+
+          <!-- What You Told Us -->
+          <tr>
+            <td style="padding: 24px 32px;">
+              <h2 style="margin: 0 0 12px; font-size: 13px; font-weight: 600; color: #737373; text-transform: uppercase; letter-spacing: 0.05em;">What You Told Us</h2>
+              ${symptoms.length > 0 ? `
+              <p style="margin: 0 0 6px; font-size: 12px; font-weight: 600; color: #a3a3a3; text-transform: uppercase; letter-spacing: 0.03em;">Symptoms</p>
+              <div style="margin-bottom: 14px;">${symptomsHtml}</div>
+              ` : ''}
+              ${goals.length > 0 ? `
+              <p style="margin: 0 0 6px; font-size: 12px; font-weight: 600; color: #a3a3a3; text-transform: uppercase; letter-spacing: 0.03em;">Goals</p>
+              <div>${goalsHtml}</div>
+              ` : ''}
+            </td>
+          </tr>
+
+          <tr><td style="padding: 0 32px;"><hr style="border: none; border-top: 1px solid #e5e5e5; margin: 0;"></td></tr>
+
+          <!-- Why These Markers -->
+          ${reasons.length > 0 ? `
+          <tr>
+            <td style="padding: 24px 32px;">
+              <h2 style="margin: 0 0 12px; font-size: 13px; font-weight: 600; color: #737373; text-transform: uppercase; letter-spacing: 0.05em;">Why We're Checking These</h2>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                ${reasonsHtml}
+              </table>
+            </td>
+          </tr>
+
+          <tr><td style="padding: 0 32px;"><hr style="border: none; border-top: 1px solid #e5e5e5; margin: 0;"></td></tr>
+          ` : ''}
+
+          <!-- Recommended Panel -->
+          <tr>
+            <td style="padding: 24px 32px;">
+              <h2 style="margin: 0 0 4px; font-size: 13px; font-weight: 600; color: #737373; text-transform: uppercase; letter-spacing: 0.05em;">Your Recommended Panel</h2>
+              <p style="margin: 0 0 16px; font-size: 18px; font-weight: 700; color: #171717;">${panelName}</p>
+              <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #e5e5e5; border-radius: 8px; overflow: hidden;">
+                <tr><td style="padding: 8px 12px; font-size: 12px; font-weight: 600; color: #737373; text-transform: uppercase; letter-spacing: 0.03em; background: #fafafa; border-bottom: 1px solid #e5e5e5;">Biomarkers We'll Test</td></tr>
+                ${markersHtml}
+              </table>
+            </td>
+          </tr>
+
+          <tr><td style="padding: 0 32px;"><hr style="border: none; border-top: 1px solid #e5e5e5; margin: 0;"></td></tr>
+
+          <!-- What's Next -->
+          <tr>
+            <td style="padding: 24px 32px;">
+              <h2 style="margin: 0 0 12px; font-size: 13px; font-weight: 600; color: #737373; text-transform: uppercase; letter-spacing: 0.05em;">What's Next</h2>
+              <table width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px; color: #525252; line-height: 1.6;">
+                <tr><td style="padding: 6px 0;"><strong style="color: #171717;">1.</strong>&nbsp; Come in for your blood draw at your scheduled appointment</td></tr>
+                <tr><td style="padding: 6px 0;"><strong style="color: #171717;">2.</strong>&nbsp; Results typically take 3\u20135 business days</td></tr>
+                <tr><td style="padding: 6px 0;"><strong style="color: #171717;">3.</strong>&nbsp; Our team will review your results and build your personalized plan</td></tr>
+                <tr><td style="padding: 6px 0;"><strong style="color: #171717;">4.</strong>&nbsp; We'll reach out to walk you through everything</td></tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #fafafa; padding: 24px 32px; text-align: center; border-top: 1px solid #e5e5e5;">
+              <p style="margin: 0 0 4px; font-size: 14px; font-weight: 600; color: #171717;">Range Medical</p>
+              <p style="margin: 0 0 2px; font-size: 13px; color: #737373;">1901 Westcliff Drive, Suite 10, Newport Beach, CA 92660</p>
+              <p style="margin: 0; font-size: 13px; color: #737373;">(949) 997-3988 &bull; range-medical.com</p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+
+  const { error } = await resend.emails.send({
+    from: 'Range Medical <notifications@range-medical.com>',
+    to: email,
+    subject: `${firstName}, here are your assessment results — Range Medical`,
+    html: emailHtml
+  });
+
+  if (error) {
+    console.error('Patient assessment email error:', error);
     throw error;
   }
 }

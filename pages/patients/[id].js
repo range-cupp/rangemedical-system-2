@@ -211,7 +211,7 @@ const SEND_FORMS_LIST = [
   { id: 'red-light', name: 'Red Light Therapy', icon: '🔴', time: '5 min' },
   { id: 'prp', name: 'PRP Consent', icon: '🩸', time: '5 min' },
   { id: 'exosome-iv', name: 'Exosome IV Consent', icon: '🧬', time: '5 min' },
-  { id: 'questionnaire', name: 'Baseline Questionnaire', icon: '📊', time: '10 min', gender: true },
+  { id: 'questionnaire', name: 'Baseline Assessment', icon: '📊', time: '10 min', auto: true },
 ];
 const FORM_QUICK_SELECTS = [
   { label: 'New Patient', forms: ['intake', 'hipaa'] },
@@ -1636,7 +1636,10 @@ export default function PatientProfile() {
     setSendFormsLoading(true);
     setSendFormsResult(null);
     try {
-      const sortedForms = [...sendFormsSelected].sort((a, b) => {
+      const hasQuestionnaire = sendFormsSelected.has('questionnaire');
+      const formForms = [...sendFormsSelected].filter(f => f !== 'questionnaire');
+
+      const sortedForms = formForms.sort((a, b) => {
         const order = ['intake', 'hipaa'];
         const ai = order.indexOf(a), bi = order.indexOf(b);
         if (ai !== -1 && bi !== -1) return ai - bi;
@@ -1647,48 +1650,62 @@ export default function PatientProfile() {
       const firstName = patient?.first_name || patient?.name?.split(' ')[0] || '';
       const patientName = (patient?.first_name && patient?.last_name) ? `${patient.first_name} ${patient.last_name}` : patient?.name || '';
 
-      // Include gender metadata if questionnaire is selected
-      const metadata = sortedForms.includes('questionnaire') ? { gender: patient?.gender || null } : undefined;
+      const results = [];
 
-      if (sendFormsMethod === 'email') {
-        const res = await fetch('/api/admin/send-forms-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: patient.email,
-            firstName,
-            formIds: sortedForms,
-            patientId: id,
-            patientName,
-            ghlContactId: patient.ghl_contact_id || null,
-            patientPhone: patient.phone || null,
-            metadata,
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to send email');
-        setSendFormsResult({ success: true, message: `${sortedForms.length} form${sortedForms.length > 1 ? 's' : ''} sent via email` });
-      } else {
-        const phone = (patient.phone || '').replace(/\D/g, '');
-        const cleanPhone = phone.length === 11 && phone.startsWith('1') ? phone.slice(1) : phone;
-        const res = await fetch('/api/send-forms-sms', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            phone: cleanPhone,
-            firstName,
-            formIds: sortedForms,
-            patientId: id,
-            patientName,
-            ghlContactId: patient.ghl_contact_id || null,
-            patientEmail: patient.email || null,
-            metadata,
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to send SMS');
-        setSendFormsResult({ success: true, message: data.twoStep ? 'Opt-in request sent — forms will deliver after patient replies' : `${sortedForms.length} form${sortedForms.length > 1 ? 's' : ''} sent via SMS` });
+      // Send regular forms (if any selected besides questionnaire)
+      if (sortedForms.length > 0) {
+        if (sendFormsMethod === 'email') {
+          const res = await fetch('/api/admin/send-forms-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: patient.email,
+              firstName,
+              formIds: sortedForms,
+              patientId: id,
+              patientName,
+              ghlContactId: patient.ghl_contact_id || null,
+              patientPhone: patient.phone || null,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Failed to send email');
+          results.push(`${sortedForms.length} form${sortedForms.length > 1 ? 's' : ''} sent via email`);
+        } else {
+          const phone = (patient.phone || '').replace(/\D/g, '');
+          const cleanPhone = phone.length === 11 && phone.startsWith('1') ? phone.slice(1) : phone;
+          const res = await fetch('/api/send-forms-sms', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              phone: cleanPhone,
+              firstName,
+              formIds: sortedForms,
+              patientId: id,
+              patientName,
+              ghlContactId: patient.ghl_contact_id || null,
+              patientEmail: patient.email || null,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Failed to send SMS');
+          results.push(data.twoStep ? 'Opt-in request sent — forms will deliver after patient replies' : `${sortedForms.length} form${sortedForms.length > 1 ? 's' : ''} sent via SMS`);
+        }
       }
+
+      // Send baseline assessment via auto mode (reads intake to determine instruments)
+      if (hasQuestionnaire) {
+        const res = await fetch('/api/questionnaire/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ patient_id: id, auto: true }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to send assessment');
+        results.push(`${data.door_label} assessment sent${data.intake_linked ? ' (based on intake answers)' : ''}`);
+      }
+
+      setSendFormsResult({ success: true, message: results.join(' · ') });
     } catch (err) {
       setSendFormsResult({ success: false, message: err.message });
     } finally {
@@ -1752,10 +1769,11 @@ export default function PatientProfile() {
   const handleSendAssessment = async () => {
     setSendingAssessment(true);
     try {
+      // Auto mode: reads patient's intake to determine door + instruments
       const res = await fetch('/api/questionnaire/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ patient_id: id, door: sendAssessmentDoor, forced_modalities: sendAssessmentModalities }),
+        body: JSON.stringify({ patient_id: id, auto: true }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to send assessment');
@@ -8344,54 +8362,19 @@ export default function PatientProfile() {
               {showSendAssessment && (
                 <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   onClick={() => setShowSendAssessment(false)}>
-                  <div style={{ background: '#fff', borderRadius: 0, padding: '28px', width: '440px', maxWidth: '90vw', maxHeight: '90vh', overflowY: 'auto' }}
+                  <div style={{ background: '#fff', borderRadius: 0, padding: '28px', width: '440px', maxWidth: '90vw' }}
                     onClick={e => e.stopPropagation()}>
-                    <h3 style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: '700' }}>Send Assessment</h3>
-                    <p style={{ fontSize: '14px', color: '#666', margin: '0 0 16px' }}>
-                      Send a baseline questionnaire to <strong>{patient?.first_name || 'this patient'}</strong> via SMS.
+                    <h3 style={{ margin: '0 0 12px', fontSize: '16px', fontWeight: '700' }}>Send Assessment</h3>
+                    <p style={{ fontSize: '14px', color: '#666', margin: '0 0 8px' }}>
+                      Send a baseline assessment to <strong>{patient?.first_name || 'this patient'}</strong> via SMS.
                     </p>
-                    <div style={{ marginBottom: '16px' }}>
-                      <label style={{ fontSize: '13px', fontWeight: '600', display: 'block', marginBottom: '8px' }}>Assessment Type</label>
-                      {[
-                        { value: 3, label: 'Combined', desc: 'Injury + Optimization (full assessment)' },
-                        { value: 2, label: 'Optimization', desc: 'Mood, sleep, energy, hormones' },
-                        { value: 1, label: 'Injury', desc: 'Pain, function, trajectory' },
-                      ].map(opt => (
-                        <label key={opt.value} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '8px 10px', cursor: 'pointer', background: sendAssessmentDoor === opt.value ? '#f5f5f5' : 'transparent', border: `1px solid ${sendAssessmentDoor === opt.value ? '#000' : '#eee'}`, marginBottom: '4px' }}>
-                          <input type="radio" name="assessmentDoor" checked={sendAssessmentDoor === opt.value} onChange={() => setSendAssessmentDoor(opt.value)} style={{ marginTop: '2px' }} />
-                          <div>
-                            <div style={{ fontSize: '14px', fontWeight: '600' }}>{opt.label}</div>
-                            <div style={{ fontSize: '12px', color: '#888' }}>{opt.desc}</div>
-                          </div>
-                        </label>
-                      ))}
-                    </div>
-                    {(sendAssessmentDoor === 2 || sendAssessmentDoor === 3) && (
-                      <div style={{ marginBottom: '16px' }}>
-                        <label style={{ fontSize: '13px', fontWeight: '600', display: 'block', marginBottom: '4px' }}>Include Specific Instruments</label>
-                        <p style={{ fontSize: '12px', color: '#888', margin: '0 0 8px' }}>Core instruments (PHQ-9, GAD-7, Sleep, Energy) are always included. Check any additional instruments to force-include even if the intake didn&apos;t trigger them.</p>
-                        {[
-                          { id: 'ams', label: 'AMS', desc: 'Male hormone symptoms' },
-                          { id: 'menqol', label: 'MENQOL', desc: 'Menopause quality of life' },
-                          { id: 'iief5', label: 'IIEF-5', desc: 'Male sexual function' },
-                          { id: 'fsfi6', label: 'FSFI-6', desc: 'Female sexual function' },
-                          { id: 'tfeq_r18', label: 'TFEQ-R18', desc: 'Eating behavior' },
-                        ].map(inst => (
-                          <label key={inst.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', cursor: 'pointer', border: '1px solid #eee', marginBottom: '4px', background: sendAssessmentModalities.includes(inst.id) ? '#f0f0ff' : 'transparent' }}>
-                            <input type="checkbox" checked={sendAssessmentModalities.includes(inst.id)} onChange={() => setSendAssessmentModalities(prev => prev.includes(inst.id) ? prev.filter(m => m !== inst.id) : [...prev, inst.id])} />
-                            <div>
-                              <span style={{ fontSize: '13px', fontWeight: '600' }}>{inst.label}</span>
-                              <span style={{ fontSize: '12px', color: '#888', marginLeft: '6px' }}>{inst.desc}</span>
-                            </div>
-                          </label>
-                        ))}
-                        <button onClick={() => setSendAssessmentModalities(['ams', 'menqol', 'iief5', 'fsfi6', 'tfeq_r18'])} style={{ marginTop: '4px', padding: '4px 10px', border: '1px solid #ddd', background: '#f9f9f9', fontSize: '11px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit', color: '#666' }}>Select All</button>
-                      </div>
-                    )}
+                    <p style={{ fontSize: '13px', color: '#888', margin: '0 0 20px' }}>
+                      The assessment type and scored instruments are automatically determined from the patient&apos;s completed medical intake form.
+                    </p>
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                      <button onClick={() => { setShowSendAssessment(false); setSendAssessmentModalities([]); }} style={{ padding: '8px 16px', border: '1px solid #ddd', background: '#fff', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                      <button onClick={() => setShowSendAssessment(false)} style={{ padding: '8px 16px', border: '1px solid #ddd', background: '#fff', fontSize: '13px', fontWeight: '500', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
                       <button onClick={handleSendAssessment} disabled={sendingAssessment} style={{ padding: '8px 16px', border: 'none', background: '#000', color: '#fff', fontSize: '13px', fontWeight: '500', cursor: sendingAssessment ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: sendingAssessment ? 0.6 : 1 }}>
-                        {sendingAssessment ? 'Sending...' : 'Send via SMS'}
+                        {sendingAssessment ? 'Sending...' : 'Send Assessment via SMS'}
                       </button>
                     </div>
                   </div>
@@ -13959,9 +13942,9 @@ export default function PatientProfile() {
                         <span className="sf-form-icon">{form.icon}</span>
                         <span className="sf-form-name">{form.name}</span>
                         <span className="sf-form-time">{form.time}</span>
-                        {form.gender && patient?.gender && (
-                          <span style={{fontSize: '0.6875rem', color: patient.gender === 'Female' ? '#ec4899' : '#3b82f6', fontWeight: 600, marginTop: '2px'}}>
-                            {patient.gender === 'Female' ? '♀ Female' : '♂ Male'}
+                        {form.auto && (
+                          <span style={{fontSize: '0.625rem', color: '#16a34a', fontWeight: 600, marginTop: '2px'}}>
+                            Auto from intake
                           </span>
                         )}
                       </button>

@@ -1,8 +1,9 @@
 import Layout from '../components/Layout';
 import Link from 'next/link';
 import Head from 'next/head';
+import { createClient } from '@supabase/supabase-js';
 
-const reviews = [
+const FALLBACK_REVIEWS = [
   {
     name: "Mark T.",
     date: "January 2026",
@@ -70,10 +71,97 @@ const reviews = [
   }
 ];
 
-export default function ReviewsPage() {
-  const averageRating = 5.0;
-  const totalReviews = reviews.length;
+function formatReviewDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
 
+function extractHighlight(text) {
+  if (!text || text.length < 40) return null;
+  // Find the most impactful sentence (longest sentence with positive words)
+  const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+  const positive = ['amazing', 'great', 'best', 'love', 'excellent', 'recommend',
+    'professional', 'knowledgeable', 'trust', 'personalized', 'incredible',
+    'beautiful', 'friendly', 'care', 'helpful', 'wonderful', 'fantastic',
+    'quality', 'results', 'improvement', 'seamless', 'thorough'];
+
+  let bestSentence = sentences[0];
+  let bestScore = 0;
+
+  for (const sentence of sentences) {
+    const lower = sentence.toLowerCase();
+    let score = positive.filter(w => lower.includes(w)).length;
+    if (sentence.length > 30 && sentence.length < 120) score += 1;
+    if (score > bestScore) {
+      bestScore = score;
+      bestSentence = sentence;
+    }
+  }
+
+  return bestSentence.trim();
+}
+
+export async function getServerSideProps() {
+  try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
+
+    // Fetch cached Google reviews
+    const { data: googleReviews } = await supabase
+      .from('google_reviews')
+      .select('*')
+      .order('review_time', { ascending: false });
+
+    // Fetch aggregate metadata
+    const { data: metaRows } = await supabase
+      .from('google_reviews_meta')
+      .select('key, value')
+      .in('key', ['aggregate_rating', 'total_review_count', 'last_sync']);
+
+    const meta = {};
+    (metaRows || []).forEach(r => { meta[r.key] = r.value; });
+
+    if (googleReviews && googleReviews.length > 0) {
+      // Format Google reviews for display
+      const reviews = googleReviews.map(r => ({
+        name: r.author_name,
+        date: formatReviewDate(r.review_time),
+        rating: r.rating,
+        text: r.text,
+        highlight: extractHighlight(r.text),
+        photoUrl: r.profile_photo_url
+      }));
+
+      return {
+        props: {
+          reviews,
+          aggregateRating: parseFloat(meta.aggregate_rating || '5.0'),
+          totalReviewCount: parseInt(meta.total_review_count || reviews.length, 10),
+          lastSync: meta.last_sync || null,
+          source: 'google'
+        }
+      };
+    }
+  } catch (err) {
+    console.error('Failed to fetch Google reviews:', err);
+  }
+
+  // Fallback to hardcoded reviews
+  return {
+    props: {
+      reviews: FALLBACK_REVIEWS,
+      aggregateRating: 5.0,
+      totalReviewCount: FALLBACK_REVIEWS.length,
+      lastSync: null,
+      source: 'fallback'
+    }
+  };
+}
+
+export default function ReviewsPage({ reviews, aggregateRating, totalReviewCount, source }) {
   return (
     <Layout
       title="Patient Reviews | Range Medical | Newport Beach"
@@ -94,8 +182,8 @@ export default function ReviewsPage() {
               "name": "Range Medical",
               "aggregateRating": {
                 "@type": "AggregateRating",
-                "ratingValue": averageRating,
-                "reviewCount": totalReviews,
+                "ratingValue": aggregateRating,
+                "reviewCount": totalReviewCount,
                 "bestRating": 5
               }
             })
@@ -115,10 +203,10 @@ export default function ReviewsPage() {
           </p>
 
           <div className="rv-rating-box">
-            <div className="rv-rating-score">{averageRating}</div>
+            <div className="rv-rating-score">{aggregateRating.toFixed(1)}</div>
             <div className="rv-rating-info">
-              <div className="rv-stars">{'\u2605\u2605\u2605\u2605\u2605'}</div>
-              <p>Based on {totalReviews} Google Reviews</p>
+              <div className="rv-stars">{renderStars(aggregateRating)}</div>
+              <p>Based on {totalReviewCount} Google Review{totalReviewCount !== 1 ? 's' : ''}</p>
             </div>
           </div>
 
@@ -141,7 +229,15 @@ export default function ReviewsPage() {
               <div key={index} className="review-card">
                 <div className="review-header">
                   <div className="review-avatar">
-                    {review.name.charAt(0)}
+                    {review.photoUrl ? (
+                      <img
+                        src={review.photoUrl}
+                        alt={review.name}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      review.name.charAt(0)
+                    )}
                   </div>
                   <div className="review-meta">
                     <h3 className="review-name">
@@ -150,7 +246,7 @@ export default function ReviewsPage() {
                     </h3>
                     <div className="review-date-stars">
                       <span className="review-date">{review.date}</span>
-                      <span className="review-stars">{'\u2605\u2605\u2605\u2605\u2605'}</span>
+                      <span className="review-stars">{renderStars(review.rating)}</span>
                     </div>
                   </div>
                 </div>
@@ -185,12 +281,12 @@ export default function ReviewsPage() {
         <div className="rv-container">
           <div className="stats-grid">
             <div className="stat-item">
-              <div className="stat-number">5.0</div>
+              <div className="stat-number">{aggregateRating.toFixed(1)}</div>
               <div className="stat-label">Average Rating</div>
             </div>
             <div className="stat-item">
-              <div className="stat-number">100%</div>
-              <div className="stat-label">5-Star Reviews</div>
+              <div className="stat-number">{totalReviewCount}</div>
+              <div className="stat-label">Google Reviews</div>
             </div>
             <div className="stat-item">
               <div className="stat-number">500+</div>
@@ -396,6 +492,8 @@ export default function ReviewsPage() {
           font-weight: 700;
           font-size: 1.125rem;
           flex-shrink: 0;
+          border-radius: 50%;
+          overflow: hidden;
         }
 
         .review-meta {
@@ -597,4 +695,13 @@ export default function ReviewsPage() {
       `}</style>
     </Layout>
   );
+}
+
+function renderStars(rating) {
+  const full = Math.floor(rating);
+  const half = rating % 1 >= 0.5;
+  let stars = '\u2605'.repeat(full);
+  if (half) stars += '\u2606';
+  stars += '\u2606'.repeat(5 - full - (half ? 1 : 0));
+  return stars;
 }

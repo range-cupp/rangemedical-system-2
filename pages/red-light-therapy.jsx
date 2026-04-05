@@ -261,10 +261,10 @@ export default function RedLightTherapy() {
       <div className="rlt-page">
         {/* Hero */}
         <section className="rlt-hero">
-          <div className="v2-label"><span className="v2-dot" /> RECOVERY &middot; ENERGY &middot; SKIN HEALTH</div>
-          <h1>THE SAME LIGHT THAT POWERS NATURE CAN POWER YOUR RECOVERY.</h1>
+          <div className="v2-label"><span className="v2-dot" /> RED LIGHT THERAPY</div>
+          <h1>CHRONIC PAIN, SLOW RECOVERY, DULL SKIN? LIGHT THERAPY FIXES WHAT YOU CAN&apos;T SEE.</h1>
           <div className="rlt-hero-rule"></div>
-          <p className="rlt-body-text">Medical-grade red and near-infrared light therapy that reduces inflammation, accelerates healing, and restores cellular energy — from the inside out. Newport Beach.</p>
+          <p className="rlt-body-text">Medical-grade red and near-infrared light reduces inflammation, accelerates tissue repair, and restores cellular energy. No drugs, no downtime. Newport Beach.</p>
           <div className="rlt-hero-scroll">
             Scroll to explore
             <span>↓</span>

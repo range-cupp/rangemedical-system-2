@@ -293,10 +293,10 @@ export default function HormoneOptimization() {
       <div className="hrt-page">
         {/* Hero */}
         <section className="hrt-hero">
-          <div className="v2-label"><span className="v2-dot" /> Energy &middot; Clarity &middot; Vitality</div>
-          <h1>REMEMBER WHEN<br />YOU HAD ENERGY<br />FOR EVERYTHING?</h1>
+          <div className="v2-label"><span className="v2-dot" /> HORMONE OPTIMIZATION</div>
+          <h1>TIRED, FOGGY, AND GAINING WEIGHT FOR NO REASON? IT&apos;S PROBABLY YOUR HORMONES.</h1>
           <div className="hrt-hero-rule" />
-          <p className="hrt-body-text">That version of you isn&apos;t gone &mdash; your hormones just need recalibrating. Physician-supervised hormone optimization in Newport Beach.</p>
+          <p className="hrt-body-text">We test what your regular doctor doesn&apos;t, find the imbalance, and fix it. Physician-supervised hormone optimization in Newport Beach.</p>
           <div className="hrt-hero-scroll">
             Scroll to explore
             <span>&darr;</span>

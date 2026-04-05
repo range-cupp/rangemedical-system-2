@@ -265,10 +265,10 @@ export default function IVTherapy() {
       <div className="iv-page">
         {/* Hero */}
         <section className="iv-hero">
-          <div className="v2-label"><span className="v2-dot" /> HYDRATION · ENERGY · RECOVERY</div>
-          <h1>FEEL THE DIFFERENCE WHEN YOUR BODY ACTUALLY HAS WHAT IT NEEDS.</h1>
+          <div className="v2-label"><span className="v2-dot" /> IV THERAPY</div>
+          <h1>DEHYDRATED, DRAINED, OR HUNGOVER? ONE SESSION CHANGES EVERYTHING.</h1>
           <div className="iv-hero-rule"></div>
-          <p className="iv-body-text">Clinical-grade IV therapy that delivers vitamins, minerals, and amino acids directly to your cells — bypassing the gut for 100% absorption. Newport Beach.</p>
+          <p className="iv-body-text">Clinical-grade IV therapy delivers vitamins, minerals, and amino acids straight to your bloodstream &mdash; 100% absorption, zero gut issues. Walk in running on empty, walk out recharged. Newport Beach.</p>
           <div className="iv-hero-scroll">
             Scroll to explore
             <span>↓</span>

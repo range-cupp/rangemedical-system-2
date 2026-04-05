@@ -256,10 +256,10 @@ export default function HyperbaricOxygenTherapy() {
       <div className="hbot-page">
         {/* Hero */}
         <section className="hbot-hero">
-          <div className="v2-label"><span className="v2-dot" /> RECOVERY &middot; ENERGY &middot; HEALING</div>
-          <h1>HEALING STARTS AT THE CELLULAR LEVEL.</h1>
+          <div className="v2-label"><span className="v2-dot" /> HYPERBARIC OXYGEN THERAPY</div>
+          <h1>STILL NOT HEALING? YOUR TISSUES AREN&apos;T GETTING ENOUGH OXYGEN.</h1>
           <div className="hbot-hero-rule"></div>
-          <p className="hbot-body-text">Hyperbaric oxygen therapy floods your tissues with pure oxygen under pressure — accelerating recovery, reducing inflammation, and unlocking your body's deepest repair mechanisms. Newport Beach.</p>
+          <p className="hbot-body-text">Hyperbaric oxygen therapy saturates your body with pure oxygen under pressure &mdash; accelerating recovery, cutting inflammation, and unlocking repair mechanisms nothing else can reach. Newport Beach.</p>
           <div className="hbot-hero-scroll">
             Scroll to explore
             <span>&darr;</span>

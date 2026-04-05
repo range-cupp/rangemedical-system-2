@@ -247,10 +247,10 @@ export default function NADTherapy() {
       <div className="nad-page">
         {/* Hero */}
         <section className="nad-hero">
-          <div className="v2-label"><span className="v2-dot" /> Cellular Energy &middot; Longevity &middot; Cognition</div>
-          <h1>YOUR CELLS ARE RUNNING ON EMPTY.<br />NAD+ FILLS THE TANK.</h1>
+          <div className="v2-label"><span className="v2-dot" /> NAD+ THERAPY</div>
+          <h1>TIRED ALL THE TIME? THE PROBLEM MIGHT BE DEEPER THAN YOU THINK.</h1>
           <div className="nad-hero-rule" />
-          <p className="nad-body-text">NAD+ is the molecule your mitochondria need to produce energy, repair DNA, and slow aging at the cellular level. Replenish what time depletes. Newport Beach.</p>
+          <p className="nad-body-text">NAD+ is the molecule your cells need to produce energy, repair DNA, and keep you functioning at full capacity. After 40, your levels drop fast. We put them back. Newport Beach.</p>
           <div className="nad-hero-scroll">
             Scroll to explore
             <span>&darr;</span>

@@ -150,13 +150,11 @@ export default function EnergyOptimization() {
 
         {/* Hero Section */}
         <section className="eo-hero">
-          <div className="v2-label"><span className="v2-dot" /> Energy &middot; Hormones &middot; Weight</div>
-          <h1>Your Guide to<br />Energy &amp;<br />Optimization</h1>
+          <div className="v2-label"><span className="v2-dot" /> ENERGY &amp; OPTIMIZATION</div>
+          <h1>YOUR DOCTOR SAYS YOU&apos;RE FINE. YOU KNOW YOU&apos;RE NOT.</h1>
           <div className="eo-hero-rule" />
           <p className="eo-body-text">
-            You&apos;re tired, foggy, or just don&apos;t feel like yourself. Your regular doctor says
-            you&apos;re &ldquo;fine&rdquo; &mdash; but you know something&apos;s off. We dig deeper with
-            real labs, find the root cause, and build a plan that actually works.
+            We run the labs your PCP doesn&apos;t, find the root cause of your fatigue, brain fog, or weight gain, and build a plan that actually works. Newport Beach.
           </p>
           <div className="eo-hero-scroll">
             Scroll to explore

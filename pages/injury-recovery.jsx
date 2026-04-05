@@ -168,13 +168,11 @@ export default function InjuryRecovery() {
 
         {/* Hero Section */}
         <section className="inj-hero">
-          <div className="v2-label"><span className="v2-dot" /> Recovery &middot; Healing &middot; Results</div>
-          <h1>Your Guide to<br />Injury Recovery</h1>
+          <div className="v2-label"><span className="v2-dot" /> INJURY RECOVERY</div>
+          <h1>STUCK IN A HEALING PLATEAU? YOUR BODY NEEDS MORE THAN TIME.</h1>
           <div className="inj-hero-rule" />
           <p className="inj-body-text">
-            Healing feels slow because your body needs more than time. We use targeted recovery
-            protocols that may help support your body&apos;s natural healing process &mdash; whether you&apos;re post-surgery,
-            rehabbing an injury, or stuck in a healing plateau.
+            Post-surgery, chronic pain, or nagging injury &mdash; we combine regenerative protocols to break through where rest and PT hit a wall. Newport Beach.
           </p>
           <div className="inj-hero-scroll">
             Scroll to explore

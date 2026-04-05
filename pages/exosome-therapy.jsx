@@ -226,10 +226,10 @@ export default function ExosomeTherapy() {
       <div className="exo-page">
         {/* Hero */}
         <section className="exo-hero">
-          <div className="v2-label"><span className="v2-dot" /> REGENERATIVE · ANTI-AGING · RECOVERY</div>
-          <h1>YOUR GUIDE TO EXOSOME THERAPY</h1>
+          <div className="v2-label"><span className="v2-dot" /> EXOSOME THERAPY</div>
+          <h1>WHEN YOUR BODY STOPS REPAIRING ITSELF, EXOSOMES PICK UP THE SLACK.</h1>
           <div className="exo-hero-rule"></div>
-          <p className="exo-body-text">Everything you need to know about exosomes — what they are, how they work, and whether they're right for your regenerative goals.</p>
+          <p className="exo-body-text">Cell-derived signaling molecules that tell your body to regenerate. Used for joint repair, anti-aging, and recovery when nothing else has worked. Newport Beach.</p>
           <div className="exo-hero-scroll">
             Scroll to explore
             <span>↓</span>

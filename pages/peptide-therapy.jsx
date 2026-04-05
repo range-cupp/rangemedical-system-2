@@ -265,10 +265,10 @@ export default function PeptideTherapy() {
         {/* Hero */}
         <section className="pep-hero">
           <div className="pep-hero-inner">
-            <div className="v2-label"><span className="v2-dot" /> Recovery &middot; Healing &middot; Performance</div>
-            <h1>YOUR BODY ALREADY KNOWS HOW TO HEAL. WE JUST REMIND IT.</h1>
+            <div className="v2-label"><span className="v2-dot" /> PEPTIDE THERAPY</div>
+            <h1>SLOW RECOVERY, POOR SLEEP, LOW DRIVE. YOUR PEPTIDES ARE THE MISSING PIECE.</h1>
             <div className="pep-hero-rule" />
-            <p className="pep-hero-sub">Targeted peptide protocols that accelerate recovery, optimize growth hormone, and restore what time takes away. Physician-supervised in Newport Beach.</p>
+            <p className="pep-hero-sub">Targeted peptide protocols that accelerate healing, boost growth hormone, and restore what your body used to do on its own. Physician-supervised in Newport Beach.</p>
             <div className="pep-hero-scroll">
               Scroll to explore
               <span>&#8595;</span>

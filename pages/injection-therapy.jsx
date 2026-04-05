@@ -220,10 +220,10 @@ export default function InjectionTherapy() {
       <div className="inj-page">
         {/* Hero */}
         <section className="inj-hero">
-          <div className="v2-label"><span className="v2-dot" /> Vitamins &middot; Nutrients &middot; NAD+</div>
-          <h1>Your Guide to<br />Injection Therapy</h1>
+          <div className="v2-label"><span className="v2-dot" /> INJECTION THERAPY</div>
+          <h1>SKIP THE IV. GET WHAT YOU NEED IN 5 MINUTES.</h1>
           <div className="inj-hero-rule" />
-          <p className="inj-body-text">Fast, targeted vitamin and nutrient injections. No IV needed. In and out in 5 minutes.</p>
+          <p className="inj-body-text">Targeted vitamin, nutrient, and NAD+ injections. No appointment hassle, no sitting in a chair for an hour. In and out. Newport Beach.</p>
           <div className="inj-hero-scroll">
             Scroll to explore
             <span>&darr;</span>

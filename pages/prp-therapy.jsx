@@ -225,10 +225,10 @@ export default function PRPTherapy() {
       <div className="prp-page">
         {/* Hero */}
         <section className="prp-hero">
-          <div className="v2-label"><span className="v2-dot" /> REGENERATIVE · HEALING · RECOVERY</div>
-          <h1>YOUR GUIDE TO PRP THERAPY</h1>
+          <div className="v2-label"><span className="v2-dot" /> PRP THERAPY</div>
+          <h1>YOUR BLOOD ALREADY HAS WHAT IT TAKES TO HEAL. WE CONCENTRATE IT.</h1>
           <div className="prp-hero-rule"></div>
-          <p className="prp-body-text">Everything you need to know about Platelet-Rich Plasma — what it is, how it works, and whether it's right for your injury or pain.</p>
+          <p className="prp-body-text">Platelet-rich plasma therapy uses your own growth factors to accelerate healing &mdash; for joints, tendons, and injuries that won&apos;t resolve on their own. Newport Beach.</p>
           <div className="prp-hero-scroll">
             Scroll to explore
             <span>↓</span>

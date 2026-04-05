@@ -252,7 +252,7 @@ export default function WeightLoss() {
       <div className="trust-bar">
         <div className="trust-inner">
           <span className="trust-item">
-            <span className="trust-rating">5.0 on Google</span>
+            <span className="trust-rating">★★★★★</span> 5.0 on Google
           </span>
           <span className="trust-item">Newport Beach, CA</span>
           <span className="trust-item">Board-Certified Providers</span>
@@ -656,15 +656,6 @@ export default function WeightLoss() {
           background: #ffffff;
           color: #171717;
           overflow-x: hidden;
-        }
-
-        /* Trust Bar */
-        .trust-bar .trust-item {
-          font-size: 0.75rem;
-          font-weight: 600;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          color: #737373;
         }
 
         /* Animations */

@@ -5,6 +5,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { logAction } from '../../../lib/auth';
+import { autoLogSessionFromAppointment } from '../../../lib/auto-session-log';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -126,6 +127,23 @@ export default async function handler(req, res) {
       } catch (noteErr) {
         // Don't fail the status update if note creation fails
         console.error('Encounter note creation error:', noteErr);
+      }
+    }
+
+    // Auto-log session when appointment is completed (HBOT, RLT, IV, injections)
+    if (status === 'completed') {
+      try {
+        const { data: apptForSession } = await supabase
+          .from(table)
+          .select('id, patient_id, patient_name, service_name, service_category, appointment_title, provider, start_time')
+          .eq('id', id)
+          .single();
+
+        if (apptForSession) {
+          await autoLogSessionFromAppointment(apptForSession);
+        }
+      } catch (sessionErr) {
+        console.error('Auto-session-log error:', sessionErr);
       }
     }
 

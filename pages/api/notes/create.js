@@ -315,6 +315,13 @@ export default async function handler(req, res) {
             protocolUpdates.sessions_used = (activeProtocol.sessions_used || 0) + 1;
           }
 
+          // Update next_expected_date to +7 days from this injection
+          // This keeps the "Next" date on the protocol card accurate for in-clinic patients
+          const nextDate = new Date(logDate + 'T12:00:00');
+          nextDate.setDate(nextDate.getDate() + 7);
+          protocolUpdates.next_expected_date = nextDate.toISOString().split('T')[0];
+          protocolUpdates.last_visit_date = logDate;
+
           // Set starting weight if not already set
           if (!activeProtocol.starting_weight && structured_data?.weight_vitals?.starting_weight) {
             const startWeight = parseFloat(structured_data.weight_vitals.starting_weight);

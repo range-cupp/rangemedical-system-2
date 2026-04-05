@@ -460,7 +460,7 @@ export default function GiftCards() {
         }
 
         .gc-service-item::before {
-          content: "\\2713";
+          content: "✓";
           color: #808080;
           font-weight: 700;
           flex-shrink: 0;

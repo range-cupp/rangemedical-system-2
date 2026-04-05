@@ -655,7 +655,7 @@ export default function HBOTSideEffectsGuide() {
         .contact-card ul { list-style: none; padding: 0; margin: 0; }
         .contact-card li { font-size: 0.875rem; color: rgba(255,255,255,0.8); padding: 0.375rem 0; padding-left: 1.25rem; position: relative; line-height: 1.5; }
         .contact-card.urgent li::before { content: "!"; position: absolute; left: 0; color: #fca5a5; font-weight: 700; }
-        .contact-card.routine li::before { content: "\\2713"; position: absolute; left: 0; color: #86efac; font-weight: 700; }
+        .contact-card.routine li::before { content: "✓"; position: absolute; left: 0; color: #86efac; font-weight: 700; }
         .disclaimer { background: #fafafa; border: 1px solid #e5e5e5; padding: 1.25rem; margin-top: 1.5rem; }
         .disclaimer p { font-size: 0.8125rem; color: #737373; line-height: 1.6; margin: 0; }
         .final-cta { background: #000000; color: #ffffff; padding: 3.5rem 1.5rem; text-align: center; }

@@ -187,6 +187,7 @@ export default function ProtocolDetail() {
   const [clinicalNoteFormatting, setClinicalNoteFormatting] = useState(false);
   const [rangeIVStatus, setRangeIVStatus] = useState(null); // { used: bool, serviceDate, serviceLogId }
   const [redeemingRangeIV, setRedeemingRangeIV] = useState(false);
+  const [patientCheckIns, setPatientCheckIns] = useState([]);
   const [exchangeModal, setExchangeModal] = useState(false);
   const [exchangeForm, setExchangeForm] = useState({ medication: '', dosage: '', frequency: 'daily', duration: '', reason: '', reasonNote: '', protocolType: '' });
   const [exchangeSaving, setExchangeSaving] = useState(false);
@@ -312,10 +313,19 @@ export default function ProtocolDetail() {
           const dripData = await dripRes.json();
           setDripLogs((dripData.activityLogs || []).filter(l => l.log_type === 'drip_email'));
         } catch { setDripLogs([]); }
+        // Fetch patient check-in responses
+        if (enrichedProtocol.patient_id) {
+          try {
+            const ciRes = await fetch(`/api/patient/check-ins?patient_id=${enrichedProtocol.patient_id}`);
+            const ciData = await ciRes.json();
+            setPatientCheckIns(ciData.checkIns || []);
+          } catch { setPatientCheckIns([]); }
+        }
       } else {
         setInjectionLogs([]);
         setWeightProgress(null);
         setDripLogs([]);
+        setPatientCheckIns([]);
       }
 
       // Fetch clinical notes linked to this protocol + all encounter notes for this patient
@@ -2069,6 +2079,65 @@ export default function ProtocolDetail() {
                 </div>
               </div>
             )}
+
+            {/* Patient Check-in Responses (from check_ins table) */}
+            {!isEditing && patientCheckIns.length > 0 && (() => {
+              // Filter check-ins to this protocol's date range
+              const startDate = protocol?.start_date;
+              const endDate = protocol?.end_date;
+              const filtered = patientCheckIns.filter(ci => {
+                const d = ci.check_in_date;
+                if (startDate && d < startDate) return false;
+                if (endDate && d > endDate) return false;
+                return true;
+              });
+              if (filtered.length === 0) return null;
+
+              const scoreColor = (s) => s >= 8 ? '#16a34a' : s >= 5 ? '#ca8a04' : '#dc2626';
+              const scoreBg = (s) => s >= 8 ? '#f0fdf4' : s >= 5 ? '#fefce8' : '#fef2f2';
+              const metricLabels = { energy_score: 'Energy', sleep_score: 'Sleep', mood_score: 'Mood', brain_fog_score: 'Brain Fog', pain_score: 'Pain', libido_score: 'Libido' };
+              const metrics = ['energy_score', 'sleep_score', 'mood_score', 'brain_fog_score', 'pain_score', 'libido_score'];
+
+              return (
+                <div style={styles.card}>
+                  <h2 style={styles.cardTitle}>📊 Check-in Responses ({filtered.length})</h2>
+                  <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#666' }}>
+                    Patient-reported symptoms and side effects from weekly check-ins
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {filtered.map(ci => (
+                      <div key={ci.id} style={{ padding: '12px 14px', background: '#fafafa', border: '1px solid #e5e7eb', borderRadius: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                          <span style={{ fontSize: '14px', fontWeight: '600', color: '#1f2937' }}>
+                            {new Date(ci.check_in_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                          </span>
+                          <span style={{ fontSize: '12px', fontWeight: '700', color: scoreColor(ci.overall_score), background: scoreBg(ci.overall_score), padding: '3px 10px' }}>
+                            Overall: {ci.overall_score}/10
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: ci.weight || ci.notes ? '10px' : '0' }}>
+                          {metrics.map(m => ci[m] != null && (
+                            <span key={m} style={{ fontSize: '12px', padding: '3px 10px', background: scoreBg(ci[m]), color: scoreColor(ci[m]), fontWeight: '600' }}>
+                              {metricLabels[m]}: {ci[m]}/10
+                            </span>
+                          ))}
+                        </div>
+                        {ci.weight && (
+                          <div style={{ fontSize: '13px', color: '#1e40af', fontWeight: '600', marginBottom: ci.notes ? '6px' : '0' }}>
+                            ⚖️ Weight: {ci.weight} lbs
+                          </div>
+                        )}
+                        {ci.notes && (
+                          <div style={{ fontSize: '13px', color: '#4b5563', fontStyle: 'italic', borderTop: '1px solid #e5e7eb', paddingTop: '8px' }}>
+                            &ldquo;{ci.notes}&rdquo;
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Edit Form */}
             {isEditing && (

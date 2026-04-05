@@ -456,6 +456,7 @@ export default function PatientProfile() {
   const taskRecognitionRef = useRef(null);
   const [sessions, setSessions] = useState([]);
   const [symptomResponses, setSymptomResponses] = useState([]);
+  const [checkIns, setCheckIns] = useState([]);
   const [questionnaireResponses, setQuestionnaireResponses] = useState([]);
   const [selectedQuestionnaireIdx, setSelectedQuestionnaireIdx] = useState(0);
   const [baselineQuestionnaires, setBaselineQuestionnaires] = useState([]);
@@ -936,6 +937,7 @@ export default function PatientProfile() {
         setPatientTasks(data.patientTasks || []);
         setSessions(data.sessions || []);
         setSymptomResponses(data.symptomResponses || []);
+        setCheckIns(data.checkIns || []);
         setQuestionnaireResponses(data.questionnaireResponses || []);
         setBaselineQuestionnaires(data.baselineQuestionnaires || []);
         setAppointments(data.appointments || []);
@@ -6423,6 +6425,75 @@ export default function PatientProfile() {
                                       disabled={enablingCheckin === protocol.id}
                                       style={{ fontSize: 11, fontWeight: 600, padding: '2px 10px', background: '#000', color: '#fff', border: 'none', borderRadius: 0, cursor: 'pointer', marginLeft: 'auto' }}
                                     >{enablingCheckin === protocol.id ? 'Enabling...' : 'Enable Check-ins'}</button>
+                                  </div>
+                                );
+                              })()}
+
+                              {/* ===== Check-in Responses ===== */}
+                              {(() => {
+                                const protocolCheckIns = checkIns.filter(c => {
+                                  const cDate = new Date(c.check_in_date + 'T12:00:00');
+                                  const pStart = protocol.start_date ? new Date(protocol.start_date + 'T00:00:00') : null;
+                                  const pEnd = protocol.end_date ? new Date(protocol.end_date + 'T23:59:59') : null;
+                                  if (pStart && cDate < pStart) return false;
+                                  if (pEnd && cDate > pEnd) return false;
+                                  return true;
+                                }).sort((a, b) => new Date(b.check_in_date) - new Date(a.check_in_date));
+
+                                if (protocolCheckIns.length === 0) return null;
+
+                                const scoreColor = (score) => {
+                                  if (score >= 8) return '#16a34a';
+                                  if (score >= 5) return '#ca8a04';
+                                  return '#dc2626';
+                                };
+                                const scoreBg = (score) => {
+                                  if (score >= 8) return '#f0fdf4';
+                                  if (score >= 5) return '#fefce8';
+                                  return '#fef2f2';
+                                };
+                                const scoreLabel = (label) => {
+                                  const labels = { energy_score: 'Energy', sleep_score: 'Sleep', mood_score: 'Mood', brain_fog_score: 'Brain Fog', pain_score: 'Pain', libido_score: 'Libido' };
+                                  return labels[label] || label;
+                                };
+                                const metrics = ['energy_score', 'sleep_score', 'mood_score', 'brain_fog_score', 'pain_score', 'libido_score'];
+
+                                return (
+                                  <div style={{ marginTop: 14 }}>
+                                    <div style={{ fontSize: 11, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+                                      Check-in Responses ({protocolCheckIns.length})
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                      {protocolCheckIns.map(ci => (
+                                        <div key={ci.id} style={{ padding: '10px 12px', background: '#fafafa', border: '1px solid #e5e7eb', borderRadius: 0 }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                                            <span style={{ fontSize: 12, fontWeight: 600, color: '#1f2937' }}>
+                                              {new Date(ci.check_in_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            </span>
+                                            <span style={{ fontSize: 11, fontWeight: 700, color: scoreColor(ci.overall_score), background: scoreBg(ci.overall_score), padding: '2px 8px' }}>
+                                              Overall: {ci.overall_score}/10
+                                            </span>
+                                          </div>
+                                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                            {metrics.map(m => ci[m] != null && (
+                                              <span key={m} style={{ fontSize: 11, padding: '2px 8px', background: scoreBg(ci[m]), color: scoreColor(ci[m]), fontWeight: 600 }}>
+                                                {scoreLabel(m)}: {ci[m]}
+                                              </span>
+                                            ))}
+                                            {ci.weight && (
+                                              <span style={{ fontSize: 11, padding: '2px 8px', background: '#eff6ff', color: '#1e40af', fontWeight: 600 }}>
+                                                Weight: {ci.weight} lbs
+                                              </span>
+                                            )}
+                                          </div>
+                                          {ci.notes && (
+                                            <div style={{ marginTop: 6, fontSize: 12, color: '#4b5563', fontStyle: 'italic' }}>
+                                              &ldquo;{ci.notes}&rdquo;
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
                                   </div>
                                 );
                               })()}

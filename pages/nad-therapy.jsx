@@ -379,6 +379,89 @@ export default function NADTherapy() {
           </div>
         </section>
 
+        {/* Protocol Options & Pricing */}
+        <section className="nad-section nad-section-inverted">
+          <div className="nad-container">
+            <div className="nad-animate">
+              <div className="v2-label"><span className="v2-dot" /> Protocol Options</div>
+              <h2>Choose Your<br />NAD+ Protocol.</h2>
+              <div className="nad-divider"></div>
+              <p className="nad-body-text">
+                Every protocol is tailored by your provider based on your labs, goals, and current health status. Pricing is transparent &mdash; no hidden fees, no upsells during treatment.
+              </p>
+            </div>
+
+            <div className="nad-pricing-grid nad-animate">
+              {/* Recharge */}
+              <div className="nad-pricing-card">
+                <div className="nad-pricing-label">Starter</div>
+                <div className="nad-pricing-name">NAD+ Recharge</div>
+                <div className="nad-pricing-sessions">3 IV Sessions</div>
+                <div className="nad-pricing-amount">$1,500</div>
+                <div className="nad-pricing-dose">500mg per session &middot; 1,500mg total</div>
+                <div className="nad-pricing-timeline">7&ndash;10 day protocol</div>
+                <ul className="nad-pricing-includes">
+                  <li>Medical screening &amp; provider consultation</li>
+                  <li>3 supervised NAD+ IV infusions</li>
+                  <li>Post-protocol maintenance plan</li>
+                </ul>
+                <div className="nad-pricing-best">Best for: First-time NAD+ patients, general energy reset, brain fog</div>
+              </div>
+
+              {/* Restore */}
+              <div className="nad-pricing-card nad-pricing-featured">
+                <div className="nad-pricing-badge">Most Popular</div>
+                <div className="nad-pricing-label">Comprehensive</div>
+                <div className="nad-pricing-name">NAD+ Restore</div>
+                <div className="nad-pricing-sessions">5 IV Sessions</div>
+                <div className="nad-pricing-amount">$3,000</div>
+                <div className="nad-pricing-dose">750mg per session &middot; 3,750mg total</div>
+                <div className="nad-pricing-timeline">10&ndash;14 day protocol</div>
+                <ul className="nad-pricing-includes">
+                  <li>Medical screening &amp; provider consultation</li>
+                  <li>5 supervised NAD+ IV infusions</li>
+                  <li>Post-protocol maintenance plan</li>
+                </ul>
+                <div className="nad-pricing-best">Best for: Cognitive restoration, chronic fatigue, anti-aging, longevity</div>
+              </div>
+
+              {/* Reset */}
+              <div className="nad-pricing-card">
+                <div className="nad-pricing-label">Intensive</div>
+                <div className="nad-pricing-name">NAD+ Reset</div>
+                <div className="nad-pricing-sessions">10 IV Sessions</div>
+                <div className="nad-pricing-amount">$6,000</div>
+                <div className="nad-pricing-dose">750mg per session &middot; 7,500mg total</div>
+                <div className="nad-pricing-timeline">3&ndash;4 week protocol</div>
+                <ul className="nad-pricing-includes">
+                  <li>Medical screening &amp; provider consultation</li>
+                  <li>10 supervised NAD+ IV infusions</li>
+                  <li>Post-protocol maintenance plan</li>
+                </ul>
+                <div className="nad-pricing-best">Best for: Severe depletion, post-COVID recovery, neurological support</div>
+              </div>
+            </div>
+
+            {/* Maintenance & Injections row */}
+            <div className="nad-pricing-row nad-animate">
+              <div className="nad-pricing-addon">
+                <div className="nad-addon-name">Monthly Maintenance IV</div>
+                <div className="nad-addon-price">$500<span>/session</span></div>
+                <p>500mg NAD+ IV once per month to sustain elevated levels after your loading protocol.</p>
+              </div>
+              <div className="nad-pricing-addon">
+                <div className="nad-addon-name">NAD+ Injection Protocol</div>
+                <div className="nad-addon-price">$600<span>/month</span></div>
+                <p>100mg take-home injections, 3x/week for 90 days. Convenient at-home NAD+ maintenance between IV sessions.</p>
+              </div>
+            </div>
+
+            <p className="nad-pricing-disclaimer nad-animate">
+              All protocols require an initial medical evaluation. Your provider will recommend a protocol based on your health history, lab results, and goals. Pricing includes all sessions listed &mdash; no additional fees.
+            </p>
+          </div>
+        </section>
+
         {/* Benefits */}
         <section className="nad-section nad-section-alt">
           <div className="nad-container">
@@ -944,6 +1027,197 @@ export default function NADTherapy() {
           font-weight: 600;
           color: #737373;
           font-style: italic;
+        }
+
+        /* Pricing Grid */
+        .nad-pricing-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 0;
+          margin-top: 2.5rem;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .nad-pricing-card {
+          padding: 2.5rem 2rem;
+          border-right: 1px solid rgba(255, 255, 255, 0.08);
+          position: relative;
+        }
+
+        .nad-pricing-card:last-child {
+          border-right: none;
+        }
+
+        .nad-pricing-featured {
+          background: rgba(255, 255, 255, 0.04);
+        }
+
+        .nad-pricing-badge {
+          position: absolute;
+          top: 0;
+          right: 0;
+          font-size: 10px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          padding: 0.5rem 1rem;
+          background: #ffffff;
+          color: #1a1a1a;
+        }
+
+        .nad-pricing-label {
+          font-size: 10px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.14em;
+          color: rgba(255, 255, 255, 0.4);
+          margin-bottom: 0.75rem;
+        }
+
+        .nad-pricing-name {
+          font-size: 1.375rem;
+          font-weight: 800;
+          color: #ffffff;
+          margin-bottom: 0.25rem;
+        }
+
+        .nad-pricing-sessions {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: rgba(255, 255, 255, 0.5);
+          margin-bottom: 1.5rem;
+        }
+
+        .nad-pricing-amount {
+          font-size: 2.5rem;
+          font-weight: 900;
+          color: #ffffff;
+          letter-spacing: -0.02em;
+          line-height: 1;
+          margin-bottom: 0.5rem;
+        }
+
+        .nad-pricing-dose {
+          font-size: 0.8125rem;
+          color: rgba(255, 255, 255, 0.45);
+          margin-bottom: 0.25rem;
+        }
+
+        .nad-pricing-timeline {
+          font-size: 0.8125rem;
+          color: rgba(255, 255, 255, 0.45);
+          margin-bottom: 1.5rem;
+          padding-bottom: 1.5rem;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .nad-pricing-includes {
+          list-style: none;
+          padding: 0;
+          margin: 0 0 1.5rem 0;
+        }
+
+        .nad-pricing-includes li {
+          font-size: 0.875rem;
+          color: rgba(255, 255, 255, 0.55);
+          padding: 0.4rem 0;
+          padding-left: 1.25rem;
+          position: relative;
+        }
+
+        .nad-pricing-includes li::before {
+          content: "✓";
+          position: absolute;
+          left: 0;
+          color: rgba(255, 255, 255, 0.35);
+          font-weight: 700;
+          font-size: 0.75rem;
+        }
+
+        .nad-pricing-best {
+          font-size: 0.8125rem;
+          font-weight: 500;
+          color: rgba(255, 255, 255, 0.4);
+          font-style: italic;
+          line-height: 1.5;
+        }
+
+        .nad-pricing-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 0;
+          margin-top: 1.5rem;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .nad-pricing-addon {
+          padding: 2rem;
+          border-right: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .nad-pricing-addon:last-child {
+          border-right: none;
+        }
+
+        .nad-addon-name {
+          font-size: 1rem;
+          font-weight: 800;
+          color: #ffffff;
+          margin-bottom: 0.5rem;
+        }
+
+        .nad-addon-price {
+          font-size: 1.75rem;
+          font-weight: 900;
+          color: #ffffff;
+          margin-bottom: 0.75rem;
+        }
+
+        .nad-addon-price span {
+          font-size: 0.875rem;
+          font-weight: 500;
+          color: rgba(255, 255, 255, 0.4);
+        }
+
+        .nad-pricing-addon p {
+          font-size: 0.875rem;
+          line-height: 1.65;
+          color: rgba(255, 255, 255, 0.45);
+          margin: 0;
+        }
+
+        .nad-pricing-disclaimer {
+          font-size: 0.8125rem;
+          color: rgba(255, 255, 255, 0.35);
+          text-align: center;
+          margin-top: 2rem;
+          line-height: 1.65;
+          max-width: 700px;
+          margin-left: auto;
+          margin-right: auto;
+        }
+
+        @media (max-width: 900px) {
+          .nad-pricing-grid {
+            grid-template-columns: 1fr;
+          }
+          .nad-pricing-card {
+            border-right: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          }
+          .nad-pricing-card:last-child {
+            border-bottom: none;
+          }
+          .nad-pricing-row {
+            grid-template-columns: 1fr;
+          }
+          .nad-pricing-addon {
+            border-right: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          }
+          .nad-pricing-addon:last-child {
+            border-bottom: none;
+          }
         }
 
         /* Benefit Cards */

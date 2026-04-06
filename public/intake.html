@@ -692,7 +692,7 @@
                             <div class="form-group full-width">
                                 <label for="photoId">Upload a photo of your government-issued ID <span class="required">*</span></label>
                                 <div class="file-upload">
-                                    <input type="file" id="photoId" name="photoId" class="file-upload-input" accept="image/*,.pdf" required>
+                                    <input type="file" id="photoId" name="photoId" class="file-upload-input" accept="image/jpeg,image/png,image/webp" required>
                                     <div class="file-upload-label">
                                         <span class="file-upload-icon">📄</span>
                                         <span class="file-upload-text">Click or drag to upload your ID</span>
@@ -1241,8 +1241,34 @@ document.getElementById('photoId').addEventListener('change', function(e) {
 // ============================================
 // UPLOAD FILE TO SUPABASE STORAGE
 // ============================================
+function convertToJpeg(file) {
+    return new Promise(function(resolve, reject) {
+        var img = new Image();
+        img.onload = function() {
+            var canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            var ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            canvas.toBlob(function(blob) {
+                if (blob) resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
+                else reject(new Error('Canvas conversion failed'));
+            }, 'image/jpeg', 0.92);
+            URL.revokeObjectURL(img.src);
+        };
+        img.onerror = function() { URL.revokeObjectURL(img.src); reject(new Error('Image load failed')); };
+        img.src = URL.createObjectURL(file);
+    });
+}
+
 async function uploadFileToStorage(file, folder, patientName) {
     try {
+        // Convert non-JPEG/PNG images (like HEIC) to JPEG
+        var ext = (file.name.split('.').pop() || '').toLowerCase();
+        if (ext && ['heic', 'heif', 'tiff', 'bmp'].indexOf(ext) !== -1 && file.type.startsWith('image/')) {
+            try { file = await convertToJpeg(file); } catch (e) { console.warn('Conversion failed, uploading original:', e); }
+        }
+
         var timestamp = Date.now();
         var safeName = patientName.replace(/[^a-z0-9]/gi, '-').toLowerCase();
         var extension = file.name.split('.').pop() || 'jpg';

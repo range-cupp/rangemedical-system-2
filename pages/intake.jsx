@@ -1838,7 +1838,7 @@ export default function IntakeForm() {
                 <div className="form-group full-width">
                   <label htmlFor="photoId">Upload a photo of your government-issued ID <span className="required">*</span></label>
                   <div className="file-upload-container">
-                    <input type="file" id="photoId" name="photoId" accept="image/*,.pdf" required style={{padding: '0.5rem 0'}} />
+                    <input type="file" id="photoId" name="photoId" accept="image/jpeg,image/png,image/webp" required style={{padding: '0.5rem 0'}} />
                     <span className="field-hint">Driver's license, state ID, or passport. File size limit: 10MB</span>
                     <span className="field-error" id="photoIdError">Photo ID is required</span>
                     <div className="file-preview" id="photoIdPreview">
@@ -1972,8 +1972,38 @@ function initializeForm() {
   // FILE UPLOAD FUNCTIONS
   // ============================================
   
+  async function convertToJpeg(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        canvas.toBlob((blob) => {
+          if (blob) resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
+          else reject(new Error('Canvas conversion failed'));
+        }, 'image/jpeg', 0.92);
+        URL.revokeObjectURL(img.src);
+      };
+      img.onerror = () => { URL.revokeObjectURL(img.src); reject(new Error('Image load failed')); };
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
   async function uploadFileToStorage(file, folder, prefix) {
     try {
+      // Convert non-JPEG/PNG images (like HEIC) to JPEG
+      const ext = (file.name.split('.').pop() || '').toLowerCase();
+      if (ext && !['jpg', 'jpeg', 'png'].includes(ext) && file.type.startsWith('image/')) {
+        try {
+          file = await convertToJpeg(file);
+        } catch (convErr) {
+          console.warn('Image conversion failed, uploading original:', convErr);
+        }
+      }
+
       const timestamp = Date.now();
       const randomStr = Math.random().toString(36).substring(7);
       const extension = file.name.split('.').pop();

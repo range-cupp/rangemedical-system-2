@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import AdminLayout, { sharedStyles } from '../../components/AdminLayout';
 import { useAuth } from '../../components/AuthProvider';
-import { Mail, Users, Send, ChevronLeft, Eye, Save, Filter, Trash2, Plus, Sparkles } from 'lucide-react';
+import { Mail, Users, Send, ChevronLeft, Eye, Save, Filter, Trash2, Plus, Sparkles, CheckCircle, AlertCircle, Clock } from 'lucide-react';
 
 const PROTOCOL_TYPES = [
   { value: 'peptide', label: 'Peptide' },
@@ -36,7 +36,7 @@ const STATUS_OPTIONS = [
 
 export default function EmailCampaignsPage() {
   const { isAdmin } = useAuth();
-  const [view, setView] = useState('list'); // list, compose
+  const [view, setView] = useState('list'); // list, compose, detail
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -57,6 +57,8 @@ export default function EmailCampaignsPage() {
   const [showPreview, setShowPreview] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState(null);
+  const [fromEmail, setFromEmail] = useState('Range Medical <hello@range-medical.com>');
+  const [replyTo, setReplyTo] = useState('');
 
   // AI compose state
   const [aiPrompt, setAiPrompt] = useState('');
@@ -64,6 +66,13 @@ export default function EmailCampaignsPage() {
 
   // Edit mode
   const [editingCampaign, setEditingCampaign] = useState(null);
+
+  // Detail view state
+  const [detailCampaign, setDetailCampaign] = useState(null);
+  const [detailRecipients, setDetailRecipients] = useState([]);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [recipientFilter, setRecipientFilter] = useState('all'); // all, sent, error
+  const [recipientSearch, setRecipientSearch] = useState('');
 
   useEffect(() => {
     fetchCampaigns();
@@ -78,6 +87,24 @@ export default function EmailCampaignsPage() {
       console.error('Error fetching campaigns:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const viewCampaignDetail = async (campaign) => {
+    setDetailLoading(true);
+    setView('detail');
+    setDetailCampaign(campaign);
+    setRecipientFilter('all');
+    setRecipientSearch('');
+    try {
+      const res = await fetch(`/api/admin/email-campaigns?id=${campaign.id}`);
+      const data = await res.json();
+      setDetailCampaign(data.campaign);
+      setDetailRecipients(data.recipients || []);
+    } catch (err) {
+      console.error('Error fetching campaign detail:', err);
+    } finally {
+      setDetailLoading(false);
     }
   };
 
@@ -119,6 +146,8 @@ export default function EmailCampaignsPage() {
             name: campaignName,
             subject: emailSubject,
             htmlBody: emailHtml,
+            fromEmail: fromEmail,
+            replyTo: replyTo || undefined,
             filters: getFilters(),
           },
         }),
@@ -158,6 +187,8 @@ export default function EmailCampaignsPage() {
             name: campaignName || `Campaign ${new Date().toLocaleDateString()}`,
             subject: emailSubject,
             htmlBody: emailHtml,
+            fromEmail: fromEmail,
+            replyTo: replyTo || undefined,
             filters: getFilters(),
           },
         }),
@@ -231,6 +262,8 @@ export default function EmailCampaignsPage() {
     setCampaignName('');
     setEmailSubject('');
     setEmailHtml(DEFAULT_TEMPLATE);
+    setFromEmail('Range Medical <hello@range-medical.com>');
+    setReplyTo('');
     clearFilters();
     setSendResult(null);
     setView('compose');
@@ -241,6 +274,8 @@ export default function EmailCampaignsPage() {
     setCampaignName(campaign.name);
     setEmailSubject(campaign.subject);
     setEmailHtml(campaign.html_body);
+    setFromEmail(campaign.from_email || 'Range Medical <hello@range-medical.com>');
+    setReplyTo(campaign.reply_to || '');
     // Restore filters from snapshot
     const f = campaign.segment_snapshot || {};
     setSelectedProtocols(f.protocolTypes || []);
@@ -304,7 +339,11 @@ export default function EmailCampaignsPage() {
               </thead>
               <tbody>
                 {campaigns.map(c => (
-                  <tr key={c.id}>
+                  <tr
+                    key={c.id}
+                    onClick={() => c.status !== 'draft' && viewCampaignDetail(c)}
+                    style={{ cursor: c.status !== 'draft' ? 'pointer' : 'default' }}
+                  >
                     <td style={{ ...sharedStyles.td, fontWeight: '500' }}>{c.name}</td>
                     <td style={sharedStyles.td}>{c.subject}</td>
                     <td style={sharedStyles.td}>
@@ -328,12 +367,19 @@ export default function EmailCampaignsPage() {
                       {c.sent_at ? new Date(c.sent_at).toLocaleDateString() : new Date(c.created_at).toLocaleDateString()}
                     </td>
                     <td style={sharedStyles.td}>
-                      {c.status === 'draft' && (
+                      {c.status === 'draft' ? (
                         <button
-                          onClick={() => editDraft(c)}
+                          onClick={(e) => { e.stopPropagation(); editDraft(c); }}
                           style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall }}
                         >
                           Edit
+                        </button>
+                      ) : (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); viewCampaignDetail(c); }}
+                          style={{ ...sharedStyles.btnSecondary, ...sharedStyles.btnSmall }}
+                        >
+                          View
                         </button>
                       )}
                     </td>
@@ -342,6 +388,164 @@ export default function EmailCampaignsPage() {
               </tbody>
             </table>
           </div>
+        )}
+      </AdminLayout>
+    );
+  }
+
+  // ─── DETAIL VIEW ──────────────────────────────────────────────────
+  if (view === 'detail') {
+    const filteredRecipients = detailRecipients.filter(r => {
+      if (recipientFilter !== 'all' && r.status !== recipientFilter) return false;
+      if (recipientSearch && !r.email.toLowerCase().includes(recipientSearch.toLowerCase())) return false;
+      return true;
+    });
+    const sentCount = detailRecipients.filter(r => r.status === 'sent').length;
+    const errorCount = detailRecipients.filter(r => r.status === 'error').length;
+
+    return (
+      <AdminLayout title="Campaign Detail">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
+          <button onClick={() => setView('list')} style={{ ...sharedStyles.btnSecondary, padding: '8px 12px' }}>
+            <ChevronLeft size={16} />
+          </button>
+          <div>
+            <h1 style={{ ...sharedStyles.pageTitle, fontSize: '24px' }}>
+              {detailCampaign?.name || 'Campaign Detail'}
+            </h1>
+            <p style={sharedStyles.pageSubtitle}>{detailCampaign?.subject}</p>
+          </div>
+        </div>
+
+        {detailLoading ? (
+          <div style={sharedStyles.loading}>Loading campaign details...</div>
+        ) : (
+          <>
+            {/* Summary Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+              <div style={sharedStyles.card}>
+                <div style={{ ...sharedStyles.cardBody, textAlign: 'center', padding: '20px' }}>
+                  <div style={{ fontSize: '32px', fontWeight: '700' }}>{detailCampaign?.total_recipients || 0}</div>
+                  <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>Total Recipients</div>
+                </div>
+              </div>
+              <div style={sharedStyles.card}>
+                <div style={{ ...sharedStyles.cardBody, textAlign: 'center', padding: '20px' }}>
+                  <div style={{ fontSize: '32px', fontWeight: '700', color: '#16a34a' }}>{sentCount}</div>
+                  <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>Sent</div>
+                </div>
+              </div>
+              <div style={sharedStyles.card}>
+                <div style={{ ...sharedStyles.cardBody, textAlign: 'center', padding: '20px' }}>
+                  <div style={{ fontSize: '32px', fontWeight: '700', color: errorCount > 0 ? '#dc2626' : '#666' }}>{errorCount}</div>
+                  <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>Errors</div>
+                </div>
+              </div>
+              <div style={sharedStyles.card}>
+                <div style={{ ...sharedStyles.cardBody, textAlign: 'center', padding: '20px' }}>
+                  <div style={{ fontSize: '14px', fontWeight: '500' }}>
+                    {detailCampaign?.sent_at ? new Date(detailCampaign.sent_at).toLocaleString() : '—'}
+                  </div>
+                  <div style={{ fontSize: '13px', color: '#666', marginTop: '4px' }}>Sent At</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Campaign Config */}
+            <div style={{ ...sharedStyles.card, marginBottom: '24px' }}>
+              <div style={sharedStyles.cardHeader}>
+                <h3 style={sharedStyles.cardTitle}>Campaign Settings</h3>
+                <span style={{
+                  ...sharedStyles.badge,
+                  ...(detailCampaign?.status === 'sent' ? sharedStyles.badgeActive :
+                     detailCampaign?.status === 'failed' ? { background: '#fee2e2', color: '#991b1b' } :
+                     { background: '#dbeafe', color: '#1e40af' }),
+                }}>
+                  {detailCampaign?.status}
+                </span>
+              </div>
+              <div style={sharedStyles.cardBody}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div>
+                    <div style={{ fontSize: '12px', color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>From</div>
+                    <div style={{ fontSize: '14px', fontWeight: '500' }}>{detailCampaign?.from_email || 'noreply@rangemedical.com (old default)'}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '12px', color: '#999', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }}>Reply To</div>
+                    <div style={{ fontSize: '14px', fontWeight: '500' }}>{detailCampaign?.reply_to || '—'}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Recipients Table */}
+            <div style={sharedStyles.card}>
+              <div style={sharedStyles.cardHeader}>
+                <h3 style={sharedStyles.cardTitle}>Recipients ({filteredRecipients.length})</h3>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input
+                    value={recipientSearch}
+                    onChange={e => setRecipientSearch(e.target.value)}
+                    placeholder="Search email..."
+                    style={{ ...sharedStyles.input, width: '200px', padding: '6px 10px', fontSize: '13px' }}
+                  />
+                  <select
+                    value={recipientFilter}
+                    onChange={e => setRecipientFilter(e.target.value)}
+                    style={{ ...sharedStyles.select, padding: '6px 10px', fontSize: '13px' }}
+                  >
+                    <option value="all">All</option>
+                    <option value="sent">Sent</option>
+                    <option value="error">Errors</option>
+                  </select>
+                </div>
+              </div>
+              <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
+                <table style={sharedStyles.table}>
+                  <thead>
+                    <tr>
+                      <th style={sharedStyles.th}>Email</th>
+                      <th style={sharedStyles.th}>Status</th>
+                      <th style={sharedStyles.th}>Resend ID</th>
+                      <th style={sharedStyles.th}>Error</th>
+                      <th style={sharedStyles.th}>Sent At</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredRecipients.map(r => (
+                      <tr key={r.id}>
+                        <td style={{ ...sharedStyles.td, fontSize: '13px' }}>{r.email}</td>
+                        <td style={sharedStyles.td}>
+                          {r.status === 'sent' ? (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#16a34a', fontSize: '13px' }}>
+                              <CheckCircle size={14} /> Sent
+                            </span>
+                          ) : r.status === 'error' ? (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#dc2626', fontSize: '13px' }}>
+                              <AlertCircle size={14} /> Error
+                            </span>
+                          ) : (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#666', fontSize: '13px' }}>
+                              <Clock size={14} /> {r.status}
+                            </span>
+                          )}
+                        </td>
+                        <td style={{ ...sharedStyles.td, fontSize: '12px', color: '#999', fontFamily: 'monospace' }}>
+                          {r.resend_email_id || '—'}
+                        </td>
+                        <td style={{ ...sharedStyles.td, fontSize: '12px', color: '#dc2626' }}>
+                          {r.error_message || '—'}
+                        </td>
+                        <td style={{ ...sharedStyles.td, fontSize: '13px' }}>
+                          {r.sent_at ? new Date(r.sent_at).toLocaleString() : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
         )}
       </AdminLayout>
     );
@@ -531,7 +735,7 @@ export default function EmailCampaignsPage() {
 
         {/* RIGHT: Email Composer */}
         <div>
-          {/* Campaign name + subject */}
+          {/* Campaign name + subject + from/reply-to */}
           <div style={{ ...sharedStyles.card, marginBottom: '20px' }}>
             <div style={sharedStyles.cardBody}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -550,6 +754,28 @@ export default function EmailCampaignsPage() {
                     value={emailSubject}
                     onChange={e => setEmailSubject(e.target.value)}
                     placeholder="e.g. New peptide protocols available"
+                    style={sharedStyles.input}
+                  />
+                </div>
+                <div style={sharedStyles.fieldGroup}>
+                  <label style={sharedStyles.label}>From Email</label>
+                  <select
+                    value={fromEmail}
+                    onChange={e => setFromEmail(e.target.value)}
+                    style={sharedStyles.select}
+                  >
+                    <option value="Range Medical <hello@range-medical.com>">Range Medical &lt;hello@range-medical.com&gt;</option>
+                    <option value="Range Medical <noreply@range-medical.com>">Range Medical &lt;noreply@range-medical.com&gt;</option>
+                    <option value="Chris at Range Medical <chris@range-medical.com>">Chris at Range Medical &lt;chris@range-medical.com&gt;</option>
+                    <option value="Dr. Burgess - Range Medical <dr.burgess@range-medical.com>">Dr. Burgess - Range Medical &lt;dr.burgess@range-medical.com&gt;</option>
+                  </select>
+                </div>
+                <div style={sharedStyles.fieldGroup}>
+                  <label style={sharedStyles.label}>Reply-To Email (optional)</label>
+                  <input
+                    value={replyTo}
+                    onChange={e => setReplyTo(e.target.value)}
+                    placeholder="e.g. chris@range-medical.com"
                     style={sharedStyles.input}
                   />
                 </div>

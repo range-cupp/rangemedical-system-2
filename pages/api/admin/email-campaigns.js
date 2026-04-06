@@ -14,7 +14,11 @@ const supabase = createClient(
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export default async function handler(req, res) {
-  if (req.method === 'GET') return listCampaigns(req, res);
+  if (req.method === 'GET') {
+    // If ?id= is present, return campaign detail with recipients
+    if (req.query.id) return getCampaignDetail(req, res);
+    return listCampaigns(req, res);
+  }
   if (req.method === 'POST') return createOrSend(req, res);
   return res.status(405).json({ error: 'Method not allowed' });
 }
@@ -28,6 +32,30 @@ async function listCampaigns(req, res) {
       .order('created_at', { ascending: false });
     if (error) throw error;
     return res.json({ campaigns: data || [] });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+// Get campaign detail with all recipients
+async function getCampaignDetail(req, res) {
+  try {
+    const { id } = req.query;
+    const { data: campaign, error: cErr } = await supabase
+      .from('email_campaigns')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (cErr) throw cErr;
+
+    const { data: recipients, error: rErr } = await supabase
+      .from('email_campaign_recipients')
+      .select('id, patient_id, email, status, error_message, resend_email_id, sent_at')
+      .eq('campaign_id', id)
+      .order('sent_at', { ascending: true });
+    if (rErr) throw rErr;
+
+    return res.json({ campaign, recipients: recipients || [] });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
@@ -59,6 +87,8 @@ async function saveCampaign(req, res, campaign) {
     subject: campaign.subject,
     html_body: campaign.htmlBody,
     segment_snapshot: campaign.filters || {},
+    from_email: campaign.fromEmail || null,
+    reply_to: campaign.replyTo || null,
     status: 'draft',
   };
 
@@ -84,7 +114,7 @@ async function saveCampaign(req, res, campaign) {
 
 // Send campaign to all segment recipients
 async function sendCampaign(req, res, campaign) {
-  const { name, subject, htmlBody, filters } = campaign;
+  const { name, subject, htmlBody, filters, fromEmail, replyTo } = campaign;
 
   if (!subject || !htmlBody) {
     return res.status(400).json({ error: 'Subject and email body are required' });
@@ -98,6 +128,10 @@ async function sendCampaign(req, res, campaign) {
     return res.status(400).json({ error: 'No recipients with email addresses in this segment' });
   }
 
+  // Build from/reply-to
+  const fromAddr = fromEmail || 'Range Medical <hello@range-medical.com>';
+  const replyAddr = replyTo || null;
+
   // Save campaign record
   const { data: campaignRow, error: cErr } = await supabase
     .from('email_campaigns')
@@ -106,6 +140,8 @@ async function sendCampaign(req, res, campaign) {
       subject,
       html_body: htmlBody,
       segment_snapshot: filters || {},
+      from_email: fromAddr,
+      reply_to: replyAddr,
       status: 'sending',
       total_recipients: recipients.length,
     })
@@ -124,12 +160,16 @@ async function sendCampaign(req, res, campaign) {
     const results = await Promise.allSettled(
       batch.map(async (patient) => {
         try {
-          await resend.emails.send({
-            from: 'Range Medical <noreply@rangemedical.com>',
+          const sendPayload = {
+            from: fromAddr,
             to: patient.email,
             subject,
             html: htmlBody,
-          });
+          };
+          if (replyAddr) sendPayload.reply_to = replyAddr;
+
+          const sendResult = await resend.emails.send(sendPayload);
+          const resendEmailId = sendResult?.data?.id || sendResult?.id || null;
 
           // Log to comms_log
           await logComm({
@@ -145,12 +185,13 @@ async function sendCampaign(req, res, campaign) {
             htmlBody,
           });
 
-          // Track recipient
+          // Track recipient with Resend ID
           await supabase.from('email_campaign_recipients').insert({
             campaign_id: campaignRow.id,
             patient_id: patient.id,
             email: patient.email,
             status: 'sent',
+            resend_email_id: resendEmailId,
             sent_at: new Date().toISOString(),
           });
 

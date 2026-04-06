@@ -512,6 +512,12 @@ export default function PatientProfile() {
   const [dispensing, setDispensing] = useState(false);
   const [dispenseResult, setDispenseResult] = useState(null);
 
+  // Refund modal state
+  const [refundingCharge, setRefundingCharge] = useState(null);
+  const [refundAmount, setRefundAmount] = useState('');
+  const [refundType, setRefundType] = useState('full'); // 'full' or 'partial'
+  const [refundLoading, setRefundLoading] = useState(false);
+
   // Timeline state
   const [timeline, setTimeline] = useState([]);
   const [timelineLoading, setTimelineLoading] = useState(false);
@@ -1067,6 +1073,46 @@ export default function PatientProfile() {
       console.error('Error fetching stripe subscriptions:', err);
     } finally {
       setLoadingStripeSubs(false);
+    }
+  };
+
+  const handleRefund = async () => {
+    if (!refundingCharge) return;
+    const isPartial = refundType === 'partial';
+    const refundableAmount = (refundingCharge.amount - refundingCharge.amountRefunded);
+
+    if (isPartial) {
+      const amt = parseFloat(refundAmount);
+      if (isNaN(amt) || amt <= 0) return alert('Enter a valid refund amount');
+      if (amt > refundableAmount) return alert(`Amount exceeds refundable balance ($${refundableAmount.toFixed(2)})`);
+    }
+
+    const label = isPartial ? `$${parseFloat(refundAmount).toFixed(2)}` : `$${refundableAmount.toFixed(2)} (full)`;
+    if (!confirm(`Issue a refund of ${label}?`)) return;
+
+    setRefundLoading(true);
+    try {
+      const body = { charge_id: refundingCharge.key };
+      if (isPartial) body.amount = parseFloat(refundAmount);
+
+      const res = await fetch('/api/stripe/refund', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Refund failed');
+      alert(data.message);
+      setRefundingCharge(null);
+      setRefundAmount('');
+      setRefundType('full');
+      // Refresh charges
+      setStripeChargesFetched(false);
+      fetchStripeCharges();
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      setRefundLoading(false);
     }
   };
 
@@ -8972,11 +9018,27 @@ export default function PatientProfile() {
                                 )}
                               </div>
                             </div>
-                            <div className="pay-item-amount" style={charge.refunded ? { textDecoration: 'line-through', color: '#94a3b8' } : {}}>
-                              ${charge.amount.toFixed(2)}
+                            <div style={{ textAlign: 'right', minWidth: 70 }}>
+                              <div className="pay-item-amount" style={charge.refunded ? { textDecoration: 'line-through', color: '#94a3b8' } : {}}>
+                                ${charge.amount.toFixed(2)}
+                              </div>
+                              {charge.amountRefunded > 0 && !charge.refunded && (
+                                <div style={{ fontSize: 10, color: '#dc2626' }}>-${charge.amountRefunded.toFixed(2)} refunded</div>
+                              )}
                             </div>
                             <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                               {charge.refunded && <span className="pay-badge pay-badge-red">refunded</span>}
+                              {charge.amountRefunded > 0 && !charge.refunded && (
+                                <span className="pay-badge" style={{ background: '#fef3c7', color: '#92400e', fontSize: 9 }}>partial refund</span>
+                              )}
+                              {!charge.refunded && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setRefundingCharge(charge); setRefundType('full'); setRefundAmount(''); }}
+                                  style={{ fontSize: 10, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, padding: '2px 4px' }}
+                                >
+                                  Refund
+                                </button>
+                              )}
                               {charge.receipt_url && (
                                 <a href={charge.receipt_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
                                   style={{ fontSize: 10, color: '#3b82f6', textDecoration: 'none', fontWeight: 600 }}>
@@ -9115,6 +9177,101 @@ export default function PatientProfile() {
                   <button onClick={() => setShowEditPurchaseModal(false)} className="btn-secondary">Cancel</button>
                   <button onClick={handleEditPurchase} className="btn-primary">Save</button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Refund Modal */}
+        {refundingCharge && (
+          <div className="modal-overlay" {...overlayClickProps(() => { setRefundingCharge(null); setRefundAmount(''); setRefundType('full'); })}>
+            <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
+              <div className="modal-header">
+                <h3>Refund Payment</h3>
+                <button onClick={() => { setRefundingCharge(null); setRefundAmount(''); setRefundType('full'); }} className="close-btn">&times;</button>
+              </div>
+              <div className="modal-body">
+                <div style={{ marginBottom: 12, padding: '10px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>{refundingCharge.description || 'Payment'}</div>
+                  <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
+                    {refundingCharge.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    {refundingCharge.card_last4 && <span> — ····{refundingCharge.card_last4}</span>}
+                  </div>
+                  <div style={{ fontSize: 15, fontWeight: 700, marginTop: 4 }}>
+                    ${refundingCharge.amount.toFixed(2)}
+                    {refundingCharge.amountRefunded > 0 && (
+                      <span style={{ fontSize: 12, fontWeight: 400, color: '#dc2626', marginLeft: 8 }}>
+                        (${refundingCharge.amountRefunded.toFixed(2)} already refunded)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 12 }}>
+                  <label style={{ fontWeight: 600, fontSize: 13, marginBottom: 6, display: 'block' }}>Refund Type</label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      onClick={() => { setRefundType('full'); setRefundAmount(''); }}
+                      style={{
+                        flex: 1, padding: '8px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer', borderRadius: 4,
+                        border: refundType === 'full' ? '2px solid #2563eb' : '1px solid #d1d5db',
+                        background: refundType === 'full' ? '#eff6ff' : '#fff',
+                        color: refundType === 'full' ? '#2563eb' : '#374151',
+                      }}
+                    >
+                      Full Refund
+                    </button>
+                    <button
+                      onClick={() => setRefundType('partial')}
+                      style={{
+                        flex: 1, padding: '8px 12px', fontSize: 13, fontWeight: 600, cursor: 'pointer', borderRadius: 4,
+                        border: refundType === 'partial' ? '2px solid #2563eb' : '1px solid #d1d5db',
+                        background: refundType === 'partial' ? '#eff6ff' : '#fff',
+                        color: refundType === 'partial' ? '#2563eb' : '#374151',
+                      }}
+                    >
+                      Partial Refund
+                    </button>
+                  </div>
+                </div>
+
+                {refundType === 'partial' && (
+                  <div className="form-group">
+                    <label style={{ fontWeight: 600, fontSize: 13, marginBottom: 4, display: 'block' }}>
+                      Refund Amount (max ${(refundingCharge.amount - refundingCharge.amountRefunded).toFixed(2)})
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#64748b', fontWeight: 600 }}>$</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        max={refundingCharge.amount - refundingCharge.amountRefunded}
+                        value={refundAmount}
+                        onChange={e => setRefundAmount(e.target.value)}
+                        placeholder="0.00"
+                        style={{ paddingLeft: 24, width: '100%', boxSizing: 'border-box' }}
+                        autoFocus
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {refundType === 'full' && (
+                  <div style={{ padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 4, fontSize: 13, color: '#991b1b' }}>
+                    This will refund <strong>${(refundingCharge.amount - refundingCharge.amountRefunded).toFixed(2)}</strong> back to the patient's card.
+                  </div>
+                )}
+              </div>
+              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                <button onClick={() => { setRefundingCharge(null); setRefundAmount(''); setRefundType('full'); }} className="btn-secondary">Cancel</button>
+                <button
+                  onClick={handleRefund}
+                  disabled={refundLoading || (refundType === 'partial' && !refundAmount)}
+                  style={{ padding: '8px 16px', fontSize: 13, fontWeight: 600, border: 'none', borderRadius: 4, background: '#dc2626', color: '#fff', cursor: 'pointer', opacity: (refundLoading || (refundType === 'partial' && !refundAmount)) ? 0.5 : 1 }}
+                >
+                  {refundLoading ? 'Processing...' : 'Issue Refund'}
+                </button>
               </div>
             </div>
           </div>

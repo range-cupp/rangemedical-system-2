@@ -79,13 +79,12 @@ export default async function handler(req, res) {
         .in('status', LAB_STAGES)
         .order('created_at', { ascending: true }),
 
-      // Weight loss in-clinic schedule
+      // Weekly clinic schedule — weight loss, HRT, peptide
       supabase
         .from('protocols')
-        .select('id, patient_id, medication, current_dose, scheduled_days, visit_frequency, last_visit_date, patients(id, name, first_name, last_name)')
+        .select('id, patient_id, program_type, medication, current_dose, scheduled_days, visit_frequency, last_visit_date, delivery_method, patients(id, name, first_name, last_name)')
         .eq('status', 'active')
-        .eq('delivery_method', 'in_clinic')
-        .eq('program_type', 'weight_loss')
+        .in('program_type', ['weight_loss', 'hrt', 'peptide'])
         .order('created_at', { ascending: true }),
     ]);
 
@@ -124,7 +123,7 @@ export default async function handler(req, res) {
     }
     labPipeline.total = labProtocols.length;
 
-    // Weight loss schedule processing
+    // Weekly schedule processing
     const wlProtocols = (wlScheduleResult.data || []).map(p => {
       const pat = p.patients;
       const patientName = pat
@@ -134,11 +133,13 @@ export default async function handler(req, res) {
         id: p.id,
         patient_id: p.patient_id,
         patient_name: patientName,
+        program_type: p.program_type,
         medication: p.medication,
         current_dose: p.current_dose,
         scheduled_days: p.scheduled_days || [],
         visit_frequency: p.visit_frequency,
         last_visit_date: p.last_visit_date,
+        delivery_method: p.delivery_method,
       };
     });
 

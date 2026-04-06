@@ -24,6 +24,8 @@ export default function Dashboard() {
   const [consentAlerts, setConsentAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [advancing, setAdvancing] = useState(null);
+  const [assigningDay, setAssigningDay] = useState(null); // protocol id being assigned
+  const [scheduleTab, setScheduleTab] = useState('weight_loss');
 
   useEffect(() => {
     fetchDashboard();
@@ -106,25 +108,37 @@ export default function Dashboard() {
   // Active stages = everything except consult_complete
   const activeStages = LAB_STAGES.filter(s => s.id !== 'consult_complete');
 
-  // Weight loss schedule — group patients by their scheduled day
+  // Weekly schedule — group patients by scheduled day, segmented by category
   const WEEK_DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   const DAY_LABELS = { monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat' };
+  const SCHEDULE_TABS = [
+    { id: 'weight_loss', label: 'Weight Loss' },
+    { id: 'hrt', label: 'Testosterone' },
+    { id: 'peptide', label: 'Peptides' },
+  ];
 
   const today = new Date();
   const todayDow = today.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'America/Los_Angeles' }).toLowerCase();
 
-  const wlByDay = {};
-  WEEK_DAYS.forEach(d => { wlByDay[d] = []; });
-  wlSchedule.forEach(p => {
+  // Filter schedule by active tab
+  const tabPatients = wlSchedule.filter(p => p.program_type === scheduleTab);
+  const tabByDay = {};
+  WEEK_DAYS.forEach(d => { tabByDay[d] = []; });
+  const unscheduled = [];
+  tabPatients.forEach(p => {
     if (p.scheduled_days && p.scheduled_days.length > 0) {
       p.scheduled_days.forEach(day => {
-        if (wlByDay[day]) wlByDay[day].push(p);
+        if (tabByDay[day]) tabByDay[day].push(p);
       });
     } else {
-      // No scheduled day set — show in an "unscheduled" bucket
-      if (!wlByDay._unscheduled) wlByDay._unscheduled = [];
-      wlByDay._unscheduled.push(p);
+      unscheduled.push(p);
     }
+  });
+
+  // Counts per tab
+  const tabCounts = {};
+  SCHEDULE_TABS.forEach(t => {
+    tabCounts[t.id] = wlSchedule.filter(p => p.program_type === t.id).length;
   });
 
   const getMedShort = (med) => {
@@ -133,7 +147,36 @@ export default function Dashboard() {
     if (m.includes('semaglutide')) return 'Sema';
     if (m.includes('tirzepatide')) return 'Tirz';
     if (m.includes('retatrutide')) return 'Retat';
-    return med;
+    if (m.includes('testosterone')) return 'Test';
+    if (m.includes('cypionate')) return 'Test Cyp';
+    if (m.includes('bpc')) return 'BPC-157';
+    if (m.includes('selank')) return 'Selank';
+    if (m.includes('semax')) return 'Semax';
+    if (m.includes('ta-1') || m.includes('thymosin')) return 'TA-1';
+    return med.length > 12 ? med.substring(0, 10) + '...' : med;
+  };
+
+  const getDeliveryBadge = (method) => {
+    if (method === 'take_home') return { label: 'Take-Home', bg: '#eff6ff', color: '#1d4ed8' };
+    if (method === 'in_clinic') return { label: 'In-Clinic', bg: '#f0fdf4', color: '#15803d' };
+    if (method === 'hybrid') return { label: 'Hybrid', bg: '#fef3c7', color: '#92400e' };
+    return null;
+  };
+
+  const assignDay = async (protocolId, day) => {
+    setAssigningDay(protocolId);
+    try {
+      await fetch(`/api/protocols/${protocolId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scheduled_days: [day] }),
+      });
+      await fetchDashboard();
+    } catch (err) {
+      console.error('Assign day error:', err);
+    } finally {
+      setAssigningDay(null);
+    }
   };
 
   return (
@@ -142,19 +185,40 @@ export default function Dashboard() {
         <div style={styles.loading}>Loading...</div>
       ) : (
         <>
-          {/* ═══ WEIGHT LOSS WEEKLY SCHEDULE ═══ */}
+          {/* ═══ WEEKLY SCHEDULE ═══ */}
           {wlSchedule.length > 0 && (
             <div style={styles.wlSection}>
               <div style={styles.pipelineHeader}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <h2 style={styles.pipelineTitle}>Weight Loss — This Week</h2>
-                  <span style={styles.totalBadge}>{wlSchedule.length} in-clinic</span>
+                  <h2 style={styles.pipelineTitle}>Weekly Schedule</h2>
+                  <span style={styles.totalBadge}>{wlSchedule.length} active</span>
                 </div>
               </div>
 
+              {/* Category tabs */}
+              <div style={styles.tabBar}>
+                {SCHEDULE_TABS.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setScheduleTab(tab.id)}
+                    style={{
+                      ...styles.tab,
+                      ...(scheduleTab === tab.id ? styles.tabActive : {}),
+                    }}
+                  >
+                    {tab.label}
+                    <span style={{
+                      ...styles.tabCount,
+                      ...(scheduleTab === tab.id ? { background: '#000', color: '#fff' } : {}),
+                    }}>{tabCounts[tab.id] || 0}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Day grid */}
               <div style={styles.wlGrid}>
                 {WEEK_DAYS.map(day => {
-                  const patients = wlByDay[day] || [];
+                  const patients = tabByDay[day] || [];
                   const isToday = day === todayDow;
                   return (
                     <div key={day} style={{
@@ -169,7 +233,7 @@ export default function Dashboard() {
                         {patients.length > 0 && (
                           <span style={{
                             ...styles.wlDayCount,
-                            ...(isToday ? { background: '#000', color: '#fff' } : {}),
+                            ...(isToday ? { background: '#fff', color: '#000' } : {}),
                           }}>{patients.length}</span>
                         )}
                       </div>
@@ -177,18 +241,26 @@ export default function Dashboard() {
                         {patients.length === 0 ? (
                           <div style={styles.wlEmpty}>—</div>
                         ) : (
-                          patients.map(p => (
-                            <Link key={p.id} href={`/patients/${p.patient_id}`} style={styles.wlCard}>
-                              <div style={styles.wlPatientName}>{p.patient_name}</div>
-                              <div style={styles.wlCardMeta}>
-                                <span style={styles.wlMedBadge}>{getMedShort(p.medication)}</span>
-                                {p.current_dose && <span style={styles.wlDose}>{p.current_dose}</span>}
-                              </div>
-                              {p.last_visit_date && (
-                                <div style={styles.wlLastVisit}>Last: {formatDate(p.last_visit_date)}</div>
-                              )}
-                            </Link>
-                          ))
+                          patients.map(p => {
+                            const dm = getDeliveryBadge(p.delivery_method);
+                            return (
+                              <Link key={p.id} href={`/patients/${p.patient_id}`} style={styles.wlCard}>
+                                <div style={styles.wlPatientName}>{p.patient_name}</div>
+                                <div style={styles.wlCardMeta}>
+                                  {p.medication && <span style={styles.wlMedBadge}>{getMedShort(p.medication)}</span>}
+                                  {dm && (
+                                    <span style={{ ...styles.wlDeliveryBadge, background: dm.bg, color: dm.color }}>{dm.label}</span>
+                                  )}
+                                </div>
+                                {p.current_dose && (
+                                  <div style={styles.wlDose}>{p.current_dose}</div>
+                                )}
+                                {p.last_visit_date && (
+                                  <div style={styles.wlLastVisit}>Last: {formatDate(p.last_visit_date)}</div>
+                                )}
+                              </Link>
+                            );
+                          })
                         )}
                       </div>
                     </div>
@@ -196,15 +268,45 @@ export default function Dashboard() {
                 })}
               </div>
 
-              {wlByDay._unscheduled && wlByDay._unscheduled.length > 0 && (
-                <div style={styles.wlUnscheduled}>
-                  <span style={styles.wlUnscheduledLabel}>No day set:</span>
-                  {wlByDay._unscheduled.map(p => (
-                    <Link key={p.id} href={`/patients/${p.patient_id}`} style={styles.wlUnscheduledPatient}>
-                      {p.patient_name}
-                      <span style={styles.wlMedBadge}>{getMedShort(p.medication)}</span>
-                    </Link>
-                  ))}
+              {/* Unscheduled patients — with day assignment */}
+              {unscheduled.length > 0 && (
+                <div style={styles.wlUnscheduledSection}>
+                  <div style={styles.wlUnscheduledHeader}>
+                    <span style={styles.wlUnscheduledLabel}>No day set — {unscheduled.length} patient{unscheduled.length !== 1 ? 's' : ''}</span>
+                  </div>
+                  <div style={styles.wlUnscheduledList}>
+                    {unscheduled.map(p => {
+                      const dm = getDeliveryBadge(p.delivery_method);
+                      return (
+                        <div key={p.id} style={styles.wlUnscheduledRow}>
+                          <Link href={`/patients/${p.patient_id}`} style={styles.wlUnscheduledName}>
+                            {p.patient_name}
+                          </Link>
+                          <div style={styles.wlUnscheduledMeta}>
+                            {p.medication && <span style={styles.wlMedBadge}>{getMedShort(p.medication)}</span>}
+                            {dm && (
+                              <span style={{ ...styles.wlDeliveryBadge, background: dm.bg, color: dm.color }}>{dm.label}</span>
+                            )}
+                          </div>
+                          <div style={styles.wlDayPicker}>
+                            {assigningDay === p.id ? (
+                              <span style={{ fontSize: 12, color: '#737373' }}>Saving...</span>
+                            ) : (
+                              WEEK_DAYS.map(day => (
+                                <button
+                                  key={day}
+                                  onClick={() => assignDay(p.id, day)}
+                                  style={styles.wlDayBtn}
+                                >
+                                  {DAY_LABELS[day]}
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
@@ -516,13 +618,44 @@ const styles = {
     color: '#666'
   },
 
-  // ═══ Weight Loss Schedule ═══
+  // ═══ Weekly Schedule ═══
   wlSection: {
     background: '#fff',
     borderRadius: 0,
     border: '1px solid #e5e5e5',
     padding: '20px 24px',
     marginBottom: 28,
+  },
+  tabBar: {
+    display: 'flex',
+    gap: 0,
+    marginBottom: 16,
+    borderBottom: '1px solid #e5e5e5',
+  },
+  tab: {
+    padding: '8px 20px',
+    fontSize: 13,
+    fontWeight: 600,
+    color: '#737373',
+    background: 'none',
+    border: 'none',
+    borderBottom: '2px solid transparent',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+  },
+  tabActive: {
+    color: '#000',
+    borderBottom: '2px solid #000',
+  },
+  tabCount: {
+    fontSize: 11,
+    fontWeight: 600,
+    padding: '1px 6px',
+    background: '#e5e5e5',
+    color: '#525252',
+    borderRadius: 0,
   },
   wlGrid: {
     display: 'grid',
@@ -568,6 +701,8 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: 4,
+    maxHeight: 300,
+    overflowY: 'auto',
   },
   wlEmpty: {
     textAlign: 'center',
@@ -592,7 +727,8 @@ const styles = {
   wlCardMeta: {
     display: 'flex',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
+    flexWrap: 'wrap',
   },
   wlMedBadge: {
     fontSize: 10,
@@ -602,38 +738,75 @@ const styles = {
     color: '#15803d',
     borderRadius: 0,
   },
+  wlDeliveryBadge: {
+    fontSize: 10,
+    fontWeight: 600,
+    padding: '1px 6px',
+    borderRadius: 0,
+  },
   wlDose: {
     fontSize: 11,
     color: '#737373',
+    marginTop: 2,
   },
   wlLastVisit: {
     fontSize: 10,
     color: '#a3a3a3',
     marginTop: 3,
   },
-  wlUnscheduled: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    flexWrap: 'wrap',
-    marginTop: 12,
-    padding: '10px 12px',
-    background: '#fffbeb',
+  // Unscheduled section
+  wlUnscheduledSection: {
+    marginTop: 16,
     border: '1px solid #fde68a',
+    background: '#fffbeb',
+  },
+  wlUnscheduledHeader: {
+    padding: '8px 14px',
+    borderBottom: '1px solid #fde68a',
   },
   wlUnscheduledLabel: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: 600,
     color: '#92400e',
   },
-  wlUnscheduledPatient: {
+  wlUnscheduledList: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  wlUnscheduledRow: {
     display: 'flex',
     alignItems: 'center',
-    gap: 6,
+    gap: 12,
+    padding: '8px 14px',
+    borderBottom: '1px solid #fde68a',
+  },
+  wlUnscheduledName: {
     fontSize: 13,
-    fontWeight: 500,
+    fontWeight: 600,
     color: '#111',
     textDecoration: 'none',
+    minWidth: 140,
+  },
+  wlUnscheduledMeta: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+    minWidth: 140,
+  },
+  wlDayPicker: {
+    display: 'flex',
+    gap: 4,
+    marginLeft: 'auto',
+  },
+  wlDayBtn: {
+    padding: '3px 8px',
+    fontSize: 11,
+    fontWeight: 600,
+    background: '#fff',
+    border: '1px solid #e5e5e5',
+    borderRadius: 0,
+    cursor: 'pointer',
+    color: '#333',
   },
 
   // ═══ Labs Pipeline ═══

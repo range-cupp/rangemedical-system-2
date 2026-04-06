@@ -471,11 +471,11 @@ export default function WeightLossPortal() {
   const today = todayPacific();
   const checkedInToday = logs?.some(l => l.date === today);
   const hasLogs = logs && logs.length > 0;
-  const weightData = logs?.filter(l => l.weight).map((l) => ({
+  const weightData = (logs || []).filter(l => l.weight).map((l) => ({
     label: fmt(l.date),
     weight: l.weight,
     idx: l.date,
-  })).reverse() || [];
+  })).sort((a, b) => a.idx.localeCompare(b.idx));
 
   const lossNum = parseFloat(stats.totalLoss);
   const isLoss = lossNum > 0;

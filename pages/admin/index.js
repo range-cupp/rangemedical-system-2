@@ -18,6 +18,7 @@ const LAB_STAGES = [
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [labPipeline, setLabPipeline] = useState(null);
+  const [wlSchedule, setWlSchedule] = useState([]);
   const [todayAppointments, setTodayAppointments] = useState([]);
   const [recentComms, setRecentComms] = useState([]);
   const [consentAlerts, setConsentAlerts] = useState([]);
@@ -35,6 +36,7 @@ export default function Dashboard() {
 
       setStats(data.stats || {});
       setLabPipeline(data.labPipeline || null);
+      setWlSchedule(data.wlSchedule || []);
       setTodayAppointments(data.todayAppointments || []);
       setRecentComms(data.recentComms || []);
     } catch (err) {
@@ -104,12 +106,110 @@ export default function Dashboard() {
   // Active stages = everything except consult_complete
   const activeStages = LAB_STAGES.filter(s => s.id !== 'consult_complete');
 
+  // Weight loss schedule — group patients by their scheduled day
+  const WEEK_DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const DAY_LABELS = { monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat' };
+
+  const today = new Date();
+  const todayDow = today.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'America/Los_Angeles' }).toLowerCase();
+
+  const wlByDay = {};
+  WEEK_DAYS.forEach(d => { wlByDay[d] = []; });
+  wlSchedule.forEach(p => {
+    if (p.scheduled_days && p.scheduled_days.length > 0) {
+      p.scheduled_days.forEach(day => {
+        if (wlByDay[day]) wlByDay[day].push(p);
+      });
+    } else {
+      // No scheduled day set — show in an "unscheduled" bucket
+      if (!wlByDay._unscheduled) wlByDay._unscheduled = [];
+      wlByDay._unscheduled.push(p);
+    }
+  });
+
+  const getMedShort = (med) => {
+    if (!med) return '';
+    const m = med.toLowerCase();
+    if (m.includes('semaglutide')) return 'Sema';
+    if (m.includes('tirzepatide')) return 'Tirz';
+    if (m.includes('retatrutide')) return 'Retat';
+    return med;
+  };
+
   return (
     <AdminLayout title="Dashboard">
       {loading ? (
         <div style={styles.loading}>Loading...</div>
       ) : (
         <>
+          {/* ═══ WEIGHT LOSS WEEKLY SCHEDULE ═══ */}
+          {wlSchedule.length > 0 && (
+            <div style={styles.wlSection}>
+              <div style={styles.pipelineHeader}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <h2 style={styles.pipelineTitle}>Weight Loss — This Week</h2>
+                  <span style={styles.totalBadge}>{wlSchedule.length} in-clinic</span>
+                </div>
+              </div>
+
+              <div style={styles.wlGrid}>
+                {WEEK_DAYS.map(day => {
+                  const patients = wlByDay[day] || [];
+                  const isToday = day === todayDow;
+                  return (
+                    <div key={day} style={{
+                      ...styles.wlDayColumn,
+                      ...(isToday ? styles.wlDayColumnToday : {}),
+                    }}>
+                      <div style={{
+                        ...styles.wlDayHeader,
+                        ...(isToday ? styles.wlDayHeaderToday : {}),
+                      }}>
+                        <span style={{ ...styles.wlDayLabel, ...(isToday ? { color: '#fff' } : {}) }}>{DAY_LABELS[day]}</span>
+                        {patients.length > 0 && (
+                          <span style={{
+                            ...styles.wlDayCount,
+                            ...(isToday ? { background: '#000', color: '#fff' } : {}),
+                          }}>{patients.length}</span>
+                        )}
+                      </div>
+                      <div style={styles.wlDayBody}>
+                        {patients.length === 0 ? (
+                          <div style={styles.wlEmpty}>—</div>
+                        ) : (
+                          patients.map(p => (
+                            <Link key={p.id} href={`/patients/${p.patient_id}`} style={styles.wlCard}>
+                              <div style={styles.wlPatientName}>{p.patient_name}</div>
+                              <div style={styles.wlCardMeta}>
+                                <span style={styles.wlMedBadge}>{getMedShort(p.medication)}</span>
+                                {p.dosage && <span style={styles.wlDose}>{p.dosage}</span>}
+                              </div>
+                              {p.last_visit_date && (
+                                <div style={styles.wlLastVisit}>Last: {formatDate(p.last_visit_date)}</div>
+                              )}
+                            </Link>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {wlByDay._unscheduled && wlByDay._unscheduled.length > 0 && (
+                <div style={styles.wlUnscheduled}>
+                  <span style={styles.wlUnscheduledLabel}>No day set:</span>
+                  {wlByDay._unscheduled.map(p => (
+                    <Link key={p.id} href={`/patients/${p.patient_id}`} style={styles.wlUnscheduledPatient}>
+                      {p.patient_name}
+                      <span style={styles.wlMedBadge}>{getMedShort(p.medication)}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ═══ LABS PIPELINE HERO ═══ */}
           <div style={styles.pipelineSection}>
             <div style={styles.pipelineHeader}>
@@ -414,6 +514,126 @@ const styles = {
     textAlign: 'center',
     padding: '60px',
     color: '#666'
+  },
+
+  // ═══ Weight Loss Schedule ═══
+  wlSection: {
+    background: '#fff',
+    borderRadius: 0,
+    border: '1px solid #e5e5e5',
+    padding: '20px 24px',
+    marginBottom: 28,
+  },
+  wlGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(6, 1fr)',
+    gap: 8,
+  },
+  wlDayColumn: {
+    background: '#fafafa',
+    borderRadius: 0,
+    overflow: 'hidden',
+    minHeight: 60,
+  },
+  wlDayColumnToday: {
+    border: '2px solid #000',
+  },
+  wlDayHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '6px 10px',
+    borderBottom: '1px solid #e5e5e5',
+  },
+  wlDayHeaderToday: {
+    background: '#000',
+  },
+  wlDayLabel: {
+    fontSize: 12,
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
+    color: 'inherit',
+  },
+  wlDayCount: {
+    fontSize: 11,
+    fontWeight: 600,
+    background: '#e5e5e5',
+    color: '#525252',
+    padding: '1px 6px',
+    borderRadius: 0,
+  },
+  wlDayBody: {
+    padding: 6,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4,
+  },
+  wlEmpty: {
+    textAlign: 'center',
+    color: '#d4d4d4',
+    fontSize: 13,
+    padding: '8px 0',
+  },
+  wlCard: {
+    background: '#fff',
+    borderRadius: 0,
+    padding: '8px 10px',
+    border: '1px solid #e5e5e5',
+    textDecoration: 'none',
+    color: '#000',
+    display: 'block',
+  },
+  wlPatientName: {
+    fontSize: 13,
+    fontWeight: 600,
+    marginBottom: 3,
+  },
+  wlCardMeta: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+  },
+  wlMedBadge: {
+    fontSize: 10,
+    fontWeight: 600,
+    padding: '1px 6px',
+    background: '#f0fdf4',
+    color: '#15803d',
+    borderRadius: 0,
+  },
+  wlDose: {
+    fontSize: 11,
+    color: '#737373',
+  },
+  wlLastVisit: {
+    fontSize: 10,
+    color: '#a3a3a3',
+    marginTop: 3,
+  },
+  wlUnscheduled: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+    marginTop: 12,
+    padding: '10px 12px',
+    background: '#fffbeb',
+    border: '1px solid #fde68a',
+  },
+  wlUnscheduledLabel: {
+    fontSize: 12,
+    fontWeight: 600,
+    color: '#92400e',
+  },
+  wlUnscheduledPatient: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    fontSize: 13,
+    fontWeight: 500,
+    color: '#111',
+    textDecoration: 'none',
   },
 
   // ═══ Labs Pipeline ═══

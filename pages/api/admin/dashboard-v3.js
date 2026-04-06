@@ -26,6 +26,7 @@ export default async function handler(req, res) {
       commsResult,
       invoicesResult,
       labPipelineResult,
+      wlScheduleResult,
     ] = await Promise.all([
       // Active protocols count + unique patients
       supabase
@@ -77,6 +78,15 @@ export default async function handler(req, res) {
         .eq('program_type', 'labs')
         .in('status', LAB_STAGES)
         .order('created_at', { ascending: true }),
+
+      // Weight loss in-clinic schedule
+      supabase
+        .from('protocols')
+        .select('id, patient_id, medication, dosage, scheduled_days, visit_frequency, last_visit_date, patients(id, name, first_name, last_name)')
+        .eq('status', 'active')
+        .eq('delivery_method', 'in_clinic')
+        .or('program_type.eq.weight_loss,program_type.ilike.weight_loss_%')
+        .order('created_at', { ascending: true }),
     ]);
 
     // Active protocols stats
@@ -114,6 +124,24 @@ export default async function handler(req, res) {
     }
     labPipeline.total = labProtocols.length;
 
+    // Weight loss schedule processing
+    const wlProtocols = (wlScheduleResult.data || []).map(p => {
+      const pat = p.patients;
+      const patientName = pat
+        ? (pat.first_name && pat.last_name ? `${pat.first_name} ${pat.last_name}` : pat.name || 'Unknown')
+        : 'Unknown';
+      return {
+        id: p.id,
+        patient_id: p.patient_id,
+        patient_name: patientName,
+        medication: p.medication,
+        dosage: p.dosage,
+        scheduled_days: p.scheduled_days || [],
+        visit_frequency: p.visit_frequency,
+        last_visit_date: p.last_visit_date,
+      };
+    });
+
     return res.status(200).json({
       stats: {
         activeProtocols: activeProtocols.length,
@@ -127,6 +155,7 @@ export default async function handler(req, res) {
       labPipeline,
       todayAppointments: (appointmentsResult.data || []).slice(0, 6),
       recentComms: (commsResult.data || []).slice(0, 5),
+      wlSchedule: wlProtocols,
     });
 
   } catch (error) {

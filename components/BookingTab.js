@@ -54,6 +54,11 @@ const SERVICE_CATEGORIES = {
   'Pickups': [
     'medication-pickup',
   ],
+  'Range Assessment': [
+    'range-assessment-injury',
+    'range-assessment-energy',
+    'range-assessment-both',
+  ],
   'Consultations': [
     'initial-consultation',
     'initial-consultation-peptide',
@@ -70,10 +75,11 @@ const CATEGORY_COLORS = {
   'IV Therapy': { bg: '#ede9fe', text: '#5b21b6' },
   'Specialty IVs': { bg: '#fdf2f8', text: '#9d174d' },
   'Pickups': { bg: '#e0f2fe', text: '#0369a1' },
+  'Range Assessment': { bg: '#fef9c3', text: '#854d0e' },
   'Consultations': { bg: '#fce7f3', text: '#9d174d' },
 };
 
-const CATEGORY_ORDER = ['Lab / Blood Draw', 'Injections', 'Therapies', 'Pickups', 'IV Therapy', 'Specialty IVs', 'Consultations'];
+const CATEGORY_ORDER = ['Range Assessment', 'Lab / Blood Draw', 'Injections', 'Therapies', 'Pickups', 'IV Therapy', 'Specialty IVs', 'Consultations'];
 
 // ============================================
 // CASCADING DROPDOWN CONFIGS
@@ -111,6 +117,7 @@ const RANGE_IV_FORMULAS = [
 // Map slug prefix to appointment service_category for override bookings
 function getServiceCategory(slug) {
   if (!slug) return 'other';
+  if (slug.startsWith('range-assessment')) return 'assessment';
   if (slug.includes('blood-draw') || slug.includes('lab-review')) return 'lab';
   if (slug.includes('injection') || slug === 'range-injections') return 'injection';
   if (slug === 'hbot') return 'hbot';

@@ -27,6 +27,9 @@ export default function Dashboard() {
   const [assigningDay, setAssigningDay] = useState(null); // protocol id being assigned
   const [dayPickerOpen, setDayPickerOpen] = useState(null); // protocol id with day picker open
   const [scheduleTab, setScheduleTab] = useState('weight_loss');
+  const [editingNote, setEditingNote] = useState(null); // protocol id being edited
+  const [noteText, setNoteText] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
 
   useEffect(() => {
     fetchDashboard();
@@ -187,6 +190,30 @@ export default function Dashboard() {
     }
   };
 
+  const startEditNote = (protocol) => {
+    setEditingNote(protocol.id);
+    setNoteText(protocol.notes || '');
+  };
+
+  const saveNote = async (protocolId) => {
+    setSavingNote(true);
+    try {
+      await fetch(`/api/protocols/${protocolId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: noteText }),
+      });
+      // Update local state immediately so we don't need a full refetch
+      setWlSchedule(prev => prev.map(p => p.id === protocolId ? { ...p, notes: noteText } : p));
+      setEditingNote(null);
+      setNoteText('');
+    } catch (err) {
+      console.error('Save note error:', err);
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
   return (
     <AdminLayout title="Dashboard">
       {loading ? (
@@ -286,6 +313,31 @@ export default function Dashboard() {
                                     <span style={styles.wlLastAppt}>No history</span>
                                   )}
                                 </div>
+                                {/* Note */}
+                                {editingNote === p.id ? (
+                                  <div style={styles.wlNoteEdit}>
+                                    <textarea
+                                      value={noteText}
+                                      onChange={(e) => setNoteText(e.target.value)}
+                                      style={styles.wlNoteTextarea}
+                                      placeholder="Add a note..."
+                                      rows={2}
+                                      autoFocus
+                                    />
+                                    <div style={styles.wlNoteActions}>
+                                      <button onClick={() => saveNote(p.id)} disabled={savingNote} style={styles.wlNoteSaveBtn}>
+                                        {savingNote ? 'Saving...' : 'Save'}
+                                      </button>
+                                      <button onClick={() => setEditingNote(null)} style={styles.wlNoteCancelBtn}>Cancel</button>
+                                    </div>
+                                  </div>
+                                ) : p.notes ? (
+                                  <div style={styles.wlNoteDisplay} onClick={() => startEditNote(p)}>
+                                    {p.notes}
+                                  </div>
+                                ) : (
+                                  <button onClick={() => startEditNote(p)} style={styles.wlAddNoteBtn}>+ Note</button>
+                                )}
                                 {/* Day picker toggle */}
                                 {assigningDay === p.id ? (
                                   <div style={styles.wlMovingLabel}>Moving...</div>
@@ -827,6 +879,68 @@ const styles = {
     fontWeight: 600,
     color: '#000',
     textDecoration: 'none',
+  },
+  wlNoteEdit: {
+    marginTop: 4,
+  },
+  wlNoteTextarea: {
+    width: '100%',
+    fontSize: 11,
+    padding: '4px 6px',
+    border: '1px solid #d4d4d4',
+    borderRadius: 0,
+    resize: 'vertical',
+    fontFamily: 'inherit',
+    lineHeight: 1.4,
+    outline: 'none',
+    boxSizing: 'border-box',
+  },
+  wlNoteActions: {
+    display: 'flex',
+    gap: 4,
+    marginTop: 3,
+  },
+  wlNoteSaveBtn: {
+    fontSize: 10,
+    fontWeight: 600,
+    padding: '2px 8px',
+    background: '#000',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 0,
+    cursor: 'pointer',
+  },
+  wlNoteCancelBtn: {
+    fontSize: 10,
+    fontWeight: 600,
+    padding: '2px 8px',
+    background: '#fff',
+    color: '#737373',
+    border: '1px solid #e5e5e5',
+    borderRadius: 0,
+    cursor: 'pointer',
+  },
+  wlNoteDisplay: {
+    fontSize: 11,
+    color: '#525252',
+    background: '#fafaf9',
+    padding: '3px 6px',
+    marginTop: 4,
+    border: '1px solid #e5e5e5',
+    cursor: 'pointer',
+    lineHeight: 1.4,
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+  },
+  wlAddNoteBtn: {
+    fontSize: 10,
+    color: '#a3a3a3',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '2px 0',
+    marginTop: 3,
+    textAlign: 'left',
   },
   wlMoveBtn: {
     width: '100%',

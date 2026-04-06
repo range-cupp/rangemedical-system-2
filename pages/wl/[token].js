@@ -302,6 +302,9 @@ export default function WeightLossPortal() {
   const [tdeeForm, setTdeeForm] = useState({ heightFt: '', heightIn: '', age: '', activity: '' });
   const [showTdeeForm, setShowTdeeForm] = useState(false);
 
+  // Guide accordion
+  const [expandedGuide, setExpandedGuide] = useState({});
+
   // Zone 3: Symptom triage
   const [selectedSymptoms, setSelectedSymptoms] = useState([]);
   const [expandedSymptoms, setExpandedSymptoms] = useState({});
@@ -1148,6 +1151,190 @@ export default function WeightLossPortal() {
             )}
           </div>
 
+          {/* ─── YOUR GUIDE (Resource Accordions) ────────────────────── */}
+          <div style={{ marginBottom: 16 }}>
+            <p style={{ ...label, marginBottom: 12 }}>YOUR GUIDE</p>
+
+            {/* What to Eat */}
+            <GuideAccordion
+              title="What to Eat"
+              expanded={expandedGuide.eat}
+              onToggle={() => setExpandedGuide(p => ({ ...p, eat: !p.eat }))}
+            >
+              <p style={guideP}>Since you{'\u2019'}re eating less on your medication, every bite matters more. Focus on these key nutrients:</p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, margin: '12px 0' }}>
+                <NutrientCard name="Fiber" desc="Oats, vegetables, fruits, nuts" />
+                <NutrientCard name="Protein" desc="Chicken, fish, eggs, beans" />
+                <NutrientCard name="Calcium" desc="Dairy, sardines, leafy greens" />
+                <NutrientCard name="Vitamin D" desc="Fatty fish, eggs, mushrooms" />
+              </div>
+
+              <div style={{
+                background: C.bg, border: `2px solid ${C.text}`, padding: 16, margin: '16px 0',
+              }}>
+                <p style={{ ...guideP, fontWeight: 700, marginBottom: 8, color: C.text }}>
+                  Protein is your #1 priority on GLP-1
+                </p>
+                <p style={guideP}>
+                  At your weight, aim for <strong>{Math.round(0.7 * (currentWeight || 180))}{'\u2013'}{Math.round(1.0 * (currentWeight || 180))}g of protein per day</strong>. Protein preserves muscle, keeps you full, and supports your metabolism.
+                </p>
+                <p style={{ ...guideP, marginTop: 8 }}>
+                  <strong>Include protein with every meal.</strong>
+                </p>
+              </div>
+
+              <p style={{ ...label, marginBottom: 8, marginTop: 16, fontSize: 10 }}>TOP PROTEIN SOURCES</p>
+              <div style={{ background: C.bg, border: `1px solid ${C.border}` }}>
+                {[
+                  ['Lean Turkey (3 oz)', '26g'],
+                  ['Chicken Breast (3 oz)', '25g'],
+                  ['Fish (3 oz)', '22g'],
+                  ['Lentils (1 cup cooked)', '18g'],
+                  ['Greek Yogurt (1 cup)', '15g'],
+                  ['Eggs (2 large)', '12g'],
+                  ['Whey Protein Shake', '25\u201330g'],
+                  ['Cottage Cheese (1 cup)', '28g'],
+                ].map(([food, grams], i) => (
+                  <div key={food} style={{
+                    display: 'flex', justifyContent: 'space-between', padding: '10px 14px',
+                    borderBottom: i < 7 ? `1px solid ${C.divider}` : 'none', fontSize: 13,
+                  }}>
+                    <span style={{ color: C.body }}>{food}</span>
+                    <span style={{ color: C.text, fontWeight: 600 }}>{grams}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{
+                background: C.black, padding: 14, marginTop: 16,
+              }}>
+                <p style={{ fontSize: 13, color: C.white, margin: 0, lineHeight: 1.5 }}>
+                  <strong>Pro tip:</strong> A daily protein shake is the easiest way to hit your target, especially when appetite is low.
+                </p>
+              </div>
+            </GuideAccordion>
+
+            {/* How to Eat */}
+            <GuideAccordion
+              title="How to Eat on GLP-1"
+              expanded={expandedGuide.how}
+              onToggle={() => setExpandedGuide(p => ({ ...p, how: !p.how }))}
+            >
+              <p style={guideP}>Your medication changes how your body processes food. These eating habits make a big difference:</p>
+
+              {[
+                'Eat slowly and chew each bite thoroughly',
+                'Eat smaller, more frequent meals every 3\u20134 hours',
+                'Stop eating when you feel full \u2014 don\u2019t push it',
+                'Avoid lying down for 2 hours after eating',
+                'Eat your last meal at least 2 hours before bed',
+                'Drink beverages 30\u201360 minutes before or after meals, not during',
+              ].map((tip, i) => (
+                <p key={i} style={{
+                  ...guideP, paddingLeft: 14, textIndent: -14, margin: '0 0 6px',
+                }}>
+                  {'\u2013'}{'  '}{tip}
+                </p>
+              ))}
+
+              <div style={{
+                background: C.bg, border: `1px solid ${C.border}`, padding: 14, marginTop: 16,
+              }}>
+                <p style={{ ...label, marginBottom: 6, fontSize: 10 }}>SAMPLE DAY</p>
+                {[
+                  ['7:00 AM', 'Greek yogurt + berries (20g protein)'],
+                  ['10:00 AM', '2 eggs + toast (12g protein)'],
+                  ['1:00 PM', 'Chicken salad (25g protein)'],
+                  ['4:00 PM', 'Protein shake (25g protein)'],
+                  ['7:00 PM', 'Salmon + vegetables (22g protein)'],
+                ].map(([time, meal], i) => (
+                  <div key={i} style={{
+                    display: 'flex', gap: 12, padding: '6px 0',
+                    borderBottom: i < 4 ? `1px solid ${C.divider}` : 'none', fontSize: 13,
+                  }}>
+                    <span style={{ color: C.caption, fontWeight: 600, minWidth: 60 }}>{time}</span>
+                    <span style={{ color: C.body }}>{meal}</span>
+                  </div>
+                ))}
+                <p style={{ fontSize: 12, color: C.caption, margin: '8px 0 0', fontStyle: 'italic' }}>
+                  Total: ~104g protein {'\u2014'} adjust portions to match your {Math.round(0.7 * (currentWeight || 180))}g+ target
+                </p>
+              </div>
+            </GuideAccordion>
+
+            {/* Exercise & Movement */}
+            <GuideAccordion
+              title="Exercise & Movement"
+              expanded={expandedGuide.exercise}
+              onToggle={() => setExpandedGuide(p => ({ ...p, exercise: !p.exercise }))}
+            >
+              <p style={guideP}>Exercise preserves muscle mass while you lose fat and supports healthy digestion.</p>
+
+              <div style={{
+                background: C.bg, border: `1px solid ${C.border}`, padding: 16, marginBottom: 12,
+              }}>
+                <p style={{ ...label, marginBottom: 6, fontSize: 10 }}>CARDIO</p>
+                <p style={{ ...guideP, fontWeight: 600, marginBottom: 4 }}>150 minutes per week across 5+ days</p>
+                <p style={guideP}>Brisk walking, biking, swimming, dancing, hiking</p>
+              </div>
+
+              <div style={{
+                background: C.bg, border: `1px solid ${C.border}`, padding: 16, marginBottom: 12,
+              }}>
+                <p style={{ ...label, marginBottom: 6, fontSize: 10 }}>STRENGTH TRAINING</p>
+                <p style={{ ...guideP, fontWeight: 600, marginBottom: 4 }}>3 sessions per week (with rest days)</p>
+                <p style={guideP}>8{'\u2013'}10 exercises, 8{'\u2013'}12 reps, 2+ sets each. Focus on major muscle groups.</p>
+              </div>
+
+              <div style={{
+                border: `2px solid ${C.text}`, padding: 14,
+              }}>
+                <p style={{ fontSize: 13, color: C.body, margin: 0, lineHeight: 1.5 }}>
+                  <strong>Note:</strong> You may feel more tired than usual while your body adjusts. Start slow and build up {'\u2014'} listen to your body.
+                </p>
+              </div>
+            </GuideAccordion>
+
+            {/* Supplements */}
+            <GuideAccordion
+              title="Supplements"
+              expanded={expandedGuide.supplements}
+              onToggle={() => setExpandedGuide(p => ({ ...p, supplements: !p.supplements }))}
+            >
+              <p style={guideP}>Since you{'\u2019'}re eating less, supplements help fill nutritional gaps.</p>
+
+              <p style={{ ...label, marginBottom: 8, marginTop: 12, fontSize: 10 }}>INCLUDED IN YOUR PROGRAM</p>
+              <div style={{
+                background: C.black, padding: 16, marginBottom: 12,
+              }}>
+                <p style={{ fontSize: 13, color: C.white, margin: '0 0 8px', lineHeight: 1.5 }}>
+                  <strong>Multivitamin</strong> {'\u2014'} Covers essential vitamins and minerals your body needs when eating less
+                </p>
+                <p style={{ fontSize: 13, color: C.white, margin: 0, lineHeight: 1.5 }}>
+                  <strong>Vitamin D</strong> {'\u2014'} Supports bone health, immune function, and energy levels
+                </p>
+              </div>
+
+              <p style={{ ...label, marginBottom: 8, fontSize: 10 }}>CONSIDER ADDING</p>
+              {[
+                ['Calcium', 'Supports bone density, especially important during weight loss'],
+                ['Whey Protein', 'Helps hit your daily protein target and preserve muscle'],
+                ['Probiotics', 'Supports gut health, which can be affected by dietary changes'],
+                ['Magnesium', 'Helps with constipation, sleep, and muscle recovery'],
+                ['Creatine', 'Supports muscle maintenance and exercise performance'],
+              ].map(([name, desc]) => (
+                <div key={name} style={{
+                  background: C.bg, border: `1px solid ${C.border}`,
+                  padding: '10px 14px', marginBottom: 6,
+                }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: C.text, margin: '0 0 2px' }}>{name}</p>
+                  <p style={{ fontSize: 12, color: C.body, margin: 0, lineHeight: 1.4 }}>{desc}</p>
+                </div>
+              ))}
+            </GuideAccordion>
+          </div>
+
           {/* ─── ZONE 3: How Are You Feeling? ────────────────────────── */}
           <div id="tips" ref={tipsRef} style={{ ...card }}>
             <p style={{ ...label, marginBottom: 4 }}>
@@ -1300,6 +1487,56 @@ export default function WeightLossPortal() {
         </div>
       </div>
     </>
+  );
+}
+
+// ─── Guide styles & components ───────────────────────────────────────────────
+const guideP = { ...bodyText, fontSize: 14, marginBottom: 8 };
+
+function GuideAccordion({ title, expanded, onToggle, children }) {
+  return (
+    <div style={{
+      ...card, padding: 0, marginBottom: 8, overflow: 'hidden',
+    }}>
+      <button
+        onClick={onToggle}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center',
+          justifyContent: 'space-between', padding: '16px 20px',
+          background: 'none', border: 'none', cursor: 'pointer',
+          textAlign: 'left',
+        }}
+      >
+        <span style={{ fontSize: 15, fontWeight: 600, color: C.text }}>
+          {title}
+        </span>
+        <span style={{
+          fontSize: 18, color: C.caption, transition,
+          transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+        }}>
+          {'\u25BE'}
+        </span>
+      </button>
+      <div style={{
+        maxHeight: expanded ? 3000 : 0,
+        overflow: 'hidden', transition: 'max-height 0.4s ease',
+      }}>
+        <div style={{ padding: '0 20px 20px' }}>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NutrientCard({ name, desc }) {
+  return (
+    <div style={{
+      background: C.bg, border: `1px solid ${C.border}`, padding: 12, textAlign: 'center',
+    }}>
+      <p style={{ fontSize: 12, fontWeight: 700, color: C.text, margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{name}</p>
+      <p style={{ fontSize: 11, color: C.caption, margin: 0, lineHeight: 1.3 }}>{desc}</p>
+    </div>
   );
 }
 

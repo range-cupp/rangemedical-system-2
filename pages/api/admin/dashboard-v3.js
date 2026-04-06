@@ -84,7 +84,7 @@ export default async function handler(req, res) {
       // Weekly clinic schedule — weight loss, HRT, peptide
       supabase
         .from('protocols')
-        .select('id, patient_id, program_type, medication, current_dose, scheduled_days, visit_frequency, last_visit_date, delivery_method, notes, patients(id, name, first_name, last_name)')
+        .select('id, patient_id, program_type, medication, current_dose, scheduled_days, visit_frequency, last_visit_date, delivery_method, notes, patients(id, name, first_name, last_name, phone)')
         .eq('status', 'active')
         .in('program_type', ['weight_loss', 'hrt', 'peptide'])
         .order('created_at', { ascending: true }),
@@ -175,6 +175,7 @@ export default async function handler(req, res) {
         id: p.id,
         patient_id: p.patient_id,
         patient_name: patientName,
+        patient_phone: pat?.phone || null,
         program_type: p.program_type,
         medication: p.medication,
         current_dose: p.current_dose,

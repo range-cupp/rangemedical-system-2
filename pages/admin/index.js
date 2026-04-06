@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import AdminLayout from '../../components/AdminLayout';
+import SMSComposeModal from '../../components/SMSComposeModal';
 
 const LAB_STAGES = [
   { id: 'awaiting_results', label: 'Awaiting Results', shortLabel: 'Awaiting' },
@@ -30,6 +31,7 @@ export default function Dashboard() {
   const [editingNote, setEditingNote] = useState(null); // protocol id being edited
   const [noteText, setNoteText] = useState('');
   const [savingNote, setSavingNote] = useState(false);
+  const [smsTarget, setSmsTarget] = useState(null); // { phone, name, patientId }
 
   useEffect(() => {
     fetchDashboard();
@@ -335,9 +337,21 @@ export default function Dashboard() {
                                   <div style={styles.wlNoteDisplay} onClick={() => startEditNote(p)}>
                                     {p.notes}
                                   </div>
-                                ) : (
-                                  <button onClick={() => startEditNote(p)} style={styles.wlAddNoteBtn}>+ Note</button>
-                                )}
+                                ) : null}
+                                {/* Quick actions: Note + Text */}
+                                <div style={styles.wlCardActions}>
+                                  {!p.notes && editingNote !== p.id && (
+                                    <button onClick={() => startEditNote(p)} style={styles.wlAddNoteBtn}>+ Note</button>
+                                  )}
+                                  {p.patient_phone && (
+                                    <button
+                                      onClick={() => setSmsTarget({ phone: p.patient_phone, name: p.patient_name, patientId: p.patient_id })}
+                                      style={styles.wlTextBtn}
+                                    >
+                                      Text
+                                    </button>
+                                  )}
+                                </div>
                                 {/* Day picker toggle */}
                                 {assigningDay === p.id ? (
                                   <div style={styles.wlMovingLabel}>Moving...</div>
@@ -405,6 +419,14 @@ export default function Dashboard() {
                               <span style={styles.wlLastAppt}>Last: {formatDate(p.last_visit_date)}</span>
                             ) : (
                               <span style={styles.wlLastAppt}>No history</span>
+                            )}
+                            {p.patient_phone && (
+                              <button
+                                onClick={() => setSmsTarget({ phone: p.patient_phone, name: p.patient_name, patientId: p.patient_id })}
+                                style={styles.wlTextBtnInline}
+                              >
+                                Text
+                              </button>
                             )}
                           </div>
                           <div style={styles.wlDayPicker}>
@@ -726,6 +748,16 @@ export default function Dashboard() {
 
         </>
       )}
+
+      {/* SMS Compose Modal */}
+      <SMSComposeModal
+        isOpen={!!smsTarget}
+        onClose={() => setSmsTarget(null)}
+        recipientPhone={smsTarget?.phone || ''}
+        recipientName={smsTarget?.name || ''}
+        patientId={smsTarget?.patientId || null}
+        patientName={smsTarget?.name || ''}
+      />
     </AdminLayout>
   );
 }
@@ -939,8 +971,33 @@ const styles = {
     border: 'none',
     cursor: 'pointer',
     padding: '2px 0',
-    marginTop: 3,
     textAlign: 'left',
+  },
+  wlCardActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 3,
+  },
+  wlTextBtn: {
+    fontSize: 10,
+    fontWeight: 600,
+    color: '#1d4ed8',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '2px 0',
+    textAlign: 'left',
+  },
+  wlTextBtnInline: {
+    fontSize: 9,
+    fontWeight: 600,
+    color: '#1d4ed8',
+    background: '#eff6ff',
+    border: 'none',
+    cursor: 'pointer',
+    padding: '1px 6px',
+    whiteSpace: 'nowrap',
   },
   wlMoveBtn: {
     width: '100%',

@@ -59,16 +59,34 @@ export default async function handler(req, res) {
       }
     }
 
+    // Fetch invoice line items for charges that came from Stripe invoices
+    const invoiceIds = [...new Set(charges.data.map(c => c.invoice).filter(Boolean))];
+    let invoiceLineItems = {};
+    if (invoiceIds.length > 0) {
+      await Promise.all(invoiceIds.map(async (invId) => {
+        try {
+          const invoice = await stripe.invoices.retrieve(invId, { expand: ['lines.data'] });
+          invoiceLineItems[invId] = (invoice.lines?.data || [])
+            .map(line => line.description || line.price?.nickname || 'Service')
+            .join(', ');
+        } catch (err) {
+          // Skip if invoice retrieval fails
+        }
+      }));
+    }
+
     const formattedCharges = charges.data.map(c => {
       const piId = typeof c.payment_intent === 'object' ? c.payment_intent?.id : c.payment_intent;
       const linkedPurchases = piId ? (purchasesByPi[piId] || []) : [];
 
-      // Build a readable description from purchase items
+      // Build a readable description: purchases first, then invoice line items, then Stripe description
       let itemDescription = c.description;
       if (linkedPurchases.length > 0) {
         itemDescription = linkedPurchases
           .map(p => p.description || p.item_name || 'Service')
           .join(', ');
+      } else if (c.invoice && invoiceLineItems[c.invoice]) {
+        itemDescription = invoiceLineItems[c.invoice];
       }
 
       return {

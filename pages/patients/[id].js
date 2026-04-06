@@ -4353,7 +4353,7 @@ export default function PatientProfile() {
                         ))}
                         {internalNotes.length > 5 && (
                           <button
-                            onClick={() => { setActiveTab('notes_labs'); setNoteFilter('internal'); }}
+                            onClick={() => { setActiveTab('notes'); setNoteFilter('internal'); }}
                             className="briefing-view-all"
                           >
                             View all {internalNotes.length} staff notes →
@@ -4417,7 +4417,7 @@ export default function PatientProfile() {
                       a.type === 'hrt' ? 'synopsis-alert-hrt' :
                       'synopsis-alert-info'
                     }`}
-                      onClick={() => setActiveTab('notes_labs')}>
+                      onClick={() => setActiveTab('labs')}>
                       <span className="synopsis-alert-icon">{
                         a.type === 'urgent' ? '🩸' :
                         a.type === 'soon' ? '🩸' :
@@ -4439,7 +4439,8 @@ export default function PatientProfile() {
         <nav className="px-tabs">
           {[
             { key: 'chart', label: 'Chart', icon: '📋', count: stats.activeCount || 0 },
-            { key: 'notes_labs', label: 'Notes & Labs', icon: '🔬', count: notes.length || 0 },
+            { key: 'notes', label: 'Notes', icon: '📝', count: notes.length || 0 },
+            { key: 'labs', label: 'Labs', icon: '🔬' },
             { key: 'messages', label: 'Messages', icon: '💬', count: commsLog.filter(c => c.direction === 'inbound' && c.status !== 'read').length || 0 },
             { key: 'billing', label: 'Billing', icon: '💳' },
             { key: 'records', label: 'Records', icon: '📄', count: (intakes.length + consents.length + medicalDocuments.length + patientTasks.filter(t => t.status === 'pending').length) || 0 },
@@ -5030,7 +5031,7 @@ export default function PatientProfile() {
                 const drawDate = drawDateObj ? drawDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(drawDateObj.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) }) : '';
                 return (
                   <div
-                    onClick={() => setActiveTab('notes_labs')}
+                    onClick={() => setActiveTab('labs')}
                     style={{
                       margin: '0 0 12px', padding: '12px 16px', borderRadius: 0, cursor: 'pointer',
                       background: `${stage.color}15`, border: `1px solid ${stage.color}40`,
@@ -6993,7 +6994,7 @@ export default function PatientProfile() {
           )}
 
           {/* Labs Tab — Redesigned */}
-          {activeTab === 'notes_labs' && (
+          {activeTab === 'labs' && (
             <>
               {/* Lab Pipeline — Progress Tracker */}
               {labProtocols.filter(lp => lp.status !== 'consult_complete').map(lp => {
@@ -7790,7 +7791,7 @@ export default function PatientProfile() {
           )}
 
           {/* Notes Tab */}
-          {activeTab === 'notes_labs' && (() => {
+          {activeTab === 'notes' && (() => {
             // Categorize notes — use note_category if available, fall back to source-based logic
             const getCat = (n) => n.note_category || (
               ['encounter', 'addendum', 'protocol'].includes(n.source) ? 'clinical' : 'internal'
@@ -8350,7 +8351,7 @@ export default function PatientProfile() {
           )}
 
           {/* Symptoms Tab */}
-          {activeTab === 'notes_labs' && (() => {
+          {activeTab === 'labs' && (() => {
             // Instrument definitions for display
             const INSTRUMENTS = {
               phq9: { label: 'PHQ-9', subtitle: 'Depression', maxScore: 27, levels: [

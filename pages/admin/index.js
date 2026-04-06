@@ -25,6 +25,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [advancing, setAdvancing] = useState(null);
   const [assigningDay, setAssigningDay] = useState(null); // protocol id being assigned
+  const [dayPickerOpen, setDayPickerOpen] = useState(null); // protocol id with day picker open
   const [scheduleTab, setScheduleTab] = useState('weight_loss');
 
   useEffect(() => {
@@ -171,6 +172,7 @@ export default function Dashboard() {
 
   const assignDay = async (protocolId, day) => {
     setAssigningDay(protocolId);
+    setDayPickerOpen(null);
     try {
       await fetch(`/api/protocols/${protocolId}`, {
         method: 'PATCH',
@@ -249,13 +251,14 @@ export default function Dashboard() {
                         ) : (
                           patients.map(p => {
                             const dm = getDeliveryBadge(p.delivery_method);
+                            const pickerOpen = dayPickerOpen === p.id;
                             return (
-                              <Link key={p.id} href={`/patients/${p.patient_id}`} style={{
+                              <div key={p.id} style={{
                                 ...styles.wlCard,
                                 ...(!p.next_appt ? { borderLeft: '3px solid #dc2626' } : {}),
                               }}>
                                 <div style={styles.wlCardTopRow}>
-                                  <div style={styles.wlPatientName}>{p.patient_name}</div>
+                                  <Link href={`/patients/${p.patient_id}`} style={styles.wlPatientLink}>{p.patient_name}</Link>
                                   {p.next_appt ? (
                                     <span style={styles.wlApptBooked} title={p.next_appt.service}>
                                       {formatApptDate(p.next_appt.date)}
@@ -273,7 +276,34 @@ export default function Dashboard() {
                                 {p.current_dose && (
                                   <div style={styles.wlDose}>{p.current_dose}</div>
                                 )}
-                              </Link>
+                                {/* Day picker toggle */}
+                                {assigningDay === p.id ? (
+                                  <div style={styles.wlMovingLabel}>Moving...</div>
+                                ) : pickerOpen ? (
+                                  <div style={styles.wlDayPickerInline}>
+                                    {WEEK_DAYS.map(d => (
+                                      <button
+                                        key={d}
+                                        onClick={() => assignDay(p.id, d)}
+                                        style={{
+                                          ...styles.wlDayBtn,
+                                          ...(d === day ? styles.wlDayBtnCurrent : {}),
+                                        }}
+                                      >
+                                        {DAY_LABELS[d]}
+                                      </button>
+                                    ))}
+                                    <button onClick={() => setDayPickerOpen(null)} style={styles.wlDayBtnCancel}>✕</button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => setDayPickerOpen(pickerOpen ? null : p.id)}
+                                    style={styles.wlMoveBtn}
+                                  >
+                                    Move day
+                                  </button>
+                                )}
+                              </div>
                             );
                           })
                         )}
@@ -767,6 +797,53 @@ const styles = {
     padding: '1px 5px',
     borderRadius: 0,
     whiteSpace: 'nowrap',
+  },
+  wlPatientLink: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: '#000',
+    textDecoration: 'none',
+  },
+  wlMoveBtn: {
+    width: '100%',
+    padding: '3px 0',
+    fontSize: 10,
+    fontWeight: 600,
+    color: '#737373',
+    background: '#fafafa',
+    border: '1px solid #e5e5e5',
+    borderRadius: 0,
+    cursor: 'pointer',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  wlMovingLabel: {
+    fontSize: 10,
+    color: '#737373',
+    textAlign: 'center',
+    marginTop: 4,
+    padding: '3px 0',
+  },
+  wlDayPickerInline: {
+    display: 'flex',
+    gap: 2,
+    marginTop: 4,
+    flexWrap: 'wrap',
+  },
+  wlDayBtnCurrent: {
+    background: '#000',
+    color: '#fff',
+    borderColor: '#000',
+  },
+  wlDayBtnCancel: {
+    padding: '3px 6px',
+    fontSize: 10,
+    fontWeight: 600,
+    background: '#fef2f2',
+    border: '1px solid #fca5a5',
+    borderRadius: 0,
+    cursor: 'pointer',
+    color: '#dc2626',
   },
   wlCardMeta: {
     display: 'flex',

@@ -85,7 +85,7 @@ export default async function handler(req, res) {
         .select('id, patient_id, medication, dosage, scheduled_days, visit_frequency, last_visit_date, patients(id, name, first_name, last_name)')
         .eq('status', 'active')
         .eq('delivery_method', 'in_clinic')
-        .or('program_type.eq.weight_loss,program_type.ilike.weight_loss_%')
+        .eq('program_type', 'weight_loss')
         .order('created_at', { ascending: true }),
     ]);
 

@@ -347,6 +347,13 @@ export default function Dashboard() {
                             ) : (
                               <span style={styles.wlNoAppt}>No appt</span>
                             )}
+                            {p.last_appt ? (
+                              <span style={styles.wlLastAppt}>Last: {formatApptDate(p.last_appt.date)}</span>
+                            ) : p.last_visit_date ? (
+                              <span style={styles.wlLastAppt}>Last: {formatDate(p.last_visit_date)}</span>
+                            ) : (
+                              <span style={styles.wlLastAppt}>No history</span>
+                            )}
                           </div>
                           <div style={styles.wlDayPicker}>
                             {assigningDay === p.id ? (

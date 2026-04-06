@@ -27,6 +27,7 @@ export default async function handler(req, res) {
       invoicesResult,
       labPipelineResult,
       wlScheduleResult,
+      upcomingApptsResult,
     ] = await Promise.all([
       // Active protocols count + unique patients
       supabase
@@ -86,6 +87,14 @@ export default async function handler(req, res) {
         .eq('status', 'active')
         .in('program_type', ['weight_loss', 'hrt', 'peptide'])
         .order('created_at', { ascending: true }),
+
+      // Upcoming appointments for schedule patients (next 14 days)
+      supabase
+        .from('appointments')
+        .select('patient_id, start_time, service_name, status')
+        .gte('start_time', new Date().toISOString())
+        .in('status', ['scheduled', 'confirmed'])
+        .order('start_time', { ascending: true }),
     ]);
 
     // Active protocols stats
@@ -123,6 +132,18 @@ export default async function handler(req, res) {
     }
     labPipeline.total = labProtocols.length;
 
+    // Build upcoming appointment lookup: patient_id → next appointment
+    const upcomingAppts = {};
+    (upcomingApptsResult.data || []).forEach(a => {
+      // Only keep the earliest upcoming per patient
+      if (!upcomingAppts[a.patient_id]) {
+        upcomingAppts[a.patient_id] = {
+          date: a.start_time,
+          service: a.service_name,
+        };
+      }
+    });
+
     // Weekly schedule processing
     const wlProtocols = (wlScheduleResult.data || []).map(p => {
       const pat = p.patients;
@@ -140,6 +161,7 @@ export default async function handler(req, res) {
         visit_frequency: p.visit_frequency,
         last_visit_date: p.last_visit_date,
         delivery_method: p.delivery_method,
+        next_appt: upcomingAppts[p.patient_id] || null,
       };
     });
 

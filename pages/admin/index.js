@@ -163,6 +163,12 @@ export default function Dashboard() {
     return null;
   };
 
+  const formatApptDate = (dateStr) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'America/Los_Angeles' });
+  };
+
   const assignDay = async (protocolId, day) => {
     setAssigningDay(protocolId);
     try {
@@ -244,8 +250,20 @@ export default function Dashboard() {
                           patients.map(p => {
                             const dm = getDeliveryBadge(p.delivery_method);
                             return (
-                              <Link key={p.id} href={`/patients/${p.patient_id}`} style={styles.wlCard}>
-                                <div style={styles.wlPatientName}>{p.patient_name}</div>
+                              <Link key={p.id} href={`/patients/${p.patient_id}`} style={{
+                                ...styles.wlCard,
+                                ...(!p.next_appt ? { borderLeft: '3px solid #dc2626' } : {}),
+                              }}>
+                                <div style={styles.wlCardTopRow}>
+                                  <div style={styles.wlPatientName}>{p.patient_name}</div>
+                                  {p.next_appt ? (
+                                    <span style={styles.wlApptBooked} title={p.next_appt.service}>
+                                      {formatApptDate(p.next_appt.date)}
+                                    </span>
+                                  ) : (
+                                    <span style={styles.wlNoAppt}>No appt</span>
+                                  )}
+                                </div>
                                 <div style={styles.wlCardMeta}>
                                   {p.medication && <span style={styles.wlMedBadge}>{getMedShort(p.medication)}</span>}
                                   {dm && (
@@ -254,9 +272,6 @@ export default function Dashboard() {
                                 </div>
                                 {p.current_dose && (
                                   <div style={styles.wlDose}>{p.current_dose}</div>
-                                )}
-                                {p.last_visit_date && (
-                                  <div style={styles.wlLastVisit}>Last: {formatDate(p.last_visit_date)}</div>
                                 )}
                               </Link>
                             );
@@ -286,6 +301,11 @@ export default function Dashboard() {
                             {p.medication && <span style={styles.wlMedBadge}>{getMedShort(p.medication)}</span>}
                             {dm && (
                               <span style={{ ...styles.wlDeliveryBadge, background: dm.bg, color: dm.color }}>{dm.label}</span>
+                            )}
+                            {p.next_appt ? (
+                              <span style={styles.wlApptBooked}>{formatApptDate(p.next_appt.date)}</span>
+                            ) : (
+                              <span style={styles.wlNoAppt}>No appt</span>
                             )}
                           </div>
                           <div style={styles.wlDayPicker}>
@@ -719,10 +739,34 @@ const styles = {
     color: '#000',
     display: 'block',
   },
+  wlCardTopRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 3,
+    gap: 4,
+  },
   wlPatientName: {
     fontSize: 13,
     fontWeight: 600,
-    marginBottom: 3,
+  },
+  wlApptBooked: {
+    fontSize: 9,
+    fontWeight: 600,
+    color: '#15803d',
+    background: '#f0fdf4',
+    padding: '1px 5px',
+    borderRadius: 0,
+    whiteSpace: 'nowrap',
+  },
+  wlNoAppt: {
+    fontSize: 9,
+    fontWeight: 600,
+    color: '#dc2626',
+    background: '#fef2f2',
+    padding: '1px 5px',
+    borderRadius: 0,
+    whiteSpace: 'nowrap',
   },
   wlCardMeta: {
     display: 'flex',

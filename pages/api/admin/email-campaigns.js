@@ -129,7 +129,7 @@ async function sendCampaign(req, res, campaign) {
   }
 
   // Build from/reply-to
-  const fromAddr = fromEmail || 'Range Medical <hello@range-medical.com>';
+  const fromAddr = fromEmail || 'Range Medical <info@range-medical.com>';
   const replyAddr = replyTo || null;
 
   // Save campaign record

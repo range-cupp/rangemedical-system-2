@@ -27,6 +27,18 @@ const SERVICE_CATEGORIES = [
   { value: 'vitamin', label: 'Vitamin Injection' },
 ];
 
+const FROM_PRESETS = [
+  'Range Medical <info@range-medical.com>',
+  'Range Medical <hello@range-medical.com>',
+  'Range Medical <noreply@range-medical.com>',
+  'Chris Cupp <cupp@range-medical.com>',
+  'Dr. Burgess <burgess@range-medical.com>',
+  'Damon Durante <damon@range-medical.com>',
+  'Evan Riederich <evan@range-medical.com>',
+  'Lily Diaz RN <lily@range-medical.com>',
+  'Tara Ventimiglia <tara@range-medical.com>',
+];
+
 const STATUS_OPTIONS = [
   { value: 'all', label: 'All Statuses' },
   { value: 'active', label: 'Active' },
@@ -57,7 +69,7 @@ export default function EmailCampaignsPage() {
   const [showPreview, setShowPreview] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState(null);
-  const [fromEmail, setFromEmail] = useState('Range Medical <hello@range-medical.com>');
+  const [fromEmail, setFromEmail] = useState('Range Medical <info@range-medical.com>');
   const [replyTo, setReplyTo] = useState('');
 
   // AI compose state
@@ -262,7 +274,7 @@ export default function EmailCampaignsPage() {
     setCampaignName('');
     setEmailSubject('');
     setEmailHtml(DEFAULT_TEMPLATE);
-    setFromEmail('Range Medical <hello@range-medical.com>');
+    setFromEmail('Range Medical <info@range-medical.com>');
     setReplyTo('');
     clearFilters();
     setSendResult(null);
@@ -274,7 +286,7 @@ export default function EmailCampaignsPage() {
     setCampaignName(campaign.name);
     setEmailSubject(campaign.subject);
     setEmailHtml(campaign.html_body);
-    setFromEmail(campaign.from_email || 'Range Medical <hello@range-medical.com>');
+    setFromEmail(campaign.from_email || 'Range Medical <info@range-medical.com>');
     setReplyTo(campaign.reply_to || '');
     // Restore filters from snapshot
     const f = campaign.segment_snapshot || {};
@@ -760,15 +772,29 @@ export default function EmailCampaignsPage() {
                 <div style={sharedStyles.fieldGroup}>
                   <label style={sharedStyles.label}>From Email</label>
                   <select
-                    value={fromEmail}
-                    onChange={e => setFromEmail(e.target.value)}
+                    value={FROM_PRESETS.includes(fromEmail) ? fromEmail : '__custom__'}
+                    onChange={e => {
+                      if (e.target.value === '__custom__') {
+                        setFromEmail('');
+                      } else {
+                        setFromEmail(e.target.value);
+                      }
+                    }}
                     style={sharedStyles.select}
                   >
-                    <option value="Range Medical <hello@range-medical.com>">Range Medical &lt;hello@range-medical.com&gt;</option>
-                    <option value="Range Medical <noreply@range-medical.com>">Range Medical &lt;noreply@range-medical.com&gt;</option>
-                    <option value="Chris at Range Medical <chris@range-medical.com>">Chris at Range Medical &lt;chris@range-medical.com&gt;</option>
-                    <option value="Dr. Burgess - Range Medical <dr.burgess@range-medical.com>">Dr. Burgess - Range Medical &lt;dr.burgess@range-medical.com&gt;</option>
+                    {FROM_PRESETS.map(p => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                    <option value="__custom__">Custom...</option>
                   </select>
+                  {!FROM_PRESETS.includes(fromEmail) && (
+                    <input
+                      value={fromEmail}
+                      onChange={e => setFromEmail(e.target.value)}
+                      placeholder="Display Name <email@range-medical.com>"
+                      style={{ ...sharedStyles.input, marginTop: '8px' }}
+                    />
+                  )}
                 </div>
                 <div style={sharedStyles.fieldGroup}>
                   <label style={sharedStyles.label}>Reply-To Email (optional)</label>

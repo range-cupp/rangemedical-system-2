@@ -4,6 +4,7 @@
 // Range Medical
 
 import { createClient } from '@supabase/supabase-js';
+import { buildAdaptiveHRTSchedule } from '../../../lib/hrt-lab-schedule';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -64,6 +65,7 @@ export default async function handler(req, res) {
       pastApptsResult,
       serviceLogsResult,
       purchasesResult2,
+      hrtProtocolsResult,
     ] = await Promise.all([
       // Active protocols count + unique patients
       supabase
@@ -156,6 +158,14 @@ export default async function handler(req, res) {
         .not('protocol_id', 'is', null)
         .order('purchase_date', { ascending: false })
         .limit(500),
+
+      // Active HRT protocols for upcoming lab draws
+      supabase
+        .from('protocols')
+        .select('id, patient_id, program_name, start_date, status, first_followup_weeks, patients(id, name, first_name, last_name, phone)')
+        .in('program_type', ['hrt', 'hrt_male', 'hrt_female'])
+        .in('status', ['active', 'completed'])
+        .not('start_date', 'is', null),
     ]);
 
     // Active protocols stats
@@ -336,6 +346,132 @@ export default async function handler(req, res) {
       };
     });
 
+    // ═══ Upcoming Lab Draws ═══
+    let upcomingLabDraws = [];
+    try {
+      const hrtProtocols = hrtProtocolsResult.data || [];
+      if (hrtProtocols.length > 0) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const thirtyDaysFromNow = new Date(today);
+        thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+
+        const hrtPatientIds = hrtProtocols.map(p => p.patient_id).filter(Boolean);
+        const hrtProtoIds = hrtProtocols.map(p => p.id);
+
+        // Get patients already in the labs pipeline
+        const { data: existingLabProtocols } = await supabase
+          .from('protocols')
+          .select('patient_id')
+          .eq('program_type', 'labs')
+          .in('status', LAB_STAGES)
+          .in('patient_id', hrtPatientIds);
+        const patientsWithActiveLabs = new Set((existingLabProtocols || []).map(p => p.patient_id));
+
+        // Fetch blood draw logs, labs, and lab protocols for schedule calculation
+        const [bloodDrawLogsResult, labsResult, labProtosResult] = await Promise.all([
+          supabase
+            .from('protocol_logs')
+            .select('id, protocol_id, patient_id, log_date, notes')
+            .in('protocol_id', hrtProtoIds)
+            .eq('log_type', 'blood_draw')
+            .order('log_date', { ascending: true }),
+          supabase
+            .from('labs')
+            .select('id, patient_id, test_date, completed_date')
+            .in('patient_id', hrtPatientIds)
+            .order('test_date', { ascending: false }),
+          supabase
+            .from('protocols')
+            .select('id, patient_id, start_date, status')
+            .eq('program_type', 'labs')
+            .in('patient_id', hrtPatientIds),
+        ]);
+
+        const logsByProtocol = {};
+        for (const log of (bloodDrawLogsResult.data || [])) {
+          if (!logsByProtocol[log.protocol_id]) logsByProtocol[log.protocol_id] = [];
+          logsByProtocol[log.protocol_id].push(log);
+        }
+        const labsByPatient = {};
+        for (const lab of (labsResult.data || [])) {
+          if (!labsByPatient[lab.patient_id]) labsByPatient[lab.patient_id] = [];
+          labsByPatient[lab.patient_id].push(lab);
+        }
+        const labProtosByPatient = {};
+        for (const lp of (labProtosResult.data || [])) {
+          if (!labProtosByPatient[lp.patient_id]) labProtosByPatient[lp.patient_id] = [];
+          labProtosByPatient[lp.patient_id].push(lp);
+        }
+
+        const dueItems = [];
+        for (const proto of hrtProtocols) {
+          if (patientsWithActiveLabs.has(proto.patient_id)) continue;
+
+          const schedule = buildAdaptiveHRTSchedule(
+            proto.start_date,
+            proto.first_followup_weeks || 8,
+            logsByProtocol[proto.id] || [],
+            labsByPatient[proto.patient_id] || [],
+            labProtosByPatient[proto.patient_id] || []
+          );
+
+          const nextDraw = schedule.find(d => d.status === 'overdue' || d.status === 'upcoming');
+          if (!nextDraw) continue;
+
+          const dueDate = new Date(nextDraw.targetDate + 'T00:00:00');
+          if (dueDate > thirtyDaysFromNow || dueDate < new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000)) continue;
+
+          const patient = proto.patients;
+          const patientName = patient?.name || `${patient?.first_name || ''} ${patient?.last_name || ''}`.trim();
+          dueItems.push({
+            patientId: proto.patient_id,
+            patientName,
+            phone: patient?.phone || null,
+            protocolId: proto.id,
+            protocolName: proto.program_name,
+            dueDate: nextDraw.targetDate,
+            drawLabel: nextDraw.label,
+            daysUntilDue: Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24)),
+          });
+        }
+
+        // Check for scheduled blood draw appointments
+        if (dueItems.length > 0) {
+          const duePatientIds = dueItems.map(d => d.patientId).filter(Boolean);
+          const { data: scheduledBookings } = await supabase
+            .from('calcom_bookings')
+            .select('patient_id, start_time, service_slug, status')
+            .in('patient_id', duePatientIds)
+            .in('service_slug', ['new-patient-blood-draw', 'follow-up-blood-draw'])
+            .in('status', ['scheduled', 'confirmed', 'accepted'])
+            .gte('start_time', new Date().toISOString());
+
+          if (scheduledBookings && scheduledBookings.length > 0) {
+            const bookingsByPatient = {};
+            for (const b of scheduledBookings) {
+              if (!bookingsByPatient[b.patient_id] || new Date(b.start_time) < new Date(bookingsByPatient[b.patient_id].start_time)) {
+                bookingsByPatient[b.patient_id] = b;
+              }
+            }
+            for (const item of dueItems) {
+              const booking = bookingsByPatient[item.patientId];
+              if (booking) {
+                item.scheduledDate = booking.start_time;
+                item.hasAppointment = true;
+              }
+            }
+          }
+        }
+
+        // Sort: overdue first, then by due date
+        dueItems.sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+        upcomingLabDraws = dueItems;
+      }
+    } catch (labDrawErr) {
+      console.error('Upcoming lab draws fetch error (non-fatal):', labDrawErr);
+    }
+
     return res.status(200).json({
       stats: {
         activeProtocols: activeProtocols.length,
@@ -350,6 +486,7 @@ export default async function handler(req, res) {
       todayAppointments: (appointmentsResult.data || []).slice(0, 6),
       recentComms: (commsResult.data || []).slice(0, 5),
       wlSchedule: wlProtocols,
+      upcomingLabDraws,
     });
 
   } catch (error) {

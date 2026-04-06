@@ -32,6 +32,7 @@ export default function Dashboard() {
   const [noteText, setNoteText] = useState('');
   const [savingNote, setSavingNote] = useState(false);
   const [smsTarget, setSmsTarget] = useState(null); // { phone, name, patientId }
+  const [upcomingLabDraws, setUpcomingLabDraws] = useState([]);
 
   useEffect(() => {
     fetchDashboard();
@@ -47,6 +48,7 @@ export default function Dashboard() {
       setWlSchedule(data.wlSchedule || []);
       setTodayAppointments(data.todayAppointments || []);
       setRecentComms(data.recentComms || []);
+      setUpcomingLabDraws(data.upcomingLabDraws || []);
     } catch (err) {
       console.error('Dashboard error:', err);
     } finally {
@@ -680,6 +682,85 @@ export default function Dashboard() {
               <div style={styles.pipelineEmpty}>No active lab orders</div>
             )}
           </div>
+
+          {/* ═══ UPCOMING LAB DRAWS ═══ */}
+          {upcomingLabDraws.length > 0 && (
+            <div style={styles.labDrawsSection}>
+              <div style={styles.labDrawsHeader}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Upcoming Lab Draws</h2>
+                  <span style={{
+                    background: upcomingLabDraws.some(d => d.daysUntilDue <= 0) ? '#dc2626' : '#000',
+                    color: '#fff', padding: '2px 8px', fontSize: 11, fontWeight: 600,
+                  }}>{upcomingLabDraws.length} patient{upcomingLabDraws.length !== 1 ? 's' : ''}</span>
+                </div>
+              </div>
+              <div style={styles.labDrawsHeaderRow}>
+                <span style={{ flex: '0 0 180px' }}>Patient</span>
+                <span style={{ flex: '0 0 140px' }}>Draw</span>
+                <span style={{ flex: '0 0 110px' }}>Due Date</span>
+                <span style={{ flex: '0 0 100px' }}>Status</span>
+                <span style={{ flex: '0 0 140px' }}>Appointment</span>
+                <span style={{ flex: 1 }} />
+              </div>
+              {upcomingLabDraws.map((draw, i) => {
+                const isOverdue = draw.daysUntilDue < 0;
+                const isDueToday = draw.daysUntilDue === 0;
+                const isDueSoon = draw.daysUntilDue > 0 && draw.daysUntilDue <= 7;
+                const borderColor = isOverdue ? '#dc2626' : isDueToday ? '#d97706' : isDueSoon ? '#f59e0b' : 'transparent';
+                return (
+                  <div key={`${draw.patientId}-${i}`} style={{
+                    ...styles.labDrawRow,
+                    borderLeft: `3px solid ${borderColor}`,
+                  }}>
+                    <div style={{ flex: '0 0 180px' }}>
+                      <Link href={`/patients/${draw.patientId}`} style={{ fontSize: 13, fontWeight: 600, color: '#000', textDecoration: 'none' }}>
+                        {draw.patientName}
+                      </Link>
+                    </div>
+                    <div style={{ flex: '0 0 140px', fontSize: 12, color: '#525252' }}>
+                      {draw.drawLabel}
+                    </div>
+                    <div style={{ flex: '0 0 110px', fontSize: 12 }}>
+                      {formatDate(draw.dueDate)}
+                    </div>
+                    <div style={{ flex: '0 0 100px' }}>
+                      {isOverdue ? (
+                        <span style={styles.labDrawBadgeOverdue}>
+                          {Math.abs(draw.daysUntilDue)}d overdue
+                        </span>
+                      ) : isDueToday ? (
+                        <span style={styles.labDrawBadgeToday}>Due today</span>
+                      ) : isDueSoon ? (
+                        <span style={styles.labDrawBadgeSoon}>{draw.daysUntilDue}d</span>
+                      ) : (
+                        <span style={styles.labDrawBadgeOk}>{draw.daysUntilDue}d</span>
+                      )}
+                    </div>
+                    <div style={{ flex: '0 0 140px', fontSize: 12 }}>
+                      {draw.hasAppointment ? (
+                        <span style={{ color: '#15803d', fontWeight: 600 }}>
+                          Booked {formatApptDate(draw.scheduledDate)}
+                        </span>
+                      ) : (
+                        <span style={{ color: '#a3a3a3' }}>Not scheduled</span>
+                      )}
+                    </div>
+                    <div style={{ flex: 1, textAlign: 'right' }}>
+                      {draw.phone && (
+                        <button
+                          onClick={() => setSmsTarget({ phone: draw.phone, name: draw.patientName, patientId: draw.patientId })}
+                          style={styles.wlTextBtnInline}
+                        >
+                          Text
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* ═══ STATS GRID ═══ */}
           <div style={styles.statsGrid}>
@@ -1510,6 +1591,70 @@ const styles = {
     fontSize: 11,
     color: '#737373',
     padding: '4px 0',
+  },
+
+  // ═══ Upcoming Lab Draws ═══
+  labDrawsSection: {
+    background: '#fff',
+    border: '1px solid #e5e5e5',
+    borderRadius: 0,
+    marginBottom: 28,
+    overflow: 'hidden',
+  },
+  labDrawsHeader: {
+    padding: '14px 20px',
+    borderBottom: '1px solid #e5e5e5',
+  },
+  labDrawsHeaderRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '6px 20px',
+    background: '#fafafa',
+    borderBottom: '1px solid #e5e5e5',
+    fontSize: 10,
+    fontWeight: 700,
+    color: '#737373',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+  },
+  labDrawRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '10px 20px',
+    borderBottom: '1px solid #f0f0f0',
+  },
+  labDrawBadgeOverdue: {
+    fontSize: 10,
+    fontWeight: 700,
+    color: '#dc2626',
+    background: '#fef2f2',
+    padding: '2px 6px',
+    border: '1px solid #fecaca',
+  },
+  labDrawBadgeToday: {
+    fontSize: 10,
+    fontWeight: 700,
+    color: '#d97706',
+    background: '#fffbeb',
+    padding: '2px 6px',
+    border: '1px solid #fde68a',
+  },
+  labDrawBadgeSoon: {
+    fontSize: 10,
+    fontWeight: 700,
+    color: '#d97706',
+    background: '#fffbeb',
+    padding: '2px 6px',
+    border: '1px solid #fde68a',
+  },
+  labDrawBadgeOk: {
+    fontSize: 10,
+    fontWeight: 600,
+    color: '#15803d',
+    background: '#f0fdf4',
+    padding: '2px 6px',
   },
 
   // ═══ Stats ═══

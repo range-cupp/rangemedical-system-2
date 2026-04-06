@@ -1,4 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
+import { sendSMS, normalizePhone } from '../../../lib/send-sms';
+import { logComm } from '../../../lib/comms-log';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -12,17 +14,17 @@ export default async function handler(req, res) {
   // Find protocol
   const { data: protocol } = await supabase
     .from('protocols')
-    .select('id, patient_id, medication, selected_dose, current_dose, start_date, frequency, injection_day, delivery_method, starting_weight, total_sessions, sessions_used, program_type, status')
+    .select('id, patient_id, medication, selected_dose, current_dose, start_date, frequency, injection_day, delivery_method, starting_weight, goal_weight, total_sessions, sessions_used, program_type, status')
     .eq('access_token', token)
     .eq('program_type', 'weight_loss')
     .single();
 
   if (!protocol) return res.status(404).json({ error: 'Not found' });
 
-  // Get patient name
+  // Get patient name + phone
   const { data: patient } = await supabase
     .from('patients')
-    .select('first_name, last_name')
+    .select('first_name, last_name, phone')
     .eq('id', protocol.patient_id)
     .single();
 
@@ -108,6 +110,40 @@ export default async function handler(req, res) {
       }
     }
 
+    // Send side-effect tips SMS if patient reported symptoms
+    const realEffects = (side_effects || []).filter(e => e && e !== 'None');
+    if (realEffects.length > 0 && patient?.phone) {
+      try {
+        const phone = normalizePhone(patient.phone);
+        if (phone) {
+          const portalUrl = `https://range-medical.com/wl/${token}#tips`;
+          const effectList = realEffects.length <= 3
+            ? realEffects.join(', ').toLowerCase()
+            : `${realEffects.slice(0, 2).join(', ').toLowerCase()} and more`;
+          const message = `Hey ${patient.first_name}, thanks for checking in! We put together some tips for the ${effectList} you mentioned \u2014 take a look:\n\n${portalUrl}\n\nQuestions? Reply to this text or call (949) 997-3988.\n\n\u2014 Range Medical`;
+
+          const smsResult = await sendSMS({ to: phone, message });
+          if (smsResult.success) {
+            await logComm({
+              channel: 'sms',
+              messageType: 'wl_side_effect_tips',
+              message,
+              source: 'wl-checkin',
+              provider: smsResult.provider || null,
+              patientId: protocol.patient_id,
+              patientName: `${patient.first_name} ${patient.last_name}`,
+              recipient: phone,
+              twilioMessageSid: smsResult.messageSid || null,
+              direction: 'outbound',
+            });
+          }
+        }
+      } catch (smsErr) {
+        console.error('WL tips SMS error:', smsErr.message);
+        // Non-fatal — don't fail the check-in
+      }
+    }
+
     return res.status(200).json({ success: true });
   }
 
@@ -120,6 +156,8 @@ export default async function handler(req, res) {
       frequency: protocol.frequency,
       injectionDay: protocol.injection_day,
       deliveryMethod: protocol.delivery_method,
+      startingWeight: protocol.starting_weight ? parseFloat(protocol.starting_weight) : null,
+      goalWeight: protocol.goal_weight ? parseFloat(protocol.goal_weight) : null,
       totalSessions: protocol.total_sessions,
       sessionsUsed: protocol.sessions_used,
       status: protocol.status,

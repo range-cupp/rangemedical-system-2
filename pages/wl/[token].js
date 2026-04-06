@@ -271,14 +271,17 @@ export default function WeightLossPortal() {
   const router = useRouter();
   const { token } = router.query;
   const weightRef = useRef(null);
+  const tipsRef = useRef(null);
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [checkInWeight, setCheckInWeight] = useState('');
+  const [checkInSideEffects, setCheckInSideEffects] = useState([]);
   const [checkInNotes, setCheckInNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submittedSideEffects, setSubmittedSideEffects] = useState([]);
   const [showNotes, setShowNotes] = useState(false);
   const [savingDay, setSavingDay] = useState(false);
   const [changeDay, setChangeDay] = useState(false);
@@ -335,23 +338,50 @@ export default function WeightLossPortal() {
     }
   }, [loading, data]);
 
+  // ─── Check-in side effect toggle ─────────────────────────────────────────
+  function toggleCheckInSideEffect(effect) {
+    setCheckInSideEffects(prev => {
+      if (effect === 'None') return prev.includes('None') ? [] : ['None'];
+      const without = prev.filter(e => e !== 'None');
+      if (without.includes(effect)) return without.filter(e => e !== effect);
+      return [...without, effect];
+    });
+  }
+
   // ─── Check-in submit ────────────────────────────────────────────────────
   async function handleSubmit(e) {
     e.preventDefault();
     if (!checkInWeight || submitting) return;
     setSubmitting(true);
     try {
+      const effects = checkInSideEffects.filter(e => e !== 'None');
       const res = await fetch(`/api/wl/${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           weight: parseFloat(checkInWeight),
-          side_effects: [],
+          side_effects: checkInSideEffects,
           notes: checkInNotes,
         }),
       });
       if (res.ok) {
         setSubmitted(true);
+        setSubmittedSideEffects(effects);
+        // Auto-populate Zone 3 with reported side effects
+        if (effects.length > 0) {
+          setSelectedSymptoms(effects);
+          setFeelingGood(false);
+          const expanded = {};
+          effects.forEach(s => { expanded[s] = true; });
+          setExpandedSymptoms(expanded);
+          // Scroll to tips after a brief delay
+          setTimeout(() => {
+            tipsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 600);
+        } else {
+          setFeelingGood(true);
+          setSelectedSymptoms([]);
+        }
         setTimeout(() => fetchData(), 800);
       }
     } catch {
@@ -786,6 +816,33 @@ export default function WeightLossPortal() {
                   </div>
                 </div>
 
+                {/* Side effects */}
+                <p style={{ ...label, marginBottom: 10 }}>ANY SIDE EFFECTS?</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 20 }}>
+                  {['None', ...SYMPTOM_CHIPS].map(effect => {
+                    const active = checkInSideEffects.includes(effect);
+                    const isNone = effect === 'None';
+                    return (
+                      <button
+                        key={effect}
+                        type="button"
+                        onClick={() => toggleCheckInSideEffect(effect)}
+                        style={{
+                          background: active ? (isNone ? C.greenLight : C.redLight) : C.bg,
+                          border: `1px solid ${active ? (isNone ? C.green : C.red) : C.border}`,
+                          color: active ? (isNone ? C.green : C.red) : C.body,
+                          padding: '8px 14px', borderRadius: 0,
+                          fontSize: 13, fontWeight: active ? 600 : 400,
+                          cursor: 'pointer', transition,
+                          transform: active ? 'scale(0.97)' : 'scale(1)',
+                        }}
+                      >
+                        {isNone && active ? '\u2713 ' : ''}{effect}
+                      </button>
+                    );
+                  })}
+                </div>
+
                 {/* Notes toggle */}
                 {!showNotes ? (
                   <button
@@ -1068,8 +1125,15 @@ export default function WeightLossPortal() {
           </div>
 
           {/* ─── ZONE 3: How Are You Feeling? ────────────────────────── */}
-          <div style={{ ...card }}>
-            <p style={{ ...label, marginBottom: 4 }}>HOW ARE YOU FEELING?</p>
+          <div id="tips" ref={tipsRef} style={{ ...card }}>
+            <p style={{ ...label, marginBottom: 4 }}>
+              {submittedSideEffects.length > 0 ? 'TIPS FOR YOU' : 'HOW ARE YOU FEELING?'}
+            </p>
+            {submittedSideEffects.length > 0 && (
+              <p style={{ ...bodyText, fontSize: 14, color: C.caption, marginBottom: 12 }}>
+                Based on what you reported, here{'\u2019'}s what can help.
+              </p>
+            )}
             <p style={{ ...bodyText, fontSize: 14, color: C.caption, marginBottom: 16 }}>
               Tap anything you{'\u2019'}re experiencing right now.
             </p>

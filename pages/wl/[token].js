@@ -659,7 +659,7 @@ export default function WeightLossPortal() {
                 {dayDesc}
               </p>
               <div style={{
-                display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+                display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
                 gap: 8, marginBottom: changeDay ? 12 : 0,
               }}>
                 {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((short, i) => {
@@ -675,7 +675,7 @@ export default function WeightLossPortal() {
                         cursor: savingDay ? 'default' : 'pointer',
                         fontSize: 14, fontWeight: 600, color: C.text,
                         transition, borderRadius: 0,
-                        ...(i === 6 ? { gridColumn: '2 / 4' } : {}),
+                        ...(i === 6 ? { gridColumn: '1 / -1' } : {}),
                       }}
                     >
                       {short}

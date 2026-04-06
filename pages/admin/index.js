@@ -276,6 +276,16 @@ export default function Dashboard() {
                                 {p.current_dose && (
                                   <div style={styles.wlDose}>{p.current_dose}</div>
                                 )}
+                                {/* Appointment info */}
+                                <div style={styles.wlApptRow}>
+                                  {p.last_appt ? (
+                                    <span style={styles.wlLastAppt}>Last: {formatApptDate(p.last_appt.date)}</span>
+                                  ) : p.last_visit_date ? (
+                                    <span style={styles.wlLastAppt}>Last: {formatDate(p.last_visit_date)}</span>
+                                  ) : (
+                                    <span style={styles.wlLastAppt}>No history</span>
+                                  )}
+                                </div>
                                 {/* Day picker toggle */}
                                 {assigningDay === p.id ? (
                                   <div style={styles.wlMovingLabel}>Moving...</div>
@@ -797,6 +807,13 @@ const styles = {
     padding: '1px 5px',
     borderRadius: 0,
     whiteSpace: 'nowrap',
+  },
+  wlApptRow: {
+    marginTop: 3,
+  },
+  wlLastAppt: {
+    fontSize: 10,
+    color: '#a3a3a3',
   },
   wlPatientLink: {
     fontSize: 13,

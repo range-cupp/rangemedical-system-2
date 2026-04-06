@@ -28,6 +28,7 @@ export default async function handler(req, res) {
       labPipelineResult,
       wlScheduleResult,
       upcomingApptsResult,
+      pastApptsResult,
     ] = await Promise.all([
       // Active protocols count + unique patients
       supabase
@@ -88,13 +89,22 @@ export default async function handler(req, res) {
         .in('program_type', ['weight_loss', 'hrt', 'peptide'])
         .order('created_at', { ascending: true }),
 
-      // Upcoming appointments for schedule patients (next 14 days)
+      // Upcoming appointments for schedule patients
       supabase
         .from('appointments')
         .select('patient_id, start_time, service_name, status')
         .gte('start_time', new Date().toISOString())
         .in('status', ['scheduled', 'confirmed'])
         .order('start_time', { ascending: true }),
+
+      // Most recent past appointments (last 90 days)
+      supabase
+        .from('appointments')
+        .select('patient_id, start_time, service_name, status')
+        .lt('start_time', new Date().toISOString())
+        .in('status', ['completed', 'scheduled'])
+        .order('start_time', { ascending: false })
+        .limit(2000),
     ]);
 
     // Active protocols stats
@@ -144,6 +154,17 @@ export default async function handler(req, res) {
       }
     });
 
+    // Build last appointment lookup: patient_id → most recent past appointment
+    const lastAppts = {};
+    (pastApptsResult.data || []).forEach(a => {
+      if (!lastAppts[a.patient_id]) {
+        lastAppts[a.patient_id] = {
+          date: a.start_time,
+          service: a.service_name,
+        };
+      }
+    });
+
     // Weekly schedule processing
     const wlProtocols = (wlScheduleResult.data || []).map(p => {
       const pat = p.patients;
@@ -162,6 +183,7 @@ export default async function handler(req, res) {
         last_visit_date: p.last_visit_date,
         delivery_method: p.delivery_method,
         next_appt: upcomingAppts[p.patient_id] || null,
+        last_appt: lastAppts[p.patient_id] || null,
       };
     });
 

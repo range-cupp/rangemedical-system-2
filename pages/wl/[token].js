@@ -62,78 +62,89 @@ const card = {
 
 const transition = 'all 0.2s ease';
 
-// ─── Symptom guidance content ────────────────────────────────────────────────
-const SYMPTOM_GUIDANCE = {
-  Nausea: {
-    general: [
-      'Eat small meals every 3\u20134 hours. Never inject on an empty stomach or a full stomach.',
-      'Inject at night before bed \u2014 you sleep through the worst of it.',
-      'Avoid fatty, greasy, or very spicy foods for 48 hours after injection.',
-    ],
-    Retatrutide: ['Nausea peaks at Week 2\u20134 during dose escalation. It almost always resolves.'],
-    Tirzepatide: ['Splitting meals into 5\u20136 small portions is more effective than 3 large ones.'],
-    Semaglutide: [],
-  },
-  Fatigue: {
-    general: [
-      'Common in first 2\u20134 weeks as your body adjusts to reduced calorie intake.',
-      'Prioritize 7\u20138 hours of sleep \u2014 GLP-1s affect sleep architecture in some patients.',
-      'Check your protein. Fatigue on GLP-1s is often under-eating protein, not the medication.',
-      'Stay hydrated \u2014 dehydration amplifies fatigue significantly.',
-    ],
-  },
-  Constipation: {
-    general: [
-      'Add 25\u201335g of fiber per day: vegetables, chia seeds, psyllium husk.',
-      'Magnesium glycinate 200\u2013400mg at night is safe and effective.',
-      'Walk 20\u201330 minutes daily \u2014 movement is the most underused constipation remedy.',
-      'If no bowel movement in 3+ days, call the clinic.',
-    ],
-  },
-  'Indigestion / Heartburn': {
-    general: [
-      'Avoid lying down within 2 hours of eating.',
-      'Elevate the head of your bed slightly.',
-      'OTC: Famotidine (Pepcid) 20mg before meals \u2014 safe with GLP-1s.',
-      'Avoid coffee, alcohol, and carbonated drinks post-injection.',
-    ],
-  },
-  Headache: {
-    general: [
-      'Almost always dehydration. Drink 16oz of water immediately.',
-      'Electrolytes help: add a pinch of salt or use LMNT/Liquid IV.',
-      'Usually resolves within 2\u20133 weeks as body adapts.',
-      'If persistent or severe, contact the clinic.',
-    ],
-  },
-  Diarrhea: {
-    general: [
-      'Rare but can occur, especially with dose increases.',
-      'BRAT diet for 24\u201348 hours (bananas, rice, applesauce, toast).',
-      'Avoid dairy, high-fat foods, and artificial sweeteners temporarily.',
-      'Stay hydrated \u2014 diarrhea dehydrates quickly. Electrolytes essential.',
-      'If lasting more than 3 days or severe, contact the clinic.',
-    ],
-  },
-  'Injection Site Pain': {
-    general: [
-      'Rotate injection sites every week: abdomen, thigh, back of upper arm.',
-      'Let medication reach room temperature before injecting (15\u201320 min out of fridge).',
-      'Inject slowly \u2014 fast injection increases site pain.',
-      'Apply gentle pressure (not rubbing) after injection.',
-      'Small lumps or redness at site are normal and resolve within 48 hours.',
-    ],
-  },
-  'Appetite Gone': {
-    general: [
-      'This is the medication working \u2014 but you still need to eat.',
-      'Set a phone alarm for meals if you\u2019re not feeling hunger cues.',
-      'Minimum 60\u201380g protein per day regardless of appetite.',
-      'Liquid protein (shakes, Greek yogurt) is easier when appetite is suppressed.',
-      'Under-eating accelerates muscle loss \u2014 this is the biggest risk on GLP-1s.',
-    ],
-  },
-};
+// ─── Personalized symptom guidance ───────────────────────────────────────────
+function getSymptomGuidance(weightLbs) {
+  // Personalized targets based on current weight
+  const proteinMin = Math.round(0.7 * (weightLbs || 180));
+  const proteinMax = Math.round(1.0 * (weightLbs || 180));
+  const waterOz = Math.round((weightLbs || 180) / 2);
+  const waterL = (waterOz * 0.0296).toFixed(1);
+  const calorieFloor = Math.round((weightLbs || 180) * 5.5); // rough safe minimum
+
+  return {
+    Nausea: {
+      general: [
+        'Eat small meals every 3\u20134 hours. Never inject on an empty stomach or a full stomach.',
+        'Inject at night before bed \u2014 you sleep through the worst of it.',
+        'Avoid fatty, greasy, or very spicy foods for 48 hours after injection.',
+      ],
+      Retatrutide: ['Nausea peaks at Week 2\u20134 during dose escalation. It almost always resolves.'],
+      Tirzepatide: ['Splitting meals into 5\u20136 small portions is more effective than 3 large ones.'],
+      Semaglutide: [],
+    },
+    Fatigue: {
+      general: [
+        'Common in first 2\u20134 weeks as your body adjusts to reduced calorie intake.',
+        'Prioritize 7\u20138 hours of sleep \u2014 GLP-1s affect sleep architecture in some patients.',
+        `At your weight, aim for ${proteinMin}\u2013${proteinMax}g of protein daily. Fatigue on GLP-1s is often under-eating protein, not the medication.`,
+        `Drink at least ${waterOz}oz (${waterL}L) of water per day \u2014 dehydration amplifies fatigue significantly.`,
+        `Make sure you\u2019re eating at least ${calorieFloor} calories per day. Under-eating slows your metabolism and worsens fatigue.`,
+      ],
+    },
+    Constipation: {
+      general: [
+        'Add 25\u201335g of fiber per day: vegetables, chia seeds, psyllium husk.',
+        'Magnesium glycinate 200\u2013400mg at night is safe and effective.',
+        `Drink at least ${waterOz}oz of water daily \u2014 fiber without water makes constipation worse.`,
+        'Walk 20\u201330 minutes daily \u2014 movement is the most underused constipation remedy.',
+        'If no bowel movement in 3+ days, call the clinic.',
+      ],
+    },
+    'Indigestion / Heartburn': {
+      general: [
+        'Avoid lying down within 2 hours of eating.',
+        'Elevate the head of your bed slightly.',
+        'OTC: Famotidine (Pepcid) 20mg before meals \u2014 safe with GLP-1s.',
+        'Avoid coffee, alcohol, and carbonated drinks post-injection.',
+      ],
+    },
+    Headache: {
+      general: [
+        `Almost always dehydration. Drink 16oz of water immediately. Your daily target is ${waterOz}oz.`,
+        'Electrolytes help: add a pinch of salt or use LMNT/Liquid IV.',
+        'Usually resolves within 2\u20133 weeks as body adapts.',
+        'If persistent or severe, contact the clinic.',
+      ],
+    },
+    Diarrhea: {
+      general: [
+        'Rare but can occur, especially with dose increases.',
+        'BRAT diet for 24\u201348 hours (bananas, rice, applesauce, toast).',
+        'Avoid dairy, high-fat foods, and artificial sweeteners temporarily.',
+        `Stay hydrated \u2014 diarrhea dehydrates quickly. Aim for ${waterOz}oz+ of water with electrolytes.`,
+        'If lasting more than 3 days or severe, contact the clinic.',
+      ],
+    },
+    'Injection Site Pain': {
+      general: [
+        'Rotate injection sites every week: abdomen, thigh, back of upper arm.',
+        'Let medication reach room temperature before injecting (15\u201320 min out of fridge).',
+        'Inject slowly \u2014 fast injection increases site pain.',
+        'Apply gentle pressure (not rubbing) after injection.',
+        'Small lumps or redness at site are normal and resolve within 48 hours.',
+      ],
+    },
+    'Appetite Gone': {
+      general: [
+        'This is the medication working \u2014 but you still need to eat.',
+        'Set a phone alarm for meals if you\u2019re not feeling hunger cues.',
+        `At your weight, you need at least ${proteinMin}g of protein per day \u2014 non-negotiable.`,
+        'Liquid protein (shakes, Greek yogurt) is easier when appetite is suppressed.',
+        `Don\u2019t drop below ${calorieFloor} calories/day. Under-eating accelerates muscle loss \u2014 this is the biggest risk on GLP-1s.`,
+      ],
+    },
+  };
+}
 
 const SYMPTOM_CHIPS = [
   'Nausea', 'Fatigue', 'Constipation', 'Indigestion / Heartburn',
@@ -327,16 +338,29 @@ export default function WeightLossPortal() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Auto-focus weight input once loaded
+  // Auto-focus weight input once loaded, or pre-populate symptoms from today's check-in
   useEffect(() => {
-    if (!loading && data && weightRef.current) {
+    if (!loading && data) {
       const today = todayPacific();
-      const alreadyCheckedIn = data.logs?.some(l => l.date === today);
-      if (!alreadyCheckedIn) {
+      const todaysLog = data.logs?.find(l => l.date === today);
+      if (todaysLog) {
+        // Already checked in — pre-populate Zone 3 with today's side effects
+        if (todaysLog.sideEffects && todaysLog.sideEffects !== 'None') {
+          const effects = todaysLog.sideEffects.split(',').map(s => s.trim()).filter(Boolean);
+          // Map back to chip labels
+          const matched = effects.filter(e => SYMPTOM_CHIPS.includes(e));
+          if (matched.length > 0 && selectedSymptoms.length === 0 && !submitted) {
+            setSelectedSymptoms(matched);
+            const expanded = {};
+            matched.forEach(s => { expanded[s] = true; });
+            setExpandedSymptoms(expanded);
+          }
+        }
+      } else if (weightRef.current) {
         setTimeout(() => weightRef.current?.focus(), 400);
       }
     }
-  }, [loading, data]);
+  }, [loading, data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Check-in side effect toggle ─────────────────────────────────────────
   function toggleCheckInSideEffect(effect) {
@@ -1192,7 +1216,8 @@ export default function WeightLossPortal() {
             {selectedSymptoms.length > 0 && (
               <div style={{ marginTop: 12 }}>
                 {selectedSymptoms.map(symptom => {
-                  const guidance = SYMPTOM_GUIDANCE[symptom];
+                  const allGuidance = getSymptomGuidance(currentWeight);
+                  const guidance = allGuidance[symptom];
                   if (!guidance) return null;
                   const isExpanded = expandedSymptoms[symptom];
                   const medSpecific = guidance[protocol.medication] || [];

@@ -82,7 +82,7 @@ export default async function handler(req, res) {
       // Weight loss in-clinic schedule
       supabase
         .from('protocols')
-        .select('id, patient_id, medication, dosage, scheduled_days, visit_frequency, last_visit_date, patients(id, name, first_name, last_name)')
+        .select('id, patient_id, medication, current_dose, scheduled_days, visit_frequency, last_visit_date, patients(id, name, first_name, last_name)')
         .eq('status', 'active')
         .eq('delivery_method', 'in_clinic')
         .eq('program_type', 'weight_loss')
@@ -135,7 +135,7 @@ export default async function handler(req, res) {
         patient_id: p.patient_id,
         patient_name: patientName,
         medication: p.medication,
-        dosage: p.dosage,
+        current_dose: p.current_dose,
         scheduled_days: p.scheduled_days || [],
         visit_frequency: p.visit_frequency,
         last_visit_date: p.last_visit_date,

@@ -182,7 +182,7 @@ export default function Dashboard() {
                               <div style={styles.wlPatientName}>{p.patient_name}</div>
                               <div style={styles.wlCardMeta}>
                                 <span style={styles.wlMedBadge}>{getMedShort(p.medication)}</span>
-                                {p.dosage && <span style={styles.wlDose}>{p.dosage}</span>}
+                                {p.current_dose && <span style={styles.wlDose}>{p.current_dose}</span>}
                               </div>
                               {p.last_visit_date && (
                                 <div style={styles.wlLastVisit}>Last: {formatDate(p.last_visit_date)}</div>

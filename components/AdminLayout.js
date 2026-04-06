@@ -570,7 +570,6 @@ const NAV_ITEMS = [
   { href: '/admin/protocols', label: 'Protocols', icon: 'activity' },
   { href: '/admin/protocol-builder', label: 'Protocol Builder', icon: 'clipboard' },
   { href: '/admin/schedule', label: 'Schedule', icon: 'calendar' },
-  { href: '/admin/medications', label: 'Medications', icon: 'pill' },
   { href: '/admin/checkout', label: 'Checkout', icon: 'shopping-bag' },
   { href: '/admin/payments', label: 'Payments', icon: 'credit-card' },
   { href: '/admin/energy-packs', label: 'Energy Packs', icon: 'zap', adminOnly: true },

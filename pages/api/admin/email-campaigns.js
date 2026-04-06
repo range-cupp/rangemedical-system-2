@@ -149,90 +149,95 @@ async function sendCampaign(req, res, campaign) {
     .single();
   if (cErr) throw cErr;
 
-  // Send emails in batches of 10 (Resend rate limit friendly)
+  // Send emails one at a time with delay to avoid Resend 429 rate limits
   let sentCount = 0;
   let errorCount = 0;
-  const BATCH_SIZE = 10;
 
-  for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
-    const batch = recipients.slice(i, i + BATCH_SIZE);
+  for (let i = 0; i < recipients.length; i++) {
+    const patient = recipients[i];
 
-    const results = await Promise.allSettled(
-      batch.map(async (patient) => {
-        try {
-          const sendPayload = {
-            from: fromAddr,
-            to: patient.email,
-            subject,
-            html: htmlBody,
-          };
-          if (replyAddr) sendPayload.reply_to = replyAddr;
+    try {
+      const sendPayload = {
+        from: fromAddr,
+        to: patient.email,
+        subject,
+        html: htmlBody,
+      };
+      if (replyAddr) sendPayload.reply_to = replyAddr;
 
-          const sendResult = await resend.emails.send(sendPayload);
-          const resendEmailId = sendResult?.data?.id || sendResult?.id || null;
+      const sendResult = await resend.emails.send(sendPayload);
 
-          // Log to comms_log
-          await logComm({
-            channel: 'email',
-            messageType: 'campaign',
-            message: subject,
-            source: 'email-campaigns',
-            patientId: patient.id,
-            patientName: patient.name,
-            recipient: patient.email,
-            subject,
-            status: 'sent',
-            htmlBody,
-          });
+      // Resend SDK returns { data, error } — check for error response
+      if (sendResult?.error) {
+        const errMsg = sendResult.error.message || JSON.stringify(sendResult.error);
+        throw new Error(errMsg);
+      }
 
-          // Track recipient with Resend ID
-          await supabase.from('email_campaign_recipients').insert({
-            campaign_id: campaignRow.id,
-            patient_id: patient.id,
-            email: patient.email,
-            status: 'sent',
-            resend_email_id: resendEmailId,
-            sent_at: new Date().toISOString(),
-          });
+      const resendEmailId = sendResult?.data?.id || sendResult?.id || null;
 
-          return { success: true };
-        } catch (err) {
-          await supabase.from('email_campaign_recipients').insert({
-            campaign_id: campaignRow.id,
-            patient_id: patient.id,
-            email: patient.email,
-            status: 'error',
-            error_message: err.message,
-          });
+      // Log to comms_log
+      await logComm({
+        channel: 'email',
+        messageType: 'campaign',
+        message: subject,
+        source: 'email-campaigns',
+        patientId: patient.id,
+        patientName: patient.name,
+        recipient: patient.email,
+        subject,
+        status: 'sent',
+        htmlBody,
+      });
 
-          await logComm({
-            channel: 'email',
-            messageType: 'campaign',
-            message: subject,
-            source: 'email-campaigns',
-            patientId: patient.id,
-            patientName: patient.name,
-            recipient: patient.email,
-            subject,
-            status: 'error',
-            errorMessage: err.message,
-          });
+      // Track recipient with Resend ID
+      await supabase.from('email_campaign_recipients').insert({
+        campaign_id: campaignRow.id,
+        patient_id: patient.id,
+        email: patient.email,
+        status: 'sent',
+        resend_email_id: resendEmailId,
+        sent_at: new Date().toISOString(),
+      });
 
-          return { success: false, error: err.message };
-        }
-      })
-    );
+      sentCount++;
+    } catch (err) {
+      const errMsg = err.message || 'Unknown error';
+      await supabase.from('email_campaign_recipients').insert({
+        campaign_id: campaignRow.id,
+        patient_id: patient.id,
+        email: patient.email,
+        status: 'error',
+        error_message: errMsg,
+      });
 
-    results.forEach(r => {
-      if (r.status === 'fulfilled' && r.value.success) sentCount++;
-      else errorCount++;
-    });
+      await logComm({
+        channel: 'email',
+        messageType: 'campaign',
+        message: subject,
+        source: 'email-campaigns',
+        patientId: patient.id,
+        patientName: patient.name,
+        recipient: patient.email,
+        subject,
+        status: 'error',
+        errorMessage: errMsg,
+      });
 
-    // Update progress
-    await supabase
-      .from('email_campaigns')
-      .update({ sent_count: sentCount, error_count: errorCount })
-      .eq('id', campaignRow.id);
+      errorCount++;
+    }
+
+    // Rate limit: ~2 emails/sec to stay well under Resend limits
+    if (i < recipients.length - 1) {
+      await new Promise(r => setTimeout(r, 500));
+    }
+
+    // Update progress every 10 emails
+    if ((i + 1) % 10 === 0 || i === recipients.length - 1) {
+      await supabase
+        .from('email_campaigns')
+        .update({ sent_count: sentCount, error_count: errorCount })
+        .eq('id', campaignRow.id);
+    }
   }
 
   // Mark campaign complete

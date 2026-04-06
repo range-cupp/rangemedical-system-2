@@ -36,19 +36,56 @@ export default async function handler(req, res) {
       expand: ['data.payment_intent'],
     });
 
-    const formattedCharges = charges.data.map(c => ({
-      id: c.id,
-      amount: c.amount, // cents — actual amount charged
-      amount_refunded: c.amount_refunded,
-      refunded: c.refunded,
-      status: c.status,
-      created: c.created, // unix timestamp
-      description: c.description,
-      payment_intent_id: typeof c.payment_intent === 'object' ? c.payment_intent?.id : c.payment_intent,
-      card_brand: c.payment_method_details?.card?.brand || null,
-      card_last4: c.payment_method_details?.card?.last4 || null,
-      receipt_url: c.receipt_url,
-    }));
+    // Get all payment intent IDs from charges
+    const paymentIntentIds = charges.data
+      .map(c => typeof c.payment_intent === 'object' ? c.payment_intent?.id : c.payment_intent)
+      .filter(Boolean);
+
+    // Fetch matching purchases from Supabase to get actual item names
+    let purchasesByPi = {};
+    if (paymentIntentIds.length > 0) {
+      const { data: purchases } = await supabase
+        .from('purchases')
+        .select('id, stripe_payment_intent_id, description, item_name, amount_paid')
+        .in('stripe_payment_intent_id', paymentIntentIds);
+
+      if (purchases) {
+        for (const p of purchases) {
+          if (!purchasesByPi[p.stripe_payment_intent_id]) {
+            purchasesByPi[p.stripe_payment_intent_id] = [];
+          }
+          purchasesByPi[p.stripe_payment_intent_id].push(p);
+        }
+      }
+    }
+
+    const formattedCharges = charges.data.map(c => {
+      const piId = typeof c.payment_intent === 'object' ? c.payment_intent?.id : c.payment_intent;
+      const linkedPurchases = piId ? (purchasesByPi[piId] || []) : [];
+
+      // Build a readable description from purchase items
+      let itemDescription = c.description;
+      if (linkedPurchases.length > 0) {
+        itemDescription = linkedPurchases
+          .map(p => p.description || p.item_name || 'Service')
+          .join(', ');
+      }
+
+      return {
+        id: c.id,
+        amount: c.amount, // cents — actual amount charged
+        amount_refunded: c.amount_refunded,
+        refunded: c.refunded,
+        status: c.status,
+        created: c.created, // unix timestamp
+        description: itemDescription,
+        payment_intent_id: piId,
+        card_brand: c.payment_method_details?.card?.brand || null,
+        card_last4: c.payment_method_details?.card?.last4 || null,
+        receipt_url: c.receipt_url,
+        purchase_id: linkedPurchases.length > 0 ? linkedPurchases[0].id : null,
+      };
+    });
 
     return res.status(200).json({
       charges: formattedCharges,

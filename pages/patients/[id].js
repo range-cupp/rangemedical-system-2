@@ -8986,6 +8986,7 @@ export default function PatientProfile() {
                     card_last4: charge.card_last4,
                     description: charge.description,
                     receipt_url: charge.receipt_url,
+                    purchase_id: charge.purchase_id,
                   }));
 
                 return (
@@ -9039,8 +9040,8 @@ export default function PatientProfile() {
                                   Refund
                                 </button>
                               )}
-                              {charge.receipt_url && (
-                                <a href={charge.receipt_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                              {(charge.purchase_id || charge.receipt_url) && (
+                                <a href={charge.purchase_id ? `/api/receipt/${charge.purchase_id}` : charge.receipt_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
                                   style={{ fontSize: 10, color: '#3b82f6', textDecoration: 'none', fontWeight: 600 }}>
                                   Receipt
                                 </a>

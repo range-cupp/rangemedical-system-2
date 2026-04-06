@@ -20,21 +20,21 @@ const supabase = createClient(
 // Blood draw slugs — already handled by lab-prep-reminder cron
 const BLOOD_DRAW_SLUGS = ['new-patient-blood-draw', 'follow-up-blood-draw'];
 
-// 8 message variations so texts feel personal
+// 8 message variations so texts feel personal (no service type for patient privacy)
 const REMINDER_MESSAGES = [
-  (name, service, time) => `Hi ${name}! Just a friendly reminder — your ${service} appointment at Range Medical is tomorrow at ${time}. See you then!`,
-  (name, service, time) => `Hey ${name}, quick reminder that your ${service} is tomorrow at ${time} at Range Medical. We look forward to seeing you!`,
-  (name, service, time) => `Hi ${name}! Reminder: your ${service} appointment is tomorrow at ${time}. See you at Range Medical!`,
-  (name, service, time) => `Hey ${name}, don't forget — your ${service} at Range Medical is tomorrow at ${time}. Let us know if you need to reschedule: (949) 997-3988`,
-  (name, service, time) => `Hi ${name}! This is a reminder that your ${service} is scheduled for tomorrow at ${time} at Range Medical. See you there!`,
-  (name, service, time) => `Hey ${name}, just a heads up — your ${service} appointment is tomorrow at ${time}. We'll see you at Range Medical!`,
-  (name, service, time) => `Hi ${name}! Your ${service} at Range Medical is coming up tomorrow at ${time}. Can't wait to see you!`,
-  (name, service, time) => `Hey ${name}, reminder: ${service} tomorrow at ${time} at Range Medical. Need to reschedule? Call or text (949) 997-3988.`,
+  (name, time) => `Hi ${name}! Just a friendly reminder — your appointment with Range Medical is tomorrow at ${time}. See you then!`,
+  (name, time) => `Hey ${name}, quick reminder that your appointment is tomorrow at ${time} at Range Medical. We look forward to seeing you!`,
+  (name, time) => `Hi ${name}! Reminder: your appointment with Range Medical is tomorrow at ${time}. See you there!`,
+  (name, time) => `Hey ${name}, don't forget — your appointment at Range Medical is tomorrow at ${time}. Let us know if you need to reschedule: (949) 997-3988`,
+  (name, time) => `Hi ${name}! This is a reminder that your appointment is scheduled for tomorrow at ${time} at Range Medical. See you there!`,
+  (name, time) => `Hey ${name}, just a heads up — your appointment with Range Medical is tomorrow at ${time}. We'll see you there!`,
+  (name, time) => `Hi ${name}! Your appointment at Range Medical is coming up tomorrow at ${time}. Can't wait to see you!`,
+  (name, time) => `Hey ${name}, reminder: appointment tomorrow at ${time} at Range Medical. Need to reschedule? Call or text (949) 997-3988.`,
 ];
 
-function getReminderMessage(firstName, serviceName, time) {
+function getReminderMessage(firstName, time) {
   const index = Math.floor(Math.random() * REMINDER_MESSAGES.length);
-  return REMINDER_MESSAGES[index](firstName, serviceName, time);
+  return REMINDER_MESSAGES[index](firstName, time);
 }
 
 // Get tomorrow's date in Pacific Time (YYYY-MM-DD)
@@ -197,10 +197,10 @@ export default async function handler(req, res) {
         continue;
       }
 
-      // Build reminder SMS
+      // Build reminder SMS (generic — no service type for patient privacy)
       const appointmentTime = formatAppointmentTime(booking.start_time);
       const serviceName = booking.service_name || formatServiceName(booking.service_slug);
-      const message = getReminderMessage(firstName, serviceName, appointmentTime);
+      const message = getReminderMessage(firstName, appointmentTime);
 
       // Send SMS
       try {

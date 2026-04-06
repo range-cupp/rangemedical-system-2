@@ -127,7 +127,7 @@ export default async function handler(req, res) {
 
       // Send reminder via Twilio
       const firstName = getFirstName(protocol.patient_name);
-      const message = `Hi ${firstName}! Your Range IV is included with your HRT membership this month. Call or text us to schedule! — Range Medical`;
+      const message = `Hi ${firstName}! You have a complimentary IV session included with your membership this month. Call or text us to schedule! — Range Medical`;
 
       const phone = normalizePhone(protocol.patients?.phone);
       if (!phone) {

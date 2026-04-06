@@ -370,7 +370,7 @@ async function handleInboundMessage(body) {
         if (patientDetails?.email) linkParams.set('email', patientDetails.email);
         const queryStr = linkParams.toString();
         const scheduleLink = `https://app.range-medical.com/schedule-iv${queryStr ? '?' + queryStr : ''}`;
-        const linkMessage = `Here's your link to schedule your Range IV: ${scheduleLink} — Range Medical`;
+        const linkMessage = `Here's your link to schedule your appointment: ${scheduleLink} — Range Medical`;
 
         const linkResult = await sendBlooioMessage({ to: senderPhone, message: linkMessage });
 

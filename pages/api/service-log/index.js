@@ -556,6 +556,23 @@ async function handlePost(req, res) {
       await supabase.from('protocols').update(protoUpdate).eq('id', targetProtocolId);
     }
 
+    // Final safety: count-based sessions_used sync
+    // Always recalculate from actual service_log count to prevent drift from multiple increment paths
+    if (targetProtocolId && (resolvedEntryType === 'injection' || resolvedEntryType === 'session')) {
+      const { count: actualCount } = await supabase
+        .from('service_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('protocol_id', targetProtocolId)
+        .in('entry_type', ['injection', 'session']);
+
+      await supabase
+        .from('protocols')
+        .update({ sessions_used: actualCount || 0 })
+        .eq('id', targetProtocolId);
+
+      console.log(`[service-log] Count-based sync: sessions_used=${actualCount} for protocol ${targetProtocolId}`);
+    }
+
     return res.status(200).json({
       success: true,
       log,
@@ -765,9 +782,17 @@ async function recalcProtocolAfterDelete(protocolId, patientId, category) {
   }
 }
 
-// Recalculate protocol state after an edit (date/weight change)
+// Recalculate protocol state after an edit (date/weight/dose change)
+// Counts actual injection/session entries — single source of truth for sessions_used
 async function recalcProtocolAfterEdit(protocolId) {
   try {
+    // Count injection/session entries (same pattern as recalcProtocolAfterDelete)
+    const { count: sessionsUsed } = await supabase
+      .from('service_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('protocol_id', protocolId)
+      .in('entry_type', ['injection', 'session']);
+
     // Find the most recent injection/session date
     const { data: latestSL } = await supabase
       .from('service_logs')
@@ -780,6 +805,7 @@ async function recalcProtocolAfterEdit(protocolId) {
     const lastDate = latestSL?.[0]?.entry_date || null;
 
     const updateData = {
+      sessions_used: sessionsUsed || 0,
       updated_at: new Date().toISOString(),
     };
 
@@ -794,6 +820,8 @@ async function recalcProtocolAfterEdit(protocolId) {
       .from('protocols')
       .update(updateData)
       .eq('id', protocolId);
+
+    console.log(`✓ Protocol ${protocolId} recalculated after edit: sessions_used=${sessionsUsed}, last_visit=${lastDate}`);
   } catch (err) {
     console.error('recalcProtocolAfterEdit error:', err);
   }

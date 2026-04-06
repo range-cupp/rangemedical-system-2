@@ -10,6 +10,39 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+// Calculate refill interval in days — same logic as /api/admin/dispense.js
+function getRefillIntervalDays(protocol) {
+  const pt = (protocol.program_type || '').toLowerCase();
+  const supply = (protocol.supply_type || '').toLowerCase();
+
+  // Weight Loss
+  if (pt.includes('weight_loss')) {
+    if (protocol.pickup_frequency === 'weekly') return 7;
+    if (protocol.pickup_frequency === 'every_2_weeks') return 14;
+    return 28;
+  }
+
+  // HRT
+  if (pt.includes('hrt')) {
+    if (supply === 'pellet') return 120;
+    if (supply === 'oral_30day' || supply.includes('oral')) return 30;
+    if (supply === 'in_clinic') return 7;
+    if (supply.startsWith('prefilled_')) {
+      const prefillDays = { prefilled_1week: 7, prefilled_2week: 14, prefilled_4week: 28 };
+      return prefillDays[supply] || 28;
+    }
+    if (supply.includes('vial')) {
+      return supply === 'vial_5ml' ? 42 : 84;
+    }
+    return 30;
+  }
+
+  // Peptide
+  if (pt === 'peptide') return 30;
+
+  return 30;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -194,12 +227,24 @@ export default async function handler(req, res) {
         ? (pat.first_name && pat.last_name ? `${pat.first_name} ${pat.last_name}` : pat.name || 'Unknown')
         : 'Unknown';
 
-      // Calculate days until next refill for take-home patients
+      // Calculate next expected refill date — use stored value or calculate from last pickup
+      let nextExpected = p.next_expected_date || null;
+      const lastPickup = lastPickups[p.id] || null;
+      const lastPickupDate = lastPickup?.date || p.last_refill_date || null;
+
+      // If next_expected_date is missing but we have a last pickup, calculate it
+      if (!nextExpected && lastPickupDate && p.delivery_method === 'take_home') {
+        const intervalDays = getRefillIntervalDays(p);
+        const lastDate = new Date(lastPickupDate + 'T12:00:00');
+        lastDate.setDate(lastDate.getDate() + intervalDays);
+        nextExpected = lastDate.toISOString().split('T')[0]; // YYYY-MM-DD
+      }
+
       let daysUntilRefill = null;
-      if (p.next_expected_date) {
-        const nextDate = new Date(p.next_expected_date + 'T12:00:00');
-        const today = new Date(todayStr + 'T12:00:00');
-        daysUntilRefill = Math.round((nextDate - today) / (1000 * 60 * 60 * 24));
+      if (nextExpected) {
+        const nextDate = new Date(nextExpected + 'T12:00:00');
+        const todayDate = new Date(todayStr + 'T12:00:00');
+        daysUntilRefill = Math.round((nextDate - todayDate) / (1000 * 60 * 60 * 24));
       }
 
       return {
@@ -218,10 +263,10 @@ export default async function handler(req, res) {
         next_appt: upcomingAppts[p.patient_id] || null,
         last_appt: lastAppts[p.patient_id] || null,
         // Take-home refill data
-        last_refill_date: p.last_refill_date || null,
-        next_expected_date: p.next_expected_date || null,
+        last_refill_date: lastPickupDate,
+        next_expected_date: nextExpected,
         days_until_refill: daysUntilRefill,
-        last_pickup: lastPickups[p.id] || null,
+        last_pickup: lastPickup,
       };
     });
 

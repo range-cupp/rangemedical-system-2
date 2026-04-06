@@ -126,12 +126,16 @@ export default function Dashboard() {
   const today = new Date();
   const todayDow = today.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'America/Los_Angeles' }).toLowerCase();
 
-  // Filter schedule by active tab
+  // Filter schedule by active tab — split in-clinic vs take-home
   const tabPatients = wlSchedule.filter(p => p.program_type === scheduleTab);
+  const inClinicPatients = tabPatients.filter(p => p.delivery_method !== 'take_home');
+  const takeHomePatients = tabPatients.filter(p => p.delivery_method === 'take_home');
+
+  // In-clinic/hybrid → day grid
   const tabByDay = {};
   WEEK_DAYS.forEach(d => { tabByDay[d] = []; });
   const unscheduled = [];
-  tabPatients.forEach(p => {
+  inClinicPatients.forEach(p => {
     if (p.scheduled_days && p.scheduled_days.length > 0) {
       p.scheduled_days.forEach(day => {
         if (tabByDay[day]) tabByDay[day].push(p);
@@ -139,6 +143,17 @@ export default function Dashboard() {
     } else {
       unscheduled.push(p);
     }
+  });
+
+  // Take-home → sorted by refill urgency (overdue first, then due soon, then by date)
+  const takeHomeSorted = [...takeHomePatients].sort((a, b) => {
+    const aDays = a.days_until_refill;
+    const bDays = b.days_until_refill;
+    // null (no date set) goes last
+    if (aDays === null && bDays === null) return 0;
+    if (aDays === null) return 1;
+    if (bDays === null) return -1;
+    return aDays - bDays;
   });
 
   // Counts per tab
@@ -200,11 +215,32 @@ export default function Dashboard() {
   const saveNote = async (protocolId) => {
     setSavingNote(true);
     try {
+      const protocol = wlSchedule.find(p => p.id === protocolId);
+
+      // Save to protocol notes field
       await fetch(`/api/protocols/${protocolId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notes: noteText }),
       });
+
+      // Also log to patient_notes so it shows on the patient profile
+      if (protocol?.patient_id) {
+        await fetch('/api/notes/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            patient_id: protocol.patient_id,
+            body: noteText,
+            raw_input: noteText,
+            protocol_id: protocolId,
+            protocol_name: protocol.medication || protocol.program_type,
+            note_category: 'general',
+            created_by: 'dashboard',
+          }),
+        });
+      }
+
       // Update local state immediately so we don't need a full refetch
       setWlSchedule(prev => prev.map(p => p.id === protocolId ? { ...p, notes: noteText } : p));
       setEditingNote(null);
@@ -444,6 +480,85 @@ export default function Dashboard() {
                               ))
                             )}
                           </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {/* Take-Home Refills */}
+              {takeHomeSorted.length > 0 && (
+                <div style={styles.takeHomeSection}>
+                  <div style={styles.takeHomeHeader}>
+                    <span style={styles.takeHomeLabel}>
+                      Take-Home — {takeHomeSorted.length} patient{takeHomeSorted.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div style={styles.takeHomeList}>
+                    <div style={styles.takeHomeHeaderRow}>
+                      <span style={styles.takeHomeColName}>Patient</span>
+                      <span style={styles.takeHomeColMed}>Medication</span>
+                      <span style={styles.takeHomeColDate}>Last Pickup</span>
+                      <span style={styles.takeHomeColDate}>Next Due</span>
+                      <span style={styles.takeHomeColStatus}>Status</span>
+                      <span style={styles.takeHomeColAction}></span>
+                    </div>
+                    {takeHomeSorted.map(p => {
+                      const isOverdue = p.days_until_refill !== null && p.days_until_refill < 0;
+                      const isDueSoon = p.days_until_refill !== null && p.days_until_refill >= 0 && p.days_until_refill <= 7;
+                      const dm = getDeliveryBadge(p.delivery_method);
+                      const lastPickupDate = p.last_pickup?.date || p.last_refill_date;
+                      return (
+                        <div key={p.id} style={{
+                          ...styles.takeHomeRow,
+                          ...(isOverdue ? { borderLeft: '3px solid #dc2626', background: '#fef2f2' } : {}),
+                          ...(isDueSoon && !isOverdue ? { borderLeft: '3px solid #f59e0b', background: '#fffbeb' } : {}),
+                        }}>
+                          <span style={styles.takeHomeColName}>
+                            <Link href={`/patients/${p.patient_id}`} style={styles.wlPatientLink}>{p.patient_name}</Link>
+                          </span>
+                          <span style={styles.takeHomeColMed}>
+                            {p.medication && <span style={styles.wlMedBadge}>{getMedShort(p.medication)}</span>}
+                            {p.current_dose && <span style={{ fontSize: 11, color: '#737373', marginLeft: 4 }}>{p.current_dose}</span>}
+                          </span>
+                          <span style={styles.takeHomeColDate}>
+                            {lastPickupDate ? (
+                              <span style={{ fontSize: 12, color: '#525252' }}>{formatDate(lastPickupDate)}</span>
+                            ) : (
+                              <span style={{ fontSize: 11, color: '#a3a3a3' }}>No pickups</span>
+                            )}
+                            {p.last_pickup?.fulfillment_method === 'overnight' && (
+                              <span style={{ fontSize: 9, color: '#7c3aed', marginLeft: 4 }}>Shipped</span>
+                            )}
+                          </span>
+                          <span style={styles.takeHomeColDate}>
+                            {p.next_expected_date ? (
+                              <span style={{ fontSize: 12, color: isOverdue ? '#dc2626' : isDueSoon ? '#d97706' : '#525252', fontWeight: isOverdue || isDueSoon ? 600 : 400 }}>
+                                {formatDate(p.next_expected_date)}
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: 11, color: '#a3a3a3' }}>Not set</span>
+                            )}
+                          </span>
+                          <span style={styles.takeHomeColStatus}>
+                            {isOverdue ? (
+                              <span style={styles.takeHomeBadgeOverdue}>Overdue {Math.abs(p.days_until_refill)}d</span>
+                            ) : isDueSoon ? (
+                              <span style={styles.takeHomeBadgeDueSoon}>Due in {p.days_until_refill}d</span>
+                            ) : p.days_until_refill !== null ? (
+                              <span style={styles.takeHomeBadgeOk}>{p.days_until_refill}d</span>
+                            ) : null}
+                          </span>
+                          <span style={styles.takeHomeColAction}>
+                            {p.patient_phone && (
+                              <button
+                                onClick={() => setSmsTarget({ phone: p.patient_phone, name: p.patient_name, patientId: p.patient_id })}
+                                style={styles.wlTextBtnInline}
+                              >
+                                Text
+                              </button>
+                            )}
+                          </span>
                         </div>
                       );
                     })}
@@ -1123,6 +1238,92 @@ const styles = {
     borderRadius: 0,
     cursor: 'pointer',
     color: '#333',
+  },
+
+  // ═══ Take-Home Refills ═══
+  takeHomeSection: {
+    marginTop: 16,
+    border: '1px solid #ddd6fe',
+    background: '#faf5ff',
+  },
+  takeHomeHeader: {
+    padding: '8px 14px',
+    borderBottom: '1px solid #ddd6fe',
+  },
+  takeHomeLabel: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: '#6b21a8',
+  },
+  takeHomeList: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  takeHomeHeaderRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '6px 14px',
+    borderBottom: '1px solid #ddd6fe',
+    background: '#f3e8ff',
+    fontSize: 10,
+    fontWeight: 700,
+    color: '#7c3aed',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+  },
+  takeHomeRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    padding: '8px 14px',
+    borderBottom: '1px solid #ede9fe',
+    borderLeft: '3px solid transparent',
+  },
+  takeHomeColName: {
+    flex: '0 0 180px',
+    fontSize: 13,
+    fontWeight: 600,
+  },
+  takeHomeColMed: {
+    flex: '0 0 140px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+  },
+  takeHomeColDate: {
+    flex: '0 0 120px',
+    fontSize: 12,
+  },
+  takeHomeColStatus: {
+    flex: '0 0 100px',
+  },
+  takeHomeColAction: {
+    flex: '0 0 50px',
+    textAlign: 'right',
+  },
+  takeHomeBadgeOverdue: {
+    fontSize: 10,
+    fontWeight: 700,
+    color: '#dc2626',
+    background: '#fef2f2',
+    padding: '2px 6px',
+    border: '1px solid #fecaca',
+  },
+  takeHomeBadgeDueSoon: {
+    fontSize: 10,
+    fontWeight: 700,
+    color: '#d97706',
+    background: '#fffbeb',
+    padding: '2px 6px',
+    border: '1px solid #fde68a',
+  },
+  takeHomeBadgeOk: {
+    fontSize: 10,
+    fontWeight: 600,
+    color: '#15803d',
+    background: '#f0fdf4',
+    padding: '2px 6px',
   },
 
   // ═══ Labs Pipeline ═══

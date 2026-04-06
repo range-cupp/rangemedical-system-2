@@ -29,6 +29,7 @@ export default async function handler(req, res) {
       wlScheduleResult,
       upcomingApptsResult,
       pastApptsResult,
+      pickupsResult,
     ] = await Promise.all([
       // Active protocols count + unique patients
       supabase
@@ -84,7 +85,7 @@ export default async function handler(req, res) {
       // Weekly clinic schedule — weight loss, HRT, peptide
       supabase
         .from('protocols')
-        .select('id, patient_id, program_type, medication, current_dose, scheduled_days, visit_frequency, last_visit_date, delivery_method, notes, patients(id, name, first_name, last_name, phone)')
+        .select('id, patient_id, program_type, medication, current_dose, scheduled_days, visit_frequency, last_visit_date, delivery_method, notes, last_refill_date, next_expected_date, pickup_frequency, supply_type, patients(id, name, first_name, last_name, phone)')
         .eq('status', 'active')
         .in('program_type', ['weight_loss', 'hrt', 'peptide'])
         .order('created_at', { ascending: true }),
@@ -105,6 +106,14 @@ export default async function handler(req, res) {
         .in('status', ['completed', 'scheduled'])
         .order('start_time', { ascending: false })
         .limit(2000),
+
+      // Recent pickups from service_logs (last pickup per protocol)
+      supabase
+        .from('service_logs')
+        .select('id, protocol_id, patient_id, entry_date, fulfillment_method, tracking_number')
+        .eq('entry_type', 'pickup')
+        .order('entry_date', { ascending: false })
+        .limit(500),
     ]);
 
     // Active protocols stats
@@ -165,12 +174,34 @@ export default async function handler(req, res) {
       }
     });
 
+    // Build last pickup lookup: protocol_id → most recent pickup
+    const lastPickups = {};
+    (pickupsResult.data || []).forEach(s => {
+      if (s.protocol_id && !lastPickups[s.protocol_id]) {
+        lastPickups[s.protocol_id] = {
+          date: s.entry_date,
+          fulfillment_method: s.fulfillment_method,
+          tracking_number: s.tracking_number,
+        };
+      }
+    });
+
     // Weekly schedule processing
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' }); // YYYY-MM-DD
     const wlProtocols = (wlScheduleResult.data || []).map(p => {
       const pat = p.patients;
       const patientName = pat
         ? (pat.first_name && pat.last_name ? `${pat.first_name} ${pat.last_name}` : pat.name || 'Unknown')
         : 'Unknown';
+
+      // Calculate days until next refill for take-home patients
+      let daysUntilRefill = null;
+      if (p.next_expected_date) {
+        const nextDate = new Date(p.next_expected_date + 'T12:00:00');
+        const today = new Date(todayStr + 'T12:00:00');
+        daysUntilRefill = Math.round((nextDate - today) / (1000 * 60 * 60 * 24));
+      }
+
       return {
         id: p.id,
         patient_id: p.patient_id,
@@ -186,6 +217,11 @@ export default async function handler(req, res) {
         notes: p.notes || '',
         next_appt: upcomingAppts[p.patient_id] || null,
         last_appt: lastAppts[p.patient_id] || null,
+        // Take-home refill data
+        last_refill_date: p.last_refill_date || null,
+        next_expected_date: p.next_expected_date || null,
+        days_until_refill: daysUntilRefill,
+        last_pickup: lastPickups[p.id] || null,
       };
     });
 

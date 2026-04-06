@@ -62,7 +62,8 @@ export default async function handler(req, res) {
       wlScheduleResult,
       upcomingApptsResult,
       pastApptsResult,
-      pickupsResult,
+      serviceLogsResult,
+      purchasesResult2,
     ] = await Promise.all([
       // Active protocols count + unique patients
       supabase
@@ -140,12 +141,20 @@ export default async function handler(req, res) {
         .order('start_time', { ascending: false })
         .limit(2000),
 
-      // Recent pickups from service_logs (last pickup per protocol)
+      // Recent pickups from service_logs (pickups OR injections with pickup-like notes)
       supabase
         .from('service_logs')
-        .select('id, protocol_id, patient_id, entry_date, fulfillment_method, tracking_number')
-        .eq('entry_type', 'pickup')
+        .select('id, protocol_id, patient_id, entry_type, entry_date, fulfillment_method, tracking_number, quantity, notes')
+        .in('entry_type', ['pickup', 'injection'])
         .order('entry_date', { ascending: false })
+        .limit(1000),
+
+      // Recent purchases per protocol (for refill date calculation)
+      supabase
+        .from('purchases')
+        .select('id, protocol_id, purchase_date, item_name, amount_paid')
+        .not('protocol_id', 'is', null)
+        .order('purchase_date', { ascending: false })
         .limit(500),
     ]);
 
@@ -207,14 +216,32 @@ export default async function handler(req, res) {
       }
     });
 
-    // Build last pickup lookup: protocol_id → most recent pickup
+    // Build last pickup lookup: protocol_id → most recent pickup/dispensing event
+    // Check both explicit pickups AND injections (some clinics log pickups as injections)
     const lastPickups = {};
-    (pickupsResult.data || []).forEach(s => {
-      if (s.protocol_id && !lastPickups[s.protocol_id]) {
+    (serviceLogsResult.data || []).forEach(s => {
+      if (!s.protocol_id) return;
+      // Already have a more recent one
+      if (lastPickups[s.protocol_id]) return;
+      // Accept explicit pickups, or injections with quantity > 1 or fulfillment info
+      if (s.entry_type === 'pickup' || s.fulfillment_method || (s.quantity && s.quantity > 1)) {
         lastPickups[s.protocol_id] = {
           date: s.entry_date,
           fulfillment_method: s.fulfillment_method,
           tracking_number: s.tracking_number,
+          quantity: s.quantity,
+        };
+      }
+    });
+
+    // Build last purchase lookup: protocol_id → most recent purchase
+    const lastPurchases = {};
+    (purchasesResult2.data || []).forEach(pur => {
+      if (pur.protocol_id && !lastPurchases[pur.protocol_id]) {
+        lastPurchases[pur.protocol_id] = {
+          date: pur.purchase_date,
+          item_name: pur.item_name,
+          amount: pur.amount_paid,
         };
       }
     });
@@ -227,17 +254,54 @@ export default async function handler(req, res) {
         ? (pat.first_name && pat.last_name ? `${pat.first_name} ${pat.last_name}` : pat.name || 'Unknown')
         : 'Unknown';
 
-      // Calculate next expected refill date — use stored value or calculate from last pickup
-      let nextExpected = p.next_expected_date || null;
+      // Calculate next expected refill — use the most recent source of truth
       const lastPickup = lastPickups[p.id] || null;
-      const lastPickupDate = lastPickup?.date || p.last_refill_date || null;
+      const lastPurchase = lastPurchases[p.id] || null;
 
-      // If next_expected_date is missing but we have a last pickup, calculate it
-      if (!nextExpected && lastPickupDate && p.delivery_method === 'take_home') {
+      // Find the most recent dispensing event date from all sources
+      const candidateDates = [
+        lastPickup?.date,
+        lastPurchase?.date,
+        p.last_refill_date,
+      ].filter(Boolean).map(d => new Date(d + 'T12:00:00'));
+      const mostRecentDate = candidateDates.length > 0
+        ? candidateDates.sort((a, b) => b - a)[0]
+        : null;
+      const mostRecentDateStr = mostRecentDate
+        ? mostRecentDate.toISOString().split('T')[0]
+        : null;
+
+      // Determine which source provided the most recent date
+      const lastPickupDate = mostRecentDateStr;
+      const lastPickupMethod = lastPickup?.date === mostRecentDateStr ? lastPickup?.fulfillment_method
+        : null;
+
+      // Calculate next expected date
+      // Priority: if stored next_expected_date is AFTER the most recent event, trust it
+      // Otherwise, recalculate from most recent event + interval
+      let nextExpected = null;
+      if (p.delivery_method === 'take_home' && mostRecentDate) {
         const intervalDays = getRefillIntervalDays(p);
-        const lastDate = new Date(lastPickupDate + 'T12:00:00');
-        lastDate.setDate(lastDate.getDate() + intervalDays);
-        nextExpected = lastDate.toISOString().split('T')[0]; // YYYY-MM-DD
+
+        // Use quantity from pickup if available (e.g., 3 injections = 3 weeks)
+        let effectiveInterval = intervalDays;
+        if (lastPickup?.quantity && lastPickup.quantity > 1 && p.program_type === 'weight_loss') {
+          effectiveInterval = lastPickup.quantity * 7; // each injection = 1 week
+        }
+
+        const calculatedNext = new Date(mostRecentDate);
+        calculatedNext.setDate(calculatedNext.getDate() + effectiveInterval);
+        const calculatedStr = calculatedNext.toISOString().split('T')[0];
+
+        // If stored next_expected_date exists and is later than calculated, prefer it
+        // (it may have been manually set or calculated with better context)
+        if (p.next_expected_date && p.next_expected_date > calculatedStr) {
+          nextExpected = p.next_expected_date;
+        } else {
+          nextExpected = calculatedStr;
+        }
+      } else if (p.next_expected_date) {
+        nextExpected = p.next_expected_date;
       }
 
       let daysUntilRefill = null;
@@ -267,6 +331,8 @@ export default async function handler(req, res) {
         next_expected_date: nextExpected,
         days_until_refill: daysUntilRefill,
         last_pickup: lastPickup,
+        last_purchase: lastPurchase,
+        last_fulfillment_method: lastPickupMethod,
       };
     });
 

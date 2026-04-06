@@ -527,7 +527,7 @@ export default function Dashboard() {
                             ) : (
                               <span style={{ fontSize: 11, color: '#a3a3a3' }}>No pickups</span>
                             )}
-                            {p.last_pickup?.fulfillment_method === 'overnight' && (
+                            {(p.last_pickup?.fulfillment_method === 'overnight' || p.last_fulfillment_method === 'overnight') && (
                               <span style={{ fontSize: 9, color: '#7c3aed', marginLeft: 4 }}>Shipped</span>
                             )}
                           </span>

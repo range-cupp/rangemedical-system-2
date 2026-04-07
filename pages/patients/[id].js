@@ -4761,70 +4761,6 @@ export default function PatientProfile() {
                 );
               })()}
 
-              {/* Current Medications Snapshot */}
-              {activeProtocols.filter(p => ['hrt', 'weight_loss', 'peptide'].includes(p.category)).length > 0 && (
-                <section className="card" style={{ marginBottom: '16px' }}>
-                  <div className="card-header">
-                    <h3>Current Medications</h3>
-                    <button onClick={() => setActiveTab('chart')} className="btn-text">View Protocols →</button>
-                  </div>
-                  <div style={{ padding: '4px 16px 12px' }}>
-                    {activeProtocols
-                      .filter(p => ['hrt', 'weight_loss', 'peptide'].includes(p.category))
-                      .map(protocol => {
-                        const cat = getCategoryStyle(protocol.category);
-                        // Build dose/frequency string
-                        const parts = [];
-                        if (protocol.selected_dose) parts.push(protocol.selected_dose);
-                        if (protocol.category === 'hrt') {
-                          if (protocol.injections_per_week) parts.push(`${protocol.injections_per_week}x/week`);
-                          if (protocol.injection_method) parts.push(protocol.injection_method);
-                        } else if (protocol.frequency) {
-                          parts.push(protocol.frequency);
-                        }
-                        const deliveryLabel = protocol.delivery_method === 'in_clinic' ? 'In-Clinic' :
-                          protocol.delivery_method === 'take_home' || protocol.delivery_method === 'at_home' ? 'Take-Home' :
-                          protocol.delivery_method === 'overnight' ? 'Overnight' : null;
-                        return (
-                          <div key={protocol.id} style={{
-                            display: 'flex', alignItems: 'center', gap: '10px',
-                            padding: '8px 10px', marginBottom: '4px',
-                            background: '#f8fafc', borderRadius: 0,
-                            border: '1px solid #f1f5f9',
-                          }}>
-                            <span style={{
-                              display: 'inline-block', padding: '2px 8px', borderRadius: 0,
-                              fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px',
-                              background: cat.bg, color: cat.text, flexShrink: 0,
-                            }}>
-                              {cat.label}
-                            </span>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <span style={{ fontSize: '13px', fontWeight: 600, color: '#1e293b' }}>
-                                {getProtocolDisplayName(protocol)}
-                              </span>
-                              {parts.length > 0 && (
-                                <span style={{ fontSize: '12px', color: '#64748b', marginLeft: '8px' }}>
-                                  {parts.join(' · ')}
-                                </span>
-                              )}
-                            </div>
-                            {deliveryLabel && (
-                              <span style={{
-                                fontSize: '10px', fontWeight: 600, color: '#64748b',
-                                background: '#e2e8f0', padding: '2px 6px', borderRadius: 0,
-                                flexShrink: 0,
-                              }}>
-                                {deliveryLabel}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })}
-                  </div>
-                </section>
-              )}
-
               {/* Active Subscriptions */}
               {subscriptions.length > 0 && (
                 <section className="card" style={{ marginBottom: '16px' }}>
@@ -5117,13 +5053,8 @@ export default function PatientProfile() {
                 );
               })()}
 
-              {/* Active Protocols Summary */}
-              <section className="card">
-                <div className="card-header">
-                  <h3>Active Protocols</h3>
-                  <button onClick={() => openAssignModal()} className="btn-primary-sm">+ Add</button>
-                </div>
-
+              {/* Peptide Cycle Trackers — informational, sit above the Protocols section */}
+              <div>
                 {/* Recovery Peptide Cycle Tracker — uses actual protocol duration as source of truth */}
                 {cycleInfo?.hasCycle && (() => {
                   const planned = cycleInfo.maxDays;
@@ -5246,43 +5177,7 @@ export default function PatientProfile() {
                   );
                 })()}
 
-                {activeProtocols.length === 0 ? (
-                  <div className="empty">No active protocols</div>
-                ) : (
-                  <div className="protocol-list">
-                    {activeProtocols.slice(0, 5).map(protocol => {
-                      const cat = getCategoryStyle(protocol.category);
-                      return (
-                        <div key={protocol.id} className="protocol-row">
-                          <div className="protocol-main">
-                            <span className="protocol-badge" style={{ background: cat.bg, color: cat.text }}>{cat.label}</span>
-                            <span className="protocol-name">
-                              {getProtocolDisplayName(protocol)}
-                              {protocol.category === 'hrt' && protocol.hrt_type && (
-                                <span style={{ fontSize: 12, color: '#7C3AED', marginLeft: 4 }}>({protocol.hrt_type === 'female' ? 'F' : 'M'})</span>
-                              )}
-                            </span>
-                            {protocol.selected_dose && <span className="protocol-dose">{protocol.selected_dose}</span>}
-                          </div>
-                          <div className="protocol-status">
-                            <span className="status-text">{protocol.status_text}</span>
-                            {protocol.status === 'active' && (
-                              <button
-                                onClick={(e) => openLogEntryModal(protocol, e)}
-                                style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: 0, padding: '3px 10px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
-                              >+ Log</button>
-                            )}
-                            <button onClick={(e) => { e.stopPropagation(); openEditModal(protocol); }} className="btn-text">Edit</button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {activeProtocols.length > 5 && (
-                      <button onClick={() => setActiveTab('chart')} className="view-all">View all {activeProtocols.length} protocols →</button>
-                    )}
-                  </div>
-                )}
-              </section>
+              </div>
 
               {/* Lab Pipeline Status — compact banner */}
               {labProtocols.filter(lp => lp.status !== 'consult_complete').length > 0 && (() => {

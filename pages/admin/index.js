@@ -33,6 +33,7 @@ export default function Dashboard() {
   const [savingNote, setSavingNote] = useState(false);
   const [smsTarget, setSmsTarget] = useState(null); // { phone, name, patientId }
   const [upcomingLabDraws, setUpcomingLabDraws] = useState([]);
+  const [expandedDays, setExpandedDays] = useState(null); // initialized after todayDow is known
 
   useEffect(() => {
     fetchDashboard();
@@ -128,6 +129,15 @@ export default function Dashboard() {
   const today = new Date();
   const todayDow = today.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'America/Los_Angeles' }).toLowerCase();
 
+  // Auto-expand today's day section on first render
+  useEffect(() => {
+    if (!expandedDays) {
+      const initial = {};
+      WEEK_DAYS.forEach(d => { initial[d] = d === todayDow; });
+      setExpandedDays(initial);
+    }
+  }, [todayDow]);
+
   // Filter schedule by active tab — split in-clinic vs take-home
   const tabPatients = wlSchedule.filter(p => p.program_type === scheduleTab);
   const inClinicPatients = tabPatients.filter(p => p.delivery_method !== 'take_home');
@@ -208,6 +218,12 @@ export default function Dashboard() {
       setAssigningDay(null);
     }
   };
+
+  const toggleDay = (day) => {
+    setExpandedDays(prev => ({ ...prev, [day]: !prev?.[day] }));
+  };
+
+  const DAY_FULL_LABELS = { monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday', thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday' };
 
   const startEditNote = (protocol) => {
     setEditingNote(protocol.id);
@@ -290,138 +306,147 @@ export default function Dashboard() {
                 ))}
               </div>
 
-              {/* Day grid */}
-              <div style={styles.wlGrid}>
+              {/* Day list — collapsible sections */}
+              <div style={styles.wlDayList}>
                 {WEEK_DAYS.map(day => {
                   const patients = tabByDay[day] || [];
                   const isToday = day === todayDow;
+                  const isExpanded = expandedDays?.[day];
                   return (
-                    <div key={day} style={{
-                      ...styles.wlDayColumn,
-                      ...(isToday ? styles.wlDayColumnToday : {}),
-                    }}>
-                      <div style={{
-                        ...styles.wlDayHeader,
-                        ...(isToday ? styles.wlDayHeaderToday : {}),
-                      }}>
-                        <span style={{ ...styles.wlDayLabel, ...(isToday ? { color: '#fff' } : {}) }}>{DAY_LABELS[day]}</span>
-                        {patients.length > 0 && (
+                    <div key={day} style={styles.wlDaySection}>
+                      <button
+                        onClick={() => toggleDay(day)}
+                        style={{
+                          ...styles.wlDayHeaderBtn,
+                          ...(isToday ? styles.wlDayHeaderBtnToday : {}),
+                        }}
+                      >
+                        <div style={styles.wlDayHeaderLeft}>
+                          <span style={styles.wlDayChevron}>{isExpanded ? '▾' : '▸'}</span>
                           <span style={{
-                            ...styles.wlDayCount,
-                            ...(isToday ? { background: '#fff', color: '#000' } : {}),
-                          }}>{patients.length}</span>
-                        )}
-                      </div>
-                      <div style={styles.wlDayBody}>
-                        {patients.length === 0 ? (
-                          <div style={styles.wlEmpty}>—</div>
-                        ) : (
-                          patients.map(p => {
-                            const dm = getDeliveryBadge(p.delivery_method);
-                            const pickerOpen = dayPickerOpen === p.id;
-                            return (
-                              <div key={p.id} style={{
-                                ...styles.wlCard,
-                                ...(!p.next_appt ? { borderLeft: '3px solid #dc2626' } : {}),
-                              }}>
-                                <div style={styles.wlCardTopRow}>
-                                  <Link href={`/patients/${p.patient_id}`} style={styles.wlPatientLink}>{p.patient_name}</Link>
-                                  {p.next_appt ? (
-                                    <span style={styles.wlApptBooked} title={p.next_appt.service}>
-                                      {formatApptDate(p.next_appt.date)}
-                                    </span>
-                                  ) : (
-                                    <span style={styles.wlNoAppt}>No appt</span>
-                                  )}
-                                </div>
-                                <div style={styles.wlCardMeta}>
-                                  {p.medication && <span style={styles.wlMedBadge}>{getMedShort(p.medication)}</span>}
-                                  {dm && (
-                                    <span style={{ ...styles.wlDeliveryBadge, background: dm.bg, color: dm.color }}>{dm.label}</span>
-                                  )}
-                                </div>
-                                {p.current_dose && (
-                                  <div style={styles.wlDose}>{p.current_dose}</div>
-                                )}
-                                {/* Appointment info */}
-                                <div style={styles.wlApptRow}>
-                                  {p.last_appt ? (
-                                    <span style={styles.wlLastAppt}>Last: {formatApptDate(p.last_appt.date)}</span>
-                                  ) : p.last_visit_date ? (
-                                    <span style={styles.wlLastAppt}>Last: {formatDate(p.last_visit_date)}</span>
-                                  ) : (
-                                    <span style={styles.wlLastAppt}>No history</span>
-                                  )}
-                                </div>
-                                {/* Note */}
-                                {editingNote === p.id ? (
-                                  <div style={styles.wlNoteEdit}>
-                                    <textarea
-                                      value={noteText}
-                                      onChange={(e) => setNoteText(e.target.value)}
-                                      style={styles.wlNoteTextarea}
-                                      placeholder="Add a note..."
-                                      rows={2}
-                                      autoFocus
-                                    />
-                                    <div style={styles.wlNoteActions}>
-                                      <button onClick={() => saveNote(p.id)} disabled={savingNote} style={styles.wlNoteSaveBtn}>
-                                        {savingNote ? 'Saving...' : 'Save'}
-                                      </button>
-                                      <button onClick={() => setEditingNote(null)} style={styles.wlNoteCancelBtn}>Cancel</button>
+                            ...styles.wlDayLabelNew,
+                            ...(isToday ? { color: '#fff' } : {}),
+                          }}>{DAY_FULL_LABELS[day]}</span>
+                          {isToday && <span style={styles.wlTodayTag}>Today</span>}
+                        </div>
+                        <span style={{
+                          ...styles.wlDayCountNew,
+                          ...(isToday ? { background: '#fff', color: '#000' } : {}),
+                          ...(patients.length === 0 ? { opacity: 0.4 } : {}),
+                        }}>{patients.length}</span>
+                      </button>
+                      {isExpanded && (
+                        <div style={styles.wlDayContent}>
+                          {patients.length === 0 ? (
+                            <div style={styles.wlEmptyDay}>No patients scheduled</div>
+                          ) : (
+                            patients.map(p => {
+                              const dm = getDeliveryBadge(p.delivery_method);
+                              const pickerOpen = dayPickerOpen === p.id;
+                              return (
+                                <div key={p.id} style={{
+                                  ...styles.wlRow,
+                                  ...(!p.next_appt ? { borderLeft: '3px solid #dc2626' } : {}),
+                                }}>
+                                  <div style={styles.wlRowMain}>
+                                    <div style={styles.wlRowLeft}>
+                                      <Link href={`/patients/${p.patient_id}`} style={styles.wlPatientLink}>{p.patient_name}</Link>
+                                      <div style={styles.wlRowBadges}>
+                                        {p.medication && <span style={styles.wlMedBadge}>{getMedShort(p.medication)}</span>}
+                                        {dm && (
+                                          <span style={{ ...styles.wlDeliveryBadge, background: dm.bg, color: dm.color }}>{dm.label}</span>
+                                        )}
+                                        {p.current_dose && (
+                                          <span style={styles.wlDoseInline}>{p.current_dose}</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div style={styles.wlRowMiddle}>
+                                      {p.last_appt ? (
+                                        <span style={styles.wlLastAppt}>Last: {formatApptDate(p.last_appt.date)}</span>
+                                      ) : p.last_visit_date ? (
+                                        <span style={styles.wlLastAppt}>Last: {formatDate(p.last_visit_date)}</span>
+                                      ) : (
+                                        <span style={styles.wlLastAppt}>No history</span>
+                                      )}
+                                      {p.next_appt ? (
+                                        <span style={styles.wlApptBooked} title={p.next_appt.service}>
+                                          {formatApptDate(p.next_appt.date)}
+                                        </span>
+                                      ) : (
+                                        <span style={styles.wlNoAppt}>No appt</span>
+                                      )}
+                                    </div>
+                                    <div style={styles.wlRowActions}>
+                                      {!p.notes && editingNote !== p.id && (
+                                        <button onClick={() => startEditNote(p)} style={styles.wlAddNoteBtn}>+ Note</button>
+                                      )}
+                                      {p.patient_phone && (
+                                        <button
+                                          onClick={() => setSmsTarget({ phone: p.patient_phone, name: p.patient_name, patientId: p.patient_id })}
+                                          style={styles.wlTextBtn}
+                                        >
+                                          Text
+                                        </button>
+                                      )}
+                                      {assigningDay === p.id ? (
+                                        <span style={{ fontSize: 11, color: '#737373' }}>Moving...</span>
+                                      ) : (
+                                        <button
+                                          onClick={() => setDayPickerOpen(pickerOpen ? null : p.id)}
+                                          style={styles.wlMoveBtnInline}
+                                        >
+                                          Move day
+                                        </button>
+                                      )}
                                     </div>
                                   </div>
-                                ) : p.notes ? (
-                                  <div style={styles.wlNoteDisplay} onClick={() => startEditNote(p)}>
-                                    {p.notes}
-                                  </div>
-                                ) : null}
-                                {/* Quick actions: Note + Text */}
-                                <div style={styles.wlCardActions}>
-                                  {!p.notes && editingNote !== p.id && (
-                                    <button onClick={() => startEditNote(p)} style={styles.wlAddNoteBtn}>+ Note</button>
+                                  {/* Expandable sections below the row */}
+                                  {pickerOpen && (
+                                    <div style={styles.wlDayPickerRow}>
+                                      {WEEK_DAYS.map(d => (
+                                        <button
+                                          key={d}
+                                          onClick={() => assignDay(p.id, d)}
+                                          style={{
+                                            ...styles.wlDayBtn,
+                                            ...(d === day ? styles.wlDayBtnCurrent : {}),
+                                          }}
+                                        >
+                                          {DAY_LABELS[d]}
+                                        </button>
+                                      ))}
+                                      <button onClick={() => setDayPickerOpen(null)} style={styles.wlDayBtnCancel}>✕</button>
+                                    </div>
                                   )}
-                                  {p.patient_phone && (
-                                    <button
-                                      onClick={() => setSmsTarget({ phone: p.patient_phone, name: p.patient_name, patientId: p.patient_id })}
-                                      style={styles.wlTextBtn}
-                                    >
-                                      Text
-                                    </button>
-                                  )}
+                                  {editingNote === p.id ? (
+                                    <div style={styles.wlNoteEdit}>
+                                      <textarea
+                                        value={noteText}
+                                        onChange={(e) => setNoteText(e.target.value)}
+                                        style={styles.wlNoteTextarea}
+                                        placeholder="Add a note..."
+                                        rows={2}
+                                        autoFocus
+                                      />
+                                      <div style={styles.wlNoteActions}>
+                                        <button onClick={() => saveNote(p.id)} disabled={savingNote} style={styles.wlNoteSaveBtn}>
+                                          {savingNote ? 'Saving...' : 'Save'}
+                                        </button>
+                                        <button onClick={() => setEditingNote(null)} style={styles.wlNoteCancelBtn}>Cancel</button>
+                                      </div>
+                                    </div>
+                                  ) : p.notes ? (
+                                    <div style={styles.wlNoteDisplay} onClick={() => startEditNote(p)}>
+                                      {p.notes}
+                                    </div>
+                                  ) : null}
                                 </div>
-                                {/* Day picker toggle */}
-                                {assigningDay === p.id ? (
-                                  <div style={styles.wlMovingLabel}>Moving...</div>
-                                ) : pickerOpen ? (
-                                  <div style={styles.wlDayPickerInline}>
-                                    {WEEK_DAYS.map(d => (
-                                      <button
-                                        key={d}
-                                        onClick={() => assignDay(p.id, d)}
-                                        style={{
-                                          ...styles.wlDayBtn,
-                                          ...(d === day ? styles.wlDayBtnCurrent : {}),
-                                        }}
-                                      >
-                                        {DAY_LABELS[d]}
-                                      </button>
-                                    ))}
-                                    <button onClick={() => setDayPickerOpen(null)} style={styles.wlDayBtnCancel}>✕</button>
-                                  </div>
-                                ) : (
-                                  <button
-                                    onClick={() => setDayPickerOpen(pickerOpen ? null : p.id)}
-                                    style={styles.wlMoveBtn}
-                                  >
-                                    Move day
-                                  </button>
-                                )}
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -1004,74 +1029,123 @@ const styles = {
     color: '#525252',
     borderRadius: 0,
   },
-  wlGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(6, 1fr)',
-    gap: 8,
-  },
-  wlDayColumn: {
-    background: '#fafafa',
-    borderRadius: 0,
-    overflow: 'hidden',
-    minHeight: 60,
-  },
-  wlDayColumnToday: {
-    border: '2px solid #000',
-  },
-  wlDayHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '6px 10px',
-    borderBottom: '1px solid #e5e5e5',
-  },
-  wlDayHeaderToday: {
-    background: '#000',
-  },
-  wlDayLabel: {
-    fontSize: 12,
-    fontWeight: 700,
-    textTransform: 'uppercase',
-    letterSpacing: '0.04em',
-    color: 'inherit',
-  },
-  wlDayCount: {
-    fontSize: 11,
-    fontWeight: 600,
-    background: '#e5e5e5',
-    color: '#525252',
-    padding: '1px 6px',
-    borderRadius: 0,
-  },
-  wlDayBody: {
-    padding: 6,
+  wlDayList: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 4,
-    maxHeight: 300,
-    overflowY: 'auto',
+    gap: 0,
   },
-  wlEmpty: {
-    textAlign: 'center',
-    color: '#d4d4d4',
-    fontSize: 13,
-    padding: '8px 0',
+  wlDaySection: {
+    borderBottom: '1px solid #e5e5e5',
   },
-  wlCard: {
-    background: '#fff',
-    borderRadius: 0,
-    padding: '8px 10px',
-    border: '1px solid #e5e5e5',
-    textDecoration: 'none',
-    color: '#000',
-    display: 'block',
-  },
-  wlCardTopRow: {
+  wlDayHeaderBtn: {
+    width: '100%',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 3,
+    padding: '10px 14px',
+    background: '#fafafa',
+    border: 'none',
+    cursor: 'pointer',
+    textAlign: 'left',
+  },
+  wlDayHeaderBtnToday: {
+    background: '#000',
+  },
+  wlDayHeaderLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+  },
+  wlDayChevron: {
+    fontSize: 12,
+    color: 'inherit',
+    width: 14,
+  },
+  wlDayLabelNew: {
+    fontSize: 14,
+    fontWeight: 700,
+    color: '#111',
+  },
+  wlTodayTag: {
+    fontSize: 10,
+    fontWeight: 600,
+    background: 'rgba(255,255,255,0.2)',
+    color: '#fff',
+    padding: '1px 6px',
+    letterSpacing: '0.03em',
+  },
+  wlDayCountNew: {
+    fontSize: 13,
+    fontWeight: 700,
+    background: '#e5e5e5',
+    color: '#525252',
+    padding: '2px 8px',
+    minWidth: 24,
+    textAlign: 'center',
+  },
+  wlDayContent: {
+    background: '#fff',
+  },
+  wlEmptyDay: {
+    padding: '12px 14px',
+    color: '#a3a3a3',
+    fontSize: 13,
+  },
+  wlRow: {
+    padding: '10px 14px',
+    borderTop: '1px solid #f0f0f0',
+    borderLeft: '3px solid transparent',
+  },
+  wlRowMain: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    flexWrap: 'wrap',
+  },
+  wlRowLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    minWidth: 0,
+    flex: '1 1 220px',
+  },
+  wlRowBadges: {
+    display: 'flex',
+    alignItems: 'center',
     gap: 4,
+    flexWrap: 'wrap',
+  },
+  wlDoseInline: {
+    fontSize: 11,
+    color: '#737373',
+  },
+  wlRowMiddle: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    flex: '0 0 auto',
+  },
+  wlRowActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    marginLeft: 'auto',
+    flexShrink: 0,
+  },
+  wlMoveBtnInline: {
+    fontSize: 11,
+    fontWeight: 600,
+    color: '#737373',
+    background: '#fafafa',
+    border: '1px solid #e5e5e5',
+    padding: '3px 10px',
+    cursor: 'pointer',
+  },
+  wlDayPickerRow: {
+    display: 'flex',
+    gap: 4,
+    marginTop: 8,
+    flexWrap: 'wrap',
   },
   wlPatientName: {
     fontSize: 13,
@@ -1169,12 +1243,7 @@ const styles = {
     padding: '2px 0',
     textAlign: 'left',
   },
-  wlCardActions: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 3,
-  },
+  // wlCardActions removed — replaced by wlRowActions
   wlTextBtn: {
     fontSize: 10,
     fontWeight: 600,
@@ -1195,19 +1264,7 @@ const styles = {
     padding: '1px 6px',
     whiteSpace: 'nowrap',
   },
-  wlMoveBtn: {
-    width: '100%',
-    padding: '3px 0',
-    fontSize: 10,
-    fontWeight: 600,
-    color: '#737373',
-    background: '#fafafa',
-    border: '1px solid #e5e5e5',
-    borderRadius: 0,
-    cursor: 'pointer',
-    marginTop: 4,
-    textAlign: 'center',
-  },
+  // wlMoveBtn removed — replaced by wlMoveBtnInline
   wlMovingLabel: {
     fontSize: 10,
     color: '#737373',

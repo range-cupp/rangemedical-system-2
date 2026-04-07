@@ -4279,6 +4279,67 @@ export default function PatientProfile() {
           </section>
         )}
 
+        {/* Recent Medication Pickups Banner */}
+        {!loading && (() => {
+          const pickupsByProtocol = [];
+          (activeProtocols || []).forEach(proto => {
+            const protoPickups = (serviceLogs || [])
+              .filter(l => l.protocol_id === proto.id && l.entry_type === 'pickup')
+              .sort((a, b) => b.entry_date.localeCompare(a.entry_date));
+            if (protoPickups.length > 0) {
+              const latest = protoPickups[0];
+              pickupsByProtocol.push({
+                protocol: proto,
+                pickup: latest,
+                nextRefill: proto.next_expected_date,
+              });
+            }
+          });
+          if (pickupsByProtocol.length === 0) return null;
+          return (
+            <section style={{
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: 0,
+              padding: '12px 16px',
+              marginBottom: 16,
+            }}>
+              <div style={{ fontSize: 12, color: '#166534', fontWeight: 600, marginBottom: 8, letterSpacing: '0.02em' }}>
+                RECENT MEDICATION PICKUPS
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {pickupsByProtocol.map(({ protocol, pickup, nextRefill }) => {
+                  const cat = getCategoryStyle(protocol.category);
+                  const daysAgo = Math.floor((new Date() - new Date(pickup.entry_date + 'T00:00:00')) / (1000 * 60 * 60 * 24));
+                  const daysLabel = daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : `${daysAgo}d ago`;
+                  return (
+                    <div key={protocol.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: '#1f2937' }}>
+                      <span style={{
+                        display: 'inline-block',
+                        padding: '1px 8px',
+                        borderRadius: 3,
+                        fontSize: 11,
+                        fontWeight: 600,
+                        background: cat.bg,
+                        color: cat.text,
+                        flexShrink: 0,
+                      }}>{cat.label}</span>
+                      <span style={{ fontWeight: 600 }}>{pickup.medication || protocol.medication || protocol.program_type}</span>
+                      <span style={{ color: '#6b7280' }}>{formatShortDate(pickup.entry_date)} ({daysLabel})</span>
+                      {pickup.dosage && <span style={{ color: '#6b7280', fontSize: 13 }}>{pickup.dosage}</span>}
+                      {nextRefill && (
+                        <span style={{ color: '#047857', fontSize: 13, fontWeight: 500 }}>
+                          Next refill: {formatShortDate(nextRefill)}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })()}
+
         {/* Staff Notes Bar */}
         {!loading && patient && (
           <div className="staff-briefing-bar">

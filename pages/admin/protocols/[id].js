@@ -3741,16 +3741,22 @@ export default function ProtocolDetail() {
                 {encounterSlideNote.body || encounterSlideNote.raw_input || 'No note content.'}
               </div>
             </div>
-            {/* Footer with link to patient */}
+            {/* Footer with edit link */}
             {protocol?.patient_id && (
               <div style={{
                 padding: '16px 24px', borderTop: '1px solid #e5e7eb',
-                display: 'flex', justifyContent: 'flex-end',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               }}>
                 <Link href={`/admin/patient/${protocol.patient_id}?tab=notes`} style={{
                   fontSize: '13px', color: '#2563eb', textDecoration: 'none', fontWeight: '500',
                 }}>
                   View all notes →
+                </Link>
+                <Link href={`/patients/${protocol.patient_id}?tab=notes`} style={{
+                  fontSize: '13px', color: '#374151', textDecoration: 'none', fontWeight: '500',
+                  padding: '6px 14px', background: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: 4,
+                }}>
+                  Edit Note
                 </Link>
               </div>
             )}

@@ -179,6 +179,35 @@ function getIntervalForSupply(supplyValue, med) {
 }
 
 // Parse **bold** markdown into React elements
+// Convert **bold** markdown → HTML for contentEditable display
+function noteMdToHtml(text) {
+  if (!text) return '';
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+}
+
+// Convert contentEditable HTML → **bold** markdown for storage
+function noteHtmlToMd(html) {
+  if (!html) return '';
+  return html
+    .replace(/<strong>([\s\S]*?)<\/strong>/gi, (_, inner) => `**${inner.replace(/<[^>]*>/g, '')}**`)
+    .replace(/<b>([\s\S]*?)<\/b>/gi, (_, inner) => `**${inner.replace(/<[^>]*>/g, '')}**`)
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<div><br\s*\/?><\/div>/gi, '\n')
+    .replace(/<div>([\s\S]*?)<\/div>/gi, '\n$1')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/<[^>]*>/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 function renderFormattedText(text) {
   if (!text) return text;
   const parts = text.split(/(\*\*.*?\*\*)/g);
@@ -785,6 +814,9 @@ export default function PatientProfile() {
   const [editingNote, setEditingNote] = useState(null);
   const [editNoteBody, setEditNoteBody] = useState('');
   const [editNoteSaving, setEditNoteSaving] = useState(false);
+  const editNoteRef = useRef(null);
+  const [showEditHighlightPicker, setShowEditHighlightPicker] = useState(false);
+  const [showEditFontSizePicker, setShowEditFontSizePicker] = useState(false);
   // Strip markdown bold markers for clean editing
   const stripMarkdownBold = (text) => (text || '').replace(/\*\*(.*?)\*\*/g, '$1');
   const [expandedNotes, setExpandedNotes] = useState({});
@@ -3443,18 +3475,41 @@ export default function PatientProfile() {
     }
   };
 
+  // Rich text formatting for edit note modal
+  const editNoteExecFormat = (command, value = null) => {
+    if (!editNoteRef.current) return;
+    editNoteRef.current.focus();
+    document.execCommand(command, false, value);
+  };
+  const editNoteHighlightColors = [
+    { label: 'Yellow', color: '#fef08a' },
+    { label: 'Green', color: '#bbf7d0' },
+    { label: 'Blue', color: '#bfdbfe' },
+    { label: 'Pink', color: '#fbcfe8' },
+    { label: 'Orange', color: '#fed7aa' },
+    { label: 'None', color: 'transparent' },
+  ];
+  const editNoteFontSizes = [
+    { label: 'Small', size: '2' },
+    { label: 'Normal', size: '3' },
+    { label: 'Medium', size: '4' },
+    { label: 'Large', size: '5' },
+  ];
+
   const handleEditNote = async () => {
-    if (!editingNote || !editNoteBody.trim()) return;
+    const htmlContent = editNoteRef.current?.innerHTML || '';
+    const mdBody = noteHtmlToMd(htmlContent);
+    if (!editingNote || !mdBody.trim()) return;
     setEditNoteSaving(true);
     try {
       const res = await fetch(`/api/notes/${editingNote.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body: editNoteBody, requesting_user: session?.user?.email || 'Staff' }),
+        body: JSON.stringify({ body: mdBody, requesting_user: session?.user?.email || 'Staff' }),
       });
       const data = await res.json();
       if (data.success) {
-        setNotes(prev => prev.map(n => n.id === editingNote.id ? { ...n, body: editNoteBody, edited_after_signing: editingNote.status === 'signed' ? true : n.edited_after_signing } : n));
+        setNotes(prev => prev.map(n => n.id === editingNote.id ? { ...n, body: mdBody, edited_after_signing: editingNote.status === 'signed' ? true : n.edited_after_signing } : n));
         setEditingNote(null);
         setEditNoteBody('');
       } else {
@@ -9645,21 +9700,73 @@ export default function PatientProfile() {
                 )}
                 <div className="form-group">
                   <label>Note Content</label>
-                  <textarea
-                    value={editNoteBody}
-                    onChange={e => setEditNoteBody(e.target.value)}
-                    rows={10}
-                    style={{ fontFamily: 'inherit', fontSize: 14, lineHeight: 1.6 }}
+                  {/* Formatting toolbar */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2, marginBottom: 0, padding: '6px 8px', background: '#f9fafb', border: '1px solid #e5e7eb', borderBottom: 'none', alignItems: 'center' }}>
+                    <button type="button" onClick={() => editNoteExecFormat('bold')} title="Bold" style={{ padding: '5px 9px', fontSize: 13, fontWeight: 800, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer', fontFamily: 'serif', lineHeight: 1 }}>B</button>
+                    <button type="button" onClick={() => editNoteExecFormat('italic')} title="Italic" style={{ padding: '5px 10px', fontSize: 13, fontWeight: 400, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer', fontFamily: 'serif', fontStyle: 'italic', lineHeight: 1 }}>I</button>
+                    <button type="button" onClick={() => editNoteExecFormat('underline')} title="Underline" style={{ padding: '5px 9px', fontSize: 13, fontWeight: 400, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer', fontFamily: 'serif', textDecoration: 'underline', lineHeight: 1 }}>U</button>
+                    <button type="button" onClick={() => editNoteExecFormat('strikeThrough')} title="Strikethrough" style={{ padding: '5px 9px', fontSize: 13, fontWeight: 400, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer', fontFamily: 'serif', textDecoration: 'line-through', lineHeight: 1 }}>S</button>
+                    <div style={{ width: 1, height: 22, background: '#d1d5db', margin: '0 4px' }} />
+                    {/* Font size */}
+                    <div style={{ position: 'relative' }}>
+                      <button type="button" onClick={() => { setShowEditFontSizePicker(!showEditFontSizePicker); setShowEditHighlightPicker(false); }} title="Font Size" style={{ padding: '5px 8px', fontSize: 12, fontWeight: 500, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer', lineHeight: 1, display: 'flex', alignItems: 'center', gap: 3 }}>
+                        A<span style={{ fontSize: 9 }}>▼</span>
+                      </button>
+                      {showEditFontSizePicker && (
+                        <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 1000, background: '#fff', border: '1px solid #d1d5db', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', minWidth: 100, marginTop: 2 }}>
+                          {editNoteFontSizes.map(fs => (
+                            <button key={fs.size} type="button" onClick={() => { editNoteExecFormat('fontSize', fs.size); setShowEditFontSizePicker(false); }} style={{ display: 'block', width: '100%', padding: '6px 12px', fontSize: 13, border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', color: '#374151' }} onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                              {fs.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ width: 1, height: 22, background: '#d1d5db', margin: '0 4px' }} />
+                    {/* Highlight */}
+                    <div style={{ position: 'relative' }}>
+                      <button type="button" onClick={() => { setShowEditHighlightPicker(!showEditHighlightPicker); setShowEditFontSizePicker(false); }} title="Highlight" style={{ padding: '5px 8px', fontSize: 12, fontWeight: 600, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer', lineHeight: 1, display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <span style={{ background: '#fef08a', padding: '0 3px' }}>H</span><span style={{ fontSize: 9 }}>▼</span>
+                      </button>
+                      {showEditHighlightPicker && (
+                        <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 1000, background: '#fff', border: '1px solid #d1d5db', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', padding: 6, display: 'flex', gap: 4, marginTop: 2 }}>
+                          {editNoteHighlightColors.map(hc => (
+                            <button key={hc.color} type="button" onClick={() => { editNoteExecFormat('hiliteColor', hc.color); setShowEditHighlightPicker(false); }} title={hc.label} style={{ width: 24, height: 24, border: '1px solid #d1d5db', borderRadius: 0, background: hc.color === 'transparent' ? '#fff' : hc.color, cursor: 'pointer', fontSize: 10, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              {hc.color === 'transparent' ? '✕' : ''}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ width: 1, height: 22, background: '#d1d5db', margin: '0 4px' }} />
+                    {/* Lists */}
+                    <button type="button" onClick={() => editNoteExecFormat('insertUnorderedList')} title="Bullet List" style={{ padding: '5px 8px', fontSize: 13, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer', lineHeight: 1 }}>•≡</button>
+                    <button type="button" onClick={() => editNoteExecFormat('insertOrderedList')} title="Numbered List" style={{ padding: '5px 8px', fontSize: 13, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#374151', cursor: 'pointer', lineHeight: 1 }}>1.≡</button>
+                    <div style={{ width: 1, height: 22, background: '#d1d5db', margin: '0 4px' }} />
+                    {/* Clear */}
+                    <button type="button" onClick={() => editNoteExecFormat('removeFormat')} title="Clear Formatting" style={{ padding: '5px 8px', fontSize: 12, border: '1px solid #d1d5db', borderRadius: 0, background: '#fff', color: '#9ca3af', cursor: 'pointer', lineHeight: 1 }}>T̸</button>
+                  </div>
+                  {/* ContentEditable editor */}
+                  <div
+                    ref={editNoteRef}
+                    contentEditable
+                    suppressContentEditableWarning
+                    dangerouslySetInnerHTML={{ __html: noteMdToHtml(editNoteBody) }}
+                    style={{
+                      minHeight: 200, padding: '12px 14px', border: '1px solid #e5e7eb', borderTop: 'none',
+                      fontFamily: 'inherit', fontSize: 14, lineHeight: 1.7, outline: 'none',
+                      whiteSpace: 'pre-wrap', wordBreak: 'break-word', background: '#fff',
+                    }}
                   />
                 </div>
               </div>
               <div className="modal-footer">
-                <button onClick={() => { setEditingNote(null); setEditNoteBody(''); }} className="btn-secondary">Cancel</button>
+                <button onClick={() => { setEditingNote(null); setEditNoteBody(''); setShowEditHighlightPicker(false); setShowEditFontSizePicker(false); }} className="btn-secondary">Cancel</button>
                 <button
                   onClick={handleEditNote}
-                  disabled={!editNoteBody.trim() || editNoteSaving}
+                  disabled={editNoteSaving}
                   className="btn-primary"
-                  style={{ opacity: (!editNoteBody.trim() || editNoteSaving) ? 0.5 : 1 }}
+                  style={{ opacity: editNoteSaving ? 0.5 : 1 }}
                 >
                   {editNoteSaving ? 'Saving...' : 'Save Changes'}
                 </button>

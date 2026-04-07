@@ -10,6 +10,7 @@ import { useAuth } from '../../components/AuthProvider';
 import { NOTE_TYPES, ENCOUNTER_TEMPLATES, getTemplateForService, getTemplatesForCategory } from '../../lib/encounter-templates';
 import { ENCOUNTER_FORMS } from '../../lib/encounter-form-config';
 import InteractiveEncounterForm from '../../components/InteractiveEncounterForm';
+import { isNoteAuthor } from '../../lib/staff-config';
 
 // ── Markdown helpers (shared with EncounterModal) ─────────────────────────────
 function mdToHtml(text) {
@@ -312,10 +313,10 @@ function InlineEncounterEditor({ task, session, currentUser, onTaskComplete }) {
       const res = await fetch(`/api/notes/${editingNoteId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body: editNoteInput }),
+        body: JSON.stringify({ body: editNoteInput, requesting_user: currentUser }),
       });
       const data = await res.json();
-      if (data.note) {
+      if (data.success) {
         setNotes(prev => prev.map(n => n.id === editingNoteId ? { ...n, body: editNoteInput } : n));
         setEditingNoteId(null);
         setEditNoteInput('');
@@ -480,11 +481,14 @@ function InlineEncounterEditor({ task, session, currentUser, onTaskComplete }) {
 
               {editingNoteId !== note.id && canAuthorNotes && (
                 <div style={s.noteActions}>
-                  {note.status !== 'signed' && note.created_by === currentUser && (
+                  {note.status !== 'signed' && isNoteAuthor(note.created_by, currentUser) && (
                     <>
-                      <button onClick={() => { setEditingNoteId(note.id); setEditNoteInput(note.body); }} style={{ ...s.btn, ...s.btnSecondary }}>✏️ Edit</button>
+                      <button onClick={() => { setEditingNoteId(note.id); setEditNoteInput(note.body); }} style={{ ...s.btn, ...s.btnSecondary }}>Edit</button>
                       <button onClick={() => handleSignNote(note.id)} style={{ ...s.btn, ...s.btnSign }}>✍ Sign & Lock</button>
                     </>
+                  )}
+                  {note.status === 'signed' && isNoteAuthor(note.created_by, currentUser) && (
+                    <button onClick={() => { setEditingNoteId(note.id); setEditNoteInput(note.body); }} style={{ ...s.btn, ...s.btnSecondary }}>Edit</button>
                   )}
                   {note.status === 'signed' && (
                     <button onClick={() => setAddendumParentId(note.id)} style={{ ...s.btn, ...s.btnGhost }}>+ Add Addendum</button>

@@ -4976,13 +4976,29 @@ export default function PatientProfile() {
                   { label: 'O2 Saturation', key: 'o2_saturation', fmt: (v) => v ? `${v}%` : null },
                 ];
                 // Weight chart data (all history, chronological)
+                // Look up the most recent weight-loss injection dose on/before each weight reading
+                const wlInjections = (serviceLogs || [])
+                  .filter(l => l.entry_type === 'injection' && l.dosage)
+                  .map(l => ({ date: new Date(l.service_date || l.created_at), dosage: l.dosage }))
+                  .sort((a, b) => a.date - b.date);
+                const doseAt = (when) => {
+                  let last = null;
+                  for (const inj of wlInjections) {
+                    if (inj.date <= when) last = inj.dosage; else break;
+                  }
+                  return last;
+                };
                 const weightData = vitalsHistory
                   .filter(v => v.weight_lbs)
-                  .map(v => ({
-                    date: new Date(v.recorded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-                    weight: parseFloat(v.weight_lbs),
-                    fullDate: new Date(v.recorded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                  }))
+                  .map(v => {
+                    const recorded = new Date(v.recorded_at);
+                    return {
+                      date: recorded.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                      weight: parseFloat(v.weight_lbs),
+                      fullDate: recorded.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                      dose: doseAt(recorded),
+                    };
+                  })
                   .reverse();
 
                 return (
@@ -5094,7 +5110,10 @@ export default function PatientProfile() {
                             <YAxis domain={['auto', 'auto']} tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} unit=" lb" width={55} />
                             <Tooltip
                               contentStyle={{ fontSize: '13px', borderRadius: 0, border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
-                              formatter={(value) => [`${value} lb`, 'Weight']}
+                              formatter={(value, name, item) => {
+                                const dose = item?.payload?.dose;
+                                return [`${value} lb${dose ? ` • ${dose}` : ''}`, 'Weight'];
+                              }}
                               labelFormatter={(label, payload) => payload?.[0]?.payload?.fullDate || label}
                             />
                             <Line type="monotone" dataKey="weight" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }} activeDot={{ r: 6 }} />

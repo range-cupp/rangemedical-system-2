@@ -5005,6 +5005,9 @@ export default function PatientProfile() {
                             <option value={1}>Last encounter</option>
                             <option value={5}>Last 5 encounters</option>
                             <option value={10}>Last 10 encounters</option>
+                            <option value={25}>Last 25 encounters</option>
+                            <option value={50}>Last 50 encounters</option>
+                            <option value={9999}>All encounters</option>
                           </select>
                         )}
                         <button

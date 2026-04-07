@@ -480,6 +480,9 @@ export default function PatientProfile() {
   const [serviceLogs, setServiceLogs] = useState([]);
   const [vitalsHistory, setVitalsHistory] = useState([]);
   const [vitalsDisplayCount, setVitalsDisplayCount] = useState(5);
+  const [showVitalsModal, setShowVitalsModal] = useState(false);
+  const [vitalsModalData, setVitalsModalData] = useState({ weight_lbs: '', height_inches: '', bp_systolic: '', bp_diastolic: '', temperature: '', pulse: '', respiratory_rate: '', o2_saturation: '' });
+  const [vitalsModalSaving, setVitalsModalSaving] = useState(false);
   const [commsLog, setCommsLog] = useState([]);
   const [allPurchases, setAllPurchases] = useState([]);
   const [expandedTransactions, setExpandedTransactions] = useState({});
@@ -900,6 +903,48 @@ export default function PatientProfile() {
     cancelled: [],
     no_show: [],
     rescheduled: [],
+  };
+
+  // Save standalone vitals (no encounter required)
+  const handleSaveStandaloneVitals = async () => {
+    setVitalsModalSaving(true);
+    try {
+      const currentUser = session?.user?.user_metadata?.full_name || session?.user?.email || 'Staff';
+      // Parse height if entered as 5'10" format
+      let heightVal = vitalsModalData.height_inches;
+      if (typeof heightVal === 'string' && heightVal.includes("'")) {
+        const parts = heightVal.match(/(\d+)'(\d+)/);
+        if (parts) heightVal = parseInt(parts[1]) * 12 + parseInt(parts[2]);
+      }
+      const res = await fetch('/api/vitals/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: id,
+          appointment_id: null,
+          height_inches: heightVal || '',
+          weight_lbs: vitalsModalData.weight_lbs,
+          bp_systolic: vitalsModalData.bp_systolic,
+          bp_diastolic: vitalsModalData.bp_diastolic,
+          temperature: vitalsModalData.temperature,
+          pulse: vitalsModalData.pulse,
+          respiratory_rate: vitalsModalData.respiratory_rate,
+          o2_saturation: vitalsModalData.o2_saturation,
+          recorded_by: currentUser,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to save vitals');
+      // Refresh vitals history
+      const vitalsRes = await fetch(`/api/vitals/history?patient_id=${id}`);
+      const vitalsData = await vitalsRes.json();
+      setVitalsHistory(vitalsData.vitals || []);
+      setShowVitalsModal(false);
+      setVitalsModalData({ weight_lbs: '', height_inches: '', bp_systolic: '', bp_diastolic: '', temperature: '', pulse: '', respiratory_rate: '', o2_saturation: '' });
+    } catch (err) {
+      alert('Error saving vitals: ' + err.message);
+    } finally {
+      setVitalsModalSaving(false);
+    }
   };
 
   const handleQuickStatusChange = async (apt, newStatus) => {
@@ -4797,7 +4842,7 @@ export default function PatientProfile() {
               </section>
 
               {/* Vitals Flowsheet + Weight Chart (Practice Fusion style) */}
-              {vitalsHistory.length > 0 && (() => {
+              {(() => {
                 const fmtHt = (inches) => {
                   if (!inches) return null;
                   const ft = Math.floor(inches / 12);
@@ -4829,25 +4874,44 @@ export default function PatientProfile() {
                   <section className="card" style={{ marginBottom: '16px' }}>
                     <div className="card-header">
                       <h3>Vitals</h3>
-                      <select
-                        value={vitalsDisplayCount}
-                        onChange={(e) => setVitalsDisplayCount(parseInt(e.target.value))}
-                        style={{
-                          fontSize: '12px', color: '#64748b', background: '#f8fafc',
-                          border: '1px solid #e2e8f0', borderRadius: 0, padding: '4px 24px 4px 10px',
-                          fontWeight: 500, cursor: 'pointer', appearance: 'none',
-                          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E")`,
-                          backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center',
-                        }}
-                      >
-                        <option value={1}>Last encounter</option>
-                        <option value={5}>Last 5 encounters</option>
-                        <option value={10}>Last 10 encounters</option>
-                      </select>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {vitalsHistory.length > 0 && (
+                          <select
+                            value={vitalsDisplayCount}
+                            onChange={(e) => setVitalsDisplayCount(parseInt(e.target.value))}
+                            style={{
+                              fontSize: '12px', color: '#64748b', background: '#f8fafc',
+                              border: '1px solid #e2e8f0', borderRadius: 0, padding: '4px 24px 4px 10px',
+                              fontWeight: 500, cursor: 'pointer', appearance: 'none',
+                              backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E")`,
+                              backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center',
+                            }}
+                          >
+                            <option value={1}>Last encounter</option>
+                            <option value={5}>Last 5 encounters</option>
+                            <option value={10}>Last 10 encounters</option>
+                          </select>
+                        )}
+                        <button
+                          onClick={() => {
+                            // Pre-fill height from last vitals if available
+                            const lastHeight = vitalsHistory.find(v => v.height_inches)?.height_inches || '';
+                            setVitalsModalData({ weight_lbs: '', height_inches: lastHeight, bp_systolic: '', bp_diastolic: '', temperature: '', pulse: '', respiratory_rate: '', o2_saturation: '' });
+                            setShowVitalsModal(true);
+                          }}
+                          className="btn-primary-sm"
+                        >+ Add Vitals</button>
+                      </div>
                     </div>
 
+                    {vitalsHistory.length === 0 && (
+                      <div style={{ padding: '24px 16px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                        No vitals recorded yet. Click "+ Add Vitals" to log the first entry.
+                      </div>
+                    )}
+
                     {/* PF-style Flowsheet: dates as columns, vitals as rows */}
-                    <div style={{ overflowX: 'auto', padding: '0 0 8px' }}>
+                    {vitalsHistory.length > 0 && <div style={{ overflowX: 'auto', padding: '0 0 8px' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: vitalsDisplayCount <= 1 ? '280px' : '500px' }}>
                         <thead>
                           <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
@@ -4897,7 +4961,7 @@ export default function PatientProfile() {
                           ))}
                         </tbody>
                       </table>
-                    </div>
+                    </div>}
 
                     {/* Weight Trend Chart */}
                     {weightData.length >= 2 && (
@@ -8004,31 +8068,33 @@ export default function PatientProfile() {
                               </span>
                             )}
                           </div>
-                          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                             <button
                               onClick={() => { setEditingNote(note); setEditNoteBody(note.body); }}
-                              style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 14, padding: '0 4px', lineHeight: 1 }}
+                              style={{ background: '#f3f4f6', border: '1px solid #d1d5db', color: '#374151', cursor: 'pointer', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 4, lineHeight: 1.4 }}
                               title="Edit note"
-                            >✏️</button>
+                            >Edit</button>
                             <button
                               onClick={() => handleTogglePin(note.id, note.pinned)}
                               style={{
-                                background: 'none',
-                                border: 'none',
-                                color: note.pinned ? '#d97706' : '#999',
+                                background: note.pinned ? '#fef3c7' : '#f3f4f6',
+                                border: `1px solid ${note.pinned ? '#f59e0b' : '#d1d5db'}`,
+                                color: note.pinned ? '#92400e' : '#374151',
                                 cursor: 'pointer',
-                                fontSize: 16,
-                                padding: '0 4px',
-                                lineHeight: 1,
+                                fontSize: 12,
+                                fontWeight: 500,
+                                padding: '3px 10px',
+                                borderRadius: 4,
+                                lineHeight: 1.4,
                               }}
                               title={note.pinned ? 'Unpin note' : 'Pin note'}
-                            >📌</button>
+                            >{note.pinned ? 'Unpin' : 'Pin'}</button>
                             {(note.status !== 'signed' ? canDeleteNote(note) : isAdminUser) && (
                               <button
                                 onClick={() => handleDeleteNote(note.id)}
-                                style={{ background: 'none', border: 'none', color: note.status === 'signed' ? '#dc2626' : '#999', cursor: 'pointer', fontSize: 18, padding: '0 4px', lineHeight: 1 }}
+                                style={{ background: note.status === 'signed' ? '#fef2f2' : '#f3f4f6', border: `1px solid ${note.status === 'signed' ? '#fca5a5' : '#d1d5db'}`, color: note.status === 'signed' ? '#dc2626' : '#6b7280', cursor: 'pointer', fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 4, lineHeight: 1.4 }}
                                 title={note.status === 'signed' ? 'Delete signed note (admin)' : 'Delete note'}
-                              >×</button>
+                              >Delete</button>
                             )}
                           </div>
                         </div>
@@ -14017,6 +14083,122 @@ export default function PatientProfile() {
           .wl-table th, .wl-table td { padding: 6px 8px; }
         }
       `}</style>
+
+      {/* Standalone Vitals Modal */}
+      {showVitalsModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setShowVitalsModal(false)}>
+          <div style={{ background: '#fff', borderRadius: 0, width: '90%', maxWidth: 480, maxHeight: '85vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ padding: '20px 24px 0', borderBottom: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px' }}>
+                <h3 style={{ margin: 0, fontSize: '16px' }}>Add Vitals</h3>
+                <button onClick={() => setShowVitalsModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>&times;</button>
+              </div>
+            </div>
+            <div style={{ padding: '20px 24px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Weight (lbs)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={vitalsModalData.weight_lbs}
+                    onChange={e => setVitalsModalData(d => ({ ...d, weight_lbs: e.target.value }))}
+                    placeholder="e.g. 185"
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 0, fontSize: '14px', boxSizing: 'border-box' }}
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Height</label>
+                  <input
+                    type="text"
+                    value={vitalsModalData.height_inches}
+                    onChange={e => setVitalsModalData(d => ({ ...d, height_inches: e.target.value }))}
+                    placeholder={`5'10" or 70`}
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 0, fontSize: '14px', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>BP Systolic</label>
+                  <input
+                    type="number"
+                    value={vitalsModalData.bp_systolic}
+                    onChange={e => setVitalsModalData(d => ({ ...d, bp_systolic: e.target.value }))}
+                    placeholder="120"
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 0, fontSize: '14px', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>BP Diastolic</label>
+                  <input
+                    type="number"
+                    value={vitalsModalData.bp_diastolic}
+                    onChange={e => setVitalsModalData(d => ({ ...d, bp_diastolic: e.target.value }))}
+                    placeholder="80"
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 0, fontSize: '14px', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Temperature</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={vitalsModalData.temperature}
+                    onChange={e => setVitalsModalData(d => ({ ...d, temperature: e.target.value }))}
+                    placeholder="98.6"
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 0, fontSize: '14px', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Pulse</label>
+                  <input
+                    type="number"
+                    value={vitalsModalData.pulse}
+                    onChange={e => setVitalsModalData(d => ({ ...d, pulse: e.target.value }))}
+                    placeholder="72"
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 0, fontSize: '14px', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Respiratory Rate</label>
+                  <input
+                    type="number"
+                    value={vitalsModalData.respiratory_rate}
+                    onChange={e => setVitalsModalData(d => ({ ...d, respiratory_rate: e.target.value }))}
+                    placeholder="16"
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 0, fontSize: '14px', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>O2 Saturation</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={vitalsModalData.o2_saturation}
+                    onChange={e => setVitalsModalData(d => ({ ...d, o2_saturation: e.target.value }))}
+                    placeholder="98"
+                    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 0, fontSize: '14px', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+              <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                <button
+                  onClick={() => setShowVitalsModal(false)}
+                  style={{ padding: '8px 16px', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontSize: '13px', borderRadius: 0 }}
+                >Cancel</button>
+                <button
+                  onClick={handleSaveStandaloneVitals}
+                  disabled={vitalsModalSaving || (!vitalsModalData.weight_lbs && !vitalsModalData.bp_systolic)}
+                  className="btn-primary"
+                  style={{ padding: '8px 20px', fontSize: '13px', opacity: vitalsModalSaving ? 0.6 : 1 }}
+                >{vitalsModalSaving ? 'Saving...' : 'Save Vitals'}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Protocol PDF Modal */}
       {showProtocolPdfModal && (

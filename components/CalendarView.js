@@ -149,6 +149,42 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   // Prep checklist state (inline in appointment card)
   const [prepSaving, setPrepSaving] = useState({});
   const [prepNotes, setPrepNotes] = useState('');
+  const [sendingForms, setSendingForms] = useState(false);
+  const [sendFormsStatus, setSendFormsStatus] = useState(null);
+
+  const sendMissingFormsInline = async (appt, missingFormIds) => {
+    if (!appt?.patient_id || !missingFormIds?.length) return;
+    const phone = apptPatientInfo?.phone || appt.attendee_phone;
+    if (!phone) {
+      setSendFormsStatus({ ok: false, msg: 'No phone number on file' });
+      return;
+    }
+    const digits = String(phone).replace(/\D/g, '');
+    const normalizedPhone = digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits;
+    const firstName = (appt.patient_name || appt.attendee_name || '').trim().split(/\s+/)[0] || null;
+    setSendingForms(true);
+    setSendFormsStatus(null);
+    try {
+      const res = await fetch('/api/send-forms-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: normalizedPhone,
+          firstName,
+          formIds: missingFormIds,
+          patientId: appt.patient_id,
+          patientName: appt.patient_name || appt.attendee_name || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send');
+      setSendFormsStatus({ ok: true, msg: data.twoStep ? 'Opt-in sent — forms deliver on reply' : `${missingFormIds.length} form${missingFormIds.length > 1 ? 's' : ''} sent via SMS` });
+    } catch (err) {
+      setSendFormsStatus({ ok: false, msg: err.message });
+    } finally {
+      setSendingForms(false);
+    }
+  };
 
   // Medical intake panel toggle
   const [showIntakePanel, setShowIntakePanel] = useState(false);
@@ -1961,9 +1997,28 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                     </div>
                   ))}
                   {!allDone && appt.patient_id && (
-                    <a href={`/admin/send-forms?patient_id=${appt.patient_id}`} style={{ fontSize: '11px', color: '#2563eb', marginTop: '6px', display: 'inline-block' }}>
-                      Send Missing Forms →
-                    </a>
+                    <div style={{ marginTop: '8px' }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const missing = formChecks.filter(f => !f.done).map(f => f.formId);
+                          sendMissingFormsInline(appt, missing);
+                        }}
+                        disabled={sendingForms}
+                        style={{
+                          fontSize: '11px', fontWeight: 600, padding: '5px 10px',
+                          background: sendingForms ? '#e5e7eb' : '#2563eb', color: '#fff',
+                          border: 'none', cursor: sendingForms ? 'wait' : 'pointer',
+                        }}
+                      >
+                        {sendingForms ? 'Sending…' : `Send ${missingCount} Missing Form${missingCount > 1 ? 's' : ''} via SMS`}
+                      </button>
+                      {sendFormsStatus && (
+                        <div style={{ fontSize: '11px', marginTop: '5px', color: sendFormsStatus.ok ? '#166534' : '#991b1b' }}>
+                          {sendFormsStatus.ok ? '✓ ' : '✗ '}{sendFormsStatus.msg}
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               );
@@ -2219,6 +2274,14 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
               const sn = (appt.service_name || '').toLowerCase();
               const isPrereqSvc = sn.includes('vitamin c') || sn.includes('methylene blue') || sn.includes('mb +') || sn.includes('mb combo');
               const isLabAppt = sn.includes('lab review') || sn.includes('lab assessment') || sn.includes('lab follow') || sn.includes('initial lab');
+              // Provider briefing is only required for appointments where Dr. Burgess
+              // needs context ahead of time: lab reviews, initial consults, PRP, and
+              // procedures. Routine WL/T injections, IVs, HBOT, RLT, peptide pickups
+              // do NOT need a provider brief.
+              const isInitialConsult = sn.includes('initial consult') || sn.includes('new patient consult') || (sn.includes('consult') && sn.includes('initial'));
+              const isPRP = sn.includes('prp');
+              const isProcedure = sn.includes('procedure') || sn.includes('aspiration') || sn.includes('injection therapy') || sn.includes('trigger point') || sn.includes('joint injection');
+              const requiresProviderBrief = isLabAppt || isInitialConsult || isPRP || isProcedure;
               const labDeliveryLabel = appt.modality === 'telemedicine' ? 'Labs emailed to patient' : 'Labs printed';
               const prepItems = [
                 { label: 'Instructions sent', ok: appt.instructions_sent, auto: true },
@@ -2226,7 +2289,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                 ...(isPrereqSvc ? [{ label: 'Blood work prereq', ok: appt.prereqs_met, auto: true }] : []),
                 ...(isLabAppt ? [{ label: labDeliveryLabel, ok: appt.labs_delivered, field: 'labs_delivered' }] : []),
                 { label: 'ID verified', ok: appt.id_verified, field: 'id_verified' },
-                { label: 'Provider briefed', ok: appt.provider_briefed, field: 'provider_briefed' },
+                ...(requiresProviderBrief ? [{ label: 'Provider briefed', ok: appt.provider_briefed, field: 'provider_briefed' }] : []),
               ];
               const allReady = prepItems.every(i => i.ok);
               return (

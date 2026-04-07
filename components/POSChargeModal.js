@@ -80,7 +80,7 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
   const [shippingAmount, setShippingAmount] = useState('');
 
   // Fulfillment state (for take-home medication: peptides, weight loss, HRT)
-  const [fulfillmentMethod, setFulfillmentMethod] = useState('in_clinic'); // 'in_clinic' or 'overnight'
+  const [fulfillmentMethod, setFulfillmentMethod] = useState('in_clinic');
   const [trackingNumber, setTrackingNumber] = useState('');
 
   // Payment state
@@ -176,6 +176,16 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       loadCreditBalance();
     }
   }, [step]);
+
+  // When weight loss hits the cart, default fulfillment to 'in_clinic_injections'.
+  // WL patients come in for weekly injections — picking 'in_clinic' (Picked Up In Clinic)
+  // would auto-log a bogus pickup against the protocol. Only flip from the initial default;
+  // never overwrite an explicit user choice.
+  useEffect(() => {
+    if (cartItems.some(i => i.category === 'weight_loss') && fulfillmentMethod === 'in_clinic') {
+      setFulfillmentMethod('in_clinic_injections');
+    }
+  }, [cartItems]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function loadCreditBalance() {
     if (!patient?.id) return;

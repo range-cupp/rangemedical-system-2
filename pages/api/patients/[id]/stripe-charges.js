@@ -46,7 +46,7 @@ export default async function handler(req, res) {
     if (paymentIntentIds.length > 0) {
       const { data: purchases } = await supabase
         .from('purchases')
-        .select('id, stripe_payment_intent_id, description, item_name, amount_paid, medication')
+        .select('id, stripe_payment_intent_id, description, item_name, amount_paid, medication, dose, quantity, category')
         .in('stripe_payment_intent_id', paymentIntentIds);
 
       if (purchases) {
@@ -90,10 +90,17 @@ export default async function handler(req, res) {
       }
 
       // Itemized line items (medication + dose + amount paid) — staff-facing detail
-      const lineItems = linkedPurchases.map(p => ({
-        name: p.medication || p.description || p.item_name || 'Service',
-        amount_paid: p.amount_paid != null ? Number(p.amount_paid) : null,
-      }));
+      const lineItems = linkedPurchases.map(p => {
+        const baseName = p.medication || p.description || p.item_name || 'Service';
+        const parts = [baseName];
+        if (p.dose) parts.push(p.dose);
+        if (p.quantity && Number(p.quantity) > 1) parts.push(`×${p.quantity}`);
+        return {
+          name: parts.join(' · '),
+          category: p.category || null,
+          amount_paid: p.amount_paid != null ? Number(p.amount_paid) : null,
+        };
+      });
 
       return {
         id: c.id,

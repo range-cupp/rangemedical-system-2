@@ -249,7 +249,7 @@ function CheckoutInner() {
 
   // ── Recent charges ──
   const [recentCharges, setRecentCharges] = useState([]);
-  const [recentChargesOpen, setRecentChargesOpen] = useState(false);
+  const [recentChargesOpen, setRecentChargesOpen] = useState(true);
 
   // ── Medication Dispensing ──
   const [employees, setEmployees] = useState([]);
@@ -1685,21 +1685,37 @@ function CheckoutInner() {
                           : '';
                         const isRefunded = c.refunded;
                         const partialRefund = !c.refunded && c.amount_refunded > 0;
+                        const lineItems = c.line_items || [];
                         return (
-                          <div key={c.id} style={{ ...styles.recentChargeRow, ...(isRefunded ? { opacity: 0.5 } : {}) }}>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: '13px', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {desc}
-                                {isRefunded && <span style={{ fontSize: '10px', color: '#dc2626', fontWeight: 700, marginLeft: '6px' }}>REFUNDED</span>}
-                                {partialRefund && <span style={{ fontSize: '10px', color: '#d97706', fontWeight: 700, marginLeft: '6px' }}>PARTIAL REFUND</span>}
+                          <div key={c.id} style={{ ...(isRefunded ? { opacity: 0.5 } : {}) }}>
+                            <div style={styles.recentChargeRow}>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: '13px', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {desc}
+                                  {isRefunded && <span style={{ fontSize: '10px', color: '#dc2626', fontWeight: 700, marginLeft: '6px' }}>REFUNDED</span>}
+                                  {partialRefund && <span style={{ fontSize: '10px', color: '#d97706', fontWeight: 700, marginLeft: '6px' }}>PARTIAL REFUND</span>}
+                                </div>
+                                <div style={{ fontSize: '11px', color: '#999' }}>
+                                  {dateStr}{card ? ` · ${card}` : ''}
+                                </div>
                               </div>
-                              <div style={{ fontSize: '11px', color: '#999' }}>
-                                {dateStr}{card ? ` · ${card}` : ''}
-                              </div>
+                              <div style={{ fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap' }}>{amount}</div>
                             </div>
-                            <div style={{ fontSize: '13px', fontWeight: 700, whiteSpace: 'nowrap' }}>{amount}</div>
+                            {lineItems.length > 0 && (
+                              <div style={{ padding: '4px 12px 10px 28px' }}>
+                                {lineItems.map((li, i) => (
+                                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#555', padding: '2px 0' }}>
+                                    <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {li.name}</span>
+                                    <span style={{ fontWeight: 600, whiteSpace: 'nowrap', marginLeft: '12px' }}>
+                                      {li.amount_paid != null ? formatPrice(Math.round(li.amount_paid * 100)) : ''}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         );
+                      })}
                       })}
                     </div>
                   )}

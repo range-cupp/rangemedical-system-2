@@ -4360,6 +4360,11 @@ export default function PatientProfile() {
                   };
                   const medName = latest.medication || protocol.medication || protocol.program_type;
                   const isTesto = /testosterone/i.test(medName || '') || /testosterone/i.test(protocol.program_type || '');
+                  const isInClinic = protocol.delivery_method === 'in_clinic';
+                  const nowDate = new Date();
+                  const nextApt = (appointments || [])
+                    .filter(a => new Date(a.start_time) >= nowDate && !['cancelled', 'no_show'].includes((a.status || '').toLowerCase()))
+                    .sort((a, b) => new Date(a.start_time) - new Date(b.start_time))[0];
                   return (
                     <div key={protocol.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: '#1f2937', flexWrap: 'wrap' }}>
                       <span style={{
@@ -4391,10 +4396,25 @@ export default function PatientProfile() {
                           {lastPickup.dosage && <span style={{ color: '#6b7280', marginLeft: 6 }}>· {lastPickup.dosage}</span>}
                         </span>
                       )}
-                      {protocol.next_expected_date && (
-                        <span style={{ color: '#047857', fontSize: 13, fontWeight: 500 }}>
-                          Next refill: {formatShortDate(protocol.next_expected_date)}
-                        </span>
+                      {isInClinic ? (
+                        <>
+                          {protocol.next_expected_date && (
+                            <span style={{ color: '#047857', fontSize: 13, fontWeight: 500 }}>
+                              Next projected appt: {formatShortDate(protocol.next_expected_date)}
+                            </span>
+                          )}
+                          {nextApt && (
+                            <span style={{ color: '#1e40af', fontSize: 13, fontWeight: 600 }}>
+                              📅 Booked: {formatShortDate(nextApt.start_time.split('T')[0])} {new Date(nextApt.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        protocol.next_expected_date && (
+                          <span style={{ color: '#047857', fontSize: 13, fontWeight: 500 }}>
+                            Next refill: {formatShortDate(protocol.next_expected_date)}
+                          </span>
+                        )
                       )}
                     </div>
                   );

@@ -4417,26 +4417,38 @@ export default function PatientProfile() {
                           {lastPickup.dosage && <span style={{ color: '#6b7280', marginLeft: 6 }}>· {lastPickup.dosage}</span>}
                         </span>
                       )}
-                      {isInClinic ? (
-                        <>
-                          {protocol.next_expected_date && (
-                            <span style={{ color: '#047857', fontSize: 13, fontWeight: 500 }}>
-                              Next projected appt: {formatShortDate(protocol.next_expected_date)}
-                            </span>
-                          )}
-                          {nextApt && (
-                            <span style={{ color: '#1e40af', fontSize: 13, fontWeight: 600 }}>
-                              📅 Booked: {formatShortDate(nextApt.start_time.split('T')[0])} {new Date(nextApt.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                            </span>
-                          )}
-                        </>
-                      ) : (
-                        protocol.next_expected_date && (
+                      {(() => {
+                        // Suppress stale projections: only show next_expected_date if it's
+                        // in the future AND after the last injection/pickup. If a booked
+                        // appt already exists, the booked one supersedes the projection.
+                        const todayStr = new Date().toISOString().slice(0, 10);
+                        const lastActivityDate = (lastInjection?.entry_date || lastPickup?.entry_date || '');
+                        const projection = protocol.next_expected_date;
+                        const projectionFresh = projection
+                          && projection >= todayStr
+                          && (!lastActivityDate || projection > lastActivityDate);
+                        if (isInClinic) {
+                          return (
+                            <>
+                              {projectionFresh && !nextApt && (
+                                <span style={{ color: '#047857', fontSize: 13, fontWeight: 500 }}>
+                                  Next projected appt: {formatShortDate(projection)}
+                                </span>
+                              )}
+                              {nextApt && (
+                                <span style={{ color: '#1e40af', fontSize: 13, fontWeight: 600 }}>
+                                  📅 Booked: {formatShortDate(nextApt.start_time.split('T')[0])} {new Date(nextApt.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                                </span>
+                              )}
+                            </>
+                          );
+                        }
+                        return projectionFresh && (
                           <span style={{ color: '#047857', fontSize: 13, fontWeight: 500 }}>
-                            Next refill: {formatShortDate(protocol.next_expected_date)}
+                            Next refill: {formatShortDate(projection)}
                           </span>
-                        )
-                      )}
+                        );
+                      })()}
                     </div>
                   );
                 })}

@@ -588,24 +588,6 @@ export default function PeptideTherapy() {
           </div>
         </section>
 
-        {/* Understanding Peptides Link */}
-        <section className="pep-section pep-peptide-guide">
-          <div className="pep-container">
-            <div className="pep-animate">
-              <Link href="/understanding-peptides" className="pep-guide-card">
-                <div className="pep-guide-content">
-                  <div className="pep-guide-kicker">Deep Dive</div>
-                  <h3 className="pep-guide-title">Understanding Peptides</h3>
-                  <p className="pep-guide-desc">See our full peptide guide — pre-filled syringe protocols, vial options, which peptides need labs, and how our guided process works.</p>
-                </div>
-                <svg className="pep-guide-arrow" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
-              </Link>
-            </div>
-          </div>
-        </section>
-
         {/* CTA */}
         <section className="final-cta">
           <div className="container">

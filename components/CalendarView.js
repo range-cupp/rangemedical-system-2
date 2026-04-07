@@ -1827,7 +1827,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                     ))}
                   </span>
                 ) : <span style={{ flex: 1 }}>{appt.service_name}</span>}
-                {!['completed', 'cancelled'].includes(appt.status) && (
+                {appt.status !== 'cancelled' && (
                   <button
                     onClick={() => setChangingServiceAppt(changingServiceAppt === appt.id ? null : appt.id)}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', color: '#6b7280', flexShrink: 0, padding: '0 2px', textDecoration: 'underline' }}

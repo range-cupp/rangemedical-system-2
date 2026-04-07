@@ -319,9 +319,14 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
       .catch(() => setEmployees([]));
   }, [calendarMode]);
 
-  // Close popover on outside click
+  // Close popover on outside click — but ignore clicks while a stacked modal
+  // (photo ID viewer, lab docs picker, patient drawer) is open above it.
   useEffect(() => {
     function handleClick(e) {
+      // If a higher-level modal is open, let it handle its own dismissal.
+      if (photoIdViewer || labDocs || drawerData || drawerLoading) return;
+      // Ignore clicks that originate inside any stacked overlay element.
+      if (e.target.closest && e.target.closest('[data-stacked-overlay="1"]')) return;
       if (popoverRef.current && !popoverRef.current.contains(e.target)) {
         setSelectedAppt(null);
         setRescheduleAppt(null);
@@ -329,7 +334,7 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
+  }, [photoIdViewer, labDocs, drawerData, drawerLoading]);
 
   // Fetch patient contact info when appointment detail opens
   useEffect(() => {

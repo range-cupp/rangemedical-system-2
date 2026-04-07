@@ -142,6 +142,9 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
   // Patient slide-out drawer (stores full API response)
   const [drawerData, setDrawerData] = useState(null);
   const [drawerLoading, setDrawerLoading] = useState(false);
+  const [drawerSmsText, setDrawerSmsText] = useState('');
+  const [drawerSmsSending, setDrawerSmsSending] = useState(false);
+  const [drawerSmsStatus, setDrawerSmsStatus] = useState(null);
 
   // Prep checklist state (inline in appointment card)
   const [prepSaving, setPrepSaving] = useState({});
@@ -343,7 +346,38 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
       .catch(() => setDrawerLoading(false));
   };
 
-  const closeDrawer = () => { setDrawerData(null); setDrawerLoading(false); };
+  const closeDrawer = () => { setDrawerData(null); setDrawerLoading(false); setDrawerSmsText(''); setDrawerSmsStatus(null); };
+
+  const sendDrawerSms = async () => {
+    const pt = drawerData?.patient;
+    if (!pt?.phone || !drawerSmsText.trim()) return;
+    setDrawerSmsSending(true);
+    setDrawerSmsStatus(null);
+    try {
+      const res = await fetch('/api/twilio/send-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_id: pt.id,
+          patient_name: `${pt.first_name} ${pt.last_name}`,
+          to: pt.phone,
+          message: drawerSmsText.trim(),
+          message_type: 'staff_drawer',
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setDrawerSmsStatus({ ok: true, msg: 'Sent ✓' });
+        setDrawerSmsText('');
+      } else {
+        setDrawerSmsStatus({ ok: false, msg: data.error || 'Failed to send' });
+      }
+    } catch (e) {
+      setDrawerSmsStatus({ ok: false, msg: e.message });
+    } finally {
+      setDrawerSmsSending(false);
+    }
+  };
 
   // Prep checklist functions (inline in appointment card)
   const togglePrepField = async (field) => {
@@ -3884,6 +3918,43 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                           </div>
                         )}
                       </div>
+
+                      {/* Send SMS composer */}
+                      {pt.phone && (
+                        <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e5e7eb' }}>
+                          <div style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#888', marginBottom: '6px' }}>
+                            Send Text Message
+                          </div>
+                          <textarea
+                            value={drawerSmsText}
+                            onChange={e => setDrawerSmsText(e.target.value)}
+                            placeholder={`Text ${pt.first_name}…`}
+                            rows={3}
+                            style={{
+                              width: '100%', boxSizing: 'border-box', padding: '8px 10px',
+                              border: '1px solid #d1d5db', borderRadius: 0, fontSize: '13px',
+                              fontFamily: 'inherit', resize: 'vertical', background: '#fff',
+                            }}
+                          />
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', gap: '8px' }}>
+                            <span style={{ fontSize: '11px', color: drawerSmsStatus ? (drawerSmsStatus.ok ? '#16a34a' : '#dc2626') : '#aaa' }}>
+                              {drawerSmsStatus ? drawerSmsStatus.msg : `${drawerSmsText.length} chars`}
+                            </span>
+                            <button
+                              onClick={sendDrawerSms}
+                              disabled={!drawerSmsText.trim() || drawerSmsSending}
+                              style={{
+                                padding: '6px 14px', fontSize: '12px', fontWeight: '600',
+                                background: !drawerSmsText.trim() || drawerSmsSending ? '#9ca3af' : '#000',
+                                color: '#fff', border: 'none', borderRadius: 0,
+                                cursor: !drawerSmsText.trim() || drawerSmsSending ? 'not-allowed' : 'pointer',
+                              }}
+                            >
+                              {drawerSmsSending ? 'Sending…' : 'Send Text'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Active Protocols */}
@@ -4056,10 +4127,12 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                     )}
 
                     {/* Upcoming Appointments */}
-                    {upcomingAppts.length > 0 && (
-                      <div style={card}>
-                        <h4 style={sectionHead}>Upcoming Appointments ({upcomingAppts.length})</h4>
-                        {upcomingAppts.slice(0, 4).map((apt, i) => (
+                    <div style={card}>
+                      <h4 style={sectionHead}>Upcoming Appointments ({upcomingAppts.length})</h4>
+                      {upcomingAppts.length === 0 ? (
+                        <span style={{ fontSize: '13px', color: '#bbb' }}>No upcoming appointments</span>
+                      ) : (
+                        upcomingAppts.slice(0, 4).map((apt, i) => (
                           <div key={apt.id || i} style={{ padding: '8px 0', borderBottom: i < Math.min(upcomingAppts.length, 4) - 1 ? '1px solid #e5e7eb' : 'none' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                               <span style={{ fontSize: '13px', fontWeight: '500', color: '#111' }}>{apt.service_name || apt.title || 'Appointment'}</span>
@@ -4072,9 +4145,9 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                               {apt.provider ? ` · ${apt.provider}` : ''}
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    )}
+                        ))
+                      )}
+                    </div>
 
                     {/* Recent Transactions */}
                     {purchases.length > 0 && (
@@ -4138,10 +4211,12 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                     )}
 
                     {/* Past Appointments */}
-                    {pastAppts.length > 0 && (
-                      <div style={card}>
-                        <h4 style={sectionHead}>Past Appointments ({pastAppts.length})</h4>
-                        {pastAppts.slice(0, 6).map((apt, i) => (
+                    <div style={card}>
+                      <h4 style={sectionHead}>Past Appointments ({pastAppts.length})</h4>
+                      {pastAppts.length === 0 ? (
+                        <span style={{ fontSize: '13px', color: '#bbb' }}>No past appointments</span>
+                      ) : (
+                        pastAppts.slice(0, 6).map((apt, i) => (
                           <div key={apt.id || i} style={{ padding: '6px 0', borderBottom: i < Math.min(pastAppts.length, 6) - 1 ? '1px solid #e5e7eb' : 'none', display: 'flex', justifyContent: 'space-between' }}>
                             <div>
                               <span style={{ fontSize: '13px', color: '#555' }}>{apt.service_name || apt.title || 'Appointment'}</span>
@@ -4151,9 +4226,9 @@ export default function CalendarView({ preselectedPatient = null, wizardOnly = f
                               {new Date(apt.start_time).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                             </span>
                           </div>
-                        ))}
-                      </div>
-                    )}
+                        ))
+                      )}
+                    </div>
 
                     {/* Documents & Consents */}
                     {(docs.length > 0 || consents.length > 0) && (

@@ -22,7 +22,7 @@ export default async function handler(req, res) {
   try {
     let query = supabase
       .from('patient_notes')
-      .select('id, body, raw_input, note_date, source, created_by, created_at, signed_by, signed_at, status, encounter_service, appointment_id, protocol_id')
+      .select('id, body, raw_input, note_date, source, created_by, created_at, signed_by, signed_at, status, encounter_service, appointment_id, protocol_id, edited_after_signing')
       .eq('patient_id', patient_id)
       .order('note_date', { ascending: false })
       .limit(100);

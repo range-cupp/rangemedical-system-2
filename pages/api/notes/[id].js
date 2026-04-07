@@ -91,14 +91,18 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'Note not found' });
       }
 
-      // Cannot edit signed notes (except for pinning)
-      if (note.status === 'signed' && typeof body === 'string') {
-        return res.status(403).json({ error: 'Cannot edit a signed note. Add an addendum instead.' });
-      }
-
       // Authorship check for content edits
       const { requesting_user, note_date } = req.body;
-      if ((typeof body === 'string' || note_date) && note.created_by && requesting_user && !isNoteAuthor(note.created_by, requesting_user)) {
+
+      // Signed notes can only be edited by the original author
+      if (note.status === 'signed' && typeof body === 'string') {
+        if (!requesting_user || !note.created_by || !isNoteAuthor(note.created_by, requesting_user)) {
+          return res.status(403).json({ error: 'Only the original author can edit a signed note.' });
+        }
+      }
+
+      // Draft notes — only author can edit
+      if (note.status !== 'signed' && (typeof body === 'string' || note_date) && note.created_by && requesting_user && !isNoteAuthor(note.created_by, requesting_user)) {
         return res.status(403).json({ error: 'Only the note author can edit this note' });
       }
 
@@ -130,6 +134,26 @@ export default async function handler(req, res) {
 
       if (Object.keys(updates).length === 0) {
         return res.status(400).json({ error: 'No valid fields to update (body, pinned, or note_date)' });
+      }
+
+      // Log edit history when a signed note body is modified
+      if (note.status === 'signed' && typeof body === 'string') {
+        // Fetch current body for audit trail
+        const { data: fullNote } = await supabase
+          .from('patient_notes')
+          .select('body, patient_id')
+          .eq('id', id)
+          .single();
+        if (fullNote) {
+          await supabase.from('note_edits').insert({
+            note_id: id,
+            patient_id: fullNote.patient_id,
+            edited_by: requesting_user,
+            previous_body: fullNote.body,
+            new_body: body,
+          });
+        }
+        updates.edited_after_signing = true;
       }
 
       const { error: updateError } = await supabase

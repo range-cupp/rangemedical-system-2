@@ -3401,7 +3401,7 @@ export default function PatientProfile() {
       });
       const data = await res.json();
       if (data.success) {
-        setNotes(prev => prev.map(n => n.id === editingNote.id ? { ...n, body: editNoteBody } : n));
+        setNotes(prev => prev.map(n => n.id === editingNote.id ? { ...n, body: editNoteBody, edited_after_signing: editingNote.status === 'signed' ? true : n.edited_after_signing } : n));
         setEditingNote(null);
         setEditNoteBody('');
       } else {
@@ -7908,6 +7908,14 @@ export default function PatientProfile() {
                                 {note.status === 'signed' ? '✓ Signed' : 'Draft'}
                               </span>
                             )}
+                            {note.edited_after_signing && (
+                              <span style={{
+                                marginLeft: 6, fontSize: 11, padding: '2px 8px', borderRadius: 0, fontWeight: 500,
+                                background: '#fef3c7', color: '#92400e',
+                              }}>
+                                Edited
+                              </span>
+                            )}
                             {note.protocol_name && (
                               <span
                                 style={{
@@ -9481,6 +9489,11 @@ export default function PatientProfile() {
                   {formatDate(editingNote.note_date || editingNote.created_at)}
                   {editingNote.created_by && ` — by ${getStaffDisplayName(editingNote.created_by)}`}
                 </div>
+                {editingNote.status === 'signed' && (
+                  <div style={{ background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 13, color: '#92400e' }}>
+                    This note is signed. Your edit will be saved and the change will be logged.
+                  </div>
+                )}
                 <div className="form-group">
                   <label>Note Content</label>
                   <textarea

@@ -1716,7 +1716,6 @@ function CheckoutInner() {
                           </div>
                         );
                       })}
-                      })}
                     </div>
                   )}
                 </div>

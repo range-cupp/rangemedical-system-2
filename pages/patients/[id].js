@@ -4325,10 +4325,14 @@ export default function PatientProfile() {
             const protoLogs = (serviceLogs || [])
               .filter(l => l.protocol_id === proto.id && (l.entry_type === 'pickup' || l.entry_type === 'injection'))
               .sort((a, b) => b.entry_date.localeCompare(a.entry_date));
-            if (protoLogs.length === 0) return;
+            const isHRT = proto.category === 'hrt';
+            // HRT protocols always surface here so the patient's current
+            // testosterone (or other HRT med) is visible at the top of the
+            // profile, even before any injection or pickup has been logged.
+            if (protoLogs.length === 0 && !isHRT) return;
             const lastPickup = protoLogs.find(l => l.entry_type === 'pickup');
             const lastInjection = protoLogs.find(l => l.entry_type === 'injection');
-            const latest = protoLogs[0];
+            const latest = protoLogs[0] || { medication: proto.medication, entry_date: proto.start_date };
             rows.push({ protocol: proto, latest, lastPickup, lastInjection });
           });
           if (rows.length === 0) return null;
@@ -4388,6 +4392,16 @@ export default function PatientProfile() {
                         flexShrink: 0,
                       }}>{cat.label}</span>
                       <span style={{ fontWeight: 600 }}>{medName}</span>
+                      {/* HRT: always show current prescribed dose + frequency, even if no injection has been logged yet */}
+                      {protocol.category === 'hrt' && protocol.selected_dose && (
+                        <span style={{ color: '#1f2937' }}>
+                          <span style={{ color: '#6b7280' }}>Current: </span>
+                          <span style={{ fontWeight: 700, color: '#7c3aed' }}>{protocol.selected_dose}</span>
+                          {protocol.injections_per_week && (
+                            <span style={{ color: '#6b7280', marginLeft: 6 }}>· {protocol.injections_per_week}x/wk</span>
+                          )}
+                        </span>
+                      )}
                       {lastInjection && (
                         <span style={{ color: '#1f2937' }}>
                           <span style={{ color: '#6b7280' }}>Last injection: </span>

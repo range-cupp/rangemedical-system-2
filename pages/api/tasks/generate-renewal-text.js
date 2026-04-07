@@ -16,7 +16,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { patient_name, task_title, task_description } = req.body;
+  const { patient_name, task_title, task_description, staff_name } = req.body;
 
   if (!patient_name) {
     return res.status(400).json({ error: 'patient_name is required' });
@@ -28,6 +28,7 @@ export default async function handler(req, res) {
 
   try {
     const firstName = patient_name.split(' ')[0];
+    const signOff = staff_name ? `From ${staff_name.split(' ')[0]}, Range Medical` : 'Range Medical';
 
     const anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,
@@ -43,7 +44,7 @@ Rules:
 - Keep it warm, casual, and brief (2-3 sentences max)
 - Match the tone and intent to the task context — could be a renewal follow-up, check-in, appointment reminder, lab results notification, onboarding step, or general outreach
 - If the task mentions a protocol or medication, reference it naturally
-- Include "Range Medical" at the end so they know who it's from
+- End the message with "${signOff}" so they know who it's from
 - Do NOT use markdown, emojis, or formatting — plain SMS text only
 - Do NOT include any links or URLs
 - Do NOT mention pricing`,

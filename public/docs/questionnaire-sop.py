@@ -196,9 +196,9 @@ story.append(Paragraph("Conditional Branches (shown based on intake symptom sele
 
 branch_data = [
     [Paragraph("Intake Selection", th_s), Paragraph("Male", th_s), Paragraph("Female", th_s)],
-    [Paragraph("Low libido / sexual dysfunction", tv_s), Paragraph("IIEF-5 (5 questions)", tv_s), Paragraph("FSFI-6 (6 domains)", tv_s)],
-    [Paragraph("Weight gain / difficulty losing weight", tv_s), Paragraph("TFEQ-R18 (18 questions)", tv_s), Paragraph("TFEQ-R18 (18 questions)", tv_s)],
-    [Paragraph("Hormone symptoms (fatigue, mood, muscle loss, brain fog)", tv_s), Paragraph("AMS (17 questions)", tv_s), Paragraph("MENQOL (29 questions)", tv_s)],
+    [Paragraph("Low libido / sexual dysfunction", tv_s), Paragraph("IIEF-5 \u2014 International Index of Erectile Function (5 questions)", tv_s), Paragraph("FSFI-6 \u2014 Female Sexual Function Index (6 domains)", tv_s)],
+    [Paragraph("Weight gain / difficulty losing weight", tv_s), Paragraph("TFEQ-R18 \u2014 Three-Factor Eating Questionnaire, Revised (18 questions)", tv_s), Paragraph("TFEQ-R18 \u2014 Three-Factor Eating Questionnaire, Revised (18 questions)", tv_s)],
+    [Paragraph("Hormone symptoms (fatigue, mood, muscle loss, brain fog)", tv_s), Paragraph("AMS \u2014 Aging Males\u2019 Symptoms (17 questions)", tv_s), Paragraph("MENQOL \u2014 Menopause-Specific Quality of Life (29 questions)", tv_s)],
 ]
 branch_tbl = Table(branch_data, colWidths=[3.0*inch, 2.0*inch, 2.0*inch])
 branch_tbl.setStyle(TableStyle([
@@ -228,6 +228,82 @@ story.append(Paragraph(
     "into optimization sections \u2014 one link, one SMS, one continuous experience.", body_s))
 
 # ═══════════════════════════════════════════════════════════
+# PAGE BREAK — SECTION 3A: CLINICAL RATIONALE
+# ═══════════════════════════════════════════════════════════
+story.append(PageBreak())
+build_header(story)
+
+story += section_label("Section 3A \u2014 Clinical Rationale: Why We Screen")
+
+story.append(Paragraph(
+    "Every instrument in this assessment maps directly to treatment options Range Medical can offer. "
+    "We are not collecting data for its own sake \u2014 each score gives the provider a baseline measurement "
+    "of a condition we can actually treat, and a number we can track over time to prove the treatment is working.", body_s))
+story.append(Spacer(1, 10))
+
+# --- Rationale heading style (reuse sub_s) ---
+rationale_label_s = st('RatL', fontName='Helvetica-Bold', fontSize=8, textColor=MID_GRAY, leading=11)
+rationale_tx_s    = st('RatTx', fontName='Helvetica', fontSize=9, textColor=DARK_GRAY, leading=14)
+
+rationale_data = [
+    [Paragraph("Instrument", th_s), Paragraph("What It Screens", th_s), Paragraph("Range Medical Treatment Options", th_s)],
+    [Paragraph("PHQ-9", tv_bold_s),
+     Paragraph("Depression, low mood, motivation loss", tv_s),
+     Paragraph("HRT optimization  \u2022  Peptides (Selank, Semax)  \u2022  IV therapy (NAD+, Myers\u2019)  \u2022  HBOT  \u2022  RLT", tv_s)],
+    [Paragraph("GAD-7", tv_bold_s),
+     Paragraph("Generalized anxiety, chronic worry", tv_s),
+     Paragraph("Peptides (Selank)  \u2022  HRT optimization  \u2022  IV therapy  \u2022  HBOT", tv_s)],
+    [Paragraph("PSQI", tv_bold_s),
+     Paragraph("Poor sleep quality, insomnia", tv_s),
+     Paragraph("Peptides (DSIP)  \u2022  HRT optimization  \u2022  HBOT  \u2022  RLT", tv_s)],
+    [Paragraph("Fatigue VAS", tv_bold_s),
+     Paragraph("Low energy, chronic fatigue", tv_s),
+     Paragraph("HRT  \u2022  IV therapy (NAD+, Myers\u2019, Energy drips)  \u2022  GH secretagogue peptides  \u2022  HBOT  \u2022  RLT", tv_s)],
+    [Paragraph("IIEF-5 (Male)", tv_bold_s),
+     Paragraph("Erectile dysfunction, sexual performance", tv_s),
+     Paragraph("HRT (Testosterone)  \u2022  Peptides (PT-141, Kisspeptin)  \u2022  HCG / Gonadorelin", tv_s)],
+    [Paragraph("FSFI-6 (Female)", tv_bold_s),
+     Paragraph("Female sexual dysfunction, low libido", tv_s),
+     Paragraph("HRT (female hormone optimization)  \u2022  Peptides (PT-141, Oxytocin)", tv_s)],
+    [Paragraph("TFEQ-R18", tv_bold_s),
+     Paragraph("Eating behavior, weight management difficulty", tv_s),
+     Paragraph("GLP-1 agonists (Tirzepatide, Retatrutide)  \u2022  Peptides (AOD 9604, Tesofensine, 5-Amino-1MQ)", tv_s)],
+    [Paragraph("AMS (Male)", tv_bold_s),
+     Paragraph("Testosterone decline, male aging symptoms", tv_s),
+     Paragraph("HRT (Testosterone + ancillaries)  \u2022  GH secretagogue peptides  \u2022  IV therapy", tv_s)],
+    [Paragraph("MENQOL (Female)", tv_bold_s),
+     Paragraph("Menopause symptoms, hormonal decline", tv_s),
+     Paragraph("HRT (female hormone optimization)  \u2022  Peptides  \u2022  IV therapy", tv_s)],
+    [Paragraph("Pain NRS", tv_bold_s),
+     Paragraph("Pain severity from injury", tv_s),
+     Paragraph("Peptides (BPC-157, TB-500, Wolverine Blend)  \u2022  RLT  \u2022  HBOT  \u2022  IV therapy", tv_s)],
+    [Paragraph("Functional Limitation", tv_bold_s),
+     Paragraph("Physical limitation from injury", tv_s),
+     Paragraph("Peptides (BPC-157, TB-500)  \u2022  RLT  \u2022  HBOT", tv_s)],
+]
+rationale_tbl = Table(rationale_data, colWidths=[1.3*inch, 1.8*inch, 3.9*inch])
+rationale_tbl.setStyle(TableStyle([
+    ('TOPPADDING',    (0,0),(-1,-1), 4),
+    ('BOTTOMPADDING', (0,0),(-1,-1), 4),
+    ('LEFTPADDING',   (0,0),(-1,-1), 6),
+    ('RIGHTPADDING',  (0,0),(-1,-1), 6),
+    ('VALIGN',        (0,0),(-1,-1), 'TOP'),
+    ('BACKGROUND',    (0,0),(-1,0), LIGHT_GRAY),
+    ('ROWBACKGROUNDS',(0,1),(-1,-1), [WHITE, LIGHT_GRAY]),
+    ('BOX',           (0,0),(-1,-1), 0.5, RULE_GRAY),
+    ('LINEBELOW',     (0,0),(-1,-1), 0.5, RULE_GRAY),
+    ('LINEBEFORE',    (1,0),(1,-1), 0.5, RULE_GRAY),
+    ('LINEBEFORE',    (2,0),(2,-1), 0.5, RULE_GRAY),
+]))
+story.append(rationale_tbl)
+
+story.append(Spacer(1, 10))
+story.append(Paragraph(
+    "The baseline score is captured before treatment begins. Follow-up assessments at 6, 12, and 24 weeks "
+    "re-measure the same instruments so the provider can show the patient objective improvement \u2014 "
+    "not just \u201cI feel better,\u201d but \u201cyour PHQ-9 dropped from 14 to 5.\u201d", body_s))
+
+# ═══════════════════════════════════════════════════════════
 # PAGE BREAK — SECTION 4
 # ═══════════════════════════════════════════════════════════
 story.append(PageBreak())
@@ -242,13 +318,13 @@ story.append(Spacer(1, 8))
 
 score_data = [
     [Paragraph("Instrument", th_s), Paragraph("Score Range", th_s), Paragraph("Severity Levels", th_s)],
-    [Paragraph("PHQ-9", tv_bold_s), Paragraph("0\u201327", tv_s), Paragraph("0\u20134 minimal  \u2022  5\u20139 mild  \u2022  10\u201314 moderate  \u2022  15\u201319 mod. severe  \u2022  20\u201327 severe", tv_s)],
-    [Paragraph("GAD-7", tv_bold_s), Paragraph("0\u201321", tv_s), Paragraph("0\u20134 minimal  \u2022  5\u20139 mild  \u2022  10\u201314 moderate  \u2022  15\u201321 severe", tv_s)],
-    [Paragraph("IIEF-5", tv_bold_s), Paragraph("5\u201325", tv_s), Paragraph("5\u20137 severe ED  \u2022  8\u201311 moderate  \u2022  12\u201316 mild-moderate  \u2022  17\u201321 mild  \u2022  22\u201325 normal", tv_s)],
-    [Paragraph("AMS", tv_bold_s), Paragraph("17\u201385", tv_s), Paragraph("17\u201326 none  \u2022  27\u201336 mild  \u2022  37\u201349 moderate  \u2022  50+ severe", tv_s)],
-    [Paragraph("PSQI", tv_bold_s), Paragraph("0\u20139", tv_s), Paragraph("Lower = better sleep quality (composite of 5 simplified items)", tv_s)],
-    [Paragraph("Fatigue VAS", tv_bold_s), Paragraph("0\u201310", tv_s), Paragraph("0 = completely exhausted  \u2022  10 = full energy", tv_s)],
-    [Paragraph("Pain NRS", tv_bold_s), Paragraph("0\u201310", tv_s), Paragraph("0 = no pain  \u2022  10 = worst pain imaginable", tv_s)],
+    [Paragraph("PHQ-9 (Patient Health Questionnaire)", tv_bold_s), Paragraph("0\u201327", tv_s), Paragraph("0\u20134 minimal  \u2022  5\u20139 mild  \u2022  10\u201314 moderate  \u2022  15\u201319 mod. severe  \u2022  20\u201327 severe", tv_s)],
+    [Paragraph("GAD-7 (Generalized Anxiety Disorder)", tv_bold_s), Paragraph("0\u201321", tv_s), Paragraph("0\u20134 minimal  \u2022  5\u20139 mild  \u2022  10\u201314 moderate  \u2022  15\u201321 severe", tv_s)],
+    [Paragraph("IIEF-5 (Int\u2019l Index of Erectile Function)", tv_bold_s), Paragraph("5\u201325", tv_s), Paragraph("5\u20137 severe ED  \u2022  8\u201311 moderate  \u2022  12\u201316 mild-moderate  \u2022  17\u201321 mild  \u2022  22\u201325 normal", tv_s)],
+    [Paragraph("AMS (Aging Males\u2019 Symptoms)", tv_bold_s), Paragraph("17\u201385", tv_s), Paragraph("17\u201326 none  \u2022  27\u201336 mild  \u2022  37\u201349 moderate  \u2022  50+ severe", tv_s)],
+    [Paragraph("PSQI (Pittsburgh Sleep Quality Index)", tv_bold_s), Paragraph("0\u20139", tv_s), Paragraph("Lower = better sleep quality (composite of 5 simplified items)", tv_s)],
+    [Paragraph("Fatigue VAS (Visual Analog Scale)", tv_bold_s), Paragraph("0\u201310", tv_s), Paragraph("0 = completely exhausted  \u2022  10 = full energy", tv_s)],
+    [Paragraph("Pain NRS (Numeric Rating Scale)", tv_bold_s), Paragraph("0\u201310", tv_s), Paragraph("0 = no pain  \u2022  10 = worst pain imaginable", tv_s)],
 ]
 score_tbl = Table(score_data, colWidths=[1.1*inch, 0.8*inch, 5.1*inch])
 score_tbl.setStyle(TableStyle([

@@ -13,6 +13,7 @@ export default function AppointmentPrepPage() {
   const router = useRouter();
   const { id } = router.query;
   const [appointment, setAppointment] = useState(null);
+  const [briefing, setBriefing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState({});
@@ -40,6 +41,23 @@ export default function AppointmentPrepPage() {
   }, [id]);
 
   useEffect(() => { fetchAppointment(); }, [fetchAppointment]);
+
+  // Fetch provider briefing synopsis
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/appointments/${id}/briefing`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setBriefing(data.briefing);
+      } catch (err) {
+        console.error('Briefing fetch error:', err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [id]);
 
   // Toggle a prep field
   const toggleField = async (field) => {
@@ -214,6 +232,9 @@ export default function AppointmentPrepPage() {
         </div>
       </div>
 
+      {/* Provider Briefing */}
+      <ProviderBriefing briefing={briefing} />
+
       {/* Checklist */}
       <div style={s.card}>
         <h3 style={s.sectionTitle}>Prep Checklist</h3>
@@ -303,6 +324,94 @@ export default function AppointmentPrepPage() {
         />
       </div>
     </AdminLayout>
+  );
+}
+
+// Provider briefing synopsis — condensed talking points for the provider
+function ProviderBriefing({ briefing }) {
+  if (!briefing) {
+    return (
+      <div style={s.card}>
+        <h3 style={s.sectionTitle}>Provider Briefing</h3>
+        <div style={{ fontSize: '13px', color: '#999' }}>Loading synopsis…</div>
+      </div>
+    );
+  }
+
+  const isInPerson = briefing.modality !== 'telemedicine' && briefing.modality !== 'phone';
+  const fmtDate = (iso) => {
+    if (!iso) return '—';
+    try {
+      return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch { return iso; }
+  };
+  const dobLine = briefing.patient.dob
+    ? `${fmtDate(briefing.patient.dob)}${briefing.patient.age != null ? ` (age ${briefing.patient.age})` : ''}`
+    : '—';
+
+  const reasonParts = [];
+  if (briefing.reason_for_visit) reasonParts.push(briefing.reason_for_visit);
+  if (briefing.patient_goals) reasonParts.push(`Goals: ${briefing.patient_goals}`);
+  const reasonText = reasonParts.length ? reasonParts.join(' · ') : '—';
+
+  const lastVisitText = briefing.last_visit
+    ? `${fmtDate(briefing.last_visit.date)} — ${briefing.last_visit.service || 'Visit'}${briefing.last_visit.provider ? ` (${briefing.last_visit.provider})` : ''}`
+    : 'No prior visit on record';
+
+  const diagnosesText = briefing.diagnoses && briefing.diagnoses.length
+    ? briefing.diagnoses.join('; ')
+    : (briefing.has_intake ? 'None reported on intake' : '—');
+
+  const rows = [
+    ['Name', briefing.patient.name || '—'],
+    ['DOB', dobLine],
+    ['Reason for visit / goals', reasonText],
+    ['Last visit', lastVisitText],
+    ['Diagnoses', diagnosesText],
+    ['Medications', briefing.medications || (briefing.has_intake ? '—' : 'No intake on file')],
+    ['Allergies', briefing.allergies || (briefing.has_intake ? '—' : 'No intake on file')],
+    ['How heard about us', briefing.how_heard || '—'],
+  ];
+
+  if (isInPerson) {
+    const v = briefing.latest_vitals;
+    let vitalsText = 'No vitals on file';
+    if (v) {
+      const parts = [];
+      if (v.blood_pressure_systolic && v.blood_pressure_diastolic) parts.push(`BP ${v.blood_pressure_systolic}/${v.blood_pressure_diastolic}`);
+      if (v.heart_rate) parts.push(`HR ${v.heart_rate}`);
+      if (v.weight_lbs || v.weight) parts.push(`Wt ${v.weight_lbs || v.weight} lbs`);
+      if (v.temperature) parts.push(`Temp ${v.temperature}`);
+      if (v.oxygen_saturation) parts.push(`SpO₂ ${v.oxygen_saturation}%`);
+      if (parts.length) {
+        vitalsText = `${parts.join(' · ')} (${fmtDate(v.recorded_at)})`;
+      }
+    }
+    rows.push(['Latest vitals', vitalsText]);
+    rows.push(['Mood & appearance', 'Assess at check-in']);
+    rows.push(['Previous plan', briefing.last_visit?.visit_reason || briefing.last_visit?.service || '—']);
+  }
+
+  return (
+    <div style={s.card}>
+      <div style={s.notesTitleRow}>
+        <h3 style={s.sectionTitle}>Provider Briefing</h3>
+        <span style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          {isInPerson ? 'In-Person' : 'Telemedicine'}
+        </span>
+      </div>
+      <div>
+        {rows.map(([label, value]) => (
+          <div key={label} style={s.briefingRow}>
+            <div style={s.briefingLabel}>{label}</div>
+            <div style={s.briefingValue}>{value}</div>
+          </div>
+        ))}
+      </div>
+      {!briefing.has_intake && (
+        <div style={{ ...s.amberBadge, marginTop: '10px' }}>No medical intake on file</div>
+      )}
+    </div>
   );
 }
 
@@ -489,6 +598,27 @@ const s = {
     fontSize: '12px',
     color: '#22c55e',
     fontWeight: '600',
+  },
+  briefingRow: {
+    display: 'flex',
+    gap: '12px',
+    padding: '8px 0',
+    borderBottom: '1px solid #f5f5f5',
+    fontSize: '14px',
+  },
+  briefingLabel: {
+    flex: '0 0 180px',
+    color: '#888',
+    fontSize: '12px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.04em',
+    fontWeight: '600',
+    paddingTop: '2px',
+  },
+  briefingValue: {
+    flex: 1,
+    color: '#111',
+    lineHeight: '1.5',
   },
   textarea: {
     width: '100%',

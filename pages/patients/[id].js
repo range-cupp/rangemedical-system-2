@@ -6457,43 +6457,44 @@ export default function PatientProfile() {
                                       const bulkPickup = !isTakeHome ? null : allWlLogs.find(l => l.quantity && l.quantity >= totalSlots);
                                       const allDispensed = !!bulkPickup;
 
-                                      // Build full slot schedule
+                                      // Build a unified, strictly chronological row list.
+                                      // LOGS are the source of truth — every log gets its own row in date order.
+                                      // If the protocol is short on sessions (logs < total_sessions), append
+                                      // future "Upcoming" rows extending the schedule.
                                       const freqLower = (protocol.frequency || '').toLowerCase();
                                       const intervalDays = freqLower.includes('bi') ? 14 : 7;
-                                      const startDate = new Date(startStr + 'T12:00:00');
 
-                                      const slotsRaw = Array.from({ length: totalSlots }, (_, i) => {
-                                        const expDate = new Date(startDate);
-                                        expDate.setDate(expDate.getDate() + i * intervalDays);
-                                        const expStr = expDate.toISOString().split('T')[0];
-                                        return { num: i + 1, expDate, expStr, log: null, isFuture: expDate > todayDate };
-                                      });
-
-                                      // Match logs to nearest slot by date (within ±4 days)
                                       const sortedLogs = [...wlLogs].sort((a, b) => a.entry_date.localeCompare(b.entry_date));
-                                      const usedIds = new Set();
-                                      const usedSlots = new Set();
-                                      // First pass: match each log to its closest unmatched slot
-                                      sortedLogs.forEach(log => {
-                                        const logDate = new Date(log.entry_date + 'T12:00:00');
-                                        let bestIdx = -1;
-                                        let bestDist = Infinity;
-                                        slotsRaw.forEach((slot, idx) => {
-                                          if (usedSlots.has(idx)) return;
-                                          const dist = Math.abs(logDate - slot.expDate) / (1000 * 60 * 60 * 24);
-                                          if (dist < bestDist) {
-                                            bestDist = dist;
-                                            bestIdx = idx;
-                                          }
-                                        });
-                                        // Match if within 4 days of expected date, or if it's the closest available slot
-                                        if (bestIdx >= 0 && (bestDist <= 4 || sortedLogs.length <= slotsRaw.length)) {
-                                          slotsRaw[bestIdx].log = log;
-                                          usedIds.add(log.id);
-                                          usedSlots.add(bestIdx);
-                                        }
+
+                                      // Each log becomes one row, sequentially numbered 1..N
+                                      const slots = sortedLogs.map((log, i) => {
+                                        const expDate = new Date(log.entry_date + 'T12:00:00');
+                                        return {
+                                          num: i + 1,
+                                          expDate,
+                                          expStr: log.entry_date,
+                                          log,
+                                          isFuture: false,
+                                        };
                                       });
-                                      const slots = slotsRaw;
+
+                                      // Append future slots if protocol has more sessions planned than logged
+                                      if (totalSlots && totalSlots > sortedLogs.length) {
+                                        const lastStr = sortedLogs.length > 0 ? sortedLogs[sortedLogs.length - 1].entry_date : startStr;
+                                        const lastDate = new Date(lastStr + 'T12:00:00');
+                                        for (let i = sortedLogs.length; i < totalSlots; i++) {
+                                          const offset = i - sortedLogs.length + 1;
+                                          const expDate = new Date(lastDate);
+                                          expDate.setDate(expDate.getDate() + offset * intervalDays);
+                                          slots.push({
+                                            num: i + 1,
+                                            expDate,
+                                            expStr: expDate.toISOString().split('T')[0],
+                                            log: null,
+                                            isFuture: expDate > todayDate,
+                                          });
+                                        }
+                                      }
 
                                       // Get starting weight for "Total" column
                                       const firstSlotWeight = (() => {
@@ -6628,28 +6629,6 @@ export default function PatientProfile() {
                                           </tr>
                                         );
                                         return slotGroupHeader ? [slotGroupHeader, futureRow] : futureRow;
-                                      });
-
-                                      // Append any unmatched logs
-                                      wlLogs.filter(l => !usedIds.has(l.id)).forEach((log, i) => {
-                                        const prevSlot = slots.filter(s => s.log).reverse()[0];
-                                        const pW = prevSlot?.log?.weight ? parseFloat(prevSlot.log.weight) : (prevSlot?.log ? findVitalsWeight(prevSlot.log.entry_date) : null);
-                                        const logW = log.weight ? parseFloat(log.weight) : null;
-                                        const vitW = !logW ? findVitalsWeight(log.entry_date) : null;
-                                        const curWeight = logW || vitW;
-                                        const delta = pW && curWeight ? (curWeight - pW).toFixed(1) : null;
-                                        const extraTotalDelta = firstSlotWeight && curWeight ? (curWeight - firstSlotWeight).toFixed(1) : null;
-                                        rows.push(
-                                          <tr key={'extra-' + log.id} className="wl-editable-row" onClick={() => openEditInjection(log)} title="Click to edit or delete">
-                                            <td style={{ color: '#9ca3af', fontSize: 12 }}>+</td>
-                                            <td>{formatShortDate(log.entry_date)}</td>
-                                            <td>{log.dosage || '\u2014'}</td>
-                                            <td>{curWeight ? <>{curWeight} lbs{vitW && <span style={{ color: '#3b82f6', fontSize: 9, marginLeft: 4 }} title="From vitals flowsheet">V</span>}</> : '\u2014'}</td>
-                                            <td style={{ color: delta && parseFloat(delta) < 0 ? '#16a34a' : delta && parseFloat(delta) > 0 ? '#dc2626' : '#666' }}>{delta ? (parseFloat(delta) > 0 ? `+${delta}` : delta) + ' lbs' : '\u2014'}</td>
-                                            <td style={{ color: extraTotalDelta && parseFloat(extraTotalDelta) < 0 ? '#16a34a' : extraTotalDelta && parseFloat(extraTotalDelta) > 0 ? '#dc2626' : '#666', fontWeight: extraTotalDelta ? 600 : 400 }}>{extraTotalDelta ? (parseFloat(extraTotalDelta) > 0 ? `+${extraTotalDelta}` : extraTotalDelta) + ' lbs' : '\u2014'}</td>
-                                            <td style={{ textAlign: 'center' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg></td>
-                                          </tr>
-                                        );
                                       });
 
                                       return rows;

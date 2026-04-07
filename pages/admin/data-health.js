@@ -29,6 +29,29 @@ export default function DataHealth() {
   const [sevFilter, setSevFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [fixing, setFixing] = useState(null);
+  const [toast, setToast] = useState(null);
+
+  const handleFix = async (issue) => {
+    if (issue.type !== 'orphan_purchase' || !issue.meta?.purchase_id) return;
+    setFixing(issue.meta.purchase_id);
+    try {
+      const res = await fetch('/api/admin/link-purchase-to-protocol', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ purchase_id: issue.meta.purchase_id }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed');
+      setToast({ kind: 'success', msg: `Linked to protocol for ${issue.patient_name}` });
+      await fetchAudit();
+    } catch (e) {
+      setToast({ kind: 'error', msg: e.message });
+    } finally {
+      setFixing(null);
+      setTimeout(() => setToast(null), 3500);
+    }
+  };
 
   const fetchAudit = async () => {
     setLoading(true);
@@ -70,6 +93,11 @@ export default function DataHealth() {
 
   return (
     <AdminLayout title="Data Health">
+      {toast && (
+        <div style={{ position: 'fixed', top: 20, right: 20, zIndex: 1000, padding: '12px 18px', background: toast.kind === 'success' ? '#16a34a' : '#b91c1c', color: '#fff', fontWeight: 600, fontSize: 13, boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
+          {toast.msg}
+        </div>
+      )}
       <div style={{ padding: '24px 32px', maxWidth: 1400, margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
           <div>
@@ -164,6 +192,15 @@ export default function DataHealth() {
                             </span>
                             <span style={{ fontSize: 11, color: '#94a3b8', minWidth: 200 }}>{TYPE_LABELS[issue.type] || issue.type}</span>
                             <span style={{ fontSize: 13, color: '#334155', flex: 1 }}>{issue.message}</span>
+                            {issue.type === 'orphan_purchase' && issue.meta?.purchase_id && (
+                              <button
+                                onClick={() => handleFix(issue)}
+                                disabled={fixing === issue.meta.purchase_id}
+                                style={{ padding: '4px 10px', fontSize: 11, fontWeight: 700, background: '#0f172a', color: '#fff', border: 'none', cursor: 'pointer' }}
+                              >
+                                {fixing === issue.meta.purchase_id ? 'Linking…' : 'Link to protocol'}
+                              </button>
+                            )}
                           </div>
                         );
                       })}

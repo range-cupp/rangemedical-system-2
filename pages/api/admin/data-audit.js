@@ -51,10 +51,11 @@ export default async function handler(req, res) {
     };
 
     const issues = [];
-    const push = (severity, type, patient_id, message, link_path) => {
+    const push = (severity, type, patient_id, message, link_path, meta) => {
       issues.push({
         severity, type, patient_id, patient_name: patientName(patient_id), message,
         link: link_path || (patient_id ? `/patients/${patient_id}` : null),
+        meta: meta || null,
       });
     };
 
@@ -127,7 +128,8 @@ export default async function handler(req, res) {
       if (p.category !== 'weight_loss') return;
       if (p.protocol_id) return;
       push('medium', 'orphan_purchase', p.patient_id,
-        `WL purchase "${p.item_name || 'unknown'}" on ${p.purchase_date} ($${p.amount_paid || '?'}) not linked to any protocol`);
+        `WL purchase "${p.item_name || 'unknown'}" on ${p.purchase_date} ($${p.amount_paid || '?'}) not linked to any protocol`,
+        null, { purchase_id: p.id });
     });
 
     // ---------- CHECK 7: service_logs with no protocol_id ----------

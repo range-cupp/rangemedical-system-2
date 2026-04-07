@@ -232,8 +232,39 @@ export default function AppointmentPrepPage() {
         </div>
       </div>
 
+      {/* Print-only styles — hide everything except briefing when printing */}
+      <style jsx global>{`
+        @media print {
+          body * { visibility: hidden !important; }
+          .briefing-print-area, .briefing-print-area * { visibility: visible !important; }
+          .briefing-print-area { position: absolute; left: 0; top: 0; width: 100%; padding: 24px; }
+          .briefing-no-print { display: none !important; }
+        }
+      `}</style>
+
       {/* Provider Briefing */}
-      <ProviderBriefing briefing={briefing} />
+      <ProviderBriefing
+        briefing={briefing}
+        appointment={apt}
+        onPrint={async () => {
+          window.print();
+          if (!apt.provider_briefed) {
+            try {
+              const res = await fetch(`/api/appointments/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ provider_briefed: true }),
+              });
+              if (res.ok) {
+                const data = await res.json();
+                setAppointment(data.appointment);
+              }
+            } catch (err) {
+              console.error('Mark briefed error:', err);
+            }
+          }
+        }}
+      />
 
       {/* Checklist */}
       <div style={s.card}>
@@ -270,7 +301,7 @@ export default function AppointmentPrepPage() {
         <div style={s.divider} />
         <div style={s.manualLabel}>Manual checks</div>
         <CheckItem
-          label="Provider briefed"
+          label="Provider briefed (briefing printed)"
           checked={apt.provider_briefed}
           saving={saving.provider_briefed}
           onToggle={() => toggleField('provider_briefed')}
@@ -328,7 +359,7 @@ export default function AppointmentPrepPage() {
 }
 
 // Provider briefing synopsis — condensed talking points for the provider
-function ProviderBriefing({ briefing }) {
+function ProviderBriefing({ briefing, appointment, onPrint }) {
   if (!briefing) {
     return (
       <div style={s.card}>
@@ -393,12 +424,37 @@ function ProviderBriefing({ briefing }) {
   }
 
   return (
-    <div style={s.card}>
+    <div style={s.card} className="briefing-print-area">
       <div style={s.notesTitleRow}>
         <h3 style={s.sectionTitle}>Provider Briefing</h3>
-        <span style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          {isInPerson ? 'In-Person' : 'Telemedicine'}
-        </span>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <span style={{ fontSize: '11px', color: '#999', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            {isInPerson ? 'In-Person' : 'Telemedicine'}
+          </span>
+          {appointment?.provider_briefed && (
+            <span style={{ fontSize: '11px', color: '#166534', background: '#dcfce7', padding: '3px 8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              ✓ Printed
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={onPrint}
+            className="briefing-no-print"
+            style={{
+              padding: '6px 14px',
+              fontSize: '12px',
+              fontWeight: '600',
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+              background: '#111',
+              color: '#fff',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            Print for Provider
+          </button>
+        </div>
       </div>
       <div>
         {rows.map(([label, value]) => (

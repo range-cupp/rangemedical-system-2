@@ -28,7 +28,7 @@ export default async function handler(req, res) {
       purchasesRes,
     ] = await Promise.all([
       supabase.from('patients').select('id, first_name, last_name').limit(10000),
-      supabase.from('protocols').select('id, patient_id, category, total_sessions, completed_sessions, start_date, end_date, status, delivery_method').limit(10000),
+      supabase.from('protocols').select('id, patient_id, program_type, total_sessions, sessions_used, start_date, end_date, status, delivery_method').limit(10000),
       supabase.from('service_logs').select('id, patient_id, protocol_id, category, entry_type, entry_date, dosage, weight, quantity').limit(20000),
       supabase.from('appointments').select('id, patient_id, service_name, service_category, start_time, status').gte('start_time', '2025-01-01').limit(20000),
       supabase.from('patient_notes').select('id, patient_id, appointment_id, note_category, encounter_service, note_date').limit(20000),
@@ -96,7 +96,7 @@ export default async function handler(req, res) {
 
     // ---------- CHECK 3: Protocols where total_sessions < actual logged injections ----------
     protocols.forEach(p => {
-      if (p.category !== 'weight_loss' || !p.total_sessions) return;
+      if (p.program_type !== 'weight_loss' || !p.total_sessions) return;
       const pLogs = (logsByPatient[p.patient_id] || []).filter(l => l.protocol_id === p.id && l.entry_type === 'injection');
       if (pLogs.length > p.total_sessions) {
         push('high', 'protocol_overflow', p.patient_id,
@@ -106,7 +106,7 @@ export default async function handler(req, res) {
 
     // ---------- CHECK 4 + 6: Block-of-4 grouping + owed money ----------
     protocols.forEach(p => {
-      if (p.category !== 'weight_loss') return;
+      if (p.program_type !== 'weight_loss') return;
       if (p.status && p.status !== 'active') return;
       const pLogs = (logsByPatient[p.patient_id] || [])
         .filter(l => l.protocol_id === p.id && l.entry_type === 'injection')

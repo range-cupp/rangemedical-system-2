@@ -36,7 +36,7 @@ export default async function handler(req, res) {
         .from('protocols')
         .select('id, status, start_date')
         .eq('patient_id', purchase.patient_id)
-        .eq('category', purchase.category)
+        .eq('program_type', purchase.category)
         .order('start_date', { ascending: false });
 
       // Prefer active, then most recent

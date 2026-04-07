@@ -2002,9 +2002,18 @@ export default function PatientProfile() {
       // Build descriptive label
       const typeLabel = lastType === 'pickup' ? 'Pickup' : lastType === 'injection' ? 'Range Injection' : lastType === 'session' ? 'Session' : null;
 
-      // Renewal / supply status — driven by days_remaining (date-based) and sessions_remaining
+      // Renewal / supply status — single source of truth: protocol.next_expected_date.
+      // Falls back to days_remaining only if no projected date exists.
       let renewalTag = null;
-      const daysLeft = protocol.days_remaining;
+      let daysLeft = null;
+      if (protocol.next_expected_date) {
+        const todayMidnight = new Date();
+        todayMidnight.setHours(0, 0, 0, 0);
+        const nextDate = new Date(protocol.next_expected_date + 'T00:00:00');
+        daysLeft = Math.ceil((nextDate - todayMidnight) / (1000 * 60 * 60 * 24));
+      } else if (protocol.days_remaining !== null && protocol.days_remaining !== undefined) {
+        daysLeft = protocol.days_remaining;
+      }
       const sessLeft = protocol.sessions_remaining;
       const totalSess = protocol.total_sessions;
       if (daysLeft !== null && daysLeft !== undefined) {

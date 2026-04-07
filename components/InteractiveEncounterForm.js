@@ -238,8 +238,24 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
     notesEditorRef.current.focus();
     document.execCommand(command, false, value);
   };
+  const htmlToMarkdown = (html) => {
+    let text = html;
+    // Convert bold tags to markdown
+    text = text.replace(/<(b|strong)>(.*?)<\/\1>/gi, '**$2**');
+    // Convert italic tags to markdown
+    text = text.replace(/<(i|em)>(.*?)<\/\1>/gi, '*$2*');
+    // Convert <br> and block-level elements to newlines
+    text = text.replace(/<br\s*\/?>/gi, '\n');
+    text = text.replace(/<\/?(div|p|li|ul|ol)[^>]*>/gi, '\n');
+    // Strip any remaining HTML tags
+    text = text.replace(/<[^>]+>/g, '');
+    // Clean up excessive newlines
+    text = text.replace(/\n{3,}/g, '\n\n');
+    return text.trim();
+  };
   const syncNotesEditorToForm = () => {
-    const text = notesEditorRef.current?.innerText || '';
+    const html = notesEditorRef.current?.innerHTML || '';
+    const text = htmlToMarkdown(html);
     updateField('additional', 'notes', text);
   };
   const handleNotesAIFormat = async () => {
@@ -255,7 +271,11 @@ export default function InteractiveEncounterForm({ formType, vitals, currentUser
       const data = await res.json();
       if (data.formatted && notesEditorRef.current) {
         saveNotesUndoSnapshot();
-        notesEditorRef.current.innerText = data.formatted;
+        // Convert markdown bold to HTML so it renders in the editor
+        const htmlContent = data.formatted
+          .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+          .replace(/\n/g, '<br>');
+        notesEditorRef.current.innerHTML = htmlContent;
         syncNotesEditorToForm();
       }
     } catch (err) {

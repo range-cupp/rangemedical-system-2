@@ -4256,7 +4256,7 @@ export default function PatientProfile() {
               </div>
               <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                 <button
-                  onClick={() => { setEditingNote(pinnedNote); setEditNoteBody(stripMarkdownBold(pinnedNote.body)); }}
+                  onClick={() => { setEditingNote(pinnedNote); setEditNoteBody(pinnedNote.body); }}
                   style={{ background: 'none', border: 'none', color: '#92400e', cursor: 'pointer', fontSize: 13, padding: '2px 6px' }}
                   title="Edit note"
                 >✏️</button>
@@ -8006,7 +8006,7 @@ export default function PatientProfile() {
                           </div>
                           <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                             <button
-                              onClick={() => { setEditingNote(note); setEditNoteBody(stripMarkdownBold(note.body)); }}
+                              onClick={() => { setEditingNote(note); setEditNoteBody(note.body); }}
                               style={{ background: 'none', border: 'none', color: '#999', cursor: 'pointer', fontSize: 14, padding: '0 4px', lineHeight: 1 }}
                               title="Edit note"
                             >✏️</button>

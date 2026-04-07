@@ -772,7 +772,7 @@ export default function TasksPage() {
   const [form, setForm] = useState({
     title: '',
     description: '',
-    assigned_to: '',
+    assigned_to: [],
     patient_name: '',
     priority: 'medium',
     due_date: '',
@@ -1156,8 +1156,8 @@ export default function TasksPage() {
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!form.title.trim() || !form.assigned_to) {
-      setError('Title and assignee are required');
+    if (!form.title.trim() || !form.assigned_to.length) {
+      setError('Title and at least one assignee are required');
       return;
     }
     setCreating(true);
@@ -1179,7 +1179,7 @@ export default function TasksPage() {
       const data = await res.json();
       if (data.success) {
         setShowCreate(false);
-        setForm({ title: '', description: '', assigned_to: '', patient_name: '', priority: 'medium', due_date: '' });
+        setForm({ title: '', description: '', assigned_to: [], patient_name: '', priority: 'medium', due_date: '' });
         setSelectedPatient(null);
         setPatientSearch('');
         fetchTasks();
@@ -2225,21 +2225,46 @@ export default function TasksPage() {
                   {/* Assign to */}
                   <div>
                     <label style={sharedStyles.label}>Assign to</label>
-                    <select
-                      value={form.assigned_to}
-                      onChange={e => setForm(prev => ({ ...prev, assigned_to: e.target.value }))}
-                      style={sharedStyles.input}
-                      required
-                    >
-                      <option value="">Select team member...</option>
+                    <div style={{
+                      border: '1px solid #d1d5db', borderRadius: 0, padding: '8px 10px',
+                      display: 'flex', flexWrap: 'wrap', gap: '6px',
+                    }}>
                       {employees
                         .filter(e => e.is_active !== false)
-                        .map(e => (
-                          <option key={e.id} value={e.id}>
-                            {e.name}{e.id === employee?.id ? ' (Me)' : ''}
-                          </option>
-                        ))}
-                    </select>
+                        .map(e => {
+                          const selected = form.assigned_to.includes(e.id);
+                          return (
+                            <label
+                              key={e.id}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '5px',
+                                padding: '5px 10px', fontSize: '13px', fontWeight: 500,
+                                background: selected ? '#000' : '#f3f4f6',
+                                color: selected ? '#fff' : '#374151',
+                                borderRadius: 0, cursor: 'pointer',
+                                border: '1px solid', borderColor: selected ? '#000' : '#d1d5db',
+                                userSelect: 'none',
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selected}
+                                onChange={() => {
+                                  setForm(prev => ({
+                                    ...prev,
+                                    assigned_to: selected
+                                      ? prev.assigned_to.filter(id => id !== e.id)
+                                      : [...prev.assigned_to, e.id],
+                                  }));
+                                }}
+                                style={{ display: 'none' }}
+                              />
+                              {e.name}{e.id === employee?.id ? ' (Me)' : ''}
+                            </label>
+                          );
+                        })}
+                    </div>
+                    {!form.assigned_to.length && <div style={{ fontSize: '12px', color: '#ef4444', marginTop: '4px' }}>Select at least one team member</div>}
                   </div>
 
                   {/* Priority + Due Date row */}

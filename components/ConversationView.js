@@ -55,7 +55,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const [formsResult, setFormsResult] = useState(null);
   const { session } = useAuth();
   const [showTaskModal, setShowTaskModal] = useState(false);
-  const [taskForm, setTaskForm] = useState({ title: '', description: '', assigned_to: '', priority: 'medium', due_date: '' });
+  const [taskForm, setTaskForm] = useState({ title: '', description: '', assigned_to: [], priority: 'medium', due_date: '' });
   const [taskEmployees, setTaskEmployees] = useState([]);
   const [creatingTask, setCreatingTask] = useState(false);
   const [taskResult, setTaskResult] = useState(null);
@@ -148,7 +148,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
   const openTaskModal = async () => {
     setShowTaskModal(true);
     setTaskResult(null);
-    setTaskForm({ title: '', description: '', assigned_to: '', priority: 'medium', due_date: '' });
+    setTaskForm({ title: '', description: '', assigned_to: [], priority: 'medium', due_date: '' });
     if (taskEmployees.length === 0) {
       try {
         const res = await fetch('/api/admin/employees?basic=true', {
@@ -164,7 +164,7 @@ export default function ConversationView({ patientId, patientName, patientPhone,
 
   const handleCreateTask = async (e) => {
     e.preventDefault();
-    if (!taskForm.title.trim() || !taskForm.assigned_to) return;
+    if (!taskForm.title.trim() || !taskForm.assigned_to.length) return;
     setCreatingTask(true);
     try {
       const res = await fetch('/api/admin/tasks', {
@@ -1242,17 +1242,43 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>Assign to</label>
-                  <select
-                    value={taskForm.assigned_to}
-                    onChange={e => setTaskForm(prev => ({ ...prev, assigned_to: e.target.value }))}
-                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '0', fontSize: '14px', fontFamily: 'inherit', boxSizing: 'border-box' }}
-                    required
-                  >
-                    <option value="">Select team member...</option>
-                    {taskEmployees.filter(e => e.is_active !== false).map(e => (
-                      <option key={e.id} value={e.id}>{e.name}</option>
-                    ))}
-                  </select>
+                  <div style={{
+                    border: '1px solid #d1d5db', borderRadius: 0, padding: '8px 10px',
+                    display: 'flex', flexWrap: 'wrap', gap: '6px',
+                  }}>
+                    {taskEmployees.filter(e => e.is_active !== false).map(e => {
+                      const selected = taskForm.assigned_to.includes(e.id);
+                      return (
+                        <label
+                          key={e.id}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '5px',
+                            padding: '5px 10px', fontSize: '13px', fontWeight: 500,
+                            background: selected ? '#000' : '#f3f4f6',
+                            color: selected ? '#fff' : '#374151',
+                            borderRadius: 0, cursor: 'pointer',
+                            border: '1px solid', borderColor: selected ? '#000' : '#d1d5db',
+                            userSelect: 'none',
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={() => {
+                              setTaskForm(prev => ({
+                                ...prev,
+                                assigned_to: selected
+                                  ? prev.assigned_to.filter(id => id !== e.id)
+                                  : [...prev.assigned_to, e.id],
+                              }));
+                            }}
+                            style={{ display: 'none' }}
+                          />
+                          {e.name}
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <div style={{ flex: 1 }}>
@@ -1290,13 +1316,13 @@ export default function ConversationView({ patientId, patientName, patientPhone,
                 )}
                 <button
                   type="submit"
-                  disabled={!taskForm.title.trim() || !taskForm.assigned_to || creatingTask}
+                  disabled={!taskForm.title.trim() || !taskForm.assigned_to.length || creatingTask}
                   style={{
                     width: '100%', padding: '12px',
-                    background: (taskForm.title.trim() && taskForm.assigned_to) ? '#000' : '#e5e7eb',
-                    color: (taskForm.title.trim() && taskForm.assigned_to) ? '#fff' : '#9ca3af',
+                    background: (taskForm.title.trim() && taskForm.assigned_to.length) ? '#000' : '#e5e7eb',
+                    color: (taskForm.title.trim() && taskForm.assigned_to.length) ? '#fff' : '#9ca3af',
                     border: 'none', borderRadius: '0', fontSize: '14px',
-                    fontWeight: 600, cursor: (taskForm.title.trim() && taskForm.assigned_to) ? 'pointer' : 'default',
+                    fontWeight: 600, cursor: (taskForm.title.trim() && taskForm.assigned_to.length) ? 'pointer' : 'default',
                     fontFamily: 'inherit',
                   }}
                 >

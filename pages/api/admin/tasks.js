@@ -96,49 +96,55 @@ async function handleGet(req, res, employee) {
 async function handlePost(req, res, employee) {
   const { title, description, assigned_to, patient_id, patient_name, priority, due_date } = req.body;
 
-  if (!title || !assigned_to) {
+  // Support both single ID (string) and multiple IDs (array)
+  const assignees = Array.isArray(assigned_to) ? assigned_to : [assigned_to];
+
+  if (!title || !assignees.length || !assignees[0]) {
     return res.status(400).json({ error: 'title and assigned_to are required' });
   }
 
+  const rows = assignees.map(id => ({
+    title,
+    description: description || null,
+    assigned_to: id,
+    assigned_by: employee.id,
+    patient_id: patient_id || null,
+    patient_name: patient_name || null,
+    priority: priority || 'medium',
+    due_date: due_date || null,
+    status: 'pending',
+  }));
+
   const { data, error } = await supabase
     .from('tasks')
-    .insert({
-      title,
-      description: description || null,
-      assigned_to,
-      assigned_by: employee.id,
-      patient_id: patient_id || null,
-      patient_name: patient_name || null,
-      priority: priority || 'medium',
-      due_date: due_date || null,
-      status: 'pending',
-    })
-    .select()
-    .single();
+    .insert(rows)
+    .select();
 
   if (error) {
     console.error('Create task error:', error);
     return res.status(500).json({ error: error.message });
   }
 
-  await logAction({
-    employeeId: employee.id,
-    employeeName: employee.name,
-    action: 'create_task',
-    resourceType: 'task',
-    resourceId: data.id,
-    details: { title, assigned_to, priority },
-    req,
-  });
+  for (const task of data) {
+    await logAction({
+      employeeId: employee.id,
+      employeeName: employee.name,
+      action: 'create_task',
+      resourceType: 'task',
+      resourceId: task.id,
+      details: { title, assigned_to: task.assigned_to, priority },
+      req,
+    });
 
-  // Send SMS notification to assigned employee (if not self-assigned and they have a phone)
-  if (assigned_to !== employee.id) {
-    notifyAssignee(assigned_to, employee.name, title, priority).catch(err =>
-      console.error('Task SMS notification error:', err)
-    );
+    // Send SMS notification to assigned employee (if not self-assigned and they have a phone)
+    if (task.assigned_to !== employee.id) {
+      notifyAssignee(task.assigned_to, employee.name, title, priority).catch(err =>
+        console.error('Task SMS notification error:', err)
+      );
+    }
   }
 
-  return res.status(201).json({ success: true, task: data });
+  return res.status(201).json({ success: true, task: data[0], tasks: data });
 }
 
 // Send SMS to employee when assigned a task — respects quiet hours (8am-6pm PST)

@@ -5815,8 +5815,12 @@ export default function PatientProfile() {
                             const lastPickupLog = !isInClinicWL && wlDeliveryLogs.length > 0 ? wlDeliveryLogs[wlDeliveryLogs.length - 1] : null;
                             const lastPickupDate = lastPickupLog ? new Date(lastPickupLog.entry_date + 'T12:00:00') : null;
                             // If there's an in-clinic injection on the same day as the pickup, the take-home supply
-                            // starts the following week (e.g., 3 take-homes + 1 in-clinic = 4 weeks total)
-                            const hadInClinicOnPickupDay = lastPickupLog && wlLogs.some(l => l.entry_date === lastPickupLog.entry_date);
+                            // starts the following week (e.g., 3 take-homes + 1 in-clinic = 4 weeks total).
+                            // Only counts when the matching injection was actually administered in-clinic — backfilled
+                            // injection slots that share a date with the pickup don't add a phantom week.
+                            const hadInClinicOnPickupDay = lastPickupLog && wlLogs.some(l =>
+                              l.entry_date === lastPickupLog.entry_date && l.fulfillment_method === 'in_clinic'
+                            );
                             const pickupSupplyDays = lastPickupLog && lastPickupLog.quantity
                               ? (lastPickupLog.quantity + (hadInClinicOnPickupDay ? 1 : 0)) * 7
                               : 28;

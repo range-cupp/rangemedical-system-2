@@ -521,12 +521,19 @@ export default async function handler(req, res) {
         // Auto-create protocol if patient is matched and category is valid
         if (patientId && category !== 'Other') {
           try {
+            // For peptides, extract duration from product metadata if available
+            const productMeta = typeof product === 'object' ? product?.metadata : {};
+            const priceMeta = item.price?.metadata || {};
+            const durationFromMeta = parseInt(priceMeta.duration_days || productMeta?.duration_days) || null;
+
             await autoCreateOrExtendProtocol({
               patientId,
               serviceCategory: category,
               serviceName,
               purchaseId: purchase.id,
               quantity: item.quantity || 1,
+              durationDays: durationFromMeta,
+              stripePaymentIntentId: session.payment_intent || null,
             });
             console.log(`Auto-protocol triggered for Payment Link purchase: ${serviceName} (patient: ${patientId})`);
           } catch (protoErr) {

@@ -4365,6 +4365,22 @@ export default function PatientProfile() {
                   const nextApt = (appointments || [])
                     .filter(a => new Date(a.start_time) >= nowDate && !['cancelled', 'no_show'].includes((a.status || '').toLowerCase()))
                     .sort((a, b) => new Date(a.start_time) - new Date(b.start_time))[0];
+                  // Count consecutive most-recent injections at the current dose (titration tracker)
+                  const allInjections = (serviceLogs || [])
+                    .filter(l => l.protocol_id === protocol.id && l.entry_type === 'injection')
+                    .sort((a, b) => b.entry_date.localeCompare(a.entry_date));
+                  let dosesAtCurrent = 0;
+                  let firstAtCurrentDate = null;
+                  if (lastInjection?.dosage) {
+                    for (const inj of allInjections) {
+                      if ((inj.dosage || '').trim() === lastInjection.dosage.trim()) {
+                        dosesAtCurrent++;
+                        firstAtCurrentDate = inj.entry_date;
+                      } else {
+                        break;
+                      }
+                    }
+                  }
                   return (
                     <div key={protocol.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: '#1f2937', flexWrap: 'wrap' }}>
                       <span style={{
@@ -4385,6 +4401,11 @@ export default function PatientProfile() {
                           {lastInjection.dosage && (
                             <span style={{ fontWeight: isTesto ? 700 : 500, color: isTesto ? '#7c3aed' : '#1f2937', marginLeft: 6 }}>
                               · {lastInjection.dosage}
+                            </span>
+                          )}
+                          {dosesAtCurrent > 1 && (
+                            <span style={{ color: '#6b7280', fontSize: 13, marginLeft: 6 }}>
+                              ({dosesAtCurrent}× at this dose{firstAtCurrentDate ? `, since ${formatShortDate(firstAtCurrentDate)}` : ''})
                             </span>
                           )}
                         </span>

@@ -585,6 +585,7 @@ const NAV_ITEMS = [
   { href: '/admin/provider-schedule', label: 'Staff Hours', icon: 'clock' },
   { href: '/admin/employees', label: 'Employees', icon: 'user-check', permission: 'can_manage_employees' },
   { href: '/admin/employee-activity', label: 'Employee Activity', icon: 'activity', permission: 'can_manage_employees' },
+  { href: '/admin/data-health', label: 'Data Health', icon: 'activity', adminOnly: true },
   { href: '/admin/settings', label: 'Settings', icon: 'settings' }
 ];
 

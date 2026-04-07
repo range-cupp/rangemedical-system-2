@@ -6284,52 +6284,101 @@ export default function PatientProfile() {
                                       const todayDate = new Date(todayStr + 'T12:00:00');
                                       const isTakeHome = protocol.delivery_method === 'take_home';
 
-                                      // Build purchase groups for this protocol (quantity-based, not date-window)
-                                      // Each purchase covers N injections (quantity field, default 4 for monthly)
-                                      const protoPurchasesForGroups = allPurchases
+                                      // ALWAYS slice injections into blocks of 4 (the program is structured in 4-week cycles).
+                                      // Purchases are matched to blocks by DATE, not by sequence — and unmatched blocks show as "Unpaid".
+                                      const BLOCK_SIZE = 4;
+
+                                      // All weight-loss purchases for this patient (linked OR unlinked to protocol)
+                                      // Linked first; we still consider unlinked WL purchases by date as a fallback for owed-money detection.
+                                      const protoLinkedPurchases = allPurchases
                                         .filter(p => p.protocol_id === protocol.id && p.purchase_date)
                                         .sort((a, b) => new Date(a.purchase_date) - new Date(b.purchase_date));
 
-                                      // Build injection-count boundaries: each WL purchase = 4 injections (one month / 4 weeks)
-                                      // quantity field on purchases tracks line item qty, NOT injection count
+                                      // Determine total blocks: cover all logged injections + scheduled slots, in chunks of 4
+                                      const projectedTotalInjections = Math.max(totalSlots || 0, wlLogs.length);
+                                      const numBlocks = Math.max(1, Math.ceil(projectedTotalInjections / BLOCK_SIZE));
+
+                                      // Build blocks and find the first injection date for each (used to match purchases by date)
+                                      const sortedLogsForBlocks = [...wlLogs].sort((a, b) => a.entry_date.localeCompare(b.entry_date));
                                       const purchaseBoundaries = [];
-                                      let runningTotal = 0;
-                                      for (const p of protoPurchasesForGroups) {
-                                        // WL monthly = 4 injections, unless description says otherwise (e.g. "2 injections")
-                                        let injectionsPerPurchase = 4;
-                                        const desc = (p.description || p.item_name || '').toLowerCase();
-                                        const injMatch = desc.match(/(\d+)\s*injection/);
-                                        if (injMatch) injectionsPerPurchase = parseInt(injMatch[1]);
-                                        else if (desc.includes('bi-weekly') || desc.includes('biweekly') || desc.includes('2 week')) injectionsPerPurchase = 2;
-                                        else if (desc.includes('single') || desc.includes('1 week')) injectionsPerPurchase = 1;
-                                        purchaseBoundaries.push({ purchase: p, startIdx: runningTotal, endIdx: runningTotal + injectionsPerPurchase - 1, injectionsPerPurchase });
-                                        runningTotal += injectionsPerPurchase;
+                                      for (let b = 0; b < numBlocks; b++) {
+                                        const startIdx = b * BLOCK_SIZE;
+                                        const endIdx = startIdx + BLOCK_SIZE - 1;
+                                        const firstLog = sortedLogsForBlocks[startIdx];
+                                        const blockFirstDate = firstLog ? firstLog.entry_date : null;
+                                        purchaseBoundaries.push({
+                                          startIdx,
+                                          endIdx,
+                                          injectionsPerPurchase: BLOCK_SIZE,
+                                          blockFirstDate,
+                                          purchase: null,
+                                        });
                                       }
 
-                                      // Helper: find which purchase group injection #N belongs to (0-indexed)
-                                      const getPurchaseGroupForIdx = (injectionIdx) => {
+                                      // Assign purchases to blocks chronologically: each purchase covers 1 block (4 injections).
+                                      // Match by date — purchase goes to the earliest block whose first injection is >= purchase_date
+                                      // (or the latest block if no future block fits). Falls back to sequence if no logs exist yet.
+                                      const unassignedPurchases = [...protoLinkedPurchases];
+                                      const usedBlockIdx = new Set();
+                                      unassignedPurchases.forEach((p) => {
+                                        const pDate = p.purchase_date;
+                                        // Find the earliest unused block whose first injection date is >= purchase date
+                                        let targetIdx = -1;
                                         for (let i = 0; i < purchaseBoundaries.length; i++) {
-                                          if (injectionIdx >= purchaseBoundaries[i].startIdx && injectionIdx <= purchaseBoundaries[i].endIdx) return i;
+                                          if (usedBlockIdx.has(i)) continue;
+                                          const bDate = purchaseBoundaries[i].blockFirstDate;
+                                          if (!bDate || bDate >= pDate) {
+                                            targetIdx = i;
+                                            break;
+                                          }
                                         }
-                                        return null; // beyond purchased injections
+                                        // No future block — assign to last unused block
+                                        if (targetIdx < 0) {
+                                          for (let i = purchaseBoundaries.length - 1; i >= 0; i--) {
+                                            if (!usedBlockIdx.has(i)) { targetIdx = i; break; }
+                                          }
+                                        }
+                                        if (targetIdx >= 0) {
+                                          purchaseBoundaries[targetIdx].purchase = p;
+                                          usedBlockIdx.add(targetIdx);
+                                        }
+                                      });
+
+                                      // Helper: find which block injection #N belongs to (0-indexed)
+                                      const getPurchaseGroupForIdx = (injectionIdx) => {
+                                        if (injectionIdx < 0) return null;
+                                        const blockIdx = Math.floor(injectionIdx / BLOCK_SIZE);
+                                        return blockIdx < purchaseBoundaries.length ? blockIdx : null;
                                       };
 
-                                      // Helper: render a purchase group header row
-                                      const renderGroupHeader = (purchaseIdx) => {
-                                        if (purchaseBoundaries.length === 0 || purchaseIdx == null || purchaseIdx < 0) return null;
-                                        const boundary = purchaseBoundaries[purchaseIdx];
-                                        if (!boundary) return null;
+                                      // Helper: render a block header row (always 4 injections; shows purchase if matched, else "Unpaid")
+                                      const renderGroupHeader = (blockIdx) => {
+                                        if (blockIdx == null || blockIdx < 0 || blockIdx >= purchaseBoundaries.length) return null;
+                                        const boundary = purchaseBoundaries[blockIdx];
                                         const purchase = boundary.purchase;
-                                        const pDate = new Date(purchase.purchase_date + 'T12:00:00');
-                                        const dateLabel = pDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                                        const amount = purchase.amount_paid != null ? `$${parseFloat(purchase.amount_paid).toFixed(0)}` : '';
-                                        const qty = boundary.injectionsPerPurchase;
+                                        const blockNum = blockIdx + 1;
+                                        const injRange = `Injections ${boundary.startIdx + 1}–${boundary.endIdx + 1}`;
+                                        if (purchase) {
+                                          const pDate = new Date(purchase.purchase_date + 'T12:00:00');
+                                          const dateLabel = pDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                                          const amount = purchase.amount_paid != null ? `$${parseFloat(purchase.amount_paid).toFixed(0)}` : 'No amount';
+                                          return (
+                                            <tr key={'group-' + blockIdx + '-' + purchase.id} style={{ background: '#f1f5f9', borderTop: blockIdx > 0 ? '2px solid #cbd5e1' : 'none' }}>
+                                              <td colSpan={7} style={{ padding: '8px 10px', fontSize: 12, fontWeight: 700, color: '#334155' }}>
+                                                <span style={{ marginRight: 6 }}>💳</span>
+                                                Block {blockNum} · {injRange} — Paid {dateLabel}
+                                                <span style={{ fontWeight: 500, color: '#64748b', marginLeft: 6 }}>({amount})</span>
+                                              </td>
+                                            </tr>
+                                          );
+                                        }
+                                        // Unpaid block
                                         return (
-                                          <tr key={'group-' + purchase.id} style={{ background: '#f1f5f9', borderTop: purchaseIdx > 0 ? '2px solid #cbd5e1' : 'none' }}>
-                                            <td colSpan={7} style={{ padding: '8px 10px', fontSize: 12, fontWeight: 700, color: '#334155' }}>
-                                              <span style={{ marginRight: 6 }}>💳</span>
-                                              {qty} injections — {dateLabel}
-                                              {amount && <span style={{ fontWeight: 500, color: '#64748b', marginLeft: 6 }}>({amount})</span>}
+                                          <tr key={'group-' + blockIdx + '-unpaid'} style={{ background: '#fef2f2', borderTop: blockIdx > 0 ? '2px solid #fecaca' : 'none' }}>
+                                            <td colSpan={7} style={{ padding: '8px 10px', fontSize: 12, fontWeight: 700, color: '#b91c1c' }}>
+                                              <span style={{ marginRight: 6 }}>⚠️</span>
+                                              Block {blockNum} · {injRange} — <span style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Unpaid</span>
+                                              <span style={{ fontWeight: 500, color: '#991b1b', marginLeft: 6 }}>(no purchase linked)</span>
                                             </td>
                                           </tr>
                                         );

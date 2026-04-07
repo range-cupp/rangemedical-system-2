@@ -9300,6 +9300,7 @@ export default function PatientProfile() {
                     description: charge.description,
                     receipt_url: charge.receipt_url,
                     purchase_id: charge.purchase_id,
+                    line_items: charge.line_items || [],
                   }));
 
                 return (
@@ -9323,6 +9324,18 @@ export default function PatientProfile() {
                           <div key={charge.key} className="pay-item">
                             <div className="pay-item-info">
                               <div className="pay-item-title">{charge.description || 'Payment'}</div>
+                              {charge.line_items && charge.line_items.length > 0 && (
+                                <div style={{ margin: '4px 0 2px', fontSize: 12, color: '#475569' }}>
+                                  {charge.line_items.map((li, idx) => (
+                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '1px 0' }}>
+                                      <span>• {li.name}</span>
+                                      {li.amount_paid != null && (
+                                        <span style={{ color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>${li.amount_paid.toFixed(2)}</span>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                               <div className="pay-item-sub">
                                 {dateStr}
                                 {charge.card_last4 && (

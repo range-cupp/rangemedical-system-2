@@ -46,7 +46,7 @@ export default async function handler(req, res) {
     if (paymentIntentIds.length > 0) {
       const { data: purchases } = await supabase
         .from('purchases')
-        .select('id, stripe_payment_intent_id, description, item_name, amount_paid')
+        .select('id, stripe_payment_intent_id, description, item_name, amount_paid, medication')
         .in('stripe_payment_intent_id', paymentIntentIds);
 
       if (purchases) {
@@ -83,11 +83,17 @@ export default async function handler(req, res) {
       let itemDescription = c.description;
       if (linkedPurchases.length > 0) {
         itemDescription = linkedPurchases
-          .map(p => p.description || p.item_name || 'Service')
+          .map(p => p.medication || p.description || p.item_name || 'Service')
           .join(', ');
       } else if (c.invoice && invoiceLineItems[c.invoice]) {
         itemDescription = invoiceLineItems[c.invoice];
       }
+
+      // Itemized line items (medication + dose + amount paid) — staff-facing detail
+      const lineItems = linkedPurchases.map(p => ({
+        name: p.medication || p.description || p.item_name || 'Service',
+        amount_paid: p.amount_paid != null ? Number(p.amount_paid) : null,
+      }));
 
       return {
         id: c.id,
@@ -102,6 +108,7 @@ export default async function handler(req, res) {
         card_last4: c.payment_method_details?.card?.last4 || null,
         receipt_url: c.receipt_url,
         purchase_id: linkedPurchases.length > 0 ? linkedPurchases[0].id : null,
+        line_items: lineItems,
       };
     });
 

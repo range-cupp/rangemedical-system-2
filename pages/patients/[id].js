@@ -47,7 +47,7 @@ import { VIAL_CATALOG } from '../../lib/vial-catalog';
 import { loadStripe } from '@stripe/stripe-js';
 import { CardElement, Elements, useStripe, useElements } from '@stripe/react-stripe-js';
 import CycleProgressCard from '../../components/CycleProgressCard';
-import { STAFF_DISPLAY_NAMES as _STAFF_NAMES, getStaffDisplayName, AUTHOR_ALIASES as _AUTHOR_ALIASES, isNoteAuthor as _isNoteAuthor, isAdmin as _isStaffAdmin, ADMIN_EMAILS } from '../../lib/staff-config';
+import { STAFF_DISPLAY_NAMES as _STAFF_NAMES, getStaffDisplayName, AUTHOR_ALIASES as _AUTHOR_ALIASES, isNoteAuthor as _isNoteAuthor, isAdmin as _isStaffAdmin, ADMIN_EMAILS, NOTE_AUTHORS } from '../../lib/staff-config';
 
 // Lazy-load heavy components that aren't needed on initial render
 const CalendarView = dynamic(() => import('../../components/CalendarView'), { ssr: false });
@@ -787,6 +787,12 @@ export default function PatientProfile() {
   const [expandedNotes, setExpandedNotes] = useState({});
   const [noteFilter, setNoteFilter] = useState('clinical');
   const [addNoteCategory, setAddNoteCategory] = useState('internal');
+  const [noteAuthor, setNoteAuthor] = useState('');
+  const noteAuthorOptions = NOTE_AUTHORS.reduce((acc, email) => {
+    const name = _STAFF_NAMES[email] || email;
+    if (!acc.some(a => a.name === name)) acc.push({ email, name });
+    return acc;
+  }, []);
   const recognitionRef = useRef(null);
 
   // Blooio opt-in status
@@ -3263,6 +3269,7 @@ export default function PatientProfile() {
     if (!noteInput.trim()) return;
     setNoteSaving(true);
     try {
+      const authorName = noteAuthor ? (_STAFF_NAMES[noteAuthor] || noteAuthor) : (employee?.name || 'Staff');
       const res = await fetch('/api/notes/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -3270,7 +3277,7 @@ export default function PatientProfile() {
           patient_id: id,
           raw_input: noteInput,
           body: noteInput,
-          created_by: employee?.name || 'Staff',
+          created_by: authorName,
           note_category: addNoteCategory,
         }),
       });
@@ -3280,6 +3287,7 @@ export default function PatientProfile() {
         setShowAddNoteModal(false);
         setNoteInput('');
         setNoteFormatted('');
+        setNoteAuthor('');
         stopDictation();
       }
     } catch (error) {
@@ -9473,6 +9481,20 @@ export default function PatientProfile() {
                   background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a',
                 }}>
                   ⚠️ This is for internal staff notes only (reminders, patient experience, operational notes). To document a clinical encounter, close this and use <strong>Log Encounter</strong> instead.
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 12 }}>
+                  <label>Author</label>
+                  <select
+                    value={noteAuthor}
+                    onChange={e => setNoteAuthor(e.target.value)}
+                    style={{ width: '100%', padding: '8px 12px', fontSize: 14, borderRadius: 6, border: '1px solid #d1d5db' }}
+                  >
+                    <option value="">{employee?.name || 'Me'}</option>
+                    {noteAuthorOptions.filter(a => a.name !== employee?.name).map(a => (
+                      <option key={a.email} value={a.email}>{a.name}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="form-group">

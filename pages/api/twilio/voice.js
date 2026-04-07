@@ -1,45 +1,70 @@
 // /pages/api/twilio/voice.js
-// Twilio Voice Webhook — routes incoming calls to Grandstream SIP phone
-// Also handles outbound calls from Grandstream
+// Twilio Voice Webhook — routes incoming calls and handles extension transfers
 // Range Medical
 
+const { EXTENSIONS, ALL_SIP_ENDPOINTS } = require('../../../lib/extensions');
+
 export default async function handler(req, res) {
-  // Determine if this is an incoming call to the business number
-  // or an outbound call from the Grandstream
   const to = req.body?.To || req.query?.To || '';
   const from = req.body?.From || req.query?.From || '';
   const direction = req.body?.Direction || '';
 
-  // Build absolute URL for status callback
-  const host = req.headers.host || 'rangemedical-system-2.vercel.app';
+  const host = req.headers.host || 'app.range-medical.com';
   const protocol = host.includes('localhost') ? 'http' : 'https';
-  const statusCallback = `${protocol}://${host}/api/twilio/call-status`;
+  const baseUrl = `${protocol}://${host}`;
+  const statusCallback = `${baseUrl}/api/twilio/call-status`;
 
-  // Set content type for TwiML response
   res.setHeader('Content-Type', 'text/xml');
 
-  // Outbound call from Grandstream (SIP → PSTN)
+  // --- Outbound call from Grandstream (SIP → extension or PSTN) ---
   if (from.includes('sip:') || direction === 'outbound') {
-    // Extract the dialed number from the SIP To header
-    let dialNumber = to.replace('sip:', '').split('@')[0];
-    // Clean up — ensure it has +1 prefix for US numbers
-    dialNumber = dialNumber.replace(/\D/g, '');
-    if (dialNumber.length === 10) dialNumber = '1' + dialNumber;
-    if (!dialNumber.startsWith('+')) dialNumber = '+' + dialNumber;
+    // Extract the dialed number/extension from SIP To header
+    let dialed = to.replace('sip:', '').split('@')[0].replace(/\D/g, '');
+
+    // Check if it's an extension
+    const ext = EXTENSIONS[dialed];
+    if (ext) {
+      if (ext.type === 'sip') {
+        // Transfer to another Grandstream
+        return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Dial callerId="+19499973988" timeout="30">
+    <Sip statusCallbackEvent="initiated ringing answered completed" statusCallback="${statusCallback}" statusCallbackMethod="POST">${ext.sip}</Sip>
+  </Dial>
+</Response>`);
+      }
+      if (ext.type === 'phone') {
+        // Transfer to cell phone
+        return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Dial callerId="+19499973988" timeout="25" action="${baseUrl}/api/twilio/voicemail">
+    <Number statusCallbackEvent="initiated ringing answered completed" statusCallback="${statusCallback}" statusCallbackMethod="POST">${ext.number}</Number>
+  </Dial>
+</Response>`);
+      }
+    }
+
+    // Not an extension — regular outbound PSTN call
+    if (dialed.length === 10) dialed = '1' + dialed;
+    if (!dialed.startsWith('+')) dialed = '+' + dialed;
 
     return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Dial callerId="+19499973988">
-    <Number statusCallbackEvent="initiated ringing answered completed" statusCallback="${statusCallback}" statusCallbackMethod="POST">${dialNumber}</Number>
+    <Number statusCallbackEvent="initiated ringing answered completed" statusCallback="${statusCallback}" statusCallbackMethod="POST">${dialed}</Number>
   </Dial>
 </Response>`);
   }
 
-  // Incoming call — ring the Grandstream via SIP
+  // --- Incoming call — ring all Grandstream phones simultaneously ---
+  const sipEndpoints = ALL_SIP_ENDPOINTS.map(sip =>
+    `    <Sip statusCallbackEvent="initiated ringing answered completed" statusCallback="${statusCallback}" statusCallbackMethod="POST">${sip}</Sip>`
+  ).join('\n');
+
   return res.status(200).send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Dial timeout="30" action="/api/twilio/voicemail">
-    <Sip statusCallbackEvent="initiated ringing answered completed" statusCallback="${statusCallback}" statusCallbackMethod="POST">sip:rangemedical@rangemedical.sip.twilio.com</Sip>
+  <Dial timeout="30" action="${baseUrl}/api/twilio/voicemail">
+${sipEndpoints}
   </Dial>
 </Response>`);
 }

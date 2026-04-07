@@ -332,11 +332,6 @@ export default function WeightLoss() {
                   <div className="wl-med-name">{med.name}</div>
                   <div className="wl-med-brand">{med.brand}</div>
                   <div className="wl-med-desc">{med.desc}</div>
-                  {med.sideEffectsLink && (
-                    <Link href={med.sideEffectsLink} className="wl-med-se-link">
-                      View Side Effects Guide <span>&rarr;</span>
-                    </Link>
-                  )}
                 </div>
               ))}
             </div>
@@ -497,10 +492,6 @@ export default function WeightLoss() {
                       <p>Less common. Usually related to eating too little or losing weight too fast — both of which we actively manage.</p>
                     </div>
                   </div>
-                </div>
-                <div className="wl-safety-guides">
-                  <Link href="/semaglutide-side-effects-guide" className="wl-safety-guide-link">Semaglutide Guide <span>&rarr;</span></Link>
-                  <Link href="/tirzepatide-side-effects-guide" className="wl-safety-guide-link">Tirzepatide Guide <span>&rarr;</span></Link>
                 </div>
               </div>
 

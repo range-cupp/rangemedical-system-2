@@ -565,9 +565,6 @@ export default function NADTherapy() {
                     </div>
                   </div>
                 </div>
-                <div className="nad-safety-guides">
-                  <Link href="/nad-side-effects-guide" className="nad-safety-guide-link">Full NAD+ Side Effects Guide <span>&rarr;</span></Link>
-                </div>
               </div>
 
               <div className="nad-safety-card nad-safety-card-dark">

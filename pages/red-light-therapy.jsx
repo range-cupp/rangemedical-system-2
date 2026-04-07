@@ -634,9 +634,6 @@ export default function RedLightTherapy() {
                     </div>
                   </div>
                 </div>
-                <div className="rlt-safety-guides">
-                  <Link href="/rlt-side-effects-guide" className="rlt-safety-guide-link">Full Red Light Side Effects Guide <span>&rarr;</span></Link>
-                </div>
               </div>
 
               <div className="rlt-safety-card rlt-safety-card-dark">

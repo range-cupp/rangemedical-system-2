@@ -539,9 +539,6 @@ export default function IVTherapy() {
                     </div>
                   </div>
                 </div>
-                <div className="iv-safety-guides">
-                  <Link href="/iv-therapy-side-effects-guide" className="iv-safety-guide-link">Full IV Therapy Side Effects Guide <span>&rarr;</span></Link>
-                </div>
               </div>
 
               <div className="iv-safety-card iv-safety-card-dark">

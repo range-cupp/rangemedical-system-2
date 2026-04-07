@@ -597,9 +597,6 @@ export default function HormoneOptimization() {
                     </div>
                   </div>
                 </div>
-                <div className="hrt-safety-guides">
-                  <Link href="/hrt-side-effects-guide" className="hrt-safety-guide-link">Full HRT Side Effects Guide <span>&rarr;</span></Link>
-                </div>
               </div>
 
               <div className="hrt-safety-card hrt-safety-card-dark">

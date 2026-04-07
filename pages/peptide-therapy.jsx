@@ -477,9 +477,6 @@ export default function PeptideTherapy() {
                     </div>
                   </div>
                 </div>
-                <div className="pep-safety-guides">
-                  <Link href="/peptide-side-effects-guide" className="pep-safety-guide-link">Full Peptide Side Effects Guide <span>&rarr;</span></Link>
-                </div>
               </div>
 
               <div className="pep-safety-card pep-safety-card-dark">

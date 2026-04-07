@@ -627,9 +627,6 @@ export default function HyperbaricOxygenTherapy() {
                     </div>
                   </div>
                 </div>
-                <div className="hbot-safety-guides">
-                  <Link href="/hbot-side-effects-guide" className="hbot-safety-guide-link">Full HBOT Side Effects Guide <span>&rarr;</span></Link>
-                </div>
               </div>
 
               <div className="hbot-safety-card hbot-safety-card-dark">

@@ -3903,43 +3903,6 @@ export default function PatientProfile() {
                     </span>
                   )}
                 </div>
-                {/* Active Protocol Last Activity Badges */}
-                {activeProtocols.length > 0 && (
-                  <div className="protocol-activity-row">
-                    {getProtocolLastActivity().map(p => {
-                      const daysSince = p.lastDate ? Math.floor((new Date() - p.lastDate) / (1000 * 60 * 60 * 24)) : null;
-                      const dateStr = p.lastDate ? `${p.lastDate.getMonth() + 1}/${p.lastDate.getDate()}` : null;
-                      // Build detail line: "Pickup — BPC-157 — 3/22" or "Injection — 3/20" or "No activity"
-                      const detailParts = [];
-                      if (p.lastType) detailParts.push(p.lastType);
-                      if (p.lastMed) detailParts.push(p.lastMed);
-                      if (dateStr) detailParts.push(dateStr);
-                      const detailLine = detailParts.length > 0 ? detailParts.join(' \u2022 ') : 'No activity yet';
-                      const timeAgo = p.lastDate
-                        ? (daysSince === 0 ? 'today' : daysSince === 1 ? '1 day ago' : `${daysSince}d ago`)
-                        : null;
-                      return (
-                        <span key={p.id} className="protocol-activity-badge" style={{
-                          backgroundColor: p.catStyle.bg,
-                          color: p.catStyle.text,
-                          borderLeft: `3px solid ${p.catStyle.text}`,
-                        }} onClick={() => setActiveTab('chart')} title={p.lastDate ? `Last: ${p.lastType || 'Activity'} on ${p.lastDate.toLocaleDateString()}` : 'No injections or pickups logged yet'}>
-                          <span className="protocol-activity-name">{p.name}</span>
-                          <span className="protocol-activity-detail" style={{
-                            color: !p.lastDate ? '#9ca3af' : daysSince > 14 ? '#dc2626' : p.catStyle.text,
-                          }}>{detailLine}{timeAgo ? ` (${timeAgo})` : ''}</span>
-                          {p.renewalTag && (
-                            <span className="protocol-renewal-tag" style={{
-                              backgroundColor: p.renewalTag.urgent ? '#fef2f2' : '#fffbeb',
-                              color: p.renewalTag.urgent ? '#dc2626' : '#92400e',
-                              border: `1px solid ${p.renewalTag.urgent ? '#fecaca' : '#fde68a'}`,
-                            }}>{p.renewalTag.urgent ? '⚠' : '🔔'} {p.renewalTag.label}</span>
-                          )}
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
             </div>
           </div>

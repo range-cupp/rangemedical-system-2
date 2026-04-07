@@ -4387,23 +4387,20 @@ export default function PatientProfile() {
           </section>
         )}
 
-        {/* Recent Medication Pickups Banner */}
+        {/* Last Medication Activity Banner — pickups + in-clinic injections per active protocol */}
         {!loading && (() => {
-          const pickupsByProtocol = [];
+          const rows = [];
           (activeProtocols || []).forEach(proto => {
-            const protoPickups = (serviceLogs || [])
-              .filter(l => l.protocol_id === proto.id && l.entry_type === 'pickup')
+            const protoLogs = (serviceLogs || [])
+              .filter(l => l.protocol_id === proto.id && (l.entry_type === 'pickup' || l.entry_type === 'injection'))
               .sort((a, b) => b.entry_date.localeCompare(a.entry_date));
-            if (protoPickups.length > 0) {
-              const latest = protoPickups[0];
-              pickupsByProtocol.push({
-                protocol: proto,
-                pickup: latest,
-                nextRefill: proto.next_expected_date,
-              });
-            }
+            if (protoLogs.length === 0) return;
+            const lastPickup = protoLogs.find(l => l.entry_type === 'pickup');
+            const lastInjection = protoLogs.find(l => l.entry_type === 'injection');
+            const latest = protoLogs[0];
+            rows.push({ protocol: proto, latest, lastPickup, lastInjection });
           });
-          if (pickupsByProtocol.length === 0) return null;
+          if (rows.length === 0) return null;
           return (
             <section style={{
               background: '#f0fdf4',
@@ -4413,15 +4410,21 @@ export default function PatientProfile() {
               marginBottom: 16,
             }}>
               <div style={{ fontSize: 12, color: '#166534', fontWeight: 600, marginBottom: 8, letterSpacing: '0.02em' }}>
-                RECENT MEDICATION PICKUPS
+                LAST MEDICATION ACTIVITY
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {pickupsByProtocol.map(({ protocol, pickup, nextRefill }) => {
+                {rows.map(({ protocol, latest, lastPickup, lastInjection }) => {
                   const cat = getCategoryStyle(protocol.category);
-                  const daysAgo = Math.floor((new Date() - new Date(pickup.entry_date + 'T00:00:00')) / (1000 * 60 * 60 * 24));
-                  const daysLabel = daysAgo === 0 ? 'Today' : daysAgo === 1 ? 'Yesterday' : `${daysAgo}d ago`;
+                  const fmt = (log) => {
+                    if (!log) return null;
+                    const days = Math.floor((new Date() - new Date(log.entry_date + 'T00:00:00')) / (1000 * 60 * 60 * 24));
+                    const dLabel = days === 0 ? 'Today' : days === 1 ? 'Yesterday' : `${days}d ago`;
+                    return `${formatShortDate(log.entry_date)} (${dLabel})`;
+                  };
+                  const medName = latest.medication || protocol.medication || protocol.program_type;
+                  const isTesto = /testosterone/i.test(medName || '') || /testosterone/i.test(protocol.program_type || '');
                   return (
-                    <div key={protocol.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: '#1f2937' }}>
+                    <div key={protocol.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, color: '#1f2937', flexWrap: 'wrap' }}>
                       <span style={{
                         display: 'inline-block',
                         padding: '1px 8px',
@@ -4432,12 +4435,28 @@ export default function PatientProfile() {
                         color: cat.text,
                         flexShrink: 0,
                       }}>{cat.label}</span>
-                      <span style={{ fontWeight: 600 }}>{pickup.medication || protocol.medication || protocol.program_type}</span>
-                      <span style={{ color: '#6b7280' }}>{formatShortDate(pickup.entry_date)} ({daysLabel})</span>
-                      {pickup.dosage && <span style={{ color: '#6b7280', fontSize: 13 }}>{pickup.dosage}</span>}
-                      {nextRefill && (
+                      <span style={{ fontWeight: 600 }}>{medName}</span>
+                      {lastInjection && (
+                        <span style={{ color: '#1f2937' }}>
+                          <span style={{ color: '#6b7280' }}>Last injection: </span>
+                          {fmt(lastInjection)}
+                          {lastInjection.dosage && (
+                            <span style={{ fontWeight: isTesto ? 700 : 500, color: isTesto ? '#7c3aed' : '#1f2937', marginLeft: 6 }}>
+                              · {lastInjection.dosage}
+                            </span>
+                          )}
+                        </span>
+                      )}
+                      {lastPickup && (
+                        <span style={{ color: '#1f2937' }}>
+                          <span style={{ color: '#6b7280' }}>Last pickup: </span>
+                          {fmt(lastPickup)}
+                          {lastPickup.dosage && <span style={{ color: '#6b7280', marginLeft: 6 }}>· {lastPickup.dosage}</span>}
+                        </span>
+                      )}
+                      {protocol.next_expected_date && (
                         <span style={{ color: '#047857', fontSize: 13, fontWeight: 500 }}>
-                          Next refill: {formatShortDate(nextRefill)}
+                          Next refill: {formatShortDate(protocol.next_expected_date)}
                         </span>
                       )}
                     </div>

@@ -404,6 +404,7 @@ export default async function handler(req, res) {
         const neverAutoComplete = isWeightLoss || isPeptideProto || isHRT;
         const isCompleted =
           protocol.status === 'completed' ||
+          protocol.status === 'historic' ||
           (!neverAutoComplete && tracking.days_remaining !== null && tracking.days_remaining <= -7) ||
           (!neverAutoComplete && tracking.sessions_remaining !== undefined && tracking.sessions_remaining <= 0 && protocol.total_sessions > 0);
 

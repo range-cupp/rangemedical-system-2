@@ -144,12 +144,25 @@ async function getProtocol(id, res) {
     }
   }
 
+  // Fetch WL purchases for purchase-grouped injection view
+  let wlPurchases = [];
+  if (isWeightLossType(data.program_type) && data.patient_id) {
+    const { data: purchases } = await supabase
+      .from('purchases')
+      .select('id, created_at, description, amount_paid, quantity')
+      .eq('patient_id', data.patient_id)
+      .or('description.ilike.%weight%,description.ilike.%loss%,description.ilike.%tirz%,description.ilike.%sema%,description.ilike.%reta%')
+      .order('created_at', { ascending: true });
+    wlPurchases = purchases || [];
+  }
+
   return res.status(200).json({
     success: true,
     protocol: data,
     weightCheckins,
     activityLogs,
-    weightProgress
+    weightProgress,
+    wlPurchases
   });
 }
 
@@ -299,38 +312,11 @@ async function updateProtocol(id, updates, res) {
     }
   }
 
-  // Auto-track HRT dose changes in dose_history
-  if (updateData.selected_dose !== undefined || updateData.injections_per_week !== undefined) {
-    const { data: current2 } = await supabase.from('protocols').select('category, selected_dose, injections_per_week, dose_history, start_date').eq('id', id).single();
-    if (current2 && current2.category === 'hrt') {
-      const oldDose = current2.selected_dose;
-      const oldIpw = current2.injections_per_week;
-      const newDose = updateData.selected_dose ?? oldDose;
-      const newIpw = updateData.injections_per_week ?? oldIpw;
-      const doseChanged = newDose !== oldDose || newIpw !== oldIpw;
-
-      if (doseChanged && newDose) {
-        const history = Array.isArray(current2.dose_history) ? [...current2.dose_history] : [];
-        // If empty, seed with the old dose at start_date
-        if (history.length === 0 && oldDose && current2.start_date) {
-          history.push({
-            date: current2.start_date,
-            dose: oldDose,
-            injections_per_week: oldIpw || 2,
-            notes: 'Starting dose'
-          });
-        }
-        // Add new dose entry
-        history.push({
-          date: new Date().toISOString().split('T')[0],
-          dose: newDose,
-          injections_per_week: parseInt(newIpw) || 2,
-          notes: `Changed from ${oldDose || 'unknown'}`
-        });
-        updateData.dose_history = history;
-      }
-    }
-  }
+  // NOTE: PATCH is for tracking corrections only. A clinical dose change
+  // (provider switching the patient to a new dose) must go through
+  // POST /api/protocols/[id]/dose-change, which closes this protocol as
+  // historic and creates a new active protocol with carry-over supply.
+  // We intentionally do NOT auto-append to dose_history here.
 
   // If dose_history is being set directly (manual adjustment), allow it through
   if (updateData.dose_history && typeof updateData.dose_history === 'string') {

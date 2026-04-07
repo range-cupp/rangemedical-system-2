@@ -467,6 +467,8 @@ export default function PatientProfile() {
   const [intakeDemographics, setIntakeDemographics] = useState(null);
   const [activeProtocols, setActiveProtocols] = useState([]);
   const [completedProtocols, setCompletedProtocols] = useState([]);
+  // 'active' | 'historic' — sub-tab inside the Protocols section
+  const [protocolView, setProtocolView] = useState('active');
   const [pendingNotifications, setPendingNotifications] = useState([]);
   const [labs, setLabs] = useState([]);
   const [intakes, setIntakes] = useState([]);
@@ -1430,33 +1432,25 @@ export default function PatientProfile() {
     if (!doseChangeForm.date || !doseChangeForm.dose) return;
     setDoseChangeSaving(true);
     try {
-      const currentHistory = Array.isArray(doseChangeProtocol.dose_history) ? [...doseChangeProtocol.dose_history] : [];
-      // If empty, seed with current dose at start_date
-      if (currentHistory.length === 0 && doseChangeProtocol.selected_dose && doseChangeProtocol.start_date) {
-        currentHistory.push({
-          date: doseChangeProtocol.start_date,
-          dose: doseChangeProtocol.selected_dose,
-          injections_per_week: doseChangeProtocol.injections_per_week || 2,
-          notes: 'Starting dose'
-        });
-      }
-      currentHistory.push({
-        date: doseChangeForm.date,
-        dose: doseChangeForm.dose,
-        injections_per_week: parseInt(doseChangeForm.injectionsPerWeek) || 2,
-        notes: doseChangeForm.notes || ''
-      });
-      // Sort by date
-      currentHistory.sort((a, b) => a.date.localeCompare(b.date));
-      await fetch(`/api/protocols/${doseChangeProtocol.id}`, {
-        method: 'PATCH',
+      // Provider dose change: closes the current protocol as `historic` and
+      // creates a new active protocol starting on the effective date,
+      // carrying over remaining vial supply automatically.
+      const res = await fetch(`/api/protocols/${doseChangeProtocol.id}/dose-change`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dose_history: currentHistory })
+        body: JSON.stringify({
+          effective_date: doseChangeForm.date,
+          selected_dose: doseChangeForm.dose,
+          injections_per_week: parseInt(doseChangeForm.injectionsPerWeek) || 2,
+          reason: doseChangeForm.notes || '',
+        }),
       });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
       setShowDoseChangeModal(false);
       fetchPatient();
     } catch (err) {
-      alert('Failed to save dose change');
+      alert('Failed to save dose change: ' + (err.message || ''));
     }
     setDoseChangeSaving(false);
   };
@@ -5595,7 +5589,7 @@ export default function PatientProfile() {
             <>
               <section className="card">
                 <div className="card-header">
-                  <h3>Protocols ({activeProtocols.length + completedProtocols.filter(p => p.status !== 'merged').length})</h3>
+                  <h3>Protocols</h3>
                   <div style={{ display: 'flex', gap: 8 }}>
                     {activeProtocols.some(p => p.category === 'peptide') && (
                       <button onClick={openProtocolPdfModal} style={{
@@ -5609,6 +5603,28 @@ export default function PatientProfile() {
                     <button onClick={() => openAssignModal()} className="btn-primary-sm">+ Add Protocol</button>
                   </div>
                 </div>
+                {/* Active / Historic sub-tabs */}
+                {(() => {
+                  const activeCount = activeProtocols.length;
+                  const historicCount = completedProtocols.filter(p => p.status !== 'merged').length;
+                  const tabBtn = (key, label, count) => (
+                    <button
+                      onClick={() => setProtocolView(key)}
+                      style={{
+                        padding: '8px 16px', fontSize: 13, fontWeight: 600,
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        color: protocolView === key ? '#000' : '#9ca3af',
+                        borderBottom: protocolView === key ? '2px solid #000' : '2px solid transparent',
+                      }}
+                    >{label} ({count})</button>
+                  );
+                  return (
+                    <div style={{ display: 'flex', gap: 4, padding: '0 16px', borderBottom: '1px solid #e5e7eb', marginBottom: 8 }}>
+                      {tabBtn('active', 'Active', activeCount)}
+                      {tabBtn('historic', 'Historic', historicCount)}
+                    </div>
+                  );
+                })()}
                 {/* Free Range IV perk banner — shown when HRT patient has an unused IV this billing cycle */}
                 {hrtRangeIVStatus && !hrtRangeIVStatus.used && (
                   <div style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', border: '1.5px solid #86efac', borderRadius: 0, padding: '14px 18px', margin: '0 0 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
@@ -5629,11 +5645,18 @@ export default function PatientProfile() {
                   </div>
                 )}
 
-                {activeProtocols.length === 0 && completedProtocols.filter(p => p.status !== 'merged').length === 0 ? (
-                  <div className="empty">No protocols</div>
-                ) : (
+                {(() => {
+                  const visibleProtocols = (
+                    protocolView === 'active'
+                      ? activeProtocols
+                      : completedProtocols.filter(p => p.status !== 'merged')
+                  ).slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                  if (visibleProtocols.length === 0) {
+                    return <div className="empty">No {protocolView === 'active' ? 'active' : 'historic'} protocols</div>;
+                  }
+                  return (
                   <div className="protocol-list">
-                    {[...activeProtocols, ...completedProtocols].filter(p => p.status !== 'merged').sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).map(protocol => {
+                    {visibleProtocols.map(protocol => {
                       const cat = getCategoryStyle(protocol.category);
                       const isExpanded = expandedProtocols[protocol.id];
                       const isWeightLoss = protocol.category === 'weight_loss';
@@ -7302,7 +7325,8 @@ export default function PatientProfile() {
                       );
                     })}
                   </div>
-                )}
+                  );
+                })()}
               </section>
             </>
           )}

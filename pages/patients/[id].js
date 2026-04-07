@@ -4297,11 +4297,11 @@ export default function PatientProfile() {
             const protoLogs = (serviceLogs || [])
               .filter(l => l.protocol_id === proto.id && (l.entry_type === 'pickup' || l.entry_type === 'injection'))
               .sort((a, b) => b.entry_date.localeCompare(a.entry_date));
-            const isHRT = proto.category === 'hrt';
-            // HRT protocols always surface here so the patient's current
-            // testosterone (or other HRT med) is visible at the top of the
-            // profile, even before any injection or pickup has been logged.
-            if (protoLogs.length === 0 && !isHRT) return;
+            const alwaysShow = proto.category === 'hrt' || proto.category === 'peptide';
+            // HRT and peptide protocols always surface here so the patient's
+            // current medication is visible at the top of the profile, even
+            // before any injection or pickup has been logged.
+            if (protoLogs.length === 0 && !alwaysShow) return;
             const lastPickup = protoLogs.find(l => l.entry_type === 'pickup');
             const lastInjection = protoLogs.find(l => l.entry_type === 'injection');
             const latest = protoLogs[0] || { medication: proto.medication, entry_date: proto.start_date };

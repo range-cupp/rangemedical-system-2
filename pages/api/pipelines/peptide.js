@@ -54,11 +54,13 @@ async function getPeptidePipeline(req, res) {
     let lastCheckinMap = {};
 
     if (protocolIds.length > 0) {
+      // Pull both legacy automated check-ins AND new staff check-ins so a recent
+      // human touch suppresses the "check-in due" bucket.
       const { data: logs } = await supabase
         .from('protocol_logs')
         .select('protocol_id, log_date, log_type')
         .in('protocol_id', protocolIds)
-        .like('log_type', 'peptide_weekly_checkin_%')
+        .or('log_type.like.peptide_weekly_checkin_%,log_type.eq.staff_checkin')
         .order('log_date', { ascending: false });
 
       if (logs) {
@@ -67,6 +69,17 @@ async function getPeptidePipeline(req, res) {
             lastCheckinMap[log.protocol_id] = log.log_date;
           }
         }
+      }
+    }
+
+    // Build a set of patient_ids who already have a NEWER active peptide protocol —
+    // i.e. they refilled. We don't want staff bugging them about the old one.
+    const patientLatestStart = {};
+    for (const p of protocols || []) {
+      if (p.status !== 'active' || !p.start_date) continue;
+      const prev = patientLatestStart[p.patient_id];
+      if (!prev || new Date(p.start_date) > new Date(prev)) {
+        patientLatestStart[p.patient_id] = p.start_date;
       }
     }
 
@@ -109,6 +122,12 @@ async function getPeptidePipeline(req, res) {
             const daysSinceCheckin = Math.floor((now - lastCheckinDate) / (1000 * 60 * 60 * 24));
             if (daysSinceCheckin >= 6) checkinDue = true;
           }
+        }
+        // Suppress check-in if the patient already started a NEWER peptide
+        // protocol — they've refilled, no need to ask "how's it going?"
+        const latestStart = patientLatestStart[p.patient_id];
+        if (checkinDue && latestStart && p.start_date && new Date(latestStart) > new Date(p.start_date)) {
+          checkinDue = false;
         }
         stage = checkinDue ? 'check_in_due' : 'active';
       }

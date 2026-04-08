@@ -3876,54 +3876,68 @@ export default function PatientProfile() {
     try {
       setUploadingPhotoId(true);
 
-      // Compress images client-side so the request stays well under Vercel's
-      // 4.5 MB serverless body limit. PDFs are passed through as-is.
-      let uploadBlob = file;
-      let uploadName = file.name;
-      let uploadType = file.type || 'image/jpeg';
-
-      const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
-      if (!isPdf) {
-        try {
-          const dataUrl = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = () => reject(new Error('Could not read file'));
-            reader.readAsDataURL(file);
-          });
-          const img = await new Promise((resolve, reject) => {
-            const i = new Image();
-            i.onload = () => resolve(i);
-            i.onerror = () => reject(new Error('Could not decode image (HEIC files must be converted first)'));
-            i.src = dataUrl;
-          });
-          const maxDim = 1800;
-          const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
-          const w = Math.round(img.width * scale);
-          const h = Math.round(img.height * scale);
-          const canvas = document.createElement('canvas');
-          canvas.width = w;
-          canvas.height = h;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, w, h);
-          uploadBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85));
-          uploadName = (file.name.replace(/\.[^.]+$/, '') || 'photo-id') + '.jpg';
-          uploadType = 'image/jpeg';
-        } catch (convErr) {
-          console.warn('Image compression failed, sending original:', convErr);
-        }
-      }
-
-      if (uploadBlob.size > 4 * 1024 * 1024) {
-        throw new Error('File is too large after compression. Please use a smaller image.');
-      }
-
-      const fileBase64 = await new Promise((resolve, reject) => {
+      const blobToBase64 = (blob) => new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result);
         reader.onerror = () => reject(new Error('Could not read file'));
-        reader.readAsDataURL(uploadBlob);
+        reader.readAsDataURL(blob);
       });
+
+      const compressImage = (srcFile) => new Promise((resolve, reject) => {
+        const objectUrl = URL.createObjectURL(srcFile);
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const maxDim = 1800;
+            const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+            const w = Math.max(1, Math.round(img.width * scale));
+            const h = Math.max(1, Math.round(img.height * scale));
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            canvas.toBlob((blob) => {
+              URL.revokeObjectURL(objectUrl);
+              if (blob) resolve(blob);
+              else reject(new Error('Canvas conversion failed'));
+            }, 'image/jpeg', 0.85);
+          } catch (err) {
+            URL.revokeObjectURL(objectUrl);
+            reject(err);
+          }
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(objectUrl);
+          reject(new Error('Image load failed (HEIC files are not supported — please use JPG, PNG, or PDF)'));
+        };
+        img.src = objectUrl;
+      });
+
+      let uploadBlob = file;
+      let uploadName = file.name || 'photo-id';
+      let uploadType = file.type || 'application/octet-stream';
+      const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name || '');
+
+      if (!isPdf && file.type.startsWith('image/')) {
+        try {
+          uploadBlob = await compressImage(file);
+          uploadName = (file.name || 'photo-id').replace(/\.[^.]+$/, '') + '.jpg';
+          uploadType = 'image/jpeg';
+        } catch (convErr) {
+          // If compression fails, fall back to the original file as long as it's small.
+          console.warn('Image compression failed, using original:', convErr);
+          if (file.size > 4 * 1024 * 1024) {
+            throw convErr;
+          }
+        }
+      }
+
+      if (uploadBlob.size > 4.4 * 1024 * 1024) {
+        throw new Error('File is too large. Please use a smaller image (under 4 MB).');
+      }
+
+      const fileBase64 = await blobToBase64(uploadBlob);
 
       const res = await fetch(`/api/patients/${id}/photo-id`, {
         method: 'POST',

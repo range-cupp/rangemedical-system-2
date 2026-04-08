@@ -100,6 +100,8 @@ export default async function handler(req, res) {
               name: l.name,
               category: l.category,
               amount_paid: paidCents / 100,
+              list_amount: l.line_cents / 100,
+              discounted: discountCents > 0 && paidCents !== l.line_cents,
             };
           });
           internalInvoiceItemsByPi[inv.stripe_payment_intent_id] = lines;

@@ -9208,7 +9208,12 @@ export default function PatientProfile() {
                                     <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '2px 0' }}>
                                       <span>• {li.name}</span>
                                       {li.amount_paid != null && (
-                                        <span style={{ color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>${li.amount_paid.toFixed(2)}</span>
+                                        <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+                                          {li.discounted && li.list_amount != null && li.list_amount !== li.amount_paid && (
+                                            <span style={{ color: '#94a3b8', textDecoration: 'line-through', marginRight: 6 }}>${li.list_amount.toFixed(2)}</span>
+                                          )}
+                                          <span style={{ color: '#0f172a', fontWeight: 600 }}>${li.amount_paid.toFixed(2)}</span>
+                                        </span>
                                       )}
                                     </div>
                                   ))}

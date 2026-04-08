@@ -432,6 +432,14 @@
         }
       });
       
+      if (sideEffects.length === 0) {
+        errorMsg.textContent = 'Please select "None" if you had no side effects this week, or check any that apply.';
+        errorMsg.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = originalText;
+        return;
+      }
+
       const data = {
         contact_id: contactId,
         weight: form.weight.value,

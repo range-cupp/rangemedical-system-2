@@ -8,9 +8,16 @@ import InteractiveEncounterForm from './InteractiveEncounterForm';
 import { overlayClickProps } from './AdminLayout';
 import { NOTE_AUTHORS, isNoteAuthor } from '../lib/staff-config';
 
-// Parse **bold** markdown into React elements
+// Render note body — supports rich HTML (bold/italic/underline/highlight) or legacy **markdown**
 function renderFormattedText(text) {
   if (!text) return text;
+  if (/<(strong|b|i|em|u|span|mark|font|br|div|ul|ol|li|p)\b/i.test(text)) {
+    const safe = text
+      .replace(/<\/?(script|style|iframe|object|embed|link|meta)\b[^>]*>/gi, '')
+      .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+      .replace(/javascript:/gi, '');
+    return <span dangerouslySetInnerHTML={{ __html: safe }} />;
+  }
   const parts = text.split(/(\*\*.*?\*\*)/g);
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
@@ -20,9 +27,29 @@ function renderFormattedText(text) {
   });
 }
 
-// Convert **bold** markdown + newlines → HTML for contentEditable display
+// Detect whether stored note body is rich HTML vs legacy markdown
+function isHtmlNote(text) {
+  return !!text && /<(strong|b|i|em|u|span|mark|font|br|div|ul|ol|li|p)\b/i.test(text);
+}
+
+// Sanitize contentEditable HTML for safe storage — keep formatting tags, strip scripts/handlers
+function sanitizeNoteHtml(html) {
+  if (!html) return '';
+  return html
+    // strip script/style blocks
+    .replace(/<\/?(script|style|iframe|object|embed|link|meta)\b[^>]*>/gi, '')
+    // strip on* event handlers
+    .replace(/\son\w+\s*=\s*"[^"]*"/gi, '')
+    .replace(/\son\w+\s*=\s*'[^']*'/gi, '')
+    .replace(/\son\w+\s*=\s*[^\s>]+/gi, '')
+    // strip javascript: URLs
+    .replace(/javascript:/gi, '');
+}
+
+// Convert markdown (legacy) OR pass-through HTML → HTML for contentEditable display
 function mdToHtml(text) {
   if (!text) return '';
+  if (isHtmlNote(text)) return sanitizeNoteHtml(text);
   return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -31,22 +58,23 @@ function mdToHtml(text) {
     .replace(/\n/g, '<br>');
 }
 
-// Convert contentEditable HTML back to **bold** markdown for storage
+// Get storage form from contentEditable — preserve formatting (bold, italic, underline, highlight)
+// Stored as sanitized HTML so styling round-trips on save/reload.
 function htmlToMd(html) {
   if (!html) return '';
-  return html
-    .replace(/<strong>([\s\S]*?)<\/strong>/gi, (_, inner) => `**${inner.replace(/<[^>]*>/g, '')}**`)
-    .replace(/<b>([\s\S]*?)<\/b>/gi, (_, inner) => `**${inner.replace(/<[^>]*>/g, '')}**`)
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<div><br\s*\/?><\/div>/gi, '\n')
-    .replace(/<div>([\s\S]*?)<\/div>/gi, '\n$1')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/<[^>]*>/g, '')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
+  const cleaned = sanitizeNoteHtml(html);
+  // If only plain text (no formatting tags), collapse to plain text
+  if (!isHtmlNote(cleaned)) {
+    return cleaned
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .trim();
+  }
+  return cleaned.trim();
 }
 
 export default function EncounterModal({ appointment, currentUser, onClose, onRefresh }) {

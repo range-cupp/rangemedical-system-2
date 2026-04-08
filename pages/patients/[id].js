@@ -210,6 +210,13 @@ function noteHtmlToMd(html) {
 
 function renderFormattedText(text) {
   if (!text) return text;
+  if (/<(strong|b|i|em|u|span|mark|font|br|div|ul|ol|li|p)\b/i.test(text)) {
+    const safe = text
+      .replace(/<\/?(script|style|iframe|object|embed|link|meta)\b[^>]*>/gi, '')
+      .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+      .replace(/javascript:/gi, '');
+    return <span dangerouslySetInnerHTML={{ __html: safe }} />;
+  }
   const parts = text.split(/(\*\*.*?\*\*)/g);
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {

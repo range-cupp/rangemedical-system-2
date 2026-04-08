@@ -3895,6 +3895,7 @@ export default function PatientProfile() {
       if (!res.ok || !data.success) {
         throw new Error(data.error || 'Upload failed');
       }
+      closePdfViewer();
       await fetchPatient();
     } catch (err) {
       console.error('Photo ID upload failed:', err);
@@ -11920,6 +11921,21 @@ export default function PatientProfile() {
               <div className="slideout-header">
                 <h3>{pdfSlideOut.title}</h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {/* Replace Photo ID — only when viewing a Photo ID */}
+                  {pdfSlideOut.title === 'Photo ID' && (
+                    <button
+                      onClick={() => photoIdInputRef.current?.click()}
+                      disabled={uploadingPhotoId}
+                      style={{
+                        padding: '5px 14px', fontSize: 12, fontWeight: 600,
+                        background: '#fff', color: '#374151',
+                        border: '1px solid #d1d5db', borderRadius: 0,
+                        cursor: uploadingPhotoId ? 'wait' : 'pointer', marginRight: 6,
+                      }}
+                    >
+                      {uploadingPhotoId ? 'Uploading…' : 'Replace Photo ID'}
+                    </button>
+                  )}
                   {/* Send to Patient button — shown for any document with a URL */}
                   {pdfSlideOut.url && !pdfSlideOut.url.startsWith('blob:') && (
                     <button onClick={() => {

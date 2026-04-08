@@ -9,7 +9,6 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
 import AdminLayout, { overlayClickProps } from '../../components/AdminLayout';
-import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../components/AuthProvider';
 import EnergyPackBalance from '../../components/EnergyPackBalance';
 
@@ -3874,40 +3873,62 @@ export default function PatientProfile() {
   const handlePhotoIdUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 25 * 1024 * 1024) {
-      alert('Photo ID must be smaller than 25 MB.');
-      e.target.value = '';
-      return;
-    }
     try {
       setUploadingPhotoId(true);
 
-      // Upload directly to Supabase Storage from the browser to avoid Vercel's
-      // request body size limit on serverless functions.
-      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-      const safeExt = ['jpg', 'jpeg', 'png', 'pdf', 'webp', 'heic', 'heif'].includes(ext) ? ext : 'jpg';
-      const storagePath = `photo-ids/patient-${id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${safeExt}`;
+      // Compress images client-side so the request stays well under Vercel's
+      // 4.5 MB serverless body limit. PDFs are passed through as-is.
+      let uploadBlob = file;
+      let uploadName = file.name;
+      let uploadType = file.type || 'image/jpeg';
 
-      const { error: uploadError } = await supabase.storage
-        .from('medical-documents')
-        .upload(storagePath, file, {
-          contentType: file.type || 'image/jpeg',
-          cacheControl: '3600',
-          upsert: false,
-        });
-      if (uploadError) throw new Error(uploadError.message || 'Storage upload failed');
+      const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+      if (!isPdf) {
+        try {
+          const dataUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error('Could not read file'));
+            reader.readAsDataURL(file);
+          });
+          const img = await new Promise((resolve, reject) => {
+            const i = new Image();
+            i.onload = () => resolve(i);
+            i.onerror = () => reject(new Error('Could not decode image (HEIC files must be converted first)'));
+            i.src = dataUrl;
+          });
+          const maxDim = 1800;
+          const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+          const w = Math.round(img.width * scale);
+          const h = Math.round(img.height * scale);
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          uploadBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+          uploadName = (file.name.replace(/\.[^.]+$/, '') || 'photo-id') + '.jpg';
+          uploadType = 'image/jpeg';
+        } catch (convErr) {
+          console.warn('Image compression failed, sending original:', convErr);
+        }
+      }
 
-      const { data: publicUrlData } = supabase.storage
-        .from('medical-documents')
-        .getPublicUrl(storagePath);
-      const photoIdUrl = publicUrlData?.publicUrl;
-      if (!photoIdUrl) throw new Error('Could not resolve uploaded file URL');
+      if (uploadBlob.size > 4 * 1024 * 1024) {
+        throw new Error('File is too large after compression. Please use a smaller image.');
+      }
 
-      // Persist the URL on the patient's intake (server-side handles update vs. stub create)
+      const fileBase64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Could not read file'));
+        reader.readAsDataURL(uploadBlob);
+      });
+
       const res = await fetch(`/api/patients/${id}/photo-id`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ photoIdUrl }),
+        body: JSON.stringify({ fileBase64, fileName: uploadName, contentType: uploadType }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {

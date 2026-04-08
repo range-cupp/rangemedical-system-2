@@ -59,9 +59,16 @@ export default function NewQuote() {
   const removeItem = (i) => setItems((arr) => arr.filter((_, idx) => idx !== i));
   const addFromCatalog = (svc) => {
     const priceDollars = (Number(svc.price_cents ?? svc.price) || 0) / 100;
+    // Patient-facing name: prefer the actual peptide/compound when present
+    let displayName = svc.name;
+    if (svc.peptide_identifier) {
+      displayName = svc.duration_days
+        ? `${svc.peptide_identifier} — ${svc.duration_days} Day Protocol`
+        : svc.peptide_identifier;
+    }
     const newItem = {
-      name: svc.name,
-      description: svc.description || svc.category || '',
+      name: displayName,
+      description: svc.description || svc.sub_category || '',
       price: priceDollars,
       qty: 1,
     };

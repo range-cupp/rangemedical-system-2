@@ -1,5 +1,5 @@
 // /pages/quote/[token].js
-// Public-facing custom pricing quote page
+// Public-facing custom pricing quote page — v2 design
 // Range Medical
 
 import { useEffect, useState } from 'react';
@@ -28,93 +28,243 @@ export default function QuotePage() {
       .catch(() => { setError('Failed to load'); setLoading(false); });
   }, [token]);
 
-  if (loading) return <Shell><p style={{ color: '#666' }}>Loading…</p></Shell>;
-  if (error) return <Shell><p style={{ color: '#666' }}>{error}</p></Shell>;
-  if (!quote) return null;
-
-  const firstName = (quote.recipient_name || '').split(' ')[0];
-  const expired = quote.expires_at && new Date(quote.expires_at) < new Date();
-
   return (
     <Shell>
       <Head>
         <title>Your Range Medical Pricing</title>
         <meta name="robots" content="noindex,nofollow" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
       </Head>
 
-      <div style={{ marginBottom: 32 }}>
-        <div style={{ fontSize: 11, letterSpacing: '0.15em', color: '#888', textTransform: 'uppercase', marginBottom: 8 }}>
-          Prepared for {firstName} · {fmtDate(quote.created_at)}{quote.expires_at ? ` · Expires ${fmtDate(quote.expires_at)}` : ''}
-        </div>
-        <h1 style={{ fontSize: 34, fontWeight: 700, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.15 }}>
-          {quote.title || 'Your Custom Pricing'}
-        </h1>
-      </div>
+      {loading && <p style={{ color: '#737373', fontSize: 14 }}>Loading…</p>}
+      {!loading && error && <p style={{ color: '#737373', fontSize: 14 }}>{error}</p>}
 
-      {quote.intro_note && (
-        <div style={{ padding: 20, background: '#fafafa', borderLeft: '3px solid #000', marginBottom: 32, fontSize: 16, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-          {quote.intro_note}
-        </div>
-      )}
+      {!loading && !error && quote && (() => {
+        const firstName = (quote.recipient_name || '').split(' ')[0];
+        const expired = quote.expires_at && new Date(quote.expires_at) < new Date();
+        return (
+          <>
+            <div className="kicker">
+              <span className="dot" />
+              PREPARED FOR {firstName?.toUpperCase()} · {fmtDate(quote.created_at).toUpperCase()}
+              {quote.expires_at ? ` · EXPIRES ${fmtDate(quote.expires_at).toUpperCase()}` : ''}
+            </div>
 
-      <div style={{ borderTop: '1px solid #e5e5e5' }}>
-        {(quote.items || []).map((it, i) => (
-          <div key={i} style={{ padding: '24px 0', borderBottom: '1px solid #e5e5e5', display: 'flex', justifyContent: 'space-between', gap: 24, alignItems: 'baseline' }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 18, fontWeight: 600, color: '#000' }}>
-                {it.name}{Number(it.qty) > 1 ? ` × ${it.qty}` : ''}
+            <h1 className="headline">
+              {(quote.title || 'YOUR CUSTOM PRICING').toUpperCase()}
+            </h1>
+            <div className="rule" />
+
+            {quote.intro_note && (
+              <p className="intro">{quote.intro_note}</p>
+            )}
+
+            <div className="items">
+              {(quote.items || []).map((it, i) => (
+                <div key={i} className="item">
+                  <div className="item-main">
+                    <div className="item-name">
+                      {it.name}{Number(it.qty) > 1 ? ` × ${it.qty}` : ''}
+                    </div>
+                    {it.description && (
+                      <div className="item-desc">{it.description}</div>
+                    )}
+                  </div>
+                  <div className="item-price">
+                    ${(Number(it.price) * Number(it.qty || 1)).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="total-row">
+              <div className="total-label">TOTAL</div>
+              <div className="total-value">{fmt(quote.total_cents)}</div>
+            </div>
+
+            {expired ? (
+              <div style={{ marginTop: 40, padding: 20, background: '#fafafa', textAlign: 'center', fontSize: 13, color: '#737373', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>
+                This quote has expired — text us for an updated price
               </div>
-              {it.description && (
-                <div style={{ fontSize: 15, color: '#666', marginTop: 6, lineHeight: 1.6 }}>{it.description}</div>
-              )}
+            ) : (
+              <div className="ctas">
+                <a className="btn-primary" href="sms:+19499973988">Text Us to Get Started</a>
+                <a className="btn-secondary" href="tel:+19499973988">Call (949) 997-3988</a>
+              </div>
+            )}
+
+            <div className="footer">
+              RANGE MEDICAL · 1901 WESTCLIFF DRIVE, SUITE 10 · NEWPORT BEACH, CA<br />
+              Prepared specifically for {quote.recipient_name}. All services require provider review and approval.
             </div>
-            <div style={{ fontSize: 18, fontWeight: 600, whiteSpace: 'nowrap' }}>
-              ${(Number(it.price) * Number(it.qty || 1)).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-            </div>
-          </div>
-        ))}
-      </div>
+          </>
+        );
+      })()}
 
-      <div style={{ marginTop: 24, padding: '20px 0', borderTop: '2px solid #000', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <div style={{ fontSize: 14, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#666' }}>Total</div>
-        <div style={{ fontSize: 32, fontWeight: 700 }}>{fmt(quote.total_cents)}</div>
-      </div>
-
-      {expired ? (
-        <div style={{ marginTop: 32, padding: 16, background: '#fef2f2', color: '#991b1b', textAlign: 'center', fontSize: 15 }}>
-          This quote has expired. Text us at (949) 997-3988 for an updated price.
-        </div>
-      ) : (
-        <div style={{ marginTop: 40, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <a href="sms:+19499973988" style={{ flex: '1 1 240px', padding: '18px 24px', background: '#000', color: '#fff', textDecoration: 'none', textAlign: 'center', fontSize: 16, fontWeight: 600 }}>
-            Text Us to Get Started
-          </a>
-          <a href="tel:+19499973988" style={{ flex: '1 1 240px', padding: '18px 24px', background: '#fff', color: '#000', border: '1px solid #000', textDecoration: 'none', textAlign: 'center', fontSize: 16, fontWeight: 600 }}>
-            Call (949) 997-3988
-          </a>
-        </div>
-      )}
-
-      <div style={{ marginTop: 48, paddingTop: 24, borderTop: '1px solid #e5e5e5', fontSize: 13, color: '#888', lineHeight: 1.6 }}>
-        Range Medical · 1901 Westcliff Drive, Suite 10, Newport Beach, CA<br />
-        This pricing was prepared specifically for {quote.recipient_name}. All services require provider review and approval.
-      </div>
+      <style jsx>{`
+        .kicker {
+          display: flex;
+          align-items: center;
+          gap: 0.625rem;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.14em;
+          color: #737373;
+          text-transform: uppercase;
+          margin-bottom: 1.5rem;
+        }
+        .dot {
+          display: inline-block;
+          width: 8px;
+          height: 8px;
+          background: #c0392b;
+        }
+        .headline {
+          font-size: clamp(2.5rem, 7vw, 4.5rem);
+          font-weight: 900;
+          line-height: 0.92;
+          letter-spacing: -0.02em;
+          margin: 0 0 1.5rem;
+          color: #0a0a0a;
+        }
+        .rule {
+          width: 60px;
+          height: 4px;
+          background: #0a0a0a;
+          margin-bottom: 2.5rem;
+        }
+        .intro {
+          font-size: 17px;
+          line-height: 1.7;
+          color: #404040;
+          background: #fafafa;
+          padding: 24px 28px;
+          border-left: 3px solid #0a0a0a;
+          margin: 0 0 3rem;
+          white-space: pre-wrap;
+        }
+        .items {
+          border-top: 1px solid #0a0a0a;
+        }
+        .item {
+          display: flex;
+          justify-content: space-between;
+          gap: 24px;
+          padding: 28px 0;
+          border-bottom: 1px solid #e0e0e0;
+          align-items: baseline;
+        }
+        .item-main { flex: 1; }
+        .item-name {
+          font-size: 18px;
+          font-weight: 700;
+          color: #0a0a0a;
+          letter-spacing: -0.01em;
+        }
+        .item-desc {
+          font-size: 14px;
+          color: #737373;
+          margin-top: 8px;
+          line-height: 1.6;
+        }
+        .item-price {
+          font-size: 20px;
+          font-weight: 700;
+          white-space: nowrap;
+          color: #0a0a0a;
+        }
+        .total-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: baseline;
+          margin-top: 28px;
+          padding: 28px 0;
+          border-top: 3px solid #0a0a0a;
+          border-bottom: 3px solid #0a0a0a;
+        }
+        .total-label {
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: #737373;
+        }
+        .total-value {
+          font-size: 40px;
+          font-weight: 900;
+          letter-spacing: -0.02em;
+          color: #0a0a0a;
+        }
+        .ctas {
+          margin-top: 48px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .btn-primary {
+          background: #0a0a0a;
+          color: #fff;
+          border: none;
+          padding: 22px 28px;
+          font-size: 13px;
+          font-weight: 800;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          cursor: pointer;
+          font-family: inherit;
+          text-decoration: none;
+          text-align: center;
+          transition: background 0.2s;
+        }
+        .btn-primary:hover { background: #404040; }
+        .btn-secondary {
+          background: #fff;
+          color: #0a0a0a;
+          border: 1.5px solid #0a0a0a;
+          padding: 20px 28px;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          text-decoration: none;
+          text-align: center;
+          transition: all 0.2s;
+        }
+        .btn-secondary:hover { background: #0a0a0a; color: #fff; }
+        .footer {
+          margin-top: 64px;
+          padding-top: 28px;
+          border-top: 1px solid #e0e0e0;
+          font-size: 11px;
+          color: #737373;
+          line-height: 1.7;
+          letter-spacing: 0.04em;
+        }
+      `}</style>
     </Shell>
   );
 }
 
 function Shell({ children }) {
   return (
-    <div style={{ minHeight: '100vh', background: '#fff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif', color: '#0a0a0a' }}>
-      <div style={{ borderBottom: '1.5px solid #000' }}>
-        <div style={{ maxWidth: 720, margin: '0 auto', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '0.02em' }}>RANGE MEDICAL</div>
-          <div style={{ fontSize: 12, color: '#666', textAlign: 'right' }}>
+    <div style={{
+      minHeight: '100vh',
+      background: '#fff',
+      fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif',
+      color: '#0a0a0a',
+      WebkitFontSmoothing: 'antialiased',
+    }}>
+      <header style={{ borderBottom: '1px solid #e0e0e0', background: '#fff' }}>
+        <div style={{ maxWidth: 760, margin: '0 auto', padding: '24px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: '0.14em' }}>RANGE MEDICAL</div>
+          <div style={{ fontSize: 11, color: '#737373', textAlign: 'right', letterSpacing: '0.06em', textTransform: 'uppercase', fontWeight: 600 }}>
             range-medical.com · (949) 997-3988
           </div>
         </div>
-      </div>
-      <div style={{ maxWidth: 720, margin: '0 auto', padding: '48px 24px 64px' }}>
+      </header>
+      <div style={{ maxWidth: 760, margin: '0 auto', padding: '64px 28px 80px' }}>
         {children}
       </div>
     </div>

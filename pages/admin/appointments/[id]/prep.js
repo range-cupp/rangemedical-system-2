@@ -376,8 +376,16 @@ function ProviderBriefing({ briefing, appointment, onPrint }) {
       return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     } catch { return iso; }
   };
+  // DOB is a date-only value (YYYY-MM-DD); parse as local to avoid UTC→PST shifting it back a day.
+  const fmtDateOnly = (iso) => {
+    if (!iso) return '—';
+    const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return fmtDate(iso);
+    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
   const dobLine = briefing.patient.dob
-    ? `${fmtDate(briefing.patient.dob)}${briefing.patient.age != null ? ` (age ${briefing.patient.age})` : ''}`
+    ? `${fmtDateOnly(briefing.patient.dob)}${briefing.patient.age != null ? ` (age ${briefing.patient.age})` : ''}`
     : '—';
 
   const reasonParts = [];

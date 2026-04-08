@@ -3932,16 +3932,32 @@ export default function PatientProfile() {
                 onChange={handlePhotoIdUpload}
               />
               {intakes.find(i => i.photo_id_url) ? (
-                <button className="photo-id-badge" onClick={() => {
-                  const photoIdUrl = intakes.find(i => i.photo_id_url)?.photo_id_url;
-                  if (photoIdUrl) openPdfViewer(photoIdUrl, 'Photo ID');
-                }} onContextMenu={(e) => {
-                  e.preventDefault();
-                  if (confirm('Replace existing Photo ID?')) photoIdInputRef.current?.click();
-                }} title="Click to view · Right-click to replace">
-                  <span className="photo-id-icon">🪪</span>
-                  <span className="photo-id-label">Photo ID</span>
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <button className="photo-id-badge" onClick={() => {
+                    const photoIdUrl = intakes.find(i => i.photo_id_url)?.photo_id_url;
+                    if (photoIdUrl) openPdfViewer(photoIdUrl, 'Photo ID');
+                  }} title="View Photo ID">
+                    <span className="photo-id-icon">🪪</span>
+                    <span className="photo-id-label">Photo ID</span>
+                  </button>
+                  <button
+                    onClick={() => photoIdInputRef.current?.click()}
+                    disabled={uploadingPhotoId}
+                    title="Replace Photo ID"
+                    style={{
+                      background: '#f3f4f6',
+                      border: '1px solid #d1d5db',
+                      borderRadius: 6,
+                      padding: '4px 8px',
+                      fontSize: 11,
+                      color: '#374151',
+                      cursor: uploadingPhotoId ? 'wait' : 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {uploadingPhotoId ? '…' : 'Replace'}
+                  </button>
+                </div>
               ) : (
                 <button
                   className="photo-id-badge photo-id-empty"

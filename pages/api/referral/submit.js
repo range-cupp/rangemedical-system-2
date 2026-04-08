@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
-import { sendTwilioSMS, normalizePhone } from '../../../lib/twilio-sms';
+import { normalizePhone } from '../../../lib/twilio-sms';
+import { sendBlooioMessage } from '../../../lib/blooio';
 
 const DAMON_PHONE = '+19499335483';
 
@@ -148,7 +149,7 @@ export default async function handler(req, res) {
     // Text Damon about the new referral lead
     try {
       const damonMsg = `New referral lead: ${first_name} ${last_name} — referred by ${partner.name}. ${phone}${email ? ' / ' + email : ''}`;
-      await sendTwilioSMS({ to: DAMON_PHONE, message: damonMsg });
+      await sendBlooioMessage({ to: DAMON_PHONE, message: damonMsg });
     } catch (smsErr) {
       console.error('Damon referral SMS error:', smsErr);
     }

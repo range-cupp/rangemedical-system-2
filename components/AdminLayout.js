@@ -571,6 +571,7 @@ const NAV_ITEMS = [
   { href: '/admin/protocol-builder', label: 'Protocol Builder', icon: 'clipboard' },
   { href: '/admin/schedule', label: 'Schedule', icon: 'calendar' },
   { href: '/admin/checkout', label: 'Checkout', icon: 'shopping-bag' },
+  { href: '/admin/quotes', label: 'Quotes', icon: 'file-text' },
   { href: '/admin/payments', label: 'Payments', icon: 'credit-card' },
   { href: '/admin/energy-packs', label: 'Energy Packs', icon: 'zap', adminOnly: true },
   { href: '/admin/communications', label: 'Communications', icon: 'message' },

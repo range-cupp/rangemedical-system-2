@@ -75,9 +75,21 @@ export default function NewQuote() {
   const categories = Array.from(new Set(catalog.map((c) => c.category).filter(Boolean))).sort();
   const filteredCatalog = catalog.filter((c) => {
     if (catalogCategory && c.category !== catalogCategory) return false;
-    if (catalogSearch && !c.name.toLowerCase().includes(catalogSearch.toLowerCase())) return false;
+    if (catalogSearch) {
+      const q = catalogSearch.toLowerCase();
+      const haystack = [c.name, c.peptide_identifier, c.sub_category, c.description]
+        .filter(Boolean).join(' ').toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
     return true;
   });
+  const internalLabel = (svc) => {
+    const parts = [];
+    if (svc.peptide_identifier) parts.push(svc.peptide_identifier);
+    if (svc.sub_category) parts.push(svc.sub_category);
+    if (svc.duration_days) parts.push(`${svc.duration_days}d`);
+    return parts.join(' · ') || svc.category;
+  };
 
   const subtotal = items.reduce((sum, it) => sum + ((Number(it.price) || 0) * (Number(it.qty) || 1)), 0);
   const total = Math.max(0, subtotal - (Number(discount) || 0));
@@ -220,8 +232,8 @@ export default function NewQuote() {
                   style={{ padding: '10px 14px', borderBottom: '1px solid #f0f0f0', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                 >
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: 14 }}>{svc.name}</div>
-                    <div style={{ fontSize: 12, color: '#888' }}>{svc.category}</div>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{internalLabel(svc)}</div>
+                    <div style={{ fontSize: 12, color: '#888' }}>{svc.name} · {svc.category}</div>
                   </div>
                   <div style={{ fontSize: 14, fontWeight: 600 }}>${(cents / 100).toFixed(2)}</div>
                 </div>

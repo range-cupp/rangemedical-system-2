@@ -24,6 +24,7 @@ const supabase = createClient(
 const STAFF_PHONES = [
   '+19496900339', // Chris
   '+19494244679', // Lily
+  '+17146187880', // Dr. Damien Burgess
 ];
 
 export default async function handler(req, res) {

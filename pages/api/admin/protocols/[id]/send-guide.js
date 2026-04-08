@@ -56,10 +56,10 @@ export default async function handler(req, res) {
     // Gather ALL active peptide protocols for this patient
     const { data: allProtocols } = await supabase
       .from('protocols')
-      .select('id, medication, program_name, category, status, total_sessions, delivery_method, supply_type, num_vials')
+      .select('id, medication, program_name, category, status, total_sessions, delivery_method, supply_type, num_vials, secondary_medications, secondary_medication_details')
       .eq('patient_id', protocol.patient_id)
       .eq('status', 'active')
-      .in('category', ['peptide', 'recovery', 'longevity', 'gh_blend', 'skin', 'neuro', 'immune', 'sexual_health', 'injection']);
+      .in('category', ['peptide', 'recovery', 'longevity', 'gh_blend', 'skin', 'neuro', 'immune', 'sexual_health', 'injection', 'hrt']);
 
     // Build enhanced vial entries: vialId.days.delivery
     // num_vials > 0 = patient got a whole vial (needs reconstitution)
@@ -68,6 +68,20 @@ export default async function handler(req, res) {
     const protocolIds = [];
     const seenVialIds = new Set();
     for (const p of (allProtocols || [])) {
+      // Include HRT secondary medications (e.g. HCG) so they appear in the guide
+      let secondaryMeds = [];
+      try {
+        const raw = p.secondary_medications;
+        secondaryMeds = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : [];
+      } catch { secondaryMeds = []; }
+      for (const med of secondaryMeds) {
+        const secVialId = getVialIdForMedication(med, null);
+        if (secVialId && !seenVialIds.has(secVialId)) {
+          seenVialIds.add(secVialId);
+          vialEntries.push({ vialId: secVialId, days: 0, delivery: 'vial' });
+        }
+      }
+
       const vialId = getVialIdForMedication(p.medication, p.program_name);
       if (vialId && !seenVialIds.has(vialId)) {
         seenVialIds.add(vialId);

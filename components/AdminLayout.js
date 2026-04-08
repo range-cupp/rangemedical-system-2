@@ -754,6 +754,16 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
     }
   }, [authLoading, isAuthenticated, router]);
 
+  // Per-user hidden nav items (localStorage) — must run on every render to keep hook order stable
+  const hiddenStorageKey = employee?.id ? `sidebar_hidden_${employee.id}` : null;
+  useEffect(() => {
+    if (!hiddenStorageKey) return;
+    try {
+      const raw = localStorage.getItem(hiddenStorageKey);
+      if (raw) setHiddenNav(JSON.parse(raw));
+    } catch {}
+  }, [hiddenStorageKey]);
+
   // Show nothing while checking auth
   if (authLoading || !isAuthenticated) {
     return (
@@ -769,16 +779,6 @@ export default function AdminLayout({ children, title = 'Admin', actions, hideHe
     if (!item.permission) return true;
     return hasPermission(item.permission);
   });
-
-  // Per-user hidden nav items (localStorage)
-  const hiddenStorageKey = employee?.id ? `sidebar_hidden_${employee.id}` : null;
-  useEffect(() => {
-    if (!hiddenStorageKey) return;
-    try {
-      const raw = localStorage.getItem(hiddenStorageKey);
-      if (raw) setHiddenNav(JSON.parse(raw));
-    } catch {}
-  }, [hiddenStorageKey]);
 
   const persistHidden = (next) => {
     setHiddenNav(next);

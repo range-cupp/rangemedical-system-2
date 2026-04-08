@@ -124,12 +124,14 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       try {
         const res = await fetch('/api/pos/services?active=true');
         const data = await res.json();
-        // Hide one-time/single-injection options for Tirzepatide and Retatrutide —
-        // these meds are sold as monthly programs only.
-        const svc = (data.services || []).filter(s => {
-          const n = (s.name || '').toLowerCase();
-          const isTirzOrReta = n.includes('tirzepatide') || n.includes('retatrutide');
-          return !(isTirzOrReta && n.includes('single'));
+        // Strip redundant "(One-Time)" label from Tirzepatide/Retatrutide monthly
+        // items — none of these meds have a subscription option, so the label is noise.
+        const svc = (data.services || []).map(s => {
+          const n = s.name || '';
+          if (/tirzepatide|retatrutide/i.test(n) && /\(one-time\)/i.test(n)) {
+            return { ...s, name: n.replace(/\s*\(one-time\)\s*/i, ' ').replace(/\s+/g, ' ').trim() };
+          }
+          return s;
         });
         setServices(svc);
 
@@ -246,6 +248,8 @@ function POSChargeForm({ patient: initialPatient, onClose, onChargeComplete }) {
       weight_loss: [
         { label: 'Tirzepatide — Monthly Program', match: i => i.name.toLowerCase().includes('tirzepatide') && i.name.toLowerCase().includes('monthly') },
         { label: 'Retatrutide — Monthly Program', match: i => i.name.toLowerCase().includes('retatrutide') && i.name.toLowerCase().includes('monthly') },
+        { label: 'Tirzepatide — Single Injections', match: i => i.name.toLowerCase().includes('tirzepatide') && i.name.toLowerCase().includes('single') },
+        { label: 'Retatrutide — Single Injections', match: i => i.name.toLowerCase().includes('retatrutide') && i.name.toLowerCase().includes('single') },
         { label: 'Semaglutide', match: i => i.name.toLowerCase().includes('semaglutide') },
       ],
       iv_therapy: [

@@ -29,6 +29,15 @@ export default async function handler(req, res) {
       return res.status(200).json({ charges: [], hasStripeCustomer: false });
     }
 
+    // Fetch ALL purchases for this patient — used as fallback when
+    // stripe_payment_intent_id isn't populated on older/imported records.
+    // We match by purchase_date + amount_paid against the Stripe charge.
+    const { data: allPatientPurchases } = await supabase
+      .from('purchases')
+      .select('id, purchase_date, description, item_name, amount_paid, medication, dose, quantity, category, stripe_payment_intent_id')
+      .eq('patient_id', id);
+    const unlinkedPurchases = (allPatientPurchases || []).filter(p => !p.stripe_payment_intent_id);
+
     // Fetch actual charges from Stripe
     const charges = await stripe.charges.list({
       customer: patient.stripe_customer_id,
@@ -165,6 +174,51 @@ export default async function handler(req, res) {
       // Fallback 2: Stripe-hosted invoice lines
       if (lineItems.length === 0 && c.invoice && invoiceLineItemsDetailed[c.invoice]) {
         lineItems = invoiceLineItemsDetailed[c.invoice];
+      }
+      // Fallback 3: match unlinked purchases by date (±1 day) and where the
+      // sum of amount_paid on that day equals the charge total. Handles older
+      // imported purchases that never got stripe_payment_intent_id set.
+      if (lineItems.length === 0 && unlinkedPurchases.length > 0) {
+        const chargeDate = new Date(c.created * 1000);
+        const chargeAmount = c.amount / 100;
+        // PT date string for comparison
+        const ymd = (d) => d.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+        const targetYmd = ymd(chargeDate);
+        const sameDay = unlinkedPurchases.filter(p => {
+          if (!p.purchase_date) return false;
+          // purchase_date may be 'YYYY-MM-DD' or ISO; normalize
+          const pd = String(p.purchase_date).slice(0, 10);
+          return pd === targetYmd;
+        });
+        // Try exact-amount single match first
+        const exact = sameDay.filter(p => Math.abs(Number(p.amount_paid) - chargeAmount) < 0.01);
+        let matched = [];
+        if (exact.length > 0) {
+          matched = exact;
+        } else {
+          // Otherwise, if all same-day purchases sum to the charge amount, use them all
+          const sum = sameDay.reduce((s, p) => s + Number(p.amount_paid || 0), 0);
+          if (sameDay.length > 0 && Math.abs(sum - chargeAmount) < 0.01) {
+            matched = sameDay;
+          }
+        }
+        if (matched.length > 0) {
+          lineItems = matched.map(p => {
+            const baseName = p.medication || p.item_name || p.description || 'Service';
+            const parts = [baseName];
+            if (p.dose) parts.push(p.dose);
+            if (p.quantity && Number(p.quantity) > 1) parts.push(`×${p.quantity}`);
+            return {
+              name: parts.join(' · '),
+              category: p.category || null,
+              amount_paid: p.amount_paid != null ? Number(p.amount_paid) : null,
+            };
+          });
+          // Also override the description so the row title shows the items
+          if (!itemDescription || itemDescription === c.description) {
+            itemDescription = matched.map(p => p.medication || p.item_name || p.description || 'Service').join(', ');
+          }
+        }
       }
 
       return {

@@ -204,6 +204,9 @@ export default function WLSupportPage() {
             <a href="tel:+19499973988" className="wl-btn-primary">Call (949) 997-3988</a>
             <a href="sms:+19499973988" className="wl-btn-outline">Text Us</a>
           </div>
+          <p className="wl-cta-disclaimer">
+            If you are experiencing a life-threatening emergency, call 911 immediately. For all non-emergency questions or concerns, please contact the clinic.
+          </p>
         </div>
       </section>
 
@@ -377,10 +380,17 @@ export default function WLSupportPage() {
           margin: 0 auto;
         }
         .wl-cta h2 {
+          color: #ffffff;
           font-size: 2rem;
-          font-weight: 700;
+          font-weight: 400;
           letter-spacing: -0.02em;
           margin: 0 0 0.75rem;
+        }
+        .wl-cta-disclaimer {
+          margin-top: 1.75rem;
+          font-size: 0.8rem;
+          line-height: 1.6;
+          color: rgba(255, 255, 255, 0.5);
         }
         .wl-cta p {
           color: rgba(255, 255, 255, 0.6);

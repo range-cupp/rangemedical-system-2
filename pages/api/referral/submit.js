@@ -1,5 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { Resend } from 'resend';
+import { sendTwilioSMS, normalizePhone } from '../../../lib/twilio-sms';
+
+const DAMON_PHONE = '+19499335483';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -123,6 +126,31 @@ export default async function handler(req, res) {
 
     if (existingPatient) {
       await supabase.from('patients').update({ referral_source: referralTag }).eq('id', existingPatient.id);
+    }
+
+    // Create patient profile so the lead lands in the call list
+    const referralTagForPatient = `Referral: ${partner.name}`;
+    if (!existingPatient) {
+      const fullName = `${first_name} ${last_name}`.trim();
+      await supabase.from('patients').insert({
+        first_name,
+        last_name,
+        name: fullName,
+        full_name: fullName,
+        phone: normalizePhone(phone) || phone,
+        email,
+        status: 'lead',
+        referral_source: referralTagForPatient,
+        tags: ['referral', 'needs-call'],
+      });
+    }
+
+    // Text Damon about the new referral lead
+    try {
+      const damonMsg = `New referral lead: ${first_name} ${last_name} — referred by ${partner.name}. ${phone}${email ? ' / ' + email : ''}`;
+      await sendTwilioSMS({ to: DAMON_PHONE, message: damonMsg });
+    } catch (smsErr) {
+      console.error('Damon referral SMS error:', smsErr);
     }
 
     await resend.emails.send({
